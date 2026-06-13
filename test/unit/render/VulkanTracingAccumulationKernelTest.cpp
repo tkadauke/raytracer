@@ -96,6 +96,16 @@ namespace VulkanTracingAccumulationKernelTest {
         EXPECT_EQ(expectedResolved[y][x], actual.resolvedAt(x, y));
       }
     }
+    EXPECT_EQ("vulkan", actual.diagnostics.backend);
+    EXPECT_EQ("gpu_device", actual.diagnostics.residency);
+    EXPECT_EQ(layout.totalBytes(), actual.diagnostics.residentBytes);
+    EXPECT_EQ(1u, actual.diagnostics.clearOperations);
+    EXPECT_EQ(frames.size(), actual.diagnostics.addOperations);
+    EXPECT_EQ(layout.pixelCount() * frames.size(), actual.diagnostics.addedSamples);
+    EXPECT_EQ(1u, actual.diagnostics.resolveOperations);
+    EXPECT_EQ(3u, actual.diagnostics.readbackOperations);
+    EXPECT_EQ(layout.colorSumBytes() + layout.sampleCountBytes() + layout.resolveBytes(),
+              actual.diagnostics.readbackBytes);
 #else
     GTEST_SKIP() << "Vulkan tracing accumulation kernels are disabled";
 #endif
@@ -122,6 +132,10 @@ namespace VulkanTracingAccumulationKernelTest {
     ASSERT_TRUE(expected.hasSecondMoment());
     ASSERT_NE(nullptr, expected.secondMoment());
     ASSERT_EQ(static_cast<std::size_t>(layout.pixelCount()), actual.secondMoments.size());
+    EXPECT_EQ(4u, actual.diagnostics.readbackOperations);
+    EXPECT_EQ(layout.colorSumBytes() + layout.sampleCountBytes() + layout.momentBytes() +
+                layout.resolveBytes(),
+              actual.diagnostics.readbackBytes);
     for (int y = 0; y != layout.height; ++y) {
       for (int x = 0; x != layout.width; ++x) {
         ASSERT_COLOR_NEAR((*expected.secondMoment())[y][x], actual.secondMomentAt(x, y), 1e-5);

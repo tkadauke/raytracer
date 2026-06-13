@@ -65,6 +65,9 @@ end state for GPU tracing.
 - Direct-light visibility can be grouped into backend-owned any-hit batches in
   the wavefront path tracer.
 - Closest-hit and any-hit frontiers are represented by backend-owned handles.
+- CPU reference tracing accumulation, the current CPU wavefront tile
+  accumulator, and optional Vulkan synthetic accumulation results expose
+  resource residency, byte, operation-count, and readback diagnostics.
 - Metrics expose backend request, selected backend, platform availability,
   execution path, fallback reason, transfer estimates, query counts, frontier
   residency, host path-state bytes, compaction candidates, direct-light batch

@@ -84,6 +84,39 @@ namespace render {
     (void)resolveBytes();
   }
 
+  TracingAccumulationDiagnostics
+  TracingAccumulationDiagnostics::forLayout(const TracingAccumulationLayout& layout,
+                                            const char* backend, const char* residency) {
+    TracingAccumulationLayout validated = layout;
+    validated.validate();
+    TracingAccumulationDiagnostics diagnostics;
+    diagnostics.backend = backend ? backend : "";
+    diagnostics.residency = residency ? residency : "";
+    diagnostics.layout = validated;
+    diagnostics.residentBytes = validated.totalBytes();
+    return diagnostics;
+  }
+
+  void TracingAccumulationDiagnostics::recordClear(std::uint64_t operations) {
+    clearOperations += operations;
+  }
+
+  void TracingAccumulationDiagnostics::recordAdd(std::uint64_t samples,
+                                                 std::uint64_t operations) {
+    addOperations += operations;
+    addedSamples += samples;
+  }
+
+  void TracingAccumulationDiagnostics::recordResolve(std::uint64_t operations) {
+    resolveOperations += operations;
+  }
+
+  void TracingAccumulationDiagnostics::recordReadback(std::uint64_t bytes,
+                                                      std::uint64_t operations) {
+    readbackOperations += operations;
+    readbackBytes += bytes;
+  }
+
   std::size_t bytesPerPixel(TracingAccumulationColorFormat format) {
     switch (format) {
     case TracingAccumulationColorFormat::RGBA32Float:

@@ -22,6 +22,9 @@ namespace engine::wavefront::detail {
     m_metrics.input.width = width;
     m_metrics.input.height = height;
     m_metrics.input.samplesPerPixel = camera.samplesPerPixel();
+    m_metrics.accumulation.diagnostics = render::TracingAccumulationDiagnostics::forLayout(
+      render::TracingAccumulationLayout::image(width, height), "cpu_wavefront_tile",
+      "cpu_tile_local");
     m_metrics.tiling.resetFromTilePlan(tilePlan);
     m_metrics.scheduling.configuredQueueSize =
       static_cast<std::uint64_t>(std::max(0, configuredQueueSize));
@@ -157,6 +160,12 @@ namespace engine::wavefront::detail {
         ? 0.0
         : static_cast<double>(m_metrics.adaptiveSampling.skippedPrimarySamples) /
             static_cast<double>(m_metrics.adaptiveSampling.maximumPrimarySamples);
+    m_metrics.accumulation.diagnostics.clearOperations = m_metrics.tiling.nonEmptyTileCount;
+    m_metrics.accumulation.diagnostics.addOperations = m_metrics.input.primarySamples;
+    m_metrics.accumulation.diagnostics.addedSamples = m_metrics.input.primarySamples;
+    m_metrics.accumulation.diagnostics.resolveOperations = m_metrics.input.renderedPixels;
+    m_metrics.accumulation.diagnostics.readbackOperations = 0;
+    m_metrics.accumulation.diagnostics.readbackBytes = 0;
   }
 
   WavefrontRenderMetrics WavefrontMetricsRecorder::snapshot() const {

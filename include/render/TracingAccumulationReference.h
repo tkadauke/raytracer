@@ -31,6 +31,7 @@ namespace render {
     [[nodiscard]] bool hasSecondMoment() const;
     [[nodiscard]] Buffer<Colord>* secondMoment();
     [[nodiscard]] const Buffer<Colord>* secondMoment() const;
+    [[nodiscard]] const TracingAccumulationDiagnostics& diagnostics() const;
 
     void clear();
     void addSample(int x, int y, const Colord& color);
@@ -46,5 +47,6 @@ namespace render {
     Buffer<Colord> m_colorSum;
     Buffer<std::uint32_t> m_sampleCount;
     std::unique_ptr<Buffer<Colord>> m_secondMoment;
+    mutable TracingAccumulationDiagnostics m_diagnostics;
   };
 }

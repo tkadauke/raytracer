@@ -16,6 +16,7 @@ namespace render {
     std::vector<std::uint32_t> sampleCounts;
     std::vector<Colord> secondMoments;
     std::vector<unsigned int> resolved;
+    TracingAccumulationDiagnostics diagnostics;
 
     [[nodiscard]] std::size_t pixelIndex(int x, int y) const;
     [[nodiscard]] Colord colorSumAt(int x, int y) const;

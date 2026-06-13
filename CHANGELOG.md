@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- Reported tracing accumulation residency, bytes, clear/add/resolve counts,
+  and readbacks in CPU reference diagnostics, optional Vulkan accumulation
+  results, wavefront metrics JSON, and rendercli summaries. — GPT-5 Codex
 - Added optional Vulkan tracing accumulation clear/add/resolve kernels with CPU
   reference parity tests that skip cleanly when Vulkan is unavailable. — GPT-5
   Codex

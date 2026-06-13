@@ -55,6 +55,17 @@ namespace TracingAccumulationReferenceTest {
     Buffer<unsigned int> resolved(1, 1);
     accumulation.resolve(resolved);
     EXPECT_EQ(Colord(0.5, 0.5, 0.5).rgb(), resolved[0][0]);
+
+    const TracingAccumulationDiagnostics& diagnostics = accumulation.diagnostics();
+    EXPECT_EQ("cpu_reference", diagnostics.backend);
+    EXPECT_EQ("cpu_host", diagnostics.residency);
+    EXPECT_EQ(24u, diagnostics.residentBytes);
+    EXPECT_EQ(1u, diagnostics.clearOperations);
+    EXPECT_EQ(3u, diagnostics.addOperations);
+    EXPECT_EQ(3u, diagnostics.addedSamples);
+    EXPECT_EQ(1u, diagnostics.resolveOperations);
+    EXPECT_EQ(0u, diagnostics.readbackOperations);
+    EXPECT_EQ(0u, diagnostics.readbackBytes);
   }
 
   TEST(TracingAccumulationReference, AddSamplesAccumulatesOneSampleForEveryPixel) {
@@ -71,6 +82,8 @@ namespace TracingAccumulationReferenceTest {
     EXPECT_EQ(2u, accumulation.sampleCount()[1][1]);
     ASSERT_COLOR_NEAR(Colord(2.0, 2.2, 2.4), accumulation.colorSum()[1][1], 1e-12);
     ASSERT_COLOR_NEAR(colors[1][1], accumulation.resolvedColor(1, 1), 1e-12);
+    EXPECT_EQ(2u, accumulation.diagnostics().addOperations);
+    EXPECT_EQ(8u, accumulation.diagnostics().addedSamples);
   }
 
   TEST(TracingAccumulationReference, OptionalMomentPlaneAccumulatesSecondRawMoments) {

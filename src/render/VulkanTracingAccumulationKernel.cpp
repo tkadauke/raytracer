@@ -316,10 +316,18 @@ namespace render {
         VulkanTracingAccumulationResult result;
         result.width = layout.width;
         result.height = layout.height;
+        result.diagnostics =
+          TracingAccumulationDiagnostics::forLayout(layout, "vulkan", "gpu_device");
+        result.diagnostics.recordClear();
+        result.diagnostics.recordAdd(static_cast<std::uint64_t>(pixels) *
+                                       static_cast<std::uint64_t>(sampleFrames.size()),
+                                     static_cast<std::uint64_t>(sampleFrames.size()));
+        result.diagnostics.recordResolve();
 
         const std::vector<Rgba32f> colorSums = readBackRecords<Rgba32f>(
           device, buffers.buffers[0].memory, byteCount<Rgba32f>(pixels), pixels,
           "Vulkan tracing accumulation color-sum buffer mapping");
+        result.diagnostics.recordReadback(byteCount<Rgba32f>(pixels));
         result.colorSums.reserve(colorSums.size());
         for (const Rgba32f& color : colorSums) {
           result.colorSums.push_back(toColor(color));
@@ -328,11 +336,13 @@ namespace render {
         result.sampleCounts = readBackRecords<std::uint32_t>(
           device, buffers.buffers[1].memory, byteCount<std::uint32_t>(pixels), pixels,
           "Vulkan tracing accumulation sample-count buffer mapping");
+        result.diagnostics.recordReadback(byteCount<std::uint32_t>(pixels));
 
         if (hasMoment) {
           const std::vector<Rgba32f> moments = readBackRecords<Rgba32f>(
             device, buffers.buffers[2].memory, byteCount<Rgba32f>(pixels), pixels,
             "Vulkan tracing accumulation second-moment buffer mapping");
+          result.diagnostics.recordReadback(byteCount<Rgba32f>(pixels));
           result.secondMoments.reserve(moments.size());
           for (const Rgba32f& color : moments) {
             result.secondMoments.push_back(toColor(color));
@@ -342,6 +352,7 @@ namespace render {
         result.resolved = readBackRecords<unsigned int>(
           device, buffers.buffers[3].memory, byteCount<unsigned int>(pixels), pixels,
           "Vulkan tracing accumulation resolve buffer mapping");
+        result.diagnostics.recordReadback(byteCount<unsigned int>(pixels));
         return result;
       }
 

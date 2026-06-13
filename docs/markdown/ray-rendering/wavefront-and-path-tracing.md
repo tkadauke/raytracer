@@ -537,7 +537,12 @@ The resolve plane is deliberately not the accumulator. Backends add linear HDR
 sample radiance into the color sum, increment the count, optionally add squared
 linear RGB into the moment plane, then resolve by dividing and tonemapping into
 the LDR plane. This keeps HDR accumulation and LDR presentation separate while
-leaving CPU reference operations and Metal/Vulkan kernels as follow-up work.
+letting CPU reference operations and platform kernels expose the same resource
+diagnostics: residency, per-plane byte counts, clear/add/resolve operation
+counts, and readback counts/bytes. Wavefront metrics currently report the
+CPU tile-local accumulation mode explicitly, while the standalone Vulkan
+accumulation result reports GPU-resident storage and the CPU readbacks used by
+its parity tests.
 Direct-light diagnostics also report the host bytes used for sampled light
 selection records that pair each occlusion query with its eventual lighting
 contribution. Those bytes are separate from the any-hit ray frontier and show
@@ -651,6 +656,10 @@ choices become inspectable user-facing metadata.
 - `src/render/WavefrontFrontierCompaction.cpp`
 - `include/render/TracingAccumulationLayout.h`
 - `src/render/TracingAccumulationLayout.cpp`
+- `include/render/TracingAccumulationReference.h`
+- `src/render/TracingAccumulationReference.cpp`
+- `include/render/VulkanTracingAccumulationKernel.h`
+- `src/render/VulkanTracingAccumulationKernel.cpp`
 - `include/render/PathTracingIntegrator.h`
 - `src/render/PathTracingIntegrator.cpp`
 - `include/render/PathTermination.h`
@@ -671,6 +680,8 @@ choices become inspectable user-facing metadata.
 - `test/unit/render/GpuIntersectionSceneTest.cpp`
 - `test/unit/render/WavefrontIntersectionBackendTest.cpp`
 - `test/unit/render/TracingAccumulationLayoutTest.cpp`
+- `test/unit/render/TracingAccumulationReferenceTest.cpp`
+- `test/unit/render/VulkanTracingAccumulationKernelTest.cpp`
 - `test/unit/render/PathTerminationTest.cpp`
 - `test/unit/render/StateTest.cpp`
 - `test/unit/engine/wavefront/WavefrontRaytracerTest.cpp`
