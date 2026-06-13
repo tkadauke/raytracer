@@ -360,6 +360,27 @@ The graph should eventually distinguish at least these modes:
    GPU tracing uses Metal/Vulkan hardware ray tracing acceleration structures
    while preserving the same algorithm/schedule semantics.
 
+### GPU Accumulation Buffer Layout
+
+`render::TracingAccumulationLayout` defines the v1 backend accumulation layout.
+All planes are image-shaped with the same `width` and `height`:
+
+- `colorSum`: required `rgba32_float`; RGB stores the linear HDR radiance sum,
+  alpha is reserved and written as zero.
+- `sampleCount`: required `uint32`; one counter per pixel.
+- `moment`: optional `rgba32_float_second_raw_moment`; RGB stores the sum of
+  squared linear sample values for variance/adaptive sampling, alpha is
+  reserved and written as zero.
+- `resolve`: required `rgba8_unorm_srgb`; LDR display/export output produced
+  after dividing by the sample count and applying the selected resolve policy.
+
+The resolve plane is separate from accumulation. Backends must not overwrite or
+reinterpret the HDR color sum as the display target, and callers must size
+memory from the individual plane byte counts rather than assuming one packed
+struct per pixel. CPU reference accumulation operations, Metal kernels, Vulkan
+kernels, and resource diagnostics are follow-up jobs under the GPU
+accumulation-buffer epic.
+
 ---
 
 ## Plan Ownership Map
