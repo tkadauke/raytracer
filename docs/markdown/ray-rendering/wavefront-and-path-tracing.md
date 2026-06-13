@@ -145,6 +145,17 @@ integrator asks for the dimension it needs by semantic name instead
 of "the next random number." That makes scalar and wavefront paths
 comparable even when they schedule work differently.
 
+Future GPU sample streams use the same ownership rule. A stochastic
+request is identified by `(primarySampleIndex, dimension)`: the
+primary sample index is the per-pixel sample number, while `dimension`
+comes from `sampleDimensionIndex(name, slot)`. Pixel, time, and lens
+own dimensions 0, 1, and 2. Path-tracing slots then repeat in groups
+of four: BSDF at `3 + 4*i`, light-surface at `4 + 4*i`,
+direct-light selection at `5 + 4*i`, and Russian-roulette
+continuation at `6 + 4*i`. Bounce number, direct-light sample number,
+and light index are folded into `i`, so changing the scheduler does
+not change which sample a path event reads.
+
 ## <a id="wavefront-scheduling"></a>Wavefront scheduling
 The scalar path tracer can be read as one path at a time: intersect,
 shade, sample continuation, repeat. That is simple, but it gives the
