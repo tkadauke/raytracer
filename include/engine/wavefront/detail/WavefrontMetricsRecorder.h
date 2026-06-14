@@ -5,6 +5,8 @@
 #include <chrono>
 #include <cstdint>
 #include <mutex>
+#include <optional>
+#include <string>
 
 namespace render {
   class Camera;
@@ -27,10 +29,11 @@ namespace engine::wavefront::detail {
                std::uint64_t expectedClosestHitIntersectionRays,
                std::uint64_t expectedAnyHitIntersectionRays,
                std::uint64_t autoMinimumGpuIntersectionRays,
-               std::uint64_t autoEstimatedQueryTransferBytes, bool convergenceEnabled,
-               double activeSampleFractionThreshold, double radianceDeltaRmsThreshold,
-               bool adaptiveSamplingEnabled, int adaptiveMinimumSamples,
-               double adaptiveStddevThreshold);
+               std::uint64_t autoEstimatedQueryTransferBytes,
+               std::optional<std::uint64_t> samplingSeed, const std::string& sampleStreamMode,
+               bool convergenceEnabled, double activeSampleFractionThreshold,
+               double radianceDeltaRmsThreshold, bool adaptiveSamplingEnabled,
+               int adaptiveMinimumSamples, double adaptiveStddevThreshold);
     void clear();
     void recordTile(const WavefrontTileTraceResult& result);
     void recordDenoiserFeatureTile(const Recti& rect);

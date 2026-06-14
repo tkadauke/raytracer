@@ -150,8 +150,16 @@ already exist:
   without calling the legacy Whitted `shade()` contract; `supportsBsdfSampling`,
   `evalBsdf`, `sampleBsdf`, `deltaBsdfSamples`, and `bsdfPdf` are the
   material-side scattering hooks.
-- `SampleStream` reserves named stochastic dimensions for pixel, lens,
-  time, BSDF, light, and continuation samples.
+- `SampleStream` reserves named stochastic dimensions for pixel, time, lens,
+  BSDF, light-surface, direct-light-selection, and Russian-roulette
+  continuation samples. Future GPU tracing sample generators use the same
+  deterministic coordinate pair as CPU streams: `(primarySampleIndex,
+  sampleDimensionIndex(name, slot))`. The primary sample index is the per-pixel
+  sample number; bounce, direct-light sample, and light index are folded into
+  the named dimension slot, not into the primary sample index.
+  The initial CPU/GPU parity generator choice is the stateless 32-bit PCG hash
+  documented in `docs/plans/tracing-execution-backends.md`; no platform RNG is
+  part of that contract.
 - `RenderRaytracerOptions` / `RaytracerBeautyPassState` carry graph-visible
   ray-family execution, sampling, view-plane, integrator selection, and
   wavefront convergence-threshold state.

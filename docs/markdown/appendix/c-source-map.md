@@ -161,6 +161,7 @@
 | `include/render/primitives/Torus.h` | [Tessellation](../rasterization/tessellation.md)<br>[Primitives and intersection](../ray-rendering/primitives-and-intersection.md) |
 | `include/render/primitives/Triangle.h` | [Tessellation](../rasterization/tessellation.md)<br>[Primitives and intersection](../ray-rendering/primitives-and-intersection.md) |
 | `include/render/primitives/Union.h` | [Constructive solid geometry](../scene-structure/csg.md) |
+| `include/render/samplers/GpuSampleStream.h` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |
 | `include/render/samplers/HaltonSampler.h` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |
 | `include/render/samplers/JitteredSampler.h` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |
 | `include/render/samplers/RandomSampler.h` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |
@@ -362,6 +363,7 @@
 | `test/unit/render/materials/EmissiveMaterialTest.cpp` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
 | `test/unit/render/primitives/BVHPerformanceTest.cpp` | [Spatial acceleration](../scene-structure/spatial-acceleration.md) |
 | `test/unit/render/primitives/SceneTest.cpp` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
+| `test/unit/render/samplers/GpuSampleStreamTest.cpp` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |
 | `test/unit/render/samplers/HaltonSamplerTest.cpp` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |
 | `test/unit/render/samplers/JitteredSamplerTest.cpp` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |
 | `test/unit/render/samplers/RandomSamplerTest.cpp` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |

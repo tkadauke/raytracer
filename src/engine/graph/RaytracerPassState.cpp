@@ -111,6 +111,17 @@ namespace engine::graph {
       return name.size() >= 7 && name.substr(name.size() - 7) == "Sampler" ? name
                                                                            : name + "Sampler";
     }
+
+    std::string normalizedSampleStreamMode(std::string mode, const std::string& path) {
+      std::transform(mode.begin(), mode.end(), mode.begin(),
+                     [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+      std::replace(mode.begin(), mode.end(), '-', '_');
+      if (mode == "sampler" || mode == "sampler_backed")
+        return "sampler";
+      if (mode == "gpu_sample_stream" || mode == "gpu")
+        return "gpu_sample_stream";
+      stateError(path, "expected sampler or gpu_sample_stream");
+    }
   }
 
   RaytracerBeautyPassState RaytracerBeautyPassState::fromJson(const QJsonObject& object,
@@ -145,13 +156,16 @@ namespace engine::graph {
     }
 
     const QJsonObject sampling = objectField(object, "sampling", path);
-    rejectUnknownFields(sampling, path + ".sampling", {"sampler", "samplesPerPixel", "seed"});
+    rejectUnknownFields(sampling, path + ".sampling",
+                        {"sampler", "samplesPerPixel", "seed", "streamMode"});
     if (hasField(sampling, "sampler"))
       state.setSampler(stringField(sampling, "sampler", path + ".sampling"));
     if (hasField(sampling, "samplesPerPixel"))
       state.setSamplesPerPixel(intField(sampling, "samplesPerPixel", path + ".sampling"));
     if (hasField(sampling, "seed"))
       state.setSamplingSeed(uint64Field(sampling, "seed", path + ".sampling"));
+    if (hasField(sampling, "streamMode"))
+      state.setSampleStreamMode(stringField(sampling, "streamMode", path + ".sampling"));
 
     const QJsonObject viewPlane = objectField(object, "viewPlane", path);
     rejectUnknownFields(viewPlane, path + ".viewPlane", {"type"});
@@ -242,6 +256,8 @@ namespace engine::graph {
       sampling["samplesPerPixel"] = *m_samplesPerPixel;
     if (m_samplingSeed)
       sampling["seed"] = static_cast<double>(*m_samplingSeed);
+    if (m_sampleStreamMode || !sampling.isEmpty())
+      sampling["streamMode"] = qstr(m_sampleStreamMode.value_or("sampler"));
     if (!sampling.isEmpty())
       object["sampling"] = sampling;
 
@@ -420,6 +436,11 @@ namespace engine::graph {
     m_samplingSeed = seed;
   }
 
+  void RaytracerBeautyPassState::setSampleStreamMode(std::string mode) {
+    m_sampleStreamMode =
+      normalizedSampleStreamMode(std::move(mode), "parameters.sampling.streamMode");
+  }
+
   void RaytracerBeautyPassState::setViewPlane(std::string viewPlane) {
     m_viewPlane = std::move(viewPlane);
   }
@@ -499,6 +520,10 @@ namespace engine::graph {
 
   std::optional<std::uint64_t> RaytracerBeautyPassState::samplingSeed() const {
     return m_samplingSeed;
+  }
+
+  std::optional<std::string> RaytracerBeautyPassState::sampleStreamMode() const {
+    return m_sampleStreamMode;
   }
 
   std::optional<std::string> RaytracerBeautyPassState::viewPlane() const {

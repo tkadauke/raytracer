@@ -7,20 +7,50 @@
 
 namespace render {
   /**
-    * Named stochastic dimensions reserved by the renderer and future
-    * integrators.
+    * Named stochastic dimensions reserved by the renderer, CPU integrators,
+    * and future GPU tracing sample generators.
     *
     * Pixel, time, and lens keep the existing renderer/camera stream order:
     * the render loop consumes pixel jitter first, shutter time second, and
     * thin-lens cameras consume aperture samples after that. Path-tracing
     * dimensions are indexed by bounce/sample depth so BSDF, light, and
-    * continuation requests cannot accidentally reuse the same 2D pattern.
+    * continuation requests cannot accidentally reuse the same 2D pattern:
+    *
+    * | Concept | Name | Numeric dimension |
+    * | --- | --- | --- |
+    * | sub-pixel jitter | `pixel` | 0 |
+    * | shutter time | `time` | 1 |
+    * | lens/aperture point | `lens` | 2 |
+    * | BSDF continuation sample at slot `i` | `bsdf` | `3 + 4*i` |
+    * | light-surface sample at slot `i` | `light` | `4 + 4*i` |
+    * | direct-light selection at slot `i` | `light_selection` | `5 + 4*i` |
+    * | Russian-roulette continuation at slot `i` | `continuation` | `6 + 4*i` |
+    *
+    * For GPU tracing, the deterministic sample coordinate is the pair
+    * `(primarySampleIndex, sampleDimensionIndex(name, slot))`. The
+    * `primarySampleIndex` is the per-pixel sample number in `[0, spp)`;
+    * bounce number, direct-light sample number, and light index are folded only
+    * into the dimension slot. Keeping those axes separate lets CPU and GPU
+    * sample generators share one seed/sample-index contract without depending
+    * on traversal order.
+    *
     * Light selection uses `SampleDimension::LightSelection`; selected-light
     * surface samples include the light index through
     * `SampleStream::lightSampleIndex(...)` so multiple stochastic lights at one
     * bounce do not share a surface sample.
     */
-  enum class SampleDimension { Pixel, Time, Lens, BSDF, Light, LightSelection, Continuation };
+  enum class SampleDimension : std::uint64_t {
+    Pixel = 0,
+    Time = 1,
+    Lens = 2,
+    BSDF = 3,
+    Light = 4,
+    LightSelection = 5,
+    Continuation = 6
+  };
+
+  constexpr std::uint64_t kPathSampleDimensionBase = 3;
+  constexpr std::uint64_t kPathSampleDimensionStride = 4;
 
   /**
     * Maps a named dimension and optional depth/index to the stream's stable
@@ -29,21 +59,71 @@ namespace render {
   constexpr std::uint64_t sampleDimensionIndex(SampleDimension dimension, std::uint64_t index = 0) {
     switch (dimension) {
     case SampleDimension::Pixel:
-      return 0;
+      return static_cast<std::uint64_t>(SampleDimension::Pixel);
     case SampleDimension::Time:
-      return 1;
+      return static_cast<std::uint64_t>(SampleDimension::Time);
     case SampleDimension::Lens:
-      return 2;
+      return static_cast<std::uint64_t>(SampleDimension::Lens);
     case SampleDimension::BSDF:
-      return 3 + index * 4;
+      return static_cast<std::uint64_t>(SampleDimension::BSDF) + index * kPathSampleDimensionStride;
     case SampleDimension::Light:
-      return 4 + index * 4;
+      return static_cast<std::uint64_t>(SampleDimension::Light) +
+             index * kPathSampleDimensionStride;
     case SampleDimension::LightSelection:
-      return 5 + index * 4;
+      return static_cast<std::uint64_t>(SampleDimension::LightSelection) +
+             index * kPathSampleDimensionStride;
     case SampleDimension::Continuation:
-      return 6 + index * 4;
+      return static_cast<std::uint64_t>(SampleDimension::Continuation) +
+             index * kPathSampleDimensionStride;
     }
     return 0;
+  }
+
+  /**
+    * Stable snake_case name for diagnostics, docs, and GPU shader metadata.
+    */
+  constexpr const char* sampleDimensionName(SampleDimension dimension) {
+    switch (dimension) {
+    case SampleDimension::Pixel:
+      return "pixel";
+    case SampleDimension::Time:
+      return "time";
+    case SampleDimension::Lens:
+      return "lens";
+    case SampleDimension::BSDF:
+      return "bsdf";
+    case SampleDimension::Light:
+      return "light";
+    case SampleDimension::LightSelection:
+      return "light_selection";
+    case SampleDimension::Continuation:
+      return "continuation";
+    }
+    return "unknown";
+  }
+
+  /**
+    * GPU-friendly coordinate for one stochastic value request. CPU sampler
+    * streams consume the same two fields implicitly: `primarySampleIndex`
+    * selects the per-pixel sample, and `dimension` selects the independent
+    * sample dimension.
+    */
+  struct SampleCoordinate {
+    std::uint64_t primarySampleIndex{0};
+    std::uint64_t dimension{0};
+
+    constexpr bool operator==(const SampleCoordinate& other) const {
+      return primarySampleIndex == other.primarySampleIndex && dimension == other.dimension;
+    }
+
+    constexpr bool operator!=(const SampleCoordinate& other) const {
+      return !(*this == other);
+    }
+  };
+
+  constexpr SampleCoordinate sampleCoordinate(std::uint64_t primarySampleIndex,
+                                              SampleDimension dimension, std::uint64_t index = 0) {
+    return SampleCoordinate{primarySampleIndex, sampleDimensionIndex(dimension, index)};
   }
 
   /**

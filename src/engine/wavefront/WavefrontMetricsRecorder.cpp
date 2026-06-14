@@ -14,7 +14,8 @@ namespace engine::wavefront::detail {
     int configuredQueueSize, const render::Integrator& integrator, const render::Denoiser* denoiser,
     std::uint64_t expectedIntersectionRays, std::uint64_t expectedClosestHitIntersectionRays,
     std::uint64_t expectedAnyHitIntersectionRays, std::uint64_t autoMinimumGpuIntersectionRays,
-    std::uint64_t autoEstimatedQueryTransferBytes, bool convergenceEnabled,
+    std::uint64_t autoEstimatedQueryTransferBytes, std::optional<std::uint64_t> samplingSeed,
+    const std::string& sampleStreamMode, bool convergenceEnabled,
     double activeSampleFractionThreshold, double radianceDeltaRmsThreshold,
     bool adaptiveSamplingEnabled, int adaptiveMinimumSamples, double adaptiveStddevThreshold) {
     std::lock_guard<std::mutex> lock(m_mutex);
@@ -22,6 +23,8 @@ namespace engine::wavefront::detail {
     m_metrics.input.width = width;
     m_metrics.input.height = height;
     m_metrics.input.samplesPerPixel = camera.samplesPerPixel();
+    m_metrics.input.samplingSeed = samplingSeed;
+    m_metrics.input.sampleStreamMode = sampleStreamMode;
     m_metrics.tiling.resetFromTilePlan(tilePlan);
     m_metrics.scheduling.configuredQueueSize =
       static_cast<std::uint64_t>(std::max(0, configuredQueueSize));

@@ -14,6 +14,12 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Added `IntersectionService` benchmark rows for closest-hit, any-hit, and
   mixed query-family workloads over small, mesh-heavy, and visibility-heavy
   supported scenes. — GPT-5 Codex
+- Reported ray-family sample-stream mode diagnostics and configured sampling
+  seeds in rendercli graph state, wavefront metrics JSON, and compact metrics
+  summaries. — GPT-5 Codex
+- Added the CPU reference GPU sample stream that generates deterministic
+  named-dimension samples from explicit seed, pixel, primary-sample, dimension,
+  and component coordinates. — GPT-5 Codex
 - Added an intersection-only `render::IntersectionService` API for submitting
   closest-hit and any-hit work with explicit backend execution-path and
   fallback diagnostics. — GPT-5 Codex
@@ -29,6 +35,12 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Documented the current tracing execution metric fields across rendercli
   summaries, metrics JSON, graph traces, and Modeler metadata, including the
   compatibility aliases future capability records must preserve. — GPT-5 Codex
+- Defined the GPU tracing sample-dimension contract for pixel, time, lens,
+  BSDF, light, light-selection, and continuation samples, with deterministic
+  primary-sample/dimension coordinates. — GPT-5 Codex
+- Chose the initial CPU/GPU tracing sample generator as a stateless 32-bit PCG
+  hash over explicit sample coordinates, with platform RNGs excluded from the
+  parity contract. — GPT-5 Codex
 - Routed path-tracing frontier compaction through the wavefront intersection
   backend contract so future GPU backends can override the current host
   compaction path. — GPT-5 Codex
@@ -191,6 +203,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Fixed GPU-requested wavefront intersection fallback summaries so grouped
   unsupported-scene reasons are emitted in deterministic order, with
   transparent-material fallback pinned in metrics JSON. — GPT-5 Codex
+- Fixed wavefront intersection benchmarks to consume byte occlusion flags from
+  any-hit frontier batches. — GPT-5 Codex
 - Fixed tiled wavefront renders so active-hit and direct-light host-byte totals
   and per-depth arrays are merged across all sample batches in a tile.
   — GPT-5 Codex

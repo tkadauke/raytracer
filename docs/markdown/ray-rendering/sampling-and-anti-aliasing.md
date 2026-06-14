@@ -22,7 +22,10 @@ By the end of this chapter you should know:
   stream form,
 - the named stream dimensions reserved for time, lens, BSDF,
   light, and continuation sampling, and why those dimensions
-  must stay independent.
+  must stay independent,
+- how the CPU reference GPU sample stream turns explicit
+  `(seed, pixel, sample, dimension, component)` coordinates into
+  deterministic parity samples.
 
 ## <a id="aliasing-as-undersampling"></a>Aliasing as undersampling
 Every pixel in a rendered image is the answer to a question:
@@ -270,6 +273,28 @@ roulette. Low-discrepancy samplers such as `HaltonSampler` override
 the default dimension lookup so those path-tracing dimensions follow a
 sequence instead of independent pre-baked grid sets.
 
+## <a id="gpu-sample-stream-reference"></a>GPU sample stream reference
+The first GPU-facing sample stream is deliberately smaller than a new
+renderer. [`GpuSampleStream`](../../../include/render/samplers/GpuSampleStream.h)
+is the CPU reference for a shader-friendly stochastic value generator.
+It does not read or mutate the existing sampler sets. Instead, every
+sample is a pure function of five unsigned 32-bit coordinates:
+`seed`, `pixelIndex`, `primarySampleIndex`, numeric `dimension`, and
+`component`.
+
+The named dimension mapping above supplies the dimension coordinate, so
+`sample2D(SampleDimension::BSDF, 2)` and a future GPU kernel request for
+primary sample 5, BSDF slot 2 address the same logical value. Sequential
+`next2D()` and `next1D()` remain available only to satisfy the
+`SampleStream` interface; the parity contract is the explicit coordinate.
+
+The hash is the stateless `pcg_hash32` chosen in
+[`docs/plans/tracing-execution-backends.md`](../../plans/tracing-execution-backends.md).
+The CPU reference folds the coordinate through fixed 32-bit mixes, hashes
+the final word, then maps the high 24 bits to `[0, 1)` by multiplying by
+`2^-24`. That float rule is intentionally simple to mirror in GPU shader
+tests and avoids platform-specific distribution behavior.
+
 ## <a id="the-thin-lens-sampler-interaction"></a>The thin-lens / sampler interaction
 [Cameras](cameras.md) introduced the thin-lens camera and noted that it
 *requires* a multi-sample sampler to produce visible defocus
@@ -439,7 +464,9 @@ the three samplers above are sufficient.
 - `include/render/samplers/RandomSampler.h`
 - `include/render/samplers/HaltonSampler.h`
 - `include/render/samplers/SampleStream.h`
+- `include/render/samplers/GpuSampleStream.h`
 - `test/unit/render/samplers/SamplerTest.cpp`
+- `test/unit/render/samplers/GpuSampleStreamTest.cpp`
 - `test/unit/render/samplers/JitteredSamplerTest.cpp`
 - `test/unit/render/samplers/RandomSamplerTest.cpp`
 - `test/unit/render/samplers/HaltonSamplerTest.cpp`
