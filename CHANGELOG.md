@@ -9,6 +9,12 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ## Unreleased
 
+### Added
+
+- Added tracing record comparison helpers for GPU hit records, occlusion records,
+  compiled CPU hits, and wavefront closest-hit results, closing roadmap §E2
+  job 2. — GPT-5 Codex
+
 ### Changed
 
 - Added `IntersectionService` benchmark rows for closest-hit, any-hit, and
