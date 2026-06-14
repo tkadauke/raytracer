@@ -1384,7 +1384,10 @@ comparison logic.
    - Output: records for Matte and Emissive; explicit unsupported reasons for
      all other materials.
 
-3. **Compile texture records.**
+3. ~~**Compile texture records.**~~ ✅ **Done.**
+   `render::GpuTracingTextureCompiler` emits stable `ConstantColorTexture`
+   records and preserves texture indices with explicit unsupported reason
+   diagnostics for null and non-constant textures. Closes #581.
    - Depends on: job 1.
    - Output: records for ConstantColor; optional CheckerBoard only if required
      coordinates are already represented; unsupported reasons otherwise.

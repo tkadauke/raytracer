@@ -9,6 +9,12 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ## Unreleased
 
+### Added
+
+- Added GPU tracing texture record compilation for `ConstantColorTexture` with
+  explicit unsupported texture reason diagnostics; advances E3 job 3.
+  — GPT-5 Codex
+
 ### Changed
 
 - Added GPU tracing light record compilation for point, directional, and
