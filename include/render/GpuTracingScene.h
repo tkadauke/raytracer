@@ -2,6 +2,7 @@
 
 #include "core/Color.h"
 #include "render/GpuIntersectionScene.h"
+#include "render/textures/Texture.h"
 
 #include <array>
 #include <cstddef>
@@ -12,6 +13,7 @@
 
 namespace render {
   class Light;
+  class Material;
   class Scene;
 
   inline constexpr std::uint32_t gpuTracingSceneLayoutVersion = 1u;
@@ -121,6 +123,18 @@ namespace render {
     std::string reason;
   };
 
+  struct UnsupportedGpuTracingMaterial {
+    std::uint32_t materialId{0};
+    std::string type;
+    std::string reason;
+  };
+
+  struct UnsupportedGpuTracingTexture {
+    std::uint32_t textureId{0};
+    std::string type;
+    std::string reason;
+  };
+
   struct GpuTracingUnsupportedReasonCount {
     std::string reason;
     std::uint64_t count{0};
@@ -134,7 +148,32 @@ namespace render {
     [[nodiscard]] std::vector<GpuTracingUnsupportedReasonCount> unsupportedReasonCounts() const;
   };
 
+  struct GpuTracingTextureCompilation {
+    std::vector<GpuTracingTextureRecord> records;
+    std::vector<UnsupportedGpuTracingTexture> unsupportedTextures;
+
+    [[nodiscard]] bool supported() const;
+    [[nodiscard]] std::vector<GpuTracingUnsupportedReasonCount> unsupportedReasonCounts() const;
+  };
+
+  struct GpuTracingMaterialCompilation {
+    std::vector<GpuTracingMaterialRecord> records;
+    GpuTracingTextureCompilation textures;
+    std::vector<UnsupportedGpuTracingMaterial> unsupportedMaterials;
+
+    [[nodiscard]] bool supported() const;
+    [[nodiscard]] std::vector<GpuTracingUnsupportedReasonCount> unsupportedReasonCounts() const;
+  };
+
   [[nodiscard]] GpuTracingEnvironmentRecord makeGpuTracingConstantEnvironment(const Colord& color);
+  [[nodiscard]] std::optional<GpuTracingTextureRecord>
+  makeGpuTracingTextureRecord(const Texturec& texture, std::string* unsupportedReason = nullptr);
+  [[nodiscard]] std::optional<GpuTracingMaterialRecord>
+  makeGpuTracingMaterialRecord(const Material& material, std::uint32_t albedoTexture,
+                               std::uint32_t emissionTexture,
+                               std::string* unsupportedReason = nullptr);
+  [[nodiscard]] GpuTracingMaterialCompilation
+  compileGpuTracingMaterials(const CompiledIntersectionScene& scene);
   [[nodiscard]] std::optional<GpuTracingLightRecord>
   makeGpuTracingLightRecord(const Light& light, std::string* unsupportedReason = nullptr);
   [[nodiscard]] GpuTracingLightCompilation compileGpuTracingLights(const Scene& scene);

@@ -1337,12 +1337,18 @@ comparison logic.
    - Output: geometry, material, texture, light, environment, and debug-id
      sections with versioned layout expectations.
 
-2. **Compile material records.**
+2. ~~**Compile material records.**~~ ✅ **Done.**
+   `render::GpuTracingMaterialCompilation` now packs Matte and Emissive
+   materials into GPU tracing records keyed by runtime material id, with
+   unsupported material reasons counted for tracing scene diagnostics.
    - Depends on: job 1.
    - Output: records for Matte and Emissive; explicit unsupported reasons for
      all other materials.
 
-3. **Compile texture records.**
+3. ~~**Compile texture records.**~~ ✅ **Done.**
+   `render::GpuTracingTextureCompilation` now packs ConstantColor textures into
+   GPU tracing records keyed by material-referenced texture ids, with
+   unsupported texture reasons counted for tracing scene diagnostics.
    - Depends on: job 1.
    - Output: records for ConstantColor; optional CheckerBoard only if required
      coordinates are already represented; unsupported reasons otherwise.
@@ -1355,7 +1361,10 @@ comparison logic.
    - Output: records for PointLight, DirectionalLight, and RectangularAreaLight;
      unsupported reasons for the rest.
 
-5. **Add record round-trip and unsupported-reason tests.**
+5. ~~**Add record round-trip and unsupported-reason tests.**~~ ✅ **Done.**
+   GPU tracing scene tests now prove material, texture, and light record counts,
+   runtime-id mappings, first unsupported reasons, and grouped reason counts.
+   Closes #583.
    - Depends on: jobs 2, 3, and 4.
    - Output: tests proving runtime ids map to compiled records and unsupported
      features are counted by reason.
