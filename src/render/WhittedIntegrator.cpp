@@ -921,6 +921,7 @@ namespace render {
       settings.resolvedIntersectionBackend();
     if (metrics) {
       metrics->recordIntersectionBackend(intersectionBackend);
+      metrics->recordTracingScene(scene, intersectionBackend);
     }
 
     const bool trackRadianceDelta = metrics || settings.convergenceEnabled;

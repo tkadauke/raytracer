@@ -87,6 +87,14 @@ namespace {
     return result;
   }
 
+  void insertReasonCounts(std::map<std::string, std::uint64_t>& target,
+                          const std::vector<GpuTracingUnsupportedReasonCount>& counts) {
+    for (const GpuTracingUnsupportedReasonCount& count : counts) {
+      const std::string label = count.reason.empty() ? "unknown" : count.reason;
+      target[label] += count.count;
+    }
+  }
+
   const char* materialTypeName(const Material& material) {
     if (typeid(material) == typeid(MatteMaterial)) {
       return "MatteMaterial";
@@ -352,4 +360,40 @@ GpuTracingLightCompilation render::compileGpuTracingLights(const Scene& scene) {
   }
 
   return compilation;
+}
+
+GpuTracingSceneDiagnostics
+render::compileGpuTracingSceneDiagnostics(const CompiledIntersectionScene& intersectionScene,
+                                          const Scene& scene) {
+  GpuTracingSceneDiagnostics diagnostics;
+  diagnostics.compiled = true;
+
+  const GpuTracingMaterialCompilation materials = compileGpuTracingMaterials(intersectionScene);
+  const GpuTracingLightCompilation lights = compileGpuTracingLights(scene);
+
+  GpuTracingSceneSections sections;
+  sections.geometry = GpuIntersectionScenePacker().packScene(intersectionScene);
+  sections.materials = materials.records;
+  sections.textures = materials.textures.records;
+  sections.lights = lights.records;
+  sections.environment.push_back(makeGpuTracingConstantEnvironment(scene.environmentRadiance()));
+
+  diagnostics.materials = sections.materials.size();
+  diagnostics.textures = sections.textures.size();
+  diagnostics.lights = sections.lights.size();
+  diagnostics.environment = sections.environment.size();
+  diagnostics.debugIds = sections.debugIds.size();
+  diagnostics.unsupportedMaterials = materials.unsupportedMaterials.size();
+  diagnostics.unsupportedTextures = materials.textures.unsupportedTextures.size();
+  diagnostics.unsupportedLights = lights.unsupportedLights.size();
+  insertReasonCounts(diagnostics.unsupportedMaterialReasons, materials.unsupportedReasonCounts());
+  insertReasonCounts(diagnostics.unsupportedTextureReasons,
+                     materials.textures.unsupportedReasonCounts());
+  insertReasonCounts(diagnostics.unsupportedLightReasons, lights.unsupportedReasonCounts());
+  diagnostics.uploadBytes = sections.uploadByteCount();
+  return diagnostics;
+}
+
+GpuTracingSceneDiagnostics render::compileGpuTracingSceneDiagnostics(const Scene& scene) {
+  return compileGpuTracingSceneDiagnostics(IntersectionSceneCompiler().compile(scene), scene);
 }

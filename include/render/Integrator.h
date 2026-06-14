@@ -121,6 +121,19 @@ namespace render {
     bool intersectionSceneBasicHitEligible{false};
     bool intersectionScenePackedClosestHitEligible{false};
     bool intersectionScenePackedAnyHitEligible{false};
+    bool tracingSceneCompiled{false};
+    std::uint64_t tracingSceneMaterials{0};
+    std::uint64_t tracingSceneTextures{0};
+    std::uint64_t tracingSceneLights{0};
+    std::uint64_t tracingSceneEnvironment{0};
+    std::uint64_t tracingSceneDebugIds{0};
+    std::uint64_t tracingSceneUnsupportedMaterials{0};
+    std::uint64_t tracingSceneUnsupportedTextures{0};
+    std::uint64_t tracingSceneUnsupportedLights{0};
+    std::map<std::string, std::uint64_t> tracingSceneUnsupportedMaterialReasons;
+    std::map<std::string, std::uint64_t> tracingSceneUnsupportedTextureReasons;
+    std::map<std::string, std::uint64_t> tracingSceneUnsupportedLightReasons;
+    std::uint64_t tracingSceneUploadBytes{0};
     std::uint64_t intersectionEstimatedRayUploadBytes{0};
     std::uint64_t intersectionEstimatedClosestHitRayUploadBytes{0};
     std::uint64_t intersectionEstimatedAnyHitRayUploadBytes{0};
@@ -237,6 +250,7 @@ namespace render {
     void recordPacketScalarFallbacksByReason(const std::map<std::string, std::uint64_t>& reasons);
     void recordPacketHitRefinement(const std::string& materialLabel);
     void recordIntersectionBackend(const WavefrontIntersectionBackend& backend);
+    void recordTracingScene(const Scene& scene, const WavefrontIntersectionBackend& backend);
     void recordIntersectionQueryFallbackReason(const WavefrontIntersectionBackend& backend,
                                                const WavefrontIntersectionQueryTiming& timing);
     bool recordIntersectionQueryTransfer(std::uint64_t rayUploadBytes, std::uint64_t readbackBytes);

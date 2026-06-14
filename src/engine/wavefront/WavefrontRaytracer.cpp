@@ -319,6 +319,25 @@ namespace engine::wavefront {
                                                 metrics.intersectionScenePackedClosestHitEligible;
     intersectionScenePackedAnyHitEligible =
       intersectionScenePackedAnyHitEligible || metrics.intersectionScenePackedAnyHitEligible;
+    tracingSceneCompiled = tracingSceneCompiled || metrics.tracingSceneCompiled;
+    tracingSceneMaterials = std::max(tracingSceneMaterials, metrics.tracingSceneMaterials);
+    tracingSceneTextures = std::max(tracingSceneTextures, metrics.tracingSceneTextures);
+    tracingSceneLights = std::max(tracingSceneLights, metrics.tracingSceneLights);
+    tracingSceneEnvironment = std::max(tracingSceneEnvironment, metrics.tracingSceneEnvironment);
+    tracingSceneDebugIds = std::max(tracingSceneDebugIds, metrics.tracingSceneDebugIds);
+    tracingSceneUnsupportedMaterials =
+      std::max(tracingSceneUnsupportedMaterials, metrics.tracingSceneUnsupportedMaterials);
+    tracingSceneUnsupportedTextures =
+      std::max(tracingSceneUnsupportedTextures, metrics.tracingSceneUnsupportedTextures);
+    tracingSceneUnsupportedLights =
+      std::max(tracingSceneUnsupportedLights, metrics.tracingSceneUnsupportedLights);
+    mergeMapMaximums(tracingSceneUnsupportedMaterialReasons,
+                     metrics.tracingSceneUnsupportedMaterialReasons);
+    mergeMapMaximums(tracingSceneUnsupportedTextureReasons,
+                     metrics.tracingSceneUnsupportedTextureReasons);
+    mergeMapMaximums(tracingSceneUnsupportedLightReasons,
+                     metrics.tracingSceneUnsupportedLightReasons);
+    tracingSceneUploadBytes = std::max(tracingSceneUploadBytes, metrics.tracingSceneUploadBytes);
     intersectionEstimatedRayUploadBytes += metrics.intersectionEstimatedRayUploadBytes;
     intersectionEstimatedClosestHitRayUploadBytes +=
       metrics.intersectionEstimatedClosestHitRayUploadBytes;
@@ -971,6 +990,12 @@ namespace engine::wavefront {
       integerObject(batching.frontierPacketRefinedRaysByMaterial);
     const QJsonObject intersectionSceneUnsupportedReasons =
       integerObject(batching.intersectionSceneUnsupportedReasons);
+    const QJsonObject tracingSceneUnsupportedMaterialReasons =
+      integerObject(batching.tracingSceneUnsupportedMaterialReasons);
+    const QJsonObject tracingSceneUnsupportedTextureReasons =
+      integerObject(batching.tracingSceneUnsupportedTextureReasons);
+    const QJsonObject tracingSceneUnsupportedLightReasons =
+      integerObject(batching.tracingSceneUnsupportedLightReasons);
     QJsonArray radianceDeltaL2PerDepth;
     QJsonArray radianceDeltaRmsPerDepth;
     for (std::size_t depth = 0; depth != batching.radianceDeltaSquaredSumPerDepth.size(); ++depth) {
@@ -1068,6 +1093,22 @@ namespace engine::wavefront {
       batching.intersectionScenePackedClosestHitEligible;
     batchingJson["intersectionScenePackedAnyHitEligible"] =
       batching.intersectionScenePackedAnyHitEligible;
+    batchingJson["tracingSceneCompiled"] = batching.tracingSceneCompiled;
+    batchingJson["tracingSceneMaterials"] = static_cast<double>(batching.tracingSceneMaterials);
+    batchingJson["tracingSceneTextures"] = static_cast<double>(batching.tracingSceneTextures);
+    batchingJson["tracingSceneLights"] = static_cast<double>(batching.tracingSceneLights);
+    batchingJson["tracingSceneEnvironment"] = static_cast<double>(batching.tracingSceneEnvironment);
+    batchingJson["tracingSceneDebugIds"] = static_cast<double>(batching.tracingSceneDebugIds);
+    batchingJson["tracingSceneUnsupportedMaterials"] =
+      static_cast<double>(batching.tracingSceneUnsupportedMaterials);
+    batchingJson["tracingSceneUnsupportedTextures"] =
+      static_cast<double>(batching.tracingSceneUnsupportedTextures);
+    batchingJson["tracingSceneUnsupportedLights"] =
+      static_cast<double>(batching.tracingSceneUnsupportedLights);
+    batchingJson["tracingSceneUnsupportedMaterialReasons"] = tracingSceneUnsupportedMaterialReasons;
+    batchingJson["tracingSceneUnsupportedTextureReasons"] = tracingSceneUnsupportedTextureReasons;
+    batchingJson["tracingSceneUnsupportedLightReasons"] = tracingSceneUnsupportedLightReasons;
+    batchingJson["tracingSceneUploadBytes"] = static_cast<double>(batching.tracingSceneUploadBytes);
     batchingJson["intersectionEstimatedRayUploadBytes"] =
       static_cast<double>(batching.intersectionEstimatedRayUploadBytes);
     batchingJson["intersectionEstimatedClosestHitRayUploadBytes"] =
