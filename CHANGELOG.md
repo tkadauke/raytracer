@@ -41,6 +41,17 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Chose the initial CPU/GPU tracing sample generator as a stateless 32-bit PCG
   hash over explicit sample coordinates, with platform RNGs excluded from the
   parity contract. — GPT-5 Codex
+- Reported tracing accumulation residency, bytes, clear/add/resolve counts,
+  and readbacks in CPU reference diagnostics, optional Vulkan accumulation
+  results, wavefront metrics JSON, and rendercli summaries. — GPT-5 Codex
+- Added optional Vulkan tracing accumulation clear/add/resolve kernels with CPU
+  reference parity tests that skip cleanly when Vulkan is unavailable. — GPT-5
+  Codex
+- Defined the GPU tracing accumulation layout with separate HDR color-sum,
+  sample-count, optional moment, and LDR resolve planes. — GPT-5 Codex
+- Added optional Metal tracing accumulation kernels for clear, sample-add,
+  optional second-moment accumulation, and LDR resolve, with CPU-reference
+  parity coverage on synthetic inputs when Metal is available. — GPT-5 Codex
 - Routed path-tracing frontier compaction through the wavefront intersection
   backend contract so future GPU backends can override the current host
   compaction path. — GPT-5 Codex
@@ -214,6 +225,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Added CPU reference tracing accumulation operations for clear, sample add,
+  optional raw second moments, and LDR resolve. — GPT-5 Codex
 - Added `direct_light_any_hit_chunks`, `direct_light_any_hit_chunk_rays`, and
   `direct_light_any_hit_chunk_avg` rendercli summary aliases for direct-light
   visibility chunk diagnostics while preserving the legacy `batch` keys.

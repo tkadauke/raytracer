@@ -864,6 +864,46 @@ namespace engine::wavefront {
     schedulingJson["resolvedQueueSize"] = static_cast<double>(scheduling.resolvedQueueSize);
     schedulingJson["decision"] = QString::fromStdString(scheduling.decision);
 
+    const render::TracingAccumulationDiagnostics& accumulationDiagnostics =
+      accumulation.diagnostics;
+    const render::TracingAccumulationLayout& accumulationLayout = accumulationDiagnostics.layout;
+    QJsonObject accumulationJson;
+    accumulationJson["backend"] = QString::fromStdString(accumulationDiagnostics.backend);
+    accumulationJson["residency"] = QString::fromStdString(accumulationDiagnostics.residency);
+    accumulationJson["width"] = accumulationLayout.width;
+    accumulationJson["height"] = accumulationLayout.height;
+    if (accumulationLayout.hasImageShape()) {
+      accumulationJson["pixelCount"] = static_cast<double>(accumulationLayout.pixelCount());
+      accumulationJson["colorSumFormat"] =
+        QString::fromLatin1(render::toString(accumulationLayout.colorSumFormat));
+      accumulationJson["sampleCountFormat"] =
+        QString::fromLatin1(render::toString(accumulationLayout.sampleCountFormat));
+      accumulationJson["momentFormat"] =
+        QString::fromLatin1(render::toString(accumulationLayout.momentFormat));
+      accumulationJson["resolveFormat"] =
+        QString::fromLatin1(render::toString(accumulationLayout.resolveFormat));
+      accumulationJson["colorSumBytes"] =
+        static_cast<double>(accumulationLayout.colorSumBytes());
+      accumulationJson["sampleCountBytes"] =
+        static_cast<double>(accumulationLayout.sampleCountBytes());
+      accumulationJson["momentBytes"] = static_cast<double>(accumulationLayout.momentBytes());
+      accumulationJson["resolveBytes"] = static_cast<double>(accumulationLayout.resolveBytes());
+      accumulationJson["accumulationBytes"] =
+        static_cast<double>(accumulationLayout.accumulationBytes());
+      accumulationJson["totalBytes"] = static_cast<double>(accumulationLayout.totalBytes());
+    }
+    accumulationJson["residentBytes"] =
+      static_cast<double>(accumulationDiagnostics.residentBytes);
+    accumulationJson["clearOperations"] =
+      static_cast<double>(accumulationDiagnostics.clearOperations);
+    accumulationJson["addOperations"] = static_cast<double>(accumulationDiagnostics.addOperations);
+    accumulationJson["addedSamples"] = static_cast<double>(accumulationDiagnostics.addedSamples);
+    accumulationJson["resolveOperations"] =
+      static_cast<double>(accumulationDiagnostics.resolveOperations);
+    accumulationJson["readbackOperations"] =
+      static_cast<double>(accumulationDiagnostics.readbackOperations);
+    accumulationJson["readbackBytes"] = static_cast<double>(accumulationDiagnostics.readbackBytes);
+
     QJsonObject batchingJson;
     const auto integerArray = [](const std::vector<std::uint64_t>& values) {
       QJsonArray result;
@@ -1347,6 +1387,7 @@ namespace engine::wavefront {
     object["input"] = inputJson;
     object["tiling"] = tilingJson;
     object["scheduling"] = schedulingJson;
+    object["accumulation"] = accumulationJson;
     object["batching"] = batchingJson;
     object["convergence"] = convergenceJson;
     object["adaptiveSampling"] = adaptiveSamplingJson;

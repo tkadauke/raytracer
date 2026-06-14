@@ -1105,6 +1105,29 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(48.0, tiling.value("minNonEmptyTileSamples").toDouble());
     EXPECT_EQ(48.0, tiling.value("maxTileSamples").toDouble());
     EXPECT_DOUBLE_EQ(48.0, tiling.value("averageNonEmptyTileSamples").toDouble());
+    const QJsonObject accumulation = json.value("accumulation").toObject();
+    EXPECT_EQ("cpu_wavefront_tile",
+              accumulation.value("backend").toString().toStdString());
+    EXPECT_EQ("cpu_tile_local",
+              accumulation.value("residency").toString().toStdString());
+    EXPECT_EQ(48.0, accumulation.value("pixelCount").toDouble());
+    EXPECT_EQ("rgba32_float",
+              accumulation.value("colorSumFormat").toString().toStdString());
+    EXPECT_EQ("uint32", accumulation.value("sampleCountFormat").toString().toStdString());
+    EXPECT_EQ("none", accumulation.value("momentFormat").toString().toStdString());
+    EXPECT_EQ("rgba8_unorm_srgb",
+              accumulation.value("resolveFormat").toString().toStdString());
+    EXPECT_EQ(768.0, accumulation.value("colorSumBytes").toDouble());
+    EXPECT_EQ(192.0, accumulation.value("sampleCountBytes").toDouble());
+    EXPECT_EQ(0.0, accumulation.value("momentBytes").toDouble());
+    EXPECT_EQ(192.0, accumulation.value("resolveBytes").toDouble());
+    EXPECT_EQ(1152.0, accumulation.value("residentBytes").toDouble());
+    EXPECT_EQ(1.0, accumulation.value("clearOperations").toDouble());
+    EXPECT_EQ(48.0, accumulation.value("addOperations").toDouble());
+    EXPECT_EQ(48.0, accumulation.value("addedSamples").toDouble());
+    EXPECT_EQ(48.0, accumulation.value("resolveOperations").toDouble());
+    EXPECT_EQ(0.0, accumulation.value("readbackOperations").toDouble());
+    EXPECT_EQ(0.0, accumulation.value("readbackBytes").toDouble());
     EXPECT_EQ("whitted",
               json.value("batching").toObject().value("integrator").toString().toStdString());
     EXPECT_EQ("auto", json.value("batching")

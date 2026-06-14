@@ -98,6 +98,9 @@
 | `include/render/SamplingSeed.h` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |
 | `include/render/State.h` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md)<br>[Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `include/render/TilePlan.h` | [The rasterization pipeline](../rasterization/the-rasterization-pipeline.md) |
+| `include/render/TracingAccumulationLayout.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
+| `include/render/TracingAccumulationReference.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
+| `include/render/VulkanTracingAccumulationKernel.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `include/render/VulkanWavefrontSmokeKernel.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `include/render/WavefrontFrontierCompaction.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `include/render/WavefrontIntersectionBackend.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
@@ -267,6 +270,9 @@
 | `src/render/IntersectionSceneCompiler.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `src/render/MetalWavefrontSmokeKernel.mm` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `src/render/PathTracingIntegrator.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
+| `src/render/TracingAccumulationLayout.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
+| `src/render/TracingAccumulationReference.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
+| `src/render/VulkanTracingAccumulationKernel.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `src/render/VulkanWavefrontSmokeKernel.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `src/render/WavefrontFrontierCompaction.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `src/render/WavefrontIntersectionBackend.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
@@ -350,6 +356,9 @@
 | `test/unit/render/PathTerminationTest.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `test/unit/render/PathTracingIntegratorTest.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `test/unit/render/StateTest.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
+| `test/unit/render/TracingAccumulationLayoutTest.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
+| `test/unit/render/TracingAccumulationReferenceTest.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
+| `test/unit/render/VulkanTracingAccumulationKernelTest.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `test/unit/render/WavefrontIntersectionBackendTest.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `test/unit/render/WireframeTest.cpp` | [Wireframe rendering](../rasterization/wireframe-rendering.md) |
 | `test/unit/render/brdf/GlossySpecularTest.cpp` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |

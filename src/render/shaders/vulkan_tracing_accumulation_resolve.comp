@@ -1,0 +1,42 @@
+#version 450
+
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+layout(std430, binding = 0) readonly buffer ColorSums {
+  vec4 colorSums[];
+};
+
+layout(std430, binding = 1) readonly buffer SampleCounts {
+  uint sampleCounts[];
+};
+
+layout(std430, binding = 2) writeonly buffer Resolved {
+  uint resolved[];
+};
+
+layout(std430, binding = 3) readonly buffer Params {
+  uint params[];
+};
+
+uint quantize(float value) {
+  return uint(clamp(value, 0.0, 1.0) * 255.0);
+}
+
+void main() {
+  const uint index = gl_GlobalInvocationID.x;
+  const uint pixelCount = params[0];
+  if (index >= pixelCount) {
+    return;
+  }
+
+  const uint count = sampleCounts[index];
+  vec3 color = vec3(0.0);
+  if (count != 0u) {
+    color = colorSums[index].rgb / float(count);
+  }
+
+  const uint r = quantize(color.r);
+  const uint g = quantize(color.g);
+  const uint b = quantize(color.b);
+  resolved[index] = (r << 16) | (g << 8) | b;
+}

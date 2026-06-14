@@ -50,8 +50,12 @@ if(APPLE)
 endif()
 
 if(RAYTRACER_ENABLE_METAL_WAVEFRONT)
-  target_sources(raytracer PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/render/MetalWavefrontSmokeKernel.mm")
+  target_sources(raytracer PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/render/MetalTracingAccumulationKernel.mm"
+    "${CMAKE_CURRENT_SOURCE_DIR}/render/MetalWavefrontSmokeKernel.mm"
+  )
   set_source_files_properties(
+    "${CMAKE_CURRENT_SOURCE_DIR}/render/MetalTracingAccumulationKernel.mm"
     "${CMAKE_CURRENT_SOURCE_DIR}/render/MetalWavefrontSmokeKernel.mm"
     PROPERTIES COMPILE_FLAGS "-fobjc-arc"
   )
@@ -95,6 +99,24 @@ if(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
       "${RAYTRACER_VULKAN_GENERATED_DIR}/vulkan_wavefront_ray_compaction.spv")
   set(RAYTRACER_VULKAN_RAY_COMPACTION_HEADER
       "${RAYTRACER_VULKAN_GENERATED_DIR}/VulkanWavefrontRayCompaction.generated.h")
+  set(RAYTRACER_VULKAN_ACCUMULATION_CLEAR_SHADER
+      "${RAYTRACER_VULKAN_SHADER_DIR}/vulkan_tracing_accumulation_clear.comp")
+  set(RAYTRACER_VULKAN_ACCUMULATION_CLEAR_SPIRV
+      "${RAYTRACER_VULKAN_GENERATED_DIR}/vulkan_tracing_accumulation_clear.spv")
+  set(RAYTRACER_VULKAN_ACCUMULATION_CLEAR_HEADER
+      "${RAYTRACER_VULKAN_GENERATED_DIR}/VulkanTracingAccumulationClear.generated.h")
+  set(RAYTRACER_VULKAN_ACCUMULATION_ADD_SHADER
+      "${RAYTRACER_VULKAN_SHADER_DIR}/vulkan_tracing_accumulation_add.comp")
+  set(RAYTRACER_VULKAN_ACCUMULATION_ADD_SPIRV
+      "${RAYTRACER_VULKAN_GENERATED_DIR}/vulkan_tracing_accumulation_add.spv")
+  set(RAYTRACER_VULKAN_ACCUMULATION_ADD_HEADER
+      "${RAYTRACER_VULKAN_GENERATED_DIR}/VulkanTracingAccumulationAdd.generated.h")
+  set(RAYTRACER_VULKAN_ACCUMULATION_RESOLVE_SHADER
+      "${RAYTRACER_VULKAN_SHADER_DIR}/vulkan_tracing_accumulation_resolve.comp")
+  set(RAYTRACER_VULKAN_ACCUMULATION_RESOLVE_SPIRV
+      "${RAYTRACER_VULKAN_GENERATED_DIR}/vulkan_tracing_accumulation_resolve.spv")
+  set(RAYTRACER_VULKAN_ACCUMULATION_RESOLVE_HEADER
+      "${RAYTRACER_VULKAN_GENERATED_DIR}/VulkanTracingAccumulationResolve.generated.h")
 
   add_custom_command(
     OUTPUT "${RAYTRACER_VULKAN_SMOKE_SPIRV}"
@@ -179,12 +201,78 @@ if(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
     VERBATIM
   )
 
+  add_custom_command(
+    OUTPUT "${RAYTRACER_VULKAN_ACCUMULATION_CLEAR_SPIRV}"
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${RAYTRACER_VULKAN_GENERATED_DIR}"
+    COMMAND "${Vulkan_GLSLC_EXECUTABLE}" -O -fshader-stage=compute
+            "${RAYTRACER_VULKAN_ACCUMULATION_CLEAR_SHADER}"
+            -o "${RAYTRACER_VULKAN_ACCUMULATION_CLEAR_SPIRV}"
+    DEPENDS "${RAYTRACER_VULKAN_ACCUMULATION_CLEAR_SHADER}"
+    VERBATIM
+  )
+
+  add_custom_command(
+    OUTPUT "${RAYTRACER_VULKAN_ACCUMULATION_CLEAR_HEADER}"
+    COMMAND "${CMAKE_COMMAND}" -DINPUT=${RAYTRACER_VULKAN_ACCUMULATION_CLEAR_SPIRV}
+            -DOUTPUT=${RAYTRACER_VULKAN_ACCUMULATION_CLEAR_HEADER}
+            -DSYMBOL=tracingAccumulationClearShaderSpirv
+            -P "${PROJECT_SOURCE_DIR}/cmake/EmbedSpirv.cmake"
+    DEPENDS "${RAYTRACER_VULKAN_ACCUMULATION_CLEAR_SPIRV}"
+            "${PROJECT_SOURCE_DIR}/cmake/EmbedSpirv.cmake"
+    VERBATIM
+  )
+
+  add_custom_command(
+    OUTPUT "${RAYTRACER_VULKAN_ACCUMULATION_ADD_SPIRV}"
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${RAYTRACER_VULKAN_GENERATED_DIR}"
+    COMMAND "${Vulkan_GLSLC_EXECUTABLE}" -O -fshader-stage=compute
+            "${RAYTRACER_VULKAN_ACCUMULATION_ADD_SHADER}"
+            -o "${RAYTRACER_VULKAN_ACCUMULATION_ADD_SPIRV}"
+    DEPENDS "${RAYTRACER_VULKAN_ACCUMULATION_ADD_SHADER}"
+    VERBATIM
+  )
+
+  add_custom_command(
+    OUTPUT "${RAYTRACER_VULKAN_ACCUMULATION_ADD_HEADER}"
+    COMMAND "${CMAKE_COMMAND}" -DINPUT=${RAYTRACER_VULKAN_ACCUMULATION_ADD_SPIRV}
+            -DOUTPUT=${RAYTRACER_VULKAN_ACCUMULATION_ADD_HEADER}
+            -DSYMBOL=tracingAccumulationAddShaderSpirv
+            -P "${PROJECT_SOURCE_DIR}/cmake/EmbedSpirv.cmake"
+    DEPENDS "${RAYTRACER_VULKAN_ACCUMULATION_ADD_SPIRV}"
+            "${PROJECT_SOURCE_DIR}/cmake/EmbedSpirv.cmake"
+    VERBATIM
+  )
+
+  add_custom_command(
+    OUTPUT "${RAYTRACER_VULKAN_ACCUMULATION_RESOLVE_SPIRV}"
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${RAYTRACER_VULKAN_GENERATED_DIR}"
+    COMMAND "${Vulkan_GLSLC_EXECUTABLE}" -O -fshader-stage=compute
+            "${RAYTRACER_VULKAN_ACCUMULATION_RESOLVE_SHADER}"
+            -o "${RAYTRACER_VULKAN_ACCUMULATION_RESOLVE_SPIRV}"
+    DEPENDS "${RAYTRACER_VULKAN_ACCUMULATION_RESOLVE_SHADER}"
+    VERBATIM
+  )
+
+  add_custom_command(
+    OUTPUT "${RAYTRACER_VULKAN_ACCUMULATION_RESOLVE_HEADER}"
+    COMMAND "${CMAKE_COMMAND}" -DINPUT=${RAYTRACER_VULKAN_ACCUMULATION_RESOLVE_SPIRV}
+            -DOUTPUT=${RAYTRACER_VULKAN_ACCUMULATION_RESOLVE_HEADER}
+            -DSYMBOL=tracingAccumulationResolveShaderSpirv
+            -P "${PROJECT_SOURCE_DIR}/cmake/EmbedSpirv.cmake"
+    DEPENDS "${RAYTRACER_VULKAN_ACCUMULATION_RESOLVE_SPIRV}"
+            "${PROJECT_SOURCE_DIR}/cmake/EmbedSpirv.cmake"
+    VERBATIM
+  )
+
   add_custom_target(raytracer_vulkan_wavefront_shaders
     DEPENDS
       "${RAYTRACER_VULKAN_SHADER_HEADER}"
       "${RAYTRACER_VULKAN_TRIANGLE_CLOSEST_HEADER}"
       "${RAYTRACER_VULKAN_TRIANGLE_ANY_HEADER}"
       "${RAYTRACER_VULKAN_RAY_COMPACTION_HEADER}"
+      "${RAYTRACER_VULKAN_ACCUMULATION_CLEAR_HEADER}"
+      "${RAYTRACER_VULKAN_ACCUMULATION_ADD_HEADER}"
+      "${RAYTRACER_VULKAN_ACCUMULATION_RESOLVE_HEADER}"
   )
 
   target_compile_definitions(raytracer PUBLIC RAYTRACER_ENABLE_VULKAN_WAVEFRONT)

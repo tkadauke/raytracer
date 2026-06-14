@@ -68,6 +68,9 @@ end state for GPU tracing.
   standalone closest-hit/any-hit service with backend execution-path and
   fallback diagnostics for non-renderer callers.
 - Closest-hit and any-hit frontiers are represented by backend-owned handles.
+- CPU reference tracing accumulation, the current CPU wavefront tile
+  accumulator, and optional Vulkan synthetic accumulation results expose
+  resource residency, byte, operation-count, and readback diagnostics.
 - Metrics expose backend request, selected backend, platform availability,
   execution path, fallback reason, transfer estimates, query counts, frontier
   residency, host path-state bytes, compaction candidates, direct-light batch
@@ -359,6 +362,29 @@ The graph should eventually distinguish at least these modes:
 7. **Hardware RT backend**
    GPU tracing uses Metal/Vulkan hardware ray tracing acceleration structures
    while preserving the same algorithm/schedule semantics.
+
+### GPU Accumulation Buffer Layout
+
+`render::TracingAccumulationLayout` defines the v1 backend accumulation layout.
+All planes are image-shaped with the same `width` and `height`:
+
+- `colorSum`: required `rgba32_float`; RGB stores the linear HDR radiance sum,
+  alpha is reserved and written as zero.
+- `sampleCount`: required `uint32`; one counter per pixel.
+- `moment`: optional `rgba32_float_second_raw_moment`; RGB stores the sum of
+  squared linear sample values for variance/adaptive sampling, alpha is
+  reserved and written as zero.
+- `resolve`: required `rgba8_unorm_srgb`; LDR display/export output produced
+  after dividing by the sample count and applying the selected resolve policy.
+
+The resolve plane is separate from accumulation. Backends must not overwrite or
+reinterpret the HDR color sum as the display target, and callers must size
+memory from the individual plane byte counts rather than assuming one packed
+struct per pixel. `render::TracingAccumulationBuffer` is the CPU reference for
+clear, sample add, optional raw-second-moment accumulation, and LDR resolve.
+Metal-enabled builds also expose optional clear, sample-add, and LDR resolve
+kernels through `render::MetalTracingAccumulationBuffer`; Vulkan kernels and
+resource diagnostics are follow-up jobs under the GPU accumulation-buffer epic.
 
 ---
 
@@ -673,6 +699,22 @@ colors.
   - sample count;
   - optional variance/stddev moments;
   - optional albedo/normal AOVs later.
+- Define `render::TracingAccumulationLayout` as the v1 backend accumulation
+  layout:
+  - all planes are image-shaped with the same width and height;
+  - `colorSum` is required `rgba32_float`; RGB stores the linear HDR radiance
+    sum, and alpha is reserved and written as zero;
+  - `sampleCount` is required `uint32`; one counter is stored per pixel;
+  - `moment` is optional `rgba32_float_second_raw_moment`; RGB stores the sum
+    of squared linear sample values for variance/adaptive sampling, and alpha
+    is reserved and written as zero;
+  - `resolve` is required `rgba8_unorm_srgb`; this is the LDR display/export
+    output produced after dividing by the sample count and applying the
+    selected resolve policy;
+  - the resolve plane remains separate from accumulation. Backends must not
+    overwrite or reinterpret the HDR color sum as the display target, and
+    callers must size memory from individual plane byte counts rather than
+    assuming one packed struct per pixel.
 - Add CPU reference implementation with the same layout.
 - Add Metal/Vulkan kernels for:
   - clear;
@@ -1474,11 +1516,17 @@ GPU shading lands.
    - Depends on: job 1.
    - Output: deterministic reference implementation and tests.
 
-3. **Add Metal clear/add/resolve kernels.**
+3. ~~**Add Metal clear/add/resolve kernels.**~~ ✅ **Done.** Optional
+   `render::MetalTracingAccumulationBuffer` kernels clear/add/resolve the v1
+   accumulation planes and compare against the CPU reference on synthetic
+   inputs when Metal is enabled and available.
    - Depends on: job 2.
    - Output: optional-platform kernels with skip behavior when unavailable.
 
-4. **Add Vulkan clear/add/resolve kernels.**
+4. ~~**Add Vulkan clear/add/resolve kernels.**~~ ✅ **Done.** Optional
+   Vulkan compute kernels now clear accumulation planes, add synthetic
+   full-frame sample colors, and resolve to the LDR output plane, with CPU
+   reference parity tests that skip when Vulkan is disabled or unavailable.
    - Depends on: job 2.
    - Output: optional-platform kernels with skip behavior when unavailable.
 
