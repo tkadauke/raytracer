@@ -1,6 +1,9 @@
 #include "render/GpuTracingScene.h"
 
+#include "render/textures/ConstantColorTexture.h"
+
 #include <limits>
+#include <map>
 #include <type_traits>
 
 using namespace render;
@@ -81,6 +84,76 @@ std::size_t GpuTracingSceneSections::uploadByteCount() const {
          lights.size() * sizeof(GpuTracingLightRecord) +
          environment.size() * sizeof(GpuTracingEnvironmentRecord) +
          debugIds.size() * sizeof(GpuTracingDebugIdRecord);
+}
+
+bool GpuTracingTextureCompilation::fullySupported() const {
+  return m_unsupportedTextures.empty();
+}
+
+const std::vector<GpuTracingTextureRecord>& GpuTracingTextureCompilation::records() const {
+  return m_records;
+}
+
+const std::vector<UnsupportedGpuTracingTexture>&
+GpuTracingTextureCompilation::unsupportedTextures() const {
+  return m_unsupportedTextures;
+}
+
+std::vector<UnsupportedGpuTracingReasonCount>
+GpuTracingTextureCompilation::unsupportedReasonCounts() const {
+  std::vector<UnsupportedGpuTracingReasonCount> counts;
+  std::map<std::string, std::size_t> countIndexByReason;
+
+  for (const UnsupportedGpuTracingTexture& texture : m_unsupportedTextures) {
+    const auto it = countIndexByReason.find(texture.reason);
+    if (it == countIndexByReason.end()) {
+      countIndexByReason[texture.reason] = counts.size();
+      counts.push_back(UnsupportedGpuTracingReasonCount{texture.reason, 1});
+    } else {
+      counts[it->second].count++;
+    }
+  }
+
+  return counts;
+}
+
+GpuTracingTextureCompilation
+GpuTracingTextureCompiler::compile(const std::vector<std::shared_ptr<Texturec>>& textures) const {
+  GpuTracingTextureCompilation compilation;
+  compilation.m_records.reserve(textures.size());
+
+  for (std::size_t textureIndex = 0; textureIndex < textures.size(); ++textureIndex) {
+    const std::shared_ptr<Texturec>& texture = textures[textureIndex];
+
+    if (!texture) {
+      compilation.m_records.push_back(GpuTracingTextureRecord{});
+      compilation.m_unsupportedTextures.push_back(
+        UnsupportedGpuTracingTexture{static_cast<std::uint32_t>(textureIndex), std::string(),
+                                     unsupportedGpuTracingNullTextureReason});
+      continue;
+    }
+
+    const auto* constantColor = dynamic_cast<const ConstantColorTexture*>(texture.get());
+    if (constantColor) {
+      compilation.m_records.push_back(makeGpuTracingConstantColorTexture(constantColor->color()));
+      continue;
+    }
+
+    compilation.m_records.push_back(GpuTracingTextureRecord{});
+    compilation.m_unsupportedTextures.push_back(
+      UnsupportedGpuTracingTexture{static_cast<std::uint32_t>(textureIndex), texture->name(),
+                                   unsupportedGpuTracingTextureTypeReason});
+  }
+
+  return compilation;
+}
+
+GpuTracingTextureRecord render::makeGpuTracingConstantColorTexture(const Colord& color) {
+  GpuTracingTextureRecord record;
+  record.kind = static_cast<std::uint32_t>(GpuTracingTextureKind::ConstantColor);
+  record.parameters = {static_cast<float>(color.r()), static_cast<float>(color.g()),
+                       static_cast<float>(color.b()), 1.0f};
+  return record;
 }
 
 GpuTracingEnvironmentRecord render::makeGpuTracingConstantEnvironment(const Colord& color) {

@@ -1,8 +1,14 @@
 #include <gtest/gtest.h>
 
 #include "render/GpuTracingScene.h"
+#include "render/textures/CheckerBoardTexture.h"
+#include "render/textures/ConstantColorTexture.h"
+#include "render/textures/UVColorTexture.h"
+#include "render/textures/mappings/PlanarMapping2D.h"
 
+#include <memory>
 #include <type_traits>
+#include <vector>
 
 namespace GpuTracingSceneTest {
   using namespace render;
@@ -109,5 +115,92 @@ namespace GpuTracingSceneTest {
     EXPECT_FLOAT_EQ(0.5f, environment.color[1]);
     EXPECT_FLOAT_EQ(0.75f, environment.color[2]);
     EXPECT_FLOAT_EQ(1.0f, environment.color[3]);
+  }
+
+  TEST(GpuTracingScene, ConstantColorTexturePacksColorWithOpaqueAlpha) {
+    const GpuTracingTextureRecord texture =
+      makeGpuTracingConstantColorTexture(Colord(0.125, 0.5, 0.875));
+
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingTextureKind::ConstantColor), texture.kind);
+    EXPECT_EQ(0u, texture.payloadOffset);
+    EXPECT_EQ(0u, texture.payloadCount);
+    EXPECT_EQ(0u, texture.flags);
+    EXPECT_FLOAT_EQ(0.125f, texture.parameters[0]);
+    EXPECT_FLOAT_EQ(0.5f, texture.parameters[1]);
+    EXPECT_FLOAT_EQ(0.875f, texture.parameters[2]);
+    EXPECT_FLOAT_EQ(1.0f, texture.parameters[3]);
+  }
+
+  TEST(GpuTracingTextureCompiler, CompilesConstantColorTextureRecords) {
+    const std::vector<std::shared_ptr<Texturec>> textures{
+      std::make_shared<ConstantColorTexture>(Colord(0.1, 0.2, 0.3)),
+      std::make_shared<ConstantColorTexture>(Colord(0.7, 0.8, 0.9)),
+    };
+
+    const GpuTracingTextureCompilation compilation = GpuTracingTextureCompiler().compile(textures);
+
+    ASSERT_TRUE(compilation.fullySupported());
+    ASSERT_EQ(2u, compilation.records().size());
+    EXPECT_TRUE(compilation.unsupportedTextures().empty());
+    EXPECT_TRUE(compilation.unsupportedReasonCounts().empty());
+
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingTextureKind::ConstantColor),
+              compilation.records()[0].kind);
+    EXPECT_FLOAT_EQ(0.1f, compilation.records()[0].parameters[0]);
+    EXPECT_FLOAT_EQ(0.2f, compilation.records()[0].parameters[1]);
+    EXPECT_FLOAT_EQ(0.3f, compilation.records()[0].parameters[2]);
+
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingTextureKind::ConstantColor),
+              compilation.records()[1].kind);
+    EXPECT_FLOAT_EQ(0.7f, compilation.records()[1].parameters[0]);
+    EXPECT_FLOAT_EQ(0.8f, compilation.records()[1].parameters[1]);
+    EXPECT_FLOAT_EQ(0.9f, compilation.records()[1].parameters[2]);
+  }
+
+  TEST(GpuTracingTextureCompiler, SurfacesUnsupportedTextureReasons) {
+    auto mapping = std::make_unique<PlanarMapping2D>();
+    auto checker = std::make_shared<CheckerBoardTexture>(mapping.get());
+    checker->setName("checker albedo");
+
+    auto uvColor = std::make_shared<UVColorTexture>();
+    uvColor->setName("uv debug");
+
+    const std::vector<std::shared_ptr<Texturec>> textures{
+      std::make_shared<ConstantColorTexture>(Colord(0.1, 0.2, 0.3)),
+      checker,
+      std::shared_ptr<Texturec>(),
+      uvColor,
+    };
+
+    const GpuTracingTextureCompilation compilation = GpuTracingTextureCompiler().compile(textures);
+
+    EXPECT_FALSE(compilation.fullySupported());
+    ASSERT_EQ(4u, compilation.records().size());
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingTextureKind::ConstantColor),
+              compilation.records()[0].kind);
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingTextureKind::Unsupported),
+              compilation.records()[1].kind);
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingTextureKind::Unsupported),
+              compilation.records()[2].kind);
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingTextureKind::Unsupported),
+              compilation.records()[3].kind);
+
+    ASSERT_EQ(3u, compilation.unsupportedTextures().size());
+    EXPECT_EQ(1u, compilation.unsupportedTextures()[0].texture);
+    EXPECT_EQ("checker albedo", compilation.unsupportedTextures()[0].textureName);
+    EXPECT_EQ(unsupportedGpuTracingTextureTypeReason, compilation.unsupportedTextures()[0].reason);
+    EXPECT_EQ(2u, compilation.unsupportedTextures()[1].texture);
+    EXPECT_EQ(unsupportedGpuTracingNullTextureReason, compilation.unsupportedTextures()[1].reason);
+    EXPECT_EQ(3u, compilation.unsupportedTextures()[2].texture);
+    EXPECT_EQ("uv debug", compilation.unsupportedTextures()[2].textureName);
+    EXPECT_EQ(unsupportedGpuTracingTextureTypeReason, compilation.unsupportedTextures()[2].reason);
+
+    const std::vector<UnsupportedGpuTracingReasonCount> reasonCounts =
+      compilation.unsupportedReasonCounts();
+    ASSERT_EQ(2u, reasonCounts.size());
+    EXPECT_EQ(unsupportedGpuTracingTextureTypeReason, reasonCounts[0].reason);
+    EXPECT_EQ(2u, reasonCounts[0].count);
+    EXPECT_EQ(unsupportedGpuTracingNullTextureReason, reasonCounts[1].reason);
+    EXPECT_EQ(1u, reasonCounts[1].count);
   }
 }

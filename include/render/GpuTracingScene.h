@@ -2,10 +2,13 @@
 
 #include "core/Color.h"
 #include "render/GpuIntersectionScene.h"
+#include "render/textures/Texture.h"
 
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
+#include <string>
 #include <vector>
 
 namespace render {
@@ -110,5 +113,41 @@ namespace render {
     [[nodiscard]] std::size_t uploadByteCount() const;
   };
 
+  struct UnsupportedGpuTracingTexture {
+    std::uint32_t texture{0};
+    std::string textureName;
+    std::string reason;
+  };
+
+  struct UnsupportedGpuTracingReasonCount {
+    std::string reason;
+    std::uint64_t count{0};
+  };
+
+  class GpuTracingTextureCompilation {
+  public:
+    [[nodiscard]] bool fullySupported() const;
+    [[nodiscard]] const std::vector<GpuTracingTextureRecord>& records() const;
+    [[nodiscard]] const std::vector<UnsupportedGpuTracingTexture>& unsupportedTextures() const;
+    [[nodiscard]] std::vector<UnsupportedGpuTracingReasonCount> unsupportedReasonCounts() const;
+
+  private:
+    friend class GpuTracingTextureCompiler;
+
+    std::vector<GpuTracingTextureRecord> m_records;
+    std::vector<UnsupportedGpuTracingTexture> m_unsupportedTextures;
+  };
+
+  class GpuTracingTextureCompiler {
+  public:
+    [[nodiscard]] GpuTracingTextureCompilation
+    compile(const std::vector<std::shared_ptr<Texturec>>& textures) const;
+  };
+
+  inline constexpr const char* unsupportedGpuTracingNullTextureReason = "texture is null";
+  inline constexpr const char* unsupportedGpuTracingTextureTypeReason =
+    "texture type is not supported by GPU tracing texture compiler";
+
+  [[nodiscard]] GpuTracingTextureRecord makeGpuTracingConstantColorTexture(const Colord& color);
   [[nodiscard]] GpuTracingEnvironmentRecord makeGpuTracingConstantEnvironment(const Colord& color);
 }
