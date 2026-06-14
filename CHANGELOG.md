@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- Added GPU tracing material and texture record compilation for Matte,
+  Emissive, and ConstantColor records, with runtime-id round-trip tests and
+  unsupported reason grouping for the E3 tracing scene data roadmap.
+  — GPT-5 Codex
 - Added GPU tracing light record compilation for point, directional, and
   rectangular area lights, with unsupported light reasons counted for the E3
   tracing scene data roadmap. — GPT-5 Codex
