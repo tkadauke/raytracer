@@ -14,6 +14,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Added GPU tracing texture record compilation for `ConstantColorTexture` with
   explicit unsupported texture reason diagnostics; advances E3 job 3.
   — GPT-5 Codex
+- Added tracing record comparison helpers for GPU hit records, occlusion records,
+  compiled CPU hits, and wavefront closest-hit results, closing roadmap §E2
+  job 2. — GPT-5 Codex
 
 ### Changed
 
