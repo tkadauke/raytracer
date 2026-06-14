@@ -13,7 +13,9 @@
 #include <vector>
 
 namespace render {
+  class CompiledIntersectionScene;
   class Light;
+  class Material;
   class Scene;
 
   inline constexpr std::uint32_t gpuTracingSceneLayoutVersion = 1u;
@@ -117,6 +119,11 @@ namespace render {
     [[nodiscard]] std::size_t uploadByteCount() const;
   };
 
+  struct UnsupportedGpuTracingMaterial {
+    std::uint32_t material{0};
+    std::string reason;
+  };
+
   struct UnsupportedGpuTracingLight {
     std::uint32_t lightIndex{0};
     std::string type;
@@ -126,6 +133,14 @@ namespace render {
   struct GpuTracingUnsupportedReasonCount {
     std::string reason;
     std::uint64_t count{0};
+  };
+
+  struct GpuTracingMaterialCompilation {
+    std::vector<GpuTracingMaterialRecord> records;
+    std::vector<UnsupportedGpuTracingMaterial> unsupportedMaterials;
+
+    [[nodiscard]] bool fullySupported() const;
+    [[nodiscard]] std::vector<GpuTracingUnsupportedReasonCount> unsupportedReasonCounts() const;
   };
 
   struct UnsupportedGpuTracingTexture {
@@ -165,6 +180,18 @@ namespace render {
   public:
     [[nodiscard]] GpuTracingTextureCompilation
     compile(const std::vector<std::shared_ptr<Texturec>>& textures) const;
+  };
+
+  class GpuTracingMaterialCompiler {
+  public:
+    [[nodiscard]] GpuTracingMaterialCompilation
+    compile(const std::vector<std::shared_ptr<Material>>& materials) const;
+    [[nodiscard]] GpuTracingMaterialCompilation
+    compile(const CompiledIntersectionScene& scene) const;
+
+  private:
+    [[nodiscard]] GpuTracingMaterialRecord compileRecord(const Material& material) const;
+    [[nodiscard]] std::string unsupportedReason(const Material& material) const;
   };
 
   inline constexpr const char* unsupportedGpuTracingNullTextureReason = "texture is null";

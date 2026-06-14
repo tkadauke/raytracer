@@ -1,9 +1,13 @@
 #include "render/GpuTracingScene.h"
 
+#include "render/IntersectionSceneCompiler.h"
 #include "render/lights/DirectionalLight.h"
 #include "render/lights/Light.h"
 #include "render/lights/PointLight.h"
 #include "render/lights/RectangularAreaLight.h"
+#include "render/materials/EmissiveMaterial.h"
+#include "render/materials/Material.h"
+#include "render/materials/MatteMaterial.h"
 #include "render/primitives/Scene.h"
 #include "render/textures/ConstantColorTexture.h"
 
@@ -11,6 +15,7 @@
 #include <limits>
 #include <map>
 #include <type_traits>
+#include <typeinfo>
 
 using namespace render;
 
@@ -106,6 +111,73 @@ std::size_t GpuTracingSceneSections::uploadByteCount() const {
          lights.size() * sizeof(GpuTracingLightRecord) +
          environment.size() * sizeof(GpuTracingEnvironmentRecord) +
          debugIds.size() * sizeof(GpuTracingDebugIdRecord);
+}
+
+bool GpuTracingMaterialCompilation::fullySupported() const {
+  return unsupportedMaterials.empty();
+}
+
+std::vector<GpuTracingUnsupportedReasonCount>
+GpuTracingMaterialCompilation::unsupportedReasonCounts() const {
+  std::vector<GpuTracingUnsupportedReasonCount> result;
+  for (const UnsupportedGpuTracingMaterial& unsupported : unsupportedMaterials) {
+    const auto existing = std::find_if(
+      result.begin(), result.end(), [&unsupported](const GpuTracingUnsupportedReasonCount& count) {
+        return count.reason == unsupported.reason;
+      });
+    if (existing != result.end()) {
+      ++existing->count;
+    } else {
+      result.push_back(GpuTracingUnsupportedReasonCount{unsupported.reason, 1});
+    }
+  }
+  return result;
+}
+
+GpuTracingMaterialCompilation
+GpuTracingMaterialCompiler::compile(const std::vector<std::shared_ptr<Material>>& materials) const {
+  GpuTracingMaterialCompilation result;
+  result.records.reserve(materials.size());
+  for (std::size_t materialIndex = 0; materialIndex != materials.size(); ++materialIndex) {
+    const auto materialId = static_cast<std::uint32_t>(materialIndex);
+    const std::shared_ptr<Material>& material = materials[materialIndex];
+    if (!material) {
+      result.records.push_back(GpuTracingMaterialRecord{});
+      continue;
+    }
+
+    result.records.push_back(compileRecord(*material));
+    if (result.records.back().kind ==
+        static_cast<std::uint32_t>(GpuTracingMaterialKind::Unsupported)) {
+      result.unsupportedMaterials.push_back(
+        UnsupportedGpuTracingMaterial{materialId, unsupportedReason(*material)});
+    }
+  }
+  return result;
+}
+
+GpuTracingMaterialCompilation
+GpuTracingMaterialCompiler::compile(const CompiledIntersectionScene& scene) const {
+  return compile(scene.materials());
+}
+
+GpuTracingMaterialRecord GpuTracingMaterialCompiler::compileRecord(const Material& material) const {
+  GpuTracingMaterialRecord record;
+  if (typeid(material) == typeid(MatteMaterial)) {
+    const auto& matte = static_cast<const MatteMaterial&>(material);
+    record.kind = static_cast<std::uint32_t>(GpuTracingMaterialKind::Matte);
+    record.parameters = {static_cast<float>(matte.ambientCoefficient()),
+                         static_cast<float>(matte.diffuseCoefficient()), 0.0f, 0.0f};
+  } else if (typeid(material) == typeid(EmissiveMaterial)) {
+    const auto& emissive = static_cast<const EmissiveMaterial&>(material);
+    record.kind = static_cast<std::uint32_t>(GpuTracingMaterialKind::Emissive);
+    record.parameters = color4(emissive.radiance());
+  }
+  return record;
+}
+
+std::string GpuTracingMaterialCompiler::unsupportedReason(const Material&) const {
+  return "material is outside the GPU tracing Matte/Emissive subset";
 }
 
 bool GpuTracingTextureCompilation::fullySupported() const {
