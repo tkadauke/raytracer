@@ -1,0 +1,433 @@
+#include <gtest/gtest.h>
+
+#include "render/GpuTracingScene.h"
+#include "render/IntersectionSceneCompiler.h"
+#include "render/lights/DirectionalLight.h"
+#include "render/lights/Light.h"
+#include "render/lights/PointLight.h"
+#include "render/lights/RectangularAreaLight.h"
+#include "render/materials/EmissiveMaterial.h"
+#include "render/materials/MatteMaterial.h"
+#include "render/materials/PhongMaterial.h"
+#include "render/primitives/Scene.h"
+#include "render/primitives/Sphere.h"
+#include "render/textures/ConstantColorTexture.h"
+#include "render/textures/Texture.h"
+
+#include <memory>
+#include <type_traits>
+#include <vector>
+
+namespace GpuTracingSceneTest {
+  using namespace render;
+
+  namespace {
+    template<typename Record>
+    void expectKernelRecordLayout() {
+      EXPECT_TRUE(std::is_standard_layout_v<Record>);
+      EXPECT_EQ(16u, alignof(Record));
+      EXPECT_EQ(0u, sizeof(Record) % 16u);
+    }
+
+    class UnsupportedLight final : public Light {
+    public:
+      explicit UnsupportedLight(const char* type)
+          : m_type(type) {
+      }
+
+      Vector3d direction(const Vector3d&) const override {
+        return Vector3d(0.0, 1.0, 0.0);
+      }
+
+      Colord radiance() const override {
+        return Colord::white();
+      }
+
+      const char* fingerprintType() const override {
+        return m_type;
+      }
+
+    private:
+      const char* m_type;
+    };
+
+    class UnsupportedTexture final : public Texturec {
+    public:
+      Colord evaluate(const Rayd&, const HitPoint&) const override {
+        return Colord::white();
+      }
+    };
+
+    void expectFloat4(const std::array<float, 4>& actual, float x, float y, float z, float w) {
+      EXPECT_FLOAT_EQ(x, actual[0]);
+      EXPECT_FLOAT_EQ(y, actual[1]);
+      EXPECT_FLOAT_EQ(z, actual[2]);
+      EXPECT_FLOAT_EQ(w, actual[3]);
+    }
+  }
+
+  TEST(GpuTracingScene, PackedRecordsHaveStableKernelFriendlyLayout) {
+    expectKernelRecordLayout<GpuTracingMaterialRecord>();
+    expectKernelRecordLayout<GpuTracingTextureRecord>();
+    expectKernelRecordLayout<GpuTracingLightRecord>();
+    expectKernelRecordLayout<GpuTracingEnvironmentRecord>();
+    expectKernelRecordLayout<GpuTracingDebugIdRecord>();
+    expectKernelRecordLayout<GpuTracingShadingRecord>();
+  }
+
+  TEST(GpuTracingScene, LayoutVersionScopesAllCompiledSceneSections) {
+    const GpuTracingSceneSections sections;
+
+    const auto layouts = sections.sectionLayouts();
+
+    ASSERT_EQ(6u, layouts.size());
+    EXPECT_EQ(GpuTracingSceneSectionKind::Geometry, layouts[0].kind);
+    EXPECT_EQ(GpuTracingSceneSectionKind::Materials, layouts[1].kind);
+    EXPECT_EQ(GpuTracingSceneSectionKind::Textures, layouts[2].kind);
+    EXPECT_EQ(GpuTracingSceneSectionKind::Lights, layouts[3].kind);
+    EXPECT_EQ(GpuTracingSceneSectionKind::Environment, layouts[4].kind);
+    EXPECT_EQ(GpuTracingSceneSectionKind::DebugIds, layouts[5].kind);
+
+    for (const GpuTracingSceneSectionLayout& layout : layouts) {
+      EXPECT_EQ(gpuTracingSceneLayoutVersion, layout.layoutVersion);
+    }
+  }
+
+  TEST(GpuTracingScene, SectionLayoutsReportCountsOffsetsAndUploadBytes) {
+    GpuTracingSceneSections sections;
+    sections.geometry.primitives.push_back(GpuIntersectionPrimitiveRecord{});
+    sections.geometry.triangles.push_back(GpuIntersectionTrianglePayload{});
+    sections.materials.push_back(GpuTracingMaterialRecord{});
+    sections.materials.push_back(GpuTracingMaterialRecord{});
+    sections.textures.push_back(GpuTracingTextureRecord{});
+    sections.lights.push_back(GpuTracingLightRecord{});
+    sections.environment.push_back(makeGpuTracingConstantEnvironment(Colord(0.25, 0.5, 0.75)));
+    sections.debugIds.push_back(GpuTracingDebugIdRecord{});
+
+    const auto layouts = sections.sectionLayouts();
+
+    const std::uint32_t geometryBytes =
+      static_cast<std::uint32_t>(sections.geometry.uploadByteCount());
+    EXPECT_EQ(1u, layouts[0].recordCount);
+    EXPECT_EQ(0u, layouts[0].recordSize);
+    EXPECT_EQ(16u, layouts[0].recordAlignment);
+    EXPECT_EQ(0u, layouts[0].byteOffset);
+    EXPECT_EQ(geometryBytes, layouts[0].byteCount);
+
+    EXPECT_EQ(2u, layouts[1].recordCount);
+    EXPECT_EQ(sizeof(GpuTracingMaterialRecord), layouts[1].recordSize);
+    EXPECT_EQ(alignof(GpuTracingMaterialRecord), layouts[1].recordAlignment);
+    EXPECT_EQ(geometryBytes, layouts[1].byteOffset);
+
+    EXPECT_EQ(1u, layouts[2].recordCount);
+    EXPECT_EQ(layouts[1].byteOffset + layouts[1].byteCount, layouts[2].byteOffset);
+    EXPECT_EQ(1u, layouts[3].recordCount);
+    EXPECT_EQ(layouts[2].byteOffset + layouts[2].byteCount, layouts[3].byteOffset);
+    EXPECT_EQ(1u, layouts[4].recordCount);
+    EXPECT_EQ(layouts[3].byteOffset + layouts[3].byteCount, layouts[4].byteOffset);
+    EXPECT_EQ(1u, layouts[5].recordCount);
+    EXPECT_EQ(layouts[4].byteOffset + layouts[4].byteCount, layouts[5].byteOffset);
+
+    EXPECT_EQ(layouts[5].byteOffset + layouts[5].byteCount, sections.uploadByteCount());
+  }
+
+  TEST(GpuTracingScene, ShadingRecordsAreSeparateFromIntersectionHitRecords) {
+    constexpr bool sameRecordType =
+      std::is_same_v<GpuTracingShadingRecord, GpuIntersectionHitRecord>;
+    EXPECT_FALSE(sameRecordType);
+    EXPECT_NE(sizeof(GpuIntersectionHitRecord), sizeof(GpuTracingShadingRecord));
+
+    GpuIntersectionHitRecord hit;
+    hit.hit = 1;
+    hit.rayIndex = 42;
+
+    GpuTracingShadingRecord shading;
+    shading.pathIndex = 42;
+    shading.material = 7;
+
+    EXPECT_EQ(1u, hit.hit);
+    EXPECT_EQ(42u, hit.rayIndex);
+    EXPECT_EQ(42u, shading.pathIndex);
+    EXPECT_EQ(7u, shading.material);
+  }
+
+  TEST(GpuTracingScene, ConstantEnvironmentPacksColorWithOpaqueAlpha) {
+    const GpuTracingEnvironmentRecord environment =
+      makeGpuTracingConstantEnvironment(Colord(0.25, 0.5, 0.75));
+
+    EXPECT_FLOAT_EQ(0.25f, environment.color[0]);
+    EXPECT_FLOAT_EQ(0.5f, environment.color[1]);
+    EXPECT_FLOAT_EQ(0.75f, environment.color[2]);
+    EXPECT_FLOAT_EQ(1.0f, environment.color[3]);
+  }
+
+  TEST(GpuTracingScene, ConstantColorTexturePacksColorWithOpaqueAlpha) {
+    const ConstantColorTexture texture(Colord(0.25, 0.5, 0.75));
+
+    const std::optional<GpuTracingTextureRecord> record = makeGpuTracingTextureRecord(texture);
+
+    ASSERT_TRUE(record.has_value());
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingTextureKind::ConstantColor), record->kind);
+    expectFloat4(record->parameters, 0.25f, 0.5f, 0.75f, 1.0f);
+  }
+
+  TEST(GpuTracingScene, MatteMaterialPacksTextureIdsAndCoefficients) {
+    MatteMaterial material;
+    material.setAmbientCoefficient(0.25);
+    material.setDiffuseCoefficient(0.75);
+
+    const std::optional<GpuTracingMaterialRecord> record =
+      makeGpuTracingMaterialRecord(material, 4, 0);
+
+    ASSERT_TRUE(record.has_value());
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingMaterialKind::Matte), record->kind);
+    EXPECT_EQ(4u, record->albedoTexture);
+    EXPECT_EQ(0u, record->emissionTexture);
+    EXPECT_FLOAT_EQ(0.25f, record->parameters[0]);
+    EXPECT_FLOAT_EQ(0.75f, record->parameters[1]);
+  }
+
+  TEST(GpuTracingScene, EmissiveMaterialPacksEmissionTextureId) {
+    const EmissiveMaterial material(Colord(0.8, 0.6, 0.4));
+
+    const std::optional<GpuTracingMaterialRecord> record =
+      makeGpuTracingMaterialRecord(material, 0, 7);
+
+    ASSERT_TRUE(record.has_value());
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingMaterialKind::Emissive), record->kind);
+    EXPECT_EQ(0u, record->albedoTexture);
+    EXPECT_EQ(7u, record->emissionTexture);
+  }
+
+  TEST(GpuTracingScene, CompilesMaterialAndTextureRecordsAtRuntimeIds) {
+    auto redTexture = std::make_shared<ConstantColorTexture>(Colord(0.8, 0.1, 0.2));
+    auto matte = std::make_shared<MatteMaterial>(redTexture);
+    matte->setAmbientCoefficient(0.25);
+    matte->setDiffuseCoefficient(0.75);
+    auto emissive = std::make_shared<EmissiveMaterial>(Colord(1.0, 0.5, 0.25));
+
+    auto firstSphere = std::make_shared<Sphere>(Vector3d(-1.0, 0.0, 0.0), 0.5);
+    firstSphere->setMaterial(matte);
+    auto secondSphere = std::make_shared<Sphere>(Vector3d(1.0, 0.0, 0.0), 0.5);
+    secondSphere->setMaterial(emissive);
+    auto thirdSphere = std::make_shared<Sphere>(Vector3d(3.0, 0.0, 0.0), 0.5);
+    thirdSphere->setMaterial(matte);
+
+    Scene scene;
+    scene.add(firstSphere);
+    scene.add(secondSphere);
+    scene.add(thirdSphere);
+
+    const CompiledIntersectionScene intersection = IntersectionSceneCompiler().compile(scene);
+    const GpuTracingMaterialCompilation compilation = compileGpuTracingMaterials(intersection);
+
+    ASSERT_EQ(3u, intersection.materials().size());
+    ASSERT_EQ(3u, intersection.primitives().size());
+    EXPECT_EQ(1u, intersection.primitives()[0].material);
+    EXPECT_EQ(2u, intersection.primitives()[1].material);
+    EXPECT_EQ(1u, intersection.primitives()[2].material);
+
+    EXPECT_TRUE(compilation.supported());
+    ASSERT_EQ(intersection.materials().size(), compilation.records.size());
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingMaterialKind::Unsupported),
+              compilation.records[0].kind);
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingMaterialKind::Matte),
+              compilation.records[1].kind);
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingMaterialKind::Emissive),
+              compilation.records[2].kind);
+
+    ASSERT_EQ(3u, compilation.textures.records.size());
+    EXPECT_EQ(1u, compilation.records[1].albedoTexture);
+    EXPECT_EQ(2u, compilation.records[2].emissionTexture);
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingTextureKind::ConstantColor),
+              compilation.textures.records[1].kind);
+    expectFloat4(compilation.textures.records[1].parameters, 0.8f, 0.1f, 0.2f, 1.0f);
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingTextureKind::ConstantColor),
+              compilation.textures.records[2].kind);
+    expectFloat4(compilation.textures.records[2].parameters, 1.0f, 0.5f, 0.25f, 1.0f);
+  }
+
+  TEST(GpuTracingScene, RecordsFirstUnsupportedMaterialReasonAndGroupedCounts) {
+    auto firstUnsupported = std::make_shared<Sphere>(Vector3d(-1.0, 0.0, 0.0), 0.5);
+    firstUnsupported->setMaterial(
+      std::make_shared<PhongMaterial>(std::make_shared<ConstantColorTexture>(Colord::white())));
+    auto supported = std::make_shared<Sphere>(Vector3d(1.0, 0.0, 0.0), 0.5);
+    supported->setMaterial(
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::red())));
+    auto secondUnsupported = std::make_shared<Sphere>(Vector3d(3.0, 0.0, 0.0), 0.5);
+    secondUnsupported->setMaterial(std::make_shared<PhongMaterial>());
+
+    Scene scene;
+    scene.add(firstUnsupported);
+    scene.add(supported);
+    scene.add(secondUnsupported);
+
+    const CompiledIntersectionScene intersection = IntersectionSceneCompiler().compile(scene);
+    const GpuTracingMaterialCompilation compilation = compileGpuTracingMaterials(intersection);
+
+    EXPECT_FALSE(compilation.supported());
+    ASSERT_EQ(2u, compilation.unsupportedMaterials.size());
+    EXPECT_EQ(1u, compilation.unsupportedMaterials[0].materialId);
+    EXPECT_EQ("Material", compilation.unsupportedMaterials[0].type);
+    EXPECT_EQ("material type is not supported by GPU tracing scene compiler",
+              compilation.unsupportedMaterials[0].reason);
+    EXPECT_EQ(3u, compilation.unsupportedMaterials[1].materialId);
+
+    const std::vector<GpuTracingUnsupportedReasonCount> reasonCounts =
+      compilation.unsupportedReasonCounts();
+    ASSERT_EQ(1u, reasonCounts.size());
+    EXPECT_EQ("material type is not supported by GPU tracing scene compiler",
+              reasonCounts[0].reason);
+    EXPECT_EQ(2u, reasonCounts[0].count);
+  }
+
+  TEST(GpuTracingScene, RecordsFirstUnsupportedTextureReasonAndGroupedCounts) {
+    auto firstUnsupportedTexture = std::make_shared<UnsupportedTexture>();
+    auto secondUnsupportedTexture = std::make_shared<UnsupportedTexture>();
+    auto firstMaterial = std::make_shared<MatteMaterial>(firstUnsupportedTexture);
+    auto secondMaterial = std::make_shared<MatteMaterial>(secondUnsupportedTexture);
+
+    auto firstSphere = std::make_shared<Sphere>(Vector3d(-1.0, 0.0, 0.0), 0.5);
+    firstSphere->setMaterial(firstMaterial);
+    auto secondSphere = std::make_shared<Sphere>(Vector3d(1.0, 0.0, 0.0), 0.5);
+    secondSphere->setMaterial(secondMaterial);
+
+    Scene scene;
+    scene.add(firstSphere);
+    scene.add(secondSphere);
+
+    const CompiledIntersectionScene intersection = IntersectionSceneCompiler().compile(scene);
+    const GpuTracingMaterialCompilation compilation = compileGpuTracingMaterials(intersection);
+
+    EXPECT_FALSE(compilation.supported());
+    ASSERT_EQ(2u, compilation.textures.unsupportedTextures.size());
+    EXPECT_EQ(1u, compilation.textures.unsupportedTextures[0].textureId);
+    EXPECT_EQ("Texture", compilation.textures.unsupportedTextures[0].type);
+    EXPECT_EQ("texture type is not supported by GPU tracing scene compiler",
+              compilation.textures.unsupportedTextures[0].reason);
+    EXPECT_EQ(2u, compilation.textures.unsupportedTextures[1].textureId);
+
+    const std::vector<GpuTracingUnsupportedReasonCount> reasonCounts =
+      compilation.textures.unsupportedReasonCounts();
+    ASSERT_EQ(1u, reasonCounts.size());
+    EXPECT_EQ("texture type is not supported by GPU tracing scene compiler",
+              reasonCounts[0].reason);
+    EXPECT_EQ(2u, reasonCounts[0].count);
+  }
+
+  TEST(GpuTracingScene, DiagnosticsExposeCompiledSectionAndUnsupportedCounts) {
+    auto unsupportedMaterialSphere = std::make_shared<Sphere>(Vector3d(-1.0, 0.0, 0.0), 0.5);
+    unsupportedMaterialSphere->setMaterial(std::make_shared<PhongMaterial>());
+    auto unsupportedTextureSphere = std::make_shared<Sphere>(Vector3d(1.0, 0.0, 0.0), 0.5);
+    unsupportedTextureSphere->setMaterial(
+      std::make_shared<MatteMaterial>(std::make_shared<UnsupportedTexture>()));
+
+    Scene scene;
+    scene.setEnvironmentRadiance(Colord(0.1, 0.2, 0.3));
+    scene.add(unsupportedMaterialSphere);
+    scene.add(unsupportedTextureSphere);
+    scene.addLight(std::make_shared<PointLight>(Vector3d(1.0, 2.0, 3.0), Colord::white()));
+    scene.addLight(std::make_shared<UnsupportedLight>("UnsupportedLight"));
+
+    const CompiledIntersectionScene intersection = IntersectionSceneCompiler().compile(scene);
+    const GpuTracingSceneDiagnostics diagnostics =
+      compileGpuTracingSceneDiagnostics(intersection, scene);
+
+    EXPECT_TRUE(diagnostics.compiled);
+    EXPECT_EQ(3u, diagnostics.materials);
+    EXPECT_EQ(2u, diagnostics.textures);
+    EXPECT_EQ(1u, diagnostics.lights);
+    EXPECT_EQ(1u, diagnostics.environment);
+    EXPECT_EQ(0u, diagnostics.debugIds);
+    EXPECT_EQ(1u, diagnostics.unsupportedMaterials);
+    EXPECT_EQ(1u, diagnostics.unsupportedTextures);
+    EXPECT_EQ(1u, diagnostics.unsupportedLights);
+    EXPECT_EQ(1u, diagnostics.unsupportedMaterialReasons.at(
+                    "material type is not supported by GPU tracing scene compiler"));
+    EXPECT_EQ(1u, diagnostics.unsupportedTextureReasons.at(
+                    "texture type is not supported by GPU tracing scene compiler"));
+    EXPECT_EQ(1u, diagnostics.unsupportedLightReasons.at(
+                    "light type is not supported by GPU tracing scene compiler"));
+    EXPECT_GT(diagnostics.uploadBytes, 0u);
+  }
+
+  TEST(GpuTracingScene, PointLightPacksPositionAndColor) {
+    const PointLight light(Vector3d(1.0, 2.0, 3.0), Colord(0.25, 0.5, 0.75));
+
+    const std::optional<GpuTracingLightRecord> record = makeGpuTracingLightRecord(light);
+
+    ASSERT_TRUE(record.has_value());
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingLightKind::Point), record->kind);
+    expectFloat4(record->positionOrDirection, 1.0f, 2.0f, 3.0f, 1.0f);
+    expectFloat4(record->u, 0.0f, 0.0f, 0.0f, 0.0f);
+    expectFloat4(record->v, 0.0f, 0.0f, 0.0f, 0.0f);
+    expectFloat4(record->parameters, 0.25f, 0.5f, 0.75f, 1.0f);
+  }
+
+  TEST(GpuTracingScene, DirectionalLightPacksDirectionAndColor) {
+    const DirectionalLight light(Vector3d(0.0, -2.0, 0.0), Colord(0.125, 0.25, 0.5));
+
+    const std::optional<GpuTracingLightRecord> record = makeGpuTracingLightRecord(light);
+
+    ASSERT_TRUE(record.has_value());
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingLightKind::Directional), record->kind);
+    expectFloat4(record->positionOrDirection, 0.0f, -1.0f, 0.0f, 0.0f);
+    expectFloat4(record->parameters, 0.125f, 0.25f, 0.5f, 1.0f);
+  }
+
+  TEST(GpuTracingScene, RectangularAreaLightPacksCenterEdgesAndRadiance) {
+    const RectangularAreaLight light(Vector3d(1.0, 2.0, 3.0), Vector3d(4.0, 0.0, 0.0),
+                                     Vector3d(0.0, 0.0, 5.0), Colord(0.2, 0.4, 0.8));
+
+    const std::optional<GpuTracingLightRecord> record = makeGpuTracingLightRecord(light);
+
+    ASSERT_TRUE(record.has_value());
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingLightKind::RectangularArea), record->kind);
+    expectFloat4(record->positionOrDirection, 1.0f, 2.0f, 3.0f, 1.0f);
+    expectFloat4(record->u, 4.0f, 0.0f, 0.0f, 0.0f);
+    expectFloat4(record->v, 0.0f, 0.0f, 5.0f, 0.0f);
+    expectFloat4(record->parameters, 0.2f, 0.4f, 0.8f, 1.0f);
+  }
+
+  TEST(GpuTracingScene, UnsupportedLightReportsStableReason) {
+    const UnsupportedLight light("UnsupportedLight");
+    std::string reason;
+
+    const std::optional<GpuTracingLightRecord> record = makeGpuTracingLightRecord(light, &reason);
+
+    EXPECT_FALSE(record.has_value());
+    EXPECT_EQ("light type is not supported by GPU tracing scene compiler", reason);
+  }
+
+  TEST(GpuTracingScene, CompilesSceneLightsAndCountsUnsupportedReasons) {
+    Scene scene;
+    scene.addLight(std::make_shared<PointLight>(Vector3d(1.0, 2.0, 3.0), Colord::white()));
+    scene.addLight(std::make_shared<UnsupportedLight>("UnsupportedA"));
+    scene.addLight(
+      std::make_shared<DirectionalLight>(Vector3d(0.0, -1.0, 0.0), Colord(0.25, 0.5, 0.75)));
+    scene.addLight(std::make_shared<UnsupportedLight>("UnsupportedB"));
+
+    const GpuTracingLightCompilation compilation = compileGpuTracingLights(scene);
+
+    EXPECT_FALSE(compilation.supported());
+    ASSERT_EQ(2u, compilation.records.size());
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingLightKind::Point), compilation.records[0].kind);
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingLightKind::Directional),
+              compilation.records[1].kind);
+
+    ASSERT_EQ(2u, compilation.unsupportedLights.size());
+    EXPECT_EQ(1u, compilation.unsupportedLights[0].lightIndex);
+    EXPECT_EQ("UnsupportedA", compilation.unsupportedLights[0].type);
+    EXPECT_EQ("light type is not supported by GPU tracing scene compiler",
+              compilation.unsupportedLights[0].reason);
+    EXPECT_EQ(3u, compilation.unsupportedLights[1].lightIndex);
+    EXPECT_EQ("UnsupportedB", compilation.unsupportedLights[1].type);
+
+    const std::vector<GpuTracingUnsupportedReasonCount> reasonCounts =
+      compilation.unsupportedReasonCounts();
+    ASSERT_EQ(1u, reasonCounts.size());
+    EXPECT_EQ("light type is not supported by GPU tracing scene compiler", reasonCounts[0].reason);
+    EXPECT_EQ(2u, reasonCounts[0].count);
+  }
+
+}

@@ -1370,32 +1370,52 @@ comparison logic.
 
 **Jobs:**
 
-1. **Define compiled tracing-scene sections.**
+1. ~~**Define compiled tracing-scene sections.**~~ ✅ **Done.**
+   `render::GpuTracingSceneSections` now defines version-1 geometry,
+   material, texture, light, environment, and debug-id sections for GPU
+   tracing scene data, with a separate shading work record from the
+   intersection hit record. Closes #579.
    - Depends on: none.
    - Output: geometry, material, texture, light, environment, and debug-id
      sections with versioned layout expectations.
 
-2. **Compile material records.**
+2. ~~**Compile material records.**~~ ✅ **Done.**
+   `render::compileGpuTracingMaterials` now packs Matte and Emissive materials
+   into GPU tracing records keyed by runtime material id, with unsupported
+   material reasons counted for tracing scene diagnostics. Closes #580.
    - Depends on: job 1.
    - Output: records for Matte and Emissive; explicit unsupported reasons for
      all other materials.
 
-3. **Compile texture records.**
+3. ~~**Compile texture records.**~~ ✅ **Done.**
+   `render::GpuTracingTextureCompilation` now packs ConstantColor textures into
+   GPU tracing records keyed by material-referenced texture ids, with
+   unsupported texture reasons counted for tracing scene diagnostics. Closes
+   #581.
    - Depends on: job 1.
    - Output: records for ConstantColor; optional CheckerBoard only if required
      coordinates are already represented; unsupported reasons otherwise.
 
-4. **Compile light records.**
+4. ~~**Compile light records.**~~ ✅ **Done.**
+   `render::GpuTracingLightCompilation` now packs PointLight,
+   DirectionalLight, and RectangularAreaLight into stable GPU tracing light
+   records and counts unsupported light types by reason. Closes #582.
    - Depends on: job 1.
    - Output: records for PointLight, DirectionalLight, and RectangularAreaLight;
      unsupported reasons for the rest.
 
-5. **Add record round-trip and unsupported-reason tests.**
+5. ~~**Add record round-trip and unsupported-reason tests.**~~ ✅ **Done.**
+   GPU tracing scene tests now prove material, texture, and light record counts,
+   runtime-id mappings, first unsupported reasons, and grouped reason counts.
+   Closes #583.
    - Depends on: jobs 2, 3, and 4.
    - Output: tests proving runtime ids map to compiled records and unsupported
      features are counted by reason.
 
-6. **Expose compiled tracing-scene diagnostics.**
+6. ~~**Expose compiled tracing-scene diagnostics.**~~ ✅ **Done.**
+   Metrics JSON, rendercli summaries, and graph traces now report compiled GPU
+   tracing material, texture, light, environment, debug-id, upload-byte, and
+   unsupported reason counts. Closes #584.
    - Depends on: job 5.
    - Output: trace/metrics counts for compiled materials, textures, lights, and
      unsupported reasons.

@@ -9,8 +9,28 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ## Unreleased
 
+### Added
+
+- Added GPU tracing texture record compilation for `ConstantColorTexture` with
+  explicit unsupported texture reason diagnostics; advances E3 job 3.
+  — GPT-5 Codex
+
 ### Changed
 
+- Reported compiled GPU tracing scene section counts and unsupported
+  material, texture, and light reason counts in metrics JSON, rendercli
+  summaries, and graph traces for the E3 tracing scene data roadmap.
+  — GPT-5 Codex
+- Added GPU tracing material and texture record compilation for Matte,
+  Emissive, and ConstantColor records, with runtime-id round-trip tests and
+  unsupported reason grouping for the E3 tracing scene data roadmap.
+  — GPT-5 Codex
+- Added GPU tracing light record compilation for point, directional, and
+  rectangular area lights, with unsupported light reasons counted for the E3
+  tracing scene data roadmap. — GPT-5 Codex
+- Added GPU tracing material-record compilation for exact `MatteMaterial` and
+  `EmissiveMaterial` runtime materials, with unsupported material counts by
+  reason for the rest; closes roadmap E3 job 2. — GPT-5 Codex
 - Added `IntersectionService` benchmark rows for closest-hit, any-hit, and
   mixed query-family workloads over small, mesh-heavy, and visibility-heavy
   supported scenes. — GPT-5 Codex
@@ -227,6 +247,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 - Added CPU reference tracing accumulation operations for clear, sample add,
   optional raw second moments, and LDR resolve. — GPT-5 Codex
+- Added version-1 GPU tracing scene sections for geometry, materials, textures,
+  lights, environment, and debug ids, with shading records kept separate from
+  intersection hit records. — GPT-5 Codex
 - Added `direct_light_any_hit_chunks`, `direct_light_any_hit_chunk_rays`, and
   `direct_light_any_hit_chunk_avg` rendercli summary aliases for direct-light
   visibility chunk diagnostics while preserving the legacy `batch` keys.

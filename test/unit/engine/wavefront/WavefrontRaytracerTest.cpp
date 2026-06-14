@@ -1626,6 +1626,17 @@ namespace WavefrontRaytracerTest {
     EXPECT_TRUE(metrics.batching.intersectionSceneBasicHitEligible);
     EXPECT_TRUE(metrics.batching.intersectionScenePackedClosestHitEligible);
     EXPECT_TRUE(metrics.batching.intersectionScenePackedAnyHitEligible);
+    EXPECT_TRUE(metrics.batching.tracingSceneCompiled);
+    EXPECT_GE(metrics.batching.tracingSceneMaterials, 1u);
+    EXPECT_GE(metrics.batching.tracingSceneTextures, 1u);
+    EXPECT_EQ(0u, metrics.batching.tracingSceneUnsupportedMaterials);
+    EXPECT_EQ(0u, metrics.batching.tracingSceneUnsupportedTextures);
+    EXPECT_EQ(0u, metrics.batching.tracingSceneUnsupportedLights);
+    EXPECT_TRUE(metrics.batching.tracingSceneUnsupportedMaterialReasons.empty());
+    EXPECT_TRUE(metrics.batching.tracingSceneUnsupportedTextureReasons.empty());
+    EXPECT_TRUE(metrics.batching.tracingSceneUnsupportedLightReasons.empty());
+    EXPECT_GT(metrics.batching.tracingSceneUploadBytes,
+              metrics.batching.intersectionSceneUploadBytes);
     EXPECT_GT(metrics.batching.intersectionRaysSubmitted, 0u);
     EXPECT_GT(metrics.batching.closestHitRaysSubmitted, 0u);
     EXPECT_EQ(0u, metrics.batching.anyHitRaysSubmitted);
@@ -1667,6 +1678,17 @@ namespace WavefrontRaytracerTest {
     EXPECT_TRUE(batching.value("intersectionSceneBasicHitEligible").toBool());
     EXPECT_TRUE(batching.value("intersectionScenePackedClosestHitEligible").toBool());
     EXPECT_TRUE(batching.value("intersectionScenePackedAnyHitEligible").toBool());
+    EXPECT_TRUE(batching.value("tracingSceneCompiled").toBool());
+    EXPECT_GE(batching.value("tracingSceneMaterials").toDouble(), 1.0);
+    EXPECT_GE(batching.value("tracingSceneTextures").toDouble(), 1.0);
+    EXPECT_EQ(0.0, batching.value("tracingSceneUnsupportedMaterials").toDouble());
+    EXPECT_EQ(0.0, batching.value("tracingSceneUnsupportedTextures").toDouble());
+    EXPECT_EQ(0.0, batching.value("tracingSceneUnsupportedLights").toDouble());
+    EXPECT_TRUE(batching.value("tracingSceneUnsupportedMaterialReasons").toObject().empty());
+    EXPECT_TRUE(batching.value("tracingSceneUnsupportedTextureReasons").toObject().empty());
+    EXPECT_TRUE(batching.value("tracingSceneUnsupportedLightReasons").toObject().empty());
+    EXPECT_GT(batching.value("tracingSceneUploadBytes").toDouble(),
+              batching.value("intersectionSceneUploadBytes").toDouble());
     EXPECT_GT(batching.value("intersectionEstimatedRayUploadBytes").toDouble(), 0.0);
     EXPECT_EQ(static_cast<double>(metrics.batching.intersectionEstimatedClosestHitRayUploadBytes),
               batching.value("intersectionEstimatedClosestHitRayUploadBytes").toDouble());
