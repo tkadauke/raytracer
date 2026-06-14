@@ -85,6 +85,58 @@ function(rendercli_run)
   _rendercli_set_parent("${ARG_ERROR_VARIABLE}" "${stderr}")
 endfunction()
 
+function(rendercli_probe_wavefront_platform_backend)
+  set(one_value_args NAME SCENE OUTPUT_RENDER AVAILABLE_VARIABLE REASON_VARIABLE OUTPUT_VARIABLE)
+  cmake_parse_arguments(ARG "" "${one_value_args}" "" ${ARGN})
+
+  if(ARG_UNPARSED_ARGUMENTS)
+    message(FATAL_ERROR
+      "rendercli_probe_wavefront_platform_backend received unexpected arguments: ${ARG_UNPARSED_ARGUMENTS}")
+  endif()
+  if(NOT ARG_NAME)
+    message(FATAL_ERROR "rendercli_probe_wavefront_platform_backend requires NAME")
+  endif()
+  if(NOT ARG_SCENE)
+    message(FATAL_ERROR "rendercli_probe_wavefront_platform_backend(${ARG_NAME}) requires SCENE")
+  endif()
+  if(NOT ARG_OUTPUT_RENDER)
+    message(FATAL_ERROR
+      "rendercli_probe_wavefront_platform_backend(${ARG_NAME}) requires OUTPUT_RENDER")
+  endif()
+
+  rendercli_run(
+    NAME "${ARG_NAME}"
+    OUTPUT_VARIABLE probe_stdout
+    COMMAND
+      "${RENDERCLI}" --engine wavefront --width 8 --height 8
+      --wavefront_intersection_backend gpu --wavefront_metrics_summary
+      "${ARG_SCENE}" "${ARG_OUTPUT_RENDER}"
+  )
+  rendercli_assert_image_nonempty("${ARG_OUTPUT_RENDER}"
+                                  NAME "${ARG_NAME} probe render pixels")
+
+  set(available false)
+  if(probe_stdout MATCHES "intersection_backend=(metal|vulkan)" AND
+     probe_stdout MATCHES "intersection_backend_availability=available" AND
+     probe_stdout MATCHES "intersection_backend_gpu_device=true" AND
+     probe_stdout MATCHES "intersection_backend_gpu_render_path=true")
+    set(available true)
+  endif()
+
+  set(reason "platform GPU intersection backend is unavailable")
+  if(probe_stdout MATCHES "intersection_backend_fallback=([^ ]+)")
+    set(reason "${CMAKE_MATCH_1}")
+  elseif(probe_stdout MATCHES "intersection_backend_gpu_device=false")
+    set(reason "platform GPU device is unavailable")
+  elseif(probe_stdout MATCHES "intersection_backend_gpu_render_path=false")
+    set(reason "platform GPU render path is unavailable")
+  endif()
+
+  _rendercli_set_parent("${ARG_AVAILABLE_VARIABLE}" "${available}")
+  _rendercli_set_parent("${ARG_REASON_VARIABLE}" "${reason}")
+  _rendercli_set_parent("${ARG_OUTPUT_VARIABLE}" "${probe_stdout}")
+endfunction()
+
 function(rendercli_expect_failure)
   set(one_value_args NAME EXIT_CODE RESULT_VARIABLE OUTPUT_VARIABLE ERROR_VARIABLE)
   set(multi_value_args COMMAND STDOUT_MATCHES STDERR_MATCHES)
