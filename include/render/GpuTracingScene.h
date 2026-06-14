@@ -6,9 +6,14 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
+#include <string>
 #include <vector>
 
 namespace render {
+  class CompiledIntersectionScene;
+  class Material;
+
   inline constexpr std::uint32_t gpuTracingSceneLayoutVersion = 1u;
 
   enum class GpuTracingSceneSectionKind : std::uint32_t {
@@ -98,6 +103,24 @@ namespace render {
     std::array<float, 4> accumulatedRadiance{};
   };
 
+  struct UnsupportedGpuTracingMaterial {
+    std::uint32_t material{0};
+    std::string reason;
+  };
+
+  struct GpuTracingUnsupportedReasonCount {
+    std::string reason;
+    std::uint64_t count{0};
+  };
+
+  struct GpuTracingMaterialCompilation {
+    std::vector<GpuTracingMaterialRecord> records;
+    std::vector<UnsupportedGpuTracingMaterial> unsupportedMaterials;
+
+    [[nodiscard]] bool fullySupported() const;
+    [[nodiscard]] std::vector<GpuTracingUnsupportedReasonCount> unsupportedReasonCounts() const;
+  };
+
   struct GpuTracingSceneSections {
     GpuIntersectionSceneBuffers geometry;
     std::vector<GpuTracingMaterialRecord> materials;
@@ -108,6 +131,18 @@ namespace render {
 
     [[nodiscard]] std::array<GpuTracingSceneSectionLayout, 6> sectionLayouts() const;
     [[nodiscard]] std::size_t uploadByteCount() const;
+  };
+
+  class GpuTracingMaterialCompiler {
+  public:
+    [[nodiscard]] GpuTracingMaterialCompilation
+    compile(const std::vector<std::shared_ptr<Material>>& materials) const;
+    [[nodiscard]] GpuTracingMaterialCompilation
+    compile(const CompiledIntersectionScene& scene) const;
+
+  private:
+    [[nodiscard]] GpuTracingMaterialRecord compileRecord(const Material& material) const;
+    [[nodiscard]] std::string unsupportedReason(const Material& material) const;
   };
 
   [[nodiscard]] GpuTracingEnvironmentRecord makeGpuTracingConstantEnvironment(const Colord& color);

@@ -1379,7 +1379,11 @@ comparison logic.
    - Output: geometry, material, texture, light, environment, and debug-id
      sections with versioned layout expectations.
 
-2. **Compile material records.**
+2. ~~**Compile material records.**~~ ✅ **Done.**
+   `render::GpuTracingMaterialCompiler` now produces GPU tracing material
+   records for exact `MatteMaterial` and `EmissiveMaterial` runtime materials,
+   preserves material ids from the compiled intersection scene, and counts
+   unsupported materials by reason. Closes #580.
    - Depends on: job 1.
    - Output: records for Matte and Emissive; explicit unsupported reasons for
      all other materials.

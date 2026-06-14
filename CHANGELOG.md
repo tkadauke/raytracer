@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- Added GPU tracing material-record compilation for exact `MatteMaterial` and
+  `EmissiveMaterial` runtime materials, with unsupported material counts by
+  reason for the rest; closes roadmap E3 job 2. — GPT-5 Codex
 - Added `IntersectionService` benchmark rows for closest-hit, any-hit, and
   mixed query-family workloads over small, mesh-heavy, and visibility-heavy
   supported scenes. — GPT-5 Codex
