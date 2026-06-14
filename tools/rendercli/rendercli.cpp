@@ -213,6 +213,12 @@ namespace {
         batching.value("frontierPacketScalarFallbackRaysByReason").toObject();
       const QJsonObject intersectionSceneUnsupportedReasons =
         batching.value("intersectionSceneUnsupportedReasons").toObject();
+      const QJsonObject tracingSceneUnsupportedMaterialReasons =
+        batching.value("tracingSceneUnsupportedMaterialReasons").toObject();
+      const QJsonObject tracingSceneUnsupportedTextureReasons =
+        batching.value("tracingSceneUnsupportedTextureReasons").toObject();
+      const QJsonObject tracingSceneUnsupportedLightReasons =
+        batching.value("tracingSceneUnsupportedLightReasons").toObject();
       const QJsonArray frontierPacketRefinedRays =
         batching.value("frontierPacketRefinedRaysPerDepth").toArray();
       const QJsonObject frontierPacketRefinedByMaterial =
@@ -354,6 +360,26 @@ namespace {
         << (batching.value("intersectionScenePackedClosestHitEligible").toBool() ? "true" : "false")
         << " intersection_scene_packed_any_hit_eligible="
         << (batching.value("intersectionScenePackedAnyHitEligible").toBool() ? "true" : "false")
+        << " tracing_scene_compiled="
+        << (batching.value("tracingSceneCompiled").toBool() ? "true" : "false")
+        << " tracing_scene_materials=" << unsignedValue(batching, "tracingSceneMaterials")
+        << " tracing_scene_textures=" << unsignedValue(batching, "tracingSceneTextures")
+        << " tracing_scene_lights=" << unsignedValue(batching, "tracingSceneLights")
+        << " tracing_scene_environment=" << unsignedValue(batching, "tracingSceneEnvironment")
+        << " tracing_scene_debug_ids=" << unsignedValue(batching, "tracingSceneDebugIds")
+        << " tracing_scene_unsupported_materials="
+        << unsignedValue(batching, "tracingSceneUnsupportedMaterials")
+        << " tracing_scene_unsupported_textures="
+        << unsignedValue(batching, "tracingSceneUnsupportedTextures")
+        << " tracing_scene_unsupported_lights="
+        << unsignedValue(batching, "tracingSceneUnsupportedLights")
+        << " tracing_scene_unsupported_materials_by_reason="
+        << unsignedObjectPairs(tracingSceneUnsupportedMaterialReasons)
+        << " tracing_scene_unsupported_textures_by_reason="
+        << unsignedObjectPairs(tracingSceneUnsupportedTextureReasons)
+        << " tracing_scene_unsupported_lights_by_reason="
+        << unsignedObjectPairs(tracingSceneUnsupportedLightReasons)
+        << " tracing_scene_upload_bytes=" << unsignedValue(batching, "tracingSceneUploadBytes")
         << " intersection_estimated_ray_upload_bytes="
         << unsignedValue(batching, "intersectionEstimatedRayUploadBytes")
         << " intersection_estimated_closest_hit_ray_upload_bytes="

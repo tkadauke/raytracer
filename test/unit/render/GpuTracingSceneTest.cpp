@@ -313,6 +313,42 @@ namespace GpuTracingSceneTest {
     EXPECT_EQ(2u, reasonCounts[0].count);
   }
 
+  TEST(GpuTracingScene, DiagnosticsExposeCompiledSectionAndUnsupportedCounts) {
+    auto unsupportedMaterialSphere = std::make_shared<Sphere>(Vector3d(-1.0, 0.0, 0.0), 0.5);
+    unsupportedMaterialSphere->setMaterial(std::make_shared<PhongMaterial>());
+    auto unsupportedTextureSphere = std::make_shared<Sphere>(Vector3d(1.0, 0.0, 0.0), 0.5);
+    unsupportedTextureSphere->setMaterial(
+      std::make_shared<MatteMaterial>(std::make_shared<UnsupportedTexture>()));
+
+    Scene scene;
+    scene.setEnvironmentRadiance(Colord(0.1, 0.2, 0.3));
+    scene.add(unsupportedMaterialSphere);
+    scene.add(unsupportedTextureSphere);
+    scene.addLight(std::make_shared<PointLight>(Vector3d(1.0, 2.0, 3.0), Colord::white()));
+    scene.addLight(std::make_shared<UnsupportedLight>("UnsupportedLight"));
+
+    const CompiledIntersectionScene intersection = IntersectionSceneCompiler().compile(scene);
+    const GpuTracingSceneDiagnostics diagnostics =
+      compileGpuTracingSceneDiagnostics(intersection, scene);
+
+    EXPECT_TRUE(diagnostics.compiled);
+    EXPECT_EQ(3u, diagnostics.materials);
+    EXPECT_EQ(2u, diagnostics.textures);
+    EXPECT_EQ(1u, diagnostics.lights);
+    EXPECT_EQ(1u, diagnostics.environment);
+    EXPECT_EQ(0u, diagnostics.debugIds);
+    EXPECT_EQ(1u, diagnostics.unsupportedMaterials);
+    EXPECT_EQ(1u, diagnostics.unsupportedTextures);
+    EXPECT_EQ(1u, diagnostics.unsupportedLights);
+    EXPECT_EQ(1u, diagnostics.unsupportedMaterialReasons.at(
+                    "material type is not supported by GPU tracing scene compiler"));
+    EXPECT_EQ(1u, diagnostics.unsupportedTextureReasons.at(
+                    "texture type is not supported by GPU tracing scene compiler"));
+    EXPECT_EQ(1u, diagnostics.unsupportedLightReasons.at(
+                    "light type is not supported by GPU tracing scene compiler"));
+    EXPECT_GT(diagnostics.uploadBytes, 0u);
+  }
+
   TEST(GpuTracingScene, PointLightPacksPositionAndColor) {
     const PointLight light(Vector3d(1.0, 2.0, 3.0), Colord(0.25, 0.5, 0.75));
 

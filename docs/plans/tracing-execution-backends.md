@@ -1369,7 +1369,10 @@ comparison logic.
    - Output: tests proving runtime ids map to compiled records and unsupported
      features are counted by reason.
 
-6. **Expose compiled tracing-scene diagnostics.**
+6. ~~**Expose compiled tracing-scene diagnostics.**~~ ✅ **Done.**
+   Metrics JSON, rendercli summaries, and graph traces now report compiled GPU
+   tracing material, texture, light, environment, debug-id, upload-byte, and
+   unsupported reason counts. Closes #584.
    - Depends on: job 5.
    - Output: trace/metrics counts for compiled materials, textures, lights, and
      unsupported reasons.

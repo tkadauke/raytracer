@@ -1,6 +1,7 @@
 #include "render/Integrator.h"
 
 #include "render/GpuIntersectionScene.h"
+#include "render/GpuTracingScene.h"
 #include "render/WavefrontIntersectionBackend.h"
 #include "render/State.h"
 
@@ -170,6 +171,19 @@ namespace render {
     intersectionSceneBasicHitEligible = false;
     intersectionScenePackedClosestHitEligible = false;
     intersectionScenePackedAnyHitEligible = false;
+    tracingSceneCompiled = false;
+    tracingSceneMaterials = 0;
+    tracingSceneTextures = 0;
+    tracingSceneLights = 0;
+    tracingSceneEnvironment = 0;
+    tracingSceneDebugIds = 0;
+    tracingSceneUnsupportedMaterials = 0;
+    tracingSceneUnsupportedTextures = 0;
+    tracingSceneUnsupportedLights = 0;
+    tracingSceneUnsupportedMaterialReasons.clear();
+    tracingSceneUnsupportedTextureReasons.clear();
+    tracingSceneUnsupportedLightReasons.clear();
+    tracingSceneUploadBytes = 0;
     intersectionEstimatedRayUploadBytes = 0;
     intersectionEstimatedClosestHitRayUploadBytes = 0;
     intersectionEstimatedAnyHitRayUploadBytes = 0;
@@ -771,6 +785,36 @@ namespace render {
       intersectionScenePackedAnyHitEligible || diagnostics.packedAnyHitKernelEligible;
   }
 
+  void IntegratorBatchMetrics::recordTracingScene(const Scene& scene,
+                                                  const WavefrontIntersectionBackend& backend) {
+    const WavefrontIntersectionSceneDiagnostics intersectionDiagnostics =
+      backend.compiledSceneDiagnostics();
+    if (!intersectionDiagnostics.compiled) {
+      return;
+    }
+
+    const GpuTracingSceneDiagnostics diagnostics =
+      backend.compiledScene() ? compileGpuTracingSceneDiagnostics(*backend.compiledScene(), scene)
+                              : compileGpuTracingSceneDiagnostics(scene);
+    tracingSceneCompiled = tracingSceneCompiled || diagnostics.compiled;
+    tracingSceneMaterials = std::max(tracingSceneMaterials, diagnostics.materials);
+    tracingSceneTextures = std::max(tracingSceneTextures, diagnostics.textures);
+    tracingSceneLights = std::max(tracingSceneLights, diagnostics.lights);
+    tracingSceneEnvironment = std::max(tracingSceneEnvironment, diagnostics.environment);
+    tracingSceneDebugIds = std::max(tracingSceneDebugIds, diagnostics.debugIds);
+    tracingSceneUnsupportedMaterials =
+      std::max(tracingSceneUnsupportedMaterials, diagnostics.unsupportedMaterials);
+    tracingSceneUnsupportedTextures =
+      std::max(tracingSceneUnsupportedTextures, diagnostics.unsupportedTextures);
+    tracingSceneUnsupportedLights =
+      std::max(tracingSceneUnsupportedLights, diagnostics.unsupportedLights);
+    mergeMapMaximums(tracingSceneUnsupportedMaterialReasons,
+                     diagnostics.unsupportedMaterialReasons);
+    mergeMapMaximums(tracingSceneUnsupportedTextureReasons, diagnostics.unsupportedTextureReasons);
+    mergeMapMaximums(tracingSceneUnsupportedLightReasons, diagnostics.unsupportedLightReasons);
+    tracingSceneUploadBytes = std::max(tracingSceneUploadBytes, diagnostics.uploadBytes);
+  }
+
   void IntegratorBatchMetrics::recordIntersectionQueryFallbackReason(
     const WavefrontIntersectionBackend& backend, const WavefrontIntersectionQueryTiming& timing) {
     if (timing.fallbackReason.empty()) {
@@ -942,6 +986,25 @@ namespace render {
       intersectionScenePackedClosestHitEligible || source.intersectionScenePackedClosestHitEligible;
     intersectionScenePackedAnyHitEligible =
       intersectionScenePackedAnyHitEligible || source.intersectionScenePackedAnyHitEligible;
+    tracingSceneCompiled = tracingSceneCompiled || source.tracingSceneCompiled;
+    tracingSceneMaterials = std::max(tracingSceneMaterials, source.tracingSceneMaterials);
+    tracingSceneTextures = std::max(tracingSceneTextures, source.tracingSceneTextures);
+    tracingSceneLights = std::max(tracingSceneLights, source.tracingSceneLights);
+    tracingSceneEnvironment = std::max(tracingSceneEnvironment, source.tracingSceneEnvironment);
+    tracingSceneDebugIds = std::max(tracingSceneDebugIds, source.tracingSceneDebugIds);
+    tracingSceneUnsupportedMaterials =
+      std::max(tracingSceneUnsupportedMaterials, source.tracingSceneUnsupportedMaterials);
+    tracingSceneUnsupportedTextures =
+      std::max(tracingSceneUnsupportedTextures, source.tracingSceneUnsupportedTextures);
+    tracingSceneUnsupportedLights =
+      std::max(tracingSceneUnsupportedLights, source.tracingSceneUnsupportedLights);
+    mergeMapMaximums(tracingSceneUnsupportedMaterialReasons,
+                     source.tracingSceneUnsupportedMaterialReasons);
+    mergeMapMaximums(tracingSceneUnsupportedTextureReasons,
+                     source.tracingSceneUnsupportedTextureReasons);
+    mergeMapMaximums(tracingSceneUnsupportedLightReasons,
+                     source.tracingSceneUnsupportedLightReasons);
+    tracingSceneUploadBytes = std::max(tracingSceneUploadBytes, source.tracingSceneUploadBytes);
     intersectionEstimatedRayUploadBytes += source.intersectionEstimatedRayUploadBytes;
     intersectionEstimatedClosestHitRayUploadBytes +=
       source.intersectionEstimatedClosestHitRayUploadBytes;
