@@ -128,6 +128,8 @@ set(wavefront_supported_backend_cpu_report
     "${TEST_OUTPUT_DIR}/wavefront-supported-backend-cpu-metrics.json")
 set(wavefront_supported_backend_gpu_render
     "${TEST_OUTPUT_DIR}/wavefront-supported-backend-gpu-render.png")
+set(wavefront_platform_backend_probe_render
+    "${TEST_OUTPUT_DIR}/wavefront-platform-backend-probe-render.png")
 set(wavefront_supported_backend_auto_render
     "${TEST_OUTPUT_DIR}/wavefront-supported-backend-auto-render.png")
 set(wavefront_supported_backend_auto_report
@@ -3625,17 +3627,36 @@ foreach(expectation
                     "" "" "${wavefront_supported_backend_cpu_json}" "")
   endif()
 endforeach()
-rendercli_run(
-  NAME "rendercli renders supported scene with requested GPU wavefront backend"
-  COMMAND
-    "${RENDERCLI}" --engine wavefront --width 16 --height 16
-    --wavefront_intersection_backend gpu "${wavefront_supported_backend_scene}"
-    "${wavefront_supported_backend_gpu_render}"
+
+rendercli_probe_wavefront_platform_backend(
+  NAME "rendercli probes optional platform wavefront backend"
+  SCENE "${wavefront_supported_backend_scene}"
+  OUTPUT_RENDER "${wavefront_platform_backend_probe_render}"
+  AVAILABLE_VARIABLE wavefront_platform_backend_available
+  REASON_VARIABLE wavefront_platform_backend_skip_reason
 )
-rendercli_assert_image_rms_at_most("${wavefront_supported_backend_cpu_render}"
-                                   "${wavefront_supported_backend_gpu_render}" 0.001
-                                   NAME
-                                     "wavefront GPU backend supported scene RMS matches CPU")
+
+if(NOT wavefront_platform_backend_available)
+  message(STATUS
+    "Skipping optional Metal/Vulkan wavefront parity checks: ${wavefront_platform_backend_skip_reason}")
+endif()
+
+if(wavefront_platform_backend_available)
+  rendercli_run(
+    NAME "rendercli renders supported scene with requested GPU wavefront backend"
+    COMMAND
+      "${RENDERCLI}" --engine wavefront --width 16 --height 16
+      --wavefront_intersection_backend gpu "${wavefront_supported_backend_scene}"
+      "${wavefront_supported_backend_gpu_render}"
+  )
+  rendercli_assert_image_rms_at_most("${wavefront_supported_backend_cpu_render}"
+                                     "${wavefront_supported_backend_gpu_render}" 0.001
+                                     NAME
+                                       "wavefront GPU backend supported scene RMS matches CPU")
+else()
+  message(STATUS
+    "Skipped rendercli supported-scene GPU wavefront parity: ${wavefront_platform_backend_skip_reason}")
+endif()
 
 rendercli_run(
   NAME "rendercli reports wavefront convergence-stopped tiles"
@@ -3737,21 +3758,26 @@ rendercli_run(
 rendercli_assert_image_nonempty("${wavefront_direct_light_backend_cpu_render}"
                                 NAME "CPU wavefront direct-light backend baseline pixels")
 
-rendercli_run(
-  NAME "rendercli renders GPU wavefront direct-light backend parity candidate"
-  COMMAND
-    "${RENDERCLI}" --engine wavefront --integrator pathtracer --width 12 --height 8
-    --pathtracer_direct_light_samples 1 --wavefront_denoiser none
-    --wavefront_intersection_backend gpu --samples_per_pixel 1 --sampling_seed 1337
-    --depth 1 "${wavefront_direct_light_backend_scene}"
-    "${wavefront_direct_light_backend_gpu_render}"
-)
-rendercli_assert_image_nonempty("${wavefront_direct_light_backend_gpu_render}"
-                                NAME "GPU wavefront direct-light backend candidate pixels")
-rendercli_assert_image_rms_at_most("${wavefront_direct_light_backend_cpu_render}"
-                                   "${wavefront_direct_light_backend_gpu_render}" 0.001
-                                   NAME
-                                     "wavefront GPU backend direct-light path tracing RMS matches CPU")
+if(wavefront_platform_backend_available)
+  rendercli_run(
+    NAME "rendercli renders GPU wavefront direct-light backend parity candidate"
+    COMMAND
+      "${RENDERCLI}" --engine wavefront --integrator pathtracer --width 12 --height 8
+      --pathtracer_direct_light_samples 1 --wavefront_denoiser none
+      --wavefront_intersection_backend gpu --samples_per_pixel 1 --sampling_seed 1337
+      --depth 1 "${wavefront_direct_light_backend_scene}"
+      "${wavefront_direct_light_backend_gpu_render}"
+  )
+  rendercli_assert_image_nonempty("${wavefront_direct_light_backend_gpu_render}"
+                                  NAME "GPU wavefront direct-light backend candidate pixels")
+  rendercli_assert_image_rms_at_most("${wavefront_direct_light_backend_cpu_render}"
+                                     "${wavefront_direct_light_backend_gpu_render}" 0.001
+                                     NAME
+                                       "wavefront GPU backend direct-light path tracing RMS matches CPU")
+else()
+  message(STATUS
+    "Skipped rendercli direct-light GPU wavefront parity: ${wavefront_platform_backend_skip_reason}")
+endif()
 
 rendercli_run(
   NAME "rendercli reports batched wavefront any-hit visibility metrics"
