@@ -568,8 +568,10 @@ well-defined scenes before it is user-selectable.
 **Tests/gates:**
 
 - Harness itself covered by unit tests with synthetic images/records.
-- rendercli functional tests use the harness for at least one CPU vs GPU
-  request path.
+- ~~rendercli functional tests use the harness for at least one CPU vs GPU
+  request path.~~ ✅ **Done.** `rendercli_tracing_parity` compares the
+  canonical matte direct-light fixture across CPU and GPU-requested paths and
+  checks the metrics path metadata for issue #578.
 
 **Syrus-ready:** yes. This is a good independent Syrus epic because it can be
 implemented without changing algorithm semantics.
