@@ -1,0 +1,123 @@
+{
+  "id": "tracing-parity-indirect-bounce",
+  "name": "Tracing Parity Indirect Bounce",
+  "ambient": [0.0, 0.0, 0.0],
+  "background": [0.0, 0.0, 0.0],
+  "type": "Scene",
+  "renderIntent": {
+    "defaultExecutor": "pathtracer",
+    "defaultViewMode": "beauty",
+    "defaultCamera": {
+      "sceneCameraId": "camera"
+    },
+    "engineOptions": {
+      "raytracer": {
+        "execution": {
+          "maxRecursionDepth": 3
+        },
+        "sampling": {
+          "sampler": "Regular",
+          "samplesPerPixel": 16
+        }
+      }
+    }
+  },
+  "children": [
+    {
+      "id": "camera",
+      "name": "Camera",
+      "position": [0.0, 0.35, -4.25],
+      "target": [0.0, -0.55, 1.2],
+      "distance": 5.0,
+      "zoom": 1.35,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "side-light",
+      "name": "Side Light",
+      "position": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "color": [1.0, 1.0, 1.0],
+      "intensity": 3.0,
+      "direction": [1.0, 0.0, 0.0],
+      "type": "DirectionalLight",
+      "children": []
+    },
+    {
+      "id": "red-texture",
+      "name": "Red Bounce Texture",
+      "color": [1.0, 0.08, 0.03],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "neutral-texture",
+      "name": "Neutral Diffuse Texture",
+      "color": [0.74, 0.74, 0.74],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "red-material",
+      "name": "Red Bounce Material",
+      "diffuseTexture": "red-texture",
+      "ambientCoefficient": 0.0,
+      "diffuseCoefficient": 1.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "neutral-material",
+      "name": "Neutral Diffuse Material",
+      "diffuseTexture": "neutral-texture",
+      "ambientCoefficient": 0.0,
+      "diffuseCoefficient": 1.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "red-wall",
+      "name": "Lit Red Wall",
+      "position": [-2.0, -1.0, -0.5],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "red-material",
+      "leg1": [0.0, 3.0, 0.0],
+      "leg2": [0.0, 0.0, 4.0],
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Rectangle",
+      "children": []
+    },
+    {
+      "id": "floor",
+      "name": "Diffuse Floor Receiver",
+      "position": [-2.0, -1.0, -0.5],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "neutral-material",
+      "leg1": [0.0, 0.0, 4.0],
+      "leg2": [4.0, 0.0, 0.0],
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Rectangle",
+      "children": []
+    },
+    {
+      "id": "receiver-ball",
+      "name": "Diffuse Ball Receiver",
+      "position": [0.65, -0.35, 1.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "neutral-material",
+      "radius": 0.45,
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Sphere",
+      "children": []
+    }
+  ]
+}

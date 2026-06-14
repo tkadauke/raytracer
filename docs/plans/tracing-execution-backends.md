@@ -594,8 +594,10 @@ well-defined scenes before it is user-selectable.
 **Tests/gates:**
 
 - Harness itself covered by unit tests with synthetic images/records.
-- rendercli functional tests use the harness for at least one CPU vs GPU
-  request path.
+- ~~rendercli functional tests use the harness for at least one CPU vs GPU
+  request path.~~ ✅ **Done.** `rendercli_tracing_parity` compares the
+  canonical matte direct-light fixture across CPU and GPU-requested paths and
+  checks the metrics path metadata for issue #578.
 
 **Syrus-ready:** yes. This is a good independent Syrus epic because it can be
 implemented without changing algorithm semantics.
@@ -1338,7 +1340,9 @@ use before it can be called correct.
    - Output: scene list covering supported matte/direct-light, indirect bounce,
      mesh import, transparent fallback, and visibility-heavy workloads.
 
-2. **Add record comparison helpers.**
+2. ~~**Add record comparison helpers.**~~ ✅ **Done.** Issue #575 adds
+   reusable GoogleTest helpers for GPU hit records, GPU occlusion records,
+   compiled CPU hits versus GPU hits, and wavefront closest-hit results.
    - Depends on: job 1.
    - Output: helpers for closest-hit records, occlusion records, material/light
      ids, hit distance, normals, UV/barycentric/local coordinates, and miss

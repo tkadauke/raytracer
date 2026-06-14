@@ -14,6 +14,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Added GPU tracing texture record compilation for `ConstantColorTexture` with
   explicit unsupported texture reason diagnostics; advances E3 job 3.
   — GPT-5 Codex
+- Added tracing record comparison helpers for GPU hit records, occlusion records,
+  compiled CPU hits, and wavefront closest-hit results, closing roadmap §E2
+  job 2. — GPT-5 Codex
 
 ### Changed
 
@@ -250,6 +253,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Added version-1 GPU tracing scene sections for geometry, materials, textures,
   lights, environment, and debug ids, with shading records kept separate from
   intersection hit records. — GPT-5 Codex
+- Added reusable tracing image comparison helpers for normalized RMS checks
+  across HDR and RGB buffers. — GPT-5 Codex
 - Added `direct_light_any_hit_chunks`, `direct_light_any_hit_chunk_rays`, and
   `direct_light_any_hit_chunk_avg` rendercli summary aliases for direct-light
   visibility chunk diagnostics while preserving the legacy `batch` keys.

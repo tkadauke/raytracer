@@ -1,0 +1,108 @@
+{
+  "id": "tracing-parity-matte-direct-light",
+  "name": "Tracing Parity Matte Direct Light",
+  "ambient": [0.0, 0.0, 0.0],
+  "background": [0.02, 0.03, 0.04],
+  "type": "Scene",
+  "renderIntent": {
+    "defaultExecutor": "pathtracer",
+    "defaultViewMode": "beauty",
+    "defaultCamera": {
+      "sceneCameraId": "camera"
+    },
+    "engineOptions": {
+      "raytracer": {
+        "execution": {
+          "maxRecursionDepth": 1
+        },
+        "sampling": {
+          "sampler": "Regular",
+          "samplesPerPixel": 1
+        }
+      }
+    }
+  },
+  "children": [
+    {
+      "id": "camera",
+      "name": "Camera",
+      "position": [0.0, 0.75, -4.25],
+      "target": [0.0, -0.2, 0.35],
+      "distance": 4.0,
+      "zoom": 1.35,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "key-light",
+      "name": "Key Light",
+      "position": [-2.0, 3.0, -2.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "color": [1.0, 0.96, 0.88],
+      "intensity": 1.15,
+      "type": "PointLight",
+      "children": []
+    },
+    {
+      "id": "sphere-texture",
+      "name": "Sphere Texture",
+      "color": [0.8, 0.18, 0.12],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "floor-texture",
+      "name": "Floor Texture",
+      "color": [0.68, 0.7, 0.72],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "sphere-material",
+      "name": "Sphere Matte",
+      "diffuseTexture": "sphere-texture",
+      "ambientCoefficient": 0.0,
+      "diffuseCoefficient": 1.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "floor-material",
+      "name": "Floor Matte",
+      "diffuseTexture": "floor-texture",
+      "ambientCoefficient": 0.0,
+      "diffuseCoefficient": 1.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "sphere",
+      "name": "Matte Sphere",
+      "position": [-0.35, -0.05, 0.35],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "sphere-material",
+      "radius": 0.7,
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Sphere",
+      "children": []
+    },
+    {
+      "id": "floor",
+      "name": "Matte Floor",
+      "position": [-2.5, -0.8, -1.5],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "floor-material",
+      "leg1": [0.0, 0.0, 4.0],
+      "leg2": [5.0, 0.0, 0.0],
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Rectangle",
+      "children": []
+    }
+  ]
+}
