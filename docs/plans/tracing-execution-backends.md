@@ -1698,10 +1698,13 @@ diffuse path tracer for the first supported subset.
    - Depends on: none.
    - Output: ping-pong buffers for current and next path states.
 
-2. **Add GPU/CPU compaction contract.**
+2. **~~Add GPU/CPU compaction contract.~~**
    - Depends on: job 1.
-   - Output: retained-index, removed-count, moved-count, and execution-path
-     contract matching existing host compaction metrics.
+   - Output: ~~retained-index, removed-count, moved-count, and execution-path
+     contract matching existing host compaction metrics.~~ ✅ **Done.**
+     `ResidentPathCompactionContract` mirrors the host compaction counters with
+     32-bit retained indices and resident path-state byte accounting for
+     issue #613.
 
 3. **Loop over depth with max-depth and Russian roulette.**
    - Depends on: jobs 1 and 2.

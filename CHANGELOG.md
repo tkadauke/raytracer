@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Added `ResidentPathCompactionContract` for GPU-resident path loop planning,
+  covering retained indices, removed and moved counts, resident byte totals,
+  and execution-path labels for roadmap E9 job 2. — GPT-5 Codex
 - Added GPU-facing active/next path-state buffer layout records plus a CPU
   reference ping-pong buffer for the E9 resident path-loop roadmap.
   — GPT-5 Codex

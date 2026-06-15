@@ -116,4 +116,68 @@ namespace TracingPathStateBufferTest {
     buffers.appendNext(record);
     EXPECT_THROW(buffers.appendNext(record), std::overflow_error);
   }
+
+  TEST(ResidentPathCompactionContract, ReportsAllRetainedPathsWithoutMoves) {
+    const ResidentPathCompactionContract contract =
+      ResidentPathCompactionContract::fromRetainedIndices(
+        /*inputPathCount=*/4, {0u, 1u, 2u, 3u}, "gpu_resident",
+        /*pathStateBytesPerPath=*/sizeof(GpuPathStateRecord));
+
+    EXPECT_EQ(4u, contract.inputPathCount());
+    EXPECT_EQ(4u, contract.retainedPathCount());
+    EXPECT_EQ(0u, contract.removedPathCount());
+    EXPECT_EQ(0u, contract.movedPathCount());
+    EXPECT_DOUBLE_EQ(0.0, contract.removedPathFraction());
+    EXPECT_DOUBLE_EQ(0.0, contract.movedRetainedPathFraction());
+    EXPECT_EQ((std::vector<std::uint32_t>{0u, 1u, 2u, 3u}), contract.retainedPathIndices());
+    EXPECT_EQ("gpu_resident", contract.executionPath());
+    EXPECT_EQ(4u * sizeof(std::uint32_t), contract.retainedIndexBytes());
+    EXPECT_EQ(4u * sizeof(GpuPathStateRecord), contract.inputResidentPathStateBytes());
+    EXPECT_EQ(4u * sizeof(GpuPathStateRecord), contract.retainedResidentPathStateBytes());
+    EXPECT_EQ(0u, contract.removedResidentPathStateBytes());
+  }
+
+  TEST(ResidentPathCompactionContract, ReportsRemovedAndMovedRetainedPaths) {
+    const ResidentPathCompactionContract contract =
+      ResidentPathCompactionContract::fromRetainedIndices(
+        /*inputPathCount=*/6, {0u, 2u, 5u}, "vulkan_resident_compaction",
+        /*pathStateBytesPerPath=*/64u);
+
+    EXPECT_EQ(6u, contract.inputPathCount());
+    EXPECT_EQ(3u, contract.retainedPathCount());
+    EXPECT_EQ(3u, contract.removedPathCount());
+    EXPECT_EQ(2u, contract.movedPathCount());
+    EXPECT_DOUBLE_EQ(3.0 / 6.0, contract.removedPathFraction());
+    EXPECT_DOUBLE_EQ(2.0 / 3.0, contract.movedRetainedPathFraction());
+    EXPECT_EQ(3u * sizeof(std::uint32_t), contract.retainedIndexBytes());
+    EXPECT_EQ(6u * 64u, contract.inputResidentPathStateBytes());
+    EXPECT_EQ(3u * 64u, contract.retainedResidentPathStateBytes());
+    EXPECT_EQ(3u * 64u, contract.removedResidentPathStateBytes());
+    EXPECT_EQ("vulkan_resident_compaction", contract.executionPath());
+  }
+
+  TEST(ResidentPathCompactionContract, ReportsAllRemovedPathsWithoutMoves) {
+    const ResidentPathCompactionContract contract =
+      ResidentPathCompactionContract::fromRetainedIndices(
+        /*inputPathCount=*/3, {}, "gpu_resident", /*pathStateBytesPerPath=*/32u);
+
+    EXPECT_EQ(0u, contract.retainedPathCount());
+    EXPECT_EQ(3u, contract.removedPathCount());
+    EXPECT_EQ(0u, contract.movedPathCount());
+    EXPECT_DOUBLE_EQ(1.0, contract.removedPathFraction());
+    EXPECT_DOUBLE_EQ(0.0, contract.movedRetainedPathFraction());
+    EXPECT_EQ(0u, contract.retainedIndexBytes());
+    EXPECT_EQ(96u, contract.inputResidentPathStateBytes());
+    EXPECT_EQ(0u, contract.retainedResidentPathStateBytes());
+    EXPECT_EQ(96u, contract.removedResidentPathStateBytes());
+  }
+
+  TEST(ResidentPathCompactionContract, RejectsInvalidRetainedIndices) {
+    EXPECT_THROW(ResidentPathCompactionContract::fromRetainedIndices(3, {0u, 3u}, "gpu"),
+                 std::out_of_range);
+    EXPECT_THROW(ResidentPathCompactionContract::fromRetainedIndices(3, {1u, 1u}, "gpu"),
+                 std::invalid_argument);
+    EXPECT_THROW(ResidentPathCompactionContract::fromRetainedIndices(3, {2u, 1u}, "gpu"),
+                 std::invalid_argument);
+  }
 }
