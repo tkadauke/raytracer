@@ -20,6 +20,8 @@ namespace {
   constexpr std::uint32_t kBsdfSampleDimensionOffset = 2;
   constexpr std::uint32_t kContinuationDimensionOffset = 3;
   constexpr double kLightTolerance = 1e-9;
+  constexpr const char* kPackedCpuExecutionPath = "packed_cpu";
+  constexpr const char* kCpuRecordExecutionPath = "cpu_record";
 
   std::array<float, 4> color4(const Colord& color, float w = 0.0f) {
     return {static_cast<float>(color.r()), static_cast<float>(color.g()),
@@ -277,6 +279,10 @@ GpuDiffusePathStep::step(const GpuTracingSceneSections& scene,
   GpuDiffusePathStepResult result =
     GpuDiffusePathStepReference().step(scene, pathStates, closestHits);
   result.closestHitRecords = closestHits;
+  if (!activeRays.empty()) {
+    result.metrics.closestHitExecutionPath = kPackedCpuExecutionPath;
+    result.metrics.closestHitRays = activeRays.size();
+  }
   return result;
 }
 
@@ -346,6 +352,8 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
     Colord accumulated = colorFrom4(pathState.accumulatedRadiance);
 
     if (materialKind == GpuTracingMaterialKind::Emissive) {
+      result.metrics.emissionExecutionPath = kCpuRecordExecutionPath;
+      ++result.metrics.emissionContributionEvaluations;
       const Colord emitted =
         (normal * wi) > 0.0 ? textureColor(scene, material.emissionTexture) : Colord::black();
       const Colord contribution = throughput * emitted;
@@ -379,6 +387,8 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
         sampleLight(scene.lights[lightIndex], point,
                     sample2D(pathState, sampleDimension(pathState, kLightSampleDimensionOffset)));
       if (light.valid) {
+        result.metrics.directLightVisibilityExecutionPath = kPackedCpuExecutionPath;
+        result.metrics.directLightContributionExecutionPath = kCpuRecordExecutionPath;
         ++result.metrics.directLightSamples;
         const Rayd shadowRay = Rayd(pointFrom4(hit.point), light.direction).epsilonShifted();
         const std::uint32_t shadowRayIndex =
@@ -389,9 +399,11 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
         result.directLightShadowRays.push_back(packedShadowRay);
         result.directLightOcclusionRecords.push_back(
           GpuIntersectionOcclusionRecord{occluded ? 1u : 0u, shadowRayIndex, {}});
+        ++result.metrics.directLightVisibilityRays;
         if (occluded) {
           ++result.metrics.directLightOccludedSamples;
         } else {
+          ++result.metrics.directLightContributionEvaluations;
           const double bsdfPdf = light.delta ? 0.0 : cosineHemispherePdf(normal, light.direction);
           const Colord lightContribution =
             mis::estimateDirectLightingFromLightSample(
