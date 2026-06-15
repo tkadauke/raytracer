@@ -135,13 +135,15 @@ adaptive sampling state for wavefront path tracing.
 `--wavefront_intersection_backend auto|cpu|gpu` records the requested
 ray-scene intersection backend for wavefront batches. `cpu` uses the canonical
 CPU backend. `auto` now runs through the same selection policy used for GPU
-backend requests: platform availability first, then scene support, then an
+backend requests: a fixed expected-ray preflight first, then platform device
+availability, platform render-path availability, scene support, and an
 expected-ray-count threshold that scales with prepared scene-upload size. At
-this stage, scene support means triangle, sphere, plane, rectangle, disk,
-OpenCylinder, and box-tessellation leaves with either no transform or static
-instance transforms that can use the first Metal/Vulkan closest-hit and any-hit
-kernels; other packed scenes still select CPU and report that selection reason
-in graph trace and wavefront metrics instead of silently behaving like `cpu`.
+this stage, scene support means triangle, mesh-triangle, sphere, plane,
+rectangle, disk, OpenCylinder, and Torus leaves with either no transform or
+static instance transforms that can use the first Metal/Vulkan closest-hit and
+any-hit kernels; other packed scenes still select CPU and report that selection
+reason in graph trace and wavefront metrics instead of silently behaving like
+`cpu`.
 Metrics include both `intersectionBackendExpectedRays` and
 `intersectionBackendAutoMinimumGpuRays`, so a small auto-selected CPU render can
 show the exact ray-count threshold it failed to clear. Auto renders also report
@@ -152,6 +154,9 @@ selection policy considered. The expected workload is also split into
 `intersectionBackendExpectedAnyHitRays`, so path-tracing direct-light visibility
 work is priced using the smaller occlusion-record readback rather than being
 hidden inside one closest-hit-style total.
+The same metrics name the scene-upload bytes, platform availability flags,
+unsupported-scene reason buckets, selected execution path, fallback reason,
+frontier residency/byte counters, and backend upload/kernel/readback timing.
 `gpu` is accepted as durable intent and reports either the active platform path
 or a CPU fallback reason in graph trace and wavefront metrics. For a
 `gpu` request, the renderer also runs the compiled-intersection-scene diagnostic

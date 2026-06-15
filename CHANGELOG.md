@@ -23,6 +23,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- Documented the conservative wavefront intersection `auto` backend selection
+  policy, including platform, scene-support, expected-work, transfer, and
+  residency metrics; closes roadmap E12 job 3. — GPT-5 Codex
 - Added comparable `tracing_*` counters to wavefront intersection backend
   benchmarks for render time, transfer time, kernel time, scene compile time,
   rays/sec, resident bytes, and fallback rate, closing roadmap E12 job 2.

@@ -229,12 +229,20 @@ The CPU backend is the canonical implementation and supports the full
 scene/primitive set. Render intent and rendercli can still request
 `auto`, `cpu`, or `gpu` so the graph has a stable place for future GPU
 intersection work. `cpu` resolves directly to the CPU backend. `auto`
-runs a selection policy over platform availability, scene support, expected ray
-count, and scene-upload amortization; today scene support is intentionally
-limited to triangle, sphere, plane, rectangle, disk, OpenCylinder, and Torus
-leaves with either no transform or static instance transforms that can use the
-first Metal/Vulkan packed closest-hit and any-hit kernels. Other scenes report
-the CPU-selection reason in metrics and graph trace metadata. The experimental
+runs a conservative selection policy. It rejects work below the fixed expected
+ray floor before probing platform backends or compiling the scene. Work that
+clears that preflight must then have a platform GPU device, a render-path-capable
+platform backend, and a compiled intersection scene with no unsupported leaves.
+The compiled scene must also be eligible for the platform basic-hit kernel and
+for the packed closest-hit and any-hit kernels. Only then can `auto` compare the
+effective expected ray count with the transfer threshold. That threshold is the
+larger of the fixed floor and the prepared scene upload size in KiB multiplied
+by `minimumGpuRaysPerSceneUploadKiB`. Today scene support is intentionally
+limited to triangle, mesh-triangle, sphere, plane, rectangle, disk,
+OpenCylinder, and Torus leaves with either no transform or static instance
+transforms that can use the first Metal/Vulkan packed closest-hit and any-hit
+kernels. Other scenes report the CPU-selection reason in metrics and graph trace
+metadata. The experimental
 CMake flags
 `RAYTRACER_ENABLE_METAL_WAVEFRONT` and
 `RAYTRACER_ENABLE_VULKAN_WAVEFRONT` enable platform plumbing checks. The
@@ -517,7 +525,22 @@ The backend selection context owns that same saturated sum, and
 render metrics and selection use the same closest-hit/any-hit workload even if
 an integrator provides an inconsistent legacy total estimate. The auto-selection
 policy also reads that effective context estimate, so direct policy callers that
-provide query-family counts cannot accidentally select from a stale total. The
+provide query-family counts cannot accidentally select from a stale total.
+The decision is inspectable through metrics: `intersectionBackendExpectedRays`,
+`intersectionBackendExpectedClosestHitRays`,
+`intersectionBackendExpectedAnyHitRays`,
+`intersectionBackendAutoMinimumGpuRays`,
+`intersectionBackendAutoEstimatedQueryTransferBytes`,
+`intersectionSceneUploadBytes`,
+`intersectionSceneUnsupportedReasons`,
+`intersection_backend_gpu_device`,
+`intersection_backend_gpu_render_path`, the selected closest-hit and any-hit
+execution paths, fallback reason, frontier residency and byte counters, and
+backend upload/setup, kernel, and readback timing. Frontier residency remains
+diagnostic for this policy: host-backed frontiers do not disqualify a GPU
+intersection query after the platform, scene-support, work, and transfer gates
+pass, but the residency and byte metrics name the transfer cost that future
+resident-frontier backends must beat. The
 wavefront intersection backend benchmarks include runtime CPU and packed
 closest-hit rows plus runtime CPU and packed any-hit rows, so both query
 families have baseline evidence. The automatic-backend fixtures use the same
