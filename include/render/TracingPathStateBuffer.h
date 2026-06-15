@@ -78,6 +78,44 @@ namespace render {
     void recordSwap(std::uint64_t newActiveCount);
   };
 
+  class ResidentPathCompactionContract {
+  public:
+    static ResidentPathCompactionContract
+    fromRetainedIndices(std::uint64_t inputPathCount, std::vector<std::uint32_t> retainedPathIndices,
+                        std::string executionPath,
+                        std::uint64_t pathStateBytesPerPath = sizeof(GpuPathStateRecord));
+
+    [[nodiscard]] std::uint64_t inputPathCount() const;
+    [[nodiscard]] std::uint64_t retainedPathCount() const;
+    [[nodiscard]] std::uint64_t removedPathCount() const;
+    [[nodiscard]] std::uint64_t movedPathCount() const;
+    [[nodiscard]] double removedPathFraction() const;
+    [[nodiscard]] double movedRetainedPathFraction() const;
+    [[nodiscard]] const std::vector<std::uint32_t>& retainedPathIndices() const;
+    [[nodiscard]] const std::string& executionPath() const;
+    [[nodiscard]] std::uint64_t pathStateBytesPerPath() const;
+    [[nodiscard]] std::uint64_t retainedIndexBytes() const;
+    [[nodiscard]] std::uint64_t inputResidentPathStateBytes() const;
+    [[nodiscard]] std::uint64_t retainedResidentPathStateBytes() const;
+    [[nodiscard]] std::uint64_t removedResidentPathStateBytes() const;
+
+  private:
+    ResidentPathCompactionContract(std::uint64_t inputPathCount,
+                                   std::vector<std::uint32_t> retainedPathIndices,
+                                   std::uint64_t movedPathCount, std::string executionPath,
+                                   std::uint64_t pathStateBytesPerPath);
+
+    static void validateRetainedPathIndices(
+      std::uint64_t inputPathCount, const std::vector<std::uint32_t>& retainedPathIndices);
+    static std::uint64_t movedPathCountFor(const std::vector<std::uint32_t>& retainedPathIndices);
+
+    std::uint64_t m_inputPathCount{0};
+    std::vector<std::uint32_t> m_retainedPathIndices;
+    std::uint64_t m_movedPathCount{0};
+    std::string m_executionPath;
+    std::uint64_t m_pathStateBytesPerPath{0};
+  };
+
   class TracingPathStateBuffers {
   public:
     explicit TracingPathStateBuffers(const TracingPathStateLayout& layout);
