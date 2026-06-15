@@ -1,0 +1,241 @@
+{
+  "id": "{68500000-0000-0000-0000-000000000000}",
+  "name": "Tracing Execution Inspection Demo",
+  "ambient": [0.0, 0.0, 0.0],
+  "background": [0.015, 0.018, 0.024],
+  "environmentRadiance": [0.015, 0.018, 0.024],
+  "type": "Scene",
+  "renderIntent": {
+    "defaultExecutor": "pathtracer",
+    "defaultViewMode": "beauty",
+    "defaultCamera": {
+      "sceneCameraId": "{68500000-0000-0000-0000-000000000001}"
+    },
+    "engineOptions": {
+      "raytracer": {
+        "execution": {
+          "maxRecursionDepth": 4,
+          "intersectionBackend": "gpu",
+          "directLightSamples": 2,
+          "russianRouletteDepth": 3
+        },
+        "sampling": {
+          "sampler": "Halton",
+          "samplesPerPixel": 16,
+          "seed": 625
+        }
+      }
+    }
+  },
+  "children": [
+    {
+      "id": "{68500000-0000-0000-0000-000000000001}",
+      "name": "Inspection Camera",
+      "position": [0.0, 1.05, -5.2],
+      "target": [0.05, 0.08, 0.6],
+      "distance": 5.0,
+      "zoom": 1.18,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "{68500000-0000-0000-0000-000000000002}",
+      "name": "Warm Key Light",
+      "position": [-1.35, 2.45, -1.2],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "color": [1.0, 0.93, 0.78],
+      "intensity": 2.8,
+      "type": "PointLight",
+      "children": []
+    },
+    {
+      "id": "{68500000-0000-0000-0000-000000000003}",
+      "name": "Cool Fill Light",
+      "position": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "color": [0.58, 0.70, 1.0],
+      "intensity": 0.42,
+      "direction": [-0.35, -0.75, -0.55],
+      "type": "DirectionalLight",
+      "children": []
+    },
+    {
+      "id": "{68500000-0000-0000-0000-000000000010}",
+      "name": "Neutral Clay Texture",
+      "color": [0.72, 0.70, 0.64],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{68500000-0000-0000-0000-000000000011}",
+      "name": "Blue Sphere Texture",
+      "color": [0.18, 0.35, 0.86],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{68500000-0000-0000-0000-000000000012}",
+      "name": "Green Torus Texture",
+      "color": [0.16, 0.64, 0.36],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{68500000-0000-0000-0000-000000000013}",
+      "name": "Red Cylinder Texture",
+      "color": [0.82, 0.20, 0.12],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{68500000-0000-0000-0000-000000000014}",
+      "name": "Gold Disk Texture",
+      "color": [0.94, 0.70, 0.28],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{68500000-0000-0000-0000-000000000020}",
+      "name": "Neutral Clay Material",
+      "diffuseTexture": "{68500000-0000-0000-0000-000000000010}",
+      "ambientCoefficient": 0.0,
+      "diffuseCoefficient": 1.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{68500000-0000-0000-0000-000000000021}",
+      "name": "Blue Sphere Material",
+      "diffuseTexture": "{68500000-0000-0000-0000-000000000011}",
+      "ambientCoefficient": 0.0,
+      "diffuseCoefficient": 1.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{68500000-0000-0000-0000-000000000022}",
+      "name": "Green Torus Material",
+      "diffuseTexture": "{68500000-0000-0000-0000-000000000012}",
+      "ambientCoefficient": 0.0,
+      "diffuseCoefficient": 1.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{68500000-0000-0000-0000-000000000023}",
+      "name": "Red Cylinder Material",
+      "diffuseTexture": "{68500000-0000-0000-0000-000000000013}",
+      "ambientCoefficient": 0.0,
+      "diffuseCoefficient": 1.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{68500000-0000-0000-0000-000000000024}",
+      "name": "Gold Disk Material",
+      "diffuseTexture": "{68500000-0000-0000-0000-000000000014}",
+      "ambientCoefficient": 0.0,
+      "diffuseCoefficient": 1.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{68500000-0000-0000-0000-000000000030}",
+      "name": "Compiled Rectangle Floor",
+      "position": [-2.75, -0.72, -1.25],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{68500000-0000-0000-0000-000000000020}",
+      "leg1": [5.5, 0.0, 0.0],
+      "leg2": [0.0, 0.0, 4.5],
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Rectangle",
+      "children": []
+    },
+    {
+      "id": "{68500000-0000-0000-0000-000000000031}",
+      "name": "Compiled Rectangle Backdrop",
+      "position": [-2.75, -0.72, 2.85],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{68500000-0000-0000-0000-000000000020}",
+      "leg1": [5.5, 0.0, 0.0],
+      "leg2": [0.0, 3.1, 0.0],
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Rectangle",
+      "children": []
+    },
+    {
+      "id": "{68500000-0000-0000-0000-000000000040}",
+      "name": "Compiled Sphere Closest Hit",
+      "position": [-1.05, -0.05, 0.45],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "metadata": {
+        "tags": ["tracing", "closest-hit"]
+      },
+      "material": "{68500000-0000-0000-0000-000000000021}",
+      "radius": 0.68,
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Sphere",
+      "children": []
+    },
+    {
+      "id": "{68500000-0000-0000-0000-000000000041}",
+      "name": "Compiled Torus Exact Payload",
+      "position": [0.55, -0.28, 0.7],
+      "rotation": [0.58, -0.35, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "metadata": {
+        "tags": ["tracing", "exact-payload"]
+      },
+      "material": "{68500000-0000-0000-0000-000000000022}",
+      "sweptRadius": 0.42,
+      "tubeRadius": 0.13,
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Torus",
+      "children": []
+    },
+    {
+      "id": "{68500000-0000-0000-0000-000000000042}",
+      "name": "Compiled Open Cylinder Visibility",
+      "position": [1.45, -0.18, 0.05],
+      "rotation": [0.0, 0.38, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "metadata": {
+        "tags": ["tracing", "any-hit"]
+      },
+      "material": "{68500000-0000-0000-0000-000000000023}",
+      "radius": 0.28,
+      "height": 1.15,
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "OpenCylinder",
+      "children": []
+    },
+    {
+      "id": "{68500000-0000-0000-0000-000000000043}",
+      "name": "Compiled Disk Payload",
+      "position": [1.08, -0.69, 1.1],
+      "rotation": [1.5707963267948966, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "metadata": {
+        "tags": ["tracing", "exact-payload"]
+      },
+      "material": "{68500000-0000-0000-0000-000000000024}",
+      "radius": 0.38,
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Disk",
+      "children": []
+    }
+  ]
+}
