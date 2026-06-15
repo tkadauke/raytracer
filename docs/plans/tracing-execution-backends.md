@@ -1923,7 +1923,10 @@ for the supported scene subset.
 
 **Jobs:**
 
-1. **Define direct-light work records.**
+1. ~~**Define direct-light work records.**~~ ✅ **Done.** Issue #600 adds
+   documented GPU diffuse direct-light surface, sample-state, light-selection,
+   and visibility records with unit tests for layout and sample-dimension
+   addressing.
    - Depends on: none.
    - Output: hit point/reconstructible hit data, normal, material id, incoming
      direction, throughput, sample state, and light-selection inputs.
