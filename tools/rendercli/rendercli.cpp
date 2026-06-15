@@ -1716,6 +1716,7 @@ private:
   double m_rasterShadowSlopeBias;
   int m_rasterShadowFilterRadius;
   QString m_rasterShadowFilterMode;
+  QString m_rasterShadowMode;
   int m_repeat;
   bool m_timing;
   int m_frame;
@@ -1905,6 +1906,7 @@ Renderer::Renderer()
       m_rasterShadowSlopeBias(0.0),
       m_rasterShadowFilterRadius(0),
       m_rasterShadowFilterMode("pcf"),
+      m_rasterShadowMode("shadow_maps"),
       m_repeat(1),
       m_timing(false),
       m_frame(0),
@@ -2179,6 +2181,7 @@ engine::graph::RenderEngineOptions Renderer::commandLineEngineOptions() const {
     options.rasterizer().setShadowSlopeBias(m_rasterShadowSlopeBias);
     options.rasterizer().setShadowFilterRadius(m_rasterShadowFilterRadius);
     options.rasterizer().setShadowFilterMode(m_rasterShadowFilterMode.toStdString());
+    options.rasterizer().setShadowMode(m_rasterShadowMode.toStdString());
   }
 
   return options;
@@ -3442,6 +3445,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"shadow_slope_bias", "Rasterizer slope-scaled shadow-map depth bias", "bias"},
      {"shadow_filter_radius", "Rasterizer shadow filter radius", "radius"},
      {"shadow_filter", "Rasterizer shadow filter (pcf, pcss)", "mode"},
+     {"shadow_mode", "Rasterizer preview shadow implementation (shadow_maps, ray_traced)", "mode"},
      {"timing", "Print render-only timing information to stdout"},
      {"frame", "Evaluate the scene animation at the given frame before rendering", "frame"},
      {"step",
@@ -4402,6 +4406,16 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       return CommandLineError;
     }
     m_rasterShadowFilterMode = filterMode;
+  }
+
+  if (parser.isSet("shadow_mode")) {
+    const QString shadowMode = parser.value("shadow_mode").toLower();
+    if (shadowMode != "shadow_maps" && shadowMode != "ray_traced") {
+      *errorMessage = "Shadow mode must be 'shadow_maps' or 'ray_traced'";
+      return CommandLineError;
+    }
+    m_rasterShadowMode = shadowMode;
+    m_rasterShadowMaps = true;
   }
 
   if (parser.isSet("timing")) {
