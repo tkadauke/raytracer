@@ -7,6 +7,7 @@
 #include "core/math/RayPacket.h"
 #include "core/util/ScopedTimer.h"
 #include "render/MIS.h"
+#include "render/IntersectionService.h"
 #include "render/PathTermination.h"
 #include "render/RayCaster.h"
 #include "render/State.h"
@@ -351,14 +352,13 @@ namespace render {
     void resolveOcclusion(const Scene& scene,
                           const WavefrontIntersectionBackend& intersectionBackend, int bounce,
                           IntegratorBatchMetrics* metrics) {
-      WavefrontIntersectionQueryTiming intersectionTiming;
+      IntersectionService intersectionService(scene, intersectionBackend);
       m_occluded.clear();
       m_frontier.reset();
       recordSelectionHostBytes(bounce, metrics);
       if (intersectionBackend.prefersAnyHitBatch(m_shadowQueries.size())) {
         m_frontier = intersectionBackend.createAnyHitFrontier(std::move(m_shadowQueries));
-        m_occluded = intersectionBackend.intersectAnyFrontier(
-          scene, *m_frontier, metrics ? &intersectionTiming : nullptr);
+        m_occluded = intersectionService.anyHits(*m_frontier);
         validateResolvedOcclusionCount();
         if (metrics) {
           recordDirectLightChunks(bounce, /*batchChunks=*/1, m_frontier->rayCount(),
@@ -367,8 +367,8 @@ namespace render {
           metrics->recordAnyHitFrontierResidency(
             m_frontier->residency(), m_frontier->packedRayBytes(), m_frontier->hostQueryBytes(),
             m_frontier->stateHandleBytes());
-          metrics->recordAnyHitQuery(intersectionBackend, m_frontier->rayCount(),
-                                     intersectionTiming);
+          metrics->recordAnyHitQuery(intersectionService.backend(), m_frontier->rayCount(),
+                                     intersectionService.diagnostics().lastAnyHitTiming);
           recordOcclusionHostBytes(bounce, metrics);
         }
         return;
@@ -382,14 +382,13 @@ namespace render {
                                 /*stateHandleBytes=*/0, metrics);
       }
       for (const WavefrontAnyHitQuery& query : m_shadowQueries) {
-        WavefrontIntersectionQueryTiming queryTiming;
         State scratchState;
         State& queryState = query.state ? *query.state : scratchState;
-        const bool occluded = intersectionBackend.intersectAny(
-          scene, query.ray, query.maxDistance, queryState, metrics ? &queryTiming : nullptr);
+        const bool occluded = intersectionService.anyHit(query.ray, query.maxDistance, queryState);
         m_occluded.push_back(occluded ? 1U : 0U);
         if (metrics) {
-          metrics->recordAnyHitQuery(intersectionBackend, 1, queryTiming);
+          metrics->recordAnyHitQuery(intersectionService.backend(), 1,
+                                     intersectionService.diagnostics().lastAnyHitTiming);
         }
       }
       validateResolvedOcclusionCount();

@@ -3,7 +3,9 @@
 #include "core/math/Constants.h"
 #include "core/math/Ray.h"
 #include "render/GpuCompiledLightSampler.h"
+#include "render/IntersectionService.h"
 #include "render/MIS.h"
+#include "render/State.h"
 #include "render/samplers/GpuSampleStream.h"
 
 #include <stdexcept>
@@ -122,6 +124,12 @@ namespace render {
       return color(texture.parameters);
     }
 
+    Rayd visibilityRay(const GpuDirectLightVisibilityRecord& visibility) {
+      return Rayd(Vector4d(visibility.rayOrigin[0], visibility.rayOrigin[1],
+                           visibility.rayOrigin[2], visibility.rayOrigin[3]),
+                  vector3(visibility.rayDirection));
+    }
+
   }
 
   GpuDirectLightVisibilityRecord
@@ -149,6 +157,40 @@ namespace render {
     for (std::size_t index = 0; index != work.size(); ++index) {
       result.push_back(makeGpuDirectLightCpuVisibilityRecord(scene, work[index],
                                                              static_cast<std::uint32_t>(index)));
+    }
+    return result;
+  }
+
+  std::vector<GpuDirectLightVisibilityRecord> resolveGpuDirectLightCpuVisibilityOcclusionBatch(
+    IntersectionService& intersectionService,
+    const std::vector<GpuDirectLightVisibilityRecord>& visibility) {
+    std::vector<GpuDirectLightVisibilityRecord> result = visibility;
+    std::vector<State> states(result.size());
+    std::vector<std::size_t> queryToVisibility;
+    std::vector<WavefrontAnyHitQuery> queries;
+    queryToVisibility.reserve(result.size());
+    queries.reserve(result.size());
+
+    for (std::size_t index = 0; index != result.size(); ++index) {
+      result[index].occluded = 0u;
+      if ((result[index].flags & gpuDirectLightVisibilityValid) == 0u) {
+        continue;
+      }
+      queryToVisibility.push_back(index);
+      queries.push_back(WavefrontAnyHitQuery{visibilityRay(result[index]),
+                                             result[index].maxDistance, &states[index]});
+    }
+
+    if (queries.empty()) {
+      return result;
+    }
+
+    const WavefrontOcclusionFlags occluded = intersectionService.anyHits(queries);
+    if (occluded.size() != queries.size()) {
+      throw std::logic_error("direct-light CPU reference visibility occlusion size mismatch");
+    }
+    for (std::size_t queryIndex = 0; queryIndex != occluded.size(); ++queryIndex) {
+      result[queryToVisibility[queryIndex]].occluded = occluded[queryIndex] != 0U ? 1u : 0u;
     }
     return result;
   }
@@ -234,6 +276,17 @@ namespace render {
                                       const std::vector<GpuDirectLightWorkRecord>& work) {
     GpuDirectLightCpuReferenceBatch result;
     result.visibility = makeGpuDirectLightCpuVisibilityBatch(scene, work);
+    result.contributions = makeGpuDirectLightCpuContributionBatch(scene, work, result.visibility);
+    return result;
+  }
+
+  GpuDirectLightCpuReferenceBatch
+  makeGpuDirectLightCpuReferenceBatch(const GpuTracingSceneSections& scene,
+                                      const std::vector<GpuDirectLightWorkRecord>& work,
+                                      IntersectionService& intersectionService) {
+    GpuDirectLightCpuReferenceBatch result;
+    result.visibility = resolveGpuDirectLightCpuVisibilityOcclusionBatch(
+      intersectionService, makeGpuDirectLightCpuVisibilityBatch(scene, work));
     result.contributions = makeGpuDirectLightCpuContributionBatch(scene, work, result.visibility);
     return result;
   }

@@ -1955,10 +1955,14 @@ for the supported scene subset.
    - ~~Output: Matte diffuse direct-light contribution with MIS behavior matching
      CPU reference.~~
 
-5. **Connect visibility through the intersection service.**
+5. ~~**Connect visibility through the intersection service.**~~ ✅ **Done.** Issue #604
+   routes packed direct-light visibility records and path-tracer direct-light
+   any-hit frontiers through `render::IntersectionService`, preserving
+   occlusion flags for contribution evaluation and capability metrics that
+   distinguish visibility GPU from CPU contribution.
    - Depends on: jobs 3 and 4.
-   - Output: any-hit visibility queries use E1's service and produce occluded
-     flags for contribution evaluation.
+   - ~~Output: any-hit visibility queries use E1's service and produce occluded
+     flags for contribution evaluation.~~
 
 6. **Add parity tests and metrics.**
    - Depends on: job 5.

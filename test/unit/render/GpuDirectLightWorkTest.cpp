@@ -7,12 +7,14 @@
 #include "render/GpuDirectLightCpuReference.h"
 #include "render/GpuDirectLightWork.h"
 #include "render/GpuIntersectionScene.h"
+#include "render/IntersectionService.h"
 #include "render/GpuTracingScene.h"
 #include "render/lights/DirectionalLight.h"
 #include "render/lights/LightSampler.h"
 #include "render/lights/PointLight.h"
 #include "render/lights/RectangularAreaLight.h"
 #include "render/primitives/Scene.h"
+#include "render/primitives/Sphere.h"
 #include "render/samplers/GpuSampleStream.h"
 
 #include <cmath>
@@ -363,9 +365,8 @@ namespace GpuDirectLightWorkTest {
     const double misWeight = lightPdfSquared / (lightPdfSquared + bsdfPdfSquared);
     const double estimatorScale = normalDotOut * misWeight / visibility.lightPdf;
     const Colord bsdfValue(0.5 * 0.8 * invPI, 0.25 * 0.8 * invPI, 1.0 * 0.8 * invPI);
-    const Colord expected =
-      bsdfValue * Colord(3.0, 2.0, 1.0) * estimatorScale / visibility.selectionPdf *
-      Colord(0.5, 0.25, 1.0);
+    const Colord expected = bsdfValue * Colord(3.0, 2.0, 1.0) * estimatorScale /
+                            visibility.selectionPdf * Colord(0.5, 0.25, 1.0);
 
     EXPECT_EQ(5u, contribution.workIndex);
     EXPECT_EQ(3u, contribution.lightIndex);
@@ -413,6 +414,30 @@ namespace GpuDirectLightWorkTest {
     EXPECT_FLOAT_EQ(0.0f, contribution.contribution[2]);
   }
 
+  TEST(GpuDirectLightCpuReference, ResolvesVisibilityOcclusionThroughIntersectionService) {
+    const GpuTracingSceneSections scene = oneMattePointLightScene();
+    const GpuDirectLightWorkRecord work = oneMattePointLightWork();
+    const std::vector<GpuDirectLightVisibilityRecord> visibility = {
+      makeGpuDirectLightCpuVisibilityRecord(scene, work, /*workIndex=*/0u)};
+
+    Scene runtimeScene;
+    runtimeScene.add(std::make_shared<Sphere>(Vector3d(0.0, 2.0, 0.0), 0.5));
+    IntersectionService intersectionService(runtimeScene,
+                                            WavefrontIntersectionBackendChoice::cpu());
+
+    const std::vector<GpuDirectLightVisibilityRecord> resolved =
+      resolveGpuDirectLightCpuVisibilityOcclusionBatch(intersectionService, visibility);
+
+    ASSERT_EQ(1u, resolved.size());
+    EXPECT_EQ(1u, resolved[0].occluded);
+    EXPECT_EQ("runtime_scene", intersectionService.diagnostics().lastAnyHitTiming.executionPath);
+
+    const GpuDirectLightContributionRecord contribution =
+      makeGpuDirectLightCpuContributionRecord(scene, work, resolved[0]);
+    EXPECT_NE(0u, contribution.flags & gpuDirectLightContributionOccluded);
+    EXPECT_EQ(0u, contribution.flags & gpuDirectLightContributionContributing);
+  }
+
   TEST(GpuDirectLightCpuReference, AreaLightVisibilityUsesGpuSampleDimension) {
     GpuTracingSceneSections scene = oneMattePointLightScene();
     GpuTracingLightRecord area;
@@ -451,5 +476,27 @@ namespace GpuDirectLightWorkTest {
     EXPECT_EQ(0u, batch.visibility[1].flags & gpuDirectLightVisibilityValid);
     EXPECT_NE(0u, batch.contributions[0].flags & gpuDirectLightContributionContributing);
     EXPECT_EQ(0u, batch.contributions[1].flags & gpuDirectLightContributionContributing);
+  }
+
+  TEST(GpuDirectLightCpuReference, ReferenceBatchCanConsumeIntersectionServiceOcclusionFlags) {
+    const GpuTracingSceneSections scene = oneMattePointLightScene();
+    std::vector<GpuDirectLightWorkRecord> work = {oneMattePointLightWork(),
+                                                  oneMattePointLightWork()};
+    work[1].surface.point = {2.0f, 0.0f, 0.0f, 1.0f};
+
+    Scene runtimeScene;
+    runtimeScene.add(std::make_shared<Sphere>(Vector3d(0.0, 2.0, 0.0), 0.5));
+    IntersectionService intersectionService(runtimeScene,
+                                            WavefrontIntersectionBackendChoice::cpu());
+
+    const GpuDirectLightCpuReferenceBatch batch =
+      makeGpuDirectLightCpuReferenceBatch(scene, work, intersectionService);
+
+    ASSERT_EQ(2u, batch.visibility.size());
+    ASSERT_EQ(2u, batch.contributions.size());
+    EXPECT_EQ(1u, batch.visibility[0].occluded);
+    EXPECT_EQ(0u, batch.visibility[1].occluded);
+    EXPECT_NE(0u, batch.contributions[0].flags & gpuDirectLightContributionOccluded);
+    EXPECT_NE(0u, batch.contributions[1].flags & gpuDirectLightContributionContributing);
   }
 }
