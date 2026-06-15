@@ -3341,6 +3341,57 @@ namespace GraphRenderEngineTest {
     EXPECT_LT(red(shadowedOccluded), 90u);
   }
 
+  TEST(GraphRenderEngine, LdrHybridRayTracedShadowsDarkenOccludedReceiver) {
+    auto cam = shadowReceiverCamera();
+    auto scene = directionalShadowScene();
+
+    RenderIntent directIntent;
+    directIntent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    RenderIntent shadowIntent = directIntent;
+    shadowIntent.enablePreviewShadows = true;
+    shadowIntent.engineOptions.rasterizer().setShadowMode(RenderRasterShadowMode::RayTraced);
+    shadowIntent.engineOptions.raytracer().setIntersectionBackend("cpu");
+
+    RenderGraphCompiler compiler;
+    GraphRenderEngine direct(cam, scene);
+    direct.setPlan(compiler.compile({96, 96, 1}, directIntent));
+    GraphRenderEngine shadowed(cam, scene);
+    shadowed.setExecutionTraceEnabled(true);
+    shadowed.setPlan(compiler.compile({96, 96, 1}, shadowIntent));
+
+    Buffer<unsigned int> directBuffer(96, 96);
+    Buffer<unsigned int> shadowBuffer(96, 96);
+    direct.render(directBuffer);
+    shadowed.render(shadowBuffer);
+    cam->viewPlane()->setup(cam->matrix(), Recti(96, 96));
+
+    const unsigned int directOccluded =
+      colorAtWorldPoint(directBuffer, cam, Vector3d(0.6, 0.0, 1.0));
+    const unsigned int shadowedOccluded =
+      colorAtWorldPoint(shadowBuffer, cam, Vector3d(0.6, 0.0, 1.0));
+    const unsigned int shadowedLit = colorAtWorldPoint(shadowBuffer, cam, Vector3d(-1.2, 0.0, 1.0));
+
+    EXPECT_GT(red(directOccluded), red(shadowedOccluded) + 100u);
+    EXPECT_GT(red(shadowedLit), red(shadowedOccluded) + 100u);
+
+    auto trace = shadowed.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const RenderPassTrace* passTrace = trace->findPass("hybrid_ray_traced_shadows");
+    ASSERT_NE(nullptr, passTrace);
+    EXPECT_NE(std::string::npos, passTrace->message().find("intersection service"));
+    const QJsonObject service = passTrace->metadata().value("intersectionService").toObject();
+    EXPECT_EQ("closest_hit+any_hit", service.value("queryFamily").toString().toStdString());
+    EXPECT_EQ("hybrid_shadows", service.value("queryTag").toString().toStdString());
+    EXPECT_EQ("cpu", service.value("requestedBackend").toString().toStdString());
+    EXPECT_GT(service.value("shadowQueryCount").toDouble(), 0.0);
+    EXPECT_GT(service.value("occludedCount").toDouble(), 0.0);
+
+    const auto outputs = trace->outputSnapshotsForResource("hybrid_shadow_mask");
+    ASSERT_EQ(1u, outputs.size());
+    ASSERT_TRUE(outputs.front()->hasColorPreview());
+    EXPECT_GT(countNonBlackPixels(outputs.front()->colorPreview()), 0);
+  }
+
   TEST(GraphRenderEngine, LdrRasterPreviewShadowsTraceLightsWithoutShadowMaps) {
     auto cam = shadowReceiverCamera();
     auto scene = pointShadowScene();

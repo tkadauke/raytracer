@@ -232,6 +232,73 @@ namespace engine::graph {
   }
 
   RenderResourceDescriptor
+  RenderGraphCompiler::hybridShadowMaskResource(const RenderTargetSpec& target) const {
+    RenderResourceDescriptor resource;
+    resource.id = "hybrid_shadow_mask";
+    resource.name = "Hybrid ray-traced shadow mask";
+    resource.addFeature("preview_shadows");
+    resource.addFeature("ray_traced_shadows");
+    resource.addFeature("hybrid_visibility");
+    resource.type = RenderResourceType::ShadowMask;
+    resource.format = RenderResourceFormat::RGBDouble;
+    resource.width = target.width;
+    resource.height = target.height;
+    resource.sampleCount = 1;
+    resource.domain = RenderResourceDomain::CPU;
+    resource.lifetime = RenderResourceLifetime::Transient;
+    return resource;
+  }
+
+  RenderPassNode RenderGraphCompiler::hybridShadowMaskPass(const SceneView& sceneView,
+                                                           const RenderIntent& intent) const {
+    RenderPassNode pass;
+    pass.id = "hybrid_ray_traced_shadows";
+    pass.name = "Hybrid ray-traced shadows";
+    pass.kind = RenderPassKind::Shadow;
+    pass.executor = RenderExecutorKind::Raytracer;
+    pass.features = {"main", "preview_shadows", "ray_traced_shadows", "hybrid_visibility"};
+    pass.sceneView = sceneView;
+    pass.disabledBehavior = DisabledBehavior::SubstituteDefault;
+    pass.concurrency = RenderConcurrencyLimit::serial();
+    pass.canRunConcurrently = pass.concurrency.allowsParallelExecution();
+    intent.engineOptions.raytracer().beautyPassState().writeTo(pass);
+    return pass;
+  }
+
+  RenderPassNode
+  RenderGraphCompiler::hybridShadowCompositePass(RenderResourceId colorResource,
+                                                 RenderResourceId maskResource,
+                                                 RenderResourceId outputResource) const {
+    RenderPassNode pass;
+    pass.id = "hybrid_shadow_composite";
+    pass.name = "Hybrid shadow composite";
+    pass.kind = RenderPassKind::Composite;
+    pass.executor = RenderExecutorKind::Composite;
+    pass.features = {"main", "composite", "preview_shadows", "ray_traced_shadows",
+                     "hybrid_visibility"};
+    pass.addRead(std::move(colorResource));
+    pass.addRead(std::move(maskResource));
+    pass.addWrite(std::move(outputResource));
+    pass.sceneView.selector = SceneSelector::all();
+    pass.disabledBehavior = DisabledBehavior::Passthrough;
+    pass.concurrency = RenderConcurrencyLimit::serial();
+    pass.canRunConcurrently = pass.concurrency.allowsParallelExecution();
+    return pass;
+  }
+
+  RenderResourceId
+  RenderGraphCompiler::addHybridShadowComposite(RenderPlan& plan, const RenderTargetSpec& target,
+                                                RenderResourceId inputResource) const {
+    const RenderResourceId outputResource = "hybrid_shadowed_color";
+    RenderPassNode composite =
+      hybridShadowCompositePass(inputResource, "hybrid_shadow_mask", outputResource);
+    RenderResourceDescriptor output = target.colorResource(outputResource, "Hybrid shadowed color",
+                                                           RenderResourceLifetime::Transient);
+    plan.routeResourceThroughPass(inputResource, std::move(output), std::move(composite));
+    return outputResource;
+  }
+
+  RenderResourceDescriptor
   RenderGraphCompiler::readbackResource(const RenderResourceDescriptor& source, RenderResourceId id,
                                         std::string name, RenderResourceLifetime lifetime) const {
     RenderResourceDescriptor result = source;
@@ -463,9 +530,8 @@ namespace engine::graph {
         preferredExecutorDefinition.kind() == executor ? preferredExecutorDefinition
                                                        : *concreteExecutorDefinition;
       const RenderResourceId colorId = prefix + "_beauty_color";
-      RenderPassNode foreground =
-        beautyPass(beautyExecutorDefinition, sceneView, target, branchIntent,
-                   {"selector_override"});
+      RenderPassNode foreground = beautyPass(beautyExecutorDefinition, sceneView, target,
+                                             branchIntent, {"selector_override"});
       foreground.id = prefix + "_" + foreground.id;
       foreground.name = "Selector " + std::to_string(overrideIndex + 1) + " " + foreground.name;
       addRasterVisibilityInput(plan, target, foreground, sceneView, branchIntent);
@@ -731,6 +797,13 @@ namespace engine::graph {
       target.colorResource("beauty_color", "Beauty color", RenderResourceLifetime::Transient);
     const bool usesPreviewShadows =
       sceneAnalysis.shouldCompileRasterPreviewShadows(executor, frameIntent);
+    const RenderRasterShadowMode rasterShadowMode =
+      frameIntent.engineOptions.rasterizer().shadowMode().value_or(
+        RenderRasterShadowMode::ShadowMaps);
+    const bool usesShadowMaps =
+      usesPreviewShadows && rasterShadowMode == RenderRasterShadowMode::ShadowMaps;
+    const bool usesRayTracedShadows =
+      usesPreviewShadows && rasterShadowMode == RenderRasterShadowMode::RayTraced;
 
     RenderPassNode beauty =
       beautyPass(beautyExecutorDefinition, frameIntent.defaultSceneView(), target, frameIntent);
@@ -749,7 +822,7 @@ namespace engine::graph {
     mainInputResource = addSelectorOverrideBranches(plan, target, std::move(mainInputResource),
                                                     frameIntent, sceneAnalysis);
 
-    if (usesPreviewShadows) {
+    if (usesShadowMaps) {
       RenderPassNode shadows;
       shadows.id = "raster_preview_shadows";
       shadows.name = "Raster preview shadows";
@@ -767,6 +840,11 @@ namespace engine::graph {
         shadows,
         shadowState.shadows().resourceDescriptor("preview_shadow_map", "Raster preview shadow map"),
         beauty.id);
+    }
+    if (usesRayTracedShadows) {
+      plan.addResourceProducer(hybridShadowMaskPass(frameIntent.defaultSceneView(), frameIntent),
+                               hybridShadowMaskResource(target));
+      mainInputResource = addHybridShadowComposite(plan, target, std::move(mainInputResource));
     }
 
     addAuxiliaryAOVExports(plan, target, executor, frameIntent);
@@ -900,11 +978,9 @@ namespace engine::graph {
     }
   }
 
-  std::vector<RenderGraphCompiler::SubviewOutputBinding>
-  RenderGraphCompiler::addSubviewBranches(RenderPlan& plan, const RenderTargetSpec& target,
-                                          const RenderIntent& intent,
-                                          const RenderSceneAnalysis& sceneAnalysis,
-                                          int renderToTextureDepth) const {
+  std::vector<RenderGraphCompiler::SubviewOutputBinding> RenderGraphCompiler::addSubviewBranches(
+    RenderPlan& plan, const RenderTargetSpec& target, const RenderIntent& intent,
+    const RenderSceneAnalysis& sceneAnalysis, int renderToTextureDepth) const {
     std::vector<SubviewOutputBinding> outputs;
     if (intent.subviews.empty()) {
       return outputs;
@@ -930,8 +1006,7 @@ namespace engine::graph {
       const std::string prefix = subviewPrefix(subview, i, usedPrefixes);
       const std::string displayName = subviewDisplayName(subview, i);
       const RenderFeatureKind feature = subviewFeature(prefix);
-      RenderPlan prefixed =
-        prefixedSubviewPlan(branch, prefix, displayName, subview.name, feature);
+      RenderPlan prefixed = prefixedSubviewPlan(branch, prefix, displayName, subview.name, feature);
 
       SubviewOutputBinding binding;
       binding.name = subview.name;

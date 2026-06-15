@@ -35,6 +35,19 @@ rendercli_assert_image_nonempty("${shadowed_render}" NAME "rendercli --shadow_ma
 rendercli_assert_image_hash_differs("${unshadowed_render}" "${shadowed_render}"
                                     NAME "rendercli --shadow_maps changes raster output")
 
+set(ray_traced_shadow_render "${TEST_OUTPUT_DIR}/raster-shadows-ray-traced.png")
+rendercli_run(
+  NAME "rendercli --shadow_mode ray_traced renders deterministic shadow scene"
+  COMMAND
+    "${RENDERCLI}" --engine raster --width 64 --height 64
+    --shadow_mode ray_traced --wavefront_intersection_backend cpu
+    "${shadow_scene}" "${ray_traced_shadow_render}"
+)
+rendercli_assert_image_dimensions("${ray_traced_shadow_render}" 64 64
+                                  NAME "rendercli --shadow_mode ray_traced dimensions")
+rendercli_assert_image_nonempty("${ray_traced_shadow_render}"
+                                NAME "rendercli --shadow_mode ray_traced pixels")
+
 foreach(cascade_count IN ITEMS 1 2 4)
   set(cascade_render "${TEST_OUTPUT_DIR}/raster-shadow-cascades-${cascade_count}.png")
   rendercli_run(
@@ -140,5 +153,13 @@ rendercli_expect_failure(
   STDERR_MATCHES "Shadow filter must be 'pcf' or 'pcss'"
   COMMAND
     "${RENDERCLI}" --engine raster --shadow_filter variance
+    "${shadow_scene}" "${invalid_render}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects invalid --shadow_mode"
+  STDERR_MATCHES "Shadow mode must be 'shadow_maps' or 'ray_traced'"
+  COMMAND
+    "${RENDERCLI}" --engine raster --shadow_mode variance
     "${shadow_scene}" "${invalid_render}"
 )
