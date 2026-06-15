@@ -1084,6 +1084,86 @@ feature.
 - Clear fallback to CPU/raster approximations when unavailable.
 - Trace resources show visibility buffers separately from full tracing.
 
+### Hybrid Visibility Graph Pass Contract
+
+The hybrid visibility pass is a render-graph consumer of the intersection
+service, not a tracing algorithm and not a full GPU path tracer. CPU-side graph
+compilation, scene selection, camera/sample setup, light selection, material
+evaluation, BSDF sampling, path continuation, contribution accumulation, and
+tonemapping remain owned by the existing graph/integrator passes. The
+visibility pass answers bounded ray-scene questions and writes graph-visible
+visibility resources that later passes may consume.
+
+Inputs are explicit graph resources or pass parameters:
+
+- A compiled intersection scene handle plus diagnostics from the tracing scene
+  compiler, or the runtime `render::Scene` fallback when the compiled subset is
+  unavailable.
+- One or more ray buffers. Each ray carries origin, direction, minimum distance,
+  maximum distance, sample/pixel id, and an optional query id that lets callers
+  map results back to lights, probes, tiles, or debug pixels.
+- A query family: `any_hit`, `closest_hit`, or `mixed`. `any_hit` is the normal
+  shadow/occlusion/visibility path. `closest_hit` is reserved for debug AOVs,
+  probes, picking-style graph effects, or later passes that need the nearest
+  supported surface record before CPU-side interpretation.
+- Optional query tags such as `shadow`, `ambient_occlusion`,
+  `visibility_probe`, or `debug_aov`. Tags are diagnostics and scheduling
+  hints; they do not change intersection semantics.
+- Backend request and fallback policy: `auto`, `cpu`, or `gpu`, plus whether
+  the caller accepts CPU intersection fallback, raster approximation fallback,
+  or disabled-output fallback.
+
+Outputs are typed visibility resources, not shaded color:
+
+- `visibility_mask`: one byte per submitted any-hit ray, in submission order;
+  non-zero means occluded before `maxDistance`, zero means visible. This is the
+  default output for ray-traced shadows, ambient occlusion, and occlusion AOVs.
+- `visibility_hit_records`: optional closest-hit records for closest-hit or
+  mixed queries. Records contain hit/miss state, primitive/material lookup id,
+  distance, reconstructable hit position, normal, and primitive coordinates
+  where available. They are suitable for CPU interpretation or debug display,
+  but they are not material-shaded radiance.
+- `visibility_metadata`: query counts, query-family split, output dimensions or
+  query-list shape, execution path per family, backend/platform names, fallback
+  reason, unsupported-scene counts, transfer estimates, and observed
+  preparation/kernel/readback timing when available.
+- Optional debug previews derived from the typed outputs, such as a grayscale
+  occlusion mask or false-color closest-hit distance image. These previews are
+  trace artifacts; downstream passes consume the typed resources above.
+
+Resource domains follow the normal render graph rules. CPU visibility resources
+use host buffers. GPU visibility resources may be produced by Metal, Vulkan, or
+future hardware-ray-tracing kernels, but they must either expose an explicit
+GPU-to-CPU readback edge before CPU consumers run or remain GPU-resident only
+when every downstream consumer declares compatible GPU residency. The pass must
+not hide uploads, readbacks, or CPU fallback behind an image-like resource name;
+trace metadata records the real residency and transfer boundary.
+
+Fallback behavior is part of the contract:
+
+- `auto` may select CPU before scene compilation when the expected query count
+  is too small to amortize GPU work.
+- A requested GPU path may fall back to CPU when no platform device/render path
+  is available, the scene cannot compile to the intersection subset, the query
+  family lacks a platform kernel, preparation/dispatch fails, or returned result
+  counts are malformed.
+- A raster shadow caller may choose a raster approximation fallback when
+  ray-query visibility is unavailable, but the trace must report that no
+  hybrid visibility query ran.
+- A debug/AOV caller may choose disabled-output fallback, producing a typed
+  empty/default resource plus an explicit fallback reason instead of silently
+  substituting a shaded render.
+
+The pass preserves the intersection service's any-hit and closest-hit
+semantics. Any-hit queries only answer occluded/visible for bounded rays and do
+not evaluate materials, transparency, alpha blending, or contribution. Closest
+hit queries only return the nearest supported surface record and do not shade,
+spawn continuation rays, sample lights, accumulate radiance, or claim ownership
+of path state. A graph or UI label may call this "GPU visibility" or "hybrid
+ray-traced shadows"; it must not report "GPU path tracing" unless the shading,
+sampling, continuation, and accumulation capabilities are also GPU-owned by a
+separate tracing pass.
+
 **Tests/gates:**
 
 - AOV/visibility pass renders expected occlusion.
@@ -1992,7 +2072,10 @@ real-time-ish shadows and graph visibility work.
 
 **Jobs:**
 
-1. **Define graph visibility pass contract.**
+1. ~~**Define graph visibility pass contract.**~~ ✅ **Done.** The Milestone 12
+   contract now defines hybrid visibility pass inputs, any-hit/closest-hit
+   typed outputs, resource residency/readback rules, and explicit CPU/raster/
+   disabled-output fallback behavior for issue #633.
    - Depends on: none.
    - Output: pass inputs, outputs, resource types, and fallback behavior.
 
