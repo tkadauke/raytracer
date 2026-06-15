@@ -1667,7 +1667,11 @@ contributions through the GPU path and match the CPU estimator.
    - Depends on: job 1.
    - Output: record-based one-bounce implementation for comparison.
 
-3. **Run closest-hit and material lookup for a path step.**
+3. ~~**Run closest-hit and material lookup for a path step.**~~ ✅ **Done.**
+   `render::GpuDiffusePathStep` now submits active path rays through the packed
+   closest-hit intersector, forwards the resulting hit/miss records into the
+   diffuse path-step material lookup, and reports unsupported compiled material
+   hits as explicit terminated path records. Closes #608.
    - Depends on: jobs 1 and 2.
    - Output: path states intersect through E1 and resolve supported material
      records from E3.

@@ -262,10 +262,30 @@ namespace {
 }
 
 GpuDiffusePathStepResult
+GpuDiffusePathStep::step(const GpuTracingSceneSections& scene,
+                         const std::vector<GpuDiffusePathStateRecord>& pathStates) const {
+  std::vector<GpuIntersectionRay> activeRays;
+  activeRays.reserve(pathStates.size());
+  for (const GpuDiffusePathStateRecord& pathState : pathStates) {
+    if (gpuDiffusePathStateIsActive(pathState)) {
+      activeRays.push_back(pathState.ray);
+    }
+  }
+
+  const std::vector<GpuIntersectionHitRecord> closestHits =
+    GpuIntersectionIntersector().intersectClosest(scene.geometry, activeRays);
+  GpuDiffusePathStepResult result =
+    GpuDiffusePathStepReference().step(scene, pathStates, closestHits);
+  result.closestHitRecords = closestHits;
+  return result;
+}
+
+GpuDiffusePathStepResult
 GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
                                   const std::vector<GpuDiffusePathStateRecord>& pathStates,
                                   const std::vector<GpuIntersectionHitRecord>& closestHits) const {
   GpuDiffusePathStepResult result;
+  result.closestHitRecords = closestHits;
   result.pathStates = pathStates;
   result.stepRecords.resize(pathStates.size());
 

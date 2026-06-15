@@ -9,11 +9,13 @@
 #include "render/lights/PointLight.h"
 #include "render/materials/EmissiveMaterial.h"
 #include "render/materials/MatteMaterial.h"
+#include "render/materials/PhongMaterial.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
 #include "render/textures/ConstantColorTexture.h"
 
 #include <limits>
+#include <cmath>
 #include <memory>
 #include <vector>
 
@@ -38,6 +40,12 @@ namespace GpuDiffusePathStepReferenceTest {
       path.sampleSeed = 12345;
       path.sampleDimensionBase = 16;
       path.sampleDimensionStride = 4;
+      return path;
+    }
+
+    GpuDiffusePathStateRecord activePath(const Rayd& ray, std::uint32_t rayIndex) {
+      GpuDiffusePathStateRecord path = activePath(rayIndex);
+      path.ray = GpuIntersectionScenePacker().packRay(ray, rayIndex);
       return path;
     }
 
@@ -76,6 +84,132 @@ namespace GpuDiffusePathStepReferenceTest {
       }
       return 0;
     }
+
+    void expectFloat4Near(const std::array<float, 4>& actual, const std::array<float, 4>& expected,
+                          double tolerance = 1e-5) {
+      for (std::size_t index = 0; index != actual.size(); ++index) {
+        EXPECT_NEAR(expected[index], actual[index], tolerance);
+      }
+    }
+
+    void expectHitRecordNear(const GpuIntersectionHitRecord& actual,
+                             const GpuIntersectionHitRecord& expected, double tolerance = 1e-5) {
+      EXPECT_EQ(expected.hit, actual.hit);
+      EXPECT_EQ(expected.material, actual.material);
+      EXPECT_EQ(expected.object, actual.object);
+      EXPECT_EQ(expected.primitiveRecord, actual.primitiveRecord);
+      EXPECT_EQ(expected.rayIndex, actual.rayIndex);
+      if (std::isinf(expected.distance) || std::isinf(actual.distance)) {
+        EXPECT_EQ(expected.distance, actual.distance);
+      } else {
+        EXPECT_NEAR(expected.distance, actual.distance, tolerance);
+      }
+      expectFloat4Near(actual.point, expected.point, tolerance);
+      expectFloat4Near(actual.normal, expected.normal, tolerance);
+      expectFloat4Near(actual.uv, expected.uv, tolerance);
+      expectFloat4Near(actual.barycentric, expected.barycentric, tolerance);
+    }
+
+    void expectStepRecordEqual(const GpuDiffusePathStepRecord& actual,
+                               const GpuDiffusePathStepRecord& expected) {
+      EXPECT_EQ(expected.event, actual.event);
+      EXPECT_EQ(expected.pathIndex, actual.pathIndex);
+      EXPECT_EQ(expected.pixelIndex, actual.pixelIndex);
+      EXPECT_EQ(expected.primarySampleIndex, actual.primarySampleIndex);
+      EXPECT_EQ(expected.depth, actual.depth);
+      EXPECT_EQ(expected.material, actual.material);
+      EXPECT_EQ(expected.object, actual.object);
+      EXPECT_EQ(expected.flags, actual.flags);
+      EXPECT_EQ(expected.emittedRadiance, actual.emittedRadiance);
+      EXPECT_EQ(expected.directLightRadiance, actual.directLightRadiance);
+      EXPECT_EQ(expected.missRadiance, actual.missRadiance);
+      EXPECT_EQ(expected.continuationThroughput, actual.continuationThroughput);
+    }
+  }
+
+  TEST(GpuDiffusePathStep, RunsClosestHitAndMaterialLookupForActivePaths) {
+    auto matte =
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::white()));
+    auto matteSphere = std::make_shared<Sphere>(Vector3d(-1.0, 0.0, 0.0), 0.5);
+    matteSphere->setMaterial(matte);
+
+    auto emissive = std::make_shared<EmissiveMaterial>(Colord(0.25, 0.5, 0.75));
+    auto emissiveSphere = std::make_shared<Sphere>(Vector3d(1.0, 0.0, 0.0), 0.5);
+    emissiveSphere->setMaterial(emissive);
+
+    Scene scene;
+    scene.setEnvironmentRadiance(Colord(0.1, 0.2, 0.3));
+    scene.add(matteSphere);
+    scene.add(emissiveSphere);
+    GpuTracingSceneSections sections = sectionsFor(scene);
+
+    std::vector<GpuDiffusePathStateRecord> paths{
+      activePath(Rayd(Vector4d(-1.0, 0.0, -3.0, 1.0), Vector3d(0.0, 0.0, 1.0)), 11),
+      activePath(Rayd(Vector4d(1.0, 0.0, -3.0, 1.0), Vector3d(0.0, 0.0, 1.0)), 12),
+      activePath(Rayd(Vector4d(3.0, 0.0, -3.0, 1.0), Vector3d(0.0, 0.0, 1.0)), 13),
+      makeTerminatedGpuDiffusePathState(),
+    };
+    paths[3].ray.rayIndex = 99;
+
+    const std::vector<GpuIntersectionHitRecord> cpuClosestHits =
+      GpuIntersectionIntersector().intersectClosest(sections.geometry,
+                                                    {paths[0].ray, paths[1].ray, paths[2].ray});
+    const GpuDiffusePathStepResult cpuReference =
+      GpuDiffusePathStepReference().step(sections, paths, cpuClosestHits);
+
+    const GpuDiffusePathStepResult result = GpuDiffusePathStep().step(sections, paths);
+
+    ASSERT_EQ(cpuClosestHits.size(), result.closestHitRecords.size());
+    for (std::size_t index = 0; index != cpuClosestHits.size(); ++index) {
+      expectHitRecordNear(result.closestHitRecords[index], cpuClosestHits[index]);
+    }
+    ASSERT_EQ(cpuReference.stepRecords.size(), result.stepRecords.size());
+    for (std::size_t index = 0; index != cpuReference.stepRecords.size(); ++index) {
+      expectStepRecordEqual(result.stepRecords[index], cpuReference.stepRecords[index]);
+    }
+
+    ASSERT_TRUE(result.closestHitRecords[0].hit);
+    ASSERT_TRUE(result.closestHitRecords[1].hit);
+    EXPECT_FALSE(result.closestHitRecords[2].hit);
+    EXPECT_EQ(firstMaterialId(sections, GpuTracingMaterialKind::Matte),
+              result.closestHitRecords[0].material);
+    EXPECT_EQ(firstMaterialId(sections, GpuTracingMaterialKind::Emissive),
+              result.closestHitRecords[1].material);
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuDiffusePathStepEvent::Hit),
+              result.stepRecords[0].event);
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuDiffusePathStepEvent::Hit),
+              result.stepRecords[1].event);
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuDiffusePathStepEvent::Miss),
+              result.stepRecords[2].event);
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuDiffusePathStepEvent::Inactive),
+              result.stepRecords[3].event);
+  }
+
+  TEST(GpuDiffusePathStep, UnsupportedMaterialLookupTerminatesExplicitly) {
+    auto unsupportedSphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    unsupportedSphere->setMaterial(
+      std::make_shared<PhongMaterial>(std::make_shared<ConstantColorTexture>(Colord::white())));
+
+    Scene scene;
+    scene.add(unsupportedSphere);
+    GpuTracingSceneSections sections = sectionsFor(scene);
+
+    const GpuDiffusePathStepResult result = GpuDiffusePathStep().step(sections, {activePath()});
+
+    ASSERT_EQ(1u, result.closestHitRecords.size());
+    EXPECT_TRUE(result.closestHitRecords[0].hit);
+    ASSERT_LT(result.closestHitRecords[0].material, sections.materials.size());
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingMaterialKind::Unsupported),
+              sections.materials[result.closestHitRecords[0].material].kind);
+
+    ASSERT_EQ(1u, result.pathStates.size());
+    EXPECT_TRUE(gpuDiffusePathStateIsTerminated(result.pathStates[0]));
+    EXPECT_NE(0u, result.pathStates[0].flags & gpuDiffusePathStateUnsupportedFlag);
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuDiffusePathStepEvent::Unsupported),
+              result.stepRecords[0].event);
+    EXPECT_EQ(result.closestHitRecords[0].material, result.stepRecords[0].material);
+    EXPECT_EQ(1u, result.metrics.unsupportedHits);
+    EXPECT_EQ(1u, result.metrics.terminatedPaths);
   }
 
   TEST(GpuDiffusePathStepReference, MissAddsEnvironmentAndTerminatesPath) {

@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Added a GPU diffuse path-step executor that runs packed closest-hit lookup,
+  resolves compiled material records, and explicitly terminates unsupported
+  material hits for E8 job 3. — GPT-5 Codex
 - Defined the GPU diffuse path-state record with active/terminated flags,
   sample cursor fields, and previous-event MIS metadata for the E8 tracing
   path-step roadmap. — GPT-5 Codex
