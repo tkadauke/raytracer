@@ -362,6 +362,7 @@
 | `test/unit/engine/graph/WireframePassStateTest.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `test/unit/engine/wavefront/WavefrontRaytracerTest.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `test/unit/render/GpuIntersectionSceneTest.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
+| `test/unit/render/GpuTracingSceneTest.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `test/unit/render/IntersectionSceneCompilerTest.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `test/unit/render/MISTest.cpp` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
 | `test/unit/render/PathTerminationTest.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
