@@ -230,6 +230,7 @@
 | `scenes/wavefront_indirect_bounce_demo.json` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md)<br>[Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `scenes/wavefront_indirect_environment_demo.json` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `scripts/docs/wavefront_intersection_backend.js` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
+| `scripts/docs/wavefront_path_tracing.rb` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `src/core/formats/AssetResolver.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
 | `src/core/formats/gcode/GCodeParser.cpp` | [G-code parsing](../tools-and-io/gcode-parsing.md) |
 | `src/core/formats/gcode/GCodePathCompiler.cpp` | [G-code parsing](../tools-and-io/gcode-parsing.md) |

@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Added scripted wavefront path-tracing backend comparison renders for CPU,
+  automatic, and GPU-requested intersection backend execution, with metrics
+  sidecars documenting the actual query path for E11 job 2. — GPT-5 Codex
 - Added GPU tracing texture record compilation for `ConstantColorTexture` with
   explicit unsupported texture reason diagnostics; advances E3 job 3.
   — GPT-5 Codex

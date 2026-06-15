@@ -1772,7 +1772,10 @@ compiled and what actually ran.
    - Depends on: none.
    - Output: explanation of why matching images can still prove backend work.
 
-2. **Add rendered examples for supported subset.**
+2. ~~**Add rendered examples for supported subset.**~~ ✅ **Done.** Issue
+   #624 adds scripted CPU, auto-policy, and GPU-requested wavefront
+   path-tracing comparison renders plus metrics sidecars for one supported
+   matte scene.
    - Depends on: job 1.
    - Output: CPU, hybrid, and GPU comparison images for the same scene.
 
