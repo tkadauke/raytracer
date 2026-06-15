@@ -1,5 +1,6 @@
 #include "world/objects/Curve.h"
 
+#include "core/json/JsonValue.h"
 #include "world/objects/ElementFactory.h"
 
 #include <QJsonArray>
@@ -9,12 +10,11 @@
 
 namespace {
   QJsonArray vectorToJson(const Vector3d& vector) {
-    return QJsonArray({vector.x(), vector.y(), vector.z()});
+    return core::json::vector3ToJsonArray(vector);
   }
 
   Vector3d vectorFromJson(const QJsonValue& value) {
-    const auto array = value.toArray();
-    return Vector3d(array[0].toDouble(), array[1].toDouble(), array[2].toDouble());
+    return core::json::vector3FromJsonArray(value.toArray());
   }
 
   QJsonValue attributeToJson(const core::Curve::AttributeValue& value) {

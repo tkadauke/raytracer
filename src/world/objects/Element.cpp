@@ -1,6 +1,7 @@
 #include "core/math/Vector.h"
 #include "core/math/Angle.h"
 #include "core/Color.h"
+#include "core/json/JsonValue.h"
 #include "engine/graph/RenderSceneAnalysis.h"
 #include "render/Object.h"
 #include "world/objects/Element.h"
@@ -222,17 +223,13 @@ void Element::read(const QJsonObject& json) {
     if (!value.isUndefined()) {
       if (type == "Vector3<double>") {
         auto array = value.toArray();
-        setProperty(propertyNameCStr,
-                    QVariant::fromValue(
-                      Vector3d(array[0].toDouble(), array[1].toDouble(), array[2].toDouble())));
+        setProperty(propertyNameCStr, QVariant::fromValue(core::json::vector3FromJsonArray(array)));
       } else if (type == "Angle<double>") {
         auto angle = value.toDouble();
         setProperty(propertyNameCStr, QVariant::fromValue(Angled::fromRadians(angle)));
       } else if (type == "Color<double>") {
         auto array = value.toArray();
-        setProperty(propertyNameCStr,
-                    QVariant::fromValue(
-                      Colord(array[0].toDouble(), array[1].toDouble(), array[2].toDouble())));
+        setProperty(propertyNameCStr, QVariant::fromValue(core::json::colorFromJsonArray(array)));
       } else if (propertyName != "id" &&
                  (type.endsWith("*") || !QUuid(value.toString()).isNull())) {
         // JSON `null` is a valid way to say "this reference is
@@ -334,12 +331,12 @@ void Element::writeProperty(const QString& name, QJsonObject& json) {
 
   if (type == "Vector3<double>") {
     auto vector = prop.value<Vector3d>();
-    json[name] = QJsonArray({vector.x(), vector.y(), vector.z()});
+    json[name] = core::json::vector3ToJsonArray(vector);
   } else if (type == "Angle<double>") {
     json[name] = prop.value<Angled>().radians();
   } else if (type == "Color<double>") {
     auto color = prop.value<Colord>();
-    json[name] = QJsonArray({color.r(), color.g(), color.b()});
+    json[name] = core::json::colorToJsonArray(color);
   } else if (type == "QString") {
     json[name] = prop.toString();
   } else if (type == "int") {

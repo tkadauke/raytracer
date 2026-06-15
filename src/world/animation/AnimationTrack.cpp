@@ -8,6 +8,7 @@
 #include <QJsonArray>
 #include "core/Color.h"
 #include "core/animation/AnimationTrack.h"
+#include "core/json/JsonValue.h"
 #include "core/math/Vector.h"
 #include "world/objects/Camera.h"
 #include "world/objects/Element.h"
@@ -182,12 +183,12 @@ namespace {
 
   Vector3d vectorFromJson(const world::AnimationTrack& track, const QJsonValue& value) {
     const auto array = requireTriple(track, value, "Vector3d");
-    return Vector3d(array[0].toDouble(), array[1].toDouble(), array[2].toDouble());
+    return core::json::vector3FromJsonArray(array);
   }
 
   Colord colorFromJson(const world::AnimationTrack& track, const QJsonValue& value) {
     const auto array = requireTriple(track, value, "Colord");
-    return Colord(array[0].toDouble(), array[1].toDouble(), array[2].toDouble());
+    return core::json::colorFromJsonArray(array);
   }
 
   bool boolFromJson(const world::AnimationTrack& track, const QJsonValue& value) {
