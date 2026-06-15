@@ -20,6 +20,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- Added GPU tracing material-record support for `PhongMaterial` and
+  `ReflectiveMaterial` mirror continuation parameters, while reporting
+  `TransparentMaterial` refraction as an explicit GPU Whitted v1 unsupported
+  reason for E14 job 3. — GPT-5 Codex
 - Routed supported non-recursive Whitted direct lighting through backend
   any-hit shadow batches, with CPU parity coverage and explicit unsupported
   material fallback preserved for E14 job 2. — GPT-5 Codex

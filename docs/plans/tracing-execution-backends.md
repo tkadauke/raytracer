@@ -625,7 +625,10 @@ for material/light records.
 - Start with a restricted material subset:
   - matte diffuse;
   - emissive;
-  - mirror/delta reflection if straightforward;
+  - ~~mirror/delta reflection if straightforward~~ ✅ **Done.** `GpuTracingMaterialRecord`
+    now carries `ReflectiveMaterial` local Phong coefficients plus mirror
+    reflection color/coefficient continuation parameters for GPU Whitted v1
+    record consumers.
   - transparent/glass explicitly unsupported for first GPU path-tracing subset
     unless the continuation contract is ready.
 - Start with a restricted texture subset:
