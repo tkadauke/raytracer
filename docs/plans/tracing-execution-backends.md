@@ -1821,10 +1821,32 @@ performance are proven.
      contract is documented in
      `docs/perf/tracing-backend-benchmark-scenes-2026-06-15.md`.
 
-3. **Define auto-selection policy.**
+3. ~~**Define auto-selection policy.**~~ ✅ **Done.**
    - Depends on: job 2.
-   - Output: rules for platform availability, scene support, expected work, and
-     transfer/residency thresholds.
+   - Output: `auto` remains CPU-first. It rejects workloads below the fixed
+     expected-ray floor before platform probing or scene compilation, then
+     requires a platform GPU device, a render-path-capable platform backend, a
+     compiled scene with no unsupported leaves, platform basic-hit eligibility,
+     packed closest-hit eligibility, and packed any-hit eligibility before GPU
+     can be considered. The final GPU gate compares the effective expected-ray
+     count against the larger of the fixed floor and
+     `ceil(scene_upload_bytes / 1024) * minimumGpuRaysPerSceneUploadKiB`.
+     Selection uses closest-hit plus any-hit expected rays when query-family
+     estimates are present, otherwise the legacy total expected ray count.
+     Metrics that explain decisions are
+     `intersectionBackendExpectedRays`,
+     `intersectionBackendExpectedClosestHitRays`,
+     `intersectionBackendExpectedAnyHitRays`,
+     `intersectionBackendAutoMinimumGpuRays`,
+     `intersectionBackendAutoEstimatedQueryTransferBytes`,
+     `intersectionSceneUploadBytes`,
+     `intersectionSceneUnsupportedReasons`,
+     `intersection_backend_gpu_device`,
+     `intersection_backend_gpu_render_path`, selected execution path,
+     fallback reason, frontier residency/byte counters, and backend
+     upload/kernel/readback timing. Residency is diagnostic-only for this
+     intersection-service policy; GPU is automatic only after the transfer and
+     scene gates above pass.
 
 4. **Add conservative policy tests.**
    - Depends on: job 3.
