@@ -31,6 +31,15 @@ namespace WavefrontIntersectionBackendPerformanceTest {
 
   using Clock = std::chrono::steady_clock;
 
+  template<typename Fn>
+  std::chrono::nanoseconds bestOfTimedRuns(Fn&& fn, int attempts = 5) {
+    std::chrono::nanoseconds best = std::chrono::nanoseconds::max();
+    for (int attempt = 0; attempt != attempts; ++attempt) {
+      best = std::min(best, fn());
+    }
+    return best;
+  }
+
   class MeshHeavyIntersectionWorkload {
   public:
     MeshHeavyIntersectionWorkload(int side, int rayCount)
@@ -181,8 +190,8 @@ namespace WavefrontIntersectionBackendPerformanceTest {
     const MeshHeavyIntersectionWorkload workload(32, 256);
     ASSERT_TRUE(workload.buffers().packedClosestHitKernelEligible());
 
-    const auto runtime = workload.timeRuntimeClosestHit();
-    const auto packed = workload.timePackedClosestHit();
+    const auto runtime = bestOfTimedRuns([&workload] { return workload.timeRuntimeClosestHit(); });
+    const auto packed = bestOfTimedRuns([&workload] { return workload.timePackedClosestHit(); });
 
     const double ratio =
       static_cast<double>(runtime.count()) / std::max<std::int64_t>(1, packed.count());
@@ -197,8 +206,8 @@ namespace WavefrontIntersectionBackendPerformanceTest {
     const MeshHeavyIntersectionWorkload workload(32, 256);
     ASSERT_TRUE(workload.buffers().packedAnyHitKernelEligible());
 
-    const auto runtime = workload.timeRuntimeAnyHit();
-    const auto packed = workload.timePackedAnyHit();
+    const auto runtime = bestOfTimedRuns([&workload] { return workload.timeRuntimeAnyHit(); });
+    const auto packed = bestOfTimedRuns([&workload] { return workload.timePackedAnyHit(); });
 
     const double ratio =
       static_cast<double>(runtime.count()) / std::max<std::int64_t>(1, packed.count());
