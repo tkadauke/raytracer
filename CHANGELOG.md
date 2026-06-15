@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Defined the hybrid visibility graph pass contract for E13, including
+  any-hit/closest-hit query families, typed visibility resources, and explicit
+  CPU/raster/disabled-output fallbacks. — GPT-5 Codex
 - Added GPU tracing texture record compilation for `ConstantColorTexture` with
   explicit unsupported texture reason diagnostics; advances E3 job 3.
   — GPT-5 Codex
