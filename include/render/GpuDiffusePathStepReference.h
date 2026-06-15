@@ -20,11 +20,19 @@ namespace render {
   };
 
   struct GpuDiffusePathStepResult {
+    std::vector<GpuIntersectionHitRecord> closestHitRecords;
     std::vector<GpuDiffusePathStateRecord> pathStates;
     std::vector<GpuDiffusePathStepRecord> stepRecords;
     std::vector<GpuIntersectionRay> directLightShadowRays;
     std::vector<GpuIntersectionOcclusionRecord> directLightOcclusionRecords;
     GpuDiffusePathStepMetrics metrics;
+  };
+
+  class GpuDiffusePathStep {
+  public:
+    [[nodiscard]] GpuDiffusePathStepResult
+    step(const GpuTracingSceneSections& scene,
+         const std::vector<GpuDiffusePathStateRecord>& pathStates) const;
   };
 
   class GpuDiffusePathStepReference {
