@@ -2031,7 +2031,10 @@ compiled and what actually ran.
    - Depends on: job 1.
    - Output: CPU, hybrid, and GPU comparison images for the same scene.
 
-3. **Add Modeler example scene.**
+3. ~~**Add Modeler example scene.**~~ ✅ **Done.** Issue #625 adds
+   `scenes/tracing_execution_inspection_demo.json`, a Modeler-loadable
+   GPU-requested wavefront path-tracing scene with supported compiled
+   intersection primitives and graph-trace backend metadata coverage.
    - Depends on: job 2.
    - Output: scene that loads in Modeler and makes execution-mode inspection
      easy.

@@ -14,6 +14,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Added tracing backend benchmark scene definitions and a rendercli capture
   wrapper for small primitive, large mesh, visibility-heavy, indirect diffuse,
   and unsupported fallback workloads, closing roadmap E12 job 1. — GPT-5 Codex
+- Added `scenes/tracing_execution_inspection_demo.json`, a Modeler-loadable
+  path-tracing scene for inspecting GPU-requested wavefront execution metadata
+  over the supported compiled intersection subset for E11 job 3. — GPT-5 Codex
 - Added scripted wavefront path-tracing backend comparison renders for CPU,
   automatic, and GPU-requested intersection backend execution, with metrics
   sidecars documenting the actual query path for E11 job 2. — GPT-5 Codex
