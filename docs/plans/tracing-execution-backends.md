@@ -2047,7 +2047,10 @@ infrastructure exists.
    - Output: iterative reflection depth behavior matching CPU for supported
      materials.
 
-4. **Add CPU/GPU parity scenes.**
+4. ~~**Add CPU/GPU parity scenes.**~~ ✅ **Done.** `rendercli_tracing_parity`
+   now compares CPU Whitted renders with GPU-requested Whitted renders for
+   deterministic direct-light and mirror-reflection fixture scenes, while
+   keeping transparent Whitted fallback coverage for issue #641.
    - Depends on: jobs 2 and 3.
    - Output: deterministic image parity for supported Whitted scenes.
 

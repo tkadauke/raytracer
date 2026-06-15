@@ -10,6 +10,7 @@ Vulkan intersection paths must keep aligned.
 | Category | Scene | Contract |
 | --- | --- | --- |
 | Matte direct light | `matte_direct_light.json` | Opaque analytic primitives with a deterministic direct-light path. |
+| Whitted reflection | `whitted_reflection.json` | Supported Whitted mirror continuation with constant-color reflective and matte materials. |
 | Indirect bounce | `indirect_bounce.json` | Path-traced diffuse bounce from a colored wall onto matte receivers. |
 | Imported mesh | `imported_mesh.json` | Source-backed STL import through `SourceAsset`, producing mesh triangles instead of analytic primitives. |
 | Transparent fallback | `transparent_fallback.json` | Transparent material leaves that are expected to remain on the runtime CPU fallback path until recursive material metadata is supported by packed/GPU backends. |
