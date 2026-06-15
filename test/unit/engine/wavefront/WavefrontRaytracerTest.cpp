@@ -988,9 +988,9 @@ namespace WavefrontRaytracerTest {
               metrics.batching.intersectionBackendResidentDirectLightBatchesUnavailableReason);
     expectPlatformGpuFallbackReason(metrics.batching.intersectionBackendFallbackReason);
     EXPECT_EQ("runtime_scene", metrics.batching.intersectionBackendExecutionPath);
-    EXPECT_EQ(480u, metrics.batching.intersectionBackendExpectedRays);
+    EXPECT_EQ(960u, metrics.batching.intersectionBackendExpectedRays);
     EXPECT_EQ(480u, metrics.batching.intersectionBackendExpectedClosestHitRays);
-    EXPECT_EQ(0u, metrics.batching.intersectionBackendExpectedAnyHitRays);
+    EXPECT_EQ(480u, metrics.batching.intersectionBackendExpectedAnyHitRays);
     EXPECT_EQ(65536u, metrics.batching.intersectionBackendAutoMinimumGpuRays);
     EXPECT_EQ(0u, metrics.batching.intersectionBackendAutoEstimatedQueryTransferBytes);
     EXPECT_FALSE(metrics.batching.intersectionSceneCompiled);
@@ -1167,13 +1167,13 @@ namespace WavefrontRaytracerTest {
                                  .toString()
                                  .toStdString());
     EXPECT_EQ(
-      480.0, json.value("batching").toObject().value("intersectionBackendExpectedRays").toDouble());
+      960.0, json.value("batching").toObject().value("intersectionBackendExpectedRays").toDouble());
     EXPECT_EQ(480.0, json.value("batching")
                        .toObject()
                        .value("intersectionBackendExpectedClosestHitRays")
                        .toDouble());
     EXPECT_EQ(
-      0.0,
+      480.0,
       json.value("batching").toObject().value("intersectionBackendExpectedAnyHitRays").toDouble());
     EXPECT_EQ(
       65536.0,
