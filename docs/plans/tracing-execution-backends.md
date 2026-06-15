@@ -1988,7 +1988,11 @@ contributions through the GPU path and match the CPU estimator.
    - Output: path states intersect through E1 and resolve supported material
      records from E3.
 
-4. **Add emission and direct-light contribution.**
+4. ~~**Add emission and direct-light contribution.**~~ ✅ **Done.**
+   `render::GpuDiffusePathStep` now carries supported emissive hits and matte
+   direct-light samples into the path-state accumulated radiance record, while
+   path-step metrics report packed closest-hit/visibility paths and CPU record
+   contribution-evaluation paths. Closes #609.
    - Depends on: jobs 2 and 3.
    - Output: supported emission/direct-light contribution feeds E5
      accumulation or the CPU reference equivalent.

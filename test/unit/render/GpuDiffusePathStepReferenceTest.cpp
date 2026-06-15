@@ -183,6 +183,8 @@ namespace GpuDiffusePathStepReferenceTest {
               result.stepRecords[2].event);
     EXPECT_EQ(static_cast<std::uint32_t>(GpuDiffusePathStepEvent::Inactive),
               result.stepRecords[3].event);
+    EXPECT_EQ("packed_cpu", result.metrics.closestHitExecutionPath);
+    EXPECT_EQ(3u, result.metrics.closestHitRays);
   }
 
   TEST(GpuDiffusePathStep, UnsupportedMaterialLookupTerminatesExplicitly) {
@@ -210,6 +212,62 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(result.closestHitRecords[0].material, result.stepRecords[0].material);
     EXPECT_EQ(1u, result.metrics.unsupportedHits);
     EXPECT_EQ(1u, result.metrics.terminatedPaths);
+  }
+
+  TEST(GpuDiffusePathStep, EmissiveHitFeedsContributionIntoPathState) {
+    Scene scene;
+    auto lightCard = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    lightCard->setMaterial(std::make_shared<EmissiveMaterial>(Colord(2.0, 3.0, 4.0)));
+    scene.add(lightCard);
+    GpuTracingSceneSections sections = sectionsFor(scene);
+
+    GpuDiffusePathStateRecord path = activePath();
+    path.throughput = {0.25f, 0.5f, 0.75f, 0.0f};
+
+    const GpuDiffusePathStepResult result = GpuDiffusePathStep().step(sections, {path});
+
+    ASSERT_EQ(1u, result.pathStates.size());
+    EXPECT_TRUE(gpuDiffusePathStateIsTerminated(result.pathStates[0]));
+    ASSERT_COLOR_NEAR(Colord(0.5, 1.5, 3.0), colorFrom4(result.pathStates[0].accumulatedRadiance),
+                      1e-5);
+    ASSERT_COLOR_NEAR(Colord(0.5, 1.5, 3.0), colorFrom4(result.stepRecords[0].emittedRadiance),
+                      1e-5);
+    EXPECT_EQ("packed_cpu", result.metrics.closestHitExecutionPath);
+    EXPECT_EQ("cpu_record", result.metrics.emissionExecutionPath);
+    EXPECT_EQ(1u, result.metrics.emissiveHits);
+    EXPECT_EQ(1u, result.metrics.emissionContributionEvaluations);
+    EXPECT_EQ(1u, result.metrics.terminatedPaths);
+  }
+
+  TEST(GpuDiffusePathStep, MatteHitFeedsDirectLightContributionIntoPathState) {
+    Scene scene;
+    auto matte =
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::white()));
+    matte->setDiffuseCoefficient(1.0);
+    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    receiver->setMaterial(matte);
+    scene.add(receiver);
+    scene.addLight(std::make_shared<PointLight>(Vector3d(0.0, 0.0, -3.0), Colord(0.8, 0.6, 0.4)));
+    GpuTracingSceneSections sections = sectionsFor(scene);
+
+    const GpuDiffusePathStepResult result = GpuDiffusePathStep().step(sections, {activePath()});
+
+    ASSERT_EQ(1u, result.pathStates.size());
+    ASSERT_EQ(1u, result.directLightShadowRays.size());
+    ASSERT_EQ(1u, result.directLightOcclusionRecords.size());
+    EXPECT_EQ(0u, result.directLightOcclusionRecords[0].occluded);
+    ASSERT_COLOR_NEAR(Colord(0.8 * invPI, 0.6 * invPI, 0.4 * invPI),
+                      colorFrom4(result.stepRecords[0].directLightRadiance), 1e-5);
+    ASSERT_COLOR_NEAR(Colord(0.8 * invPI, 0.6 * invPI, 0.4 * invPI),
+                      colorFrom4(result.pathStates[0].accumulatedRadiance), 1e-5);
+    EXPECT_TRUE(gpuDiffusePathStateIsActive(result.pathStates[0]));
+    EXPECT_EQ("packed_cpu", result.metrics.closestHitExecutionPath);
+    EXPECT_EQ("packed_cpu", result.metrics.directLightVisibilityExecutionPath);
+    EXPECT_EQ("cpu_record", result.metrics.directLightContributionExecutionPath);
+    EXPECT_EQ(1u, result.metrics.directLightSamples);
+    EXPECT_EQ(1u, result.metrics.directLightVisibilityRays);
+    EXPECT_EQ(1u, result.metrics.directLightContributionEvaluations);
+    EXPECT_EQ(1u, result.metrics.directLightContributingSamples);
   }
 
   TEST(GpuDiffusePathStepReference, MissAddsEnvironmentAndTerminatesPath) {
