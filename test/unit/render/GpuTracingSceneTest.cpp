@@ -7,8 +7,11 @@
 #include "render/lights/PointLight.h"
 #include "render/lights/RectangularAreaLight.h"
 #include "render/materials/EmissiveMaterial.h"
+#include "render/materials/Material.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/materials/PhongMaterial.h"
+#include "render/materials/ReflectiveMaterial.h"
+#include "render/materials/TransparentMaterial.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
 #include "render/textures/ConstantColorTexture.h"
@@ -55,6 +58,14 @@ namespace GpuTracingSceneTest {
     public:
       Colord evaluate(const Rayd&, const HitPoint&) const override {
         return Colord::white();
+      }
+    };
+
+    class UnsupportedMaterial final : public Material {
+    public:
+      Colord shade(const RayCaster*, const Scene&, const Rayd&, const HitPoint&,
+                   State&) const override {
+        return Colord::black();
       }
     };
 
@@ -199,6 +210,53 @@ namespace GpuTracingSceneTest {
     EXPECT_EQ(7u, record->emissionTexture);
   }
 
+  TEST(GpuTracingScene, PhongMaterialPacksLocalLightingCoefficients) {
+    PhongMaterial material;
+    material.setAmbientCoefficient(0.125);
+    material.setDiffuseCoefficient(0.25);
+    material.setSpecularCoefficient(0.5);
+    material.setExponent(32.0);
+
+    const std::optional<GpuTracingMaterialRecord> record =
+      makeGpuTracingMaterialRecord(material, 4, 0);
+
+    ASSERT_TRUE(record.has_value());
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingMaterialKind::Phong), record->kind);
+    EXPECT_EQ(4u, record->albedoTexture);
+    expectFloat4(record->parameters, 0.125f, 0.25f, 0.5f, 32.0f);
+    expectFloat4(record->continuationParameters, 0.0f, 0.0f, 0.0f, 0.0f);
+  }
+
+  TEST(GpuTracingScene, ReflectiveMaterialPacksMirrorContinuationParameters) {
+    ReflectiveMaterial material;
+    material.setAmbientCoefficient(0.125);
+    material.setDiffuseCoefficient(0.25);
+    material.setSpecularCoefficient(0.5);
+    material.setExponent(32.0);
+    material.setReflectionColor(Colord(0.75, 0.5, 0.25));
+    material.setReflectionCoefficient(0.375);
+
+    const std::optional<GpuTracingMaterialRecord> record =
+      makeGpuTracingMaterialRecord(material, 4, 0);
+
+    ASSERT_TRUE(record.has_value());
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingMaterialKind::Reflective), record->kind);
+    EXPECT_EQ(4u, record->albedoTexture);
+    expectFloat4(record->parameters, 0.125f, 0.25f, 0.5f, 32.0f);
+    expectFloat4(record->continuationParameters, 0.75f, 0.5f, 0.25f, 0.375f);
+  }
+
+  TEST(GpuTracingScene, TransparentMaterialReportsExplicitRefractionUnsupportedReason) {
+    const TransparentMaterial material;
+    std::string reason;
+
+    const std::optional<GpuTracingMaterialRecord> record =
+      makeGpuTracingMaterialRecord(material, 0, 0, &reason);
+
+    EXPECT_FALSE(record.has_value());
+    EXPECT_EQ("transparent/refraction materials are not supported by GPU Whitted v1", reason);
+  }
+
   TEST(GpuTracingScene, CompilesMaterialAndTextureRecordsAtRuntimeIds) {
     auto redTexture = std::make_shared<ConstantColorTexture>(Colord(0.8, 0.1, 0.2));
     auto matte = std::make_shared<MatteMaterial>(redTexture);
@@ -249,13 +307,12 @@ namespace GpuTracingSceneTest {
 
   TEST(GpuTracingScene, RecordsFirstUnsupportedMaterialReasonAndGroupedCounts) {
     auto firstUnsupported = std::make_shared<Sphere>(Vector3d(-1.0, 0.0, 0.0), 0.5);
-    firstUnsupported->setMaterial(
-      std::make_shared<PhongMaterial>(std::make_shared<ConstantColorTexture>(Colord::white())));
+    firstUnsupported->setMaterial(std::make_shared<UnsupportedMaterial>());
     auto supported = std::make_shared<Sphere>(Vector3d(1.0, 0.0, 0.0), 0.5);
     supported->setMaterial(
       std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::red())));
     auto secondUnsupported = std::make_shared<Sphere>(Vector3d(3.0, 0.0, 0.0), 0.5);
-    secondUnsupported->setMaterial(std::make_shared<PhongMaterial>());
+    secondUnsupported->setMaterial(std::make_shared<UnsupportedMaterial>());
 
     Scene scene;
     scene.add(firstUnsupported);
@@ -317,7 +374,7 @@ namespace GpuTracingSceneTest {
 
   TEST(GpuTracingScene, DiagnosticsExposeCompiledSectionAndUnsupportedCounts) {
     auto unsupportedMaterialSphere = std::make_shared<Sphere>(Vector3d(-1.0, 0.0, 0.0), 0.5);
-    unsupportedMaterialSphere->setMaterial(std::make_shared<PhongMaterial>());
+    unsupportedMaterialSphere->setMaterial(std::make_shared<UnsupportedMaterial>());
     auto unsupportedTextureSphere = std::make_shared<Sphere>(Vector3d(1.0, 0.0, 0.0), 0.5);
     unsupportedTextureSphere->setMaterial(
       std::make_shared<MatteMaterial>(std::make_shared<UnsupportedTexture>()));
