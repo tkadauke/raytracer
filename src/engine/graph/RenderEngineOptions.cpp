@@ -303,8 +303,7 @@ namespace engine::graph {
     return !m_maximumRecursionDepth && !m_maximumThreads && !m_queueSize && !m_integrator &&
            !m_tracingBackend && !m_intersectionBackend && !m_russianRouletteDepth &&
            !m_directLightSamples && !m_sampler && !m_samplesPerPixel && !m_samplingSeed &&
-           !m_sampleStreamMode && !m_viewPlane &&
-           !m_convergenceEnabled && !m_convergenceActiveSampleFractionThreshold &&
+           !m_viewPlane && !m_convergenceEnabled && !m_convergenceActiveSampleFractionThreshold &&
            !m_convergenceRadianceDeltaRmsThreshold && !m_adaptiveSamplingEnabled &&
            !m_adaptiveMinimumSamples && !m_adaptiveStddevThreshold && !m_denoiser &&
            !m_denoiseRadius && !m_denoiseColorSigma;
