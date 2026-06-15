@@ -1,6 +1,7 @@
 #include "render/TracingPathStateBuffer.h"
 
 #include "render/PathTermination.h"
+#include "render/TracingAccumulationReference.h"
 #include "render/samplers/GpuSampleStream.h"
 #include "render/samplers/SampleStream.h"
 
@@ -384,6 +385,32 @@ namespace render {
 
     diagnostics.finalActiveCount = buffers.active().size();
     diagnostics.buffers = buffers.diagnostics();
+    return diagnostics;
+  }
+
+  TracingAccumulationDiagnostics
+  resolveResidentPathLoopImage(const std::vector<GpuPathStateRecord>& records,
+                               const TracingAccumulationLayout& layout,
+                               Buffer<unsigned int>& target, const Tonemap* tonemap) {
+    TracingAccumulationBuffer accumulation(layout);
+    TracingAccumulationDiagnostics diagnostics = TracingAccumulationDiagnostics::forLayout(
+      layout, "gpu_resident_path_loop", "resident_accumulation_resolve");
+    diagnostics.recordClear();
+
+    const std::uint64_t pixelCount = layout.pixelCount();
+    for (const GpuPathStateRecord& record : records) {
+      if (record.pixelIndex >= pixelCount) {
+        throw std::out_of_range("resident path-loop resolve pixel index is out of range");
+      }
+      const int x = static_cast<int>(record.pixelIndex % static_cast<std::uint64_t>(layout.width));
+      const int y = static_cast<int>(record.pixelIndex / static_cast<std::uint64_t>(layout.width));
+      accumulation.addSample(x, y, accumulatedRadianceFromGpuPathStateRecord(record));
+      diagnostics.recordAdd(1);
+    }
+
+    accumulation.resolve(target, tonemap);
+    diagnostics.recordResolve();
+    diagnostics.recordReadback(layout.resolveBytes());
     return diagnostics;
   }
 

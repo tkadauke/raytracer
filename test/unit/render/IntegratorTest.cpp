@@ -414,4 +414,44 @@ namespace IntegratorTest {
     EXPECT_DOUBLE_EQ(5.0 / 17.0, metrics.frontierCompactionRemovedSampleFraction());
     EXPECT_DOUBLE_EQ(5.0 / 12.0, metrics.frontierCompactionMovedRetainedSampleFraction());
   }
+
+  TEST(Integrator, BatchMetricsMergeResidentPathLoopAccumulation) {
+    const TracingAccumulationLayout layout = TracingAccumulationLayout::image(2, 2);
+    TracingAccumulationDiagnostics first = TracingAccumulationDiagnostics::forLayout(
+      layout, "gpu_resident_path_loop", "resident_accumulation_resolve");
+    first.recordClear();
+    first.recordAdd(/*samples=*/3, /*operations=*/1);
+    first.recordResolve();
+    first.recordReadback(layout.resolveBytes());
+
+    TracingAccumulationDiagnostics second = TracingAccumulationDiagnostics::forLayout(
+      layout, "gpu_resident_path_loop", "resident_accumulation_resolve");
+    second.recordClear();
+    second.recordAdd(/*samples=*/2, /*operations=*/1);
+    second.recordResolve();
+    second.recordReadback(layout.resolveBytes());
+
+    IntegratorBatchMetrics target;
+    target.reset(/*scalarFallback=*/false);
+    target.recordResidentPathLoopAccumulation(first);
+
+    IntegratorBatchMetrics source;
+    source.reset(/*scalarFallback=*/false);
+    source.recordResidentPathLoopAccumulation(second);
+    target.mergeFrom(source);
+
+    ASSERT_TRUE(target.residentPathLoopAccumulation);
+    EXPECT_EQ("gpu_resident_path_loop", target.residentPathLoopAccumulation->backend);
+    EXPECT_EQ("resident_accumulation_resolve", target.residentPathLoopAccumulation->residency);
+    EXPECT_EQ(layout.totalBytes(), target.residentPathLoopAccumulation->residentBytes);
+    EXPECT_EQ(2u, target.residentPathLoopAccumulation->clearOperations);
+    EXPECT_EQ(2u, target.residentPathLoopAccumulation->addOperations);
+    EXPECT_EQ(5u, target.residentPathLoopAccumulation->addedSamples);
+    EXPECT_EQ(2u, target.residentPathLoopAccumulation->resolveOperations);
+    EXPECT_EQ(2u, target.residentPathLoopAccumulation->readbackOperations);
+    EXPECT_EQ(2u * layout.resolveBytes(), target.residentPathLoopAccumulation->readbackBytes);
+
+    target.reset(/*scalarFallback=*/false);
+    EXPECT_FALSE(target.residentPathLoopAccumulation);
+  }
 }
