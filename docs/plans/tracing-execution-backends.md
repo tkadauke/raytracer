@@ -1635,10 +1635,13 @@ for the supported scene subset.
    - ~~Output: point, directional, and rectangular area light sampling for the
      compiled light records.~~
 
-4. **Implement diffuse contribution evaluation.**
+4. ~~**Implement diffuse contribution evaluation.**~~ ✅ **Done.** Issue #603
+   pins matte diffuse direct-light contribution evaluation with analytic
+   point-light, occlusion, invalid-PDF, and non-delta area-light MIS tests over
+   the packed CPU/GPU work records.
    - Depends on: jobs 2 and 3.
-   - Output: Matte diffuse direct-light contribution with MIS behavior matching
-     CPU reference.
+   - ~~Output: Matte diffuse direct-light contribution with MIS behavior matching
+     CPU reference.~~
 
 5. **Connect visibility through the intersection service.**
    - Depends on: jobs 3 and 4.

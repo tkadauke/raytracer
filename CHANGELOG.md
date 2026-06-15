@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Added GPU diffuse direct-light contribution coverage for matte surfaces,
+  including non-delta MIS and invalid-PDF regression tests, closing roadmap
+  §E7 job 4. — GPT-5 Codex
 - Added compiled GPU light sampling for point, directional, and rectangular
   area light records, with selection/PDF parity tests and explicit unsupported
   record fallback status, closing roadmap §E7 job 3. — GPT-5 Codex
