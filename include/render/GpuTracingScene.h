@@ -55,6 +55,7 @@ namespace render {
   inline constexpr std::uint32_t gpuDiffusePathStateTerminatedFlag = 1u << 1u;
   inline constexpr std::uint32_t gpuDiffusePathStateSampledFromBsdfFlag = 1u << 2u;
   inline constexpr std::uint32_t gpuDiffusePathStateBsdfSampleDeltaFlag = 1u << 3u;
+  inline constexpr std::uint32_t gpuDiffusePathStateUnsupportedFlag = 1u << 4u;
 
   struct GpuTracingSceneSectionLayout {
     GpuTracingSceneSectionKind kind{GpuTracingSceneSectionKind::Geometry};
@@ -153,6 +154,28 @@ namespace render {
     std::uint32_t previousMaterial{0};
     std::uint32_t previousEventFlags{0};
     std::array<std::uint32_t, 4> reserved{};
+  };
+
+  enum class GpuDiffusePathStepEvent : std::uint32_t {
+    Inactive = 0,
+    Miss = 1,
+    Hit = 2,
+    Unsupported = 3
+  };
+
+  struct alignas(16) GpuDiffusePathStepRecord {
+    std::uint32_t event{static_cast<std::uint32_t>(GpuDiffusePathStepEvent::Inactive)};
+    std::uint32_t pathIndex{0};
+    std::uint32_t pixelIndex{0};
+    std::uint32_t primarySampleIndex{0};
+    std::uint32_t depth{0};
+    std::uint32_t material{0};
+    std::uint32_t object{0};
+    std::uint32_t flags{0};
+    std::array<float, 4> emittedRadiance{};
+    std::array<float, 4> directLightRadiance{};
+    std::array<float, 4> missRadiance{};
+    std::array<float, 4> continuationThroughput{};
   };
 
   [[nodiscard]] inline bool
