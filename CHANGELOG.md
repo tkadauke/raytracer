@@ -20,6 +20,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- Defined the supported GPU Whitted v1 subset, including material, light,
+  recursion, transparent/glass fallback, and shared backend-service scope for
+  E14 job 1. — GPT-5 Codex
 - Reported compiled GPU tracing scene section counts and unsupported
   material, texture, and light reason counts in metrics JSON, rendercli
   summaries, and graph traces for the E3 tracing scene data roadmap.
