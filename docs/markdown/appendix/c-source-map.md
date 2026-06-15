@@ -86,6 +86,7 @@
 | `include/engine/wavefront/WavefrontRaytracer.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `include/engine/wireframe/Wireframe.h` | [Wireframe rendering](../rasterization/wireframe-rendering.md) |
 | `include/render/GpuIntersectionScene.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
+| `include/render/GpuTracingScene.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `include/render/HomogeneousClipVolume.h` | [Clipping, depth, stencil](../rasterization/clipping-depth-stencil.md)<br>[The rasterization pipeline](../rasterization/the-rasterization-pipeline.md) |
 | `include/render/Integrator.h` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md)<br>[Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `include/render/IntersectionSceneCompiler.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
@@ -351,6 +352,7 @@
 | `test/unit/engine/graph/WireframePassStateTest.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `test/unit/engine/wavefront/WavefrontRaytracerTest.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `test/unit/render/GpuIntersectionSceneTest.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
+| `test/unit/render/GpuTracingSceneTest.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `test/unit/render/IntersectionSceneCompilerTest.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `test/unit/render/MISTest.cpp` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
 | `test/unit/render/PathTerminationTest.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |

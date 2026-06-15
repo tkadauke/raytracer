@@ -14,6 +14,7 @@
 #include "render/textures/ConstantColorTexture.h"
 #include "render/textures/Texture.h"
 
+#include <cstddef>
 #include <memory>
 #include <type_traits>
 #include <vector>
@@ -73,6 +74,8 @@ namespace GpuTracingSceneTest {
     expectKernelRecordLayout<GpuTracingEnvironmentRecord>();
     expectKernelRecordLayout<GpuTracingDebugIdRecord>();
     expectKernelRecordLayout<GpuTracingShadingRecord>();
+    expectKernelRecordLayout<GpuDiffusePathStateRecord>();
+    EXPECT_TRUE(std::is_trivially_copyable_v<GpuDiffusePathStateRecord>);
   }
 
   TEST(GpuTracingScene, LayoutVersionScopesAllCompiledSceneSections) {
@@ -149,6 +152,76 @@ namespace GpuTracingSceneTest {
     EXPECT_EQ(42u, hit.rayIndex);
     EXPECT_EQ(42u, shading.pathIndex);
     EXPECT_EQ(7u, shading.material);
+  }
+
+  TEST(GpuTracingScene, DiffusePathStateLayoutPinsGpuFieldOrder) {
+    EXPECT_EQ(0u, offsetof(GpuDiffusePathStateRecord, ray));
+    EXPECT_EQ(sizeof(GpuIntersectionRay), offsetof(GpuDiffusePathStateRecord, throughput));
+    EXPECT_EQ(offsetof(GpuDiffusePathStateRecord, throughput) + sizeof(std::array<float, 4>),
+              offsetof(GpuDiffusePathStateRecord, accumulatedRadiance));
+    EXPECT_EQ(offsetof(GpuDiffusePathStateRecord, accumulatedRadiance) +
+                sizeof(std::array<float, 4>),
+              offsetof(GpuDiffusePathStateRecord, pixelIndex));
+    EXPECT_EQ(offsetof(GpuDiffusePathStateRecord, pixelIndex) + sizeof(std::uint32_t),
+              offsetof(GpuDiffusePathStateRecord, primarySampleIndex));
+    EXPECT_EQ(offsetof(GpuDiffusePathStateRecord, primarySampleIndex) + sizeof(std::uint32_t),
+              offsetof(GpuDiffusePathStateRecord, depth));
+    EXPECT_EQ(offsetof(GpuDiffusePathStateRecord, depth) + sizeof(std::uint32_t),
+              offsetof(GpuDiffusePathStateRecord, sampleSeed));
+    EXPECT_EQ(offsetof(GpuDiffusePathStateRecord, sampleSeed) + sizeof(std::uint32_t),
+              offsetof(GpuDiffusePathStateRecord, sampleDimensionBase));
+    EXPECT_EQ(offsetof(GpuDiffusePathStateRecord, sampleDimensionBase) + sizeof(std::uint32_t),
+              offsetof(GpuDiffusePathStateRecord, sampleDimensionStride));
+    EXPECT_EQ(offsetof(GpuDiffusePathStateRecord, sampleDimensionStride) + sizeof(std::uint32_t),
+              offsetof(GpuDiffusePathStateRecord, flags));
+    EXPECT_EQ(offsetof(GpuDiffusePathStateRecord, reserved0) + sizeof(std::uint32_t),
+              offsetof(GpuDiffusePathStateRecord, previousBsdfPdf));
+    EXPECT_EQ(offsetof(GpuDiffusePathStateRecord, previousBsdfPdf) + sizeof(float),
+              offsetof(GpuDiffusePathStateRecord, previousLightPdf));
+    EXPECT_EQ(offsetof(GpuDiffusePathStateRecord, previousLightPdf) + sizeof(float),
+              offsetof(GpuDiffusePathStateRecord, previousMaterial));
+    EXPECT_EQ(offsetof(GpuDiffusePathStateRecord, previousMaterial) + sizeof(std::uint32_t),
+              offsetof(GpuDiffusePathStateRecord, previousEventFlags));
+    EXPECT_EQ(offsetof(GpuDiffusePathStateRecord, previousEventFlags) + sizeof(std::uint32_t),
+              offsetof(GpuDiffusePathStateRecord, reserved));
+  }
+
+  TEST(GpuTracingScene, DiffusePathStateRepresentsActivePaths) {
+    GpuDiffusePathStateRecord pathState = makeActiveGpuDiffusePathState();
+    pathState.ray.rayIndex = 11;
+    pathState.pixelIndex = 41;
+    pathState.primarySampleIndex = 7;
+    pathState.depth = 2;
+    pathState.sampleSeed = 1234;
+    pathState.sampleDimensionBase = 12;
+    pathState.sampleDimensionStride = 4;
+    pathState.previousBsdfPdf = 0.25f;
+    pathState.previousLightPdf = 0.5f;
+    pathState.previousMaterial = 3;
+    pathState.previousEventFlags = gpuDiffusePathStateSampledFromBsdfFlag;
+
+    EXPECT_TRUE(gpuDiffusePathStateIsActive(pathState));
+    EXPECT_FALSE(gpuDiffusePathStateIsTerminated(pathState));
+    expectFloat4(pathState.throughput, 1.0f, 1.0f, 1.0f, 0.0f);
+    EXPECT_EQ(11u, pathState.ray.rayIndex);
+    EXPECT_EQ(41u, pathState.pixelIndex);
+    EXPECT_EQ(7u, pathState.primarySampleIndex);
+    EXPECT_EQ(2u, pathState.depth);
+    EXPECT_EQ(1234u, pathState.sampleSeed);
+    EXPECT_EQ(12u, pathState.sampleDimensionBase);
+    EXPECT_EQ(4u, pathState.sampleDimensionStride);
+    EXPECT_FLOAT_EQ(0.25f, pathState.previousBsdfPdf);
+    EXPECT_FLOAT_EQ(0.5f, pathState.previousLightPdf);
+    EXPECT_EQ(3u, pathState.previousMaterial);
+    EXPECT_EQ(gpuDiffusePathStateSampledFromBsdfFlag, pathState.previousEventFlags);
+  }
+
+  TEST(GpuTracingScene, DiffusePathStateRepresentsTerminatedPaths) {
+    const GpuDiffusePathStateRecord pathState = makeTerminatedGpuDiffusePathState();
+
+    EXPECT_FALSE(gpuDiffusePathStateIsActive(pathState));
+    EXPECT_TRUE(gpuDiffusePathStateIsTerminated(pathState));
+    EXPECT_EQ(gpuDiffusePathStateTerminatedFlag, pathState.flags);
   }
 
   TEST(GpuTracingScene, ConstantEnvironmentPacksColorWithOpaqueAlpha) {
