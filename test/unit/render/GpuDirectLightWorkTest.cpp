@@ -1,13 +1,22 @@
 #include <gtest/gtest.h>
 
+#include "core/Color.h"
+#include "core/math/Vector.h"
+#include "render/GpuCompiledLightSampler.h"
 #include "core/math/Constants.h"
 #include "render/GpuDirectLightCpuReference.h"
 #include "render/GpuDirectLightWork.h"
 #include "render/GpuIntersectionScene.h"
 #include "render/GpuTracingScene.h"
+#include "render/lights/DirectionalLight.h"
+#include "render/lights/LightSampler.h"
+#include "render/lights/PointLight.h"
+#include "render/lights/RectangularAreaLight.h"
+#include "render/primitives/Scene.h"
 #include "render/samplers/GpuSampleStream.h"
 
 #include <cmath>
+#include <memory>
 #include <type_traits>
 
 namespace GpuDirectLightWorkTest {
@@ -55,6 +64,34 @@ namespace GpuDirectLightWorkTest {
       work.lightSelection.lightBegin = 0u;
       work.lightSelection.lightCount = 1u;
       return work;
+    }
+
+    void expectVectorNear(const Vector3d& actual, const Vector3d& expected) {
+      EXPECT_NEAR(expected.x(), actual.x(), 1e-12);
+      EXPECT_NEAR(expected.y(), actual.y(), 1e-12);
+      EXPECT_NEAR(expected.z(), actual.z(), 1e-12);
+    }
+
+    void expectColorNear(const Colord& actual, const Colord& expected) {
+      EXPECT_NEAR(expected.r(), actual.r(), 1e-12);
+      EXPECT_NEAR(expected.g(), actual.g(), 1e-12);
+      EXPECT_NEAR(expected.b(), actual.b(), 1e-12);
+    }
+
+    void expectCompiledSampleMatchesRuntime(const GpuTracingLightRecord& record,
+                                            const Light& runtimeLight, const Vector3d& point,
+                                            const Vector2d& surfaceSample) {
+      const GpuCompiledLightSample compiled = sampleGpuCompiledLight(record, point, surfaceSample);
+      const LightSample runtime = runtimeLight.sample(point, surfaceSample);
+
+      ASSERT_TRUE(compiled.valid());
+      expectVectorNear(compiled.direction, runtime.direction);
+      expectColorNear(compiled.radiance, runtime.radiance);
+      EXPECT_DOUBLE_EQ(runtime.distance, compiled.distance);
+      EXPECT_NEAR(runtime.pdf, compiled.pdf, 1e-12);
+      EXPECT_EQ(runtime.delta, compiled.delta);
+      EXPECT_DOUBLE_EQ(runtimeLight.pdf(point, runtime.direction),
+                       gpuCompiledLightPdf(record, point, runtime.direction));
     }
   }
 
@@ -202,6 +239,83 @@ namespace GpuDirectLightWorkTest {
     EXPECT_FLOAT_EQ(2.0f, visibility.lightRadiance[0]);
     EXPECT_FLOAT_EQ(3.0f, visibility.lightRadiance[1]);
     EXPECT_FLOAT_EQ(4.0f, visibility.lightRadiance[2]);
+  }
+
+  TEST(GpuCompiledLightSampler, SamplesSupportedCompiledLightsLikeRuntimeLights) {
+    const Vector3d point(0.25, 0.5, -0.75);
+    const Vector2d surfaceSample(0.2, 0.7);
+
+    GpuTracingLightRecord pointRecord;
+    pointRecord.kind = static_cast<std::uint32_t>(GpuTracingLightKind::Point);
+    pointRecord.positionOrDirection = {1.0f, 4.0f, -2.0f, 1.0f};
+    pointRecord.parameters = {2.0f, 3.0f, 4.0f, 1.0f};
+    const PointLight pointLight(Vector3d(1.0, 4.0, -2.0), Colord(2.0, 3.0, 4.0));
+    expectCompiledSampleMatchesRuntime(pointRecord, pointLight, point, surfaceSample);
+
+    GpuTracingLightRecord directionalRecord;
+    directionalRecord.kind = static_cast<std::uint32_t>(GpuTracingLightKind::Directional);
+    directionalRecord.positionOrDirection = {0.0f, 1.0f, 1.0f, 0.0f};
+    directionalRecord.parameters = {0.5f, 0.75f, 1.25f, 1.0f};
+    const DirectionalLight directionalLight(Vector3d(0.0, 1.0, 1.0), Colord(0.5, 0.75, 1.25));
+    expectCompiledSampleMatchesRuntime(directionalRecord, directionalLight, point, surfaceSample);
+
+    GpuTracingLightRecord areaRecord;
+    areaRecord.kind = static_cast<std::uint32_t>(GpuTracingLightKind::RectangularArea);
+    areaRecord.positionOrDirection = {0.0f, 4.0f, 0.0f, 1.0f};
+    areaRecord.u = {2.0f, 0.0f, 0.0f, 0.0f};
+    areaRecord.v = {0.0f, 0.0f, 2.0f, 0.0f};
+    areaRecord.parameters = {1.5f, 1.0f, 0.5f, 1.0f};
+    const RectangularAreaLight areaLight(Vector3d(0.0, 4.0, 0.0), Vector3d(2.0, 0.0, 0.0),
+                                         Vector3d(0.0, 0.0, 2.0), Colord(1.5, 1.0, 0.5));
+    expectCompiledSampleMatchesRuntime(areaRecord, areaLight, point, surfaceSample);
+  }
+
+  TEST(GpuCompiledLightSampler, SelectsCompiledLightsLikeRuntimeLightSampler) {
+    auto pointLight = std::make_shared<PointLight>(Vector3d(1.0, 2.0, 3.0), Colord(2.0, 3.0, 4.0));
+    auto directionalLight =
+      std::make_shared<DirectionalLight>(Vector3d(0.0, 1.0, 0.0), Colord(1.0, 1.5, 2.0));
+    auto areaLight =
+      std::make_shared<RectangularAreaLight>(Vector3d(0.0, 4.0, 0.0), Vector3d(2.0, 0.0, 0.0),
+                                             Vector3d(0.0, 0.0, 3.0), Colord(0.25, 0.5, 0.75));
+
+    Scene runtimeScene;
+    runtimeScene.addLight(pointLight);
+    runtimeScene.addLight(directionalLight);
+    runtimeScene.addLight(areaLight);
+    const LightSampler runtimeSampler(runtimeScene.lights());
+
+    GpuTracingSceneSections compiledScene;
+    compiledScene.lights.push_back(*makeGpuTracingLightRecord(*pointLight));
+    compiledScene.lights.push_back(*makeGpuTracingLightRecord(*directionalLight));
+    compiledScene.lights.push_back(*makeGpuTracingLightRecord(*areaLight));
+
+    GpuDirectLightSelectionRecord selection;
+    selection.lightBegin = 0u;
+    selection.lightCount = static_cast<std::uint32_t>(compiledScene.lights.size());
+
+    for (const double unitSample : {0.0, 0.3, 0.6, std::nextafter(1.0, 0.0)}) {
+      const LightSampler::Selection runtime = runtimeSampler.select(unitSample);
+      const GpuCompiledLightSelection compiled =
+        selectGpuCompiledLight(compiledScene, selection, unitSample);
+
+      ASSERT_TRUE(compiled.valid);
+      EXPECT_EQ(runtime.lightIndex, compiled.lightIndex);
+      EXPECT_NEAR(runtime.pdf, compiled.pdf, 1e-12);
+    }
+  }
+
+  TEST(GpuCompiledLightSampler, UnsupportedCompiledLightReturnsExplicitFallbackStatus) {
+    GpuTracingLightRecord unsupported;
+    unsupported.kind = static_cast<std::uint32_t>(GpuTracingLightKind::Unsupported);
+    unsupported.parameters = {9.0f, 9.0f, 9.0f, 1.0f};
+
+    const GpuCompiledLightSample sample =
+      sampleGpuCompiledLight(unsupported, Vector3d(0.0, 0.0, 0.0), Vector2d(0.25, 0.75));
+
+    EXPECT_FALSE(sample.valid());
+    EXPECT_EQ(GpuCompiledLightSampleStatus::UnsupportedLight, sample.status);
+    EXPECT_DOUBLE_EQ(0.0, sample.pdf);
+    EXPECT_DOUBLE_EQ(0.0, gpuCompiledLightSelectionWeight(unsupported));
   }
 
   TEST(GpuDirectLightCpuReference, ResolvesMatteContributionWithCurrentPathTracerEstimator) {

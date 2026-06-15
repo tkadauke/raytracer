@@ -2,12 +2,10 @@
 
 #include "core/math/Constants.h"
 #include "core/math/Ray.h"
+#include "render/GpuCompiledLightSampler.h"
 #include "render/MIS.h"
 #include "render/samplers/GpuSampleStream.h"
 
-#include <algorithm>
-#include <cmath>
-#include <limits>
 #include <stdexcept>
 #include <type_traits>
 
@@ -45,70 +43,6 @@ namespace render {
       return {0.0f, 0.0f, 0.0f, 0.0f};
     }
 
-    double maxColor(const std::array<float, 4>& value) {
-      return std::max({0.0f, value[0], value[1], value[2]});
-    }
-
-    double rectangleArea(const GpuTracingLightRecord& light) {
-      return (vector3(light.u) ^ vector3(light.v)).length();
-    }
-
-    double lightSelectionWeight(const GpuTracingLightRecord& light) {
-      const auto kind = static_cast<GpuTracingLightKind>(light.kind);
-      switch (kind) {
-      case GpuTracingLightKind::Point:
-      case GpuTracingLightKind::Directional:
-        return maxColor(light.parameters);
-      case GpuTracingLightKind::RectangularArea:
-        return maxColor(light.parameters) * rectangleArea(light) * PI;
-      case GpuTracingLightKind::Unsupported:
-        return 0.0;
-      }
-      return 0.0;
-    }
-
-    struct LightSelection {
-      bool valid{false};
-      std::uint32_t lightIndex{0};
-      double pdf{0.0};
-    };
-
-    LightSelection selectLight(const GpuTracingSceneSections& scene,
-                               const GpuDirectLightSelectionRecord& selection, double unitSample) {
-      if (selection.lightCount == 0u || selection.lightBegin >= scene.lights.size()) {
-        return {};
-      }
-
-      const std::uint32_t availableCount = static_cast<std::uint32_t>(
-        std::min<std::size_t>(selection.lightCount, scene.lights.size() - selection.lightBegin));
-      std::vector<double> weights(availableCount, 0.0);
-      double totalWeight = 0.0;
-      for (std::uint32_t offset = 0; offset != availableCount; ++offset) {
-        weights[offset] = lightSelectionWeight(scene.lights[selection.lightBegin + offset]);
-        totalWeight += weights[offset];
-      }
-      if (totalWeight <= 0.0) {
-        std::fill(weights.begin(), weights.end(), 1.0);
-        totalWeight = static_cast<double>(weights.size());
-      }
-
-      if (!(unitSample >= 0.0)) {
-        unitSample = 0.0;
-      }
-      unitSample = std::min(unitSample, std::nextafter(1.0, 0.0));
-      const double target = unitSample * totalWeight;
-      double cumulative = 0.0;
-      for (std::uint32_t offset = 0; offset != availableCount; ++offset) {
-        cumulative += weights[offset];
-        if (target < cumulative) {
-          return {true, selection.lightBegin + offset, weights[offset] / totalWeight};
-        }
-      }
-
-      const std::uint32_t last = availableCount - 1u;
-      return {true, selection.lightBegin + last, weights[last] / totalWeight};
-    }
-
     Vector2d gpuSample2D(const GpuDirectLightSampleStateRecord& sample, std::uint32_t dimension) {
       return GpuSampleStream::sample2D(sample.seed, sample.pixelIndex, sample.primarySampleIndex,
                                        dimension);
@@ -118,17 +52,6 @@ namespace render {
       return GpuSampleStream::sample1D(GpuSampleCoordinate{sample.seed, sample.pixelIndex,
                                                            sample.primarySampleIndex, dimension,
                                                            /*component=*/0});
-    }
-
-    Vector3d areaLightPoint(const GpuTracingLightRecord& light, const Vector2d& sample) {
-      return vector3(light.positionOrDirection) + vector3(light.u) * (sample.x() - 0.5) +
-             vector3(light.v) * (sample.y() - 0.5);
-    }
-
-    double areaLightSurfaceCosine(const GpuTracingLightRecord& light,
-                                  const Vector3d& directionToLight) {
-      const Vector3d normal = (vector3(light.u) ^ vector3(light.v)).normalizedOrZero(tolerance);
-      return std::max(0.0, normal * -directionToLight);
     }
 
     GpuDirectLightVisibilityRecord invalidVisibility(std::uint32_t workIndex,
@@ -148,83 +71,41 @@ namespace render {
                                                           const GpuTracingLightRecord& light) {
       const Vector3d point = vector3(work.surface.point);
       const Vector3d normal = vector3(work.surface.normal).normalizedOrZero(tolerance);
-      Vector3d directionToLight = Vector3d::null;
-      Colord radiance = Colord::black();
-      double distance = std::numeric_limits<double>::infinity();
-      double lightPdf = 0.0;
-      bool delta = false;
       Vector2d lightSample(0.5, 0.5);
 
-      const auto kind = static_cast<GpuTracingLightKind>(light.kind);
-      switch (kind) {
-      case GpuTracingLightKind::Point: {
-        const Vector3d offset = vector3(light.positionOrDirection) - point;
-        distance = offset.length();
-        if (distance <= tolerance) {
-          return invalidVisibility(workIndex, lightIndex);
-        }
-        directionToLight = offset / distance;
-        radiance = color(light.parameters);
-        lightPdf = 1.0;
-        delta = true;
-        break;
-      }
-      case GpuTracingLightKind::Directional:
-        directionToLight = vector3(light.positionOrDirection).normalizedOrZero(tolerance);
-        radiance = color(light.parameters);
-        lightPdf = 1.0;
-        delta = true;
-        break;
-      case GpuTracingLightKind::RectangularArea: {
+      if (static_cast<GpuTracingLightKind>(light.kind) == GpuTracingLightKind::RectangularArea) {
         const std::uint32_t surfaceDimension =
           static_cast<std::uint32_t>(gpuDirectLightSurfaceSampleDimension(
             work.sample.bounce, lightIndex, work.sample.directSampleIndex));
         lightSample = gpuSample2D(work.sample, surfaceDimension);
-        const double area = rectangleArea(light);
-        if (area <= tolerance) {
-          return invalidVisibility(workIndex, lightIndex);
-        }
-
-        const Vector3d offset = areaLightPoint(light, lightSample) - point;
-        distance = offset.length();
-        if (distance <= tolerance) {
-          return invalidVisibility(workIndex, lightIndex);
-        }
-        directionToLight = offset / distance;
-        const double cosLight = areaLightSurfaceCosine(light, directionToLight);
-        if (cosLight <= tolerance) {
-          return invalidVisibility(workIndex, lightIndex);
-        }
-        radiance = color(light.parameters);
-        lightPdf = (distance * distance) / (cosLight * area);
-        break;
       }
-      case GpuTracingLightKind::Unsupported:
+
+      const GpuCompiledLightSample sample = sampleGpuCompiledLight(light, point, lightSample);
+      if (!sample.valid()) {
         return invalidVisibility(workIndex, lightIndex);
       }
 
-      const double normalDotOut = normal * directionToLight;
-      if (selectionPdf <= 0.0 || lightPdf <= 0.0 || radiance == Colord::black() ||
-          normalDotOut <= 0.0) {
+      const double normalDotOut = normal * sample.direction;
+      if (selectionPdf <= 0.0 || sample.radiance == Colord::black() || normalDotOut <= 0.0) {
         return invalidVisibility(workIndex, lightIndex);
       }
 
-      const Rayd shadowRay(point4(work.surface.point), directionToLight);
+      const Rayd shadowRay(point4(work.surface.point), sample.direction);
       const Rayd shifted = shadowRay.epsilonShifted();
 
       GpuDirectLightVisibilityRecord visibility;
       visibility.workIndex = workIndex;
       visibility.lightIndex = lightIndex;
       visibility.flags =
-        gpuDirectLightVisibilityValid | (delta ? gpuDirectLightVisibilityDeltaLight : 0u);
+        gpuDirectLightVisibilityValid | (sample.delta ? gpuDirectLightVisibilityDeltaLight : 0u);
       visibility.rayOrigin = vector4(Vector3d(shifted.origin()), 1.0f);
       visibility.rayDirection = vector4(shifted.direction(), 0.0f);
-      visibility.lightRadiance = color4(radiance);
-      visibility.lightSample = {static_cast<float>(lightSample.x()),
-                                static_cast<float>(lightSample.y()), 0.0f, 0.0f};
+      visibility.lightRadiance = color4(sample.radiance);
+      visibility.lightSample = {static_cast<float>(sample.surfaceSample.x()),
+                                static_cast<float>(sample.surfaceSample.y()), 0.0f, 0.0f};
       visibility.minDistance = static_cast<float>(Rayd::epsilon);
-      visibility.maxDistance = static_cast<float>(distance);
-      visibility.lightPdf = static_cast<float>(lightPdf);
+      visibility.maxDistance = static_cast<float>(sample.distance);
+      visibility.lightPdf = static_cast<float>(sample.pdf);
       visibility.selectionPdf = static_cast<float>(selectionPdf);
       return visibility;
     }
@@ -248,7 +129,8 @@ namespace render {
                                         const GpuDirectLightWorkRecord& work,
                                         std::uint32_t workIndex) {
     const double selectionSample = gpuSample1D(work.sample, work.sample.lightSelectionDimension);
-    const LightSelection selection = selectLight(scene, work.lightSelection, selectionSample);
+    const GpuCompiledLightSelection selection =
+      selectGpuCompiledLight(scene, work.lightSelection, selectionSample);
     if (!selection.valid || selection.lightIndex >= scene.lights.size()) {
       return invalidVisibility(workIndex);
     }
