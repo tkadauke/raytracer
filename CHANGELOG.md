@@ -50,6 +50,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Added the `tracingExecution` render intent field with `auto`, `cpu`,
   `hybrid`, and `gpu` values to define user-facing tracing execution
   preferences for roadmap E10 job 1. — GPT-5 Codex
+- Added GPU-facing active/next path-state buffer layout records plus a CPU
+  reference ping-pong buffer for the E9 resident path-loop roadmap.
+  — GPT-5 Codex
 - Added GPU tracing texture record compilation for `ConstantColorTexture` with
   explicit unsupported texture reason diagnostics; advances E3 job 3.
   — GPT-5 Codex
