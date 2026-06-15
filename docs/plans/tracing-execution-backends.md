@@ -1847,29 +1847,63 @@ performance are proven.
 
 **Jobs:**
 
-1. **Define benchmark scenes.**
+1. ~~**Define benchmark scenes.**~~ ✅ **Done.**
    - Depends on: none.
-   - Output: small primitive, large mesh, visibility-heavy, indirect diffuse,
-     and unsupported fallback benchmarks.
+   - Output: documented in
+     `docs/perf/tracing-backend-benchmark-scenes-2026-06-15.md`, runnable
+     through `benchmarks/tracing_backend_capture.sh`, and mirrored by
+     `benchmarks/WavefrontIntersectionBackendBenchmark.cpp` rows for small
+     primitive, large mesh, visibility-heavy, indirect diffuse, and unsupported
+     fallback workloads.
 
-2. **Capture CPU, hybrid, and GPU metrics.**
+2. ~~**Capture CPU, hybrid, and GPU metrics.**~~ ✅ **Done.**
    - Depends on: job 1.
-   - Output: render time, upload/readback time, kernel time, scene compile time,
-     rays/sec, resident bytes, and fallback rate.
+   - Output: `benchmarks/WavefrontIntersectionBackendBenchmark.cpp` now emits
+     comparable `tracing_*` counters for render time, upload/readback time,
+     kernel time, scene compile time, rays/sec, resident bytes, and fallback
+     rate across CPU, hybrid/packed, GPU, and fallback rows; the counter
+     contract is documented in
+     `docs/perf/tracing-backend-benchmark-scenes-2026-06-15.md`.
 
-3. **Define auto-selection policy.**
+3. ~~**Define auto-selection policy.**~~ ✅ **Done.**
    - Depends on: job 2.
-   - Output: rules for platform availability, scene support, expected work, and
-     transfer/residency thresholds.
+   - Output: `auto` remains CPU-first. It rejects workloads below the fixed
+     expected-ray floor before platform probing or scene compilation, then
+     requires a platform GPU device, a render-path-capable platform backend, a
+     compiled scene with no unsupported leaves, platform basic-hit eligibility,
+     packed closest-hit eligibility, and packed any-hit eligibility before GPU
+     can be considered. The final GPU gate compares the effective expected-ray
+     count against the larger of the fixed floor and
+     `ceil(scene_upload_bytes / 1024) * minimumGpuRaysPerSceneUploadKiB`.
+     Selection uses closest-hit plus any-hit expected rays when query-family
+     estimates are present, otherwise the legacy total expected ray count.
+     Metrics that explain decisions are
+     `intersectionBackendExpectedRays`,
+     `intersectionBackendExpectedClosestHitRays`,
+     `intersectionBackendExpectedAnyHitRays`,
+     `intersectionBackendAutoMinimumGpuRays`,
+     `intersectionBackendAutoEstimatedQueryTransferBytes`,
+     `intersectionSceneUploadBytes`,
+     `intersectionSceneUnsupportedReasons`,
+     `intersection_backend_gpu_device`,
+     `intersection_backend_gpu_render_path`, selected execution path,
+     fallback reason, frontier residency/byte counters, and backend
+     upload/kernel/readback timing. Residency is diagnostic-only for this
+     intersection-service policy; GPU is automatic only after the transfer and
+     scene gates above pass.
 
 4. **Add conservative policy tests.**
    - Depends on: job 3.
    - Output: functional tests pin decisions for small, supported large, and
      unsupported scenes without relying on absolute timing.
 
-5. **Document measured thresholds.**
+5. ~~**Document measured thresholds.**~~ ✅ **Done.**
    - Depends on: jobs 2, 3, and 4.
-   - Output: plan/docs include benchmark evidence for any automatic GPU choice.
+   - Output: `docs/perf/tracing-backend-benchmark-scenes-2026-06-15.md`
+     documents the 65,536-ray fixed floor, the 64 rays-per-scene-upload-KiB
+     amortization gate, captured benchmark rows for the current CPU-resolved
+     automatic policy, and the explicit caveat that those rows do not support a
+     GPU speedup claim.
 
 **Gate:** `auto` has evidence and tests. It does not silently route to GPU just
 because a GPU exists.

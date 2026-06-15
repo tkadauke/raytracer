@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Added tracing backend benchmark scene definitions and a rendercli capture
+  wrapper for small primitive, large mesh, visibility-heavy, indirect diffuse,
+  and unsupported fallback workloads, closing roadmap E12 job 1. — GPT-5 Codex
 - Added GPU tracing texture record compilation for `ConstantColorTexture` with
   explicit unsupported texture reason diagnostics; advances E3 job 3.
   — GPT-5 Codex
@@ -20,6 +23,17 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- Documented measured tracing backend `auto` threshold evidence, including the
+  65,536-ray fixed floor, the 64 rays-per-scene-upload-KiB amortization gate,
+  captured CPU-resolved benchmark rows, and the caveat that they do not prove a
+  GPU speedup; closes roadmap E12 job 5. — GPT-5 Codex
+- Documented the conservative wavefront intersection `auto` backend selection
+  policy, including platform, scene-support, expected-work, transfer, and
+  residency metrics; closes roadmap E12 job 3. — GPT-5 Codex
+- Added comparable `tracing_*` counters to wavefront intersection backend
+  benchmarks for render time, transfer time, kernel time, scene compile time,
+  rays/sec, resident bytes, and fallback rate, closing roadmap E12 job 2.
+  — GPT-5 Codex
 - Reported compiled GPU tracing scene section counts and unsupported
   material, texture, and light reason counts in metrics JSON, rendercli
   summaries, and graph traces for the E3 tracing scene data roadmap.
