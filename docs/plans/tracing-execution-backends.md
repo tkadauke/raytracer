@@ -202,6 +202,59 @@ The service exposes two query families:
   any-hit query returns one byte-sized occlusion flag per submitted ray:
   non-zero means occluded, zero means visible.
 
+### Hybrid Visibility and Shadow Limitations
+
+Hybrid visibility and ray-traced preview shadows are current users of the
+intersection service. They are intentionally intersection-only features:
+
+- `hybrid_visibility` submits primary closest-hit debug rays through
+  `render::IntersectionService` and visualizes whether supported scene geometry
+  was hit.
+- `--shadow_mode ray_traced` builds a raster shadow-mask pass that submits
+  shadow/occlusion any-hit rays through `render::IntersectionService` and
+  composites the resulting mask over raster beauty output.
+
+These modes may use a platform GPU backend for the submitted closest-hit or
+any-hit batches when the build, device, scene subset, query family, and kernel
+support allow it. They do not move the full renderer to the GPU. The CPU still
+owns render-graph scheduling, camera/sample setup, material and texture
+evaluation, light sampling, BSDF evaluation, path state, continuation
+generation, accumulation, tonemapping, and final image ownership. A successful
+GPU intersection dispatch therefore means "the visibility query ran on the GPU"
+and not "this frame was path traced on the GPU."
+
+The practical rendercli checks are:
+
+```sh
+rendercli --engine raster --shadow_mode ray_traced \
+  --wavefront_intersection_backend gpu \
+  --render_graph_trace_out trace.json \
+  --wavefront_metrics_summary \
+  test/fixtures/rendercli/raster_shadow_caster.json shadow.png
+
+rendercli --engine raster \
+  --render_graph_aov_out hybrid_visibility=visibility.png \
+  --wavefront_intersection_backend gpu \
+  --render_graph_trace_out trace.json \
+  test/fixtures/rendercli/raster_shadow_caster.json raster.png
+```
+
+Inspect the trace or compact metrics for the requested backend, selected
+backend, closest-hit and any-hit execution paths, compiled-scene support counts,
+and fallback reason. Expected fallback families include CPU policy selection,
+missing platform device or render-path kernels, unsupported scene leaves,
+unsupported closest-hit or any-hit query-family kernels, platform dispatch
+failure, malformed result counts, and runtime-only material or continuation
+semantics. Unsupported scenes keep the runtime CPU path rather than producing a
+partial GPU result.
+
+In Modeler, use `Render -> Preview Engine -> Rasterizer`, enable preview
+shadows, choose the ray-traced shadow mode when available, and select
+`Render -> Preview View -> Hybrid visibility` to inspect the AOV path. The
+Render Graph dock's selected pass details and trace messages show whether the
+hybrid pass used a platform backend, packed CPU parity traversal, or the
+runtime CPU fallback and why.
+
 The CPU runtime backend supports the full existing `render::Scene` traversal
 semantics. The compiled/packed and platform GPU service subset is deliberately
 smaller and all-or-nothing for a render or service call. The supported subset is:
@@ -2097,7 +2150,11 @@ real-time-ish shadows and graph visibility work.
    - Output: rendered/AOV tests and graph trace assertions for GPU intersection
      service usage without claiming full GPU tracing.
 
-5. **Document limitations.**
+5. ~~**Document limitations.**~~ ✅ **Done.** The intersection-service
+   contract and user-facing rendercli/Modeler docs now call out that
+   `hybrid_visibility` and `--shadow_mode ray_traced` use GPU intersection
+   service queries when eligible, while scheduling, shading, path state, and
+   accumulation remain CPU-owned for issue #637.
    - Depends on: job 4.
    - Output: docs explain this is hybrid visibility, not full GPU path tracing.
 

@@ -935,6 +935,17 @@ PCF radius that owns the scene's single direct light. Shader-side shadow traces
 include the prepared texture dimensions and upload byte count. Disabling the
 graph shadow node substitutes the default resource and prevents
 graph-controlled shadow enablement.
+When the raster shadow mode is `ray_traced`, the compiler uses the hybrid
+shadow path instead of shadow maps: a `hybrid_ray_traced_shadows` pass submits
+bounded any-hit shadow rays through `render::IntersectionService`, writes a
+shadow-mask resource, and composites that mask over raster beauty. The pass may
+select a Metal or Vulkan intersection backend for supported scenes, but it is
+still a visibility service. Raster shading, material evaluation, light
+selection, graph scheduling, tonemapping, and final image ownership remain
+outside the GPU intersection service. The trace records the requested backend,
+selected backend, any-hit execution path, query counts, unsupported-scene
+counts, and fallback reason so a CPU fallback is visible rather than implied by
+the final image.
 Raster visibility culling is also intent-derived. When
 `engineOptions.rasterizer.geometry.visibilityCulling` is `on` or `auto`, the
 compiler inserts a `raster_visibility` pass that writes a
@@ -979,6 +990,14 @@ different cache entry. A second scene-side cache stores per-primitive/lod mesh
 statistics and transformed bounds keyed by primitive identity, primitive
 bounds, and transform, so a camera move can recompute the visibility set while
 reusing stable tessellation counts, backface-test meshes, and leaf bounds.
+
+The `hybrid_visibility` AOV is separate from raster visibility culling. It
+submits primary closest-hit debug rays through the same intersection service and
+writes an inspectable hit/miss preview. It does not shade the hit, sample
+lights, spawn continuation rays, accumulate radiance, or keep path state on the
+GPU. Its trace and resource preview are useful for checking which intersection
+path ran and why it fell back, but the AOV should be read as GPU-assisted
+visibility diagnostics rather than GPU path tracing.
 
 The image-space `--post_aa fxaa` and `--post_aa smaa` modes are graph nodes:
 `RenderIntent::postProcessAA` asks the compiler to insert a `post_fxaa` or
