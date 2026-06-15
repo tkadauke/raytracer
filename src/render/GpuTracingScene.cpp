@@ -33,6 +33,7 @@ namespace {
   static_assert(isKernelRecord<GpuTracingDebugIdRecord>());
   static_assert(isKernelRecord<GpuTracingShadingRecord>());
   static_assert(isKernelRecord<GpuDiffusePathStateRecord>());
+  static_assert(isKernelRecord<GpuDiffusePathStepRecord>());
 
   template<typename Record>
   GpuTracingSceneSectionLayout sectionLayout(GpuTracingSceneSectionKind kind,
