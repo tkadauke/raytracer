@@ -469,6 +469,10 @@ Before compilation, `rendercli` can also override the default graph intent:
 `--render_graph_view` selects the structural view mode,
 `--render_graph_camera` selects the default scene camera reference, and
 `--render_graph_shading_profile` selects the default named shading profile.
+`--tracing_execution auto|cpu|hybrid|gpu` sets the ray-family tracing execution
+preference on the same typed intent, while `--wavefront_intersection_backend`
+remains the narrower backend-service override for wavefront closest-hit and
+any-hit queries.
 Repeated `--render_graph_shading_parameter key=value` options attach parsed
 bool, number, or string parameters to that profile.
 `--render_graph_view_override selector,key=value` appends a high-level

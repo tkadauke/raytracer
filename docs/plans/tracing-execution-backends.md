@@ -2061,8 +2061,10 @@ manually request internal graph nodes.
 
 3. **Update rendercli flags and validation.**
    - Depends on: jobs 1 and 2.
-   - Output: rendercli can request execution preference and rejects invalid
-     combinations with useful errors.
+   - Output: ~~rendercli can request execution preference and rejects invalid
+     combinations with useful errors.~~ ✅ **Done.** Issue #620 adds
+     `--tracing_execution auto|cpu|hybrid|gpu`, exports it in graph pass state,
+     and validates unsupported or conflicting CLI combinations.
 
 4. **Update Modeler Render Settings.**
    - Depends on: jobs 1, 2, and 3.
