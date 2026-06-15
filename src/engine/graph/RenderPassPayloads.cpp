@@ -527,6 +527,53 @@ namespace engine::graph {
       }
     };
 
+    bool executionPathUsesGpu(const QString& path) {
+      return path == QStringLiteral("gpu") || path == QStringLiteral("metal") ||
+             path == QStringLiteral("vulkan");
+    }
+
+    QString actualTracingExecutionFromWavefrontMetrics(const QJsonObject& metrics) {
+      const QJsonObject batching = metrics.value("batching").toObject();
+      const bool closestUsesGpu = executionPathUsesGpu(
+        batching.value("intersectionBackendClosestHitExecutionPath").toString());
+      const bool anyUsesGpu =
+        executionPathUsesGpu(batching.value("intersectionBackendAnyHitExecutionPath").toString());
+      const bool combinedUsesGpu =
+        executionPathUsesGpu(batching.value("intersectionBackendExecutionPath").toString());
+      return closestUsesGpu || anyUsesGpu || combinedUsesGpu ? QStringLiteral("hybrid")
+                                                             : QStringLiteral("cpu");
+    }
+
+    QString actualTracingFallbackReasonFromWavefrontMetrics(const QJsonObject& metrics) {
+      const QJsonObject fallback =
+        metrics.value("batching").toObject().value("tracingBackendFallback").toObject();
+      return fallback.value("active").toBool() ? fallback.value("reason").toString() : QString();
+    }
+
+    QJsonObject tracingExecutionMetadata(const RenderPassNode& pass, QString actualExecution,
+                                         QString actualFallbackReason = {}) {
+      QJsonObject metadata;
+      const RaytracerBeautyPassState state = RaytracerBeautyPassState::valueFromPass(pass);
+      const auto requested = state.tracingExecution().value_or(TracingExecutionPreference::Auto);
+      metadata["requestedMode"] = tracingExecutionPreferenceName(requested);
+      if (state.predictedTracingExecution()) {
+        metadata["predictedMode"] =
+          tracingExecutionPreferenceName(*state.predictedTracingExecution());
+      }
+      metadata["actualMode"] = std::move(actualExecution);
+      metadata["fallbackReason"] = QString::fromStdString(state.tracingExecutionFallbackReason());
+      metadata["actualFallbackReason"] = std::move(actualFallbackReason);
+      return metadata;
+    }
+
+    QJsonObject withTracingExecutionMetadata(QJsonObject metadata, const RenderPassNode& pass,
+                                             QString actualExecution,
+                                             QString actualFallbackReason = {}) {
+      metadata["tracingExecution"] =
+        tracingExecutionMetadata(pass, std::move(actualExecution), std::move(actualFallbackReason));
+      return metadata;
+    }
+
     /**
       * Whole-frame beauty payload backed by the Whitted raytracer.
       */
@@ -544,6 +591,8 @@ namespace engine::graph {
         prepareEngine(*raytracer, context.graph(), context.cancelled(), std::move(tonemap));
         context.setActiveEngine(raytracer);
         raytracer->render(context.storage().color(write.resource), buffer, raytracer->tonemap());
+        context.setTraceMetadata(
+          withTracingExecutionMetadata(QJsonObject(), pass, QStringLiteral("cpu")));
         return true;
       }
 
@@ -574,7 +623,10 @@ namespace engine::graph {
 
       void recordWavefrontMetrics(RenderExecutionContext& context,
                                   const ::engine::wavefront::WavefrontRaytracer& wavefront) const {
-        context.setTraceMetadata(wavefront.lastMetrics().toJson());
+        QJsonObject metrics = wavefront.lastMetrics().toJson();
+        context.setTraceMetadata(withTracingExecutionMetadata(
+          metrics, context.pass(), actualTracingExecutionFromWavefrontMetrics(metrics),
+          actualTracingFallbackReasonFromWavefrontMetrics(metrics)));
       }
     };
 

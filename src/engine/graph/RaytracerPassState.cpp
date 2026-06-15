@@ -135,8 +135,9 @@ namespace engine::graph {
     rejectUnknownFields(execution, path + ".execution",
                         {"maxRecursionDepth", "threads", "queueSize", "integrator",
                          "tracingBackend", "tracingExecution", "intersectionBackend",
-                         "russianRouletteDepth",
-                         "directLightSamples"});
+                         "predictedTracingExecution",
+                         "tracingExecutionFallbackReason", "intersectionBackend",
+                         "russianRouletteDepth", "directLightSamples"});
     if (hasField(execution, "maxRecursionDepth"))
       state.setMaximumRecursionDepth(intField(execution, "maxRecursionDepth", path + ".execution"));
     if (hasField(execution, "threads"))
@@ -149,6 +150,14 @@ namespace engine::graph {
       state.setTracingBackend(stringField(execution, "tracingBackend", path + ".execution"));
     if (hasField(execution, "tracingExecution")) {
       state.setTracingExecution(stringField(execution, "tracingExecution", path + ".execution"));
+    }
+    if (hasField(execution, "predictedTracingExecution")) {
+      state.setPredictedTracingExecution(
+        stringField(execution, "predictedTracingExecution", path + ".execution"));
+    }
+    if (hasField(execution, "tracingExecutionFallbackReason")) {
+      state.setTracingExecutionFallbackReason(
+        stringField(execution, "tracingExecutionFallbackReason", path + ".execution"));
     }
     if (hasField(execution, "intersectionBackend")) {
       state.setIntersectionBackend(
@@ -251,6 +260,11 @@ namespace engine::graph {
       execution["tracingBackend"] = qstr(m_tracingBackend->id());
     if (m_tracingExecution)
       execution["tracingExecution"] = qstr(tracingExecutionPreferenceName(*m_tracingExecution));
+    if (m_predictedTracingExecution)
+      execution["predictedTracingExecution"] =
+        qstr(tracingExecutionPreferenceName(*m_predictedTracingExecution));
+    if (!m_tracingExecutionFallbackReason.empty())
+      execution["tracingExecutionFallbackReason"] = qstr(m_tracingExecutionFallbackReason);
     if (m_intersectionBackend)
       execution["intersectionBackend"] = qstr(m_intersectionBackend->id());
     if (m_russianRouletteDepth)
@@ -438,6 +452,24 @@ namespace engine::graph {
     m_tracingExecution = *parsed;
   }
 
+  void
+  RaytracerBeautyPassState::setPredictedTracingExecution(TracingExecutionPreference preference) {
+    m_predictedTracingExecution = preference;
+  }
+
+  void RaytracerBeautyPassState::setPredictedTracingExecution(std::string preference) {
+    const auto parsed = tracingExecutionPreferenceFromString(preference);
+    if (!parsed) {
+      stateError("parameters.execution.predictedTracingExecution",
+                 "expected auto, cpu, hybrid, or gpu");
+    }
+    m_predictedTracingExecution = *parsed;
+  }
+
+  void RaytracerBeautyPassState::setTracingExecutionFallbackReason(std::string reason) {
+    m_tracingExecutionFallbackReason = std::move(reason);
+  }
+
   void RaytracerBeautyPassState::setIntersectionBackend(std::string backend) {
     try {
       m_intersectionBackend =
@@ -538,6 +570,15 @@ namespace engine::graph {
 
   std::optional<TracingExecutionPreference> RaytracerBeautyPassState::tracingExecution() const {
     return m_tracingExecution;
+  }
+
+  std::optional<TracingExecutionPreference>
+  RaytracerBeautyPassState::predictedTracingExecution() const {
+    return m_predictedTracingExecution;
+  }
+
+  const std::string& RaytracerBeautyPassState::tracingExecutionFallbackReason() const {
+    return m_tracingExecutionFallbackReason;
   }
 
   std::optional<render::WavefrontIntersectionBackendChoice>

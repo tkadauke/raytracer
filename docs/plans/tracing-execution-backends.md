@@ -2053,8 +2053,11 @@ manually request internal graph nodes.
 
 2. **Teach the graph compiler to synthesize execution modes.**
    - Depends on: job 1.
-   - Output: graph compiler picks CPU, hybrid intersection, or full GPU subset
-     from intent, scene support, and backend availability.
+   - Output: ~~graph compiler picks CPU, hybrid intersection, or full GPU
+     subset from intent, scene support, and backend availability.~~ ✅
+     **Done.** Issue #619 records predicted CPU/hybrid/GPU modes and fallback
+     reasons in compiled tracing pass state, then adds actual mode metadata to
+     graph traces.
 
 3. **Update rendercli flags and validation.**
    - Depends on: jobs 1 and 2.
