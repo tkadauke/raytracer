@@ -86,7 +86,9 @@ namespace GpuTracingSceneTest {
     expectKernelRecordLayout<GpuTracingDebugIdRecord>();
     expectKernelRecordLayout<GpuTracingShadingRecord>();
     expectKernelRecordLayout<GpuDiffusePathStateRecord>();
+    expectKernelRecordLayout<GpuDiffusePathStepRecord>();
     EXPECT_TRUE(std::is_trivially_copyable_v<GpuDiffusePathStateRecord>);
+    EXPECT_TRUE(std::is_trivially_copyable_v<GpuDiffusePathStepRecord>);
   }
 
   TEST(GpuTracingScene, LayoutVersionScopesAllCompiledSceneSections) {

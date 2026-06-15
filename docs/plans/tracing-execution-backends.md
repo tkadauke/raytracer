@@ -1972,7 +1972,10 @@ contributions through the GPU path and match the CPU estimator.
    - Output: ray, throughput, accumulated contribution target or sample id,
      depth, RNG/sample state, flags, and MIS metadata.
 
-2. **Add CPU reference path-step kernel.**
+2. ~~**Add CPU reference path-step kernel.**~~ ✅ **Done.**
+   `render::GpuDiffusePathStepReference` advances record-based diffuse path
+   states for hit, miss, emission, direct-light, and diffuse-continuation
+   cases with fixed-seed coverage. Closes #607.
    - Depends on: job 1.
    - Output: record-based one-bounce implementation for comparison.
 
