@@ -1938,10 +1938,14 @@ for the supported scene subset.
    - Output: record-based CPU implementation matching current path-tracer
      direct-light semantics.
 
-3. **Implement supported light sampling.**
+3. ~~**Implement supported light sampling.**~~ ✅ **Done.** Issue #602 adds
+   compiled-record light selection and sampling for point, directional, and
+   rectangular area lights, with fixed-sample parity against runtime
+   `LightSampler` / `Light::sample` and explicit unsupported-record fallback
+   status.
    - Depends on: jobs 1 and 2.
-   - Output: point, directional, and rectangular area light sampling for the
-     compiled light records.
+   - ~~Output: point, directional, and rectangular area light sampling for the
+     compiled light records.~~
 
 4. **Implement diffuse contribution evaluation.**
    - Depends on: jobs 2 and 3.

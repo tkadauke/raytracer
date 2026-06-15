@@ -67,6 +67,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Added GPU-facing active/next path-state buffer layout records plus a CPU
   reference ping-pong buffer for the E9 resident path-loop roadmap.
   — GPT-5 Codex
+- Added compiled GPU light sampling for point, directional, and rectangular
+  area light records, with selection/PDF parity tests and explicit unsupported
+  record fallback status, closing roadmap §E7 job 3. — GPT-5 Codex
 - Added record-based CPU reference direct-light batches for GPU tracing parity
   tests, including packed light selection, visibility records, occlusion-aware
   matte contribution records, and deterministic GPU sample-stream inputs,
