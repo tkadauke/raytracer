@@ -22,6 +22,7 @@
 #include "engine/graph/RenderEngineOptions.h"
 #include "engine/graph/RenderGraphExecutionTrace.h"
 #include "engine/graph/RenderGraphRequest.h"
+#include "engine/graph/TracingExecutionPreference.h"
 #include "engine/graph/WireframePassState.h"
 #include "render/lights/PointLight.h"
 #include "render/RenderEngine.h"
@@ -1605,6 +1606,8 @@ private:
   bool m_pathTracerDirectLightSamplesSet;
   QString m_pathTracingSchedule;
   bool m_pathTracingScheduleSet;
+  QString m_tracingExecution;
+  bool m_tracingExecutionSet;
   QString m_wavefrontIntersectionBackend;
   bool m_wavefrontIntersectionBackendSet;
   int m_width;
@@ -1800,6 +1803,8 @@ Renderer::Renderer()
       m_pathTracerDirectLightSamplesSet(false),
       m_pathTracingSchedule("wavefront"),
       m_pathTracingScheduleSet(false),
+      m_tracingExecution("auto"),
+      m_tracingExecutionSet(false),
       m_wavefrontIntersectionBackend("auto"),
       m_wavefrontIntersectionBackendSet(false),
       m_width(640),
@@ -2076,6 +2081,8 @@ engine::graph::RenderEngineOptions Renderer::commandLineEngineOptions() const {
   }
   if (m_wavefrontIntersectionBackendSet)
     options.raytracer().setIntersectionBackend(m_wavefrontIntersectionBackend.toStdString());
+  if (m_tracingExecutionSet)
+    options.raytracer().setTracingExecution(m_tracingExecution.toStdString());
   if (m_samplerSet)
     options.raytracer().setSampler(m_sampler.toStdString());
   if (m_samplesPerPixelSet)
@@ -3323,6 +3330,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"engine", "Render engine (raytracer, pathtracer, wavefront, wireframe, raster)", "engine"},
      {"integrator", "Raytracer integrator (whitted, pathtracer)", "integrator"},
      {"path_tracing_schedule", "Path tracing schedule (wavefront, scalar)", "schedule"},
+     {"tracing_execution", "Tracing execution preference (auto, cpu, hybrid, gpu)", "mode"},
      {"wavefront_intersection_backend", "Wavefront ray-scene intersection backend (auto, cpu, gpu)",
       "backend"},
      {"wavefront_convergence", "Enable wavefront path-batch convergence stopping"},
@@ -3742,6 +3750,18 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     }
     m_pathTracingSchedule = normalizedSchedule;
     m_pathTracingScheduleSet = true;
+  }
+
+  if (parser.isSet("tracing_execution")) {
+    const QString mode = parser.value("tracing_execution").toLower();
+    const QString normalizedMode = normalizedRasterOption(mode);
+    if (normalizedMode != "auto" && normalizedMode != "automatic" && normalizedMode != "cpu" &&
+        normalizedMode != "hybrid" && normalizedMode != "gpu") {
+      *errorMessage = "Tracing execution must be 'auto', 'cpu', 'hybrid', or 'gpu'";
+      return CommandLineError;
+    }
+    m_tracingExecution = normalizedMode == "automatic" ? QStringLiteral("auto") : normalizedMode;
+    m_tracingExecutionSet = true;
   }
 
   if (parser.isSet("wavefront_intersection_backend")) {
@@ -4549,6 +4569,17 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     }
   }
 
+  const bool tracingExecutionTargetsNonTracingExecutor =
+    m_renderGraphExecutorSet
+      ? (m_renderGraphExecutor == engine::graph::RenderExecutorPreference::Rasterizer ||
+         m_renderGraphExecutor == engine::graph::RenderExecutorPreference::Wireframe)
+      : (m_engine == "raster" || m_engine == "wireframe");
+  if (m_tracingExecutionSet && tracingExecutionTargetsNonTracingExecutor) {
+    *errorMessage =
+      "Tracing execution requires a raytracer, pathtracer, or wavefront graph executor";
+    return CommandLineError;
+  }
+
   if (m_animation && wavefrontSampleStddevOutputSet) {
     *errorMessage = "Cannot combine --animation with wavefront sample standard-deviation output";
     return CommandLineError;
@@ -4660,7 +4691,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
        m_renderGraphCurveOverlay || parser.isSet("disable_pass") ||
        parser.isSet("disable_pass_kind") || parser.isSet("disable_executor") ||
        parser.isSet("disable_feature") || parser.isSet("raster_culling") ||
-       parser.isSet("depth_prepass"))) {
+       parser.isSet("depth_prepass") || m_tracingExecutionSet)) {
     *errorMessage = "Cannot combine --direct_engine with render graph options";
     return CommandLineError;
   }

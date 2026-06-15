@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Added rendercli `--tracing_execution auto|cpu|hybrid|gpu` graph intent
+  support with validation for unsupported and conflicting execution requests
+  for roadmap E10 job 3. — GPT-5 Codex
 - Added graph-compiler tracing execution decisions that predict CPU, hybrid,
   or GPU modes, surface fallback reasons, and record actual execution mode in
   graph traces for roadmap E10 job 2. — GPT-5 Codex

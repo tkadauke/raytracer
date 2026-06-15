@@ -110,6 +110,8 @@ set(raster_state_render "${TEST_OUTPUT_DIR}/raster-state-render.png")
 set(raytracer_integrator_plan "${TEST_OUTPUT_DIR}/raytracer-integrator-graph.json")
 set(raytracer_integrator_render "${TEST_OUTPUT_DIR}/raytracer-integrator-render.png")
 set(wavefront_plan "${TEST_OUTPUT_DIR}/wavefront-graph.json")
+set(wavefront_hybrid_tracing_plan
+    "${TEST_OUTPUT_DIR}/wavefront-hybrid-tracing-graph.json")
 set(wavefront_gpu_backend_plan "${TEST_OUTPUT_DIR}/wavefront-gpu-backend-graph.json")
 set(wavefront_gpu_backend_replay_trace
     "${TEST_OUTPUT_DIR}/wavefront-gpu-backend-replay-trace.json")
@@ -2095,6 +2097,27 @@ if(NOT wavefront_gpu_backend_graph MATCHES "\"intersectionBackend\"[ \r\n]*:[ \r
       "wavefront graph did not contain requested GPU intersection backend state: ${wavefront_gpu_backend_graph}"
   )
 endif()
+
+rendercli_run(
+  NAME "rendercli exports requested tracing execution in render graph"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format json --engine wavefront
+    --tracing_execution hybrid --width 32 --height 16 "${static_scene}"
+    "${wavefront_hybrid_tracing_plan}"
+)
+rendercli_assert_nonempty("${wavefront_hybrid_tracing_plan}"
+                          NAME "hybrid tracing execution graph output")
+file(READ "${wavefront_hybrid_tracing_plan}" wavefront_hybrid_tracing_graph)
+foreach(expectation
+        "\"tracingExecution\"[ \r\n]*:[ \r\n]*\"hybrid\""
+        "\"predictedTracingExecution\"[ \r\n]*:[ \r\n]*\"hybrid\""
+        "\"intersectionBackend\"[ \r\n]*:[ \r\n]*\"gpu\"")
+  if(NOT wavefront_hybrid_tracing_graph MATCHES "${expectation}")
+    _rendercli_fail("rendercli hybrid tracing execution graph ${expectation}"
+                    "hybrid tracing graph did not match ${expectation}"
+                    "" "" "${wavefront_hybrid_tracing_graph}" "")
+  endif()
+endforeach()
 
 rendercli_run(
   NAME "rendercli replays requested GPU wavefront backend from render graph"
@@ -4462,6 +4485,38 @@ rendercli_expect_failure(
   COMMAND
     "${RENDERCLI}" --engine wavefront --wavefront_convergence --wavefront_no_convergence
     "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects invalid tracing execution"
+  STDERR_MATCHES "Tracing execution must be"
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --tracing_execution quantum
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects tracing execution with raster executor"
+  STDERR_MATCHES "Tracing execution requires"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_executor rasterizer
+    --tracing_execution gpu "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects tracing execution with direct engine"
+  STDERR_MATCHES "Cannot combine --direct_engine with render graph options"
+  COMMAND
+    "${RENDERCLI}" --direct_engine --engine wavefront --tracing_execution hybrid
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects incompatible tracing and intersection backends"
+  STDERR_MATCHES "tracingExecution 'cpu' is incompatible with intersectionBackend 'gpu'"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --engine wavefront --tracing_execution cpu
+    --wavefront_intersection_backend gpu "${static_scene}" "${invalid_plan}"
 )
 
 rendercli_expect_failure(
