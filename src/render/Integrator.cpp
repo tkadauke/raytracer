@@ -236,6 +236,7 @@ namespace render {
     frontierCompactionRetainedHostPathStateBytes = 0;
     frontierCompactionRemovedHostPathStateBytes = 0;
     frontierCompactionExecutionPath.clear();
+    residentPathLoopAccumulation.reset();
   }
 
   void IntegratorBatchMetrics::mergeFrom(const IntegratorBatchMetrics& source) {
@@ -339,6 +340,31 @@ namespace render {
     frontierCompactionRemovedHostPathStateBytes +=
       source.frontierCompactionRemovedHostPathStateBytes;
     mergeLabel(frontierCompactionExecutionPath, source.frontierCompactionExecutionPath);
+    if (source.residentPathLoopAccumulation) {
+      if (!residentPathLoopAccumulation) {
+        residentPathLoopAccumulation = *source.residentPathLoopAccumulation;
+      } else {
+        residentPathLoopAccumulation->clearOperations +=
+          source.residentPathLoopAccumulation->clearOperations;
+        residentPathLoopAccumulation->addOperations +=
+          source.residentPathLoopAccumulation->addOperations;
+        residentPathLoopAccumulation->addedSamples +=
+          source.residentPathLoopAccumulation->addedSamples;
+        residentPathLoopAccumulation->resolveOperations +=
+          source.residentPathLoopAccumulation->resolveOperations;
+        residentPathLoopAccumulation->readbackOperations +=
+          source.residentPathLoopAccumulation->readbackOperations;
+        residentPathLoopAccumulation->readbackBytes +=
+          source.residentPathLoopAccumulation->readbackBytes;
+        residentPathLoopAccumulation->residentBytes =
+          std::max(residentPathLoopAccumulation->residentBytes,
+                   source.residentPathLoopAccumulation->residentBytes);
+        mergeLabel(residentPathLoopAccumulation->backend,
+                   source.residentPathLoopAccumulation->backend);
+        mergeLabel(residentPathLoopAccumulation->residency,
+                   source.residentPathLoopAccumulation->residency);
+      }
+    }
   }
 
   void IntegratorBatchMetrics::recordActiveDepth(std::uint64_t activeSamples) {
@@ -395,6 +421,11 @@ namespace render {
                                                             std::uint64_t movedSamples) {
     recordFrontierCompaction(inputSamples, retainedSamples, movedSamples, "host",
                              retainedSamples * sizeof(std::uint32_t));
+  }
+
+  void IntegratorBatchMetrics::recordResidentPathLoopAccumulation(
+    const TracingAccumulationDiagnostics& diagnostics) {
+    residentPathLoopAccumulation = diagnostics;
   }
 
   double IntegratorBatchMetrics::frontierCompactionRemovedSampleFraction() const {
