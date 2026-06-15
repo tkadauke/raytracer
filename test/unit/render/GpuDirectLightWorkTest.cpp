@@ -1,8 +1,13 @@
 #include <gtest/gtest.h>
 
+#include "core/math/Constants.h"
+#include "render/GpuDirectLightCpuReference.h"
 #include "render/GpuDirectLightWork.h"
 #include "render/GpuIntersectionScene.h"
+#include "render/GpuTracingScene.h"
+#include "render/samplers/GpuSampleStream.h"
 
+#include <cmath>
 #include <type_traits>
 
 namespace GpuDirectLightWorkTest {
@@ -15,6 +20,42 @@ namespace GpuDirectLightWorkTest {
       EXPECT_EQ(16u, alignof(Record));
       EXPECT_EQ(0u, sizeof(Record) % 16u);
     }
+
+    GpuTracingSceneSections oneMattePointLightScene() {
+      GpuTracingSceneSections scene;
+      scene.materials.resize(2);
+      scene.textures.resize(2);
+
+      scene.textures[1].kind = static_cast<std::uint32_t>(GpuTracingTextureKind::ConstantColor);
+      scene.textures[1].parameters = {0.5f, 0.25f, 1.0f, 1.0f};
+
+      scene.materials[1].kind = static_cast<std::uint32_t>(GpuTracingMaterialKind::Matte);
+      scene.materials[1].albedoTexture = 1u;
+      scene.materials[1].parameters = {0.0f, 0.8f, 0.0f, 0.0f};
+
+      GpuTracingLightRecord light;
+      light.kind = static_cast<std::uint32_t>(GpuTracingLightKind::Point);
+      light.positionOrDirection = {0.0f, 4.0f, 0.0f, 1.0f};
+      light.parameters = {2.0f, 3.0f, 4.0f, 1.0f};
+      scene.lights.push_back(light);
+      return scene;
+    }
+
+    GpuDirectLightWorkRecord oneMattePointLightWork() {
+      GpuDirectLightWorkRecord work;
+      work.surface.material = 1u;
+      work.surface.pathIndex = 7u;
+      work.surface.point = {0.0f, 0.0f, 0.0f, 1.0f};
+      work.surface.normal = {0.0f, 1.0f, 0.0f, 0.0f};
+      work.surface.incomingDirection = {0.0f, 1.0f, 0.0f, 0.0f};
+      work.surface.throughput = {0.25f, 0.5f, 1.0f, 1.0f};
+      work.sample = makeGpuDirectLightSampleState(/*seed=*/42, /*pixelIndex=*/19,
+                                                  /*primarySampleIndex=*/3, /*bounce=*/0,
+                                                  /*directSampleIndex=*/0);
+      work.lightSelection.lightBegin = 0u;
+      work.lightSelection.lightCount = 1u;
+      return work;
+    }
   }
 
   TEST(GpuDirectLightWork, RecordsHaveStableKernelFriendlyLayout) {
@@ -23,6 +64,7 @@ namespace GpuDirectLightWorkTest {
     expectKernelRecordLayout<GpuDirectLightSelectionRecord>();
     expectKernelRecordLayout<GpuDirectLightVisibilityRecord>();
     expectKernelRecordLayout<GpuDirectLightWorkRecord>();
+    expectKernelRecordLayout<GpuDirectLightContributionRecord>();
   }
 
   TEST(GpuDirectLightWork, WorkRecordIsSeparateFromIntersectionHitRecord) {
@@ -137,5 +179,107 @@ namespace GpuDirectLightWorkTest {
     EXPECT_FLOAT_EQ(0.25f, visibility.selectionPdf);
     EXPECT_FLOAT_EQ(6.0f, visibility.lightRadiance[2]);
     EXPECT_FLOAT_EQ(0.75f, visibility.lightSample[1]);
+  }
+
+  TEST(GpuDirectLightCpuReference, BuildsVisibilityRecordFromPackedPointLight) {
+    const GpuTracingSceneSections scene = oneMattePointLightScene();
+    const GpuDirectLightWorkRecord work = oneMattePointLightWork();
+
+    const GpuDirectLightVisibilityRecord visibility =
+      makeGpuDirectLightCpuVisibilityRecord(scene, work, /*workIndex=*/3u);
+
+    EXPECT_EQ(3u, visibility.workIndex);
+    EXPECT_EQ(0u, visibility.lightIndex);
+    EXPECT_EQ(gpuDirectLightVisibilityValid | gpuDirectLightVisibilityDeltaLight, visibility.flags);
+    EXPECT_EQ(0u, visibility.occluded);
+    EXPECT_GT(visibility.rayOrigin[1], work.surface.point[1]);
+    EXPECT_FLOAT_EQ(0.0f, visibility.rayDirection[0]);
+    EXPECT_FLOAT_EQ(1.0f, visibility.rayDirection[1]);
+    EXPECT_FLOAT_EQ(0.0f, visibility.rayDirection[2]);
+    EXPECT_FLOAT_EQ(4.0f, visibility.maxDistance);
+    EXPECT_FLOAT_EQ(1.0f, visibility.lightPdf);
+    EXPECT_FLOAT_EQ(1.0f, visibility.selectionPdf);
+    EXPECT_FLOAT_EQ(2.0f, visibility.lightRadiance[0]);
+    EXPECT_FLOAT_EQ(3.0f, visibility.lightRadiance[1]);
+    EXPECT_FLOAT_EQ(4.0f, visibility.lightRadiance[2]);
+  }
+
+  TEST(GpuDirectLightCpuReference, ResolvesMatteContributionWithCurrentPathTracerEstimator) {
+    const GpuTracingSceneSections scene = oneMattePointLightScene();
+    const GpuDirectLightWorkRecord work = oneMattePointLightWork();
+    const GpuDirectLightVisibilityRecord visibility =
+      makeGpuDirectLightCpuVisibilityRecord(scene, work, /*workIndex=*/0u);
+
+    const GpuDirectLightContributionRecord contribution =
+      makeGpuDirectLightCpuContributionRecord(scene, work, visibility);
+
+    EXPECT_EQ(gpuDirectLightContributionValid | gpuDirectLightContributionContributing,
+              contribution.flags);
+    EXPECT_EQ(0u, contribution.occluded);
+    EXPECT_FLOAT_EQ(static_cast<float>(0.25 * (0.5 * 0.8 * invPI) * 2.0),
+                    contribution.contribution[0]);
+    EXPECT_FLOAT_EQ(static_cast<float>(0.5 * (0.25 * 0.8 * invPI) * 3.0),
+                    contribution.contribution[1]);
+    EXPECT_FLOAT_EQ(static_cast<float>(1.0 * (1.0 * 0.8 * invPI) * 4.0),
+                    contribution.contribution[2]);
+    EXPECT_FLOAT_EQ(1.0f, contribution.contribution[3]);
+  }
+
+  TEST(GpuDirectLightCpuReference, OccludedVisibilityResolvesToZeroContribution) {
+    const GpuTracingSceneSections scene = oneMattePointLightScene();
+    const GpuDirectLightWorkRecord work = oneMattePointLightWork();
+    GpuDirectLightVisibilityRecord visibility =
+      makeGpuDirectLightCpuVisibilityRecord(scene, work, /*workIndex=*/0u);
+    visibility.occluded = 1u;
+
+    const GpuDirectLightContributionRecord contribution =
+      makeGpuDirectLightCpuContributionRecord(scene, work, visibility);
+
+    EXPECT_EQ(gpuDirectLightContributionValid | gpuDirectLightContributionOccluded,
+              contribution.flags);
+    EXPECT_EQ(1u, contribution.occluded);
+    EXPECT_FLOAT_EQ(0.0f, contribution.contribution[0]);
+    EXPECT_FLOAT_EQ(0.0f, contribution.contribution[1]);
+    EXPECT_FLOAT_EQ(0.0f, contribution.contribution[2]);
+  }
+
+  TEST(GpuDirectLightCpuReference, AreaLightVisibilityUsesGpuSampleDimension) {
+    GpuTracingSceneSections scene = oneMattePointLightScene();
+    GpuTracingLightRecord area;
+    area.kind = static_cast<std::uint32_t>(GpuTracingLightKind::RectangularArea);
+    area.positionOrDirection = {0.0f, 4.0f, 0.0f, 1.0f};
+    area.u = {2.0f, 0.0f, 0.0f, 0.0f};
+    area.v = {0.0f, 0.0f, 2.0f, 0.0f};
+    area.parameters = {1.0f, 1.0f, 1.0f, 1.0f};
+    scene.lights = {area};
+    GpuDirectLightWorkRecord work = oneMattePointLightWork();
+
+    const GpuDirectLightVisibilityRecord visibility =
+      makeGpuDirectLightCpuVisibilityRecord(scene, work, /*workIndex=*/0u);
+    const std::uint32_t dimension = static_cast<std::uint32_t>(gpuDirectLightSurfaceSampleDimension(
+      work.sample.bounce, /*lightIndex=*/0u, work.sample.directSampleIndex));
+    const Vector2d expectedSample = GpuSampleStream::sample2D(
+      work.sample.seed, work.sample.pixelIndex, work.sample.primarySampleIndex, dimension);
+
+    EXPECT_EQ(gpuDirectLightVisibilityValid, visibility.flags);
+    EXPECT_FLOAT_EQ(static_cast<float>(expectedSample.x()), visibility.lightSample[0]);
+    EXPECT_FLOAT_EQ(static_cast<float>(expectedSample.y()), visibility.lightSample[1]);
+    EXPECT_GT(visibility.lightPdf, 0.0f);
+  }
+
+  TEST(GpuDirectLightCpuReference, BatchApiKeepsOneOutputRecordPerWorkRecord) {
+    const GpuTracingSceneSections scene = oneMattePointLightScene();
+    std::vector<GpuDirectLightWorkRecord> work = {oneMattePointLightWork(),
+                                                  oneMattePointLightWork()};
+    work[1].surface.normal = {0.0f, -1.0f, 0.0f, 0.0f};
+
+    const GpuDirectLightCpuReferenceBatch batch = makeGpuDirectLightCpuReferenceBatch(scene, work);
+
+    ASSERT_EQ(2u, batch.visibility.size());
+    ASSERT_EQ(2u, batch.contributions.size());
+    EXPECT_NE(0u, batch.visibility[0].flags & gpuDirectLightVisibilityValid);
+    EXPECT_EQ(0u, batch.visibility[1].flags & gpuDirectLightVisibilityValid);
+    EXPECT_NE(0u, batch.contributions[0].flags & gpuDirectLightContributionContributing);
+    EXPECT_EQ(0u, batch.contributions[1].flags & gpuDirectLightContributionContributing);
   }
 }
