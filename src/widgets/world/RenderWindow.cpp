@@ -130,7 +130,13 @@ struct RenderWindow::Private {
       options.setMaximumRecursionDepth(settingsWidget->maxRecursionDepth());
       if (settingsWidget->engine() == "Path Tracer") {
         options.setDirectLightSamples(settingsWidget->directLightSamples());
-        if (settingsWidget->pathTracingSchedule() == "Wavefront") {
+        options.setTracingExecution(settingsWidget->tracingExecution().toLower().toStdString());
+        if (settingsWidget->tracingExecution() == "CPU") {
+          options.setIntersectionBackend("cpu");
+        } else if (settingsWidget->tracingExecution() == "GPU") {
+          options.setIntersectionBackend("gpu");
+        } else if (settingsWidget->pathTracingSchedule() == "Wavefront" &&
+                   settingsWidget->tracingExecution() == "Hybrid") {
           options.setIntersectionBackend(
             settingsWidget->wavefrontIntersectionBackend().toStdString());
         }

@@ -21,6 +21,7 @@ public:
   QString viewPlane() const;
   QString engine() const;
   QString pathTracingSchedule() const;
+  QString tracingExecution() const;
   QString wavefrontIntersectionBackend() const;
   int samplesPerPixel() const;
   int maxRecursionDepth() const;

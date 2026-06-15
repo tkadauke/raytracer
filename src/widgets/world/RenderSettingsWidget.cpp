@@ -130,6 +130,22 @@ struct RenderSettingsWidget::Private {
     return QStringLiteral("Auto");
   }
 
+  QString tracingExecutionText(const engine::graph::RenderRaytracerOptions& options) const {
+    using engine::graph::TracingExecutionPreference;
+    const auto execution = options.tracingExecution().value_or(TracingExecutionPreference::Auto);
+    switch (execution) {
+    case TracingExecutionPreference::Auto:
+      return QStringLiteral("Auto");
+    case TracingExecutionPreference::CPU:
+      return QStringLiteral("CPU");
+    case TracingExecutionPreference::Hybrid:
+      return QStringLiteral("Hybrid");
+    case TracingExecutionPreference::GPU:
+      return QStringLiteral("GPU");
+    }
+    return QStringLiteral("Auto");
+  }
+
   void applyRaytracerOptions(const engine::graph::RenderRaytracerOptions& options) {
     samplerDefaultManaged = !options.sampler().has_value();
     samplesPerPixelDefaultManaged = !options.samplesPerPixel().has_value();
@@ -161,6 +177,7 @@ struct RenderSettingsWidget::Private {
     if (options.viewPlane()) {
       setComboBoxText(ui.viewPlaneType, QString::fromStdString(*options.viewPlane()));
     }
+    setComboBoxText(ui.tracingExecution, tracingExecutionText(options));
     setComboBoxText(ui.wavefrontIntersectionBackend, intersectionBackendText(options));
     const QString denoiser = denoiserText(options);
     setComboBoxText(ui.rayDenoiser, denoiser);
@@ -316,6 +333,8 @@ RenderSettingsWidget::RenderSettingsWidget(QWidget* parent)
   connect(p->ui.rasterShadowMaps, SIGNAL(toggled(bool)), this, SLOT(updateEngineControls()));
   connect(p->ui.pathTracingSchedule, SIGNAL(currentTextChanged(const QString&)), this,
           SLOT(updateEngineControls()));
+  connect(p->ui.tracingExecution, SIGNAL(currentTextChanged(const QString&)), this,
+          SLOT(updateEngineControls()));
   connect(p->ui.rayDenoiser, SIGNAL(currentTextChanged(const QString&)), this,
           SLOT(updateEngineControls()));
   connect(p->ui.samplerType, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this] {
@@ -381,6 +400,10 @@ QString RenderSettingsWidget::engine() const {
 
 QString RenderSettingsWidget::pathTracingSchedule() const {
   return p->ui.pathTracingSchedule->currentText();
+}
+
+QString RenderSettingsWidget::tracingExecution() const {
+  return p->ui.tracingExecution->currentText();
 }
 
 QString RenderSettingsWidget::wavefrontIntersectionBackend() const {
@@ -513,8 +536,11 @@ void RenderSettingsWidget::updateEngineControls() {
     eng == "Path Tracer" && p->ui.pathTracingSchedule->currentText() == QStringLiteral("Wavefront");
   const bool supportsPathTracingSchedule = (eng == "Path Tracer");
   const bool supportsDirectLightSamples = pathTracingSelected;
+  const bool supportsTracingExecution = pathTracingSelected;
   const bool supportsRayDenoiser = pathTracingUsesWavefront;
-  const bool supportsIntersectionBackend = pathTracingUsesWavefront;
+  const bool tracingExecutionIsHybrid =
+    p->ui.tracingExecution->currentText() == QStringLiteral("Hybrid");
+  const bool supportsIntersectionBackend = pathTracingUsesWavefront && tracingExecutionIsHybrid;
   const bool denoiserIsBox = p->ui.rayDenoiser->currentText() == QStringLiteral("Box");
   const bool denoiserIsBilateral = p->ui.rayDenoiser->currentText() == QStringLiteral("Bilateral");
   const bool showRayDenoiseRadius = supportsRayDenoiser && (denoiserIsBox || denoiserIsBilateral);
@@ -526,6 +552,8 @@ void RenderSettingsWidget::updateEngineControls() {
   p->ui.pathTracingSchedule->setVisible(supportsPathTracingSchedule);
   p->ui.label_pathTracerDirectLightSamples->setVisible(supportsDirectLightSamples);
   p->ui.pathTracerDirectLightSamples->setVisible(supportsDirectLightSamples);
+  p->ui.label_tracingExecution->setVisible(supportsTracingExecution);
+  p->ui.tracingExecution->setVisible(supportsTracingExecution);
   p->ui.label_wavefrontIntersectionBackend->setVisible(supportsIntersectionBackend);
   p->ui.wavefrontIntersectionBackend->setVisible(supportsIntersectionBackend);
   p->ui.label_rayDenoiser->setVisible(supportsRayDenoiser);
@@ -585,6 +613,7 @@ void RenderSettingsWidget::setBusy(bool busy) {
   p->ui.samplerType->setEnabled(!busy);
   p->ui.engineType->setEnabled(!busy);
   p->ui.pathTracingSchedule->setEnabled(!busy);
+  p->ui.tracingExecution->setEnabled(!busy);
   p->ui.wavefrontIntersectionBackend->setEnabled(!busy);
   p->ui.samplesPerPixel->setEnabled(!busy);
   p->ui.maxRecursionDepth->setEnabled(!busy);
