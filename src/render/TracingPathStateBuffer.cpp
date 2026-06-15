@@ -1,5 +1,9 @@
 #include "render/TracingPathStateBuffer.h"
 
+#include "render/PathTermination.h"
+#include "render/samplers/GpuSampleStream.h"
+#include "render/samplers/SampleStream.h"
+
 #include <limits>
 #include <stdexcept>
 #include <type_traits>
@@ -124,9 +128,9 @@ namespace render {
     std::string executionPath, std::uint64_t pathStateBytesPerPath) {
     validateRetainedPathIndices(inputPathCount, retainedPathIndices);
     const std::uint64_t movedPathCount = movedPathCountFor(retainedPathIndices);
-    return ResidentPathCompactionContract(
-      inputPathCount, std::move(retainedPathIndices), movedPathCount, std::move(executionPath),
-      pathStateBytesPerPath);
+    return ResidentPathCompactionContract(inputPathCount, std::move(retainedPathIndices),
+                                          movedPathCount, std::move(executionPath),
+                                          pathStateBytesPerPath);
   }
 
   std::uint64_t ResidentPathCompactionContract::inputPathCount() const {
@@ -302,6 +306,85 @@ namespace render {
     if (buffer.size() >= m_layout.capacity) {
       throw std::overflow_error("tracing path-state buffer capacity exceeded");
     }
+  }
+
+  ResidentPathLoopDiagnostics loopResidentDiffusePaths(TracingPathStateBuffers& buffers,
+                                                       const ResidentPathLoopSettings& settings,
+                                                       const ResidentDiffusePathStep& step) {
+    if (!step) {
+      throw std::invalid_argument("resident diffuse path loop requires a path-step callback");
+    }
+    if (settings.maxDepth == 0) {
+      throw std::invalid_argument("resident diffuse path loop requires positive max depth");
+    }
+
+    ResidentPathLoopDiagnostics diagnostics;
+    for (std::uint32_t depth = 0; depth != settings.maxDepth && !buffers.active().empty();
+         ++depth) {
+      const std::uint64_t inputPathCount = buffers.active().size();
+      if (inputPathCount > std::numeric_limits<std::uint32_t>::max()) {
+        throw std::overflow_error("resident diffuse path loop active path count exceeds retained "
+                                  "index range");
+      }
+      std::vector<std::uint32_t> retainedPathIndices;
+      retainedPathIndices.reserve(buffers.active().size());
+      std::vector<GpuPathStateRecord> retainedRecords;
+      retainedRecords.reserve(buffers.active().size());
+      buffers.clearNext();
+
+      const std::vector<GpuPathStateRecord> active = buffers.active();
+      for (std::size_t pathIndex = 0; pathIndex != active.size(); ++pathIndex) {
+        const GpuPathStateRecord& current = active[pathIndex];
+        if (!hasFlag(current, GpuPathStateFlags::Active)) {
+          continue;
+        }
+
+        std::optional<GpuPathStateRecord> next = step(current, depth);
+        if (!next) {
+          continue;
+        }
+
+        next->depth = depth + 1u;
+        if (next->depth >= settings.maxDepth) {
+          continue;
+        }
+
+        Colord throughput = throughputFromGpuPathStateRecord(*next);
+        if (depth >= settings.russianRouletteDepth) {
+          const double roulette =
+            GpuSampleStream(current.rngSeed, current.pixelIndex, current.sampleIndex)
+              .sample1D(SampleDimension::Continuation, depth);
+          const PathContinuation continuation = pathContinuation(throughput, roulette);
+          throughput = continuedThroughput(throughput, continuation);
+          if (!continuation.continues) {
+            continue;
+          }
+          next->throughput = {static_cast<float>(throughput.r()),
+                              static_cast<float>(throughput.g()),
+                              static_cast<float>(throughput.b()), 1.0f};
+        }
+
+        setFlag(*next, GpuPathStateFlags::Active, true);
+        buffers.appendNext(*next);
+        retainedPathIndices.push_back(static_cast<std::uint32_t>(pathIndex));
+        retainedRecords.push_back(*next);
+      }
+
+      ResidentPathLoopDepthDiagnostics depthDiagnostics;
+      depthDiagnostics.depth = depth;
+      depthDiagnostics.inputPathCount = inputPathCount;
+      depthDiagnostics.retainedRecords = std::move(retainedRecords);
+      depthDiagnostics.compaction = ResidentPathCompactionContract::fromRetainedIndices(
+        inputPathCount, std::move(retainedPathIndices), "gpu_resident_path_loop",
+        sizeof(GpuPathStateRecord));
+      diagnostics.depths.push_back(std::move(depthDiagnostics));
+
+      buffers.swapActiveAndNext();
+    }
+
+    diagnostics.finalActiveCount = buffers.active().size();
+    diagnostics.buffers = buffers.diagnostics();
+    return diagnostics;
   }
 
   std::size_t bytesPerPathState(TracingPathStateFormat format) {

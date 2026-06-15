@@ -2018,10 +2018,14 @@ diffuse path tracer for the first supported subset.
      32-bit retained indices and resident path-state byte accounting for
      issue #613.
 
-3. **Loop over depth with max-depth and Russian roulette.**
+3. **~~Loop over depth with max-depth and Russian roulette.~~** ✅ **Done.**
+   Added `loopResidentDiffusePaths` as the CPU-reference resident path-state
+   loop with active/next ping-pong, max-depth draining, GPU sample-stream
+   Russian roulette, and fixed-seed retained-record parity diagnostics for
+   issue #614.
    - Depends on: jobs 1 and 2.
-   - Output: supported diffuse paths execute multiple bounces and terminate
-     according to the same policy as CPU.
+   - Output: ~~supported diffuse paths execute multiple bounces and terminate
+     according to the same policy as CPU.~~
 
 4. **Resolve accumulated image.**
    - Depends on: jobs 1 and 3.

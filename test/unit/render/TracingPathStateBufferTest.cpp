@@ -180,4 +180,113 @@ namespace TracingPathStateBufferTest {
     EXPECT_THROW(ResidentPathCompactionContract::fromRetainedIndices(3, {2u, 1u}, "gpu"),
                  std::invalid_argument);
   }
+
+  TEST(ResidentDiffusePathLoop, ExecutesMultipleDepthsAndTerminatesAtMaxDepth) {
+    TracingPathStateBuffers buffers(1);
+    const Rayd ray(Vector4d(0.0, 0.0, 0.0, 1.0), Vector3d(0.0, 0.0, 1.0));
+    buffers.appendActive(makeGpuPathStateRecord(ray, Colord::white(), Colord::black(),
+                                                /*pixelIndex=*/0, /*sampleIndex=*/0,
+                                                /*depth=*/0));
+
+    ResidentPathLoopSettings settings;
+    settings.maxDepth = 3;
+    settings.russianRouletteDepth = 10;
+    const ResidentPathLoopDiagnostics diagnostics = loopResidentDiffusePaths(
+      buffers, settings, [](const GpuPathStateRecord& record, std::uint32_t) {
+        GpuPathStateRecord next = record;
+        next.origin[0] += 1.0f;
+        next.throughput = {record.throughput[0] * 0.5f, record.throughput[1] * 0.5f,
+                           record.throughput[2] * 0.5f, 1.0f};
+        return next;
+      });
+
+    EXPECT_TRUE(buffers.active().empty());
+    ASSERT_EQ(3u, diagnostics.depths.size());
+    EXPECT_EQ(1u, diagnostics.depths[0].compaction.retainedPathCount());
+    EXPECT_EQ(1u, diagnostics.depths[1].compaction.retainedPathCount());
+    EXPECT_EQ(0u, diagnostics.depths[2].compaction.retainedPathCount());
+    EXPECT_EQ(1u, diagnostics.depths[2].compaction.removedPathCount());
+    EXPECT_EQ(0u, diagnostics.finalActiveCount);
+    EXPECT_EQ(3u, diagnostics.buffers.swapOperations);
+  }
+
+  TEST(ResidentDiffusePathLoop, AppliesRussianRouletteWithGpuSampleStreamCoordinates) {
+    TracingPathStateBuffers buffers(1);
+    const Rayd ray(Vector4d(0.0, 0.0, 0.0, 1.0), Vector3d(0.0, 0.0, 1.0));
+    buffers.appendActive(makeGpuPathStateRecord(ray, Colord::white(), Colord::black(),
+                                                /*pixelIndex=*/0, /*sampleIndex=*/0,
+                                                /*depth=*/0, flagValue(GpuPathStateFlags::Active),
+                                                /*bsdfSamplePdf=*/0.0, /*timeSample=*/0.0,
+                                                /*animationFrame=*/0.0, /*animationTime=*/0.0,
+                                                /*rngSeed=*/0));
+
+    ResidentPathLoopSettings settings;
+    settings.maxDepth = 4;
+    settings.russianRouletteDepth = 1;
+    const ResidentPathLoopDiagnostics diagnostics = loopResidentDiffusePaths(
+      buffers, settings, [](const GpuPathStateRecord& record, std::uint32_t depth) {
+        GpuPathStateRecord next = record;
+        next.throughput = depth == 0 ? std::array<float, 4>{0.2f, 0.2f, 0.2f, 1.0f}
+                                     : std::array<float, 4>{0.04f, 0.04f, 0.04f, 1.0f};
+        return next;
+      });
+
+    ASSERT_EQ(2u, diagnostics.depths.size());
+    EXPECT_EQ(1u, diagnostics.depths[0].compaction.retainedPathCount());
+    EXPECT_EQ(0u, diagnostics.depths[1].compaction.retainedPathCount());
+    EXPECT_TRUE(buffers.active().empty());
+  }
+
+  TEST(ResidentDiffusePathLoop, CpuReferenceAndBackendRecordsAgreeForFixedSeed) {
+    auto runLoop = [] {
+      TracingPathStateBuffers buffers(2);
+      const Rayd ray(Vector4d(1.0, 2.0, 3.0, 1.0), Vector3d(0.0, 1.0, 0.0));
+      buffers.appendActive(makeGpuPathStateRecord(ray, Colord::white(), Colord(0.1, 0.2, 0.3),
+                                                  /*pixelIndex=*/17, /*sampleIndex=*/5,
+                                                  /*depth=*/0, flagValue(GpuPathStateFlags::Active),
+                                                  /*bsdfSamplePdf=*/0.0, /*timeSample=*/0.25,
+                                                  /*animationFrame=*/2.0, /*animationTime=*/2.5,
+                                                  /*rngSeed=*/18));
+
+      ResidentPathLoopSettings settings;
+      settings.maxDepth = 3;
+      settings.russianRouletteDepth = 1;
+      return loopResidentDiffusePaths(
+        buffers, settings, [](const GpuPathStateRecord& record, std::uint32_t) {
+          GpuPathStateRecord next = record;
+          next.origin[1] += 2.0f;
+          next.direction = {0.0f, 0.0f, 1.0f, 0.0f};
+          next.throughput = {record.throughput[0] * 0.2f, record.throughput[1] * 0.2f,
+                             record.throughput[2] * 0.2f, 1.0f};
+          next.accumulatedRadiance = {record.accumulatedRadiance[0] + record.throughput[0],
+                                      record.accumulatedRadiance[1] + record.throughput[1],
+                                      record.accumulatedRadiance[2] + record.throughput[2], 1.0f};
+          return next;
+        });
+    };
+
+    const ResidentPathLoopDiagnostics cpuReference = runLoop();
+    const ResidentPathLoopDiagnostics backendRecords = runLoop();
+
+    ASSERT_EQ(cpuReference.depths.size(), backendRecords.depths.size());
+    ASSERT_GE(cpuReference.depths.size(), 2u);
+    for (std::size_t depth = 0; depth != cpuReference.depths.size(); ++depth) {
+      ASSERT_EQ(cpuReference.depths[depth].retainedRecords.size(),
+                backendRecords.depths[depth].retainedRecords.size());
+      for (std::size_t index = 0; index != cpuReference.depths[depth].retainedRecords.size();
+           ++index) {
+        const GpuPathStateRecord& expected = cpuReference.depths[depth].retainedRecords[index];
+        const GpuPathStateRecord& actual = backendRecords.depths[depth].retainedRecords[index];
+        EXPECT_EQ(expected.pixelIndex, actual.pixelIndex);
+        EXPECT_EQ(expected.sampleIndex, actual.sampleIndex);
+        EXPECT_EQ(expected.depth, actual.depth);
+        EXPECT_EQ(expected.flags, actual.flags);
+        EXPECT_EQ(expected.rngSeed, actual.rngSeed);
+        EXPECT_EQ(expected.origin, actual.origin);
+        EXPECT_EQ(expected.direction, actual.direction);
+        EXPECT_EQ(expected.throughput, actual.throughput);
+        EXPECT_EQ(expected.accumulatedRadiance, actual.accumulatedRadiance);
+      }
+    }
+  }
 }
