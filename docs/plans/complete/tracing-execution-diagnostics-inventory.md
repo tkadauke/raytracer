@@ -5,9 +5,10 @@
 > intersection-centered field names toward broader CPU, hybrid, and GPU
 > tracing-execution capability records.
 >
-> **Status:** inventory complete for rendercli compact summaries, wavefront
-> metrics JSON, render graph trace metadata, and Modeler render graph metadata.
-> The current renderer behavior is unchanged by this document.
+> **Status:** complete and archived. This inventory covered rendercli compact
+> summaries, wavefront metrics JSON, render graph trace metadata, and Modeler
+> render graph metadata. The current renderer behavior is unchanged by this
+> document.
 
 ## Current data flow
 

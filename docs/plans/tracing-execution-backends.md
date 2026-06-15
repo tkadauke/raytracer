@@ -5,10 +5,14 @@
 > GPU-assisted wavefront-intersection work becomes the first reusable backend
 > service, not the final goal.
 >
-> **Status:** new parent plan. This supersedes GPU intersection as the top-level
-> objective. `docs/plans/gpu-wavefront-intersection.md` remains active as the
-> intersection-service slice. `docs/plans/wavefront-and-path-tracing.md` remains
-> the CPU wavefront/path-tracing schedule plan.
+> **Status:** active parent plan. This supersedes GPU intersection as the
+> top-level objective. The first implementation wave is mostly complete:
+> intersection-service consolidation, cross-backend parity fixtures/helpers,
+> compiled tracing scene records, deterministic GPU sample streams, CPU/Metal/
+> Vulkan accumulation surfaces, and execution capability diagnostics have
+> landed. `docs/plans/gpu-wavefront-intersection.md` remains active as the
+> intersection-service slice. `docs/plans/wavefront-and-path-tracing.md`
+> remains the CPU wavefront/path-tracing schedule plan.
 
 ---
 
@@ -68,12 +72,23 @@ end state for GPU tracing.
   standalone closest-hit/any-hit service with backend execution-path and
   fallback diagnostics for non-renderer callers.
 - Closest-hit and any-hit frontiers are represented by backend-owned handles.
+- `render::GpuTracingSceneSections` and diagnostics compile GPU-readable
+  material, texture, light, environment, and debug-id records for the initial
+  supported shading subset: Matte and Emissive materials, ConstantColor
+  textures, PointLight, DirectionalLight, and RectangularAreaLight.
+- `render::GpuSampleStream` provides the CPU reference for deterministic
+  GPU-style sampling dimensions with fixed-vector coverage.
 - CPU reference tracing accumulation, the current CPU wavefront tile
-  accumulator, and optional Vulkan synthetic accumulation results expose
-  resource residency, byte, operation-count, and readback diagnostics.
+  accumulator, optional Metal accumulation buffers, and optional Vulkan
+  synthetic accumulation results expose resource residency, byte,
+  operation-count, and readback diagnostics.
+- `render::TracingExecutionCapabilityRecords` groups tracing capabilities by
+  intersection, scene records, sampling, direct lighting, BSDF, path state, and
+  accumulation while preserving the older intersection metric aliases.
 - Metrics expose backend request, selected backend, platform availability,
   execution path, fallback reason, transfer estimates, query counts, frontier
-  residency, host path-state bytes, compaction candidates, direct-light batch
+  residency, compiled tracing-scene counts, sample stream mode, accumulation
+  diagnostics, host path-state bytes, compaction candidates, direct-light batch
   sizes, and future resident-frontier opportunity estimates.
 - Modeler and rendercli expose much of that diagnostic state.
 
@@ -81,19 +96,17 @@ end state for GPU tracing.
 
 - GPU-owned path state.
 - GPU-side path/frontier compaction for scheduler-owned path records.
-- GPU material records beyond material ids used for host lookup.
-- GPU texture records.
-- GPU light records and light sampling.
-- GPU sample stream/RNG.
+- GPU material records beyond the initial Matte and Emissive subset.
+- GPU texture records beyond ConstantColor.
+- GPU light records beyond PointLight, DirectionalLight, and
+  RectangularAreaLight, and GPU-side light sampling/contribution kernels.
 - GPU BSDF evaluation.
 - GPU direct-light contribution evaluation.
 - GPU path continuation generation and Russian roulette.
-- GPU accumulation/progressive sample buffers.
+- Integrated GPU accumulation/progressive sample buffers in the render loop.
 - Full GPU path-tracing loop.
 - Full GPU Whitted loop.
 - Hardware ray tracing backends.
-- A backend capability model that can describe all of the above without
-  overloading "intersection backend".
 - A render graph compiler model that can synthesize CPU, hybrid, and full GPU
   tracing plans from render intent, scene support, and user overrides.
 
@@ -1335,7 +1348,10 @@ use before it can be called correct.
 
 **Jobs:**
 
-1. **Define canonical parity scenes.**
+1. ~~**Define canonical parity scenes.**~~ ✅ **Done.** The
+   `test/fixtures/tracing_parity/` manifest now tracks matte direct-light,
+   indirect-bounce, imported-mesh, transparent-fallback, and visibility-heavy
+   scenes for backend parity.
    - Depends on: none.
    - Output: scene list covering supported matte/direct-light, indirect bounce,
      mesh import, transparent fallback, and visibility-heavy workloads.
@@ -1348,17 +1364,23 @@ use before it can be called correct.
      ids, hit distance, normals, UV/barycentric/local coordinates, and miss
      records.
 
-3. **Add image comparison helpers.**
+3. ~~**Add image comparison helpers.**~~ ✅ **Done.** `TracingImageComparison`
+   helpers report normalized RMS/channel deltas for HDR/RGB buffers and cover
+   identical, within-threshold, over-threshold, and dimension-mismatch cases.
    - Depends on: job 1.
    - Output: deterministic RMS checks and stochastic fixed-seed comparison
      helpers with clear tolerances.
 
-4. **Add platform-skip behavior.**
+4. ~~**Add platform-skip behavior.**~~ ✅ **Done.** Optional Metal/Vulkan parity
+   and accumulation tests now skip cleanly when the build preset or runtime
+   device/path is unavailable.
    - Depends on: jobs 2 and 3.
    - Output: Metal/Vulkan tests skip cleanly when the build preset or runtime
      device is unavailable.
 
-5. **Wire rendercli functional parity tests.**
+5. ~~**Wire rendercli functional parity tests.**~~ ✅ **Done.**
+   `rendercli_tracing_parity` compares canonical fixtures across CPU and
+   GPU-requested paths and checks execution-path metadata.
    - Depends on: jobs 2, 3, and 4.
    - Output: rendercli tests comparing CPU vs packed/GPU requests and checking
      trace metadata for the path that actually ran.
@@ -1494,7 +1516,9 @@ kept independent of the existing stratified sampler set path.
 
 **Jobs:**
 
-1. **Define sample dimensions and indices.**
+1. ~~**Define sample dimensions and indices.**~~ ✅ **Done.**
+   `SampleDimension` and `sampleDimensionIndex(...)` reserve stable pixel,
+   time, lens, BSDF, light, light-selection, and continuation dimensions.
    - Depends on: none.
    - Output: pixel, lens/time, BSDF, light, Russian-roulette, and continuation
      dimensions with sample-index mapping.
@@ -1511,11 +1535,16 @@ kept independent of the existing stratified sampler set path.
    - Depends on: job 2.
    - Output: generator callable from tests and future GPU parity code.
 
-4. **Add tests for fixed seeds and dimensions.**
+4. ~~**Add tests for fixed seeds and dimensions.**~~ ✅ **Done.**
+   `GpuSampleStreamTest` pins the PCG hash, coordinate purity, named-dimension
+   mapping, fixed vectors, sequential reads, primary-sample behavior, and
+   half-open interval bounds.
    - Depends on: job 3.
    - Output: stable test vectors for the named sample dimensions.
 
-5. **Expose seed/stream diagnostics.**
+5. ~~**Expose seed/stream diagnostics.**~~ ✅ **Done.** Raytracer pass state,
+   render engine options, wavefront metrics input, and rendercli summaries now
+   carry `sampleStreamMode` and sampling seed where relevant.
    - Depends on: job 4.
    - Output: rendercli/trace fields showing seed and stream mode where relevant.
 
@@ -1531,12 +1560,18 @@ GPU shading lands.
 
 **Jobs:**
 
-1. **Define accumulation layout.**
+1. ~~**Define accumulation layout.**~~ ✅ **Done.**
+   `render::TracingAccumulationLayout` defines HDR color sums, sample counts,
+   optional second raw moments, resolve format, byte accounting, and stable
+   format names.
    - Depends on: none.
    - Output: color sum, sample count, optional variance moments, dimensions,
      and resolve format.
 
-2. **Add CPU reference clear/add/resolve.**
+2. ~~**Add CPU reference clear/add/resolve.**~~ ✅ **Done.**
+   `render::TracingAccumulationBuffer` is the CPU reference implementation with
+   coverage for clear, add, multi-sample averaging, optional moments, tonemapped
+   resolve, diagnostics, shape validation, bounds checks, and overflow.
    - Depends on: job 1.
    - Output: deterministic reference implementation and tests.
 
@@ -1554,7 +1589,9 @@ GPU shading lands.
    - Depends on: job 2.
    - Output: optional-platform kernels with skip behavior when unavailable.
 
-5. **Expose accumulation resource diagnostics.**
+5. ~~**Expose accumulation resource diagnostics.**~~ ✅ **Done.** Wavefront
+   metrics now expose accumulation backend, residency, bytes, layout formats,
+   clear/add/resolve/readback operation counts, and readback bytes.
    - Depends on: jobs 2, 3, and 4.
    - Output: residency, bytes, clears, adds, resolves, and readback counts in
      trace/metrics.
@@ -1571,12 +1608,16 @@ architecture on "intersection backend".
 
 **Jobs:**
 
-1. **Inventory current metric fields.**
+1. ~~**Inventory current metric fields.**~~ ✅ **Done.** Archived in
+   `docs/plans/complete/tracing-execution-diagnostics-inventory.md`.
    - Depends on: none.
    - Output: mapping from existing wavefront/intersection metrics to broader
      tracing execution concepts.
 
-2. **Add tracing execution capability records.**
+2. ~~**Add tracing execution capability records.**~~ ✅ **Done.**
+   `render::TracingExecutionCapabilityRecords` now models intersection, scene
+   records, sampling, direct lighting, BSDF, path state, accumulation, and
+   fallback state with unit coverage.
    - Depends on: job 1.
    - Output: C++ data structures for intersection, scene records, sampling,
      direct lighting, BSDF, path state, accumulation, and fallback status.
@@ -1595,7 +1636,10 @@ architecture on "intersection backend".
    - Output: selected-pass properties present execution capabilities as grouped
      CPU/hybrid/GPU state, not a flat dump of intersection fields.
 
-5. **Add tests for CPU, GPU request, and fallback summaries.**
+5. ~~**Add tests for CPU, GPU request, and fallback summaries.**~~ ✅ **Done.**
+   Wavefront metrics tests cover serialized capability arrays and fallback
+   summaries; the Modeler graph inspector test pins the grouped tracing backend
+   row before legacy intersection details.
    - Depends on: jobs 3 and 4.
    - Output: unit/rendercli/widget tests proving the diagnostics are stable.
 
