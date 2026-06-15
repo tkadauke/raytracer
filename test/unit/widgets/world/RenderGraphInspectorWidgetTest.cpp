@@ -424,6 +424,22 @@ namespace RenderGraphInspectorWidgetTest {
     return engine.lastExecutionTrace();
   }
 
+  std::shared_ptr<const RenderGraphExecutionTrace> hybridVisibilityTrace() {
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Wavefront;
+    intent.defaultViewMode = RenderViewMode::HybridVisibility;
+    intent.engineOptions.raytracer().setIntersectionBackend("cpu");
+
+    RenderGraphCompiler compiler;
+    GraphRenderEngine engine(camera(), highContrastScene());
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(compiler.compile({24, 24, 1}, intent));
+
+    Buffer<unsigned int> buffer(24, 24);
+    engine.render(buffer);
+    return engine.lastExecutionTrace();
+  }
+
   std::shared_ptr<const RenderGraphExecutionTrace> unsupportedWavefrontGpuTrace() {
     RenderIntent intent;
     intent.defaultExecutor = RenderExecutorPreference::Wavefront;
@@ -1332,6 +1348,30 @@ namespace RenderGraphInspectorWidgetTest {
 
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("unsupported reasons")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("Primitive Is Not Supported")));
+  }
+
+  TEST_F(RenderGraphInspectorWidgetTest,
+         ShouldKeepHybridVisibilityServiceTraceMetadataForSelectedPlan) {
+    auto trace = hybridVisibilityTrace();
+    ASSERT_TRUE(trace);
+
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(trace->plan());
+    widget.setExecutionTrace(trace);
+
+    const auto rows = widget.passDetailRows(QStringLiteral("hybrid_visibility_aov"));
+    EXPECT_THAT(rowValue(rows, QStringLiteral("Trace message")).toStdString(),
+                ::testing::HasSubstr("intersection service"));
+
+    const RenderPassTrace* passTrace = trace->findPass("hybrid_visibility_aov");
+    ASSERT_NE(nullptr, passTrace);
+    const QJsonObject service =
+      passTrace->metadata().value(QStringLiteral("intersectionService")).toObject();
+    EXPECT_EQ(QStringLiteral("closest_hit"), service.value(QStringLiteral("queryFamily")).toString());
+    EXPECT_EQ(QStringLiteral("debug_aov"), service.value(QStringLiteral("queryTag")).toString());
+    EXPECT_EQ(QStringLiteral("cpu"), service.value(QStringLiteral("requestedBackend")).toString());
+    EXPECT_GT(service.value(QStringLiteral("queryCount")).toDouble(), 0.0);
+    EXPECT_GT(service.value(QStringLiteral("hitCount")).toDouble(), 0.0);
   }
 
   TEST_F(RenderGraphInspectorWidgetTest,
