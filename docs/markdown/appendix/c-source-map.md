@@ -13,7 +13,10 @@
 |---|---|
 | `benchmarks/AccelerationPolicyBenchmark.cpp` | [Spatial acceleration](../scene-structure/spatial-acceleration.md) |
 | `benchmarks/WavefrontIntersectionBackendBenchmark.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
+| `benchmarks/scenes/tracing_backend_benchmark_scenes.json` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
+| `benchmarks/tracing_backend_capture.sh` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `docs/perf/acceleration-policy-benchmark-2026-05-28.md` | [Spatial acceleration](../scene-structure/spatial-acceleration.md) |
+| `docs/perf/tracing-backend-benchmark-scenes-2026-06-15.md` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `fuzz/` | [PLY parsing](../tools-and-io/ply-parsing.md) |
 | `include/core/Buffer.h` | [Color and buffers](../foundations/color-and-buffers.md)<br>[Image buffers and pixel formats](../image-and-vision/image-buffers-and-pixel-formats.md) |
 | `include/core/Color.h` | [Color and buffers](../foundations/color-and-buffers.md)<br>[Image buffers and pixel formats](../image-and-vision/image-buffers-and-pixel-formats.md) |

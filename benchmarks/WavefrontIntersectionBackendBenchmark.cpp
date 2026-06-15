@@ -358,6 +358,18 @@ namespace {
     return scene;
   }
 
+  std::shared_ptr<Scene> makeIndirectDiffuseSupportedScene() {
+    auto scene = std::make_shared<Scene>();
+    scene->add(std::make_shared<Rectangle>(Vector3d(-2.0, -1.0, -0.5),
+                                           Vector3d::up() * 3.0,
+                                           Vector3d::forward() * 4.0));
+    scene->add(std::make_shared<Rectangle>(Vector3d(-2.0, -1.0, -0.5),
+                                           Vector3d::forward() * 4.0,
+                                           Vector3d::right() * 4.0));
+    scene->add(std::make_shared<Sphere>(Vector3d(0.65, -0.35, 1.0), 0.45));
+    return scene;
+  }
+
   std::shared_ptr<Scene> makeUnsupportedMixedScene() {
     auto scene = makeMeshHeavySupportedScene();
     scene->add(std::make_shared<Torus>(0.85, 0.2));
@@ -369,6 +381,7 @@ namespace {
       {"small_supported", makeSmallSupportedScene()},
       {"mesh_heavy_supported", makeMeshHeavySupportedScene()},
       {"visibility_heavy_supported", makeVisibilityHeavySupportedScene()},
+      {"indirect_diffuse_supported", makeIndirectDiffuseSupportedScene()},
       {"unsupported_mixed", makeUnsupportedMixedScene()},
     };
     return all;
@@ -1006,21 +1019,21 @@ namespace {
 #endif
 
   void allWorkloads(benchmark::internal::Benchmark* benchmark) {
-    for (int workload = 0; workload != 4; ++workload) {
+    for (int workload = 0; workload != 5; ++workload) {
       benchmark->Arg(workload);
     }
   }
 
   void supportedQueryWorkloads(benchmark::internal::Benchmark* benchmark) {
-    for (int workload = 0; workload != 3; ++workload) {
+    for (int workload = 0; workload != 4; ++workload) {
       benchmark->Args({workload, 256});
       benchmark->Args({workload, 65536});
     }
   }
 
   void unsupportedQueryWorkloads(benchmark::internal::Benchmark* benchmark) {
-    benchmark->Args({3, 256});
-    benchmark->Args({3, 65536});
+    benchmark->Args({4, 256});
+    benchmark->Args({4, 65536});
   }
 }
 

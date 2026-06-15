@@ -1803,10 +1803,14 @@ performance are proven.
 
 **Jobs:**
 
-1. **Define benchmark scenes.**
+1. ~~**Define benchmark scenes.**~~ ✅ **Done.**
    - Depends on: none.
-   - Output: small primitive, large mesh, visibility-heavy, indirect diffuse,
-     and unsupported fallback benchmarks.
+   - Output: documented in
+     `docs/perf/tracing-backend-benchmark-scenes-2026-06-15.md`, runnable
+     through `benchmarks/tracing_backend_capture.sh`, and mirrored by
+     `benchmarks/WavefrontIntersectionBackendBenchmark.cpp` rows for small
+     primitive, large mesh, visibility-heavy, indirect diffuse, and unsupported
+     fallback workloads.
 
 2. **Capture CPU, hybrid, and GPU metrics.**
    - Depends on: job 1.
