@@ -207,7 +207,7 @@ namespace RenderSettingsWidgetTest {
     ASSERT_NE(nullptr, colorSigma);
 
     EXPECT_TRUE(directLightSamples->isHidden());
-    EXPECT_TRUE(intersectionBackend->isHidden());
+    EXPECT_FALSE(intersectionBackend->isHidden());
     EXPECT_TRUE(denoiser->isHidden());
     EXPECT_TRUE(radius->isHidden());
     EXPECT_TRUE(colorSigma->isHidden());
@@ -238,7 +238,7 @@ namespace RenderSettingsWidgetTest {
     engineType->setCurrentText("Raytracer");
     EXPECT_TRUE(schedule->isHidden());
     EXPECT_TRUE(directLightSamples->isHidden());
-    EXPECT_TRUE(intersectionBackend->isHidden());
+    EXPECT_FALSE(intersectionBackend->isHidden());
     EXPECT_TRUE(denoiser->isHidden());
     EXPECT_TRUE(radius->isHidden());
     EXPECT_TRUE(colorSigma->isHidden());

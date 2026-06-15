@@ -192,8 +192,8 @@ namespace RenderWindowTest {
     EXPECT_EQ("pathtracer", *state->integrator());
     ASSERT_TRUE(state->directLightSamples().has_value());
     EXPECT_EQ(4, *state->directLightSamples());
-    ASSERT_TRUE(state->intersectionBackend().has_value());
-    EXPECT_STREQ("gpu", state->intersectionBackend()->id());
+    ASSERT_TRUE(state->tracingBackend().has_value());
+    EXPECT_STREQ("gpu", state->tracingBackend()->id());
     ASSERT_TRUE(state->denoiser().has_value());
     EXPECT_EQ("bilateral", *state->denoiser());
     ASSERT_TRUE(state->denoiseRadius().has_value());

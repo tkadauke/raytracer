@@ -301,9 +301,9 @@ namespace engine::graph {
 
   bool RenderRaytracerOptions::empty() const {
     return !m_maximumRecursionDepth && !m_maximumThreads && !m_queueSize && !m_integrator &&
-           !m_intersectionBackend && !m_russianRouletteDepth && !m_directLightSamples &&
-           !m_sampler && !m_samplesPerPixel && !m_samplingSeed && !m_sampleStreamMode &&
-           !m_viewPlane &&
+           !m_tracingBackend && !m_intersectionBackend && !m_russianRouletteDepth &&
+           !m_directLightSamples && !m_sampler && !m_samplesPerPixel && !m_samplingSeed &&
+           !m_sampleStreamMode && !m_viewPlane &&
            !m_convergenceEnabled && !m_convergenceActiveSampleFractionThreshold &&
            !m_convergenceRadianceDeltaRmsThreshold && !m_adaptiveSamplingEnabled &&
            !m_adaptiveMinimumSamples && !m_adaptiveStddevThreshold && !m_denoiser &&
@@ -326,6 +326,8 @@ namespace engine::graph {
       options.setQueueSize(*state.queueSize());
     if (state.integrator())
       options.setIntegrator(*state.integrator());
+    if (state.tracingBackend())
+      options.setTracingBackend(*state.tracingBackend());
     if (state.intersectionBackend())
       options.setIntersectionBackend(*state.intersectionBackend());
     if (state.russianRouletteDepth())
@@ -374,6 +376,8 @@ namespace engine::graph {
     result.m_maximumThreads = overrideOptional(result.m_maximumThreads, overrides.m_maximumThreads);
     result.m_queueSize = overrideOptional(result.m_queueSize, overrides.m_queueSize);
     result.m_integrator = overrideOptional(result.m_integrator, overrides.m_integrator);
+    result.m_tracingBackend =
+      overrideOptional(result.m_tracingBackend, overrides.m_tracingBackend);
     result.m_intersectionBackend =
       overrideOptional(result.m_intersectionBackend, overrides.m_intersectionBackend);
     result.m_russianRouletteDepth =
@@ -418,6 +422,8 @@ namespace engine::graph {
       state.setQueueSize(*m_queueSize);
     if (m_integrator)
       state.setIntegrator(*m_integrator);
+    if (m_tracingBackend)
+      state.setTracingBackend(*m_tracingBackend);
     if (m_intersectionBackend)
       state.setIntersectionBackend(*m_intersectionBackend);
     if (m_russianRouletteDepth)
@@ -472,6 +478,17 @@ namespace engine::graph {
     RaytracerBeautyPassState state;
     state.setIntegrator(std::move(integrator));
     m_integrator = state.integrator();
+  }
+
+  void RenderRaytracerOptions::setTracingBackend(std::string backend) {
+    RaytracerBeautyPassState state;
+    state.setTracingBackend(std::move(backend));
+    m_tracingBackend = state.tracingBackend();
+  }
+
+  void RenderRaytracerOptions::setTracingBackend(
+    render::WavefrontIntersectionBackendChoice backend) {
+    m_tracingBackend = backend;
   }
 
   void RenderRaytracerOptions::setIntersectionBackend(std::string backend) {
@@ -569,6 +586,11 @@ namespace engine::graph {
 
   std::optional<std::string> RenderRaytracerOptions::integrator() const {
     return m_integrator;
+  }
+
+  std::optional<render::WavefrontIntersectionBackendChoice>
+  RenderRaytracerOptions::tracingBackend() const {
+    return m_tracingBackend;
   }
 
   std::optional<render::WavefrontIntersectionBackendChoice>

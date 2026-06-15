@@ -283,6 +283,8 @@ namespace {
         << timings.value("integratorResidualWorkerSeconds").toDouble() * 1000.0
         << " integrator=" << batching.value("integrator").toString().toStdString()
         << " execution=" << batching.value("executionMode").toString().toStdString()
+        << " tracing_backend_request="
+        << compactTextValue(batching.value("tracingBackendRequest"), "unknown")
         << " tracing_backend="
         << compactTextValue(batching.value("tracingBackend"), "unknown")
         << " tracing_backend_mode="
@@ -1605,6 +1607,8 @@ private:
   bool m_pathTracerDirectLightSamplesSet;
   QString m_pathTracingSchedule;
   bool m_pathTracingScheduleSet;
+  QString m_tracingBackend;
+  bool m_tracingBackendSet;
   QString m_wavefrontIntersectionBackend;
   bool m_wavefrontIntersectionBackendSet;
   int m_width;
@@ -1800,6 +1804,8 @@ Renderer::Renderer()
       m_pathTracerDirectLightSamplesSet(false),
       m_pathTracingSchedule("wavefront"),
       m_pathTracingScheduleSet(false),
+      m_tracingBackend("auto"),
+      m_tracingBackendSet(false),
       m_wavefrontIntersectionBackend("auto"),
       m_wavefrontIntersectionBackendSet(false),
       m_width(640),
@@ -1963,6 +1969,9 @@ bool Renderer::scalarPathTracingScheduleSelected() const {
 
 std::optional<engine::graph::RenderExecutorPreference> Renderer::engineExecutorPreference() const {
   if (!m_engineSet) {
+    if (m_tracingBackendSet && !pathTracingRequested()) {
+      return engine::graph::RenderExecutorPreference::Wavefront;
+    }
     if (m_pathTracingScheduleSet && pathTracingRequested()) {
       return scalarPathTracingScheduleSelected()
                ? engine::graph::RenderExecutorPreference::Raytracer
@@ -1982,6 +1991,9 @@ std::optional<engine::graph::RenderExecutorPreference> Renderer::engineExecutorP
              : engine::graph::RenderExecutorPreference::PathTracer;
   }
   if (m_engine == "wavefront") {
+    return engine::graph::RenderExecutorPreference::Wavefront;
+  }
+  if (m_engine == "raytracer" && m_tracingBackendSet) {
     return engine::graph::RenderExecutorPreference::Wavefront;
   }
   return engine::graph::RenderExecutorPreference::Raytracer;
@@ -2071,11 +2083,15 @@ engine::graph::RenderEngineOptions Renderer::commandLineEngineOptions() const {
     options.raytracer().setDirectLightSamples(m_pathTracerDirectLightSamples);
   if (pathTracingRequested()) {
     options.raytracer().setIntegrator("pathtracer");
+  } else if (m_tracingBackendSet) {
+    options.raytracer().setIntegrator("whitted");
   } else if (m_integratorSet) {
     options.raytracer().setIntegrator(m_integrator.toStdString());
   }
   if (m_wavefrontIntersectionBackendSet)
     options.raytracer().setIntersectionBackend(m_wavefrontIntersectionBackend.toStdString());
+  if (m_tracingBackendSet)
+    options.raytracer().setTracingBackend(m_tracingBackend.toStdString());
   if (m_samplerSet)
     options.raytracer().setSampler(m_sampler.toStdString());
   if (m_samplesPerPixelSet)
@@ -2706,7 +2722,7 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     rasterBeautyPassState(commandLinePostProcessAA(), true, true).applyTo(*raster);
     directRasterEngine = raster;
     engine = raster;
-  } else if (m_engine == "wavefront" ||
+  } else if (m_engine == "wavefront" || (m_tracingBackendSet && !pathTracingRequested()) ||
              (pathTracerEngineSelected() && !scalarPathTracingScheduleSelected())) {
     auto wavefront = std::make_shared<engine::wavefront::WavefrontRaytracer>(raytracerScene);
     wavefront->setMaximumRecursionDepth(m_maximumRecursionDepth);
@@ -2733,6 +2749,10 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     if (m_wavefrontIntersectionBackendSet) {
       wavefront->setIntersectionBackend(render::WavefrontIntersectionBackendChoice::fromString(
         m_wavefrontIntersectionBackend.toStdString()));
+    }
+    if (m_tracingBackendSet) {
+      wavefront->setIntersectionBackend(
+        render::WavefrontIntersectionBackendChoice::fromString(m_tracingBackend.toStdString()));
     }
     wavefront->setMetricsEnabled(wavefrontMetricsRequested);
     wavefront->setSampleRadianceStddevCaptureEnabled(wavefrontSampleStddevRequested);
@@ -3323,6 +3343,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"engine", "Render engine (raytracer, pathtracer, wavefront, wireframe, raster)", "engine"},
      {"integrator", "Raytracer integrator (whitted, pathtracer)", "integrator"},
      {"path_tracing_schedule", "Path tracing schedule (wavefront, scalar)", "schedule"},
+     {"tracing_backend", "Tracing execution backend for graph ray-family passes (auto, cpu, gpu)",
+      "backend"},
      {"wavefront_intersection_backend", "Wavefront ray-scene intersection backend (auto, cpu, gpu)",
       "backend"},
      {"wavefront_convergence", "Enable wavefront path-batch convergence stopping"},
@@ -3742,6 +3764,19 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     }
     m_pathTracingSchedule = normalizedSchedule;
     m_pathTracingScheduleSet = true;
+  }
+
+  if (parser.isSet("tracing_backend")) {
+    const QString backend = parser.value("tracing_backend").toLower();
+    const QString normalizedBackend = normalizedRasterOption(backend);
+    if (normalizedBackend != "auto" && normalizedBackend != "automatic" &&
+        normalizedBackend != "cpu" && normalizedBackend != "gpu") {
+      *errorMessage = "Tracing backend must be 'auto', 'cpu', or 'gpu'";
+      return CommandLineError;
+    }
+    m_tracingBackend =
+      normalizedBackend == "automatic" ? QStringLiteral("auto") : normalizedBackend;
+    m_tracingBackendSet = true;
   }
 
   if (parser.isSet("wavefront_intersection_backend")) {

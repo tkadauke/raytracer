@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Exposed `tracingBackend` / `--tracing_backend auto|cpu|gpu` for graph
+  rendercli and Modeler wavefront Whitted renders, mapping supported GPU
+  requests onto the existing backend services while preserving explicit trace
+  fallback fields for E14 job 5. — GPT-5 Codex
 - Added GPU tracing texture record compilation for `ConstantColorTexture` with
   explicit unsupported texture reason diagnostics; advances E3 job 3.
   — GPT-5 Codex

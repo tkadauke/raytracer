@@ -153,6 +153,8 @@ QString RenderIntentElement::propertyDisplayName(const QString& propertyName) co
     return QStringLiteral("Stddev Threshold");
   if (propertyName == QStringLiteral("wavefrontIntersectionBackend"))
     return QStringLiteral("Intersection Backend");
+  if (propertyName == QStringLiteral("wavefrontTracingBackend"))
+    return QStringLiteral("Tracing Backend");
   if (propertyName == QStringLiteral("wavefrontDenoiser"))
     return QStringLiteral("Denoiser");
   if (propertyName == QStringLiteral("wavefrontDenoiseRadius"))
@@ -262,6 +264,11 @@ QString RenderIntentElement::propertyDescription(const QString& propertyName) co
       "Ray-scene intersection backend for wavefront batches. Auto chooses CPU or an available "
       "GPU backend from scene support, platform capability, and expected ray workload. Explicit "
       "GPU requests fall back visibly when the scene or platform cannot use GPU intersection.");
+  if (propertyName == QStringLiteral("wavefrontTracingBackend"))
+    return QStringLiteral(
+      "Tracing execution backend for wavefront Whitted renders. GPU requests use supported GPU "
+      "Whitted backend services when available and report an explicit CPU fallback when the "
+      "scene or platform cannot run them.");
   if (propertyName == QStringLiteral("pathTracerRussianRouletteDepth"))
     return QStringLiteral("Bounce depth where path tracing starts Russian-roulette termination.");
   if (propertyName == QStringLiteral("pathTracerDirectLightSamples"))
@@ -347,7 +354,8 @@ QStringList RenderIntentElement::propertyChoices(const QString& propertyName) co
   if (propertyName == QStringLiteral("wavefrontConvergenceQuality"))
     return {QStringLiteral("off"), QStringLiteral("preview"), QStringLiteral("balanced"),
             QStringLiteral("final"), QStringLiteral("custom")};
-  if (propertyName == QStringLiteral("wavefrontIntersectionBackend"))
+  if (propertyName == QStringLiteral("wavefrontIntersectionBackend") ||
+      propertyName == QStringLiteral("wavefrontTracingBackend"))
     return {QStringLiteral("auto"), QStringLiteral("cpu"), QStringLiteral("gpu")};
   if (propertyName == QStringLiteral("wavefrontDenoiser"))
     return {QStringLiteral("none"), QStringLiteral("box"), QStringLiteral("bilateral")};
@@ -450,7 +458,8 @@ QString RenderIntentElement::propertyChoiceDisplayName(const QString& propertyNa
     if (choice == QStringLiteral("bilateral"))
       return QStringLiteral("Bilateral");
   }
-  if (propertyName == QStringLiteral("wavefrontIntersectionBackend")) {
+  if (propertyName == QStringLiteral("wavefrontIntersectionBackend") ||
+      propertyName == QStringLiteral("wavefrontTracingBackend")) {
     if (choice == QStringLiteral("auto"))
       return QStringLiteral("Auto");
     if (choice == QStringLiteral("cpu"))
@@ -980,6 +989,19 @@ QString RenderIntentElement::wavefrontIntersectionBackend() const {
 void RenderIntentElement::setWavefrontIntersectionBackend(const QString& backend) {
   auto value = intent();
   value.engineOptions.raytracer().setIntersectionBackend(normalizedText(backend).toStdString());
+  setIntent(value);
+}
+
+QString RenderIntentElement::wavefrontTracingBackend() const {
+  const auto backend = intent().engineOptions.raytracer().tracingBackend();
+  if (backend)
+    return toQString(backend->id());
+  return wavefrontIntersectionBackend();
+}
+
+void RenderIntentElement::setWavefrontTracingBackend(const QString& backend) {
+  auto value = intent();
+  value.engineOptions.raytracer().setTracingBackend(normalizedText(backend).toStdString());
   setIntent(value);
 }
 
