@@ -1113,6 +1113,8 @@ namespace {
       *viewMode = RenderViewMode::RasterShadeCount;
     } else if (normalized == "rastercolorwritecount") {
       *viewMode = RenderViewMode::RasterColorWriteCount;
+    } else if (normalized == "hybridvisibility") {
+      *viewMode = RenderViewMode::HybridVisibility;
     } else {
       return false;
     }
@@ -1238,7 +1240,7 @@ namespace {
             "'depth', 'stencil', 'stencil_composite', 'normal', 'object_id', "
             "'material_id', 'world_position', 'sample_stddev', 'sample_stddev_color', "
             "'raster_coverage_count', 'raster_depth_test_count', 'raster_depth_pass_count', "
-            "'raster_shade_count', or 'raster_color_write_count'";
+            "'raster_shade_count', 'raster_color_write_count', or 'hybrid_visibility'";
           return false;
         }
         viewOverride.viewMode = viewMode;
@@ -1304,7 +1306,8 @@ namespace {
         "Render graph AOV output must use view=file syntax with view 'depth', 'stencil', "
         "'normal', 'object_id', 'material_id', 'world_position', 'sample_stddev', "
         "'sample_stddev_color', 'raster_coverage_count', 'raster_depth_test_count', "
-        "'raster_depth_pass_count', 'raster_shade_count', or 'raster_color_write_count'";
+        "'raster_depth_pass_count', 'raster_shade_count', 'raster_color_write_count', or "
+        "'hybrid_visibility'";
       return false;
     }
 
@@ -1315,7 +1318,7 @@ namespace {
         "Render graph AOV output view must be 'depth', 'stencil', 'normal', 'object_id', "
         "'material_id', 'world_position', 'sample_stddev', 'sample_stddev_color', "
         "'raster_coverage_count', 'raster_depth_test_count', 'raster_depth_pass_count', "
-        "'raster_shade_count', or 'raster_color_write_count'";
+        "'raster_shade_count', 'raster_color_write_count', or 'hybrid_visibility'";
       return false;
     }
 
@@ -3380,7 +3383,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"render_graph_view",
       "Override graph intent view mode (default, beauty, wireframe, depth, stencil, normal, "
       "stencil_composite, object_id, material_id, world_position, sample_stddev, "
-      "sample_stddev_color, raster_*_count)",
+      "sample_stddev_color, raster_*_count, hybrid_visibility)",
       "mode"},
      {"render_graph_camera", "Override graph intent camera with a scene camera id", "camera_id"},
      {"render_graph_shading_profile", "Override graph intent shading profile", "profile"},
@@ -4051,8 +4054,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
         "Render graph view mode must be 'default', 'beauty', 'wireframe', 'depth', 'stencil', "
         "'stencil_composite', 'normal', 'object_id', 'material_id', 'world_position', "
         "'sample_stddev', 'sample_stddev_color', 'raster_coverage_count', "
-        "'raster_depth_test_count', 'raster_depth_pass_count', 'raster_shade_count', or "
-        "'raster_color_write_count'";
+        "'raster_depth_test_count', 'raster_depth_pass_count', 'raster_shade_count', "
+        "'raster_color_write_count', or 'hybrid_visibility'";
       return CommandLineError;
     }
     m_renderGraphViewModeSet = true;

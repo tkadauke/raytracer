@@ -172,6 +172,7 @@ namespace RenderIntentElementTest {
     EXPECT_TRUE(intent->propertyChoices("wavefrontDenoiser").contains("bilateral"));
     EXPECT_FALSE(intent->propertyChoices("viewMode").contains("sample_stddev"));
     EXPECT_FALSE(intent->propertyChoices("viewMode").contains("sample_stddev_color"));
+    EXPECT_TRUE(intent->propertyChoices("viewMode").contains("hybrid_visibility"));
     EXPECT_TRUE(intent->propertyChoices("selectorRoutingKind").contains("tag"));
     EXPECT_TRUE(intent->propertyChoices("selectorRoutingKind").contains("object_name"));
     EXPECT_TRUE(intent->propertyChoices("selectorRoutingEngine").contains("inherit"));
@@ -187,6 +188,9 @@ namespace RenderIntentElementTest {
               intent->propertyChoiceDisplayName("viewMode", "sample_stddev"));
     EXPECT_EQ(QString("Sample Stddev Color"),
               intent->propertyChoiceDisplayName("viewMode", "sample_stddev_color"));
+    EXPECT_TRUE(intent->propertyChoices("viewMode").contains("hybrid_visibility"));
+    EXPECT_EQ(QString("Hybrid Visibility"),
+              intent->propertyChoiceDisplayName("viewMode", "hybrid_visibility"));
     intent->setDefaultEngine("rasterizer");
     EXPECT_TRUE(intent->propertyChoices("viewMode").contains("raster_depth_test_count"));
     EXPECT_EQ(QString("Stencil Composite"),

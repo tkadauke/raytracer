@@ -282,8 +282,7 @@ namespace GraphRenderEngineTest {
       m_changed.notify_all();
     }
 
-    void activePassesChanged(const std::set<RenderPassId>& passIds,
-                             std::uint64_t) override {
+    void activePassesChanged(const std::set<RenderPassId>& passIds, std::uint64_t) override {
       {
         std::lock_guard<std::mutex> lock(m_mutex);
         m_activeSnapshots.push_back(passIds);
@@ -708,6 +707,45 @@ namespace GraphRenderEngineTest {
     ASSERT_EQ(1u, outputs.size());
     ASSERT_TRUE(outputs.front()->hasDepthPreview());
     EXPECT_GT(countFiniteDepths(outputs.front()->depthPreview()), 0);
+  }
+
+  TEST(GraphRenderEngine, ExecutesHybridVisibilityAOVThroughIntersectionService) {
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Wavefront;
+    intent.defaultViewMode = RenderViewMode::HybridVisibility;
+    intent.engineOptions.raytracer().setIntersectionBackend("cpu");
+
+    RenderGraphCompiler compiler;
+    GraphRenderEngine engine(camera(), highContrastScene());
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(compiler.compile({32, 32, 1}, intent));
+
+    Buffer<unsigned int> buffer(32, 32);
+    engine.render(buffer);
+
+    EXPECT_GT(countNonBlackPixels(buffer), 0);
+    ASSERT_EQ(2u, engine.lastPlan().passes().size());
+    EXPECT_EQ("hybrid_visibility_aov", engine.lastPlan().passes()[0].id);
+    EXPECT_EQ("visualize_hybrid_visibility_aov", engine.lastPlan().passes()[1].id);
+
+    auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const RenderPassTrace* passTrace = trace->findPass("hybrid_visibility_aov");
+    ASSERT_NE(nullptr, passTrace);
+    EXPECT_NE(std::string::npos, passTrace->message().find("intersection service"));
+
+    const QJsonObject service = passTrace->metadata().value("intersectionService").toObject();
+    EXPECT_EQ("closest_hit", service.value("queryFamily").toString().toStdString());
+    EXPECT_EQ("debug_aov", service.value("queryTag").toString().toStdString());
+    EXPECT_EQ("cpu", service.value("requestedBackend").toString().toStdString());
+    EXPECT_EQ("runtime_scene", service.value("closestHitExecutionPath").toString().toStdString());
+    EXPECT_GT(service.value("queryCount").toDouble(), 0.0);
+    EXPECT_GT(service.value("hitCount").toDouble(), 0.0);
+
+    const auto outputs = trace->outputSnapshotsForResource("hybrid_visibility_aov");
+    ASSERT_EQ(1u, outputs.size());
+    ASSERT_TRUE(outputs.front()->hasColorPreview());
+    EXPECT_GT(countNonBlackPixels(outputs.front()->colorPreview()), 0);
   }
 
   TEST(GraphRenderEngine, ExecutesSampleStddevAOVViewAndRecordsColorTrace) {

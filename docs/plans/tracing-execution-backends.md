@@ -1926,7 +1926,10 @@ real-time-ish shadows and graph visibility work.
    - Depends on: none.
    - Output: pass inputs, outputs, resource types, and fallback behavior.
 
-2. **Implement a visibility/AOV graph pass.**
+2. ~~**Implement a visibility/AOV graph pass.**~~ ✅ **Done.** The
+   `hybrid_visibility` AOV pass submits primary closest-hit debug rays through
+   `render::IntersectionService`, writes a graph-visible preview resource, and
+   records backend execution diagnostics for issue #634.
    - Depends on: job 1.
    - Output: pass that submits any-hit/closest-hit work through E1 and writes a
      usable debug/visibility resource.

@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Added the `hybrid_visibility` graph AOV pass, which submits primary
+  closest-hit debug rays through `render::IntersectionService`, writes an
+  inspectable visibility preview, and records backend execution diagnostics for
+  E13 job 2. — GPT-5 Codex
 - Defined the hybrid visibility graph pass contract for E13, including
   any-hit/closest-hit query families, typed visibility resources, and explicit
   CPU/raster/disabled-output fallbacks. — GPT-5 Codex
