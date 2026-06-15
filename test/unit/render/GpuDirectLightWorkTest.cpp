@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 
 #include "core/Color.h"
+#include "core/math/Constants.h"
 #include "core/math/Vector.h"
 #include "render/GpuCompiledLightSampler.h"
-#include "core/math/Constants.h"
 #include "render/GpuDirectLightCpuReference.h"
 #include "render/GpuDirectLightWork.h"
 #include "render/GpuIntersectionScene.h"
