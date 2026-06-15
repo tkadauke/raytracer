@@ -134,7 +134,8 @@ namespace engine::graph {
     const QJsonObject execution = objectField(object, "execution", path);
     rejectUnknownFields(execution, path + ".execution",
                         {"maxRecursionDepth", "threads", "queueSize", "integrator",
-                         "intersectionBackend", "russianRouletteDepth", "directLightSamples"});
+                         "tracingBackend", "intersectionBackend", "russianRouletteDepth",
+                         "directLightSamples"});
     if (hasField(execution, "maxRecursionDepth"))
       state.setMaximumRecursionDepth(intField(execution, "maxRecursionDepth", path + ".execution"));
     if (hasField(execution, "threads"))
@@ -143,6 +144,8 @@ namespace engine::graph {
       state.setQueueSize(intField(execution, "queueSize", path + ".execution"));
     if (hasField(execution, "integrator"))
       state.setIntegrator(stringField(execution, "integrator", path + ".execution"));
+    if (hasField(execution, "tracingBackend"))
+      state.setTracingBackend(stringField(execution, "tracingBackend", path + ".execution"));
     if (hasField(execution, "intersectionBackend")) {
       state.setIntersectionBackend(
         stringField(execution, "intersectionBackend", path + ".execution"));
@@ -240,6 +243,8 @@ namespace engine::graph {
       execution["queueSize"] = *m_queueSize;
     if (m_integrator)
       execution["integrator"] = qstr(*m_integrator);
+    if (m_tracingBackend)
+      execution["tracingBackend"] = qstr(m_tracingBackend->id());
     if (m_intersectionBackend)
       execution["intersectionBackend"] = qstr(m_intersectionBackend->id());
     if (m_russianRouletteDepth)
@@ -340,8 +345,11 @@ namespace engine::graph {
       wavefront.setQueueSize(*m_queueSize);
     if (m_samplingSeed)
       wavefront.setSamplingSeed(*m_samplingSeed);
-    if (m_intersectionBackend)
+    if (m_tracingBackend) {
+      wavefront.setIntersectionBackend(*m_tracingBackend);
+    } else if (m_intersectionBackend) {
       wavefront.setIntersectionBackend(*m_intersectionBackend);
+    }
     if (m_convergenceEnabled)
       wavefront.setConvergenceEnabled(*m_convergenceEnabled);
     if (m_convergenceActiveSampleFractionThreshold) {
@@ -397,6 +405,20 @@ namespace engine::graph {
   void RaytracerBeautyPassState::setIntegrator(std::string integrator) {
     m_integrator =
       normalizedIntegratorName(std::move(integrator), "parameters.execution.integrator");
+  }
+
+  void RaytracerBeautyPassState::setTracingBackend(std::string backend) {
+    try {
+      m_tracingBackend =
+        render::WavefrontIntersectionBackendChoice::fromString(std::move(backend));
+    } catch (const std::invalid_argument&) {
+      stateError("parameters.execution.tracingBackend", "expected auto, cpu, or gpu");
+    }
+  }
+
+  void RaytracerBeautyPassState::setTracingBackend(
+    render::WavefrontIntersectionBackendChoice backend) {
+    m_tracingBackend = backend;
   }
 
   void RaytracerBeautyPassState::setIntersectionBackend(std::string backend) {
@@ -495,6 +517,11 @@ namespace engine::graph {
 
   std::optional<std::string> RaytracerBeautyPassState::integrator() const {
     return m_integrator;
+  }
+
+  std::optional<render::WavefrontIntersectionBackendChoice>
+  RaytracerBeautyPassState::tracingBackend() const {
+    return m_tracingBackend;
   }
 
   std::optional<render::WavefrontIntersectionBackendChoice>

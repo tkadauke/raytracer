@@ -1033,6 +1033,8 @@ namespace engine::wavefront {
       QString::fromStdString(batching.intersectionBackendAnyHitFrontierResidency);
     const render::TracingExecutionCapabilityRecords tracingCapabilities =
       batching.tracingExecutionCapabilities();
+    batchingJson["tracingBackendRequest"] =
+      QString::fromStdString(batching.intersectionBackendRequest);
     batchingJson["tracingBackend"] = QString::fromStdString(batching.intersectionBackend);
     batchingJson["tracingBackendMode"] = QStringLiteral("wavefront_intersection");
     batchingJson["tracingBackendCapabilities"] = tracingCapabilitiesToJson(tracingCapabilities);
