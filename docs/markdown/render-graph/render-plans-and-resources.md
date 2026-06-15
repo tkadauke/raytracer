@@ -91,14 +91,22 @@ compiler remains responsible for synthesizing pass nodes. Missing, ambiguous,
 or duplicate selector routes fail with diagnostics instead of silently falling
 back to the default frame.
 Advanced controls such as raytracer sampler, samples per pixel, recursion
-depth, raster MSAA, raster LOD, raster visibility culling, raster shadow-map
-quality, and wireframe LOD live in typed `RenderEngineOptions` fields on the
-intent. The compiler resolves those options into typed pass state or
+depth, tracing execution preference, raster MSAA, raster LOD, raster visibility
+culling, raster shadow-map quality, and wireframe LOD live in typed
+`RenderEngineOptions` fields on the intent. The compiler resolves those options
+into typed pass state or
 intent-derived graph nodes; rendercli and the raster render dialog no longer
 compile a plan and then patch pass parameters in a separate front-end step.
 Render-to-texture subviews can either inherit the global engine options or
 carry their own override block, so low-resolution probes and high-quality final
 views can share one intent model without users requesting graph nodes directly.
+For ray-family renders,
+`engineOptions.raytracer.execution.tracingExecution` accepts `auto`, `cpu`,
+`hybrid`, or `gpu`. This is broad execution intent: `hybrid` means a CPU-owned
+schedule may use GPU backend services, while `gpu` means a GPU-owned tracing
+loop is requested for a supported subset. The older `intersectionBackend`
+setting remains a narrower closest-hit/any-hit service control and is not a
+replacement for the execution preference.
 The compiler now expands whole-scene subviews into prefixed offscreen color
 branches that are visible in graph exports and the Modeler graph view. Raster
 subviews also export a matching prefixed depth AOV resource so later portal or

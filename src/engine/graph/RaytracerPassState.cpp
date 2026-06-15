@@ -134,7 +134,8 @@ namespace engine::graph {
     const QJsonObject execution = objectField(object, "execution", path);
     rejectUnknownFields(execution, path + ".execution",
                         {"maxRecursionDepth", "threads", "queueSize", "integrator",
-                         "intersectionBackend", "russianRouletteDepth", "directLightSamples"});
+                         "tracingExecution", "intersectionBackend", "russianRouletteDepth",
+                         "directLightSamples"});
     if (hasField(execution, "maxRecursionDepth"))
       state.setMaximumRecursionDepth(intField(execution, "maxRecursionDepth", path + ".execution"));
     if (hasField(execution, "threads"))
@@ -143,6 +144,9 @@ namespace engine::graph {
       state.setQueueSize(intField(execution, "queueSize", path + ".execution"));
     if (hasField(execution, "integrator"))
       state.setIntegrator(stringField(execution, "integrator", path + ".execution"));
+    if (hasField(execution, "tracingExecution")) {
+      state.setTracingExecution(stringField(execution, "tracingExecution", path + ".execution"));
+    }
     if (hasField(execution, "intersectionBackend")) {
       state.setIntersectionBackend(
         stringField(execution, "intersectionBackend", path + ".execution"));
@@ -240,6 +244,8 @@ namespace engine::graph {
       execution["queueSize"] = *m_queueSize;
     if (m_integrator)
       execution["integrator"] = qstr(*m_integrator);
+    if (m_tracingExecution)
+      execution["tracingExecution"] = qstr(tracingExecutionPreferenceName(*m_tracingExecution));
     if (m_intersectionBackend)
       execution["intersectionBackend"] = qstr(m_intersectionBackend->id());
     if (m_russianRouletteDepth)
@@ -399,6 +405,17 @@ namespace engine::graph {
       normalizedIntegratorName(std::move(integrator), "parameters.execution.integrator");
   }
 
+  void RaytracerBeautyPassState::setTracingExecution(TracingExecutionPreference preference) {
+    m_tracingExecution = preference;
+  }
+
+  void RaytracerBeautyPassState::setTracingExecution(std::string preference) {
+    const auto parsed = tracingExecutionPreferenceFromString(preference);
+    if (!parsed)
+      stateError("parameters.execution.tracingExecution", "expected auto, cpu, hybrid, or gpu");
+    m_tracingExecution = *parsed;
+  }
+
   void RaytracerBeautyPassState::setIntersectionBackend(std::string backend) {
     try {
       m_intersectionBackend =
@@ -495,6 +512,10 @@ namespace engine::graph {
 
   std::optional<std::string> RaytracerBeautyPassState::integrator() const {
     return m_integrator;
+  }
+
+  std::optional<TracingExecutionPreference> RaytracerBeautyPassState::tracingExecution() const {
+    return m_tracingExecution;
   }
 
   std::optional<render::WavefrontIntersectionBackendChoice>

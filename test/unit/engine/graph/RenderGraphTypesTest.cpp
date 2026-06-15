@@ -565,6 +565,7 @@ namespace RenderGraphTypesTest {
 
   TEST(RenderSubviewIntent, ResolvesInheritedAndIndependentEngineOptions) {
     RenderEngineOptions global;
+    global.raytracer().setTracingExecution(TracingExecutionPreference::Hybrid);
     global.raytracer().setSamplesPerPixel(8);
     global.raytracer().setSamplingSeed(24680);
     global.raytracer().setDirectLightSamples(5);
@@ -581,6 +582,7 @@ namespace RenderGraphTypesTest {
 
     const RenderEngineOptions inheritedOptions = inherited.resolvedEngineOptions(global);
     ASSERT_TRUE(inheritedOptions.raytracer().samplesPerPixel().has_value());
+    ASSERT_TRUE(inheritedOptions.raytracer().tracingExecution().has_value());
     ASSERT_TRUE(inheritedOptions.raytracer().samplingSeed().has_value());
     ASSERT_TRUE(inheritedOptions.raytracer().directLightSamples().has_value());
     ASSERT_TRUE(inheritedOptions.raytracer().denoiser().has_value());
@@ -588,6 +590,7 @@ namespace RenderGraphTypesTest {
     ASSERT_TRUE(inheritedOptions.raytracer().denoiseColorSigma().has_value());
     ASSERT_TRUE(inheritedOptions.rasterizer().msaaSamples().has_value());
     EXPECT_EQ(8, *inheritedOptions.raytracer().samplesPerPixel());
+    EXPECT_EQ(TracingExecutionPreference::Hybrid, *inheritedOptions.raytracer().tracingExecution());
     EXPECT_EQ(24680u, *inheritedOptions.raytracer().samplingSeed());
     EXPECT_EQ(5, *inheritedOptions.raytracer().directLightSamples());
     EXPECT_EQ("bilateral", *inheritedOptions.raytracer().denoiser());
@@ -599,6 +602,7 @@ namespace RenderGraphTypesTest {
     independent.view.inheritEngineOptions = false;
 
     const RenderEngineOptions independentOptions = independent.resolvedEngineOptions(global);
+    EXPECT_FALSE(independentOptions.raytracer().tracingExecution().has_value());
     EXPECT_FALSE(independentOptions.raytracer().samplesPerPixel().has_value());
     EXPECT_FALSE(independentOptions.raytracer().samplingSeed().has_value());
     EXPECT_FALSE(independentOptions.raytracer().directLightSamples().has_value());

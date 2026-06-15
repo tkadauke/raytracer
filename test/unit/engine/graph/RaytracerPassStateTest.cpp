@@ -25,6 +25,7 @@ namespace RaytracerPassStateTest {
     state.setMaximumThreads(3);
     state.setQueueSize(11);
     state.setIntegrator("path_tracer");
+    state.setTracingExecution(TracingExecutionPreference::Hybrid);
     state.setIntersectionBackend("gpu");
     state.setRussianRouletteDepth(4);
     state.setDirectLightSamples(6);
@@ -50,6 +51,9 @@ namespace RaytracerPassStateTest {
     EXPECT_EQ(11, json.value("execution").toObject().value("queueSize").toInt());
     EXPECT_EQ("pathtracer",
               json.value("execution").toObject().value("integrator").toString().toStdString());
+    EXPECT_EQ(
+      "hybrid",
+      json.value("execution").toObject().value("tracingExecution").toString().toStdString());
     EXPECT_EQ(
       "gpu",
       json.value("execution").toObject().value("intersectionBackend").toString().toStdString());
@@ -82,6 +86,7 @@ namespace RaytracerPassStateTest {
     ASSERT_TRUE(decoded.maximumThreads().has_value());
     ASSERT_TRUE(decoded.queueSize().has_value());
     ASSERT_TRUE(decoded.integrator().has_value());
+    ASSERT_TRUE(decoded.tracingExecution().has_value());
     ASSERT_TRUE(decoded.intersectionBackend().has_value());
     ASSERT_TRUE(decoded.russianRouletteDepth().has_value());
     ASSERT_TRUE(decoded.directLightSamples().has_value());
@@ -103,6 +108,7 @@ namespace RaytracerPassStateTest {
     EXPECT_EQ(3, *decoded.maximumThreads());
     EXPECT_EQ(11, *decoded.queueSize());
     EXPECT_EQ("pathtracer", *decoded.integrator());
+    EXPECT_EQ(TracingExecutionPreference::Hybrid, *decoded.tracingExecution());
     EXPECT_STREQ("gpu", decoded.intersectionBackend()->id());
     EXPECT_EQ(4, *decoded.russianRouletteDepth());
     EXPECT_EQ(6, *decoded.directLightSamples());
@@ -129,6 +135,21 @@ namespace RaytracerPassStateTest {
     json["sampling"] = sampling;
 
     EXPECT_THROW(RaytracerBeautyPassState::fromJson(json), std::runtime_error);
+  }
+
+  TEST(RaytracerBeautyPassState, RejectsUnknownTracingExecutionPreference) {
+    QJsonObject execution;
+    execution["tracingExecution"] = "metal";
+    QJsonObject json;
+    json["execution"] = execution;
+
+    try {
+      RaytracerBeautyPassState::fromJson(json);
+      FAIL() << "expected invalid tracing execution preference to throw";
+    } catch (const std::runtime_error& error) {
+      EXPECT_NE(std::string::npos,
+                std::string(error.what()).find("expected auto, cpu, hybrid, or gpu"));
+    }
   }
 
   TEST(RaytracerBeautyPassState, NormalizesSampleStreamModeDiagnostics) {

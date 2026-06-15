@@ -3,6 +3,7 @@
 #include "core/Color.h"
 #include "core/math/Rect.h"
 #include "engine/raster/RasterBackend.h"
+#include "engine/graph/TracingExecutionPreference.h"
 #include "render/WavefrontIntersectionBackend.h"
 
 #include <QJsonObject>
@@ -46,6 +47,8 @@ namespace engine::graph {
     void setMaximumThreads(int threads);
     void setQueueSize(int queueSize);
     void setIntegrator(std::string integrator);
+    void setTracingExecution(TracingExecutionPreference preference);
+    void setTracingExecution(std::string preference);
     void setIntersectionBackend(std::string backend);
     void setIntersectionBackend(render::WavefrontIntersectionBackendChoice backend);
     void setRussianRouletteDepth(int depth);
@@ -69,6 +72,7 @@ namespace engine::graph {
     std::optional<int> maximumThreads() const;
     std::optional<int> queueSize() const;
     std::optional<std::string> integrator() const;
+    std::optional<TracingExecutionPreference> tracingExecution() const;
     std::optional<render::WavefrontIntersectionBackendChoice> intersectionBackend() const;
     std::optional<int> russianRouletteDepth() const;
     std::optional<int> directLightSamples() const;
@@ -92,6 +96,7 @@ namespace engine::graph {
     std::optional<int> m_maximumThreads;
     std::optional<int> m_queueSize;
     std::optional<std::string> m_integrator;
+    std::optional<TracingExecutionPreference> m_tracingExecution;
     std::optional<render::WavefrontIntersectionBackendChoice> m_intersectionBackend;
     std::optional<int> m_russianRouletteDepth;
     std::optional<int> m_directLightSamples;
