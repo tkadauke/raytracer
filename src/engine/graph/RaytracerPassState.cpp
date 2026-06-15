@@ -135,8 +135,7 @@ namespace engine::graph {
     rejectUnknownFields(execution, path + ".execution",
                         {"maxRecursionDepth", "threads", "queueSize", "integrator",
                          "tracingBackend", "tracingExecution", "intersectionBackend",
-                         "predictedTracingExecution",
-                         "tracingExecutionFallbackReason", "intersectionBackend",
+                         "predictedTracingExecution", "tracingExecutionFallbackReason",
                          "russianRouletteDepth", "directLightSamples"});
     if (hasField(execution, "maxRecursionDepth"))
       state.setMaximumRecursionDepth(intField(execution, "maxRecursionDepth", path + ".execution"));
