@@ -107,6 +107,20 @@ namespace engine::graph {
       }
     };
 
+    class HybridVisibilityRenderAOVDefinition : public BasicRenderAOVDefinition {
+    public:
+      HybridVisibilityRenderAOVDefinition()
+          : BasicRenderAOVDefinition(
+              RenderViewMode::HybridVisibility, "hybrid_visibility", "Hybrid visibility",
+              RenderResourceType::Color, RenderResourceFormat::RGBDouble, false,
+              {RenderExecutorKind::Raytracer, RenderExecutorKind::Wavefront}) {
+      }
+
+      bool usesRaytracerPassState() const override {
+        return true;
+      }
+    };
+
     const std::vector<const RenderAOVDefinition*>& definitions() {
       static const BasicRenderAOVDefinition depth(RenderViewMode::Depth, "depth", "Depth",
                                                   RenderResourceType::Depth,
@@ -149,6 +163,7 @@ namespace engine::graph {
         RenderViewMode::RasterColorWriteCount, "raster_color_write_count",
         "Raster color-write count", RenderResourceType::CustomTexture,
         RenderResourceFormat::RGBDouble, true, {RenderExecutorKind::Rasterizer});
+      static const HybridVisibilityRenderAOVDefinition hybridVisibility;
       static const std::vector<const RenderAOVDefinition*> result = {&depth,
                                                                      &stencil,
                                                                      &normal,
@@ -161,7 +176,8 @@ namespace engine::graph {
                                                                      &rasterDepthTestCount,
                                                                      &rasterDepthPassCount,
                                                                      &rasterShadeCount,
-                                                                     &rasterColorWriteCount};
+                                                                     &rasterColorWriteCount,
+                                                                     &hybridVisibility};
       return result;
     }
   }

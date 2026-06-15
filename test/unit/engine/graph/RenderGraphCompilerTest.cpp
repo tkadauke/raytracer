@@ -379,6 +379,44 @@ namespace RenderGraphCompilerTest {
     EXPECT_TRUE(plan.validate().valid());
   }
 
+  TEST(RenderGraphCompiler, HybridVisibilityViewModeCompilesServiceAOVPlan) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Wavefront;
+    intent.defaultViewMode = RenderViewMode::HybridVisibility;
+    intent.engineOptions.raytracer().setIntersectionBackend("cpu");
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent);
+
+    ASSERT_EQ(2u, plan.resources().size());
+    ASSERT_NE(nullptr, plan.findResource("hybrid_visibility_aov"));
+    EXPECT_EQ(RenderResourceType::Color, plan.findResource("hybrid_visibility_aov")->type);
+    EXPECT_EQ(RenderResourceFormat::RGBDouble, plan.findResource("hybrid_visibility_aov")->format);
+    EXPECT_EQ(RenderResourceLifetime::Transient,
+              plan.findResource("hybrid_visibility_aov")->lifetime);
+    ASSERT_NE(nullptr, plan.findResource("main_color"));
+    EXPECT_EQ(RenderResourceType::Color, plan.findResource("main_color")->type);
+    EXPECT_EQ(RenderResourceLifetime::Exported, plan.findResource("main_color")->lifetime);
+
+    ASSERT_EQ(2u, plan.passes().size());
+    EXPECT_EQ("hybrid_visibility_aov", plan.passes()[0].id);
+    EXPECT_EQ(RenderPassKind::AOV, plan.passes()[0].kind);
+    EXPECT_EQ(RenderExecutorKind::Wavefront, plan.passes()[0].executor);
+    EXPECT_TRUE(hasFeature(plan.passes()[0], "hybrid_visibility"));
+    ASSERT_NE(nullptr, RaytracerBeautyPassState::fromPass(plan.passes()[0]));
+    ASSERT_EQ(1u, plan.passes()[0].writes.size());
+    EXPECT_EQ("hybrid_visibility_aov", plan.passes()[0].writes[0].resource);
+
+    EXPECT_EQ("visualize_hybrid_visibility_aov", plan.passes()[1].id);
+    EXPECT_EQ(RenderExecutorKind::PostProcess, plan.passes()[1].executor);
+    EXPECT_TRUE(hasFeature(plan.passes()[1], "visualization"));
+    ASSERT_EQ(1u, plan.passes()[1].reads.size());
+    ASSERT_EQ(1u, plan.passes()[1].writes.size());
+    EXPECT_EQ("hybrid_visibility_aov", plan.passes()[1].reads[0].resource);
+    EXPECT_EQ("main_color", plan.passes()[1].writes[0].resource);
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
   TEST(RenderGraphCompiler, StencilViewModeCompilesStencilAOVPlan) {
     RenderGraphCompiler compiler;
     RenderIntent intent;

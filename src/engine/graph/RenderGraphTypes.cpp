@@ -135,7 +135,8 @@ namespace engine::graph {
          {"raster_depth_test_count", RenderViewMode::RasterDepthTestCount},
          {"raster_depth_pass_count", RenderViewMode::RasterDepthPassCount},
          {"raster_shade_count", RenderViewMode::RasterShadeCount},
-         {"raster_color_write_count", RenderViewMode::RasterColorWriteCount}},
+         {"raster_color_write_count", RenderViewMode::RasterColorWriteCount},
+         {"hybrid_visibility", RenderViewMode::HybridVisibility}},
         path);
     }
 
@@ -669,8 +670,7 @@ namespace engine::graph {
   bool DerivedCameraRef::equivalentTo(const DerivedCameraRef& other) const {
     return kind == other.kind && baseSceneCameraId == other.baseSceneCameraId &&
            receiverTransform == other.receiverTransform &&
-           sourceTransform == other.sourceTransform &&
-           mirrorPlanePoint == other.mirrorPlanePoint &&
+           sourceTransform == other.sourceTransform && mirrorPlanePoint == other.mirrorPlanePoint &&
            mirrorPlaneNormal == other.mirrorPlaneNormal &&
            requiresReceiverClip == other.requiresReceiverClip;
   }
@@ -947,7 +947,8 @@ namespace engine::graph {
               {RenderViewMode::RasterDepthTestCount, "raster_depth_test_count"},
               {RenderViewMode::RasterDepthPassCount, "raster_depth_pass_count"},
               {RenderViewMode::RasterShadeCount, "raster_shade_count"},
-              {RenderViewMode::RasterColorWriteCount, "raster_color_write_count"}});
+              {RenderViewMode::RasterColorWriteCount, "raster_color_write_count"},
+              {RenderViewMode::HybridVisibility, "hybrid_visibility"}});
   }
 
   const char* toString(RenderPostProcessAA value) {

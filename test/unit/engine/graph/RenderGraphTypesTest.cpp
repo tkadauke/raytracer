@@ -351,7 +351,8 @@ namespace RenderGraphTypesTest {
                                       "world_position",
                                       "sample_stddev",
                                       "sample_stddev_color",
-                                      "raster_color_write_count"};
+                                      "raster_color_write_count",
+                                      "hybrid_visibility"};
     json["maxRenderToTextureRecursionDepth"] = 4;
 
     const RenderIntent intent = RenderIntent::fromJson(json);
@@ -392,13 +393,14 @@ namespace RenderGraphTypesTest {
     EXPECT_EQ("preview", *intent.engineOptions.rasterizer().tessellationQuality());
     ASSERT_TRUE(intent.engineOptions.rasterizer().maximumScreenSpaceError().has_value());
     EXPECT_DOUBLE_EQ(4.5, *intent.engineOptions.rasterizer().maximumScreenSpaceError());
-    ASSERT_EQ(6u, intent.exportedAOVs.size());
+    ASSERT_EQ(7u, intent.exportedAOVs.size());
     EXPECT_EQ(RenderViewMode::Depth, intent.exportedAOVs[0]);
     EXPECT_EQ(RenderViewMode::Stencil, intent.exportedAOVs[1]);
     EXPECT_EQ(RenderViewMode::WorldPosition, intent.exportedAOVs[2]);
     EXPECT_EQ(RenderViewMode::SampleStddev, intent.exportedAOVs[3]);
     EXPECT_EQ(RenderViewMode::SampleStddevColor, intent.exportedAOVs[4]);
     EXPECT_EQ(RenderViewMode::RasterColorWriteCount, intent.exportedAOVs[5]);
+    EXPECT_EQ(RenderViewMode::HybridVisibility, intent.exportedAOVs[6]);
     ASSERT_EQ(1u, intent.viewOverrides.size());
     EXPECT_EQ(SceneSelector::Kind::ObjectName, intent.viewOverrides.front().selector.kind);
     EXPECT_EQ("Monitor", intent.viewOverrides.front().selector.value);
