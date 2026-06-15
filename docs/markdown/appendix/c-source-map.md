@@ -100,6 +100,7 @@
 | `include/render/TilePlan.h` | [The rasterization pipeline](../rasterization/the-rasterization-pipeline.md) |
 | `include/render/TracingAccumulationLayout.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `include/render/TracingAccumulationReference.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
+| `include/render/TracingPathStateBuffer.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `include/render/VulkanTracingAccumulationKernel.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `include/render/VulkanWavefrontSmokeKernel.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `include/render/WavefrontFrontierCompaction.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
@@ -272,6 +273,7 @@
 | `src/render/PathTracingIntegrator.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `src/render/TracingAccumulationLayout.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `src/render/TracingAccumulationReference.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
+| `src/render/TracingPathStateBuffer.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `src/render/VulkanTracingAccumulationKernel.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `src/render/VulkanWavefrontSmokeKernel.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `src/render/WavefrontFrontierCompaction.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
@@ -358,6 +360,7 @@
 | `test/unit/render/StateTest.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `test/unit/render/TracingAccumulationLayoutTest.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `test/unit/render/TracingAccumulationReferenceTest.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
+| `test/unit/render/TracingPathStateBufferTest.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `test/unit/render/VulkanTracingAccumulationKernelTest.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `test/unit/render/WavefrontIntersectionBackendTest.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `test/unit/render/WireframeTest.cpp` | [Wireframe rendering](../rasterization/wireframe-rendering.md) |

@@ -1692,7 +1692,9 @@ diffuse path tracer for the first supported subset.
 
 **Jobs:**
 
-1. **Add active/next path buffers.**
+1. ~~**Add active/next path buffers.**~~ ✅ **Done.** Added
+   `render::TracingPathStateLayout` and CPU reference ping-pong buffers for
+   issue #612.
    - Depends on: none.
    - Output: ping-pong buffers for current and next path states.
 
