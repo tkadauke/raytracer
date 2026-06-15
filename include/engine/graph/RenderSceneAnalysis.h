@@ -69,8 +69,9 @@ namespace engine::graph {
     void recordRenderTextureReceiver(std::string subviewName);
     void recordSelectableObject(std::string objectId, std::string objectName,
                                 std::vector<std::string> tags = {},
-                                std::vector<std::string> layers = {},
-                                std::string label = {});
+                                std::vector<std::string> layers = {}, std::string label = {});
+    void setFullGpuTracingSupported(bool supported, std::string reason = {});
+    void setFullGpuTracingBackendAvailable(bool available, std::string reason = {});
 
     bool hasKnownVisibleSurfaceCount() const;
     bool hasKnownVisibleLightCount() const;
@@ -86,17 +87,19 @@ namespace engine::graph {
 
     bool hasVisibleSurfaces() const;
     bool hasVisibleLights() const;
+    bool fullGpuTracingSupported() const;
+    bool fullGpuTracingBackendAvailable() const;
+    const std::string& fullGpuTracingUnsupportedReason() const;
+    const std::string& fullGpuTracingBackendUnavailableReason() const;
 
     bool shouldCompileRasterPreviewShadows(RenderExecutorKind executor,
                                            const RenderIntent& intent) const;
     const std::vector<SelectableSubset>& selectableSubsets() const;
     SelectorMatch matchSelector(const SceneSelector& selector) const;
-    void requireResolvableSelectors(const RenderIntent& intent,
-                                    const std::string& context) const;
+    void requireResolvableSelectors(const RenderIntent& intent, const std::string& context) const;
 
   private:
-    SelectableSubset& recordSubset(std::string id, std::string label,
-                                   SceneSelector selector);
+    SelectableSubset& recordSubset(std::string id, std::string label, SceneSelector selector);
     std::vector<const SelectableSubset*> candidatesFor(const SceneSelector& selector) const;
 
     std::optional<std::size_t> m_visibleSurfaceCount{0};
@@ -105,6 +108,12 @@ namespace engine::graph {
     std::vector<SceneSurfaceMarker> m_planarMirrorSurfaces;
     std::set<std::string> m_renderTextureSubviewReceivers;
     bool m_rasterShadowMapsSupported{true};
+    bool m_fullGpuTracingSupported{false};
+    bool m_fullGpuTracingBackendAvailable{false};
+    std::string m_fullGpuTracingUnsupportedReason{
+      "full GPU tracing subset is not implemented for this scene"};
+    std::string m_fullGpuTracingBackendUnavailableReason{
+      "full GPU tracing backend is not available"};
     bool m_hasKnownSelectableSubsets{true};
     std::vector<SelectableSubset> m_selectableSubsets;
   };

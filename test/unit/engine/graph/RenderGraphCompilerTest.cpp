@@ -325,6 +325,100 @@ namespace RenderGraphCompilerTest {
     EXPECT_TRUE(plan.validate().valid());
   }
 
+  TEST(RenderGraphCompiler, TracingExecutionCpuForcesCpuIntersectionBackend) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::PathTracer;
+    intent.engineOptions.raytracer().setTracingExecution(TracingExecutionPreference::CPU);
+
+    const RenderPlan plan = compiler.compile({64, 64, 1}, intent);
+
+    const auto* pass = plan.findPass("wavefront_beauty");
+    ASSERT_NE(nullptr, pass);
+    const auto* state = RaytracerBeautyPassState::fromPass(*pass);
+    ASSERT_NE(nullptr, state);
+    ASSERT_TRUE(state->predictedTracingExecution().has_value());
+    EXPECT_EQ(TracingExecutionPreference::CPU, *state->predictedTracingExecution());
+    ASSERT_TRUE(state->intersectionBackend().has_value());
+    EXPECT_STREQ("cpu", state->intersectionBackend()->id());
+    EXPECT_TRUE(state->tracingExecutionFallbackReason().empty());
+  }
+
+  TEST(RenderGraphCompiler, TracingExecutionHybridRequestsGpuIntersectionBackend) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::PathTracer;
+    intent.engineOptions.raytracer().setTracingExecution(TracingExecutionPreference::Hybrid);
+
+    const RenderPlan plan = compiler.compile({64, 64, 1}, intent);
+
+    const auto* pass = plan.findPass("wavefront_beauty");
+    ASSERT_NE(nullptr, pass);
+    const auto* state = RaytracerBeautyPassState::fromPass(*pass);
+    ASSERT_NE(nullptr, state);
+    ASSERT_TRUE(state->predictedTracingExecution().has_value());
+    EXPECT_EQ(TracingExecutionPreference::Hybrid, *state->predictedTracingExecution());
+    ASSERT_TRUE(state->intersectionBackend().has_value());
+    EXPECT_STREQ("gpu", state->intersectionBackend()->id());
+    EXPECT_TRUE(state->tracingExecutionFallbackReason().empty());
+  }
+
+  TEST(RenderGraphCompiler, TracingExecutionGpuSupportedPredictsGpuMode) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::PathTracer;
+    intent.engineOptions.raytracer().setTracingExecution(TracingExecutionPreference::GPU);
+
+    RenderSceneAnalysis analysis;
+    analysis.setFullGpuTracingSupported(true);
+    analysis.setFullGpuTracingBackendAvailable(true);
+
+    const RenderPlan plan = compiler.compile({64, 64, 1}, intent, analysis);
+
+    const auto* pass = plan.findPass("wavefront_beauty");
+    ASSERT_NE(nullptr, pass);
+    const auto* state = RaytracerBeautyPassState::fromPass(*pass);
+    ASSERT_NE(nullptr, state);
+    ASSERT_TRUE(state->predictedTracingExecution().has_value());
+    EXPECT_EQ(TracingExecutionPreference::GPU, *state->predictedTracingExecution());
+    ASSERT_TRUE(state->intersectionBackend().has_value());
+    EXPECT_STREQ("gpu", state->intersectionBackend()->id());
+    EXPECT_TRUE(state->tracingExecutionFallbackReason().empty());
+  }
+
+  TEST(RenderGraphCompiler, TracingExecutionGpuFallsBackWhenFullGpuUnavailable) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::PathTracer;
+    intent.engineOptions.raytracer().setTracingExecution(TracingExecutionPreference::GPU);
+
+    RenderSceneAnalysis analysis;
+    analysis.setFullGpuTracingSupported(false, "transparent material requires CPU shading");
+    analysis.setFullGpuTracingBackendAvailable(true);
+
+    const RenderPlan plan = compiler.compile({64, 64, 1}, intent, analysis);
+
+    const auto* pass = plan.findPass("wavefront_beauty");
+    ASSERT_NE(nullptr, pass);
+    const auto* state = RaytracerBeautyPassState::fromPass(*pass);
+    ASSERT_NE(nullptr, state);
+    ASSERT_TRUE(state->predictedTracingExecution().has_value());
+    EXPECT_EQ(TracingExecutionPreference::Hybrid, *state->predictedTracingExecution());
+    ASSERT_TRUE(state->intersectionBackend().has_value());
+    EXPECT_STREQ("gpu", state->intersectionBackend()->id());
+    EXPECT_EQ("transparent material requires CPU shading", state->tracingExecutionFallbackReason());
+  }
+
+  TEST(RenderGraphCompiler, RejectsCpuTracingWithGpuIntersectionBackend) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::PathTracer;
+    intent.engineOptions.raytracer().setTracingExecution(TracingExecutionPreference::CPU);
+    intent.engineOptions.raytracer().setIntersectionBackend("gpu");
+
+    EXPECT_THROW(compiler.compile({64, 64, 1}, intent), std::runtime_error);
+  }
+
   TEST(RenderGraphCompiler, WireframeViewModeSelectsWireframeExecutor) {
     RenderGraphCompiler compiler;
     RenderIntent intent;

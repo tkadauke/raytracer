@@ -282,8 +282,7 @@ namespace GraphRenderEngineTest {
       m_changed.notify_all();
     }
 
-    void activePassesChanged(const std::set<RenderPassId>& passIds,
-                             std::uint64_t) override {
+    void activePassesChanged(const std::set<RenderPassId>& passIds, std::uint64_t) override {
       {
         std::lock_guard<std::mutex> lock(m_mutex);
         m_activeSnapshots.push_back(passIds);
@@ -2060,6 +2059,12 @@ namespace GraphRenderEngineTest {
     const QJsonObject metadata = wavefront->metadata();
     const QJsonObject batching = metadata.value("batching").toObject();
     const QJsonObject input = metadata.value("input").toObject();
+    const QJsonObject tracingExecution = metadata.value("tracingExecution").toObject();
+    EXPECT_EQ("auto", tracingExecution.value("requestedMode").toString().toStdString());
+    EXPECT_EQ("cpu", tracingExecution.value("predictedMode").toString().toStdString());
+    EXPECT_EQ("cpu", tracingExecution.value("actualMode").toString().toStdString());
+    EXPECT_TRUE(tracingExecution.value("fallbackReason").toString().isEmpty());
+    EXPECT_TRUE(tracingExecution.contains("actualFallbackReason"));
     EXPECT_EQ("pathtracer", batching.value("integrator").toString());
     EXPECT_EQ("depth_major_paths", batching.value("executionMode").toString());
     EXPECT_EQ(0.0, batching.value("compatibilityShadeSamples").toDouble());

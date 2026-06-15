@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Added graph-compiler tracing execution decisions that predict CPU, hybrid,
+  or GPU modes, surface fallback reasons, and record actual execution mode in
+  graph traces for roadmap E10 job 2. — GPT-5 Codex
 - Added the `tracingExecution` render intent field with `auto`, `cpu`,
   `hybrid`, and `gpu` values to define user-facing tracing execution
   preferences for roadmap E10 job 1. — GPT-5 Codex

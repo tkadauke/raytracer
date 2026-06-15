@@ -66,8 +66,8 @@ namespace engine::graph {
     };
 
     RenderPassNode beautyPass(const RenderExecutorDefinition& executorDefinition,
-                              const SceneView& sceneView,
-                              const RenderTargetSpec& target, const RenderIntent& intent,
+                              const SceneView& sceneView, const RenderTargetSpec& target,
+                              const RenderIntent& intent, const RenderSceneAnalysis& sceneAnalysis,
                               std::vector<RenderFeatureKind> extraFeatures = {}) const;
     RenderPlan compileWithSubviewDepth(const RenderTargetSpec& target, const RenderIntent& intent,
                                        const RenderSceneAnalysis& sceneAnalysis,
@@ -100,7 +100,8 @@ namespace engine::graph {
                                                RenderResourceId baseInputResource,
                                                const RenderIntent& frameIntent,
                                                const RenderViewOverride& viewOverride,
-                                               std::size_t overrideIndex) const;
+                                               std::size_t overrideIndex,
+                                               const RenderSceneAnalysis& sceneAnalysis) const;
     RenderIntent selectorOverrideIntent(const RenderIntent& frameIntent,
                                         const RenderViewOverride& viewOverride) const;
     SceneView selectorOverrideSceneView(const RenderIntent& branchIntent,
@@ -114,15 +115,19 @@ namespace engine::graph {
                                                    RenderResourceId id, std::string name) const;
     RenderPlan aovViewPlan(const RenderTargetSpec& target, RenderExecutorKind executor,
                            const RenderAOVDefinition& aov, const SceneView& sceneView,
-                           const RenderIntent& intent) const;
+                           const RenderIntent& intent,
+                           const RenderSceneAnalysis& sceneAnalysis) const;
     void addAuxiliaryAOVExport(RenderPlan& plan, const RenderTargetSpec& target,
                                RenderExecutorKind executor, RenderViewMode viewMode,
                                RenderViewMode defaultViewMode, const SceneView& sceneView,
-                               const RenderIntent& intent) const;
+                               const RenderIntent& intent,
+                               const RenderSceneAnalysis& sceneAnalysis) const;
     void addAuxiliaryAOVExports(RenderPlan& plan, const RenderTargetSpec& target,
-                                RenderExecutorKind executor, const RenderIntent& intent) const;
+                                RenderExecutorKind executor, const RenderIntent& intent,
+                                const RenderSceneAnalysis& sceneAnalysis) const;
     RenderPlan compileStencilCompositeView(const RenderTargetSpec& target,
-                                           const RenderIntent& intent) const;
+                                           const RenderIntent& intent,
+                                           const RenderSceneAnalysis& sceneAnalysis) const;
     void addAutomaticFeatureSubviews(RenderIntent& intent,
                                      const RenderSceneAnalysis& sceneAnalysis) const;
     std::vector<SubviewOutputBinding>
