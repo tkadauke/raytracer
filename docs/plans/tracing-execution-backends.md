@@ -2039,7 +2039,10 @@ compiled and what actually ran.
    - Output: scene that loads in Modeler and makes execution-mode inspection
      easy.
 
-4. **Add rendercli examples and troubleshooting notes.**
+4. ~~**Add rendercli examples and troubleshooting notes.**~~ ✅ **Done.**
+   Issue #626 documents release and platform preset builds, CPU/auto/GPU
+   rendercli requests, compact and JSON metrics fields, and common fallback
+   reasons in the Tools and Modeler textbook chapter.
    - Depends on: jobs 2 and 3.
    - Output: commands showing CPU/hybrid/GPU requests, fallback reasons, and
      metrics to inspect.

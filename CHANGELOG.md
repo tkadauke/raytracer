@@ -69,6 +69,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   GPU intersection service for eligible visibility queries, not full GPU path
   tracing, with rendercli and Modeler inspection steps for E13 job 5.
   — GPT-5 Codex
+- Documented rendercli tracing backend build presets, CPU/auto/GPU request
+  examples, metrics fields, and fallback troubleshooting for E11 job 4.
+  — GPT-5 Codex
 - Reported compiled GPU tracing scene section counts and unsupported
   material, texture, and light reason counts in metrics JSON, rendercli
   summaries, and graph traces for the E3 tracing scene data roadmap.
