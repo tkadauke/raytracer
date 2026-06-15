@@ -309,6 +309,15 @@ struct RenderIntent {
 };
 ```
 
+Ray-family engine options include a broad tracing execution preference under
+`engineOptions.raytracer.execution.tracingExecution`. Its values are `auto`,
+`cpu`, `hybrid`, and `gpu`. The preference describes whether the user wants the
+compiler to choose, stay on CPU, synthesize a CPU-owned schedule with GPU
+backend services, or request a GPU-owned tracing loop. It is not a graph-node
+selector. The existing `intersectionBackend` field remains a narrower
+wavefront closest-hit/any-hit service override while tracing backends migrate
+to the broader execution preference.
+
 The exact API can evolve, but it should stay high-level. It should not require
 the caller to manually describe "stencil first, then reflected camera, then
 composite" for a planar mirror.
