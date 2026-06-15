@@ -53,6 +53,49 @@ the same path-tracing integrator to run through the recursive
 raytracer pass instead. In the Modeler preview and final-render
 settings, the same choice is exposed as the Path Tracer schedule.
 
+## <a id="execution-backends"></a>Execution backends
+Algorithm, schedule, and backend are deliberately separate. The
+algorithm decides the image being estimated: Whitted direct lighting,
+path-traced global illumination, or a future transport method. The
+schedule decides the order of work: one recursive ray at a time, a
+scalar iterative path loop, a depth-major wavefront frontier, or a
+future GPU queue. The backend decides which resource domain executes a
+piece of that scheduled work: runtime CPU traversal, packed CPU
+traversal, Metal compute, Vulkan compute, or another device path.
+
+That split gives three useful execution modes:
+
+- **CPU tracing.** The schedule, intersections, material evaluation,
+  light sampling, path state, accumulation, and final image resolve all
+  stay on the CPU. This is the reference path because it supports the
+  full runtime scene and material model.
+- **Hybrid GPU-intersection tracing.** The CPU still owns the
+  algorithm and schedule. It builds wavefront closest-hit and any-hit
+  frontiers, sends supported ray batches to a backend service, reads
+  back hit or occlusion records, then continues CPU shading and path
+  scheduling. The current Metal and Vulkan work is in this category:
+  it accelerates the intersection service for supported packed scenes;
+  it is not a full GPU path tracer.
+- **Full GPU tracing.** The GPU owns the render loop for a restricted
+  algorithm: resident path state, frontier compaction, intersection,
+  material/BSDF evaluation, light sampling, accumulation, and resolve.
+  CPU code may still choose settings, upload scene records, and read
+  back the final image, but it no longer shades every hit or decides
+  every continuation between device queries.
+
+Matching rendered images are therefore meaningful backend evidence
+only when the comparison holds the algorithm and schedule contract
+steady. A CPU path tracer and a hybrid GPU-intersection path tracer may
+use different traversal code, memory layouts, and query batching, but
+they are expected to converge to the same image because the CPU
+integrator still owns the estimator and consumes the same hit/occlusion
+contract. Image parity does not prove that the GPU owns shading,
+sampling, or accumulation; it proves that the backend service returned
+records equivalent enough for the shared algorithm to make the same
+lighting decisions. That is why the source anchors for this chapter
+include both the CPU integrator/scheduler code and the intersection
+service, packed scene, metrics, and rendercli parity tests.
+
 ## <a id="visual-difference"></a>The visual difference
 The following three images render the same small scene. The red wall
 is directly lit. The floor and sphere are neutral.
@@ -654,8 +697,12 @@ choices become inspectable user-facing metadata.
 - `src/render/Integrator.cpp`
 - `include/render/IntersectionSceneCompiler.h`
 - `src/render/IntersectionSceneCompiler.cpp`
+- `include/render/IntersectionService.h`
+- `src/render/IntersectionService.cpp`
 - `include/render/GpuIntersectionScene.h`
 - `src/render/GpuIntersectionScene.cpp`
+- `include/render/GpuTracingScene.h`
+- `src/render/GpuTracingScene.cpp`
 - `include/render/MetalWavefrontSmokeKernel.h`
 - `src/render/MetalWavefrontSmokeKernel.mm`
 - `include/render/VulkanWavefrontSmokeKernel.h`
@@ -697,4 +744,5 @@ choices become inspectable user-facing metadata.
 - `test/unit/render/StateTest.cpp`
 - `test/unit/engine/wavefront/WavefrontRaytracerTest.cpp`
 - `test/rendercli/RaytracerOptionTest.cmake`
+- `test/rendercli/TracingParityTest.cmake`
 <!-- /source-anchors -->
