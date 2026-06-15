@@ -1931,7 +1931,9 @@ for the supported scene subset.
    - Output: hit point/reconstructible hit data, normal, material id, incoming
      direction, throughput, sample state, and light-selection inputs.
 
-2. **Add CPU reference direct-light batch.**
+2. ~~**Add CPU reference direct-light batch.**~~ ✅ **Done.** Issue #601 adds
+   record-based CPU reference visibility and contribution batches over packed
+   tracing scene records for GPU parity tests.
    - Depends on: job 1.
    - Output: record-based CPU implementation matching current path-tracer
      direct-light semantics.
