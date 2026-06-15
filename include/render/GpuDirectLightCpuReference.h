@@ -8,6 +8,8 @@
 #include <vector>
 
 namespace render {
+  class IntersectionService;
+
   inline constexpr std::uint32_t gpuDirectLightVisibilityValid = 1u << 0u;
   inline constexpr std::uint32_t gpuDirectLightVisibilityDeltaLight = 1u << 1u;
   inline constexpr std::uint32_t gpuDirectLightContributionValid = 1u << 0u;
@@ -36,6 +38,11 @@ namespace render {
   makeGpuDirectLightCpuVisibilityBatch(const GpuTracingSceneSections& scene,
                                        const std::vector<GpuDirectLightWorkRecord>& work);
 
+  [[nodiscard]] std::vector<GpuDirectLightVisibilityRecord>
+  resolveGpuDirectLightCpuVisibilityOcclusionBatch(
+    IntersectionService& intersectionService,
+    const std::vector<GpuDirectLightVisibilityRecord>& visibility);
+
   [[nodiscard]] GpuDirectLightContributionRecord
   makeGpuDirectLightCpuContributionRecord(const GpuTracingSceneSections& scene,
                                           const GpuDirectLightWorkRecord& work,
@@ -49,4 +56,9 @@ namespace render {
   [[nodiscard]] GpuDirectLightCpuReferenceBatch
   makeGpuDirectLightCpuReferenceBatch(const GpuTracingSceneSections& scene,
                                       const std::vector<GpuDirectLightWorkRecord>& work);
+
+  [[nodiscard]] GpuDirectLightCpuReferenceBatch
+  makeGpuDirectLightCpuReferenceBatch(const GpuTracingSceneSections& scene,
+                                      const std::vector<GpuDirectLightWorkRecord>& work,
+                                      IntersectionService& intersectionService);
 }

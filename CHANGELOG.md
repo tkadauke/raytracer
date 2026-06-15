@@ -67,6 +67,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Added GPU-facing active/next path-state buffer layout records plus a CPU
   reference ping-pong buffer for the E9 resident path-loop roadmap.
   — GPT-5 Codex
+- Connected GPU diffuse direct-light visibility records to `IntersectionService`
+  any-hit occlusion, with direct-light metrics preserving visibility GPU versus
+  contribution CPU reporting, closing roadmap §E7 job 5. — GPT-5 Codex
 - Added GPU diffuse direct-light contribution coverage for matte surfaces,
   including non-delta MIS and invalid-PDF regression tests, closing roadmap
   §E7 job 4. — GPT-5 Codex

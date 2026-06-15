@@ -21,6 +21,14 @@ namespace render {
     refreshBackendDiagnostics();
   }
 
+  IntersectionService::IntersectionService(const Scene& scene,
+                                           const WavefrontIntersectionBackend& preparedBackend)
+      : m_scene(&scene),
+        m_backendChoice(WavefrontIntersectionBackendChoice::cpu()),
+        m_backend(&preparedBackend, [](const WavefrontIntersectionBackend*) {}) {
+    refreshBackendDiagnostics();
+  }
+
   const Scene& IntersectionService::scene() const {
     return *m_scene;
   }
@@ -61,6 +69,13 @@ namespace render {
   IntersectionService::anyHits(const std::vector<WavefrontAnyHitQuery>& queries) {
     WavefrontIntersectionQueryTiming timing;
     WavefrontOcclusionFlags results = m_backend->intersectAnyBatch(*m_scene, queries, &timing);
+    recordAnyHitTiming(timing);
+    return results;
+  }
+
+  WavefrontOcclusionFlags IntersectionService::anyHits(const WavefrontAnyHitFrontier& frontier) {
+    WavefrontIntersectionQueryTiming timing;
+    WavefrontOcclusionFlags results = m_backend->intersectAnyFrontier(*m_scene, frontier, &timing);
     recordAnyHitTiming(timing);
     return results;
   }

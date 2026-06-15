@@ -10,6 +10,7 @@
 namespace render {
   class Scene;
   class State;
+  class WavefrontAnyHitFrontier;
 
   struct IntersectionServiceDiagnostics {
     std::string requestedBackend;
@@ -40,6 +41,8 @@ namespace render {
       const Scene& scene,
       WavefrontIntersectionBackendChoice backendChoice = WavefrontIntersectionBackendChoice::cpu(),
       WavefrontIntersectionBackendSelectionContext selectionContext = {});
+    explicit IntersectionService(const Scene& scene,
+                                 const WavefrontIntersectionBackend& preparedBackend);
 
     [[nodiscard]] const Scene& scene() const;
     [[nodiscard]] const WavefrontIntersectionBackend& backend() const;
@@ -50,6 +53,7 @@ namespace render {
     closestHits(const std::vector<WavefrontClosestHitQuery>& queries);
     [[nodiscard]] bool anyHit(const Rayd& ray, double maxDistance, State& state);
     [[nodiscard]] WavefrontOcclusionFlags anyHits(const std::vector<WavefrontAnyHitQuery>& queries);
+    [[nodiscard]] WavefrontOcclusionFlags anyHits(const WavefrontAnyHitFrontier& frontier);
 
   private:
     void refreshBackendDiagnostics();

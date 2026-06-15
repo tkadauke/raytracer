@@ -1107,17 +1107,13 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(48.0, tiling.value("maxTileSamples").toDouble());
     EXPECT_DOUBLE_EQ(48.0, tiling.value("averageNonEmptyTileSamples").toDouble());
     const QJsonObject accumulation = json.value("accumulation").toObject();
-    EXPECT_EQ("cpu_wavefront_tile",
-              accumulation.value("backend").toString().toStdString());
-    EXPECT_EQ("cpu_tile_local",
-              accumulation.value("residency").toString().toStdString());
+    EXPECT_EQ("cpu_wavefront_tile", accumulation.value("backend").toString().toStdString());
+    EXPECT_EQ("cpu_tile_local", accumulation.value("residency").toString().toStdString());
     EXPECT_EQ(48.0, accumulation.value("pixelCount").toDouble());
-    EXPECT_EQ("rgba32_float",
-              accumulation.value("colorSumFormat").toString().toStdString());
+    EXPECT_EQ("rgba32_float", accumulation.value("colorSumFormat").toString().toStdString());
     EXPECT_EQ("uint32", accumulation.value("sampleCountFormat").toString().toStdString());
     EXPECT_EQ("none", accumulation.value("momentFormat").toString().toStdString());
-    EXPECT_EQ("rgba8_unorm_srgb",
-              accumulation.value("resolveFormat").toString().toStdString());
+    EXPECT_EQ("rgba8_unorm_srgb", accumulation.value("resolveFormat").toString().toStdString());
     EXPECT_EQ(768.0, accumulation.value("colorSumBytes").toDouble());
     EXPECT_EQ(192.0, accumulation.value("sampleCountBytes").toDouble());
     EXPECT_EQ(0.0, accumulation.value("momentBytes").toDouble());
@@ -1489,6 +1485,9 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ("compiled scene has unsupported primitives",
               capabilities.scene.geometryRecords.unsupportedReason);
     EXPECT_EQ("lighting.direct_light_visibility", capabilities.directLighting.visibility.name);
+    EXPECT_EQ("lighting.direct_light_contribution", capabilities.directLighting.contribution.name);
+    EXPECT_EQ(render::TracingExecutionDevice::CPU,
+              capabilities.directLighting.contribution.resolvedDevice);
     EXPECT_EQ(render::TracingExecutionDevice::CPU,
               capabilities.pathState.frontierCompaction.resolvedDevice);
     EXPECT_EQ(render::TracingCapabilitySupport::Unsupported, capabilities.sampling.gpuRng.support);
@@ -1506,8 +1505,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ("cpu", batching.value("tracingBackend").toString().toStdString());
     EXPECT_EQ("wavefront_intersection",
               batching.value("tracingBackendMode").toString().toStdString());
-    const QJsonArray tracingCapabilities =
-      batching.value("tracingBackendCapabilities").toArray();
+    const QJsonArray tracingCapabilities = batching.value("tracingBackendCapabilities").toArray();
     EXPECT_EQ(19, tracingCapabilities.size());
     const QJsonObject closestHitCapability = tracingCapabilities.at(0).toObject();
     EXPECT_EQ("intersection", closestHitCapability.value("domain").toString().toStdString());
@@ -1515,20 +1513,14 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ("fallback", closestHitCapability.value("support").toString().toStdString());
     EXPECT_EQ("gpu", closestHitCapability.value("requestedDevice").toString().toStdString());
     EXPECT_EQ("cpu", closestHitCapability.value("resolvedDevice").toString().toStdString());
-    EXPECT_EQ("packed_cpu",
-              closestHitCapability.value("executionPath").toString().toStdString());
-    EXPECT_EQ("GPU backend unavailable",
-              closestHitCapability.value("fallback")
-                .toObject()
-                .value("reason")
-                .toString()
-                .toStdString());
+    EXPECT_EQ("packed_cpu", closestHitCapability.value("executionPath").toString().toStdString());
+    EXPECT_EQ(
+      "GPU backend unavailable",
+      closestHitCapability.value("fallback").toObject().value("reason").toString().toStdString());
     const QJsonObject tracingFallback = batching.value("tracingBackendFallback").toObject();
     EXPECT_TRUE(tracingFallback.value("active").toBool());
-    EXPECT_EQ("geometry.closest_hit",
-              tracingFallback.value("capability").toString().toStdString());
-    EXPECT_EQ("GPU backend unavailable",
-              tracingFallback.value("reason").toString().toStdString());
+    EXPECT_EQ("geometry.closest_hit", tracingFallback.value("capability").toString().toStdString());
+    EXPECT_EQ("GPU backend unavailable", tracingFallback.value("reason").toString().toStdString());
     EXPECT_EQ(1.0, batching.value("frontierHostCompactionPasses").toDouble());
     EXPECT_EQ(1.0, batching.value("frontierCompactionPasses").toDouble());
     EXPECT_EQ(8.0, batching.value("frontierHostCompactionInputSamples").toDouble());
@@ -1539,6 +1531,28 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(3.0, batching.value("frontierCompactionRemovedSamples").toDouble());
     EXPECT_EQ(2.0, batching.value("frontierHostCompactionMovedSamples").toDouble());
     EXPECT_EQ(2.0, batching.value("frontierCompactionMovedSamples").toDouble());
+  }
+
+  TEST(WavefrontRenderMetrics, DirectLightCapabilitiesDistinguishVisibilityGpuFromContributionCpu) {
+    engine::wavefront::WavefrontRenderMetrics metrics;
+    metrics.batching.intersectionBackendRequest = "gpu";
+    metrics.batching.intersectionBackend = "vulkan";
+    metrics.batching.intersectionBackendPlatform = "vulkan";
+    metrics.batching.intersectionBackendAvailability = "available";
+    metrics.batching.intersectionBackendExecutionPath = "vulkan";
+    metrics.batching.intersectionBackendClosestHitExecutionPath = "runtime_scene";
+    metrics.batching.intersectionBackendAnyHitExecutionPath = "vulkan";
+
+    const auto capabilities = metrics.batching.tracingExecutionCapabilities();
+
+    EXPECT_EQ("lighting.direct_light_visibility", capabilities.directLighting.visibility.name);
+    EXPECT_EQ(render::TracingExecutionDevice::GPU,
+              capabilities.directLighting.visibility.resolvedDevice);
+    EXPECT_EQ("vulkan", capabilities.directLighting.visibility.executionPath);
+    EXPECT_EQ("lighting.direct_light_contribution", capabilities.directLighting.contribution.name);
+    EXPECT_EQ(render::TracingExecutionDevice::CPU,
+              capabilities.directLighting.contribution.resolvedDevice);
+    EXPECT_EQ("cpu", capabilities.directLighting.contribution.executionPath);
   }
 
   TEST(WavefrontRaytracer, SerializesStableCpuTracingExecutionSummaryWithoutFallback) {
