@@ -1853,9 +1853,13 @@ performance are proven.
    - Output: functional tests pin decisions for small, supported large, and
      unsupported scenes without relying on absolute timing.
 
-5. **Document measured thresholds.**
+5. ~~**Document measured thresholds.**~~ ✅ **Done.**
    - Depends on: jobs 2, 3, and 4.
-   - Output: plan/docs include benchmark evidence for any automatic GPU choice.
+   - Output: `docs/perf/tracing-backend-benchmark-scenes-2026-06-15.md`
+     documents the 65,536-ray fixed floor, the 64 rays-per-scene-upload-KiB
+     amortization gate, captured benchmark rows for the current CPU-resolved
+     automatic policy, and the explicit caveat that those rows do not support a
+     GPU speedup claim.
 
 **Gate:** `auto` has evidence and tests. It does not silently route to GPU just
 because a GPU exists.

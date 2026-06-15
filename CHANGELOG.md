@@ -23,6 +23,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- Documented measured tracing backend `auto` threshold evidence, including the
+  65,536-ray fixed floor, the 64 rays-per-scene-upload-KiB amortization gate,
+  captured CPU-resolved benchmark rows, and the caveat that they do not prove a
+  GPU speedup; closes roadmap E12 job 5. — GPT-5 Codex
 - Documented the conservative wavefront intersection `auto` backend selection
   policy, including platform, scene-support, expected-work, transfer, and
   residency metrics; closes roadmap E12 job 3. — GPT-5 Codex

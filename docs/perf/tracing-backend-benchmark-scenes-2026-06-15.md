@@ -107,9 +107,72 @@ availability, execution path, and fallback reason through the existing
 backend-specific counters. The normalized fallback rate makes those rows
 machine-comparable with available GPU and CPU rows.
 
-## Initial Use
+## Automatic Selection Thresholds
 
-This document defines the benchmark scenes only. It intentionally does not set
-pass/fail thresholds or choose automatic GPU policy cutoffs. Those belong to
-the follow-up metric-capture and policy jobs after the same scene set has CPU,
-hybrid, GPU, and fallback evidence on the target platforms.
+The current automatic policy is conservative and CPU-first. It can select a
+platform GPU intersection backend only after every non-timing gate passes:
+
+- a platform GPU device is detected;
+- the platform backend reports a render-capable path;
+- the scene compiles to the packed intersection subset with no unsupported
+  leaves;
+- the compiled scene is eligible for the platform basic-hit kernel;
+- the packed closest-hit and packed any-hit kernels are both eligible;
+- the expected ray count clears the larger of:
+  - the fixed floor, `minimumGpuRayCount = 65,536` rays;
+  - the scene-upload amortization floor,
+    `ceil(scene_upload_bytes / 1024) * minimumGpuRaysPerSceneUploadKiB`, with
+    `minimumGpuRaysPerSceneUploadKiB = 64`.
+
+The effective expected ray count is the saturated sum of
+`expected_closest_hit_rays` and `expected_any_hit_rays` when query-family
+estimates are present. For small workloads, `auto` rejects the render before
+platform probing or scene compilation. For larger workloads, it may compile the
+scene so the upload-size threshold and scene-support gates can be evaluated.
+
+The threshold is not a speedup claim. It is a minimum work gate chosen so
+automatic GPU use is impossible for tiny batches and so larger scenes must
+amortize their prepared-scene upload before GPU is considered. A platform row
+may still resolve to CPU because the device, render path, scene, or kernel
+eligibility gates fail.
+
+## Captured Threshold Evidence
+
+Captured on 2026-06-15 with:
+
+```sh
+cmake --preset benchmark
+cmake --build --preset benchmark --target benchmarks --parallel
+./build/benchmark/benchmarks/benchmarks \
+  --benchmark_filter='bm_autoMixedClosestAndAnyHitBatch/(0|1|2|3)/(256|65536)$|bm_requestedGpuUnsupportedMixedClosestAndAnyHitBatch/4/(256|65536)$' \
+  --benchmark_min_time=0.01s \
+  --benchmark_repetitions=1
+```
+
+The host reported four 2.496 GHz CPU threads, 32 KiB L1 data cache per core,
+4,096 KiB L2 cache per core, 16,384 KiB shared L3 cache, and a high load
+average around 17. These timings are therefore evidence that the benchmark rows
+ran and exposed the policy counters; they are not suitable as portable speed
+claims.
+
+| Row label | Expected closest + any rays | Auto minimum GPU rays | Selected execution | Key evidence |
+| --- | ---: | ---: | --- | --- |
+| `small_supported/auto/cpu/runtime_scene` at 256 closest + 256 any-hit rays | 512 | 65,536 | CPU runtime scene | Below the fixed floor; no scene compiled, upload/readback estimate 0 bytes. |
+| `small_supported/auto/cpu/runtime_scene` at 65,536 closest + 65,536 any-hit rays | 131,072 | 65,536 | CPU runtime scene | Work clears the fixed floor, but this non-platform-GPU benchmark build still resolved to CPU. |
+| `mesh_heavy_supported/auto/cpu/runtime_scene` at 256 closest + 256 any-hit rays | 512 | 65,536 | CPU runtime scene | Below the fixed floor; no scene compiled. |
+| `mesh_heavy_supported/auto/cpu/runtime_scene` at 65,536 closest + 65,536 any-hit rays | 131,072 | 65,536 | CPU runtime scene | Work clears the fixed floor, but selected CPU in this capture; do not infer a GPU speedup. |
+| `visibility_heavy_supported/auto/cpu/runtime_scene` at 65,536 closest + 65,536 any-hit rays | 131,072 | 65,536 | CPU runtime scene | Mixed closest-hit/any-hit workload reports both query-family estimates beside the threshold. |
+| `indirect_diffuse_supported/auto/cpu/runtime_scene` at 65,536 closest + 65,536 any-hit rays | 131,072 | 65,536 | CPU runtime scene | Multi-depth diffuse workload reports the same automatic threshold counters. |
+| `unsupported_mixed/gpu/cpu/runtime_scene` at 256 closest + 256 any-hit rays | 512 | 65,536 | CPU runtime scene fallback | Explicit GPU request compiled a scene with 3,201 primitives, 1 unsupported leaf, and `tracing_fallback_rate=1`. |
+| `unsupported_mixed/gpu/cpu/runtime_scene` at 65,536 closest + 65,536 any-hit rays | 131,072 | 65,536 | CPU runtime scene fallback | Larger explicit GPU request preserved the unsupported-scene fallback instead of claiming GPU execution. |
+
+These captured rows support the current documentation claims:
+
+- `auto` has an observable fixed floor of 65,536 expected rays.
+- The benchmark counters expose the query-family split used by policy:
+  `expected_closest_hit_rays`, `expected_any_hit_rays`, and `expected_rays`.
+- Unsupported scenes keep explicit fallback evidence through
+  `scene_unsupported`, unsupported-reason counters, selected execution path,
+  and `tracing_fallback_rate`.
+- This capture contains no platform GPU execution row, so it must not be used
+  to claim that GPU is faster than CPU on any scene.
