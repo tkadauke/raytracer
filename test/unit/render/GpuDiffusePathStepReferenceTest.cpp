@@ -14,8 +14,8 @@
 #include "render/primitives/Sphere.h"
 #include "render/textures/ConstantColorTexture.h"
 
-#include <limits>
 #include <cmath>
+#include <limits>
 #include <memory>
 #include <vector>
 
