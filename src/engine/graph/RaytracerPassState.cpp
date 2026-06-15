@@ -135,8 +135,7 @@ namespace engine::graph {
     rejectUnknownFields(execution, path + ".execution",
                         {"maxRecursionDepth", "threads", "queueSize", "integrator",
                          "tracingBackend", "tracingExecution", "intersectionBackend",
-                         "russianRouletteDepth",
-                         "directLightSamples"});
+                         "russianRouletteDepth", "directLightSamples"});
     if (hasField(execution, "maxRecursionDepth"))
       state.setMaximumRecursionDepth(intField(execution, "maxRecursionDepth", path + ".execution"));
     if (hasField(execution, "threads"))
@@ -536,13 +535,13 @@ namespace engine::graph {
     return m_integrator;
   }
 
-  std::optional<TracingExecutionPreference> RaytracerBeautyPassState::tracingExecution() const {
-    return m_tracingExecution;
-  }
-
   std::optional<render::WavefrontIntersectionBackendChoice>
   RaytracerBeautyPassState::tracingBackend() const {
     return m_tracingBackend;
+  }
+
+  std::optional<TracingExecutionPreference> RaytracerBeautyPassState::tracingExecution() const {
+    return m_tracingExecution;
   }
 
   std::optional<render::WavefrontIntersectionBackendChoice>
