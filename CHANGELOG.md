@@ -23,6 +23,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- Added comparable `tracing_*` counters to wavefront intersection backend
+  benchmarks for render time, transfer time, kernel time, scene compile time,
+  rays/sec, resident bytes, and fallback rate, closing roadmap E12 job 2.
+  — GPT-5 Codex
 - Reported compiled GPU tracing scene section counts and unsupported
   material, texture, and light reason counts in metrics JSON, rendercli
   summaries, and graph traces for the E3 tracing scene data roadmap.

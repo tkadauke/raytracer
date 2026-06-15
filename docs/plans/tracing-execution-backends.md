@@ -1812,10 +1812,14 @@ performance are proven.
      primitive, large mesh, visibility-heavy, indirect diffuse, and unsupported
      fallback workloads.
 
-2. **Capture CPU, hybrid, and GPU metrics.**
+2. ~~**Capture CPU, hybrid, and GPU metrics.**~~ ✅ **Done.**
    - Depends on: job 1.
-   - Output: render time, upload/readback time, kernel time, scene compile time,
-     rays/sec, resident bytes, and fallback rate.
+   - Output: `benchmarks/WavefrontIntersectionBackendBenchmark.cpp` now emits
+     comparable `tracing_*` counters for render time, upload/readback time,
+     kernel time, scene compile time, rays/sec, resident bytes, and fallback
+     rate across CPU, hybrid/packed, GPU, and fallback rows; the counter
+     contract is documented in
+     `docs/perf/tracing-backend-benchmark-scenes-2026-06-15.md`.
 
 3. **Define auto-selection policy.**
    - Depends on: job 2.

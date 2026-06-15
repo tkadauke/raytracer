@@ -84,6 +84,29 @@ rows, automatic backend rows, `IntersectionService` rows, mixed query-family
 rows, explicit GPU rows when the platform backend is enabled, and the
 unsupported GPU fallback row.
 
+## Comparable Metric Fields
+
+The C++ benchmark rows publish a common `tracing_*` counter set so CPU,
+hybrid/packed, platform GPU, and fallback rows can be compared without
+renaming backend-specific fields:
+
+| Counter | Meaning |
+| --- | --- |
+| `tracing_render_seconds` | Per-iteration measured query/render work for the row. |
+| `tracing_upload_readback_seconds` | Per-iteration upload plus readback time. |
+| `tracing_upload_seconds` | Per-iteration upload or preparation time. |
+| `tracing_kernel_seconds` | Per-iteration traversal/kernel time. |
+| `tracing_readback_seconds` | Per-iteration readback time. |
+| `tracing_scene_compile_seconds` | One-shot supported-scene compile and pack time for the workload. |
+| `tracing_rays_per_second` | Submitted rays divided by `tracing_render_seconds`. |
+| `tracing_resident_bytes` | Backend-resident scene/frontier byte estimate for the row. |
+| `tracing_fallback_rate` | `1.0` when the row is an explicit fallback, otherwise `0.0`. |
+
+Platform-unavailable GPU rows still report their request, selected backend,
+availability, execution path, and fallback reason through the existing
+backend-specific counters. The normalized fallback rate makes those rows
+machine-comparable with available GPU and CPU rows.
+
 ## Initial Use
 
 This document defines the benchmark scenes only. It intentionally does not set
