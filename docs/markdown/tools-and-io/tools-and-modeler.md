@@ -180,6 +180,47 @@ boundary, split by closest-hit and any-hit query family, then splits submitted
 intersection rays into closest-hit and any-hit ray counts, so a batched shadow
 query can report one any-hit query while still showing how many visibility rays
 were submitted.
+Hybrid visibility and ray-traced raster preview shadows use that same
+intersection backend surface, but only for visibility queries. They are not
+full GPU path tracing modes. `--render_graph_aov_out
+hybrid_visibility=visibility.png` requests a graph AOV that submits primary
+closest-hit debug rays through `render::IntersectionService`; `--shadow_mode
+ray_traced` requests a raster shadow-mask pass that submits bounded any-hit
+shadow rays through the service and composites the mask over raster beauty. In
+both cases, the CPU still owns graph scheduling, camera and sample setup,
+material and texture evaluation, light sampling, BSDF evaluation, path state,
+continuation generation, accumulation, tonemapping, and final image output.
+A platform GPU execution path in the trace therefore means the closest-hit or
+any-hit query batch ran on Metal/Vulkan, not that the full frame was shaded or
+path traced on the GPU.
+
+The smallest headless checks are:
+
+```sh
+$ rendercli --engine raster --shadow_mode ray_traced \
+            --wavefront_intersection_backend gpu \
+            --render_graph_trace_out trace.json \
+            --wavefront_metrics_summary \
+            test/fixtures/rendercli/raster_shadow_caster.json \
+            shadow.png
+
+$ rendercli --engine raster \
+            --render_graph_aov_out hybrid_visibility=visibility.png \
+            --wavefront_intersection_backend gpu \
+            --render_graph_trace_out trace.json \
+            test/fixtures/rendercli/raster_shadow_caster.json \
+            raster.png
+```
+
+After either command, inspect `trace.json` or the compact metrics summary for
+the requested backend, selected backend, closest-hit and any-hit execution
+paths, query counts, unsupported-scene counts, and fallback reason. Normal
+fallback reasons include CPU policy selection, missing platform device or
+render-path kernels, unsupported scene leaves, unsupported closest-hit or
+any-hit kernels, platform preparation or dispatch failure, malformed result
+counts, and runtime-only material or continuation semantics. Unsupported scenes
+fall back to the full runtime CPU path rather than producing a partial GPU
+visibility result.
 For path-tracing renders, the same diagnostics identify mixed query depths,
 where closest-hit frontier batches and direct-light any-hit chunks both ran.
 Those counts make the future GPU-resident frontier opportunity visible before
@@ -710,6 +751,16 @@ compiled-scene primitive, BVH, and unsupported-leaf counts, and it marks when
 the packed closest-hit or packed any-hit path is eligible for the compiled
 scene. Unsupported compiled fallbacks report zero scene-upload bytes because the
 backend did not retain packed GPU upload buffers.
+The same distinction applies to Modeler's hybrid visibility surfaces. For a
+preview, choose `Render -> Preview Engine -> Rasterizer`, enable preview
+shadows, and select the ray-traced shadow mode when that control is available.
+For an explicit debug image, choose `Render -> Preview View -> Hybrid
+visibility`. Selecting the resulting graph pass or resource in the Render Graph
+dock shows whether the hybrid pass used a platform backend, packed CPU parity
+traversal, or runtime CPU fallback. The pass details report the visibility
+query execution path and fallback reason; they should not be read as full GPU
+path-tracing capability unless shading, sampling, path-state, and accumulation
+capability records also move to GPU-owned paths.
 The final render dialog intentionally keeps its engine list user-facing:
 Raytracer, Path Tracer, Rasterizer, and Wireframe. Wavefront path tracing is
 selected as the Path Tracer schedule rather than as a second top-level engine,
