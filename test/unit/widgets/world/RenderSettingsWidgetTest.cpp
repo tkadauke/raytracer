@@ -161,8 +161,23 @@ namespace RenderSettingsWidgetTest {
     EXPECT_EQ(QString("Scene settings"), widget.denoiser());
     EXPECT_EQ(2, widget.denoiseRadius());
     EXPECT_DOUBLE_EQ(0.1, widget.denoiseColorSigma());
+    EXPECT_EQ(QString("Auto"), widget.tracingExecution());
     EXPECT_EQ(QString("Auto"), widget.wavefrontIntersectionBackend());
     EXPECT_EQ(1, widget.directLightSamples());
+  }
+
+  TEST_F(RenderSettingsWidgetTest, ShouldExposeTracingExecutionValues) {
+    RenderSettingsWidget widget;
+    auto tracingExecution = widget.findChild<QComboBox*>("tracingExecution");
+    ASSERT_NE(nullptr, tracingExecution);
+
+    EXPECT_NE(-1, tracingExecution->findText("Auto"));
+    EXPECT_NE(-1, tracingExecution->findText("CPU"));
+    EXPECT_NE(-1, tracingExecution->findText("Hybrid"));
+    EXPECT_NE(-1, tracingExecution->findText("GPU"));
+
+    tracingExecution->setCurrentText("Hybrid");
+    EXPECT_EQ(QString("Hybrid"), widget.tracingExecution());
   }
 
   TEST_F(RenderSettingsWidgetTest, ShouldReadRayDenoiserControls) {
@@ -193,6 +208,7 @@ namespace RenderSettingsWidgetTest {
     RenderSettingsWidget widget;
     auto engineType = widget.findChild<QComboBox*>("engineType");
     auto schedule = widget.findChild<QComboBox*>("pathTracingSchedule");
+    auto tracingExecution = widget.findChild<QComboBox*>("tracingExecution");
     auto intersectionBackend = widget.findChild<QComboBox*>("wavefrontIntersectionBackend");
     auto directLightSamples = widget.findChild<QSpinBox*>("pathTracerDirectLightSamples");
     auto denoiser = widget.findChild<QComboBox*>("rayDenoiser");
@@ -200,6 +216,7 @@ namespace RenderSettingsWidgetTest {
     auto colorSigma = widget.findChild<QDoubleSpinBox*>("rayDenoiseColorSigma");
     ASSERT_NE(nullptr, engineType);
     ASSERT_NE(nullptr, schedule);
+    ASSERT_NE(nullptr, tracingExecution);
     ASSERT_NE(nullptr, intersectionBackend);
     ASSERT_NE(nullptr, directLightSamples);
     ASSERT_NE(nullptr, denoiser);
@@ -207,6 +224,7 @@ namespace RenderSettingsWidgetTest {
     ASSERT_NE(nullptr, colorSigma);
 
     EXPECT_TRUE(directLightSamples->isHidden());
+    EXPECT_TRUE(tracingExecution->isHidden());
     EXPECT_FALSE(intersectionBackend->isHidden());
     EXPECT_TRUE(denoiser->isHidden());
     EXPECT_TRUE(radius->isHidden());
@@ -215,11 +233,22 @@ namespace RenderSettingsWidgetTest {
     engineType->setCurrentText("Path Tracer");
     EXPECT_FALSE(schedule->isHidden());
     EXPECT_FALSE(directLightSamples->isHidden());
-    EXPECT_FALSE(intersectionBackend->isHidden());
+    EXPECT_FALSE(tracingExecution->isHidden());
+    EXPECT_TRUE(intersectionBackend->isHidden());
     EXPECT_FALSE(denoiser->isHidden());
     EXPECT_TRUE(radius->isHidden());
     EXPECT_TRUE(colorSigma->isHidden());
 
+    tracingExecution->setCurrentText("Hybrid");
+    EXPECT_FALSE(intersectionBackend->isHidden());
+
+    tracingExecution->setCurrentText("CPU");
+    EXPECT_TRUE(intersectionBackend->isHidden());
+
+    tracingExecution->setCurrentText("GPU");
+    EXPECT_TRUE(intersectionBackend->isHidden());
+
+    tracingExecution->setCurrentText("Hybrid");
     denoiser->setCurrentText("Box");
     EXPECT_FALSE(radius->isHidden());
     EXPECT_TRUE(colorSigma->isHidden());
@@ -230,6 +259,7 @@ namespace RenderSettingsWidgetTest {
 
     schedule->setCurrentText("Scalar");
     EXPECT_FALSE(directLightSamples->isHidden());
+    EXPECT_FALSE(tracingExecution->isHidden());
     EXPECT_TRUE(intersectionBackend->isHidden());
     EXPECT_TRUE(denoiser->isHidden());
     EXPECT_TRUE(radius->isHidden());
@@ -238,6 +268,7 @@ namespace RenderSettingsWidgetTest {
     engineType->setCurrentText("Raytracer");
     EXPECT_TRUE(schedule->isHidden());
     EXPECT_TRUE(directLightSamples->isHidden());
+    EXPECT_TRUE(tracingExecution->isHidden());
     EXPECT_FALSE(intersectionBackend->isHidden());
     EXPECT_TRUE(denoiser->isHidden());
     EXPECT_TRUE(radius->isHidden());
@@ -253,6 +284,7 @@ namespace RenderSettingsWidgetTest {
     options.setSamplesPerPixel(9);
     options.setMaximumRecursionDepth(12);
     options.setDirectLightSamples(5);
+    options.setTracingExecution(engine::graph::TracingExecutionPreference::Hybrid);
     options.setIntersectionBackend("gpu");
     options.setDenoiser("bilateral");
     options.setDenoiseRadius(4);
@@ -266,6 +298,7 @@ namespace RenderSettingsWidgetTest {
     EXPECT_EQ(9, widget.samplesPerPixel());
     EXPECT_EQ(12, widget.maxRecursionDepth());
     EXPECT_EQ(5, widget.directLightSamples());
+    EXPECT_EQ(QString("Hybrid"), widget.tracingExecution());
     EXPECT_EQ(QString("GPU"), widget.wavefrontIntersectionBackend());
     EXPECT_TRUE(widget.denoiserOverrideEnabled());
     EXPECT_EQ(QString("Bilateral"), widget.denoiser());

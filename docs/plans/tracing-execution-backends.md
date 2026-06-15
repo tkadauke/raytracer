@@ -2068,8 +2068,11 @@ manually request internal graph nodes.
 
 4. **Update Modeler Render Settings.**
    - Depends on: jobs 1, 2, and 3.
-   - Output: grouped controls expose tracing execution without making internal
-     backend services the primary user model.
+   - Output: ~~grouped controls expose tracing execution without making internal
+     backend services the primary user model.~~ ✅ **Done.** Issue #621 adds
+     Modeler Render Settings controls for `auto`, `cpu`, `hybrid`, and `gpu`
+     tracing execution, while keeping the intersection backend as a
+     hybrid-only advanced override.
 
 5. **Show predicted and actual graph execution.**
    - Depends on: jobs 2 and 4.
