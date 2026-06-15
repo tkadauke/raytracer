@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Added tracing backend benchmark scene definitions and a rendercli capture
+  wrapper for small primitive, large mesh, visibility-heavy, indirect diffuse,
+  and unsupported fallback workloads, closing roadmap E12 job 1. — GPT-5 Codex
 - Added GPU tracing texture record compilation for `ConstantColorTexture` with
   explicit unsupported texture reason diagnostics; advances E3 job 3.
   — GPT-5 Codex

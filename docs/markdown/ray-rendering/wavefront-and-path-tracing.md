@@ -538,6 +538,16 @@ directly. Frontier-compaction benchmark rows run through the backend's
 GPU-compaction-support counters, so the current CPU compaction path has a
 baseline before a device-side compaction kernel exists.
 
+Tracing backend performance captures use the same workload families in
+rendercli form: small supported primitives, a generated large triangle mesh,
+visibility-heavy area-light blockers, indirect diffuse bounce, and an
+unsupported fallback scene. The capture wrapper runs CPU, automatic, and
+explicit GPU-request modes where the scene is supported, then keeps the
+transparent-material fallback as an explicit GPU request so the metrics show
+why runtime CPU execution was selected. The scene list and command surface live
+in
+[`docs/perf/tracing-backend-benchmark-scenes-2026-06-15.md`](../../perf/tracing-backend-benchmark-scenes-2026-06-15.md).
+
 The GPU tracing accumulation layout is defined separately from the
 intersection-query layout. `TracingAccumulationLayout` describes four
 image-shaped planes that future accumulation backends must allocate with the
@@ -683,6 +693,9 @@ choices become inspectable user-facing metadata.
 - `src/widgets/world/RenderGraphInspectorWidget.cpp`
 - `tools/rendercli/rendercli.cpp`
 - `benchmarks/WavefrontIntersectionBackendBenchmark.cpp`
+- `benchmarks/tracing_backend_capture.sh`
+- `benchmarks/scenes/tracing_backend_benchmark_scenes.json`
+- `docs/perf/tracing-backend-benchmark-scenes-2026-06-15.md`
 - `scripts/docs/wavefront_intersection_backend.js`
 - `scenes/wavefront_indirect_bounce_demo.json`
 - `scenes/wavefront_denoise_demo.json`
