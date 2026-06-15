@@ -68,7 +68,12 @@
     {
       "name": "benchmark",
       "inherits": "release",
-      "cacheVariables": { "RAYTRACER_BUILD_BENCHMARKS": "ON" }
+      "cacheVariables": {
+        "RAYTRACER_BUILD_BENCHMARKS": "ON",
+        "RAYTRACER_BUILD_MODELER": "OFF",
+        "RAYTRACER_BUILD_TESTS": "OFF",
+        "RAYTRACER_BUILD_TOOLS": "OFF"
+      }
     },
     {
       "name": "benchmark-metal-wavefront",
