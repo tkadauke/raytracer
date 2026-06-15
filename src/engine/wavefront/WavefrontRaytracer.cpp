@@ -46,6 +46,19 @@ namespace engine::wavefront {
       }
     }
 
+    void mergeAccumulationDiagnostics(render::TracingAccumulationDiagnostics& target,
+                                      const render::TracingAccumulationDiagnostics& source) {
+      mergeLabel(target.backend, source.backend);
+      mergeLabel(target.residency, source.residency);
+      target.residentBytes = std::max(target.residentBytes, source.residentBytes);
+      target.clearOperations += source.clearOperations;
+      target.addOperations += source.addOperations;
+      target.addedSamples += source.addedSamples;
+      target.resolveOperations += source.resolveOperations;
+      target.readbackOperations += source.readbackOperations;
+      target.readbackBytes += source.readbackBytes;
+    }
+
     class RecursiveRayCasterAdapter : public render::RayCaster {
     public:
       RecursiveRayCasterAdapter(const render::Scene& scene, const render::Integrator& integrator)
@@ -401,6 +414,14 @@ namespace engine::wavefront {
     frontierCompactionRemovedHostPathStateBytes +=
       metrics.frontierCompactionRemovedHostPathStateBytes;
     mergeLabel(frontierCompactionExecutionPath, metrics.frontierCompactionExecutionPath);
+    if (metrics.residentPathLoopAccumulation) {
+      if (!residentPathLoopAccumulation) {
+        residentPathLoopAccumulation = *metrics.residentPathLoopAccumulation;
+      } else {
+        mergeAccumulationDiagnostics(*residentPathLoopAccumulation,
+                                     *metrics.residentPathLoopAccumulation);
+      }
+    }
     compatibilityShadeSamples += metrics.compatibilityShadeSamples;
     unsupportedPathMaterialSamples += metrics.unsupportedPathMaterialSamples;
     emitterHitSamples += metrics.emitterHitSamples;

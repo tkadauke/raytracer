@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Added resident path-loop image resolve through the tracing accumulation
+  buffer, with accumulation resolve/readback diagnostics surfaced through
+  wavefront metrics for roadmap E9 job 4. — GPT-5 Codex
 - Added a CPU-reference resident diffuse path loop over GPU path-state records,
   including active/next ping-pong, max-depth termination, Russian roulette via
   the GPU sample stream, and fixed-seed record parity diagnostics for roadmap

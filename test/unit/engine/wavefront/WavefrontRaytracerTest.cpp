@@ -2358,6 +2358,42 @@ namespace WavefrontRaytracerTest {
                      batching.value("compatibilityShadeRadianceLuminanceSum").toDouble());
   }
 
+  TEST(WavefrontRaytracer, SerializesResidentPathLoopAccumulationMetrics) {
+    engine::wavefront::WavefrontRenderMetrics metrics;
+    render::IntegratorBatchMetrics batch;
+    batch.reset(/*scalarFallback=*/false);
+
+    const render::TracingAccumulationLayout layout = render::TracingAccumulationLayout::image(4, 3);
+    render::TracingAccumulationDiagnostics diagnostics =
+      render::TracingAccumulationDiagnostics::forLayout(
+        layout, "gpu_resident_path_loop", "resident_accumulation_resolve");
+    diagnostics.recordClear();
+    diagnostics.recordAdd(/*samples=*/7, /*operations=*/1);
+    diagnostics.recordResolve();
+    diagnostics.recordReadback(layout.resolveBytes());
+    batch.recordResidentPathLoopAccumulation(diagnostics);
+
+    metrics.batching.addIntegratorMetrics(batch);
+    ASSERT_TRUE(metrics.batching.residentPathLoopAccumulation);
+    metrics.accumulation.diagnostics = *metrics.batching.residentPathLoopAccumulation;
+
+    const QJsonObject accumulation = metrics.toJson().value("accumulation").toObject();
+    EXPECT_EQ("gpu_resident_path_loop",
+              accumulation.value("backend").toString().toStdString());
+    EXPECT_EQ("resident_accumulation_resolve",
+              accumulation.value("residency").toString().toStdString());
+    EXPECT_EQ(12.0, accumulation.value("pixelCount").toDouble());
+    EXPECT_EQ(static_cast<double>(layout.totalBytes()),
+              accumulation.value("residentBytes").toDouble());
+    EXPECT_EQ(1.0, accumulation.value("clearOperations").toDouble());
+    EXPECT_EQ(1.0, accumulation.value("addOperations").toDouble());
+    EXPECT_EQ(7.0, accumulation.value("addedSamples").toDouble());
+    EXPECT_EQ(1.0, accumulation.value("resolveOperations").toDouble());
+    EXPECT_EQ(1.0, accumulation.value("readbackOperations").toDouble());
+    EXPECT_EQ(static_cast<double>(layout.resolveBytes()),
+              accumulation.value("readbackBytes").toDouble());
+  }
+
   TEST(WavefrontRaytracer, MetricsRecordPerPixelSampleRadianceVariance) {
     auto renderCamera = camera();
     auto sampler = std::make_shared<render::HaltonSampler>();

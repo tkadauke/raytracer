@@ -2,6 +2,7 @@
 
 #include "core/Color.h"
 #include "core/math/Ray.h"
+#include "render/TracingAccumulationLayout.h"
 #include "render/WavefrontIntersectionQueryTiming.h"
 
 #include <cstddef>
@@ -189,6 +190,7 @@ namespace render {
     std::uint64_t frontierCompactionRetainedHostPathStateBytes{0};
     std::uint64_t frontierCompactionRemovedHostPathStateBytes{0};
     std::string frontierCompactionExecutionPath;
+    std::optional<TracingAccumulationDiagnostics> residentPathLoopAccumulation;
 
     void reset(bool scalarFallback);
     void mergeFrom(const IntegratorBatchMetrics& source);
@@ -206,6 +208,7 @@ namespace render {
                                   std::uint64_t removedHostPathStateBytes = 0);
     void recordHostFrontierCompaction(std::uint64_t inputSamples, std::uint64_t retainedSamples,
                                       std::uint64_t movedSamples);
+    void recordResidentPathLoopAccumulation(const TracingAccumulationDiagnostics& diagnostics);
     [[nodiscard]] double frontierCompactionRemovedSampleFraction() const;
     [[nodiscard]] double frontierCompactionMovedRetainedSampleFraction() const;
     [[nodiscard]] bool hasCompactionCandidateDepth(std::size_t depth) const;

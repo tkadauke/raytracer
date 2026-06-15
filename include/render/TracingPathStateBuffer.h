@@ -2,6 +2,7 @@
 
 #include "core/Color.h"
 #include "core/math/Ray.h"
+#include "render/TracingAccumulationLayout.h"
 
 #include <array>
 #include <cstddef>
@@ -11,7 +12,12 @@
 #include <string>
 #include <vector>
 
+template<class T>
+class Buffer;
+
 namespace render {
+  class Tonemap;
+
   inline constexpr std::uint32_t gpuPathStateLayoutVersion = 1u;
 
   enum class TracingPathStateFormat { GpuPathStateRecordV1 };
@@ -172,6 +178,11 @@ namespace render {
   loopResidentDiffusePaths(TracingPathStateBuffers& buffers,
                            const ResidentPathLoopSettings& settings,
                            const ResidentDiffusePathStep& step);
+
+  [[nodiscard]] TracingAccumulationDiagnostics
+  resolveResidentPathLoopImage(const std::vector<GpuPathStateRecord>& records,
+                               const TracingAccumulationLayout& layout,
+                               Buffer<unsigned int>& target, const Tonemap* tonemap = nullptr);
 
   [[nodiscard]] std::size_t bytesPerPathState(TracingPathStateFormat format);
   [[nodiscard]] const char* toString(TracingPathStateFormat format);
