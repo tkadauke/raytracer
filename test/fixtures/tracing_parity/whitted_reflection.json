@@ -1,0 +1,142 @@
+{
+  "id": "tracing-parity-whitted-reflection",
+  "name": "Tracing Parity Whitted Reflection",
+  "ambient": [0.0, 0.0, 0.0],
+  "background": [0.03, 0.04, 0.06],
+  "type": "Scene",
+  "renderIntent": {
+    "defaultExecutor": "wavefront",
+    "defaultViewMode": "beauty",
+    "defaultCamera": {
+      "sceneCameraId": "camera"
+    },
+    "engineOptions": {
+      "raytracer": {
+        "execution": {
+          "integrator": "whitted",
+          "maxRecursionDepth": 3
+        },
+        "sampling": {
+          "sampler": "Regular",
+          "samplesPerPixel": 1
+        }
+      }
+    }
+  },
+  "children": [
+    {
+      "id": "camera",
+      "name": "Camera",
+      "position": [0.0, 0.45, -4.5],
+      "target": [0.0, -0.15, 0.45],
+      "distance": 4.0,
+      "zoom": 1.3,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "key-light",
+      "name": "Key Light",
+      "position": [-2.5, 2.5, -2.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "color": [1.0, 0.96, 0.9],
+      "intensity": 1.4,
+      "type": "PointLight",
+      "children": []
+    },
+    {
+      "id": "mirror-texture",
+      "name": "Mirror Base Texture",
+      "color": [0.02, 0.02, 0.025],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "red-texture",
+      "name": "Reflected Red Texture",
+      "color": [0.9, 0.12, 0.08],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "floor-texture",
+      "name": "Floor Texture",
+      "color": [0.68, 0.7, 0.72],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "mirror-material",
+      "name": "Mirror Ball",
+      "diffuseTexture": "mirror-texture",
+      "ambientCoefficient": 0.0,
+      "diffuseCoefficient": 0.05,
+      "specularCoefficient": 0.15,
+      "specularExponent": 80.0,
+      "reflectionColor": [1.0, 1.0, 1.0],
+      "reflectionCoefficient": 0.75,
+      "type": "ReflectiveMaterial",
+      "children": []
+    },
+    {
+      "id": "red-material",
+      "name": "Reflected Red Matte",
+      "diffuseTexture": "red-texture",
+      "ambientCoefficient": 0.1,
+      "diffuseCoefficient": 0.9,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "floor-material",
+      "name": "Matte Floor",
+      "diffuseTexture": "floor-texture",
+      "ambientCoefficient": 0.05,
+      "diffuseCoefficient": 0.95,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "mirror-sphere",
+      "name": "Mirror Sphere",
+      "position": [0.0, -0.1, 0.45],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "mirror-material",
+      "radius": 0.7,
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Sphere",
+      "children": []
+    },
+    {
+      "id": "reflected-sphere",
+      "name": "Reflected Red Sphere",
+      "position": [1.05, -0.25, -0.45],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "red-material",
+      "radius": 0.35,
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Sphere",
+      "children": []
+    },
+    {
+      "id": "floor",
+      "name": "Matte Floor",
+      "position": [-2.5, -0.8, -1.6],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "floor-material",
+      "leg1": [0.0, 0.0, 4.8],
+      "leg2": [5.0, 0.0, 0.0],
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Rectangle",
+      "children": []
+    }
+  ]
+}
