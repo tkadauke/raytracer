@@ -96,6 +96,35 @@ lighting decisions. That is why the source anchors for this chapter
 include both the CPU integrator/scheduler code and the intersection
 service, packed scene, metrics, and rendercli parity tests.
 
+The comparison below holds the wavefront path-tracing algorithm, sample
+stream, seed, dimensions, and supported matte scene fixed while changing only
+the requested intersection backend. The `cpu` render is the runtime-scene
+reference. The `auto` render shows the policy-selected path for the same work:
+CPU when the scene or expected ray count is not worth a GPU handoff, or a
+prepared platform path when the build and device make that useful. The `gpu`
+request is the hybrid GPU-intersection candidate: the CPU still owns path
+state and shading, while supported closest-hit and any-hit frontiers run
+through packed CPU, Metal, or Vulkan execution depending on platform support.
+
+| CPU backend request | Automatic backend policy | GPU-intersection request |
+|---|---|---|
+| ![CPU wavefront path-tracing backend comparison render](../../images/tracing_backend_comparison_cpu.png) | ![Automatic backend wavefront path-tracing comparison render](../../images/tracing_backend_comparison_auto.png) | ![GPU-requested wavefront path-tracing comparison render](../../images/tracing_backend_comparison_gpu_request.png) |
+
+Regenerate the images and their metrics sidecars with:
+
+```bash
+rake docs:render[wavefront_path_tracing]
+```
+
+The driver writes
+`docs/images/tracing_backend_comparison_{cpu,auto,gpu_request}.png` and matching
+`*_metrics.json` files. Inspect each `runs[].metrics.batching` object's
+`intersectionBackendRequest`,
+`intersectionBackend`, `intersectionBackendExecutionPath`,
+`intersectionBackendFallbackReason`, and
+`intersectionSceneUnsupportedPrimitives` in those metrics files to verify
+which execution path actually answered the ray queries for each image.
+
 ## <a id="visual-difference"></a>The visual difference
 The following three images render the same small scene. The red wall
 is directly lit. The floor and sphere are neutral.
@@ -766,6 +795,7 @@ choices become inspectable user-facing metadata.
 - `benchmarks/tracing_backend_capture.sh`
 - `benchmarks/scenes/tracing_backend_benchmark_scenes.json`
 - `docs/perf/tracing-backend-benchmark-scenes-2026-06-15.md`
+- `scripts/docs/wavefront_path_tracing.rb`
 - `scripts/docs/wavefront_intersection_backend.js`
 - `scenes/wavefront_indirect_bounce_demo.json`
 - `scenes/wavefront_denoise_demo.json`
