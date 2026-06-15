@@ -339,6 +339,62 @@ namespace GpuDirectLightWorkTest {
     EXPECT_FLOAT_EQ(1.0f, contribution.contribution[3]);
   }
 
+  TEST(GpuDirectLightCpuReference, NonDeltaContributionUsesPowerHeuristicMis) {
+    const GpuTracingSceneSections scene = oneMattePointLightScene();
+    GpuDirectLightWorkRecord work = oneMattePointLightWork();
+    work.surface.throughput = {0.5f, 0.25f, 1.0f, 1.0f};
+
+    const double normalDotOut = 0.6;
+    GpuDirectLightVisibilityRecord visibility;
+    visibility.workIndex = 5u;
+    visibility.lightIndex = 3u;
+    visibility.flags = gpuDirectLightVisibilityValid;
+    visibility.rayDirection = {0.8f, static_cast<float>(normalDotOut), 0.0f, 0.0f};
+    visibility.lightRadiance = {3.0f, 2.0f, 1.0f, 1.0f};
+    visibility.lightPdf = 0.75f;
+    visibility.selectionPdf = 0.25f;
+
+    const GpuDirectLightContributionRecord contribution =
+      makeGpuDirectLightCpuContributionRecord(scene, work, visibility);
+
+    const double bsdfPdf = normalDotOut * invPI;
+    const double lightPdfSquared = visibility.lightPdf * visibility.lightPdf;
+    const double bsdfPdfSquared = bsdfPdf * bsdfPdf;
+    const double misWeight = lightPdfSquared / (lightPdfSquared + bsdfPdfSquared);
+    const double estimatorScale = normalDotOut * misWeight / visibility.lightPdf;
+    const Colord bsdfValue(0.5 * 0.8 * invPI, 0.25 * 0.8 * invPI, 1.0 * 0.8 * invPI);
+    const Colord expected =
+      bsdfValue * Colord(3.0, 2.0, 1.0) * estimatorScale / visibility.selectionPdf *
+      Colord(0.5, 0.25, 1.0);
+
+    EXPECT_EQ(5u, contribution.workIndex);
+    EXPECT_EQ(3u, contribution.lightIndex);
+    EXPECT_EQ(gpuDirectLightContributionValid | gpuDirectLightContributionContributing,
+              contribution.flags);
+    EXPECT_NEAR(expected.r(), contribution.contribution[0], 1e-7);
+    EXPECT_NEAR(expected.g(), contribution.contribution[1], 1e-7);
+    EXPECT_NEAR(expected.b(), contribution.contribution[2], 1e-7);
+    EXPECT_FLOAT_EQ(1.0f, contribution.contribution[3]);
+  }
+
+  TEST(GpuDirectLightCpuReference, InvalidLightPdfDoesNotContribute) {
+    const GpuTracingSceneSections scene = oneMattePointLightScene();
+    const GpuDirectLightWorkRecord work = oneMattePointLightWork();
+    GpuDirectLightVisibilityRecord visibility =
+      makeGpuDirectLightCpuVisibilityRecord(scene, work, /*workIndex=*/0u);
+    visibility.flags = gpuDirectLightVisibilityValid;
+    visibility.lightPdf = 0.0f;
+
+    const GpuDirectLightContributionRecord contribution =
+      makeGpuDirectLightCpuContributionRecord(scene, work, visibility);
+
+    EXPECT_EQ(gpuDirectLightContributionValid, contribution.flags);
+    EXPECT_EQ(0u, contribution.flags & gpuDirectLightContributionContributing);
+    EXPECT_FLOAT_EQ(0.0f, contribution.contribution[0]);
+    EXPECT_FLOAT_EQ(0.0f, contribution.contribution[1]);
+    EXPECT_FLOAT_EQ(0.0f, contribution.contribution[2]);
+  }
+
   TEST(GpuDirectLightCpuReference, OccludedVisibilityResolvesToZeroContribution) {
     const GpuTracingSceneSections scene = oneMattePointLightScene();
     const GpuDirectLightWorkRecord work = oneMattePointLightWork();
