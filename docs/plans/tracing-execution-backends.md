@@ -1795,7 +1795,10 @@ compiled and what actually ran.
    - Output: commands showing CPU/hybrid/GPU requests, fallback reasons, and
      metrics to inspect.
 
-5. **Run textbook/source-map checks.**
+5. ~~**Run textbook/source-map checks.**~~ ✅ **Done.** Issue #627 verifies
+   `rake docs:textbook:check` and regenerates
+   `docs/markdown/appendix/c-source-map.md`; the generated source-map appendix
+   was already current.
    - Depends on: jobs 1 through 4.
    - Output: `rake docs:textbook:check`; source-map regeneration if anchors
      changed.
