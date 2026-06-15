@@ -432,6 +432,9 @@ compaction primitive.
 Today that execution path is `host` whenever a compaction pass runs. That makes
 the current CPU compaction contract explicit before any future kernel keeps the
 frontier resident on the GPU.
+The resident path-state layer mirrors the same contract with `uint32_t`
+retained indices, retained/removed/moved path counts, resident path-state byte
+totals, and an explicit execution-path label for future Metal/Vulkan kernels.
 Executed compaction also reports input, retained, and removed host path-state
 bytes. Those counters describe the CPU scheduler payload moved or discarded by
 the compaction pass itself, while the retained-index byte counter continues to
