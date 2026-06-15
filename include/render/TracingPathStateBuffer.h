@@ -6,6 +6,8 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -81,8 +83,8 @@ namespace render {
   class ResidentPathCompactionContract {
   public:
     static ResidentPathCompactionContract
-    fromRetainedIndices(std::uint64_t inputPathCount, std::vector<std::uint32_t> retainedPathIndices,
-                        std::string executionPath,
+    fromRetainedIndices(std::uint64_t inputPathCount,
+                        std::vector<std::uint32_t> retainedPathIndices, std::string executionPath,
                         std::uint64_t pathStateBytesPerPath = sizeof(GpuPathStateRecord));
 
     [[nodiscard]] std::uint64_t inputPathCount() const;
@@ -105,8 +107,8 @@ namespace render {
                                    std::uint64_t movedPathCount, std::string executionPath,
                                    std::uint64_t pathStateBytesPerPath);
 
-    static void validateRetainedPathIndices(
-      std::uint64_t inputPathCount, const std::vector<std::uint32_t>& retainedPathIndices);
+    static void validateRetainedPathIndices(std::uint64_t inputPathCount,
+                                            const std::vector<std::uint32_t>& retainedPathIndices);
     static std::uint64_t movedPathCountFor(const std::vector<std::uint32_t>& retainedPathIndices);
 
     std::uint64_t m_inputPathCount{0};
@@ -143,6 +145,33 @@ namespace render {
     std::vector<GpuPathStateRecord> m_next;
     TracingPathStateDiagnostics m_diagnostics;
   };
+
+  struct ResidentPathLoopSettings {
+    std::uint32_t maxDepth{8};
+    std::uint32_t russianRouletteDepth{3};
+  };
+
+  struct ResidentPathLoopDepthDiagnostics {
+    std::uint32_t depth{0};
+    std::uint64_t inputPathCount{0};
+    std::vector<GpuPathStateRecord> retainedRecords;
+    ResidentPathCompactionContract compaction =
+      ResidentPathCompactionContract::fromRetainedIndices(0, {}, "gpu_resident_path_loop");
+  };
+
+  struct ResidentPathLoopDiagnostics {
+    std::vector<ResidentPathLoopDepthDiagnostics> depths;
+    std::uint64_t finalActiveCount{0};
+    TracingPathStateDiagnostics buffers;
+  };
+
+  using ResidentDiffusePathStep = std::function<std::optional<GpuPathStateRecord>(
+    const GpuPathStateRecord& record, std::uint32_t depth)>;
+
+  [[nodiscard]] ResidentPathLoopDiagnostics
+  loopResidentDiffusePaths(TracingPathStateBuffers& buffers,
+                           const ResidentPathLoopSettings& settings,
+                           const ResidentDiffusePathStep& step);
 
   [[nodiscard]] std::size_t bytesPerPathState(TracingPathStateFormat format);
   [[nodiscard]] const char* toString(TracingPathStateFormat format);

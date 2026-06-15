@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Added a CPU-reference resident diffuse path loop over GPU path-state records,
+  including active/next ping-pong, max-depth termination, Russian roulette via
+  the GPU sample stream, and fixed-seed record parity diagnostics for roadmap
+  E9 job 3. — GPT-5 Codex
 - Added `ResidentPathCompactionContract` for GPU-resident path loop planning,
   covering retained indices, removed and moved counts, resident byte totals,
   and execution-path labels for roadmap E9 job 2. — GPT-5 Codex
