@@ -4,6 +4,7 @@
 #include "engine/graph/RenderAOV.h"
 #include "engine/graph/RenderExecutor.h"
 #include "engine/graph/RenderPassState.h"
+#include "core/json/JsonValue.h"
 
 #include <QJsonArray>
 
@@ -287,7 +288,7 @@ namespace engine::graph {
     }
 
     QJsonArray vectorToJson(const Vector3d& value) {
-      return QJsonArray{value.x(), value.y(), value.z()};
+      return core::json::vector3ToJsonArray(value);
     }
 
     Vector3d vectorFromJson(const QJsonValue& value, const std::string& path) {
@@ -300,7 +301,7 @@ namespace engine::graph {
         if (!array.at(i).isDouble())
           jsonError(path + "[" + std::to_string(i) + "]", "expected number");
       }
-      return Vector3d(array.at(0).toDouble(), array.at(1).toDouble(), array.at(2).toDouble());
+      return core::json::vector3FromJsonArray(array);
     }
 
     QJsonArray matrixToJson(const Matrix4d& value) {

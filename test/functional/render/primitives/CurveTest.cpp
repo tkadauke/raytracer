@@ -3,6 +3,7 @@
 #include "core/Buffer.h"
 #include "core/geometry/AttributeColorMap.h"
 #include "core/geometry/Polyline.h"
+#include "core/json/JsonValue.h"
 #include "engine/raster/Rasterizer.h"
 #include "engine/wireframe/Wireframe.h"
 #include "render/cameras/PinholeCamera.h"
@@ -35,7 +36,7 @@ namespace CurveFunctionalTest {
       const QJsonArray array = value.toArray();
       if (array.size() != 3)
         throw std::runtime_error("vector attribute must contain three values");
-      return Vector3d(array[0].toDouble(), array[1].toDouble(), array[2].toDouble());
+      return core::json::vector3FromJsonArray(array);
     }
     throw std::runtime_error("unsupported curve fixture attribute value");
   }
@@ -65,7 +66,7 @@ namespace CurveFunctionalTest {
       const QJsonArray point = value.toArray();
       if (point.size() != 3)
         throw std::runtime_error("curve fixture points must be three-dimensional");
-      points.emplace_back(point[0].toDouble(), point[1].toDouble(), point[2].toDouble());
+      points.push_back(core::json::vector3FromJsonArray(point));
     }
 
     core::Polyline polyline(points);
