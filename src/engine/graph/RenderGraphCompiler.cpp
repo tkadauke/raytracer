@@ -56,40 +56,6 @@ namespace engine::graph {
       }
     }
 
-    RenderPassNode aovProducerPass(const RenderAOVDefinition& aov, RenderExecutorKind executor,
-                                   const SceneView& sceneView, bool mainPass,
-                                   const RenderTargetSpec& target, const RenderIntent& intent) {
-      const auto* executorDefinition = renderExecutorDefinition(executor);
-      if (!executorDefinition) {
-        throw std::runtime_error("executor cannot produce AOV pass");
-      }
-      if (!aov.supportsExecutor(executor)) {
-        throw std::runtime_error("view mode '" + std::string(toString(aov.viewMode())) +
-                                 "' is not supported by executor '" +
-                                 std::string(toString(executor)) + "'");
-      }
-      RenderPassNode pass;
-      pass.id = aov.resourceId();
-      pass.name = aov.title() + " AOV";
-      pass.kind = RenderPassKind::AOV;
-      pass.executor = executor;
-      pass.features = mainPass ? std::vector<RenderFeatureKind>{"main", "aov", aov.feature(),
-                                                                executorDefinition->feature()}
-                               : std::vector<RenderFeatureKind>{"aov", "export", aov.feature(),
-                                                                executorDefinition->feature()};
-      pass.sceneView = sceneView;
-      pass.disabledBehavior = DisabledBehavior::SubstituteDefault;
-      pass.concurrency = RenderConcurrencyLimit::serial();
-      pass.canRunConcurrently = pass.concurrency.allowsParallelExecution();
-      applyEngineOptionsToPass(pass, aov.usesRasterTargetSampling() ? target.sampleCount : 1,
-                               intent);
-      if (aov.usesRaytracerPassState()) {
-        intent.engineOptions.raytracer().beautyPassState().writeTo(pass);
-      }
-      aov.configureProducerPass(pass);
-      return pass;
-    }
-
     RenderPassNode aovVisualizationPass(const RenderAOVDefinition& aov,
                                         const RenderResourceId& inputResource,
                                         const RenderResourceId& outputResource, bool mainPass) {
@@ -122,6 +88,176 @@ namespace engine::graph {
       }
       return pass.kind == RenderPassKind::Beauty || pass.kind == RenderPassKind::AOV;
     }
+
+    struct TracingExecutionDecision {
+      TracingExecutionPreference requested{TracingExecutionPreference::Auto};
+      TracingExecutionPreference predicted{TracingExecutionPreference::CPU};
+      render::WavefrontIntersectionBackendChoice intersectionBackend =
+        render::WavefrontIntersectionBackendChoice::automatic();
+      bool overrideIntersectionBackend{false};
+      std::string fallbackReason;
+    };
+
+    bool isTracingExecutor(RenderExecutorKind executor) {
+      return executor == RenderExecutorKind::Raytracer || executor == RenderExecutorKind::Wavefront;
+    }
+
+    bool canUseHybridTracing(RenderExecutorKind executor) {
+      return executor == RenderExecutorKind::Wavefront;
+    }
+
+    bool canUseFullGpuTracing(const RenderSceneAnalysis& sceneAnalysis) {
+      return sceneAnalysis.fullGpuTracingSupported() &&
+             sceneAnalysis.fullGpuTracingBackendAvailable();
+    }
+
+    std::string fullGpuTracingFallbackReason(const RenderSceneAnalysis& sceneAnalysis) {
+      if (!sceneAnalysis.fullGpuTracingBackendAvailable()) {
+        return sceneAnalysis.fullGpuTracingBackendUnavailableReason();
+      }
+      return sceneAnalysis.fullGpuTracingUnsupportedReason();
+    }
+
+    TracingExecutionDecision resolveTracingExecution(const RenderIntent& intent,
+                                                     RenderExecutorKind executor,
+                                                     const RenderSceneAnalysis& sceneAnalysis) {
+      TracingExecutionDecision decision;
+      const auto requested = intent.engineOptions.raytracer().tracingExecution();
+      const auto intersectionBackend = intent.engineOptions.raytracer().intersectionBackend();
+      decision.requested = requested.value_or(TracingExecutionPreference::Auto);
+      if (intersectionBackend) {
+        decision.intersectionBackend = *intersectionBackend;
+      }
+
+      if (decision.requested == TracingExecutionPreference::CPU) {
+        if (intersectionBackend &&
+            intersectionBackend->kind() == render::WavefrontIntersectionBackendChoice::Kind::GPU) {
+          throw std::runtime_error(
+            "tracingExecution 'cpu' is incompatible with intersectionBackend 'gpu'");
+        }
+        decision.predicted = TracingExecutionPreference::CPU;
+        decision.intersectionBackend = render::WavefrontIntersectionBackendChoice::cpu();
+        decision.overrideIntersectionBackend = true;
+        return decision;
+      }
+
+      if (decision.requested == TracingExecutionPreference::GPU) {
+        if (intersectionBackend &&
+            intersectionBackend->kind() == render::WavefrontIntersectionBackendChoice::Kind::CPU &&
+            canUseFullGpuTracing(sceneAnalysis)) {
+          throw std::runtime_error(
+            "tracingExecution 'gpu' is incompatible with intersectionBackend 'cpu'");
+        }
+        if (canUseFullGpuTracing(sceneAnalysis)) {
+          decision.predicted = TracingExecutionPreference::GPU;
+          decision.intersectionBackend = render::WavefrontIntersectionBackendChoice::gpu();
+          decision.overrideIntersectionBackend = true;
+        } else if (canUseHybridTracing(executor)) {
+          decision.predicted = TracingExecutionPreference::Hybrid;
+          decision.intersectionBackend =
+            intersectionBackend.value_or(render::WavefrontIntersectionBackendChoice::gpu());
+          decision.overrideIntersectionBackend = !intersectionBackend.has_value();
+          decision.fallbackReason = fullGpuTracingFallbackReason(sceneAnalysis);
+        } else {
+          decision.predicted = TracingExecutionPreference::CPU;
+          decision.intersectionBackend = render::WavefrontIntersectionBackendChoice::cpu();
+          decision.overrideIntersectionBackend = true;
+          decision.fallbackReason = fullGpuTracingFallbackReason(sceneAnalysis);
+        }
+        return decision;
+      }
+
+      if (decision.requested == TracingExecutionPreference::Hybrid) {
+        if (canUseHybridTracing(executor)) {
+          if (intersectionBackend && intersectionBackend->kind() ==
+                                       render::WavefrontIntersectionBackendChoice::Kind::CPU) {
+            decision.predicted = TracingExecutionPreference::CPU;
+            decision.fallbackReason =
+              "hybrid tracing requested but the intersection backend is forced to CPU";
+          } else {
+            decision.predicted = TracingExecutionPreference::Hybrid;
+            decision.intersectionBackend =
+              intersectionBackend.value_or(render::WavefrontIntersectionBackendChoice::gpu());
+            decision.overrideIntersectionBackend = !intersectionBackend.has_value();
+          }
+        } else {
+          decision.predicted = TracingExecutionPreference::CPU;
+          decision.intersectionBackend = render::WavefrontIntersectionBackendChoice::cpu();
+          decision.overrideIntersectionBackend = true;
+          decision.fallbackReason = "hybrid tracing requires a wavefront tracing schedule";
+        }
+        return decision;
+      }
+
+      if (canUseFullGpuTracing(sceneAnalysis) && canUseHybridTracing(executor)) {
+        decision.predicted = TracingExecutionPreference::GPU;
+        decision.intersectionBackend = render::WavefrontIntersectionBackendChoice::gpu();
+        decision.overrideIntersectionBackend = !intersectionBackend.has_value();
+      } else if (canUseHybridTracing(executor) && intersectionBackend &&
+                 intersectionBackend->kind() ==
+                   render::WavefrontIntersectionBackendChoice::Kind::GPU) {
+        decision.predicted = TracingExecutionPreference::Hybrid;
+      } else {
+        decision.predicted = TracingExecutionPreference::CPU;
+      }
+      return decision;
+    }
+
+    void applyTracingExecutionDecision(RenderPassNode& pass,
+                                       const TracingExecutionDecision& decision) {
+      if (!isTracingExecutor(pass.executor)) {
+        return;
+      }
+      RaytracerBeautyPassState state = RaytracerBeautyPassState::valueFromPass(pass);
+      state.setPredictedTracingExecution(decision.predicted);
+      state.setTracingExecutionFallbackReason(decision.fallbackReason);
+      if (decision.overrideIntersectionBackend) {
+        state.setIntersectionBackend(decision.intersectionBackend);
+      }
+      state.writeTo(pass);
+      pass.features.push_back(std::string("tracing_execution_") +
+                              tracingExecutionPreferenceName(decision.predicted));
+      if (!decision.fallbackReason.empty()) {
+        pass.features.push_back("tracing_execution_fallback");
+      }
+    }
+
+    RenderPassNode aovProducerPass(const RenderAOVDefinition& aov, RenderExecutorKind executor,
+                                   const SceneView& sceneView, bool mainPass,
+                                   const RenderTargetSpec& target, const RenderIntent& intent,
+                                   const RenderSceneAnalysis& sceneAnalysis) {
+      const auto* executorDefinition = renderExecutorDefinition(executor);
+      if (!executorDefinition) {
+        throw std::runtime_error("executor cannot produce AOV pass");
+      }
+      if (!aov.supportsExecutor(executor)) {
+        throw std::runtime_error("view mode '" + std::string(toString(aov.viewMode())) +
+                                 "' is not supported by executor '" +
+                                 std::string(toString(executor)) + "'");
+      }
+      RenderPassNode pass;
+      pass.id = aov.resourceId();
+      pass.name = aov.title() + " AOV";
+      pass.kind = RenderPassKind::AOV;
+      pass.executor = executor;
+      pass.features = mainPass ? std::vector<RenderFeatureKind>{"main", "aov", aov.feature(),
+                                                                executorDefinition->feature()}
+                               : std::vector<RenderFeatureKind>{"aov", "export", aov.feature(),
+                                                                executorDefinition->feature()};
+      pass.sceneView = sceneView;
+      pass.disabledBehavior = DisabledBehavior::SubstituteDefault;
+      pass.concurrency = RenderConcurrencyLimit::serial();
+      pass.canRunConcurrently = pass.concurrency.allowsParallelExecution();
+      applyEngineOptionsToPass(pass, aov.usesRasterTargetSampling() ? target.sampleCount : 1,
+                               intent);
+      if (aov.usesRaytracerPassState()) {
+        intent.engineOptions.raytracer().beautyPassState().writeTo(pass);
+      }
+      aov.configureProducerPass(pass);
+      applyTracingExecutionDecision(pass,
+                                    resolveTracingExecution(intent, pass.executor, sceneAnalysis));
+      return pass;
+    }
   }
 
   RenderTargetSpec RenderTargetSpec::normalized() const {
@@ -145,11 +281,10 @@ namespace engine::graph {
     return color;
   }
 
-  RenderPassNode
-  RenderGraphCompiler::beautyPass(const RenderExecutorDefinition& executorDefinition,
-                                  const SceneView& sceneView, const RenderTargetSpec& target,
-                                  const RenderIntent& intent,
-                                  std::vector<RenderFeatureKind> extraFeatures) const {
+  RenderPassNode RenderGraphCompiler::beautyPass(
+    const RenderExecutorDefinition& executorDefinition, const SceneView& sceneView,
+    const RenderTargetSpec& target, const RenderIntent& intent,
+    const RenderSceneAnalysis& sceneAnalysis, std::vector<RenderFeatureKind> extraFeatures) const {
     RenderPassNode pass;
     pass.id = executorDefinition.beautyPassId();
     pass.name = executorDefinition.beautyPassName();
@@ -162,6 +297,8 @@ namespace engine::graph {
     pass.concurrency = RenderConcurrencyLimit::serial();
     pass.canRunConcurrently = pass.concurrency.allowsParallelExecution();
     executorDefinition.configureBeautyPassState(pass, target.sampleCount, intent);
+    applyTracingExecutionDecision(pass,
+                                  resolveTracingExecution(intent, pass.executor, sceneAnalysis));
     return pass;
   }
 
@@ -446,7 +583,7 @@ namespace engine::graph {
         continue;
       }
       currentBase = addSelectorOverrideBranch(plan, target, std::move(currentBase), frameIntent,
-                                              overrides[i], i);
+                                              overrides[i], i, sceneAnalysis);
     }
     return currentBase;
   }
@@ -454,7 +591,7 @@ namespace engine::graph {
   RenderResourceId RenderGraphCompiler::addSelectorOverrideBranch(
     RenderPlan& plan, const RenderTargetSpec& target, RenderResourceId baseInputResource,
     const RenderIntent& frameIntent, const RenderViewOverride& viewOverride,
-    std::size_t overrideIndex) const {
+    std::size_t overrideIndex, const RenderSceneAnalysis& sceneAnalysis) const {
     const RenderIntent branchIntent = selectorOverrideIntent(frameIntent, viewOverride);
     const SceneView sceneView = selectorOverrideSceneView(branchIntent, viewOverride);
     const std::string prefix = "selector_" + std::to_string(overrideIndex + 1);
@@ -471,8 +608,9 @@ namespace engine::graph {
     }
 
     const RenderResourceId stencilId = prefix + "_stencil_aov";
-    RenderPassNode stencilProducer = aovProducerPass(*stencilAOV, RenderExecutorKind::Rasterizer,
-                                                     sceneView, false, target, branchIntent);
+    RenderPassNode stencilProducer =
+      aovProducerPass(*stencilAOV, RenderExecutorKind::Rasterizer, sceneView, false, target,
+                      branchIntent, sceneAnalysis);
     stencilProducer.id = stencilId;
     stencilProducer.name = "Selector " + std::to_string(overrideIndex + 1) + " stencil mask";
     stencilProducer.features.push_back("selector_override");
@@ -490,7 +628,7 @@ namespace engine::graph {
       const RenderExecutorKind executor = branchIntent.defaultExecutorKind();
       const RenderResourceId aovId = prefix + "_" + aov->resourceId();
       RenderPassNode producer =
-        aovProducerPass(*aov, executor, sceneView, false, target, branchIntent);
+        aovProducerPass(*aov, executor, sceneView, false, target, branchIntent, sceneAnalysis);
       producer.id = aovId;
       producer.name = "Selector " + std::to_string(overrideIndex + 1) + " " + aov->title() + " AOV";
       producer.features.push_back("selector_override");
@@ -531,7 +669,7 @@ namespace engine::graph {
                                                        : *concreteExecutorDefinition;
       const RenderResourceId colorId = prefix + "_beauty_color";
       RenderPassNode foreground = beautyPass(beautyExecutorDefinition, sceneView, target,
-                                             branchIntent, {"selector_override"});
+                                             branchIntent, sceneAnalysis, {"selector_override"});
       foreground.id = prefix + "_" + foreground.id;
       foreground.name = "Selector " + std::to_string(overrideIndex + 1) + " " + foreground.name;
       addRasterVisibilityInput(plan, target, foreground, sceneView, branchIntent);
@@ -558,11 +696,13 @@ namespace engine::graph {
                                               RenderExecutorKind executor,
                                               const RenderAOVDefinition& aov,
                                               const SceneView& sceneView,
-                                              const RenderIntent& intent) const {
+                                              const RenderIntent& intent,
+                                              const RenderSceneAnalysis& sceneAnalysis) const {
     RenderPlan plan;
 
     const RenderResourceId aovId = aov.resourceId();
-    RenderPassNode producer = aovProducerPass(aov, executor, sceneView, true, target, intent);
+    RenderPassNode producer =
+      aovProducerPass(aov, executor, sceneView, true, target, intent, sceneAnalysis);
     addRasterVisibilityInput(plan, target, producer, sceneView, intent);
     RenderResourceDescriptor aovResource =
       aov.resourceDescriptor(target, RenderResourceLifetime::Transient);
@@ -588,12 +728,10 @@ namespace engine::graph {
     return plan;
   }
 
-  void RenderGraphCompiler::addAuxiliaryAOVExport(RenderPlan& plan, const RenderTargetSpec& target,
-                                                  RenderExecutorKind executor,
-                                                  RenderViewMode viewMode,
-                                                  RenderViewMode defaultViewMode,
-                                                  const SceneView& sceneView,
-                                                  const RenderIntent& intent) const {
+  void RenderGraphCompiler::addAuxiliaryAOVExport(
+    RenderPlan& plan, const RenderTargetSpec& target, RenderExecutorKind executor,
+    RenderViewMode viewMode, RenderViewMode defaultViewMode, const SceneView& sceneView,
+    const RenderIntent& intent, const RenderSceneAnalysis& sceneAnalysis) const {
     const auto* aov = renderAOVDefinition(viewMode);
     if (!aov) {
       throw std::runtime_error("view mode '" + std::string(toString(viewMode)) +
@@ -608,7 +746,8 @@ namespace engine::graph {
     const RenderResourceId previewId = aov->previewColorResourceId();
     RenderResourceId visualizationInput = aovId;
     if (!plan.findResource(aovId)) {
-      RenderPassNode producer = aovProducerPass(*aov, executor, sceneView, false, target, intent);
+      RenderPassNode producer =
+        aovProducerPass(*aov, executor, sceneView, false, target, intent, sceneAnalysis);
       addRasterVisibilityInput(plan, target, producer, sceneView, intent);
       if (passNeedsExplicitReadback(producer)) {
         const RenderResourceId sourceId = aovId + "_source";
@@ -634,7 +773,8 @@ namespace engine::graph {
 
   void RenderGraphCompiler::addAuxiliaryAOVExports(RenderPlan& plan, const RenderTargetSpec& target,
                                                    RenderExecutorKind executor,
-                                                   const RenderIntent& intent) const {
+                                                   const RenderIntent& intent,
+                                                   const RenderSceneAnalysis& sceneAnalysis) const {
     const SceneView sceneView = intent.defaultSceneView();
     std::set<RenderViewMode> seen;
     for (RenderViewMode viewMode : intent.exportedAOVs) {
@@ -642,12 +782,14 @@ namespace engine::graph {
         continue;
       }
       addAuxiliaryAOVExport(plan, target, executor, viewMode, intent.defaultViewMode, sceneView,
-                            intent);
+                            intent, sceneAnalysis);
     }
   }
 
-  RenderPlan RenderGraphCompiler::compileStencilCompositeView(const RenderTargetSpec& target,
-                                                              const RenderIntent& intent) const {
+  RenderPlan
+  RenderGraphCompiler::compileStencilCompositeView(const RenderTargetSpec& target,
+                                                   const RenderIntent& intent,
+                                                   const RenderSceneAnalysis& sceneAnalysis) const {
     const SceneView sceneView = intent.defaultSceneView();
     RenderPlan plan;
 
@@ -660,8 +802,8 @@ namespace engine::graph {
       throw std::runtime_error("stencil composite view requires a wireframe beauty executor");
     }
 
-    RenderPassNode base =
-      beautyPass(*rasterizerDefinition, sceneView, target, intent, {"stencil_composite_base"});
+    RenderPassNode base = beautyPass(*rasterizerDefinition, sceneView, target, intent,
+                                     sceneAnalysis, {"stencil_composite_base"});
     addRasterVisibilityInput(plan, target, base, sceneView, intent);
     RenderResourceDescriptor baseColor =
       target.colorResource("base_color", "Base color", RenderResourceLifetime::Transient);
@@ -677,18 +819,18 @@ namespace engine::graph {
       baseCompositeInput = "base_readback_color";
     }
 
-    plan.addResourceProducer(
-      beautyPass(*wireframeDefinition, sceneView, target, intent, {"stencil_composite_foreground"}),
-      target.colorResource("foreground_color", "Foreground color",
-                           RenderResourceLifetime::Transient));
+    plan.addResourceProducer(beautyPass(*wireframeDefinition, sceneView, target, intent,
+                                        sceneAnalysis, {"stencil_composite_foreground"}),
+                             target.colorResource("foreground_color", "Foreground color",
+                                                  RenderResourceLifetime::Transient));
 
     const auto* stencilAOV = renderAOVDefinition(RenderViewMode::Stencil);
     if (!stencilAOV) {
       throw std::runtime_error("stencil composite view requires a stencil AOV definition");
     }
 
-    RenderPassNode stencilProducer =
-      aovProducerPass(*stencilAOV, RenderExecutorKind::Rasterizer, sceneView, true, target, intent);
+    RenderPassNode stencilProducer = aovProducerPass(
+      *stencilAOV, RenderExecutorKind::Rasterizer, sceneView, true, target, intent, sceneAnalysis);
     addRasterVisibilityInput(plan, target, stencilProducer, sceneView, intent);
     RenderResourceDescriptor stencilResource =
       stencilAOV->resourceDescriptor(target, RenderResourceLifetime::Transient);
@@ -736,7 +878,7 @@ namespace engine::graph {
       target.colorResource("main_color", "Main color", RenderResourceLifetime::Exported),
       tonemapPass("composited_color", "main_color"));
 
-    addAuxiliaryAOVExports(plan, target, RenderExecutorKind::Rasterizer, intent);
+    addAuxiliaryAOVExports(plan, target, RenderExecutorKind::Rasterizer, intent, sceneAnalysis);
     return plan;
   }
 
@@ -764,7 +906,7 @@ namespace engine::graph {
     }
 
     if (frameIntent.defaultViewMode == RenderViewMode::StencilComposite) {
-      RenderPlan plan = compileStencilCompositeView(target, frameIntent);
+      RenderPlan plan = compileStencilCompositeView(target, frameIntent, sceneAnalysis);
       const auto subviewOutputs =
         addSubviewBranches(plan, target, frameIntent, sceneAnalysis, renderToTextureDepth);
       addSubviewReceiverInputs(plan, subviewOutputs, sceneAnalysis);
@@ -782,9 +924,9 @@ namespace engine::graph {
                                                      : *concreteExecutorDefinition;
 
     if (const auto* aov = renderAOVDefinition(frameIntent.defaultViewMode)) {
-      RenderPlan plan =
-        this->aovViewPlan(target, executor, *aov, frameIntent.defaultSceneView(), frameIntent);
-      addAuxiliaryAOVExports(plan, target, executor, frameIntent);
+      RenderPlan plan = this->aovViewPlan(target, executor, *aov, frameIntent.defaultSceneView(),
+                                          frameIntent, sceneAnalysis);
+      addAuxiliaryAOVExports(plan, target, executor, frameIntent, sceneAnalysis);
       const auto subviewOutputs =
         addSubviewBranches(plan, target, frameIntent, sceneAnalysis, renderToTextureDepth);
       addSubviewReceiverInputs(plan, subviewOutputs, sceneAnalysis);
@@ -805,8 +947,8 @@ namespace engine::graph {
     const bool usesRayTracedShadows =
       usesPreviewShadows && rasterShadowMode == RenderRasterShadowMode::RayTraced;
 
-    RenderPassNode beauty =
-      beautyPass(beautyExecutorDefinition, frameIntent.defaultSceneView(), target, frameIntent);
+    RenderPassNode beauty = beautyPass(beautyExecutorDefinition, frameIntent.defaultSceneView(),
+                                       target, frameIntent, sceneAnalysis);
     addRasterVisibilityInput(plan, target, beauty, frameIntent.defaultSceneView(), frameIntent);
     plan.addResourceProducer(beauty, beautyColor);
 
@@ -847,7 +989,7 @@ namespace engine::graph {
       mainInputResource = addHybridShadowComposite(plan, target, std::move(mainInputResource));
     }
 
-    addAuxiliaryAOVExports(plan, target, executor, frameIntent);
+    addAuxiliaryAOVExports(plan, target, executor, frameIntent, sceneAnalysis);
     const auto subviewOutputs =
       addSubviewBranches(plan, target, frameIntent, sceneAnalysis, renderToTextureDepth);
     addSubviewReceiverInputs(plan, subviewOutputs, sceneAnalysis);

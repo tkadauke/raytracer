@@ -62,6 +62,9 @@ namespace engine::graph {
     void setTracingBackend(render::WavefrontIntersectionBackendChoice backend);
     void setTracingExecution(TracingExecutionPreference preference);
     void setTracingExecution(std::string preference);
+    void setPredictedTracingExecution(TracingExecutionPreference preference);
+    void setPredictedTracingExecution(std::string preference);
+    void setTracingExecutionFallbackReason(std::string reason);
     void setIntersectionBackend(std::string backend);
     void setIntersectionBackend(render::WavefrontIntersectionBackendChoice backend);
     void setRussianRouletteDepth(int depth);
@@ -87,6 +90,8 @@ namespace engine::graph {
     std::optional<std::string> integrator() const;
     std::optional<render::WavefrontIntersectionBackendChoice> tracingBackend() const;
     std::optional<TracingExecutionPreference> tracingExecution() const;
+    std::optional<TracingExecutionPreference> predictedTracingExecution() const;
+    const std::string& tracingExecutionFallbackReason() const;
     std::optional<render::WavefrontIntersectionBackendChoice> intersectionBackend() const;
     std::optional<int> russianRouletteDepth() const;
     std::optional<int> directLightSamples() const;
@@ -120,6 +125,8 @@ namespace engine::graph {
     std::optional<std::string> m_integrator;
     std::optional<render::WavefrontIntersectionBackendChoice> m_tracingBackend;
     std::optional<TracingExecutionPreference> m_tracingExecution;
+    std::optional<TracingExecutionPreference> m_predictedTracingExecution;
+    std::string m_tracingExecutionFallbackReason;
     std::optional<render::WavefrontIntersectionBackendChoice> m_intersectionBackend;
     std::optional<int> m_russianRouletteDepth;
     std::optional<int> m_directLightSamples;

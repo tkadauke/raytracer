@@ -27,6 +27,8 @@ namespace RaytracerPassStateTest {
     state.setIntegrator("path_tracer");
     state.setTracingBackend("gpu");
     state.setTracingExecution(TracingExecutionPreference::Hybrid);
+    state.setPredictedTracingExecution(TracingExecutionPreference::GPU);
+    state.setTracingExecutionFallbackReason("full GPU tracing backend is not available");
     state.setIntersectionBackend("gpu");
     state.setRussianRouletteDepth(4);
     state.setDirectLightSamples(6);
@@ -57,6 +59,17 @@ namespace RaytracerPassStateTest {
     EXPECT_EQ(
       "hybrid",
       json.value("execution").toObject().value("tracingExecution").toString().toStdString());
+    EXPECT_EQ("gpu", json.value("execution")
+                       .toObject()
+                       .value("predictedTracingExecution")
+                       .toString()
+                       .toStdString());
+    EXPECT_EQ("full GPU tracing backend is not available",
+              json.value("execution")
+                .toObject()
+                .value("tracingExecutionFallbackReason")
+                .toString()
+                .toStdString());
     EXPECT_EQ(
       "gpu",
       json.value("execution").toObject().value("intersectionBackend").toString().toStdString());
@@ -91,6 +104,7 @@ namespace RaytracerPassStateTest {
     ASSERT_TRUE(decoded.integrator().has_value());
     ASSERT_TRUE(decoded.tracingBackend().has_value());
     ASSERT_TRUE(decoded.tracingExecution().has_value());
+    ASSERT_TRUE(decoded.predictedTracingExecution().has_value());
     ASSERT_TRUE(decoded.intersectionBackend().has_value());
     ASSERT_TRUE(decoded.russianRouletteDepth().has_value());
     ASSERT_TRUE(decoded.directLightSamples().has_value());
@@ -114,6 +128,9 @@ namespace RaytracerPassStateTest {
     EXPECT_EQ("pathtracer", *decoded.integrator());
     EXPECT_STREQ("gpu", decoded.tracingBackend()->id());
     EXPECT_EQ(TracingExecutionPreference::Hybrid, *decoded.tracingExecution());
+    EXPECT_EQ(TracingExecutionPreference::GPU, *decoded.predictedTracingExecution());
+    EXPECT_EQ("full GPU tracing backend is not available",
+              decoded.tracingExecutionFallbackReason());
     EXPECT_STREQ("gpu", decoded.intersectionBackend()->id());
     EXPECT_EQ(4, *decoded.russianRouletteDepth());
     EXPECT_EQ(6, *decoded.directLightSamples());
