@@ -136,8 +136,15 @@ struct RenderWindow::Private {
       }
       if (settingsWidget->engine() == "Path Tracer") {
         options.setDirectLightSamples(settingsWidget->directLightSamples());
-        if (settingsWidget->pathTracingSchedule() == "Wavefront") {
-          options.setTracingBackend(settingsWidget->wavefrontTracingBackend().toStdString());
+        options.setTracingExecution(settingsWidget->tracingExecution().toLower().toStdString());
+        if (settingsWidget->tracingExecution() == "CPU") {
+          options.setIntersectionBackend("cpu");
+        } else if (settingsWidget->tracingExecution() == "GPU") {
+          options.setIntersectionBackend("gpu");
+        } else if (settingsWidget->pathTracingSchedule() == "Wavefront" &&
+                   settingsWidget->tracingExecution() == "Hybrid") {
+          options.setIntersectionBackend(
+            settingsWidget->wavefrontIntersectionBackend().toStdString());
         }
       }
       options.setMaximumThreads(settingsWidget->renderThreads());
