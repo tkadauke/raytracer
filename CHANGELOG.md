@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Added an explicit `ray_traced` raster preview shadow mode that compiles a
+  hybrid shadow-mask graph pass through `render::IntersectionService`, composites
+  it over raster beauty output, and exposes rendercli `--shadow_mode` selection
+  for E13 job 3. — GPT-5 Codex
 - Added the `hybrid_visibility` graph AOV pass, which submits primary
   closest-hit debug rays through `render::IntersectionService`, writes an
   inspectable visibility preview, and records backend execution diagnostics for
