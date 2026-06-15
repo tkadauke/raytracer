@@ -1947,6 +1947,43 @@ namespace RenderGraphCompilerTest {
     EXPECT_TRUE(plan.validate().valid());
   }
 
+  TEST(RenderGraphCompiler, RayTracedPreviewShadowsAddHybridShadowMaskAndComposite) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.enablePreviewShadows = true;
+    intent.engineOptions.rasterizer().setShadowMode(RenderRasterShadowMode::RayTraced);
+    intent.engineOptions.raytracer().setIntersectionBackend("cpu");
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent);
+
+    ASSERT_NE(nullptr, plan.findPass("hybrid_ray_traced_shadows"));
+    EXPECT_EQ(RenderPassKind::Shadow, plan.findPass("hybrid_ray_traced_shadows")->kind);
+    EXPECT_EQ(RenderExecutorKind::Raytracer, plan.findPass("hybrid_ray_traced_shadows")->executor);
+    EXPECT_TRUE(hasFeature(*plan.findPass("hybrid_ray_traced_shadows"), "ray_traced_shadows"));
+
+    ASSERT_NE(nullptr, plan.findResource("hybrid_shadow_mask"));
+    const auto* mask = plan.findResource("hybrid_shadow_mask");
+    EXPECT_EQ(RenderResourceType::ShadowMask, mask->type);
+    EXPECT_EQ(RenderResourceFormat::RGBDouble, mask->format);
+    EXPECT_EQ(64, mask->width);
+    EXPECT_EQ(32, mask->height);
+
+    ASSERT_NE(nullptr, plan.findPass("hybrid_shadow_composite"));
+    const auto* composite = plan.findPass("hybrid_shadow_composite");
+    EXPECT_EQ(RenderPassKind::Composite, composite->kind);
+    EXPECT_EQ(RenderExecutorKind::Composite, composite->executor);
+    ASSERT_EQ(2u, composite->reads.size());
+    EXPECT_EQ("beauty_color", composite->reads[0].resource);
+    EXPECT_EQ("hybrid_shadow_mask", composite->reads[1].resource);
+    ASSERT_EQ(1u, composite->writes.size());
+    EXPECT_EQ("hybrid_shadowed_color", composite->writes[0].resource);
+
+    EXPECT_EQ(nullptr, plan.findPass("raster_preview_shadows"));
+    EXPECT_EQ(nullptr, plan.findResource("preview_shadow_map"));
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
   TEST(RenderGraphCompiler, SceneAnalysisCanSuppressUnneededRasterPreviewShadowPass) {
     RenderGraphCompiler compiler;
     RenderIntent intent;

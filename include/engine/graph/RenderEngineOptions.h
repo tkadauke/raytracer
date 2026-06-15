@@ -27,6 +27,15 @@ namespace engine::graph {
   enum class RenderVisibilityCulling { Off, On, Auto };
 
   /**
+    * Intent-level shadow implementation for rasterizer-backed preview graphs.
+    *
+    * `ShadowMaps` preserves the existing raster shadow-map path. `RayTraced`
+    * asks the graph to build a per-pixel shadow mask with the intersection
+    * service and composite it over the raster beauty result.
+    */
+  enum class RenderRasterShadowMode { ShadowMaps, RayTraced };
+
+  /**
     * Intent-level advanced controls for raytracer-backed views.
     *
     * Fields are optional so subviews can inherit global options and override
@@ -162,6 +171,8 @@ namespace engine::graph {
     void setShadowSlopeBias(double bias);
     void setShadowFilterRadius(int radius);
     void setShadowFilterMode(std::string mode);
+    void setShadowMode(RenderRasterShadowMode mode);
+    void setShadowMode(std::string mode);
 
     std::optional<int> maximumThreads() const;
     std::optional<int> queueSize() const;
@@ -181,6 +192,7 @@ namespace engine::graph {
     std::optional<double> shadowSlopeBias() const;
     std::optional<int> shadowFilterRadius() const;
     std::optional<std::string> shadowFilterMode() const;
+    std::optional<RenderRasterShadowMode> shadowMode() const;
 
   private:
     std::optional<int> m_maximumThreads;
@@ -214,10 +226,14 @@ namespace engine::graph {
     std::optional<double> m_shadowSlopeBias;
     std::optional<int> m_shadowFilterRadius;
     std::optional<std::string> m_shadowFilterMode;
+    std::optional<RenderRasterShadowMode> m_shadowMode;
 
     static RenderVisibilityCulling visibilityCullingFromString(const std::string& value,
                                                                const std::string& path);
     static const char* visibilityCullingName(RenderVisibilityCulling mode);
+    static RenderRasterShadowMode shadowModeFromString(const std::string& value,
+                                                       const std::string& path);
+    static const char* shadowModeName(RenderRasterShadowMode mode);
   };
 
   /**

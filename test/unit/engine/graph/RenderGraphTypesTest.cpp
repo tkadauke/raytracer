@@ -207,6 +207,7 @@ namespace RenderGraphTypesTest {
     intent.engineOptions.rasterizer().setMaximumScreenSpaceError(0.25);
     intent.engineOptions.rasterizer().setMSAASamples(4);
     intent.engineOptions.rasterizer().setShadowMapSize(128);
+    intent.engineOptions.rasterizer().setShadowMode(RenderRasterShadowMode::RayTraced);
     intent.engineOptions.wireframe().setLod(2);
     intent.exportedAOVs = {RenderViewMode::Depth, RenderViewMode::Normal,
                            RenderViewMode::SampleStddev, RenderViewMode::SampleStddevColor,
@@ -278,6 +279,11 @@ namespace RenderGraphTypesTest {
     EXPECT_EQ(4,
               engineOptions["rasterizer"].toObject()["sampling"].toObject()["msaaSamples"].toInt());
     EXPECT_EQ(128, engineOptions["rasterizer"].toObject()["shadows"].toObject()["mapSize"].toInt());
+    EXPECT_EQ("ray_traced", engineOptions["rasterizer"]
+                              .toObject()["shadows"]
+                              .toObject()["mode"]
+                              .toString()
+                              .toStdString());
     EXPECT_EQ(2, engineOptions["wireframe"].toObject()["lod"].toInt());
     const auto exportedAOVs = json["exportedAOVs"].toArray();
     ASSERT_EQ(5, exportedAOVs.size());
@@ -330,10 +336,13 @@ namespace RenderGraphTypesTest {
     rasterGeometry["lod"] = 2;
     rasterGeometry["quality"] = "preview";
     rasterGeometry["maxScreenSpaceError"] = 4.5;
+    QJsonObject rasterShadows;
+    rasterShadows["mode"] = "ray_traced";
     QJsonObject rasterizerOptions;
     rasterizerOptions["execution"] = rasterExecution;
     rasterizerOptions["geometry"] = rasterGeometry;
     rasterizerOptions["sampling"] = rasterSampling;
+    rasterizerOptions["shadows"] = rasterShadows;
     QJsonObject engineOptions;
     engineOptions["raytracer"] = raytracerOptions;
     engineOptions["rasterizer"] = rasterizerOptions;
@@ -393,6 +402,8 @@ namespace RenderGraphTypesTest {
     EXPECT_EQ("preview", *intent.engineOptions.rasterizer().tessellationQuality());
     ASSERT_TRUE(intent.engineOptions.rasterizer().maximumScreenSpaceError().has_value());
     EXPECT_DOUBLE_EQ(4.5, *intent.engineOptions.rasterizer().maximumScreenSpaceError());
+    ASSERT_TRUE(intent.engineOptions.rasterizer().shadowMode().has_value());
+    EXPECT_EQ(RenderRasterShadowMode::RayTraced, *intent.engineOptions.rasterizer().shadowMode());
     ASSERT_EQ(7u, intent.exportedAOVs.size());
     EXPECT_EQ(RenderViewMode::Depth, intent.exportedAOVs[0]);
     EXPECT_EQ(RenderViewMode::Stencil, intent.exportedAOVs[1]);
