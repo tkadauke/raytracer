@@ -1954,7 +1954,10 @@ infrastructure exists.
    - Output: supported materials, lights, recursion/iteration policy, and
      explicit transparent/glass decision.
 
-2. **Add deterministic direct lighting and shadows.**
+2. ~~**Add deterministic direct lighting and shadows.**~~ ✅ **Done.** The
+   Whitted depth-major batch path now evaluates supported non-recursive local
+   BSDF direct lighting with backend any-hit shadow batches and CPU parity
+   tests for lit and shadowed cases for issue #639.
    - Depends on: job 1.
    - Output: GPU path for supported non-recursive Whitted lighting.
 

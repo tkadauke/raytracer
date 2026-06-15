@@ -20,6 +20,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- Routed supported non-recursive Whitted direct lighting through backend
+  any-hit shadow batches, with CPU parity coverage and explicit unsupported
+  material fallback preserved for E14 job 2. — GPT-5 Codex
 - Defined the supported GPU Whitted v1 subset, including material, light,
   recursion, transparent/glass fallback, and shared backend-service scope for
   E14 job 1. — GPT-5 Codex
