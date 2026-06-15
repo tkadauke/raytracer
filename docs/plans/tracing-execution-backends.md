@@ -1964,7 +1964,10 @@ contributions through the GPU path and match the CPU estimator.
 
 **Jobs:**
 
-1. **Define path-state record.**
+1. ~~**Define path-state record.**~~ ✅ **Done.** `render::GpuDiffusePathStateRecord`
+   defines the v1 diffuse path-step state with ray, throughput, accumulated
+   radiance, pixel/sample ids, depth, sample cursor, active/terminated flags,
+   and previous-event MIS metadata. Closes #606.
    - Depends on: none.
    - Output: ray, throughput, accumulated contribution target or sample id,
      depth, RNG/sample state, flags, and MIS metadata.
