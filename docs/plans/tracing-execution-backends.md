@@ -2024,21 +2024,33 @@ compiled and what actually ran.
    - Depends on: none.
    - Output: explanation of why matching images can still prove backend work.
 
-2. **Add rendered examples for supported subset.**
+2. ~~**Add rendered examples for supported subset.**~~ ✅ **Done.** Issue
+   #624 adds scripted CPU, auto-policy, and GPU-requested wavefront
+   path-tracing comparison renders plus metrics sidecars for one supported
+   matte scene.
    - Depends on: job 1.
    - Output: CPU, hybrid, and GPU comparison images for the same scene.
 
-3. **Add Modeler example scene.**
+3. ~~**Add Modeler example scene.**~~ ✅ **Done.** Issue #625 adds
+   `scenes/tracing_execution_inspection_demo.json`, a Modeler-loadable
+   GPU-requested wavefront path-tracing scene with supported compiled
+   intersection primitives and graph-trace backend metadata coverage.
    - Depends on: job 2.
    - Output: scene that loads in Modeler and makes execution-mode inspection
      easy.
 
-4. **Add rendercli examples and troubleshooting notes.**
+4. ~~**Add rendercli examples and troubleshooting notes.**~~ ✅ **Done.**
+   Issue #626 documents release and platform preset builds, CPU/auto/GPU
+   rendercli requests, compact and JSON metrics fields, and common fallback
+   reasons in the Tools and Modeler textbook chapter.
    - Depends on: jobs 2 and 3.
    - Output: commands showing CPU/hybrid/GPU requests, fallback reasons, and
      metrics to inspect.
 
-5. **Run textbook/source-map checks.**
+5. ~~**Run textbook/source-map checks.**~~ ✅ **Done.** Issue #627 verifies
+   `rake docs:textbook:check` and regenerates
+   `docs/markdown/appendix/c-source-map.md`; the generated source-map appendix
+   was already current.
    - Depends on: jobs 1 through 4.
    - Output: `rake docs:textbook:check`; source-map regeneration if anchors
      changed.

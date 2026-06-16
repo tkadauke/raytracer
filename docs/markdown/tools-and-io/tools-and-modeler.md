@@ -43,6 +43,31 @@ The flags cover output size, sampler choice, samples-per-pixel, recursion
 depth, tonemap operator, and per-engine knobs such as [LOD](../appendix/a-glossary.md#l),
 [MSAA](../appendix/a-glossary.md#m), queue size, and thread count.
 
+For repeatable tracing-backend inspection, build the default release preset
+first:
+
+```sh
+$ cmake --preset release
+$ cmake --build --preset release --target rendercli
+```
+
+The default release preset is CPU-only. Platform backend presets opt into the
+available GPU wavefront intersection service for the host platform:
+
+```sh
+$ cmake --preset release-metal-wavefront
+$ cmake --build --preset release-metal-wavefront --target rendercli
+
+$ cmake --preset release-vulkan-wavefront
+$ cmake --build --preset release-vulkan-wavefront --target rendercli
+```
+
+Metal presets are available on macOS, Vulkan presets are available on Linux,
+and unsupported host platforms hide those presets through CMake preset
+conditions. The matching benchmark presets are `benchmark-metal-wavefront` and
+`benchmark-vulkan-wavefront` when you need backend timing fixtures rather than
+a rendercli image.
+
 If the scene has a top-level `animation` block, `--frame N` evaluates the
 world scene at frame `N` before the runtime render scene and active camera are
 built:
@@ -157,6 +182,53 @@ hidden inside one closest-hit-style total.
 The same metrics name the scene-upload bytes, platform availability flags,
 unsupported-scene reason buckets, selected execution path, fallback reason,
 frontier residency/byte counters, and backend upload/kernel/readback timing.
+
+Use the same scene and metrics flags when comparing CPU, hybrid automatic, and
+GPU-requested wavefront execution. The current hybrid path keeps scheduling,
+shading, path state, and accumulation on the CPU while requesting the compiled
+intersection backend service for closest-hit and any-hit batches:
+
+```sh
+$ rendercli --engine pathtracer --width 640 --height 360 \
+            --samples_per_pixel 4 --sampling_seed 17 \
+            --wavefront_intersection_backend cpu \
+            --wavefront_metrics_summary \
+            --wavefront_metrics_out tracing-cpu-metrics.json \
+            scenes/tracing_execution_inspection_demo.json tracing-cpu.png
+
+$ rendercli --engine pathtracer --width 640 --height 360 \
+            --samples_per_pixel 4 --sampling_seed 17 \
+            --wavefront_intersection_backend auto \
+            --wavefront_metrics_summary \
+            --wavefront_metrics_out tracing-auto-metrics.json \
+            scenes/tracing_execution_inspection_demo.json tracing-auto.png
+
+$ rendercli --engine pathtracer --width 640 --height 360 \
+            --samples_per_pixel 4 --sampling_seed 17 \
+            --wavefront_intersection_backend gpu \
+            --wavefront_metrics_summary \
+            --wavefront_metrics_out tracing-gpu-request-metrics.json \
+            scenes/tracing_execution_inspection_demo.json tracing-gpu-request.png
+```
+
+Inspect the compact `wavefront_metrics` stdout line first. The fields
+`intersection_backend_request`, `intersection_backend`,
+`intersection_backend_execution`, `closest_hit_execution`,
+`any_hit_execution`, `intersection_backend_platform`,
+`intersection_backend_gpu_device`,
+`intersection_backend_gpu_render_path`, and
+`intersection_backend_fallback` show what was requested, what actually ran,
+which platform backend was considered, and why the request changed. The JSON
+sidecar keeps the same information as
+`intersectionBackendRequest`, `intersectionBackend`,
+`intersectionBackendExecutionPath`,
+`intersectionBackendClosestHitExecutionPath`,
+`intersectionBackendAnyHitExecutionPath`, `intersectionBackendPlatform`,
+`intersectionBackendPlatformGpuDeviceAvailable`,
+`intersectionBackendPlatformGpuRenderPathAvailable`, and
+`intersectionBackendFallbackReason`, plus unsupported-scene reason buckets
+under `intersectionSceneUnsupportedReasons`.
+
 `gpu` is accepted as durable intent and reports either the active platform path
 or a CPU fallback reason in graph trace and wavefront metrics. For a
 `gpu` request, the renderer also runs the compiled-intersection-scene diagnostic
@@ -265,6 +337,35 @@ direct-light batches are unavailable, so the Modeler can show those boundaries
 beside the capability flags. The scheduler-level GPU compaction and resident
 direct-light flags stay unsupported until a real Phase 8 scheduling path lands,
 so the estimates stay visibly separate from implemented behavior.
+
+Common backend fallback reasons are intentionally reported as data, not just as
+warnings:
+
+- `intersection_backend_gpu_device=false` means the platform probe did not find
+  a usable GPU device for the selected backend. Use a platform preset for the
+  host OS, and check the machine's Metal or Vulkan runtime before expecting a
+  platform execution path.
+- `intersection_backend_gpu_render_path=false` means a GPU device was found,
+  but the render-path kernels or required queue/runtime features are not
+  available in this build or runtime. The request remains visible, but
+  intersection work falls back to a CPU path.
+- An `intersection_backend_fallback` value beginning with `auto selected CPU`
+  means `auto` rejected GPU setup because the estimated closest-hit and any-hit
+  work was too small for the current scene-upload cost. Compare
+  `intersection_expected_rays` with `intersection_auto_minimum_gpu_rays`.
+- Unsupported scene buckets in `intersection_scene_unsupported_by_reason` mean
+  the scene could not be represented by the compiled intersection-service
+  subset. Remove or replace the listed runtime-only primitive, material,
+  texture, light, transform, or CSG feature when you need platform execution.
+- `closest_hit_execution=packed_cpu`, `any_hit_execution=packed_cpu`, or
+  `intersection_backend_execution=compiled_cpu` means the scene compiled into
+  the GPU-style record layout, but the render ran through CPU parity traversal
+  rather than a Metal or Vulkan kernel. This is still useful for ABI and metrics
+  validation, but it is not GPU dispatch.
+- `intersection_backend_execution=mixed` means closest-hit and any-hit query
+  families used different execution paths in the same render. Inspect
+  `closest_hit_execution` and `any_hit_execution` before comparing timings.
+
 The path tracer also reports frontier compaction passes: the current CPU
 scheduler compacts the surviving path frontier after each depth, and the
 metrics expose the input, retained, removed, moved, removed-fraction sample
