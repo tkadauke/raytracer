@@ -30,6 +30,7 @@ namespace render {
 
   struct GpuDiffusePathStepResult {
     std::vector<GpuIntersectionHitRecord> closestHitRecords;
+    // Compact next frontier: only surviving diffuse continuations are emitted.
     std::vector<GpuDiffusePathStateRecord> pathStates;
     std::vector<GpuDiffusePathStepRecord> stepRecords;
     std::vector<GpuIntersectionRay> directLightShadowRays;
