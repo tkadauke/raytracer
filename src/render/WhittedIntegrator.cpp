@@ -8,6 +8,7 @@
 #include "render/RayCaster.h"
 #include "render/State.h"
 #include "render/WavefrontIntersectionBackend.h"
+#include "render/lights/Light.h"
 #include "render/materials/Material.h"
 #include "render/primitives/Primitive.h"
 #include "render/primitives/Scene.h"
@@ -52,7 +53,7 @@ namespace render {
   }
 
   std::uint64_t WhittedIntegrator::estimatedAnyHitRaysPerPrimarySample() const {
-    return 0;
+    return static_cast<std::uint64_t>(std::max(1, m_maximumRecursionDepth));
   }
 
   struct WhittedIntegrator::QueuedRay {
@@ -163,8 +164,16 @@ namespace render {
       return m_hits.size();
     }
 
+    [[nodiscard]] bool empty() const {
+      return m_hits.empty();
+    }
+
     [[nodiscard]] std::uint64_t hostBytes() const {
       return static_cast<std::uint64_t>(m_hits.size()) * sizeof(QueuedHit);
+    }
+
+    const QueuedHit& operator[](std::size_t index) const {
+      return m_hits[index];
     }
 
     void add(std::size_t queuedIndex, const Primitive* primitive,
@@ -272,6 +281,157 @@ namespace render {
     std::vector<WavefrontClosestHitQuery> m_queries;
     std::unique_ptr<WavefrontClosestHitFrontier> m_frontier;
     std::vector<WavefrontClosestHitResult> m_hits;
+  };
+
+  class WhittedIntegrator::DirectLightVisibilityBatch {
+  public:
+    struct Selection {
+      std::size_t hitIndex{0};
+      LightSample sample;
+      Colord contribution{Colord::black()};
+    };
+
+    explicit DirectLightVisibilityBatch(std::size_t reserveCount) {
+      m_selections.reserve(reserveCount);
+      m_shadowQueries.reserve(reserveCount);
+    }
+
+    void add(std::size_t hitIndex, const LightSample& sample, const Colord& contribution,
+             const HitPoint& hitPoint, State& state) {
+      m_selections.push_back(Selection{hitIndex, sample, contribution});
+      m_shadowQueries.push_back(WavefrontAnyHitQuery{
+        Rayd(hitPoint.point(), sample.direction).epsilonShifted(), sample.distance, &state});
+    }
+
+    [[nodiscard]] bool empty() const {
+      return m_selections.empty();
+    }
+
+    [[nodiscard]] std::size_t size() const {
+      return m_selections.size();
+    }
+
+    [[nodiscard]] const Selection& selection(std::size_t index) const {
+      return m_selections[index];
+    }
+
+    [[nodiscard]] bool occluded(std::size_t index) const {
+      validateResolvedOcclusionCount();
+      return index < m_occluded.size() && m_occluded[index] != 0U;
+    }
+
+    void recordEmptyVisibility(int depth, IntegratorBatchMetrics* metrics) const {
+      if (!empty()) {
+        throw std::logic_error("Whitted direct-light visibility batch recorded as empty while it "
+                               "still contains shadow queries");
+      }
+      recordSelectionHostBytes(depth, metrics);
+      recordDirectLightChunks(depth, 0, 0, 0, 0, 0, metrics);
+      recordOcclusionHostBytes(depth, metrics);
+    }
+
+    void resolveOcclusion(const Scene& scene,
+                          const WavefrontIntersectionBackend& intersectionBackend, int depth,
+                          IntegratorBatchMetrics* metrics) {
+      WavefrontIntersectionQueryTiming intersectionTiming;
+      m_occluded.clear();
+      m_frontier.reset();
+      recordSelectionHostBytes(depth, metrics);
+      if (intersectionBackend.prefersAnyHitBatch(m_shadowQueries.size())) {
+        m_frontier = intersectionBackend.createAnyHitFrontier(std::move(m_shadowQueries));
+        m_occluded = intersectionBackend.intersectAnyFrontier(
+          scene, *m_frontier, metrics ? &intersectionTiming : nullptr);
+        validateResolvedOcclusionCount();
+        if (metrics) {
+          recordDirectLightChunks(depth, 1, m_frontier->rayCount(), m_frontier->packedRayBytes(),
+                                  m_frontier->hostQueryBytes(), m_frontier->stateHandleBytes(),
+                                  metrics);
+          metrics->recordAnyHitFrontierResidency(
+            m_frontier->residency(), m_frontier->packedRayBytes(), m_frontier->hostQueryBytes(),
+            m_frontier->stateHandleBytes());
+          metrics->recordAnyHitQuery(intersectionBackend, m_frontier->rayCount(),
+                                     intersectionTiming);
+          recordOcclusionHostBytes(depth, metrics);
+        }
+        return;
+      }
+
+      m_occluded.reserve(m_shadowQueries.size());
+      if (metrics) {
+        const std::uint64_t queryCount = static_cast<std::uint64_t>(m_shadowQueries.size());
+        recordDirectLightChunks(depth, queryCount, queryCount, 0,
+                                queryCount * sizeof(WavefrontAnyHitQuery), 0, metrics);
+      }
+      for (const WavefrontAnyHitQuery& query : m_shadowQueries) {
+        WavefrontIntersectionQueryTiming queryTiming;
+        State scratchState;
+        State& queryState = query.state ? *query.state : scratchState;
+        const bool blocked = intersectionBackend.intersectAny(
+          scene, query.ray, query.maxDistance, queryState, metrics ? &queryTiming : nullptr);
+        m_occluded.push_back(blocked ? 1U : 0U);
+        if (metrics) {
+          metrics->recordAnyHitQuery(intersectionBackend, 1, queryTiming);
+        }
+      }
+      validateResolvedOcclusionCount();
+      recordOcclusionHostBytes(depth, metrics);
+    }
+
+    void recordContributionHostBytes(int depth, IntegratorBatchMetrics* metrics) const {
+      if (metrics) {
+        metrics->recordDirectLightContributionHostBytes(
+          static_cast<std::uint64_t>(std::max(0, depth)),
+          static_cast<std::uint64_t>(m_selections.size()) * sizeof(Colord));
+      }
+    }
+
+  private:
+    [[nodiscard]] std::uint64_t hostSelectionBytes() const {
+      return static_cast<std::uint64_t>(m_selections.size()) * sizeof(Selection);
+    }
+
+    [[nodiscard]] std::uint64_t hostOcclusionBytes() const {
+      return static_cast<std::uint64_t>(m_occluded.size()) *
+             sizeof(WavefrontOcclusionFlags::value_type);
+    }
+
+    void recordSelectionHostBytes(int depth, IntegratorBatchMetrics* metrics) const {
+      if (metrics) {
+        metrics->recordDirectLightSelectionHostBytes(static_cast<std::uint64_t>(std::max(0, depth)),
+                                                     hostSelectionBytes());
+      }
+    }
+
+    void recordOcclusionHostBytes(int depth, IntegratorBatchMetrics* metrics) const {
+      if (metrics) {
+        metrics->recordDirectLightOcclusionHostBytes(static_cast<std::uint64_t>(std::max(0, depth)),
+                                                     hostOcclusionBytes());
+      }
+    }
+
+    static void recordDirectLightChunks(int depth, std::uint64_t batchChunks,
+                                        std::uint64_t batchRays, std::uint64_t packedRayBytes,
+                                        std::uint64_t hostQueryBytes,
+                                        std::uint64_t stateHandleBytes,
+                                        IntegratorBatchMetrics* metrics) {
+      if (metrics) {
+        metrics->recordDirectLightAnyHitBatch(static_cast<std::uint64_t>(std::max(0, depth)),
+                                              batchChunks, batchRays, packedRayBytes,
+                                              hostQueryBytes, stateHandleBytes);
+      }
+    }
+
+    void validateResolvedOcclusionCount() const {
+      if (m_occluded.size() != m_selections.size()) {
+        throw std::logic_error("Whitted direct-light visibility batch resolved an occlusion count "
+                               "that does not match its light-selection count");
+      }
+    }
+
+    std::vector<Selection> m_selections;
+    std::vector<WavefrontAnyHitQuery> m_shadowQueries;
+    std::unique_ptr<WavefrontAnyHitFrontier> m_frontier;
+    WavefrontOcclusionFlags m_occluded;
   };
 
   Colord WhittedIntegrator::radiance(const Scene& scene, const Rayd& ray, State& state,
@@ -910,6 +1070,103 @@ namespace render {
     }
   }
 
+  bool WhittedIntegrator::canUseBatchedLocalWhittedDirectLighting(const Material& material,
+                                                                  const Rayd& ray,
+                                                                  const HitPoint& hitPoint) const {
+    const Vector3d out = -ray.direction();
+    return material.supportsWhittedContinuations() && material.supportsBsdfSampling() &&
+           material.deltaBsdfSamples(hitPoint, out).empty();
+  }
+
+  void WhittedIntegrator::shadeActiveHits(
+    const Scene& scene, const WavefrontIntersectionBackend& intersectionBackend,
+    const RayCaster& recursiveRayCaster, int depth, const ActiveQueuedHits& activeHits,
+    QueuedRayFrontier& current, QueuedRayFrontier& next, std::vector<Colord>& result,
+    std::vector<unsigned char>& nextActiveSamples, bool countNextActiveSamples,
+    std::vector<std::size_t>& nextActiveSampleIndices, IntegratorBatchMetrics* metrics) const {
+    if (activeHits.empty()) {
+      DirectLightVisibilityBatch emptyBatch(0);
+      emptyBatch.recordEmptyVisibility(depth, metrics);
+      return;
+    }
+
+    std::vector<unsigned char> locallyShaded(activeHits.size(), 0);
+    DirectLightVisibilityBatch visibility(activeHits.size() * scene.lights().size());
+    {
+      core::util::ScopedTimer timer(metrics ? &metrics->shadingWorkerSeconds : nullptr);
+      for (std::size_t hitIndex = 0; hitIndex != activeHits.size(); ++hitIndex) {
+        const QueuedHit& hit = activeHits[hitIndex];
+        QueuedRay& queued = current[hit.queuedIndex];
+        if (queued.state.recursionDepth == 1) {
+          queued.state.hitPoint = hit.hitPoint;
+        }
+
+        const auto material = hit.material ? hit.material : hit.primitive->material();
+        if (!material ||
+            !canUseBatchedLocalWhittedDirectLighting(*material, queued.ray, hit.hitPoint)) {
+          continue;
+        }
+
+        locallyShaded[hitIndex] = 1;
+        queued.state.recordEvent(nullptr, "Raytracer: shading material");
+        result[queued.sampleIndex] +=
+          queued.weight * material->ambientRadiance(scene, queued.ray, hit.hitPoint);
+
+        const Vector3d out = -queued.ray.direction();
+        for (const auto& light : scene.lights()) {
+          const LightSample sample = light->sample(hit.hitPoint.point());
+          const Vector3d in = sample.direction;
+          const double normalDotIn = hit.hitPoint.normal() * in;
+          Colord contribution = Colord::black();
+          if (normalDotIn > 0.0) {
+            contribution =
+              material->evalBsdf(hit.hitPoint, out, in) * sample.radiance * normalDotIn;
+          }
+          visibility.add(hitIndex, sample, contribution, hit.hitPoint, queued.state);
+        }
+      }
+    }
+
+    if (visibility.empty()) {
+      visibility.recordEmptyVisibility(depth, metrics);
+    } else {
+      visibility.resolveOcclusion(scene, intersectionBackend, depth, metrics);
+      core::util::ScopedTimer timer(metrics ? &metrics->shadingWorkerSeconds : nullptr);
+      for (std::size_t selectionIndex = 0; selectionIndex != visibility.size();
+           ++selectionIndex) {
+        const DirectLightVisibilityBatch::Selection& selection = visibility.selection(selectionIndex);
+        const QueuedHit& hit = activeHits[selection.hitIndex];
+        QueuedRay& queued = current[hit.queuedIndex];
+        const bool occluded = visibility.occluded(selectionIndex);
+        const bool contributing = !occluded && selection.contribution != Colord::black();
+        if (metrics) {
+          metrics->recordDirectLightSample(occluded, contributing);
+        }
+        if (!contributing) {
+          continue;
+        }
+        const Colord weightedContribution = queued.weight * selection.contribution;
+        result[queued.sampleIndex] += weightedContribution;
+        if (metrics) {
+          metrics->recordDirectLightRadiance(weightedContribution,
+                                            queued.state.recursionDepth <= 1);
+        }
+      }
+      visibility.recordContributionHostBytes(depth, metrics);
+    }
+
+    for (std::size_t hitIndex = 0; hitIndex != activeHits.size(); ++hitIndex) {
+      const QueuedHit& hit = activeHits[hitIndex];
+      if (locallyShaded[hitIndex]) {
+        current[hit.queuedIndex].state.recurseOut();
+        continue;
+      }
+
+      shadeQueuedHit(scene, recursiveRayCaster, hit, current, next, result, nextActiveSamples,
+                     countNextActiveSamples, nextActiveSampleIndices, metrics);
+    }
+  }
+
   std::vector<Colord> WhittedIntegrator::radianceBatch(
     const Scene& scene, const std::vector<IntegratorRaySample>& samples,
     const RayCaster& recursiveRayCaster, IntegratorBatchMetrics* metrics,
@@ -997,10 +1254,9 @@ namespace render {
           depthMetrics.frontierPacketScalarFallbackRaysByReason);
       }
 
-      for (const auto& hit : activeHits) {
-        shadeQueuedHit(scene, recursiveRayCaster, hit, current, next, result, nextActiveSamples,
-                       countNextActiveSamples, nextActiveSampleIndices, metrics);
-      }
+      shadeActiveHits(scene, intersectionBackend, recursiveRayCaster, depth, activeHits, current,
+                      next, result, nextActiveSamples, countNextActiveSamples,
+                      nextActiveSampleIndices, metrics);
 
       double depthDeltaSquaredSum = 0.0;
       double depthMaxDelta = 0.0;

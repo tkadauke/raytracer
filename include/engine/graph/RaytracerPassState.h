@@ -57,6 +57,8 @@ namespace engine::graph {
     void setMaximumThreads(int threads);
     void setQueueSize(int queueSize);
     void setIntegrator(std::string integrator);
+    void setTracingBackend(std::string backend);
+    void setTracingBackend(render::WavefrontIntersectionBackendChoice backend);
     void setIntersectionBackend(std::string backend);
     void setIntersectionBackend(render::WavefrontIntersectionBackendChoice backend);
     void setRussianRouletteDepth(int depth);
@@ -80,6 +82,7 @@ namespace engine::graph {
     std::optional<int> maximumThreads() const;
     std::optional<int> queueSize() const;
     std::optional<std::string> integrator() const;
+    std::optional<render::WavefrontIntersectionBackendChoice> tracingBackend() const;
     std::optional<render::WavefrontIntersectionBackendChoice> intersectionBackend() const;
     std::optional<int> russianRouletteDepth() const;
     std::optional<int> directLightSamples() const;
@@ -111,6 +114,7 @@ namespace engine::graph {
     std::optional<int> m_maximumThreads;
     std::optional<int> m_queueSize;
     std::optional<std::string> m_integrator;
+    std::optional<render::WavefrontIntersectionBackendChoice> m_tracingBackend;
     std::optional<render::WavefrontIntersectionBackendChoice> m_intersectionBackend;
     std::optional<int> m_russianRouletteDepth;
     std::optional<int> m_directLightSamples;

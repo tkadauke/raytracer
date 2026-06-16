@@ -638,7 +638,10 @@ for material/light records.
 - Start with a restricted material subset:
   - matte diffuse;
   - emissive;
-  - mirror/delta reflection if straightforward;
+  - ~~mirror/delta reflection if straightforward~~ ✅ **Done.** `GpuTracingMaterialRecord`
+    now carries `ReflectiveMaterial` local Phong coefficients plus mirror
+    reflection color/coefficient continuation parameters for GPU Whitted v1
+    record consumers.
   - transparent/glass explicitly unsupported for first GPU path-tracing subset
     unless the continuation contract is ready.
 - Start with a restricted texture subset:
@@ -966,6 +969,78 @@ existing deterministic output, but recursive reflection/refraction and
 material-specific branching can make it less clean than diffuse-first path
 tracing. It should follow the shared backend infrastructure rather than being a
 separate one-off GPU renderer.
+
+### GPU Whitted v1 Supported Subset
+
+GPU Whitted v1 is a deterministic, hard-shadow Whitted branch for the scene
+subset already expressible through shared tracing backend services. It is not a
+path tracer, not a soft-shadow renderer, and not a separate GPU scene compiler.
+Selection must require the common tracing capability records to report support
+for the needed scene records, closest-hit queries, any-hit visibility queries,
+direct-light contribution, reflection continuations, path-state/frontier
+residency, and accumulation.
+
+The supported v1 scene subset is:
+
+- the compiled intersection-service geometry subset from this plan's
+  **Intersection Service Contract**;
+- exact material records for `MatteMaterial`, `PhongMaterial`, and
+  `ReflectiveMaterial`, plus `EmissiveMaterial` for visible emitter surfaces;
+- `ConstantColorTexture` inputs only;
+- `PointLight`, `DirectionalLight`, and `RectangularAreaLight`, evaluated with
+  deterministic Whitted direct-light semantics and hard any-hit shadow tests;
+- scene ambient, background miss color, and tonemap/resolve behavior matching
+  the CPU Whitted path;
+- mirror reflection continuations for `ReflectiveMaterial` only, using the same
+  maximum recursion depth and throughput cutoff as `render::WhittedIntegrator`.
+
+The explicit unsupported list for v1 is:
+
+- `TransparentMaterial`, glass/refraction, total-internal-reflection-only glass
+  shortcuts, Fresnel splitting, nested-medium state, and alpha/transparency
+  visibility;
+- `PortalMaterial`, custom `Material::shade()` callbacks, and any material that
+  requires CPU runtime continuation semantics;
+- image, checker, procedural, normal, bump, displacement, or otherwise
+  non-constant textures;
+- stochastic area-light sampling, soft shadows, MIS, environment-light sampling,
+  BSDF sampling, Russian roulette, indirect diffuse/glossy transport, and
+  caustics;
+- animated transforms, moving primitives, unsupported primitive payloads, and
+  any geometry the shared intersection service cannot compile for the selected
+  backend;
+- partial per-object GPU fallback inside one render. A scene is GPU Whitted
+  eligible only when every required record and backend service is supported.
+
+Transparent/glass is intentionally out of GPU Whitted v1. Unsupported glass
+must produce an explicit capability/fallback reason and run through the CPU
+Whitted path instead of approximating refraction as opacity, alpha blending, or
+mirror reflection. Glass can be reconsidered only after hit metadata,
+inside/outside medium state, nested IOR handling, and transparent any-hit
+semantics are represented in the shared tracing records.
+
+The recursion policy is iterative rather than device call-stack recursive. The
+GPU schedule may be wavefront/depth-major or use an explicit bounded stack, but
+it must publish the same depth limit, spawned-continuation counts, terminated
+continuation counts, and throughput-cutoff behavior that the CPU Whitted
+diagnostics expose. Reflection rays are the only v1 secondary continuation
+kind; shadow rays remain any-hit visibility queries owned by the direct-light
+stage.
+
+GPU Whitted v1 must reuse these shared backend services:
+
+- `render::GpuTracingScene` material, texture, light, and geometry records;
+- `render::IntersectionService` or the same closest-hit/any-hit backend
+  contract used by wavefront intersection batches;
+- tracing backend capability records and fallback summaries;
+- backend-owned frontier handles and path-state residency diagnostics;
+- tracing accumulation clear/add/resolve services where GPU accumulation is
+  selected.
+
+No GPU Whitted job should add a private scene-record layout, private primitive
+compiler, private fallback vocabulary, or private device-selection policy.
+Unsupported scenes fall back visibly through the shared capability/fallback
+surface.
 
 **Deliverables:**
 
@@ -1952,12 +2027,18 @@ infrastructure exists.
 
 **Jobs:**
 
-1. **Define supported Whitted subset.**
+1. ~~**Define supported Whitted subset.**~~ ✅ **Done.** The GPU Whitted v1
+   supported materials, lights, recursion policy, transparent/glass exclusion,
+   and shared-service requirements are documented in Milestone 11 for issue
+   #638.
    - Depends on: none.
    - Output: supported materials, lights, recursion/iteration policy, and
      explicit transparent/glass decision.
 
-2. **Add deterministic direct lighting and shadows.**
+2. ~~**Add deterministic direct lighting and shadows.**~~ ✅ **Done.** The
+   Whitted depth-major batch path now evaluates supported non-recursive local
+   BSDF direct lighting with backend any-hit shadow batches and CPU parity
+   tests for lit and shadowed cases for issue #639.
    - Depends on: job 1.
    - Output: GPU path for supported non-recursive Whitted lighting.
 
@@ -1966,7 +2047,10 @@ infrastructure exists.
    - Output: iterative reflection depth behavior matching CPU for supported
      materials.
 
-4. **Add CPU/GPU parity scenes.**
+4. ~~**Add CPU/GPU parity scenes.**~~ ✅ **Done.** `rendercli_tracing_parity`
+   now compares CPU Whitted renders with GPU-requested Whitted renders for
+   deterministic direct-light and mirror-reflection fixture scenes, while
+   keeping transparent Whitted fallback coverage for issue #641.
    - Depends on: jobs 2 and 3.
    - Output: deterministic image parity for supported Whitted scenes.
 

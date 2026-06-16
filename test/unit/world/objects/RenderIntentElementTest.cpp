@@ -147,6 +147,18 @@ namespace RenderIntentElementTest {
     EXPECT_FALSE(json.contains("children"));
   }
 
+  TEST(RenderIntentElement, EditsWavefrontTracingBackendIntent) {
+    Scene scene;
+    auto* intent = renderIntentElement(scene);
+    ASSERT_NE(nullptr, intent);
+
+    intent->setWavefrontTracingBackend("gpu");
+
+    const auto backend = scene.renderIntent().engineOptions.raytracer().tracingBackend();
+    ASSERT_TRUE(backend.has_value());
+    EXPECT_STREQ("gpu", backend->id());
+  }
+
   TEST(RenderIntentElement, ExposesChoicesAndHumanReadableLabels) {
     Scene scene;
     auto* intent = renderIntentElement(scene);
@@ -168,6 +180,7 @@ namespace RenderIntentElementTest {
     EXPECT_TRUE(intent->propertyChoices("wavefrontIntersectionBackend").contains("auto"));
     EXPECT_TRUE(intent->propertyChoices("wavefrontIntersectionBackend").contains("cpu"));
     EXPECT_TRUE(intent->propertyChoices("wavefrontIntersectionBackend").contains("gpu"));
+    EXPECT_TRUE(intent->propertyChoices("wavefrontTracingBackend").contains("gpu"));
     EXPECT_TRUE(intent->propertyChoices("wavefrontDenoiser").contains("box"));
     EXPECT_TRUE(intent->propertyChoices("wavefrontDenoiser").contains("bilateral"));
     EXPECT_FALSE(intent->propertyChoices("viewMode").contains("sample_stddev"));
@@ -217,6 +230,7 @@ namespace RenderIntentElementTest {
               intent->propertyDisplayName("wavefrontAdaptiveStddevThreshold"));
     EXPECT_EQ(QString("Intersection Backend"),
               intent->propertyDisplayName("wavefrontIntersectionBackend"));
+    EXPECT_EQ(QString("Tracing Backend"), intent->propertyDisplayName("wavefrontTracingBackend"));
     const QString backendDescription = intent->propertyDescription("wavefrontIntersectionBackend");
     EXPECT_TRUE(backendDescription.contains(QStringLiteral("expected ray workload")));
     EXPECT_FALSE(backendDescription.contains(QStringLiteral("Auto currently uses the CPU")));
@@ -239,6 +253,7 @@ namespace RenderIntentElementTest {
               intent->propertyChoiceDisplayName("wavefrontIntersectionBackend", "cpu"));
     EXPECT_EQ(QString("GPU"),
               intent->propertyChoiceDisplayName("wavefrontIntersectionBackend", "gpu"));
+    EXPECT_EQ(QString("GPU"), intent->propertyChoiceDisplayName("wavefrontTracingBackend", "gpu"));
     EXPECT_EQ(QString("Box"), intent->propertyChoiceDisplayName("wavefrontDenoiser", "box"));
     EXPECT_EQ(QString("Bilateral"),
               intent->propertyChoiceDisplayName("wavefrontDenoiser", "bilateral"));

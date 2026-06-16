@@ -111,6 +111,9 @@ set(raytracer_integrator_plan "${TEST_OUTPUT_DIR}/raytracer-integrator-graph.jso
 set(raytracer_integrator_render "${TEST_OUTPUT_DIR}/raytracer-integrator-render.png")
 set(wavefront_plan "${TEST_OUTPUT_DIR}/wavefront-graph.json")
 set(wavefront_gpu_backend_plan "${TEST_OUTPUT_DIR}/wavefront-gpu-backend-graph.json")
+set(wavefront_tracing_backend_plan "${TEST_OUTPUT_DIR}/wavefront-tracing-backend-graph.json")
+set(wavefront_tracing_backend_trace "${TEST_OUTPUT_DIR}/wavefront-tracing-backend-trace.json")
+set(wavefront_tracing_backend_render "${TEST_OUTPUT_DIR}/wavefront-tracing-backend-render.png")
 set(wavefront_gpu_backend_replay_trace
     "${TEST_OUTPUT_DIR}/wavefront-gpu-backend-replay-trace.json")
 set(wavefront_gpu_backend_replay_render
@@ -2097,6 +2100,52 @@ if(NOT wavefront_gpu_backend_graph MATCHES "\"intersectionBackend\"[ \r\n]*:[ \r
 endif()
 
 rendercli_run(
+  NAME "rendercli exports requested GPU tracing backend in render graph"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format json --tracing_backend gpu
+    --width 32 --height 16 "${static_scene}" "${wavefront_tracing_backend_plan}"
+)
+rendercli_assert_nonempty("${wavefront_tracing_backend_plan}"
+                          NAME "GPU tracing backend graph output")
+file(READ "${wavefront_tracing_backend_plan}" wavefront_tracing_backend_graph)
+foreach(expectation
+        "\"executor\": \"wavefront\""
+        "\"integrator\"[ \r\n]*:[ \r\n]*\"whitted\""
+        "\"tracingBackend\"[ \r\n]*:[ \r\n]*\"gpu\"")
+  if(NOT wavefront_tracing_backend_graph MATCHES "${expectation}")
+    _rendercli_fail("rendercli GPU tracing backend graph ${expectation}"
+                    "GPU tracing backend graph did not match ${expectation}"
+                    "" "" "${wavefront_tracing_backend_graph}" "")
+  endif()
+endforeach()
+
+rendercli_run(
+  NAME "rendercli traces requested GPU Whitted tracing backend"
+  COMMAND
+    "${RENDERCLI}" --tracing_backend gpu --width 32 --height 16
+    --render_graph_trace_out "${wavefront_tracing_backend_trace}"
+    "${static_scene}" "${wavefront_tracing_backend_render}"
+)
+rendercli_assert_image_nonempty("${wavefront_tracing_backend_render}"
+                                NAME "GPU tracing backend render pixels")
+rendercli_assert_nonempty("${wavefront_tracing_backend_trace}"
+                          NAME "GPU tracing backend trace JSON")
+file(READ "${wavefront_tracing_backend_trace}" wavefront_tracing_backend_trace_json)
+foreach(expectation
+        "\"id\": \"wavefront_beauty\""
+        "\"tracingBackendRequest\"[ \r\n]*:[ \r\n]*\"gpu\""
+        "\"tracingBackend\"[ \r\n]*:[ \r\n]*\"(cpu|metal|vulkan)\""
+        "\"tracingBackendFallback\"[ \r\n]*:[ \r\n]*\\{"
+        "\"intersectionBackendRequest\"[ \r\n]*:[ \r\n]*\"gpu\""
+        "\"intersectionBackendAvailability\"[ \r\n]*:[ \r\n]*\"(fallback|available)\"")
+  if(NOT wavefront_tracing_backend_trace_json MATCHES "${expectation}")
+    _rendercli_fail("rendercli GPU tracing backend trace ${expectation}"
+                    "GPU tracing backend trace did not match ${expectation}"
+                    "" "" "${wavefront_tracing_backend_trace_json}" "")
+  endif()
+endforeach()
+
+rendercli_run(
   NAME "rendercli replays requested GPU wavefront backend from render graph"
   COMMAND
     "${RENDERCLI}" --render_graph --render_graph_in "${wavefront_gpu_backend_plan}"
@@ -2212,7 +2261,7 @@ rendercli_run(
   NAME "rendercli writes graph wavefront metrics JSON and summary"
   OUTPUT_VARIABLE wavefront_metrics_stdout
   STDOUT_MATCHES
-    "wavefront_metrics.*pass=wavefront_beauty.*sampling_seed=12345.*sample_stream_mode=sampler.*integrator=whitted.*execution=depth_major_whitted.*tracing_backend=cpu.*tracing_backend_mode=wavefront_intersection.*tracing_backend_fallback=.*wavefront_intersection_backend.*tracing_backend_capabilities=19.*intersection_backend_request=gpu.*intersection_backend=cpu.*intersection_backend_availability=fallback.*intersection_backend_execution=packed_cpu.*intersection_expected_rays=[1-9][0-9]*.*intersection_expected_closest_hit_rays=[1-9][0-9]*.*intersection_expected_any_hit_rays=0.*intersection_scene_compiled=true.*intersection_scene_primitives=[1-9][0-9]*.*intersection_scene_unsupported=0.*intersection_scene_upload_bytes=[1-9][0-9]*.*intersection_scene_triangle_kernel_eligible=false.*intersection_estimated_ray_upload_bytes=[1-9][0-9]*.*intersection_estimated_query_transfer_bytes=[1-9][0-9]*.*intersection_estimated_query_round_trips=[1-9][0-9]*.*intersection_estimated_closest_hit_query_round_trips=[1-9][0-9]*.*intersection_estimated_any_hit_query_round_trips=0.*intersection_backend_upload_worker_ms=0.*intersection_backend_kernel_worker_ms=0.*intersection_backend_readback_worker_ms=0.*intersection_rays=[0-9][0-9]*.*closest_hit_rays=[0-9][0-9]*.*any_hit_rays=[0-9][0-9]*.*closest_hit_queries=[0-9][0-9]*.*any_hit_queries=[0-9][0-9]*.*samples=.*active_sample_depths=.*compatibility_shade_samples=.*convergence=disabled.*denoiser=box.*denoise_radius=2"
+    "wavefront_metrics.*pass=wavefront_beauty.*sampling_seed=12345.*sample_stream_mode=sampler.*integrator=whitted.*execution=depth_major_whitted.*tracing_backend=cpu.*tracing_backend_mode=wavefront_intersection.*tracing_backend_fallback=.*wavefront_intersection_backend.*tracing_backend_capabilities=19.*intersection_backend_request=gpu.*intersection_backend=cpu.*intersection_backend_availability=fallback.*intersection_backend_execution=packed_cpu.*intersection_expected_rays=[1-9][0-9]*.*intersection_expected_closest_hit_rays=[1-9][0-9]*.*intersection_expected_any_hit_rays=[1-9][0-9]*.*intersection_scene_compiled=true.*intersection_scene_primitives=[1-9][0-9]*.*intersection_scene_unsupported=0.*intersection_scene_upload_bytes=[1-9][0-9]*.*intersection_scene_triangle_kernel_eligible=false.*intersection_estimated_ray_upload_bytes=[1-9][0-9]*.*intersection_estimated_query_transfer_bytes=[1-9][0-9]*.*intersection_estimated_query_round_trips=[1-9][0-9]*.*intersection_estimated_closest_hit_query_round_trips=[1-9][0-9]*.*intersection_estimated_any_hit_query_round_trips=[1-9][0-9]*.*intersection_backend_upload_worker_ms=0.*intersection_backend_kernel_worker_ms=0.*intersection_backend_readback_worker_ms=0.*intersection_rays=[0-9][0-9]*.*closest_hit_rays=[0-9][0-9]*.*any_hit_rays=[1-9][0-9]*.*closest_hit_queries=[0-9][0-9]*.*any_hit_queries=[1-9][0-9]*.*samples=.*active_sample_depths=.*compatibility_shade_samples=.*convergence=disabled.*denoiser=box.*denoise_radius=2"
   COMMAND
     "${RENDERCLI}" --engine wavefront --width 16 --height 16
     --wavefront_intersection_backend gpu --sampling_seed 12345
@@ -2233,7 +2282,8 @@ if(NOT wavefront_metrics_stdout MATCHES
                   "wavefront metrics summary did not contain closest-hit upload byte estimate"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
-if(NOT wavefront_metrics_stdout MATCHES "intersection_estimated_any_hit_ray_upload_bytes=0")
+if(NOT wavefront_metrics_stdout MATCHES
+       "intersection_estimated_any_hit_ray_upload_bytes=[1-9][0-9]*")
   _rendercli_fail("rendercli wavefront metrics any-hit upload summary"
                   "wavefront metrics summary did not contain any-hit upload byte estimate"
                   "${wavefront_metrics_stdout}" "" "" "")
@@ -2244,7 +2294,8 @@ if(NOT wavefront_metrics_stdout MATCHES
                   "wavefront metrics summary did not contain closest-hit transfer byte estimate"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
-if(NOT wavefront_metrics_stdout MATCHES "intersection_estimated_any_hit_query_transfer_bytes=0")
+if(NOT wavefront_metrics_stdout MATCHES
+       "intersection_estimated_any_hit_query_transfer_bytes=[1-9][0-9]*")
   _rendercli_fail("rendercli wavefront metrics any-hit transfer summary"
                   "wavefront metrics summary did not contain any-hit transfer byte estimate"
                   "${wavefront_metrics_stdout}" "" "" "")
@@ -2620,7 +2671,8 @@ if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendExpectedClosestHitRa
                   "wavefront metrics report did not contain expected closest-hit rays"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
-if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendExpectedAnyHitRays\"[ \r\n]*:[ \r\n]*0")
+if(NOT wavefront_metrics_json MATCHES
+       "\"intersectionBackendExpectedAnyHitRays\"[ \r\n]*:[ \r\n]*[1-9][0-9]*")
   _rendercli_fail("rendercli wavefront metrics expected any-hit rays"
                   "wavefront metrics report did not contain expected any-hit rays"
                   "" "" "${wavefront_metrics_json}" "")
@@ -2686,7 +2738,8 @@ if(NOT wavefront_metrics_json MATCHES "\"intersectionEstimatedClosestHitQueryRou
                   "wavefront metrics report did not contain closest-hit query round trips"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
-if(NOT wavefront_metrics_json MATCHES "\"intersectionEstimatedAnyHitQueryRoundTrips\"[ \r\n]*:[ \r\n]*0")
+if(NOT wavefront_metrics_json MATCHES
+       "\"intersectionEstimatedAnyHitQueryRoundTrips\"[ \r\n]*:[ \r\n]*[1-9][0-9]*")
   _rendercli_fail("rendercli wavefront metrics any-hit query round trips"
                   "wavefront metrics report did not contain any-hit query round trips"
                   "" "" "${wavefront_metrics_json}" "")
@@ -3541,7 +3594,7 @@ foreach(expectation
         "\"intersectionBackendExecutionPath\"[ \r\n]*:[ \r\n]*\"runtime_scene\""
         "\"intersectionBackendExpectedRays\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
         "\"intersectionBackendExpectedClosestHitRays\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
-        "\"intersectionBackendExpectedAnyHitRays\"[ \r\n]*:[ \r\n]*0"
+        "\"intersectionBackendExpectedAnyHitRays\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
         "\"intersectionBackendAutoMinimumGpuRays\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
         "\"intersectionBackendAutoEstimatedQueryTransferBytes\"[ \r\n]*:[ \r\n]*0"
         "\"intersectionSceneCompiled\"[ \r\n]*:[ \r\n]*false"

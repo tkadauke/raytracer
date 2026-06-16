@@ -115,6 +115,8 @@ struct RenderWindow::Private {
         intent.defaultExecutor = settingsWidget->pathTracingSchedule() == "Scalar"
                                    ? engine::graph::RenderExecutorPreference::Raytracer
                                    : engine::graph::RenderExecutorPreference::PathTracer;
+      } else if (settingsWidget->wavefrontTracingBackend() != "Auto") {
+        intent.defaultExecutor = engine::graph::RenderExecutorPreference::Wavefront;
       } else {
         intent.defaultExecutor = engine::graph::RenderExecutorPreference::Raytracer;
       }
@@ -128,11 +130,14 @@ struct RenderWindow::Private {
       options.setSamplesPerPixel(settingsWidget->samplesPerPixel());
       options.setViewPlane(settingsWidget->viewPlane().toStdString());
       options.setMaximumRecursionDepth(settingsWidget->maxRecursionDepth());
+      if (settingsWidget->engine() == "Raytracer" &&
+          settingsWidget->wavefrontTracingBackend() != "Auto") {
+        options.setTracingBackend(settingsWidget->wavefrontTracingBackend().toStdString());
+      }
       if (settingsWidget->engine() == "Path Tracer") {
         options.setDirectLightSamples(settingsWidget->directLightSamples());
         if (settingsWidget->pathTracingSchedule() == "Wavefront") {
-          options.setIntersectionBackend(
-            settingsWidget->wavefrontIntersectionBackend().toStdString());
+          options.setTracingBackend(settingsWidget->wavefrontTracingBackend().toStdString());
         }
       }
       options.setMaximumThreads(settingsWidget->renderThreads());

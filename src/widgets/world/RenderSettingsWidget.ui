@@ -453,15 +453,15 @@
       </item>
       <item row="12" column="0">
        <widget class="QLabel" name="label_wavefrontIntersectionBackend">
-        <property name="text">
-         <string>Intersection backend</string>
+       <property name="text">
+         <string>Tracing backend</string>
         </property>
        </widget>
       </item>
       <item row="12" column="1">
        <widget class="QComboBox" name="wavefrontIntersectionBackend">
         <property name="toolTip">
-         <string>Ray-scene intersection backend for wavefront batches. GPU uses an available platform backend for eligible scenes and otherwise reports a visible CPU fallback.</string>
+         <string>Tracing execution backend for wavefront Whitted and path-tracing batches. GPU uses supported backend services for eligible scenes and otherwise reports a visible CPU fallback.</string>
         </property>
         <item>
          <property name="text">

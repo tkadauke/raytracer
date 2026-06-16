@@ -14,6 +14,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Added tracing backend benchmark scene definitions and a rendercli capture
   wrapper for small primitive, large mesh, visibility-heavy, indirect diffuse,
   and unsupported fallback workloads, closing roadmap E12 job 1. — GPT-5 Codex
+- Exposed `tracingBackend` / `--tracing_backend auto|cpu|gpu` for graph
+  rendercli and Modeler wavefront Whitted renders, mapping supported GPU
+  requests onto the existing backend services while preserving explicit trace
+  fallback fields for E14 job 5. — GPT-5 Codex
 - Added GPU tracing texture record compilation for `ConstantColorTexture` with
   explicit unsupported texture reason diagnostics; advances E3 job 3.
   — GPT-5 Codex
@@ -34,6 +38,16 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   benchmarks for render time, transfer time, kernel time, scene compile time,
   rays/sec, resident bytes, and fallback rate, closing roadmap E12 job 2.
   — GPT-5 Codex
+- Added GPU tracing material-record support for `PhongMaterial` and
+  `ReflectiveMaterial` mirror continuation parameters, while reporting
+  `TransparentMaterial` refraction as an explicit GPU Whitted v1 unsupported
+  reason for E14 job 3. — GPT-5 Codex
+- Routed supported non-recursive Whitted direct lighting through backend
+  any-hit shadow batches, with CPU parity coverage and explicit unsupported
+  material fallback preserved for E14 job 2. — GPT-5 Codex
+- Defined the supported GPU Whitted v1 subset, including material, light,
+  recursion, transparent/glass fallback, and shared backend-service scope for
+  E14 job 1. — GPT-5 Codex
 - Reported compiled GPU tracing scene section counts and unsupported
   material, texture, and light reason counts in metrics JSON, rendercli
   summaries, and graph traces for the E3 tracing scene data roadmap.

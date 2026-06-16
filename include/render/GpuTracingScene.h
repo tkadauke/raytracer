@@ -19,7 +19,7 @@ namespace render {
   class Material;
   class Scene;
 
-  inline constexpr std::uint32_t gpuTracingSceneLayoutVersion = 1u;
+  inline constexpr std::uint32_t gpuTracingSceneLayoutVersion = 2u;
 
   enum class GpuTracingSceneSectionKind : std::uint32_t {
     Geometry = 1,
@@ -30,7 +30,13 @@ namespace render {
     DebugIds = 6
   };
 
-  enum class GpuTracingMaterialKind : std::uint32_t { Unsupported = 0, Matte = 1, Emissive = 2 };
+  enum class GpuTracingMaterialKind : std::uint32_t {
+    Unsupported = 0,
+    Matte = 1,
+    Emissive = 2,
+    Phong = 3,
+    Reflective = 4
+  };
 
   enum class GpuTracingTextureKind : std::uint32_t {
     Unsupported = 0,
@@ -61,6 +67,7 @@ namespace render {
     std::uint32_t emissionTexture{0};
     std::uint32_t flags{0};
     std::array<float, 4> parameters{};
+    std::array<float, 4> continuationParameters{};
   };
 
   struct alignas(16) GpuTracingTextureRecord {

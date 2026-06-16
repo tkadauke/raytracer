@@ -117,6 +117,16 @@ struct RenderSettingsWidget::Private {
   }
 
   QString intersectionBackendText(const engine::graph::RenderRaytracerOptions& options) const {
+    if (options.tracingBackend()) {
+      const QString backend = QString::fromLatin1(options.tracingBackend()->id());
+      if (backend == QStringLiteral("cpu")) {
+        return QStringLiteral("CPU");
+      }
+      if (backend == QStringLiteral("gpu")) {
+        return QStringLiteral("GPU");
+      }
+      return QStringLiteral("Auto");
+    }
     if (!options.intersectionBackend()) {
       return QStringLiteral("Auto");
     }
@@ -387,6 +397,10 @@ QString RenderSettingsWidget::wavefrontIntersectionBackend() const {
   return p->ui.wavefrontIntersectionBackend->currentText();
 }
 
+QString RenderSettingsWidget::wavefrontTracingBackend() const {
+  return wavefrontIntersectionBackend();
+}
+
 int RenderSettingsWidget::samplesPerPixel() const {
   return p->ui.samplesPerPixel->value();
 }
@@ -514,7 +528,7 @@ void RenderSettingsWidget::updateEngineControls() {
   const bool supportsPathTracingSchedule = (eng == "Path Tracer");
   const bool supportsDirectLightSamples = pathTracingSelected;
   const bool supportsRayDenoiser = pathTracingUsesWavefront;
-  const bool supportsIntersectionBackend = pathTracingUsesWavefront;
+  const bool supportsIntersectionBackend = eng == "Raytracer" || pathTracingUsesWavefront;
   const bool denoiserIsBox = p->ui.rayDenoiser->currentText() == QStringLiteral("Box");
   const bool denoiserIsBilateral = p->ui.rayDenoiser->currentText() == QStringLiteral("Bilateral");
   const bool showRayDenoiseRadius = supportsRayDenoiser && (denoiserIsBox || denoiserIsBilateral);

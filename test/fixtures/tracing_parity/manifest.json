@@ -7,6 +7,11 @@
       "description": "Opaque analytic matte primitives under deterministic direct lighting."
     },
     {
+      "category": "whitted_reflection",
+      "path": "whitted_reflection.json",
+      "description": "Whitted mirror-reflection continuation scene in the supported GPU tracing subset."
+    },
+    {
       "category": "indirect_bounce",
       "path": "indirect_bounce.json",
       "description": "Path-traced diffuse bounce from a colored wall onto neutral matte receivers."

@@ -25,6 +25,7 @@ namespace RaytracerPassStateTest {
     state.setMaximumThreads(3);
     state.setQueueSize(11);
     state.setIntegrator("path_tracer");
+    state.setTracingBackend("gpu");
     state.setIntersectionBackend("gpu");
     state.setRussianRouletteDepth(4);
     state.setDirectLightSamples(6);
@@ -50,6 +51,8 @@ namespace RaytracerPassStateTest {
     EXPECT_EQ(11, json.value("execution").toObject().value("queueSize").toInt());
     EXPECT_EQ("pathtracer",
               json.value("execution").toObject().value("integrator").toString().toStdString());
+    EXPECT_EQ("gpu",
+              json.value("execution").toObject().value("tracingBackend").toString().toStdString());
     EXPECT_EQ(
       "gpu",
       json.value("execution").toObject().value("intersectionBackend").toString().toStdString());
@@ -82,6 +85,7 @@ namespace RaytracerPassStateTest {
     ASSERT_TRUE(decoded.maximumThreads().has_value());
     ASSERT_TRUE(decoded.queueSize().has_value());
     ASSERT_TRUE(decoded.integrator().has_value());
+    ASSERT_TRUE(decoded.tracingBackend().has_value());
     ASSERT_TRUE(decoded.intersectionBackend().has_value());
     ASSERT_TRUE(decoded.russianRouletteDepth().has_value());
     ASSERT_TRUE(decoded.directLightSamples().has_value());
@@ -103,6 +107,7 @@ namespace RaytracerPassStateTest {
     EXPECT_EQ(3, *decoded.maximumThreads());
     EXPECT_EQ(11, *decoded.queueSize());
     EXPECT_EQ("pathtracer", *decoded.integrator());
+    EXPECT_STREQ("gpu", decoded.tracingBackend()->id());
     EXPECT_STREQ("gpu", decoded.intersectionBackend()->id());
     EXPECT_EQ(4, *decoded.russianRouletteDepth());
     EXPECT_EQ(6, *decoded.directLightSamples());
@@ -225,6 +230,18 @@ namespace RaytracerPassStateTest {
     state.applyTo(wavefront);
 
     EXPECT_EQ(nullptr, wavefront.denoiser());
+  }
+
+  TEST(RaytracerBeautyPassState, AppliesTracingBackendToWavefrontBeforeIntersectionAlias) {
+    RaytracerBeautyPassState state;
+    state.setIntersectionBackend("cpu");
+    state.setTracingBackend("gpu");
+
+    engine::wavefront::WavefrontRaytracer wavefront{std::shared_ptr<render::Scene>()};
+
+    state.applyTo(wavefront);
+
+    EXPECT_STREQ("gpu", wavefront.intersectionBackend().id());
   }
 
   TEST(RaytracerBeautyPassState, AppliesAdaptiveSamplingToWavefront) {
