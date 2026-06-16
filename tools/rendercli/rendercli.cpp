@@ -469,6 +469,38 @@ namespace {
         << compactTextValue(
              batching.value("intersectionBackendResidentDirectLightBatchesUnavailableReason"),
              "none")
+        << " resident_path_loop_execution="
+        << compactTextValue(batching.value("residentPathLoopExecutionPath"), "none")
+        << " resident_path_loop_residency="
+        << compactTextValue(batching.value("residentPathLoopResidency"), "none")
+        << " resident_path_loop_depths="
+        << unsignedValue(batching, "residentPathLoopDepths")
+        << " resident_path_loop_input_paths="
+        << unsignedValue(batching, "residentPathLoopInputPaths")
+        << " resident_path_loop_retained_paths="
+        << unsignedValue(batching, "residentPathLoopRetainedPaths")
+        << " resident_path_loop_removed_paths="
+        << unsignedValue(batching, "residentPathLoopRemovedPaths")
+        << " resident_path_loop_moved_paths="
+        << unsignedValue(batching, "residentPathLoopMovedPaths")
+        << " resident_path_loop_retained_index_bytes="
+        << unsignedValue(batching, "residentPathLoopRetainedIndexBytes")
+        << " resident_path_loop_resident_path_state_bytes="
+        << unsignedValue(batching, "residentPathLoopResidentPathStateBytes")
+        << " resident_path_loop_input_resident_path_state_bytes="
+        << unsignedValue(batching, "residentPathLoopInputResidentPathStateBytes")
+        << " resident_path_loop_retained_resident_path_state_bytes="
+        << unsignedValue(batching, "residentPathLoopRetainedResidentPathStateBytes")
+        << " resident_path_loop_removed_resident_path_state_bytes="
+        << unsignedValue(batching, "residentPathLoopRemovedResidentPathStateBytes")
+        << " resident_path_loop_compaction_passes="
+        << unsignedValue(batching, "residentPathLoopCompactionPasses")
+        << " resident_path_loop_round_trips="
+        << unsignedValue(batching, "residentPathLoopRoundTrips")
+        << " resident_path_loop_saved_host_readbacks="
+        << unsignedValue(batching, "residentPathLoopSavedHostReadbacks")
+        << " resident_path_loop_saved_host_readback_bytes="
+        << unsignedValue(batching, "residentPathLoopSavedHostReadbackBytes")
         << " samples=" << unsignedValue(input, "primarySamples")
         << " tiles=" << unsignedValue(tiling, "tileCount")
         << " tile_grid=" << unsignedValue(tiling, "tileColumns") << "x"
