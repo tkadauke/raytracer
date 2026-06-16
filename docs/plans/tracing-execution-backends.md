@@ -1693,7 +1693,10 @@ contributions through the GPU path and match the CPU estimator.
    - Depends on: jobs 2, 3, and 4.
    - Output: next path-state records using E4 sample dimensions.
 
-6. **Add one-bounce parity tests.**
+6. ~~**Add one-bounce parity tests.**~~ ✅ **Done.** `GpuDiffusePathStep`
+   now has wrapper-vs-reference one-bounce parity tests for miss, diffuse
+   continuation, direct-light contribution, and explicit unsupported-material
+   fallback records. Closes #611.
    - Depends on: job 5.
    - Output: CPU/GPU path-step records and accumulated contribution match for
      fixed seeds on supported diffuse scenes.
