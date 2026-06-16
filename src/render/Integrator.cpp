@@ -2,6 +2,7 @@
 
 #include "render/GpuIntersectionScene.h"
 #include "render/GpuTracingScene.h"
+#include "render/TracingPathStateBuffer.h"
 #include "render/WavefrontIntersectionBackend.h"
 #include "render/State.h"
 
@@ -211,6 +212,22 @@ namespace render {
     intersectionBackendSupportsPreparedRayBatchCompaction = false;
     intersectionBackendSupportsResidentDirectLightBatches = false;
     intersectionBackendResidentDirectLightBatchesUnavailableReason.clear();
+    residentPathLoopExecutionPath.clear();
+    residentPathLoopResidency.clear();
+    residentPathLoopDepths = 0;
+    residentPathLoopInputPaths = 0;
+    residentPathLoopRetainedPaths = 0;
+    residentPathLoopRemovedPaths = 0;
+    residentPathLoopMovedPaths = 0;
+    residentPathLoopRetainedIndexBytes = 0;
+    residentPathLoopResidentPathStateBytes = 0;
+    residentPathLoopInputResidentPathStateBytes = 0;
+    residentPathLoopRetainedResidentPathStateBytes = 0;
+    residentPathLoopRemovedResidentPathStateBytes = 0;
+    residentPathLoopCompactionPasses = 0;
+    residentPathLoopRoundTrips = 0;
+    residentPathLoopSavedHostReadbacks = 0;
+    residentPathLoopSavedHostReadbackBytes = 0;
     intersectionWorkerSeconds = 0.0;
     shadingWorkerSeconds = 0.0;
     pathSetupWorkerSeconds = 0.0;
@@ -236,6 +253,7 @@ namespace render {
     frontierCompactionRetainedHostPathStateBytes = 0;
     frontierCompactionRemovedHostPathStateBytes = 0;
     frontierCompactionExecutionPath.clear();
+    residentPathLoopAccumulation.reset();
   }
 
   void IntegratorBatchMetrics::mergeFrom(const IntegratorBatchMetrics& source) {
@@ -339,6 +357,52 @@ namespace render {
     frontierCompactionRemovedHostPathStateBytes +=
       source.frontierCompactionRemovedHostPathStateBytes;
     mergeLabel(frontierCompactionExecutionPath, source.frontierCompactionExecutionPath);
+    mergeLabel(residentPathLoopExecutionPath, source.residentPathLoopExecutionPath);
+    mergeLabel(residentPathLoopResidency, source.residentPathLoopResidency);
+    residentPathLoopDepths += source.residentPathLoopDepths;
+    residentPathLoopInputPaths += source.residentPathLoopInputPaths;
+    residentPathLoopRetainedPaths += source.residentPathLoopRetainedPaths;
+    residentPathLoopRemovedPaths += source.residentPathLoopRemovedPaths;
+    residentPathLoopMovedPaths += source.residentPathLoopMovedPaths;
+    residentPathLoopRetainedIndexBytes += source.residentPathLoopRetainedIndexBytes;
+    residentPathLoopResidentPathStateBytes =
+      std::max(residentPathLoopResidentPathStateBytes,
+               source.residentPathLoopResidentPathStateBytes);
+    residentPathLoopInputResidentPathStateBytes +=
+      source.residentPathLoopInputResidentPathStateBytes;
+    residentPathLoopRetainedResidentPathStateBytes +=
+      source.residentPathLoopRetainedResidentPathStateBytes;
+    residentPathLoopRemovedResidentPathStateBytes +=
+      source.residentPathLoopRemovedResidentPathStateBytes;
+    residentPathLoopCompactionPasses += source.residentPathLoopCompactionPasses;
+    residentPathLoopRoundTrips += source.residentPathLoopRoundTrips;
+    residentPathLoopSavedHostReadbacks += source.residentPathLoopSavedHostReadbacks;
+    residentPathLoopSavedHostReadbackBytes += source.residentPathLoopSavedHostReadbackBytes;
+    if (source.residentPathLoopAccumulation) {
+      if (!residentPathLoopAccumulation) {
+        residentPathLoopAccumulation = *source.residentPathLoopAccumulation;
+      } else {
+        residentPathLoopAccumulation->clearOperations +=
+          source.residentPathLoopAccumulation->clearOperations;
+        residentPathLoopAccumulation->addOperations +=
+          source.residentPathLoopAccumulation->addOperations;
+        residentPathLoopAccumulation->addedSamples +=
+          source.residentPathLoopAccumulation->addedSamples;
+        residentPathLoopAccumulation->resolveOperations +=
+          source.residentPathLoopAccumulation->resolveOperations;
+        residentPathLoopAccumulation->readbackOperations +=
+          source.residentPathLoopAccumulation->readbackOperations;
+        residentPathLoopAccumulation->readbackBytes +=
+          source.residentPathLoopAccumulation->readbackBytes;
+        residentPathLoopAccumulation->residentBytes =
+          std::max(residentPathLoopAccumulation->residentBytes,
+                   source.residentPathLoopAccumulation->residentBytes);
+        mergeLabel(residentPathLoopAccumulation->backend,
+                   source.residentPathLoopAccumulation->backend);
+        mergeLabel(residentPathLoopAccumulation->residency,
+                   source.residentPathLoopAccumulation->residency);
+      }
+    }
   }
 
   void IntegratorBatchMetrics::recordActiveDepth(std::uint64_t activeSamples) {
@@ -395,6 +459,40 @@ namespace render {
                                                             std::uint64_t movedSamples) {
     recordFrontierCompaction(inputSamples, retainedSamples, movedSamples, "host",
                              retainedSamples * sizeof(std::uint32_t));
+  }
+
+  void IntegratorBatchMetrics::recordResidentPathLoopExecution(
+    const ResidentPathLoopDiagnostics& diagnostics, std::uint64_t roundTrips) {
+    mergeLabel(residentPathLoopExecutionPath, "gpu_resident_path_loop");
+    mergeLabel(residentPathLoopResidency, diagnostics.buffers.residency);
+    residentPathLoopDepths += diagnostics.depths.size();
+    residentPathLoopResidentPathStateBytes =
+      std::max(residentPathLoopResidentPathStateBytes, diagnostics.buffers.residentBytes);
+    residentPathLoopRoundTrips += roundTrips;
+
+    for (const ResidentPathLoopDepthDiagnostics& depth : diagnostics.depths) {
+      const ResidentPathCompactionContract& compaction = depth.compaction;
+      ++residentPathLoopCompactionPasses;
+      mergeLabel(residentPathLoopExecutionPath, compaction.executionPath());
+      residentPathLoopInputPaths += compaction.inputPathCount();
+      residentPathLoopRetainedPaths += compaction.retainedPathCount();
+      residentPathLoopRemovedPaths += compaction.removedPathCount();
+      residentPathLoopMovedPaths += compaction.movedPathCount();
+      residentPathLoopRetainedIndexBytes += compaction.retainedIndexBytes();
+      residentPathLoopInputResidentPathStateBytes +=
+        compaction.inputResidentPathStateBytes();
+      residentPathLoopRetainedResidentPathStateBytes +=
+        compaction.retainedResidentPathStateBytes();
+      residentPathLoopRemovedResidentPathStateBytes +=
+        compaction.removedResidentPathStateBytes();
+      ++residentPathLoopSavedHostReadbacks;
+      residentPathLoopSavedHostReadbackBytes += compaction.inputResidentPathStateBytes();
+    }
+  }
+
+  void IntegratorBatchMetrics::recordResidentPathLoopAccumulation(
+    const TracingAccumulationDiagnostics& diagnostics) {
+    residentPathLoopAccumulation = diagnostics;
   }
 
   double IntegratorBatchMetrics::frontierCompactionRemovedSampleFraction() const {

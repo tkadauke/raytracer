@@ -151,6 +151,22 @@ namespace engine::wavefront {
       bool intersectionBackendSupportsPreparedRayBatchCompaction = false;
       bool intersectionBackendSupportsResidentDirectLightBatches = false;
       std::string intersectionBackendResidentDirectLightBatchesUnavailableReason;
+      std::string residentPathLoopExecutionPath;
+      std::string residentPathLoopResidency;
+      std::uint64_t residentPathLoopDepths = 0;
+      std::uint64_t residentPathLoopInputPaths = 0;
+      std::uint64_t residentPathLoopRetainedPaths = 0;
+      std::uint64_t residentPathLoopRemovedPaths = 0;
+      std::uint64_t residentPathLoopMovedPaths = 0;
+      std::uint64_t residentPathLoopRetainedIndexBytes = 0;
+      std::uint64_t residentPathLoopResidentPathStateBytes = 0;
+      std::uint64_t residentPathLoopInputResidentPathStateBytes = 0;
+      std::uint64_t residentPathLoopRetainedResidentPathStateBytes = 0;
+      std::uint64_t residentPathLoopRemovedResidentPathStateBytes = 0;
+      std::uint64_t residentPathLoopCompactionPasses = 0;
+      std::uint64_t residentPathLoopRoundTrips = 0;
+      std::uint64_t residentPathLoopSavedHostReadbacks = 0;
+      std::uint64_t residentPathLoopSavedHostReadbackBytes = 0;
       std::uint64_t activeSampleDepthsProcessed = 0;
       std::uint64_t compatibilityShadeSamples = 0;
       std::uint64_t unsupportedPathMaterialSamples = 0;
@@ -222,6 +238,7 @@ namespace engine::wavefront {
       std::uint64_t frontierCompactionRetainedHostPathStateBytes = 0;
       std::uint64_t frontierCompactionRemovedHostPathStateBytes = 0;
       std::string frontierCompactionExecutionPath;
+      std::optional<render::TracingAccumulationDiagnostics> residentPathLoopAccumulation;
 
       void addIntegratorMetrics(const render::IntegratorBatchMetrics& metrics);
       void addIntersectionBackendMetrics(const render::IntegratorBatchMetrics& metrics);

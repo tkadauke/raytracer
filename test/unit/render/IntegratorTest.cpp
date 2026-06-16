@@ -4,6 +4,7 @@
 #include "render/GpuIntersectionScene.h"
 #include "render/RayCaster.h"
 #include "render/State.h"
+#include "render/TracingPathStateBuffer.h"
 #include "render/WavefrontIntersectionBackend.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Triangle.h"
@@ -413,5 +414,107 @@ namespace IntegratorTest {
     EXPECT_EQ("mixed", metrics.frontierCompactionExecutionPath);
     EXPECT_DOUBLE_EQ(5.0 / 17.0, metrics.frontierCompactionRemovedSampleFraction());
     EXPECT_DOUBLE_EQ(5.0 / 12.0, metrics.frontierCompactionMovedRetainedSampleFraction());
+  }
+
+  TEST(Integrator, BatchMetricsMergeResidentPathLoopAccumulation) {
+    const TracingAccumulationLayout layout = TracingAccumulationLayout::image(2, 2);
+    TracingAccumulationDiagnostics first = TracingAccumulationDiagnostics::forLayout(
+      layout, "gpu_resident_path_loop", "resident_accumulation_resolve");
+    first.recordClear();
+    first.recordAdd(/*samples=*/3, /*operations=*/1);
+    first.recordResolve();
+    first.recordReadback(layout.resolveBytes());
+
+    TracingAccumulationDiagnostics second = TracingAccumulationDiagnostics::forLayout(
+      layout, "gpu_resident_path_loop", "resident_accumulation_resolve");
+    second.recordClear();
+    second.recordAdd(/*samples=*/2, /*operations=*/1);
+    second.recordResolve();
+    second.recordReadback(layout.resolveBytes());
+
+    IntegratorBatchMetrics target;
+    target.reset(/*scalarFallback=*/false);
+    target.recordResidentPathLoopAccumulation(first);
+
+    IntegratorBatchMetrics source;
+    source.reset(/*scalarFallback=*/false);
+    source.recordResidentPathLoopAccumulation(second);
+    target.mergeFrom(source);
+
+    ASSERT_TRUE(target.residentPathLoopAccumulation);
+    EXPECT_EQ("gpu_resident_path_loop", target.residentPathLoopAccumulation->backend);
+    EXPECT_EQ("resident_accumulation_resolve", target.residentPathLoopAccumulation->residency);
+    EXPECT_EQ(layout.totalBytes(), target.residentPathLoopAccumulation->residentBytes);
+    EXPECT_EQ(2u, target.residentPathLoopAccumulation->clearOperations);
+    EXPECT_EQ(2u, target.residentPathLoopAccumulation->addOperations);
+    EXPECT_EQ(5u, target.residentPathLoopAccumulation->addedSamples);
+    EXPECT_EQ(2u, target.residentPathLoopAccumulation->resolveOperations);
+    EXPECT_EQ(2u, target.residentPathLoopAccumulation->readbackOperations);
+    EXPECT_EQ(2u * layout.resolveBytes(), target.residentPathLoopAccumulation->readbackBytes);
+
+    target.reset(/*scalarFallback=*/false);
+    EXPECT_FALSE(target.residentPathLoopAccumulation);
+  }
+
+  TEST(Integrator, BatchMetricsRecordResidentPathLoopActualExecution) {
+    TracingPathStateBuffers buffers(2);
+    const Rayd ray(Vector4d(0.0, 0.0, 0.0, 1.0), Vector3d(0.0, 0.0, 1.0));
+    buffers.appendActive(makeGpuPathStateRecord(ray, Colord::white(), Colord::black(),
+                                                /*pixelIndex=*/0, /*sampleIndex=*/0,
+                                                /*depth=*/0));
+    buffers.appendActive(makeGpuPathStateRecord(ray, Colord::white(), Colord::black(),
+                                                /*pixelIndex=*/1, /*sampleIndex=*/0,
+                                                /*depth=*/0));
+
+    ResidentPathLoopSettings settings;
+    settings.maxDepth = 3;
+    settings.russianRouletteDepth = 10;
+    const ResidentPathLoopDiagnostics diagnostics = loopResidentDiffusePaths(
+      buffers, settings, [](const GpuPathStateRecord& record, std::uint32_t) {
+        if (record.pixelIndex == 1) {
+          return std::optional<GpuPathStateRecord>();
+        }
+        GpuPathStateRecord next = record;
+        next.origin[0] += 1.0f;
+        return std::optional<GpuPathStateRecord>(next);
+      });
+
+    IntegratorBatchMetrics target;
+    target.reset(/*scalarFallback=*/false);
+    target.recordResidentPathLoopExecution(diagnostics, /*roundTrips=*/1);
+
+    EXPECT_EQ("gpu_resident_path_loop", target.residentPathLoopExecutionPath);
+    EXPECT_EQ("cpu_host", target.residentPathLoopResidency);
+    EXPECT_EQ(3u, target.residentPathLoopDepths);
+    EXPECT_EQ(4u, target.residentPathLoopInputPaths);
+    EXPECT_EQ(2u, target.residentPathLoopRetainedPaths);
+    EXPECT_EQ(2u, target.residentPathLoopRemovedPaths);
+    EXPECT_EQ(0u, target.residentPathLoopMovedPaths);
+    EXPECT_EQ(2u * sizeof(std::uint32_t), target.residentPathLoopRetainedIndexBytes);
+    EXPECT_EQ(diagnostics.buffers.residentBytes, target.residentPathLoopResidentPathStateBytes);
+    EXPECT_EQ(4u * sizeof(GpuPathStateRecord),
+              target.residentPathLoopInputResidentPathStateBytes);
+    EXPECT_EQ(2u * sizeof(GpuPathStateRecord),
+              target.residentPathLoopRetainedResidentPathStateBytes);
+    EXPECT_EQ(2u * sizeof(GpuPathStateRecord),
+              target.residentPathLoopRemovedResidentPathStateBytes);
+    EXPECT_EQ(3u, target.residentPathLoopCompactionPasses);
+    EXPECT_EQ(1u, target.residentPathLoopRoundTrips);
+    EXPECT_EQ(3u, target.residentPathLoopSavedHostReadbacks);
+    EXPECT_EQ(4u * sizeof(GpuPathStateRecord), target.residentPathLoopSavedHostReadbackBytes);
+
+    IntegratorBatchMetrics source;
+    source.reset(/*scalarFallback=*/false);
+    source.recordResidentPathLoopExecution(diagnostics, /*roundTrips=*/2);
+    target.mergeFrom(source);
+
+    EXPECT_EQ(6u, target.residentPathLoopDepths);
+    EXPECT_EQ(8u, target.residentPathLoopInputPaths);
+    EXPECT_EQ(3u, target.residentPathLoopRoundTrips);
+    EXPECT_EQ(6u, target.residentPathLoopSavedHostReadbacks);
+
+    target.reset(/*scalarFallback=*/false);
+    EXPECT_TRUE(target.residentPathLoopExecutionPath.empty());
+    EXPECT_EQ(0u, target.residentPathLoopDepths);
   }
 }

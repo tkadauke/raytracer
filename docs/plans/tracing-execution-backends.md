@@ -2004,33 +2004,46 @@ diffuse path tracer for the first supported subset.
 
 **Jobs:**
 
-1. **Add active/next path buffers.**
+1. ~~**Add active/next path buffers.**~~ ✅ **Done.** Added
+   `render::TracingPathStateLayout` and CPU reference ping-pong buffers for
+   issue #612.
    - Depends on: none.
    - Output: ping-pong buffers for current and next path states.
 
-2. **Add GPU/CPU compaction contract.**
+2. **~~Add GPU/CPU compaction contract.~~**
    - Depends on: job 1.
-   - Output: retained-index, removed-count, moved-count, and execution-path
-     contract matching existing host compaction metrics.
+   - Output: ~~retained-index, removed-count, moved-count, and execution-path
+     contract matching existing host compaction metrics.~~ ✅ **Done.**
+     `ResidentPathCompactionContract` mirrors the host compaction counters with
+     32-bit retained indices and resident path-state byte accounting for
+     issue #613.
 
-3. **Loop over depth with max-depth and Russian roulette.**
+3. **~~Loop over depth with max-depth and Russian roulette.~~** ✅ **Done.**
+   Added `loopResidentDiffusePaths` as the CPU-reference resident path-state
+   loop with active/next ping-pong, max-depth draining, GPU sample-stream
+   Russian roulette, and fixed-seed retained-record parity diagnostics for
+   issue #614.
    - Depends on: jobs 1 and 2.
-   - Output: supported diffuse paths execute multiple bounces and terminate
-     according to the same policy as CPU.
+   - Output: ~~supported diffuse paths execute multiple bounces and terminate
+     according to the same policy as CPU.~~
 
 4. **Resolve accumulated image.**
    - Depends on: jobs 1 and 3.
    - Output: E5 accumulation resolves to rendercli/Modeler-visible image data.
 
-5. **Add end-to-end parity scenes.**
+5. ~~**Add end-to-end parity scenes.**~~ ✅ **Done.** Added fixed-seed
+   rendercli CPU vs GPU-requested parity coverage for direct, indirect,
+   environment, and explicit unsupported fallback scenes for issue #616.
    - Depends on: jobs 3 and 4.
-   - Output: fixed-seed CPU vs GPU diffuse path-tracing comparisons for direct,
-     indirect, environment, and unsupported fallback scenes.
+   - Output: ~~fixed-seed CPU vs GPU diffuse path-tracing comparisons for
+     direct, indirect, environment, and unsupported fallback scenes.~~
 
-6. **Update residency metrics from estimates to actuals.**
+6. **~~Update residency metrics from estimates to actuals.~~** ✅ **Done.**
+   Added resident path-loop actual execution counters for issue #617, surfaced
+   through wavefront JSON, rendercli summaries, and Modeler graph details.
    - Depends on: jobs 2, 3, and 5.
-   - Output: trace shows resident path-state bytes, actual compaction execution,
-     actual round trips, and actual saved host readbacks.
+   - Output: ~~trace shows resident path-state bytes, actual compaction execution,
+     actual round trips, and actual saved host readbacks.~~
 
 **Gate:** a supported diffuse scene can render end-to-end through the GPU
 path-loop subset and compare against the CPU path tracer.

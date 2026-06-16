@@ -432,6 +432,9 @@ compaction primitive.
 Today that execution path is `host` whenever a compaction pass runs. That makes
 the current CPU compaction contract explicit before any future kernel keeps the
 frontier resident on the GPU.
+The resident path-state layer mirrors the same contract with `uint32_t`
+retained indices, retained/removed/moved path counts, resident path-state byte
+totals, and an explicit execution-path label for future Metal/Vulkan kernels.
 Executed compaction also reports input, retained, and removed host path-state
 bytes. Those counters describe the CPU scheduler payload moved or discarded by
 the compaction pass itself, while the retained-index byte counter continues to
@@ -659,6 +662,15 @@ counts, and readback counts/bytes. Wavefront metrics currently report the
 CPU tile-local accumulation mode explicitly, while the standalone Vulkan
 accumulation result reports GPU-resident storage and the CPU readbacks used by
 its parity tests.
+Path-state residency has its own layout contract. `TracingPathStateLayout`
+allocates two same-capacity buffers, one for the active frontier and one for
+the next frontier being produced by shading. Each entry is a 16-byte aligned
+`GpuPathStateRecord` carrying the ray, throughput, accumulated radiance,
+sample identity, depth, flags, and continuation timing/PDF fields that a
+resident path loop needs to ping-pong between bounces. The CPU reference
+`TracingPathStateBuffers` uses that same record layout, so tests can exercise
+active-to-next swaps and record round-trips before a platform GPU kernel owns
+the buffers.
 Direct-light diagnostics also report the host bytes used for sampled light
 selection records that pair each occlusion query with its eventual lighting
 contribution. Those bytes are separate from the any-hit ray frontier and show
@@ -778,6 +790,8 @@ choices become inspectable user-facing metadata.
 - `src/render/TracingAccumulationLayout.cpp`
 - `include/render/TracingAccumulationReference.h`
 - `src/render/TracingAccumulationReference.cpp`
+- `include/render/TracingPathStateBuffer.h`
+- `src/render/TracingPathStateBuffer.cpp`
 - `include/render/VulkanTracingAccumulationKernel.h`
 - `src/render/VulkanTracingAccumulationKernel.cpp`
 - `include/render/PathTracingIntegrator.h`
@@ -805,6 +819,7 @@ choices become inspectable user-facing metadata.
 - `test/unit/render/WavefrontIntersectionBackendTest.cpp`
 - `test/unit/render/TracingAccumulationLayoutTest.cpp`
 - `test/unit/render/TracingAccumulationReferenceTest.cpp`
+- `test/unit/render/TracingPathStateBufferTest.cpp`
 - `test/unit/render/VulkanTracingAccumulationKernelTest.cpp`
 - `test/unit/render/PathTerminationTest.cpp`
 - `test/unit/render/StateTest.cpp`

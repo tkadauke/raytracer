@@ -169,6 +169,9 @@ namespace engine::wavefront::detail {
     m_metrics.accumulation.diagnostics.resolveOperations = m_metrics.input.renderedPixels;
     m_metrics.accumulation.diagnostics.readbackOperations = 0;
     m_metrics.accumulation.diagnostics.readbackBytes = 0;
+    if (m_metrics.batching.residentPathLoopAccumulation) {
+      m_metrics.accumulation.diagnostics = *m_metrics.batching.residentPathLoopAccumulation;
+    }
   }
 
   WavefrontRenderMetrics WavefrontMetricsRecorder::snapshot() const {

@@ -46,6 +46,19 @@ namespace engine::wavefront {
       }
     }
 
+    void mergeAccumulationDiagnostics(render::TracingAccumulationDiagnostics& target,
+                                      const render::TracingAccumulationDiagnostics& source) {
+      mergeLabel(target.backend, source.backend);
+      mergeLabel(target.residency, source.residency);
+      target.residentBytes = std::max(target.residentBytes, source.residentBytes);
+      target.clearOperations += source.clearOperations;
+      target.addOperations += source.addOperations;
+      target.addedSamples += source.addedSamples;
+      target.resolveOperations += source.resolveOperations;
+      target.readbackOperations += source.readbackOperations;
+      target.readbackBytes += source.readbackBytes;
+    }
+
     class RecursiveRayCasterAdapter : public render::RayCaster {
     public:
       RecursiveRayCasterAdapter(const render::Scene& scene, const render::Integrator& integrator)
@@ -401,6 +414,35 @@ namespace engine::wavefront {
     frontierCompactionRemovedHostPathStateBytes +=
       metrics.frontierCompactionRemovedHostPathStateBytes;
     mergeLabel(frontierCompactionExecutionPath, metrics.frontierCompactionExecutionPath);
+    if (metrics.residentPathLoopAccumulation) {
+      if (!residentPathLoopAccumulation) {
+        residentPathLoopAccumulation = *metrics.residentPathLoopAccumulation;
+      } else {
+        mergeAccumulationDiagnostics(*residentPathLoopAccumulation,
+                                     *metrics.residentPathLoopAccumulation);
+      }
+    }
+    mergeLabel(residentPathLoopExecutionPath, metrics.residentPathLoopExecutionPath);
+    mergeLabel(residentPathLoopResidency, metrics.residentPathLoopResidency);
+    residentPathLoopDepths += metrics.residentPathLoopDepths;
+    residentPathLoopInputPaths += metrics.residentPathLoopInputPaths;
+    residentPathLoopRetainedPaths += metrics.residentPathLoopRetainedPaths;
+    residentPathLoopRemovedPaths += metrics.residentPathLoopRemovedPaths;
+    residentPathLoopMovedPaths += metrics.residentPathLoopMovedPaths;
+    residentPathLoopRetainedIndexBytes += metrics.residentPathLoopRetainedIndexBytes;
+    residentPathLoopResidentPathStateBytes =
+      std::max(residentPathLoopResidentPathStateBytes,
+               metrics.residentPathLoopResidentPathStateBytes);
+    residentPathLoopInputResidentPathStateBytes +=
+      metrics.residentPathLoopInputResidentPathStateBytes;
+    residentPathLoopRetainedResidentPathStateBytes +=
+      metrics.residentPathLoopRetainedResidentPathStateBytes;
+    residentPathLoopRemovedResidentPathStateBytes +=
+      metrics.residentPathLoopRemovedResidentPathStateBytes;
+    residentPathLoopCompactionPasses += metrics.residentPathLoopCompactionPasses;
+    residentPathLoopRoundTrips += metrics.residentPathLoopRoundTrips;
+    residentPathLoopSavedHostReadbacks += metrics.residentPathLoopSavedHostReadbacks;
+    residentPathLoopSavedHostReadbackBytes += metrics.residentPathLoopSavedHostReadbackBytes;
     compatibilityShadeSamples += metrics.compatibilityShadeSamples;
     unsupportedPathMaterialSamples += metrics.unsupportedPathMaterialSamples;
     emitterHitSamples += metrics.emitterHitSamples;
@@ -1165,6 +1207,38 @@ namespace engine::wavefront {
     batchingJson["intersectionBackendResidentDirectLightBatchesUnavailableReason"] =
       QString::fromStdString(
         batching.intersectionBackendResidentDirectLightBatchesUnavailableReason);
+    batchingJson["residentPathLoopExecutionPath"] =
+      QString::fromStdString(batching.residentPathLoopExecutionPath);
+    batchingJson["residentPathLoopResidency"] =
+      QString::fromStdString(batching.residentPathLoopResidency);
+    batchingJson["residentPathLoopDepths"] =
+      static_cast<double>(batching.residentPathLoopDepths);
+    batchingJson["residentPathLoopInputPaths"] =
+      static_cast<double>(batching.residentPathLoopInputPaths);
+    batchingJson["residentPathLoopRetainedPaths"] =
+      static_cast<double>(batching.residentPathLoopRetainedPaths);
+    batchingJson["residentPathLoopRemovedPaths"] =
+      static_cast<double>(batching.residentPathLoopRemovedPaths);
+    batchingJson["residentPathLoopMovedPaths"] =
+      static_cast<double>(batching.residentPathLoopMovedPaths);
+    batchingJson["residentPathLoopRetainedIndexBytes"] =
+      static_cast<double>(batching.residentPathLoopRetainedIndexBytes);
+    batchingJson["residentPathLoopResidentPathStateBytes"] =
+      static_cast<double>(batching.residentPathLoopResidentPathStateBytes);
+    batchingJson["residentPathLoopInputResidentPathStateBytes"] =
+      static_cast<double>(batching.residentPathLoopInputResidentPathStateBytes);
+    batchingJson["residentPathLoopRetainedResidentPathStateBytes"] =
+      static_cast<double>(batching.residentPathLoopRetainedResidentPathStateBytes);
+    batchingJson["residentPathLoopRemovedResidentPathStateBytes"] =
+      static_cast<double>(batching.residentPathLoopRemovedResidentPathStateBytes);
+    batchingJson["residentPathLoopCompactionPasses"] =
+      static_cast<double>(batching.residentPathLoopCompactionPasses);
+    batchingJson["residentPathLoopRoundTrips"] =
+      static_cast<double>(batching.residentPathLoopRoundTrips);
+    batchingJson["residentPathLoopSavedHostReadbacks"] =
+      static_cast<double>(batching.residentPathLoopSavedHostReadbacks);
+    batchingJson["residentPathLoopSavedHostReadbackBytes"] =
+      static_cast<double>(batching.residentPathLoopSavedHostReadbackBytes);
     batchingJson["batches"] = static_cast<double>(batching.batches);
     batchingJson["samplesSubmitted"] = static_cast<double>(batching.samplesSubmitted);
     batchingJson["maxBatchSize"] = static_cast<double>(batching.maxBatchSize);

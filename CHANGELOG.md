@@ -50,6 +50,23 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Added the `tracingExecution` render intent field with `auto`, `cpu`,
   `hybrid`, and `gpu` values to define user-facing tracing execution
   preferences for roadmap E10 job 1. — GPT-5 Codex
+- Reported actual resident path-loop execution metrics in wavefront JSON,
+  rendercli summaries, and Modeler graph details, including resident path-state
+  bytes, compaction execution, round trips, and saved host readbacks for
+  roadmap E9 job 6. — GPT-5 Codex
+- Added resident path-loop image resolve through the tracing accumulation
+  buffer, with accumulation resolve/readback diagnostics surfaced through
+  wavefront metrics for roadmap E9 job 4. — GPT-5 Codex
+- Added a CPU-reference resident diffuse path loop over GPU path-state records,
+  including active/next ping-pong, max-depth termination, Russian roulette via
+  the GPU sample stream, and fixed-seed record parity diagnostics for roadmap
+  E9 job 3. — GPT-5 Codex
+- Added `ResidentPathCompactionContract` for GPU-resident path loop planning,
+  covering retained indices, removed and moved counts, resident byte totals,
+  and execution-path labels for roadmap E9 job 2. — GPT-5 Codex
+- Added GPU-facing active/next path-state buffer layout records plus a CPU
+  reference ping-pong buffer for the E9 resident path-loop roadmap.
+  — GPT-5 Codex
 - Added GPU tracing texture record compilation for `ConstantColorTexture` with
   explicit unsupported texture reason diagnostics; advances E3 job 3.
   — GPT-5 Codex
