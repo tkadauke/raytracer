@@ -12,6 +12,11 @@
       "description": "Path-traced diffuse bounce from a colored wall onto neutral matte receivers."
     },
     {
+      "category": "environment_miss",
+      "path": "environment_miss.json",
+      "description": "Constant environment miss radiance around an unlit supported matte primitive."
+    },
+    {
       "category": "imported_mesh",
       "path": "imported_mesh.json",
       "description": "SourceAsset-backed STL mesh import that compiles to triangle geometry."

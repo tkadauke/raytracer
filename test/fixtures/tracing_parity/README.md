@@ -11,6 +11,7 @@ Vulkan intersection paths must keep aligned.
 | --- | --- | --- |
 | Matte direct light | `matte_direct_light.json` | Opaque analytic primitives with a deterministic direct-light path. |
 | Indirect bounce | `indirect_bounce.json` | Path-traced diffuse bounce from a colored wall onto matte receivers. |
+| Environment miss | `environment_miss.json` | Constant environment miss radiance around an unlit supported matte primitive. |
 | Imported mesh | `imported_mesh.json` | Source-backed STL import through `SourceAsset`, producing mesh triangles instead of analytic primitives. |
 | Transparent fallback | `transparent_fallback.json` | Transparent material leaves that are expected to remain on the runtime CPU fallback path until recursive material metadata is supported by packed/GPU backends. |
 | Visibility-heavy | `visibility_heavy.json` | Area-light direct sampling with many shadow blockers, stressing any-hit visibility batches. |

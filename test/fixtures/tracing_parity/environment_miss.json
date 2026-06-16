@@ -1,0 +1,66 @@
+{
+  "id": "tracing-parity-environment-miss",
+  "name": "Tracing Parity Environment Miss",
+  "ambient": [0.0, 0.0, 0.0],
+  "background": [0.12, 0.22, 0.36],
+  "type": "Scene",
+  "renderIntent": {
+    "defaultExecutor": "pathtracer",
+    "defaultViewMode": "beauty",
+    "defaultCamera": {
+      "sceneCameraId": "camera"
+    },
+    "engineOptions": {
+      "raytracer": {
+        "execution": {
+          "maxRecursionDepth": 2
+        },
+        "sampling": {
+          "sampler": "Regular",
+          "samplesPerPixel": 1
+        }
+      }
+    }
+  },
+  "children": [
+    {
+      "id": "camera",
+      "name": "Camera",
+      "position": [0.0, 0.0, -3.0],
+      "target": [0.0, 0.0, 0.0],
+      "distance": 3.0,
+      "zoom": 1.4,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "sphere-texture",
+      "name": "Sphere Texture",
+      "color": [0.7, 0.7, 0.7],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "sphere-material",
+      "name": "Sphere Matte",
+      "diffuseTexture": "sphere-texture",
+      "ambientCoefficient": 0.0,
+      "diffuseCoefficient": 1.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "center-sphere",
+      "name": "Unlit Matte Sphere",
+      "position": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "sphere-material",
+      "radius": 0.45,
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Sphere",
+      "children": []
+    }
+  ]
+}
