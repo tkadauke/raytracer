@@ -2,6 +2,7 @@
 
 #include "core/Color.h"
 #include "render/GpuIntersectionScene.h"
+#include "render/samplers/SampleStream.h"
 #include "render/textures/Texture.h"
 
 #include <array>
@@ -50,6 +51,12 @@ namespace render {
     Directional = 2,
     RectangularArea = 3
   };
+
+  inline constexpr std::uint32_t gpuDiffusePathStateActiveFlag = 1u << 0u;
+  inline constexpr std::uint32_t gpuDiffusePathStateTerminatedFlag = 1u << 1u;
+  inline constexpr std::uint32_t gpuDiffusePathStateSampledFromBsdfFlag = 1u << 2u;
+  inline constexpr std::uint32_t gpuDiffusePathStateBsdfSampleDeltaFlag = 1u << 3u;
+  inline constexpr std::uint32_t gpuDiffusePathStateUnsupportedFlag = 1u << 4u;
 
   struct GpuTracingSceneSectionLayout {
     GpuTracingSceneSectionKind kind{GpuTracingSceneSectionKind::Geometry};
@@ -114,6 +121,89 @@ namespace render {
     std::array<float, 4> throughput{};
     std::array<float, 4> accumulatedRadiance{};
   };
+
+  /**
+    * GPU-readable state for one diffuse path-tracing step.
+    *
+    * The record is intentionally flat and 32-bit-addressed so CPU reference
+    * code, Metal, Vulkan, and future shader tests can share the same field
+    * order. Active paths carry `gpuDiffusePathStateActiveFlag` and a ray to
+    * intersect. Terminated paths carry `gpuDiffusePathStateTerminatedFlag`;
+    * their ray and sampling fields remain defined but must not be dispatched as
+    * active work.
+    *
+    * `pixelIndex` and `primarySampleIndex` identify the accumulation target.
+    * `sampleSeed`, `sampleDimensionBase`, and `sampleDimensionStride` describe
+    * the deterministic GPU sample-coordinate cursor for the current bounce.
+    * `previousBsdfPdf`, `previousLightPdf`, and `previousEventFlags` preserve
+    * the previous sampled event for emission/direct-light MIS weighting.
+    */
+  struct alignas(16) GpuDiffusePathStateRecord {
+    GpuIntersectionRay ray;
+    std::array<float, 4> throughput{};
+    std::array<float, 4> accumulatedRadiance{};
+    std::uint32_t pixelIndex{0};
+    std::uint32_t primarySampleIndex{0};
+    std::uint32_t depth{0};
+    std::uint32_t sampleSeed{0};
+    std::uint32_t sampleDimensionBase{0};
+    std::uint32_t sampleDimensionStride{0};
+    std::uint32_t flags{gpuDiffusePathStateTerminatedFlag};
+    std::uint32_t reserved0{0};
+    float previousBsdfPdf{0.0f};
+    float previousLightPdf{0.0f};
+    std::uint32_t previousMaterial{0};
+    std::uint32_t previousEventFlags{0};
+    std::array<std::uint32_t, 4> reserved{};
+  };
+
+  enum class GpuDiffusePathStepEvent : std::uint32_t {
+    Inactive = 0,
+    Miss = 1,
+    Hit = 2,
+    Unsupported = 3
+  };
+
+  struct alignas(16) GpuDiffusePathStepRecord {
+    std::uint32_t event{static_cast<std::uint32_t>(GpuDiffusePathStepEvent::Inactive)};
+    std::uint32_t pathIndex{0};
+    std::uint32_t pixelIndex{0};
+    std::uint32_t primarySampleIndex{0};
+    std::uint32_t depth{0};
+    std::uint32_t material{0};
+    std::uint32_t object{0};
+    std::uint32_t flags{0};
+    std::array<float, 4> emittedRadiance{};
+    std::array<float, 4> directLightRadiance{};
+    std::array<float, 4> missRadiance{};
+    std::array<float, 4> continuationThroughput{};
+  };
+
+  [[nodiscard]] inline bool
+  gpuDiffusePathStateIsActive(const GpuDiffusePathStateRecord& pathState) {
+    return (pathState.flags & gpuDiffusePathStateActiveFlag) != 0u &&
+           (pathState.flags & gpuDiffusePathStateTerminatedFlag) == 0u;
+  }
+
+  [[nodiscard]] inline bool
+  gpuDiffusePathStateIsTerminated(const GpuDiffusePathStateRecord& pathState) {
+    return (pathState.flags & gpuDiffusePathStateTerminatedFlag) != 0u;
+  }
+
+  [[nodiscard]] inline GpuDiffusePathStateRecord makeActiveGpuDiffusePathState() {
+    GpuDiffusePathStateRecord pathState;
+    pathState.flags = gpuDiffusePathStateActiveFlag;
+    pathState.throughput = {1.0f, 1.0f, 1.0f, 0.0f};
+    pathState.sampleDimensionBase = static_cast<std::uint32_t>(SampleDimension::BSDF);
+    pathState.sampleDimensionStride = static_cast<std::uint32_t>(kPathSampleDimensionStride);
+    return pathState;
+  }
+
+  [[nodiscard]] inline GpuDiffusePathStateRecord makeTerminatedGpuDiffusePathState() {
+    GpuDiffusePathStateRecord pathState;
+    pathState.flags = gpuDiffusePathStateTerminatedFlag;
+    return pathState;
+  }
 
   struct GpuTracingSceneSections {
     GpuIntersectionSceneBuffers geometry;

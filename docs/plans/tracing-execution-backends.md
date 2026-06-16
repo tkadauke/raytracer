@@ -1964,30 +1964,51 @@ contributions through the GPU path and match the CPU estimator.
 
 **Jobs:**
 
-1. **Define path-state record.**
+1. ~~**Define path-state record.**~~ ✅ **Done.** `render::GpuDiffusePathStateRecord`
+   defines the v1 diffuse path-step state with ray, throughput, accumulated
+   radiance, pixel/sample ids, depth, sample cursor, active/terminated flags,
+   and previous-event MIS metadata. Closes #606.
    - Depends on: none.
    - Output: ray, throughput, accumulated contribution target or sample id,
      depth, RNG/sample state, flags, and MIS metadata.
 
-2. **Add CPU reference path-step kernel.**
+2. ~~**Add CPU reference path-step kernel.**~~ ✅ **Done.**
+   `render::GpuDiffusePathStepReference` advances record-based diffuse path
+   states for hit, miss, emission, direct-light, and diffuse-continuation
+   cases with fixed-seed coverage. Closes #607.
    - Depends on: job 1.
    - Output: record-based one-bounce implementation for comparison.
 
-3. **Run closest-hit and material lookup for a path step.**
+3. ~~**Run closest-hit and material lookup for a path step.**~~ ✅ **Done.**
+   `render::GpuDiffusePathStep` now submits active path rays through the packed
+   closest-hit intersector, forwards the resulting hit/miss records into the
+   diffuse path-step material lookup, and reports unsupported compiled material
+   hits as explicit terminated path records. Closes #608.
    - Depends on: jobs 1 and 2.
    - Output: path states intersect through E1 and resolve supported material
      records from E3.
 
-4. **Add emission and direct-light contribution.**
+4. ~~**Add emission and direct-light contribution.**~~ ✅ **Done.**
+   `render::GpuDiffusePathStep` now carries supported emissive hits and matte
+   direct-light samples into the path-state accumulated radiance record, while
+   path-step metrics report packed closest-hit/visibility paths and CPU record
+   contribution-evaluation paths. Closes #609.
    - Depends on: jobs 2 and 3.
    - Output: supported emission/direct-light contribution feeds E5
      accumulation or the CPU reference equivalent.
 
-5. **Sample diffuse continuation.**
+5. ~~**Sample diffuse continuation.**~~ ✅ **Done.** `render::GpuDiffusePathStep`
+   now emits a compact next path-state frontier only for surviving diffuse
+   continuations, using the GPU sample-stream BSDF and continuation dimensions
+   to populate direction, PDF, throughput, previous-event flags, and
+   Russian-roulette termination behavior. Closes #610.
    - Depends on: jobs 2, 3, and 4.
    - Output: next path-state records using E4 sample dimensions.
 
-6. **Add one-bounce parity tests.**
+6. ~~**Add one-bounce parity tests.**~~ ✅ **Done.** `GpuDiffusePathStep`
+   now has wrapper-vs-reference one-bounce parity tests for miss, diffuse
+   continuation, direct-light contribution, and explicit unsupported-material
+   fallback records. Closes #611.
    - Depends on: job 5.
    - Output: CPU/GPU path-step records and accumulated contribution match for
      fixed seeds on supported diffuse scenes.

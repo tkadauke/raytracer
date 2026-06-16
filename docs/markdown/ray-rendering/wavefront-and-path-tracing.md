@@ -420,6 +420,12 @@ rays. Host path-state byte counters separately estimate the full scheduler
 `BatchPath` footprint that is still owned by the CPU path tracer. That makes the
 larger Phase 8 handoff visible: compacting ray buffers is not enough until the
 active path state itself has a resident representation or an explicit mirror.
+`GpuDiffusePathStateRecord` is the first stable resident representation for the
+supported diffuse path-step subset: it carries the active ray, throughput,
+accumulated radiance, pixel/sample ids, depth, deterministic sample cursor,
+flags, and previous-event MIS metadata in one 16-byte-aligned record. The
+current renderer still uses the CPU-owned `BatchPath`; the GPU record exists so
+the next path-step kernels have a byte-stable contract to target.
 The path tracer also reports frontier compaction metrics for the operation it
 already performs between depths: input path slots, retained slots, removed
 inactive slots, moved live slots, removed fraction, retained-index bytes, and
@@ -816,6 +822,7 @@ choices become inspectable user-facing metadata.
 - `test/unit/render/PathTracingIntegratorTest.cpp`
 - `test/unit/render/IntersectionSceneCompilerTest.cpp`
 - `test/unit/render/GpuIntersectionSceneTest.cpp`
+- `test/unit/render/GpuTracingSceneTest.cpp`
 - `test/unit/render/WavefrontIntersectionBackendTest.cpp`
 - `test/unit/render/TracingAccumulationLayoutTest.cpp`
 - `test/unit/render/TracingAccumulationReferenceTest.cpp`
