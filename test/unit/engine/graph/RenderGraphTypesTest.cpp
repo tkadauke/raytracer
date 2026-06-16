@@ -207,6 +207,7 @@ namespace RenderGraphTypesTest {
     intent.engineOptions.rasterizer().setMaximumScreenSpaceError(0.25);
     intent.engineOptions.rasterizer().setMSAASamples(4);
     intent.engineOptions.rasterizer().setShadowMapSize(128);
+    intent.engineOptions.rasterizer().setShadowMode(RenderRasterShadowMode::RayTraced);
     intent.engineOptions.wireframe().setLod(2);
     intent.exportedAOVs = {RenderViewMode::Depth, RenderViewMode::Normal,
                            RenderViewMode::SampleStddev, RenderViewMode::SampleStddevColor,
@@ -278,6 +279,11 @@ namespace RenderGraphTypesTest {
     EXPECT_EQ(4,
               engineOptions["rasterizer"].toObject()["sampling"].toObject()["msaaSamples"].toInt());
     EXPECT_EQ(128, engineOptions["rasterizer"].toObject()["shadows"].toObject()["mapSize"].toInt());
+    EXPECT_EQ("ray_traced", engineOptions["rasterizer"]
+                              .toObject()["shadows"]
+                              .toObject()["mode"]
+                              .toString()
+                              .toStdString());
     EXPECT_EQ(2, engineOptions["wireframe"].toObject()["lod"].toInt());
     const auto exportedAOVs = json["exportedAOVs"].toArray();
     ASSERT_EQ(5, exportedAOVs.size());
@@ -330,10 +336,13 @@ namespace RenderGraphTypesTest {
     rasterGeometry["lod"] = 2;
     rasterGeometry["quality"] = "preview";
     rasterGeometry["maxScreenSpaceError"] = 4.5;
+    QJsonObject rasterShadows;
+    rasterShadows["mode"] = "ray_traced";
     QJsonObject rasterizerOptions;
     rasterizerOptions["execution"] = rasterExecution;
     rasterizerOptions["geometry"] = rasterGeometry;
     rasterizerOptions["sampling"] = rasterSampling;
+    rasterizerOptions["shadows"] = rasterShadows;
     QJsonObject engineOptions;
     engineOptions["raytracer"] = raytracerOptions;
     engineOptions["rasterizer"] = rasterizerOptions;
@@ -351,7 +360,8 @@ namespace RenderGraphTypesTest {
                                       "world_position",
                                       "sample_stddev",
                                       "sample_stddev_color",
-                                      "raster_color_write_count"};
+                                      "raster_color_write_count",
+                                      "hybrid_visibility"};
     json["maxRenderToTextureRecursionDepth"] = 4;
 
     const RenderIntent intent = RenderIntent::fromJson(json);
@@ -392,13 +402,16 @@ namespace RenderGraphTypesTest {
     EXPECT_EQ("preview", *intent.engineOptions.rasterizer().tessellationQuality());
     ASSERT_TRUE(intent.engineOptions.rasterizer().maximumScreenSpaceError().has_value());
     EXPECT_DOUBLE_EQ(4.5, *intent.engineOptions.rasterizer().maximumScreenSpaceError());
-    ASSERT_EQ(6u, intent.exportedAOVs.size());
+    ASSERT_TRUE(intent.engineOptions.rasterizer().shadowMode().has_value());
+    EXPECT_EQ(RenderRasterShadowMode::RayTraced, *intent.engineOptions.rasterizer().shadowMode());
+    ASSERT_EQ(7u, intent.exportedAOVs.size());
     EXPECT_EQ(RenderViewMode::Depth, intent.exportedAOVs[0]);
     EXPECT_EQ(RenderViewMode::Stencil, intent.exportedAOVs[1]);
     EXPECT_EQ(RenderViewMode::WorldPosition, intent.exportedAOVs[2]);
     EXPECT_EQ(RenderViewMode::SampleStddev, intent.exportedAOVs[3]);
     EXPECT_EQ(RenderViewMode::SampleStddevColor, intent.exportedAOVs[4]);
     EXPECT_EQ(RenderViewMode::RasterColorWriteCount, intent.exportedAOVs[5]);
+    EXPECT_EQ(RenderViewMode::HybridVisibility, intent.exportedAOVs[6]);
     ASSERT_EQ(1u, intent.viewOverrides.size());
     EXPECT_EQ(SceneSelector::Kind::ObjectName, intent.viewOverrides.front().selector.kind);
     EXPECT_EQ("Monitor", intent.viewOverrides.front().selector.value);

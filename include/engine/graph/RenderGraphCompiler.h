@@ -66,8 +66,8 @@ namespace engine::graph {
     };
 
     RenderPassNode beautyPass(const RenderExecutorDefinition& executorDefinition,
-                              const SceneView& sceneView,
-                              const RenderTargetSpec& target, const RenderIntent& intent,
+                              const SceneView& sceneView, const RenderTargetSpec& target,
+                              const RenderIntent& intent,
                               std::vector<RenderFeatureKind> extraFeatures = {}) const;
     RenderPlan compileWithSubviewDepth(const RenderTargetSpec& target, const RenderIntent& intent,
                                        const RenderSceneAnalysis& sceneAnalysis,
@@ -81,6 +81,14 @@ namespace engine::graph {
     void addRasterVisibilityInput(RenderPlan& plan, const RenderTargetSpec& target,
                                   RenderPassNode& pass, const SceneView& sceneView,
                                   const RenderIntent& intent) const;
+    RenderResourceDescriptor hybridShadowMaskResource(const RenderTargetSpec& target) const;
+    RenderPassNode hybridShadowMaskPass(const SceneView& sceneView,
+                                        const RenderIntent& intent) const;
+    RenderPassNode hybridShadowCompositePass(RenderResourceId colorResource,
+                                             RenderResourceId maskResource,
+                                             RenderResourceId outputResource) const;
+    RenderResourceId addHybridShadowComposite(RenderPlan& plan, const RenderTargetSpec& target,
+                                              RenderResourceId inputResource) const;
     RenderResourceDescriptor readbackResource(const RenderResourceDescriptor& source,
                                               RenderResourceId id, std::string name,
                                               RenderResourceLifetime lifetime) const;

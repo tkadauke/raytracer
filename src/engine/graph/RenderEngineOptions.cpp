@@ -303,8 +303,8 @@ namespace engine::graph {
     return !m_maximumRecursionDepth && !m_maximumThreads && !m_queueSize && !m_integrator &&
            !m_tracingBackend && !m_intersectionBackend && !m_russianRouletteDepth &&
            !m_directLightSamples && !m_sampler && !m_samplesPerPixel && !m_samplingSeed &&
-           !m_sampleStreamMode && !m_viewPlane &&
-           !m_convergenceEnabled && !m_convergenceActiveSampleFractionThreshold &&
+           !m_sampleStreamMode &&
+           !m_viewPlane && !m_convergenceEnabled && !m_convergenceActiveSampleFractionThreshold &&
            !m_convergenceRadianceDeltaRmsThreshold && !m_adaptiveSamplingEnabled &&
            !m_adaptiveMinimumSamples && !m_adaptiveStddevThreshold && !m_denoiser &&
            !m_denoiseRadius && !m_denoiseColorSigma;
@@ -753,6 +753,8 @@ namespace engine::graph {
       shadows["filterRadius"] = *m_shadowFilterRadius;
     if (m_shadowFilterMode)
       shadows["filterMode"] = qstr(*m_shadowFilterMode);
+    if (m_shadowMode)
+      shadows["mode"] = qstr(shadowModeName(*m_shadowMode));
     if (!shadows.isEmpty())
       object["shadows"] = shadows;
 
@@ -855,7 +857,7 @@ namespace engine::graph {
     const QJsonObject shadows = objectField(object, "shadows", path);
     rejectUnknownFields(shadows, path + ".shadows",
                         {"mapSize", "cascadeCount", "cascadeSplitLambda", "bias", "slopeBias",
-                         "filterRadius", "filterMode"});
+                         "filterRadius", "filterMode", "mode"});
     if (hasField(shadows, "mapSize"))
       options.setShadowMapSize(intField(shadows, "mapSize", path + ".shadows"));
     if (hasField(shadows, "cascadeCount"))
@@ -871,6 +873,8 @@ namespace engine::graph {
       options.setShadowFilterRadius(intField(shadows, "filterRadius", path + ".shadows"));
     if (hasField(shadows, "filterMode"))
       options.setShadowFilterMode(stringField(shadows, "filterMode", path + ".shadows"));
+    if (hasField(shadows, "mode"))
+      options.setShadowMode(stringField(shadows, "mode", path + ".shadows"));
 
     return options;
   }
@@ -924,6 +928,7 @@ namespace engine::graph {
       overrideOptional(result.m_shadowFilterRadius, overrides.m_shadowFilterRadius);
     result.m_shadowFilterMode =
       overrideOptional(result.m_shadowFilterMode, overrides.m_shadowFilterMode);
+    result.m_shadowMode = overrideOptional(result.m_shadowMode, overrides.m_shadowMode);
     return result;
   }
 
@@ -1121,6 +1126,21 @@ namespace engine::graph {
     return "off";
   }
 
+  RenderRasterShadowMode RenderRasterizerOptions::shadowModeFromString(const std::string& value,
+                                                                       const std::string& path) {
+    if (value == "shadow_maps")
+      return RenderRasterShadowMode::ShadowMaps;
+    if (value == "ray_traced")
+      return RenderRasterShadowMode::RayTraced;
+    optionsError(path, "expected shadow_maps or ray_traced");
+  }
+
+  const char* RenderRasterizerOptions::shadowModeName(RenderRasterShadowMode mode) {
+    if (mode == RenderRasterShadowMode::RayTraced)
+      return "ray_traced";
+    return "shadow_maps";
+  }
+
   void RenderRasterizerOptions::setVisibilityCulling(RenderVisibilityCulling mode) {
     m_visibilityCulling = mode;
   }
@@ -1229,6 +1249,14 @@ namespace engine::graph {
     m_shadowFilterMode = std::move(mode);
   }
 
+  void RenderRasterizerOptions::setShadowMode(RenderRasterShadowMode mode) {
+    m_shadowMode = mode;
+  }
+
+  void RenderRasterizerOptions::setShadowMode(std::string mode) {
+    m_shadowMode = shadowModeFromString(mode, "rasterizer.shadows.mode");
+  }
+
   std::optional<int> RenderRasterizerOptions::maximumThreads() const {
     return m_maximumThreads;
   }
@@ -1299,6 +1327,10 @@ namespace engine::graph {
 
   std::optional<std::string> RenderRasterizerOptions::shadowFilterMode() const {
     return m_shadowFilterMode;
+  }
+
+  std::optional<RenderRasterShadowMode> RenderRasterizerOptions::shadowMode() const {
+    return m_shadowMode;
   }
 
   bool RenderWireframeOptions::empty() const {

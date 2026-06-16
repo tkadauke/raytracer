@@ -60,7 +60,8 @@ namespace engine::graph {
     RasterDepthTestCount,
     RasterDepthPassCount,
     RasterShadeCount,
-    RasterColorWriteCount
+    RasterColorWriteCount,
+    HybridVisibility
   };
 
   /**

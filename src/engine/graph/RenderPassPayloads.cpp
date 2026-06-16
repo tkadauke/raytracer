@@ -23,6 +23,8 @@
 #include "engine/wireframe/Wireframe.h"
 #include "render/cameras/Camera.h"
 #include "render/HomogeneousClipVolume.h"
+#include "render/IntersectionService.h"
+#include "render/lights/Light.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/materials/PhongMaterial.h"
 #include "render/primitives/Scene.h"
@@ -1108,6 +1110,409 @@ namespace engine::graph {
           return;
         }
         context.storage().color(resource)[y][x] = Colord(point.x(), point.y(), point.z());
+      }
+    };
+
+    class HybridVisibilityAOVPass : public RenderPassPayload {
+    public:
+      void execute(RenderExecutionContext& context) override {
+        const auto& pass = context.pass();
+        const auto& write = pass.singleWrite();
+        requireColorResource(context.storage(), write.resource, pass);
+
+        Buffer<Colord>& output = context.storage().color(write.resource);
+        output.clear(Colord::black());
+
+        auto camera = context.camera() ? context.camera()->clone() : nullptr;
+        auto scene = context.graph().scene();
+        if (!camera || !scene) {
+          context.recordTraceMessage(
+            "hybrid visibility AOV skipped because the pass has no camera or scene");
+          return;
+        }
+
+        auto plane = camera->viewPlane();
+        if (!plane) {
+          context.recordTraceMessage(
+            "hybrid visibility AOV skipped because the camera has no view plane");
+          return;
+        }
+
+        const Recti targetRect(output.width(), output.height());
+        plane->setup(camera->matrix(), targetRect);
+
+        Recti renderRect = targetRect;
+        if (plane->aspectMode() == render::AspectMode::FitExact) {
+          renderRect = plane->innerRect();
+        }
+
+        std::vector<render::State> states;
+        std::vector<render::WavefrontClosestHitQuery> queries;
+        queries.reserve(static_cast<std::size_t>(std::max(0, renderRect.width())) *
+                        static_cast<std::size_t>(std::max(0, renderRect.height())));
+        states.resize(queries.capacity());
+
+        std::vector<std::pair<int, int>> pixels;
+        pixels.reserve(queries.capacity());
+
+        render::NullSampleStream stream;
+        for (int y = renderRect.top(); y < renderRect.bottom(); ++y) {
+          for (int x = renderRect.left(); x < renderRect.right(); ++x) {
+            Rayd ray = camera->rayForPixel(static_cast<double>(x) + 0.5,
+                                           static_cast<double>(y) + 0.5, stream);
+            if (!ray.direction().isDefined()) {
+              continue;
+            }
+
+            const std::size_t index = queries.size();
+            queries.push_back({ray, &states[index]});
+            pixels.push_back({x, y});
+          }
+        }
+
+        if (queries.empty() || context.cancelled()) {
+          return;
+        }
+
+        render::WavefrontIntersectionBackendSelectionContext selectionContext;
+        selectionContext.setExpectedQueryFamilies(queries.size(), 0);
+        const auto backendChoice =
+          RaytracerBeautyPassState::valueFromPass(pass).intersectionBackend().value_or(
+            render::WavefrontIntersectionBackendChoice::automatic());
+        render::IntersectionService service(*scene, backendChoice, selectionContext);
+        const auto hits = service.closestHits(queries);
+        if (hits.size() != queries.size()) {
+          throw passError(pass, "intersection service returned an unexpected closest-hit count");
+        }
+
+        double minDistance = std::numeric_limits<double>::infinity();
+        double maxDistance = -std::numeric_limits<double>::infinity();
+        for (const auto& hit : hits) {
+          if (!hit.hit()) {
+            continue;
+          }
+          const double distance = hit.hitPoint.distance();
+          if (!std::isfinite(distance)) {
+            continue;
+          }
+          minDistance = std::min(minDistance, distance);
+          maxDistance = std::max(maxDistance, distance);
+        }
+
+        std::uint64_t hitCount = 0;
+        for (std::size_t i = 0; i != hits.size(); ++i) {
+          if (!hits[i].hit()) {
+            continue;
+          }
+          ++hitCount;
+          const auto [x, y] = pixels[i];
+          const double visibility =
+            normalizedHitDistance(hits[i].hitPoint.distance(), minDistance, maxDistance);
+          output[y][x] = Colord(visibility, visibility, visibility);
+        }
+
+        recordTrace(context, service.diagnostics(), queries.size(), hitCount);
+      }
+
+    private:
+      static double normalizedHitDistance(double distance, double minDistance, double maxDistance) {
+        if (!std::isfinite(distance)) {
+          return 0.0;
+        }
+        if (!std::isfinite(minDistance) || !std::isfinite(maxDistance)) {
+          return 1.0;
+        }
+        const double range = maxDistance - minDistance;
+        if (range <= 1e-9) {
+          return 1.0;
+        }
+        return 1.0 - std::clamp((distance - minDistance) / range, 0.0, 1.0);
+      }
+
+      static void addTiming(QJsonObject& object,
+                            const render::WavefrontIntersectionQueryTiming& timing) {
+        object["uploadSeconds"] = timing.uploadSeconds;
+        object["kernelSeconds"] = timing.kernelSeconds;
+        object["readbackSeconds"] = timing.readbackSeconds;
+        object["executionPath"] = QString::fromStdString(timing.executionPath);
+        object["fallbackReason"] = QString::fromStdString(timing.fallbackReason);
+      }
+
+      static void recordTrace(RenderExecutionContext& context,
+                              const render::IntersectionServiceDiagnostics& diagnostics,
+                              std::size_t queryCount, std::uint64_t hitCount) {
+        context.recordTraceMessage(
+          "hybrid visibility AOV submitted " + std::to_string(queryCount) +
+          " closest-hit primary ray(s) through the intersection service on " +
+          diagnostics.closestHitExecutionPath);
+        if (!diagnostics.fallbackReason.empty()) {
+          context.recordTraceMessage("hybrid visibility AOV fallback: " +
+                                     diagnostics.fallbackReason);
+        }
+
+        QJsonObject service;
+        service["queryFamily"] = QStringLiteral("closest_hit");
+        service["queryTag"] = QStringLiteral("debug_aov");
+        service["queryCount"] = static_cast<double>(queryCount);
+        service["hitCount"] = static_cast<double>(hitCount);
+        service["requestedBackend"] = QString::fromStdString(diagnostics.requestedBackend);
+        service["selectedBackend"] = QString::fromStdString(diagnostics.selectedBackend);
+        service["availability"] = QString::fromStdString(diagnostics.availability);
+        service["platformName"] = QString::fromStdString(diagnostics.platformName);
+        service["executionPath"] = QString::fromStdString(diagnostics.executionPath);
+        service["closestHitExecutionPath"] =
+          QString::fromStdString(diagnostics.closestHitExecutionPath);
+        service["fallbackReason"] = QString::fromStdString(diagnostics.fallbackReason);
+        service["compiledScene"] = diagnostics.scene.compiled;
+        service["scenePrimitives"] = static_cast<double>(diagnostics.scene.primitives);
+        service["sceneSupportedPrimitives"] = static_cast<double>(
+          diagnostics.scene.primitives - diagnostics.scene.unsupportedPrimitives);
+        service["sceneUnsupportedPrimitives"] =
+          static_cast<double>(diagnostics.scene.unsupportedPrimitives);
+        service["sceneUploadBytes"] = static_cast<double>(diagnostics.scene.uploadBytes);
+
+        QJsonObject timing;
+        addTiming(timing, diagnostics.lastClosestHitTiming);
+        service["closestHitTiming"] = timing;
+
+        QJsonObject metadata;
+        metadata["intersectionService"] = service;
+        context.setTraceMetadata(metadata);
+      }
+    };
+
+    class HybridRayTracedShadowPass : public RenderPassPayload {
+    public:
+      void execute(RenderExecutionContext& context) override {
+        const auto& pass = context.pass();
+        const auto& write = pass.singleWrite();
+        requireColorResource(context.storage(), write.resource, pass);
+
+        Buffer<Colord>& mask = context.storage().color(write.resource);
+        mask.clear(Colord::white());
+
+        auto camera = context.camera() ? context.camera()->clone() : nullptr;
+        auto scene = context.graph().scene();
+        if (!camera || !scene) {
+          context.recordTraceMessage(
+            "hybrid ray-traced shadows skipped because the pass has no camera or scene");
+          return;
+        }
+        if (scene->lights().empty()) {
+          context.recordTraceMessage(
+            "hybrid ray-traced shadows skipped because the scene has no lights");
+          return;
+        }
+
+        auto plane = camera->viewPlane();
+        if (!plane) {
+          context.recordTraceMessage(
+            "hybrid ray-traced shadows skipped because the camera has no view plane");
+          return;
+        }
+
+        const Recti targetRect(mask.width(), mask.height());
+        plane->setup(camera->matrix(), targetRect);
+        Recti renderRect = targetRect;
+        if (plane->aspectMode() == render::AspectMode::FitExact) {
+          renderRect = plane->innerRect();
+        }
+
+        std::vector<render::State> primaryStates;
+        std::vector<render::WavefrontClosestHitQuery> primaryQueries;
+        std::vector<std::pair<int, int>> primaryPixels;
+        const std::size_t pixelCapacity =
+          static_cast<std::size_t>(std::max(0, renderRect.width())) *
+          static_cast<std::size_t>(std::max(0, renderRect.height()));
+        primaryStates.resize(pixelCapacity);
+        primaryQueries.reserve(pixelCapacity);
+        primaryPixels.reserve(pixelCapacity);
+
+        render::NullSampleStream stream;
+        for (int y = renderRect.top(); y < renderRect.bottom(); ++y) {
+          for (int x = renderRect.left(); x < renderRect.right(); ++x) {
+            Rayd ray = camera->rayForPixel(static_cast<double>(x) + 0.5,
+                                           static_cast<double>(y) + 0.5, stream);
+            if (!ray.direction().isDefined()) {
+              continue;
+            }
+            const std::size_t index = primaryQueries.size();
+            primaryQueries.push_back({ray, &primaryStates[index]});
+            primaryPixels.push_back({x, y});
+          }
+        }
+
+        if (primaryQueries.empty() || context.cancelled()) {
+          return;
+        }
+
+        render::WavefrontIntersectionBackendSelectionContext selectionContext;
+        selectionContext.setExpectedQueryFamilies(primaryQueries.size(),
+                                                  primaryQueries.size() * scene->lights().size());
+        const auto backendChoice =
+          RaytracerBeautyPassState::valueFromPass(pass).intersectionBackend().value_or(
+            render::WavefrontIntersectionBackendChoice::automatic());
+        render::IntersectionService service(*scene, backendChoice, selectionContext);
+        const auto hits = service.closestHits(primaryQueries);
+        if (hits.size() != primaryQueries.size()) {
+          throw passError(pass, "intersection service returned an unexpected closest-hit count");
+        }
+
+        std::vector<render::State> shadowStates;
+        std::vector<render::WavefrontAnyHitQuery> shadowQueries;
+        std::vector<std::pair<int, int>> shadowPixels;
+        shadowStates.resize(hits.size() * scene->lights().size());
+        shadowQueries.reserve(shadowStates.size());
+        shadowPixels.reserve(shadowStates.size());
+
+        std::uint64_t primaryHitCount = 0;
+        for (std::size_t i = 0; i != hits.size(); ++i) {
+          if (!hits[i].hit()) {
+            continue;
+          }
+          ++primaryHitCount;
+          const Vector4d& point4 = hits[i].hitPoint.point();
+          const Vector3d point(point4.x(), point4.y(), point4.z());
+          const Vector3d normal = hits[i].hitPoint.normal().normalizedOrZero(1e-12);
+          const Vector3d origin = point + normal * 1e-4;
+          for (const auto& light : scene->lights()) {
+            const render::LightSample sample = light->sample(point);
+            if (!sample.direction.isDefined() ||
+                (sample.radiance.r() <= 0.0 && sample.radiance.g() <= 0.0 &&
+                 sample.radiance.b() <= 0.0)) {
+              continue;
+            }
+            const double maxDistance = std::isfinite(sample.distance)
+                                         ? std::max(0.0, sample.distance - 1e-4)
+                                         : std::numeric_limits<double>::infinity();
+            const std::size_t shadowIndex = shadowQueries.size();
+            shadowQueries.push_back(
+              {Rayd(origin, sample.direction), maxDistance, &shadowStates[shadowIndex]});
+            shadowPixels.push_back(primaryPixels[i]);
+          }
+        }
+
+        std::uint64_t occludedCount = 0;
+        if (!shadowQueries.empty() && !context.cancelled()) {
+          const render::WavefrontOcclusionFlags occluded = service.anyHits(shadowQueries);
+          if (occluded.size() != shadowQueries.size()) {
+            throw passError(pass, "intersection service returned an unexpected any-hit count");
+          }
+
+          Buffer<double> litFractions(mask.width(), mask.height());
+          litFractions.clear(1.0);
+          Buffer<double> sampleCounts(mask.width(), mask.height());
+          sampleCounts.clear(0.0);
+          for (std::size_t i = 0; i != occluded.size(); ++i) {
+            const auto [x, y] = shadowPixels[i];
+            sampleCounts[y][x] += 1.0;
+            if (occluded[i]) {
+              litFractions[y][x] -= 1.0;
+              ++occludedCount;
+            }
+          }
+
+          for (int y = 0; y != mask.height(); ++y) {
+            for (int x = 0; x != mask.width(); ++x) {
+              if (sampleCounts[y][x] <= 0.0) {
+                continue;
+              }
+              const double visibility =
+                std::clamp(litFractions[y][x] / sampleCounts[y][x], 0.0, 1.0);
+              mask[y][x] = Colord(visibility, visibility, visibility);
+            }
+          }
+        }
+
+        recordTrace(context, service.diagnostics(), primaryQueries.size(), primaryHitCount,
+                    shadowQueries.size(), occludedCount);
+      }
+
+    private:
+      static void addTiming(QJsonObject& object,
+                            const render::WavefrontIntersectionQueryTiming& timing) {
+        object["uploadSeconds"] = timing.uploadSeconds;
+        object["kernelSeconds"] = timing.kernelSeconds;
+        object["readbackSeconds"] = timing.readbackSeconds;
+        object["executionPath"] = QString::fromStdString(timing.executionPath);
+        object["fallbackReason"] = QString::fromStdString(timing.fallbackReason);
+      }
+
+      static void recordTrace(RenderExecutionContext& context,
+                              const render::IntersectionServiceDiagnostics& diagnostics,
+                              std::size_t primaryQueryCount, std::uint64_t primaryHitCount,
+                              std::size_t shadowQueryCount, std::uint64_t occludedCount) {
+        context.recordTraceMessage(
+          "hybrid ray-traced shadows submitted " + std::to_string(primaryQueryCount) +
+          " closest-hit primary ray(s) and " + std::to_string(shadowQueryCount) +
+          " any-hit shadow ray(s) through the intersection service on " +
+          diagnostics.anyHitExecutionPath);
+        if (!diagnostics.fallbackReason.empty()) {
+          context.recordTraceMessage("hybrid ray-traced shadows fallback: " +
+                                     diagnostics.fallbackReason);
+        }
+
+        QJsonObject service;
+        service["queryFamily"] = QStringLiteral("closest_hit+any_hit");
+        service["queryTag"] = QStringLiteral("hybrid_shadows");
+        service["primaryQueryCount"] = static_cast<double>(primaryQueryCount);
+        service["primaryHitCount"] = static_cast<double>(primaryHitCount);
+        service["shadowQueryCount"] = static_cast<double>(shadowQueryCount);
+        service["occludedCount"] = static_cast<double>(occludedCount);
+        service["requestedBackend"] = QString::fromStdString(diagnostics.requestedBackend);
+        service["selectedBackend"] = QString::fromStdString(diagnostics.selectedBackend);
+        service["availability"] = QString::fromStdString(diagnostics.availability);
+        service["platformName"] = QString::fromStdString(diagnostics.platformName);
+        service["executionPath"] = QString::fromStdString(diagnostics.executionPath);
+        service["closestHitExecutionPath"] =
+          QString::fromStdString(diagnostics.closestHitExecutionPath);
+        service["anyHitExecutionPath"] = QString::fromStdString(diagnostics.anyHitExecutionPath);
+        service["fallbackReason"] = QString::fromStdString(diagnostics.fallbackReason);
+        service["compiledScene"] = diagnostics.scene.compiled;
+        service["scenePrimitives"] = static_cast<double>(diagnostics.scene.primitives);
+        service["sceneSupportedPrimitives"] = static_cast<double>(
+          diagnostics.scene.primitives - diagnostics.scene.unsupportedPrimitives);
+        service["sceneUnsupportedPrimitives"] =
+          static_cast<double>(diagnostics.scene.unsupportedPrimitives);
+        service["sceneUploadBytes"] = static_cast<double>(diagnostics.scene.uploadBytes);
+
+        QJsonObject closestTiming;
+        addTiming(closestTiming, diagnostics.lastClosestHitTiming);
+        service["closestHitTiming"] = closestTiming;
+        QJsonObject anyTiming;
+        addTiming(anyTiming, diagnostics.lastAnyHitTiming);
+        service["anyHitTiming"] = anyTiming;
+
+        QJsonObject metadata;
+        metadata["intersectionService"] = service;
+        context.setTraceMetadata(metadata);
+      }
+    };
+
+    class HybridShadowCompositePass : public RenderPassPayload {
+    public:
+      void execute(RenderExecutionContext& context) override {
+        const auto& pass = context.pass();
+        if (pass.reads.size() != 2) {
+          throw passError(pass, "hybrid shadow composite requires color and shadow-mask inputs");
+        }
+        const auto& write = pass.singleWrite();
+        requireColorResource(context.storage(), pass.reads[0].resource, pass);
+        requireColorResource(context.storage(), pass.reads[1].resource, pass);
+        requireColorResource(context.storage(), write.resource, pass);
+
+        const Buffer<Colord>& color = context.storage().color(pass.reads[0].resource);
+        const Buffer<Colord>& mask = context.storage().color(pass.reads[1].resource);
+        Buffer<Colord>& output = context.storage().color(write.resource);
+        requireMatchingSize(color, mask, "hybrid shadow composite");
+        requireMatchingSize(color, output, "hybrid shadow composite");
+
+        for (int y = 0; y != output.height(); ++y) {
+          for (int x = 0; x != output.width(); ++x) {
+            const double visibility = std::clamp(mask[y][x].r(), 0.0, 1.0);
+            output[y][x] = color[y][x] * visibility;
+          }
+        }
       }
     };
 
@@ -2428,6 +2833,10 @@ namespace engine::graph {
         RenderPassKind::Visibility, RenderExecutorKind::Rasterizer, {"visibility", "culling"});
       static const FeaturePassPayloadFactory<RasterPreviewShadowPass> rasterPreviewShadows(
         RenderPassKind::Shadow, RenderExecutorKind::Rasterizer, {"preview_shadows"});
+      static const FeaturePassPayloadFactory<HybridRayTracedShadowPass> hybridRayTracedShadows(
+        RenderPassKind::Shadow, RenderExecutorKind::Raytracer, {"ray_traced_shadows"});
+      static const FeaturePassPayloadFactory<HybridShadowCompositePass> hybridShadowComposite(
+        RenderPassKind::Composite, RenderExecutorKind::Composite, {"ray_traced_shadows"});
       static const FeaturePassPayloadFactory<DepthVisualizationPass> depthVisualization(
         RenderPassKind::AOV, RenderExecutorKind::PostProcess, {"depth", "visualization"});
       static const FeaturePassPayloadFactory<DepthAOVPass> depthAOV(
@@ -2524,6 +2933,13 @@ namespace engine::graph {
       static const FeaturePassPayloadFactory<ColorCopyPass> rasterColorWriteCountVisualization(
         RenderPassKind::AOV, RenderExecutorKind::PostProcess,
         {"raster_color_write_count", "visualization"});
+      static const FeaturePassPayloadFactory<ColorCopyPass> hybridVisibilityVisualization(
+        RenderPassKind::AOV, RenderExecutorKind::PostProcess,
+        {"hybrid_visibility", "visualization"});
+      static const FeaturePassPayloadFactory<HybridVisibilityAOVPass> hybridVisibilityAOV(
+        RenderPassKind::AOV, RenderExecutorKind::Raytracer, {"hybrid_visibility"});
+      static const FeaturePassPayloadFactory<HybridVisibilityAOVPass> hybridVisibilityAOVWavefront(
+        RenderPassKind::AOV, RenderExecutorKind::Wavefront, {"hybrid_visibility"});
       static const PostProcessAAPayloadFactory postProcessAA;
       static const WireframeOverlayPayloadFactory wireframeOverlay;
       static const DepthStencilCompositePayloadFactory depthStencilComposite;
@@ -2538,6 +2954,8 @@ namespace engine::graph {
         &readback,
         &rasterVisibility,
         &rasterPreviewShadows,
+        &hybridRayTracedShadows,
+        &hybridShadowComposite,
         &depthVisualization,
         &depthAOV,
         &depthAOVWavefront,
@@ -2582,6 +3000,9 @@ namespace engine::graph {
         &rasterShadeCountAOV,
         &rasterColorWriteCountVisualization,
         &rasterColorWriteCountAOV,
+        &hybridVisibilityVisualization,
+        &hybridVisibilityAOV,
+        &hybridVisibilityAOVWavefront,
         &postProcessAA,
         &wireframeOverlay,
         &depthStencilComposite,

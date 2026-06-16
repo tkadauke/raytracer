@@ -1115,6 +1115,8 @@ namespace {
       *viewMode = RenderViewMode::RasterShadeCount;
     } else if (normalized == "rastercolorwritecount") {
       *viewMode = RenderViewMode::RasterColorWriteCount;
+    } else if (normalized == "hybridvisibility") {
+      *viewMode = RenderViewMode::HybridVisibility;
     } else {
       return false;
     }
@@ -1240,7 +1242,7 @@ namespace {
             "'depth', 'stencil', 'stencil_composite', 'normal', 'object_id', "
             "'material_id', 'world_position', 'sample_stddev', 'sample_stddev_color', "
             "'raster_coverage_count', 'raster_depth_test_count', 'raster_depth_pass_count', "
-            "'raster_shade_count', or 'raster_color_write_count'";
+            "'raster_shade_count', 'raster_color_write_count', or 'hybrid_visibility'";
           return false;
         }
         viewOverride.viewMode = viewMode;
@@ -1306,7 +1308,8 @@ namespace {
         "Render graph AOV output must use view=file syntax with view 'depth', 'stencil', "
         "'normal', 'object_id', 'material_id', 'world_position', 'sample_stddev', "
         "'sample_stddev_color', 'raster_coverage_count', 'raster_depth_test_count', "
-        "'raster_depth_pass_count', 'raster_shade_count', or 'raster_color_write_count'";
+        "'raster_depth_pass_count', 'raster_shade_count', 'raster_color_write_count', or "
+        "'hybrid_visibility'";
       return false;
     }
 
@@ -1317,7 +1320,7 @@ namespace {
         "Render graph AOV output view must be 'depth', 'stencil', 'normal', 'object_id', "
         "'material_id', 'world_position', 'sample_stddev', 'sample_stddev_color', "
         "'raster_coverage_count', 'raster_depth_test_count', 'raster_depth_pass_count', "
-        "'raster_shade_count', or 'raster_color_write_count'";
+        "'raster_shade_count', 'raster_color_write_count', or 'hybrid_visibility'";
       return false;
     }
 
@@ -1717,6 +1720,7 @@ private:
   double m_rasterShadowSlopeBias;
   int m_rasterShadowFilterRadius;
   QString m_rasterShadowFilterMode;
+  QString m_rasterShadowMode;
   int m_repeat;
   bool m_timing;
   int m_frame;
@@ -1908,6 +1912,7 @@ Renderer::Renderer()
       m_rasterShadowSlopeBias(0.0),
       m_rasterShadowFilterRadius(0),
       m_rasterShadowFilterMode("pcf"),
+      m_rasterShadowMode("shadow_maps"),
       m_repeat(1),
       m_timing(false),
       m_frame(0),
@@ -2192,6 +2197,7 @@ engine::graph::RenderEngineOptions Renderer::commandLineEngineOptions() const {
     options.rasterizer().setShadowSlopeBias(m_rasterShadowSlopeBias);
     options.rasterizer().setShadowFilterRadius(m_rasterShadowFilterRadius);
     options.rasterizer().setShadowFilterMode(m_rasterShadowFilterMode.toStdString());
+    options.rasterizer().setShadowMode(m_rasterShadowMode.toStdString());
   }
 
   return options;
@@ -3402,7 +3408,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"render_graph_view",
       "Override graph intent view mode (default, beauty, wireframe, depth, stencil, normal, "
       "stencil_composite, object_id, material_id, world_position, sample_stddev, "
-      "sample_stddev_color, raster_*_count)",
+      "sample_stddev_color, raster_*_count, hybrid_visibility)",
       "mode"},
      {"render_graph_camera", "Override graph intent camera with a scene camera id", "camera_id"},
      {"render_graph_shading_profile", "Override graph intent shading profile", "profile"},
@@ -3461,6 +3467,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"shadow_slope_bias", "Rasterizer slope-scaled shadow-map depth bias", "bias"},
      {"shadow_filter_radius", "Rasterizer shadow filter radius", "radius"},
      {"shadow_filter", "Rasterizer shadow filter (pcf, pcss)", "mode"},
+     {"shadow_mode", "Rasterizer preview shadow implementation (shadow_maps, ray_traced)", "mode"},
      {"timing", "Print render-only timing information to stdout"},
      {"frame", "Evaluate the scene animation at the given frame before rendering", "frame"},
      {"step",
@@ -4086,8 +4093,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
         "Render graph view mode must be 'default', 'beauty', 'wireframe', 'depth', 'stencil', "
         "'stencil_composite', 'normal', 'object_id', 'material_id', 'world_position', "
         "'sample_stddev', 'sample_stddev_color', 'raster_coverage_count', "
-        "'raster_depth_test_count', 'raster_depth_pass_count', 'raster_shade_count', or "
-        "'raster_color_write_count'";
+        "'raster_depth_test_count', 'raster_depth_pass_count', 'raster_shade_count', "
+        "'raster_color_write_count', or 'hybrid_visibility'";
       return CommandLineError;
     }
     m_renderGraphViewModeSet = true;
@@ -4434,6 +4441,16 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       return CommandLineError;
     }
     m_rasterShadowFilterMode = filterMode;
+  }
+
+  if (parser.isSet("shadow_mode")) {
+    const QString shadowMode = parser.value("shadow_mode").toLower();
+    if (shadowMode != "shadow_maps" && shadowMode != "ray_traced") {
+      *errorMessage = "Shadow mode must be 'shadow_maps' or 'ray_traced'";
+      return CommandLineError;
+    }
+    m_rasterShadowMode = shadowMode;
+    m_rasterShadowMaps = true;
   }
 
   if (parser.isSet("timing")) {

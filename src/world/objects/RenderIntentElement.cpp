@@ -332,6 +332,10 @@ QStringList RenderIntentElement::propertyChoices(const QString& propertyName) co
     if (intent().defaultExecutorKind() == engine::graph::RenderExecutorKind::Wavefront) {
       choices << QStringLiteral("sample_stddev") << QStringLiteral("sample_stddev_color");
     }
+    if (intent().defaultExecutorKind() == engine::graph::RenderExecutorKind::Raytracer ||
+        intent().defaultExecutorKind() == engine::graph::RenderExecutorKind::Wavefront) {
+      choices << QStringLiteral("hybrid_visibility");
+    }
     return choices;
   }
   if (propertyName == QStringLiteral("selectorRoutingKind"))
@@ -486,6 +490,8 @@ QString RenderIntentElement::propertyChoiceDisplayName(const QString& propertyNa
       return QStringLiteral("Raster Shade Count");
     if (choice == QStringLiteral("raster_color_write_count"))
       return QStringLiteral("Raster Color-Write Count");
+    if (choice == QStringLiteral("hybrid_visibility"))
+      return QStringLiteral("Hybrid Visibility");
   }
   if (propertyName == QStringLiteral("selectorRoutingKind")) {
     if (choice == QStringLiteral("object_id"))
@@ -1253,6 +1259,8 @@ engine::graph::RenderViewMode RenderIntentElement::viewModeFromText(const QStrin
     return engine::graph::RenderViewMode::RasterShadeCount;
   if (value == QStringLiteral("raster_color_write_count"))
     return engine::graph::RenderViewMode::RasterColorWriteCount;
+  if (value == QStringLiteral("hybrid_visibility"))
+    return engine::graph::RenderViewMode::HybridVisibility;
   return engine::graph::RenderViewMode::Beauty;
 }
 
@@ -1472,6 +1480,11 @@ QStringList RenderIntentElement::selectorRoutingViewModeChoices() const {
     choices << QStringLiteral("raster_coverage_count") << QStringLiteral("raster_depth_test_count")
             << QStringLiteral("raster_depth_pass_count") << QStringLiteral("raster_shade_count")
             << QStringLiteral("raster_color_write_count");
+  }
+  if (executor == engine::graph::RenderExecutorPreference::Raytracer ||
+      executor == engine::graph::RenderExecutorPreference::Wavefront ||
+      executor == engine::graph::RenderExecutorPreference::PathTracer) {
+    choices << QStringLiteral("hybrid_visibility");
   }
   return choices;
 }

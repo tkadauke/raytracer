@@ -37,6 +37,7 @@ namespace BVHPerformanceTest {
   using namespace render;
 
   using Clock = std::chrono::steady_clock;
+  constexpr int kMeasuredIterations = 5;
 
   // 3D-grid scene of spheres: side³ primitives, spacing 2.0,
   // radius 0.5. Identical layout to the Google Benchmark in
@@ -87,13 +88,20 @@ namespace BVHPerformanceTest {
       container->intersect(ray, hits, state);
     }
 
-    const auto start = Clock::now();
-    for (const auto& ray : rays) {
-      State state;
-      HitPointInterval hits;
-      container->intersect(ray, hits, state);
+    auto best = std::chrono::nanoseconds::max();
+    for (int iteration = 0; iteration < kMeasuredIterations; ++iteration) {
+      const auto start = Clock::now();
+      for (const auto& ray : rays) {
+        State state;
+        HitPointInterval hits;
+        container->intersect(ray, hits, state);
+      }
+      const auto elapsed = Clock::now() - start;
+      if (elapsed < best) {
+        best = elapsed;
+      }
     }
-    return Clock::now() - start;
+    return best;
   }
 
   template<class Container>
@@ -105,12 +113,19 @@ namespace BVHPerformanceTest {
       container->intersects(ray, state);
     }
 
-    const auto start = Clock::now();
-    for (const auto& ray : rays) {
-      State state;
-      container->intersects(ray, state);
+    auto best = std::chrono::nanoseconds::max();
+    for (int iteration = 0; iteration < kMeasuredIterations; ++iteration) {
+      const auto start = Clock::now();
+      for (const auto& ray : rays) {
+        State state;
+        container->intersects(ray, state);
+      }
+      const auto elapsed = Clock::now() - start;
+      if (elapsed < best) {
+        best = elapsed;
+      }
     }
-    return Clock::now() - start;
+    return best;
   }
 
   // Conservative thresholds — observed ratios on dev hardware
@@ -138,7 +153,7 @@ namespace BVHPerformanceTest {
 
   TEST(BVHPerformance, ShadowRayIsAtLeast10xFasterThanComposite) {
     constexpr int kSide = 8; // 512 primitives
-    const auto rays = generateMissRays(256, kSide);
+    const auto rays = generateMissRays(2048, kSide);
 
     const auto bvh = timeShadowRay<BVH>(kSide, rays);
     const auto comp = timeShadowRay<Composite>(kSide, rays);

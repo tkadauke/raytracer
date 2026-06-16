@@ -103,6 +103,9 @@ set(graph_aov_render "${TEST_OUTPUT_DIR}/graph-aov-render.png")
 set(graph_aov_depth "${TEST_OUTPUT_DIR}/graph-aov-depth.png")
 set(graph_aov_stencil "${TEST_OUTPUT_DIR}/graph-aov-stencil.png")
 set(graph_aov_normal "${TEST_OUTPUT_DIR}/graph-aov-normal.png")
+set(graph_aov_hybrid_visibility "${TEST_OUTPUT_DIR}/graph-aov-hybrid-visibility.png")
+set(graph_aov_hybrid_visibility_trace
+    "${TEST_OUTPUT_DIR}/graph-aov-hybrid-visibility-trace.json")
 set(raster_shadow_trace "${TEST_OUTPUT_DIR}/raster-shadow-trace.json")
 set(raster_shadow_trace_render "${TEST_OUTPUT_DIR}/raster-shadow-trace-render.png")
 set(raster_state_plan "${TEST_OUTPUT_DIR}/raster-state-graph.json")
@@ -5026,6 +5029,37 @@ rendercli_assert_nonempty("${graph_aov_render}" NAME "multi AOV graph main rende
 rendercli_assert_nonempty("${graph_aov_depth}" NAME "multi AOV graph depth output")
 rendercli_assert_nonempty("${graph_aov_stencil}" NAME "multi AOV graph stencil output")
 rendercli_assert_nonempty("${graph_aov_normal}" NAME "multi AOV graph normal output")
+
+rendercli_run(
+  NAME "rendercli writes hybrid visibility graph AOV and trace metadata"
+  COMMAND
+    "${RENDERCLI}" --engine wavefront --width 32 --height 24
+    --wavefront_intersection_backend cpu
+    --render_graph_aov_out "hybrid_visibility=${graph_aov_hybrid_visibility}"
+    --render_graph_trace_out "${graph_aov_hybrid_visibility_trace}"
+    "${static_scene}" "${graph_aov_render}"
+)
+rendercli_assert_image_dimensions("${graph_aov_hybrid_visibility}" 32 24
+                                  NAME "hybrid visibility AOV dimensions")
+rendercli_assert_image_nonempty("${graph_aov_hybrid_visibility}"
+                                NAME "hybrid visibility AOV pixels")
+rendercli_assert_nonempty("${graph_aov_hybrid_visibility_trace}"
+                          NAME "hybrid visibility AOV trace output")
+file(READ "${graph_aov_hybrid_visibility_trace}" graph_aov_hybrid_visibility_trace_json)
+foreach(expectation
+        "\"id\": \"hybrid_visibility_aov\""
+        "\"intersectionService\""
+        "\"queryFamily\"[ \r\n]*:[ \r\n]*\"closest_hit\""
+        "\"queryTag\"[ \r\n]*:[ \r\n]*\"debug_aov\""
+        "\"requestedBackend\"[ \r\n]*:[ \r\n]*\"cpu\""
+        "\"queryCount\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
+        "\"hitCount\"[ \r\n]*:[ \r\n]*[1-9][0-9]*")
+  if(NOT graph_aov_hybrid_visibility_trace_json MATCHES "${expectation}")
+    _rendercli_fail("rendercli hybrid visibility AOV trace ${expectation}"
+                    "hybrid visibility AOV trace did not match ${expectation}"
+                    "" "" "${graph_aov_hybrid_visibility_trace_json}" "")
+  endif()
+endforeach()
 
 rendercli_expect_failure(
   NAME "rendercli rejects invalid graph AOV output view"

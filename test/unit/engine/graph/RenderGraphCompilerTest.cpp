@@ -379,6 +379,44 @@ namespace RenderGraphCompilerTest {
     EXPECT_TRUE(plan.validate().valid());
   }
 
+  TEST(RenderGraphCompiler, HybridVisibilityViewModeCompilesServiceAOVPlan) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Wavefront;
+    intent.defaultViewMode = RenderViewMode::HybridVisibility;
+    intent.engineOptions.raytracer().setIntersectionBackend("cpu");
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent);
+
+    ASSERT_EQ(2u, plan.resources().size());
+    ASSERT_NE(nullptr, plan.findResource("hybrid_visibility_aov"));
+    EXPECT_EQ(RenderResourceType::Color, plan.findResource("hybrid_visibility_aov")->type);
+    EXPECT_EQ(RenderResourceFormat::RGBDouble, plan.findResource("hybrid_visibility_aov")->format);
+    EXPECT_EQ(RenderResourceLifetime::Transient,
+              plan.findResource("hybrid_visibility_aov")->lifetime);
+    ASSERT_NE(nullptr, plan.findResource("main_color"));
+    EXPECT_EQ(RenderResourceType::Color, plan.findResource("main_color")->type);
+    EXPECT_EQ(RenderResourceLifetime::Exported, plan.findResource("main_color")->lifetime);
+
+    ASSERT_EQ(2u, plan.passes().size());
+    EXPECT_EQ("hybrid_visibility_aov", plan.passes()[0].id);
+    EXPECT_EQ(RenderPassKind::AOV, plan.passes()[0].kind);
+    EXPECT_EQ(RenderExecutorKind::Wavefront, plan.passes()[0].executor);
+    EXPECT_TRUE(hasFeature(plan.passes()[0], "hybrid_visibility"));
+    ASSERT_NE(nullptr, RaytracerBeautyPassState::fromPass(plan.passes()[0]));
+    ASSERT_EQ(1u, plan.passes()[0].writes.size());
+    EXPECT_EQ("hybrid_visibility_aov", plan.passes()[0].writes[0].resource);
+
+    EXPECT_EQ("visualize_hybrid_visibility_aov", plan.passes()[1].id);
+    EXPECT_EQ(RenderExecutorKind::PostProcess, plan.passes()[1].executor);
+    EXPECT_TRUE(hasFeature(plan.passes()[1], "visualization"));
+    ASSERT_EQ(1u, plan.passes()[1].reads.size());
+    ASSERT_EQ(1u, plan.passes()[1].writes.size());
+    EXPECT_EQ("hybrid_visibility_aov", plan.passes()[1].reads[0].resource);
+    EXPECT_EQ("main_color", plan.passes()[1].writes[0].resource);
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
   TEST(RenderGraphCompiler, StencilViewModeCompilesStencilAOVPlan) {
     RenderGraphCompiler compiler;
     RenderIntent intent;
@@ -1906,6 +1944,43 @@ namespace RenderGraphCompilerTest {
     EXPECT_EQ(256, shadowMap->width);
     EXPECT_EQ(256, shadowMap->height);
     EXPECT_EQ(RenderResourceLifetime::PersistentCache, shadowMap->lifetime);
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
+  TEST(RenderGraphCompiler, RayTracedPreviewShadowsAddHybridShadowMaskAndComposite) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.enablePreviewShadows = true;
+    intent.engineOptions.rasterizer().setShadowMode(RenderRasterShadowMode::RayTraced);
+    intent.engineOptions.raytracer().setIntersectionBackend("cpu");
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent);
+
+    ASSERT_NE(nullptr, plan.findPass("hybrid_ray_traced_shadows"));
+    EXPECT_EQ(RenderPassKind::Shadow, plan.findPass("hybrid_ray_traced_shadows")->kind);
+    EXPECT_EQ(RenderExecutorKind::Raytracer, plan.findPass("hybrid_ray_traced_shadows")->executor);
+    EXPECT_TRUE(hasFeature(*plan.findPass("hybrid_ray_traced_shadows"), "ray_traced_shadows"));
+
+    ASSERT_NE(nullptr, plan.findResource("hybrid_shadow_mask"));
+    const auto* mask = plan.findResource("hybrid_shadow_mask");
+    EXPECT_EQ(RenderResourceType::ShadowMask, mask->type);
+    EXPECT_EQ(RenderResourceFormat::RGBDouble, mask->format);
+    EXPECT_EQ(64, mask->width);
+    EXPECT_EQ(32, mask->height);
+
+    ASSERT_NE(nullptr, plan.findPass("hybrid_shadow_composite"));
+    const auto* composite = plan.findPass("hybrid_shadow_composite");
+    EXPECT_EQ(RenderPassKind::Composite, composite->kind);
+    EXPECT_EQ(RenderExecutorKind::Composite, composite->executor);
+    ASSERT_EQ(2u, composite->reads.size());
+    EXPECT_EQ("beauty_color", composite->reads[0].resource);
+    EXPECT_EQ("hybrid_shadow_mask", composite->reads[1].resource);
+    ASSERT_EQ(1u, composite->writes.size());
+    EXPECT_EQ("hybrid_shadowed_color", composite->writes[0].resource);
+
+    EXPECT_EQ(nullptr, plan.findPass("raster_preview_shadows"));
+    EXPECT_EQ(nullptr, plan.findResource("preview_shadow_map"));
     EXPECT_TRUE(plan.validate().valid());
   }
 
