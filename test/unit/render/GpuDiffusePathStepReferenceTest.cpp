@@ -10,6 +10,7 @@
 #include "render/materials/EmissiveMaterial.h"
 #include "render/materials/Material.h"
 #include "render/materials/MatteMaterial.h"
+#include "render/materials/PhongMaterial.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
 #include "render/samplers/GpuSampleStream.h"
