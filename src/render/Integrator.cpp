@@ -97,6 +97,8 @@ namespace render {
     directLightSelectionHostBytes = 0;
     directLightOcclusionHostBytes = 0;
     directLightContributionHostBytes = 0;
+    directLightContributionExecutionPath.clear();
+    directLightContributionFallbackReason.clear();
     directLightAnyHitFrontierPackedRayBytes = 0;
     directLightAnyHitFrontierHostQueryBytes = 0;
     directLightAnyHitFrontierStateHandleBytes = 0;
@@ -306,6 +308,9 @@ namespace render {
     directLightSelectionHostBytes += source.directLightSelectionHostBytes;
     directLightOcclusionHostBytes += source.directLightOcclusionHostBytes;
     directLightContributionHostBytes += source.directLightContributionHostBytes;
+    mergeLabel(directLightContributionExecutionPath, source.directLightContributionExecutionPath);
+    mergeLabel(directLightContributionFallbackReason,
+               source.directLightContributionFallbackReason);
     emittedRadianceLuminanceSum += source.emittedRadianceLuminanceSum;
     directLightRadianceLuminanceSum += source.directLightRadianceLuminanceSum;
     primaryDirectLightRadianceLuminanceSum += source.primaryDirectLightRadianceLuminanceSum;
@@ -574,6 +579,13 @@ namespace render {
     }
     directLightContributionHostBytesPerDepth[depth] += bytes;
     directLightContributionHostBytes += bytes;
+  }
+
+  void IntegratorBatchMetrics::recordDirectLightContributionExecution(
+    std::string executionPath, std::string fallbackReason) {
+    mergeLabel(directLightContributionExecutionPath,
+               executionPath.empty() ? std::string("unknown") : executionPath);
+    mergeLabel(directLightContributionFallbackReason, fallbackReason);
   }
 
   void IntegratorBatchMetrics::recordDirectLightOcclusionHostBytes(std::uint64_t depth,

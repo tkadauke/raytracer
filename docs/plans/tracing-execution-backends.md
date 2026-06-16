@@ -1652,10 +1652,13 @@ for the supported scene subset.
    - ~~Output: any-hit visibility queries use E1's service and produce occluded
      flags for contribution evaluation.~~
 
-6. **Add parity tests and metrics.**
+6. ~~**Add parity tests and metrics.**~~ ✅ **Done.** Issue #605 adds
+   CPU-vs-GPU-requested matte direct-light image parity assertions and direct
+   light contribution execution/fallback fields in metrics JSON, rendercli
+   summaries, and tracing capability records.
    - Depends on: job 5.
-   - Output: analytic diffuse tests, MIS tests, image/record parity, and trace
-     fields distinguishing visibility-only GPU from contribution GPU.
+   - ~~Output: analytic diffuse tests, MIS tests, image/record parity, and trace
+     fields distinguishing visibility-only GPU from contribution GPU.~~
 
 **Gate:** a supported matte direct-light scene can compute direct-light
 contributions through the GPU path and match the CPU estimator.

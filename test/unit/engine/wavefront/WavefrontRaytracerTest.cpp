@@ -1460,6 +1460,9 @@ namespace WavefrontRaytracerTest {
     metrics.batching.intersectionBackendExecutionPath = "packed_cpu";
     metrics.batching.intersectionBackendClosestHitExecutionPath = "packed_cpu";
     metrics.batching.intersectionBackendAnyHitExecutionPath = "packed_cpu";
+    metrics.batching.directLightContributionExecutionPath = "cpu";
+    metrics.batching.directLightContributionFallbackReason =
+      "GPU diffuse direct-light contribution kernel unavailable";
     metrics.batching.intersectionSceneCompiled = true;
     metrics.batching.intersectionSceneUnsupportedPrimitives = 2;
     metrics.batching.frontierCompactionPasses = 1;
@@ -1485,8 +1488,12 @@ namespace WavefrontRaytracerTest {
               capabilities.scene.geometryRecords.unsupportedReason);
     EXPECT_EQ("lighting.direct_light_visibility", capabilities.directLighting.visibility.name);
     EXPECT_EQ("lighting.direct_light_contribution", capabilities.directLighting.contribution.name);
+    EXPECT_EQ(render::TracingCapabilitySupport::Fallback,
+              capabilities.directLighting.contribution.support);
     EXPECT_EQ(render::TracingExecutionDevice::CPU,
               capabilities.directLighting.contribution.resolvedDevice);
+    EXPECT_EQ("GPU diffuse direct-light contribution kernel unavailable",
+              capabilities.directLighting.contribution.fallback.reason);
     EXPECT_EQ(render::TracingExecutionDevice::CPU,
               capabilities.pathState.frontierCompaction.resolvedDevice);
     EXPECT_EQ(render::TracingCapabilitySupport::Unsupported, capabilities.sampling.gpuRng.support);
@@ -1516,6 +1523,11 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(
       "GPU backend unavailable",
       closestHitCapability.value("fallback").toObject().value("reason").toString().toStdString());
+    EXPECT_EQ(
+      "cpu",
+      batching.value("directLightContributionExecutionPath").toString().toStdString());
+    EXPECT_EQ("GPU diffuse direct-light contribution kernel unavailable",
+              batching.value("directLightContributionFallbackReason").toString().toStdString());
     const QJsonObject tracingFallback = batching.value("tracingBackendFallback").toObject();
     EXPECT_TRUE(tracingFallback.value("active").toBool());
     EXPECT_EQ("geometry.closest_hit", tracingFallback.value("capability").toString().toStdString());
@@ -1541,6 +1553,9 @@ namespace WavefrontRaytracerTest {
     metrics.batching.intersectionBackendExecutionPath = "vulkan";
     metrics.batching.intersectionBackendClosestHitExecutionPath = "runtime_scene";
     metrics.batching.intersectionBackendAnyHitExecutionPath = "vulkan";
+    metrics.batching.directLightContributionExecutionPath = "cpu";
+    metrics.batching.directLightContributionFallbackReason =
+      "GPU diffuse direct-light contribution kernel unavailable";
 
     const auto capabilities = metrics.batching.tracingExecutionCapabilities();
 
@@ -1549,9 +1564,13 @@ namespace WavefrontRaytracerTest {
               capabilities.directLighting.visibility.resolvedDevice);
     EXPECT_EQ("vulkan", capabilities.directLighting.visibility.executionPath);
     EXPECT_EQ("lighting.direct_light_contribution", capabilities.directLighting.contribution.name);
+    EXPECT_EQ(render::TracingCapabilitySupport::Fallback,
+              capabilities.directLighting.contribution.support);
     EXPECT_EQ(render::TracingExecutionDevice::CPU,
               capabilities.directLighting.contribution.resolvedDevice);
     EXPECT_EQ("cpu", capabilities.directLighting.contribution.executionPath);
+    EXPECT_EQ("GPU diffuse direct-light contribution kernel unavailable",
+              capabilities.directLighting.contribution.fallback.reason);
   }
 
   TEST(WavefrontRaytracer, SerializesStableCpuTracingExecutionSummaryWithoutFallback) {

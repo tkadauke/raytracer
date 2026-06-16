@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Added GPU-requested diffuse direct-light parity metrics for path-tracer
+  renders, including CPU/GPU-requested image parity assertions and explicit
+  contribution execution/fallback trace fields, closing roadmap §E7 job 6.
+  — GPT-5 Codex
 - Connected GPU diffuse direct-light visibility records to `IntersectionService`
   any-hit occlusion, with direct-light metrics preserving visibility GPU versus
   contribution CPU reporting, closing roadmap §E7 job 5. — GPT-5 Codex

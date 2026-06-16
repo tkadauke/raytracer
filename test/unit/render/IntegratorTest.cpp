@@ -136,6 +136,7 @@ namespace IntegratorTest {
     target.recordDirectLightSelectionHostBytes(/*depth=*/0, /*bytes=*/2);
     target.recordDirectLightOcclusionHostBytes(/*depth=*/0, /*bytes=*/4);
     target.recordDirectLightContributionHostBytes(/*depth=*/0, /*bytes=*/6);
+    target.recordDirectLightContributionExecution("cpu");
     target.recordDirectLightAnyHitBatch(/*depth=*/0, /*batchChunks=*/1, /*batchRays=*/3,
                                         /*packedRayBytes=*/30, /*hostQueryBytes=*/15,
                                         /*stateHandleBytes=*/9);
@@ -151,6 +152,8 @@ namespace IntegratorTest {
     source.recordDirectLightOcclusionHostBytes(/*depth=*/1, /*bytes=*/13);
     source.recordDirectLightContributionHostBytes(/*depth=*/0, /*bytes=*/17);
     source.recordDirectLightContributionHostBytes(/*depth=*/1, /*bytes=*/19);
+    source.recordDirectLightContributionExecution(
+      "cpu", "GPU diffuse direct-light contribution kernel unavailable");
     source.recordDirectLightAnyHitBatch(/*depth=*/0, /*batchChunks=*/2, /*batchRays=*/5,
                                         /*packedRayBytes=*/50, /*hostQueryBytes=*/25,
                                         /*stateHandleBytes=*/15);
@@ -172,6 +175,9 @@ namespace IntegratorTest {
     EXPECT_EQ((std::vector<std::uint64_t>{23u, 19u}),
               target.directLightContributionHostBytesPerDepth);
     EXPECT_EQ(42u, target.directLightContributionHostBytes);
+    EXPECT_EQ("cpu", target.directLightContributionExecutionPath);
+    EXPECT_EQ("GPU diffuse direct-light contribution kernel unavailable",
+              target.directLightContributionFallbackReason);
     EXPECT_EQ((std::vector<std::uint64_t>{3u, 3u}), target.directLightAnyHitBatchChunksPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{8u, 7u}), target.directLightAnyHitBatchRaysPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{80u, 70u}),

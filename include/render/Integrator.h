@@ -50,6 +50,8 @@ namespace render {
     std::uint64_t directLightSelectionHostBytes{0};
     std::uint64_t directLightOcclusionHostBytes{0};
     std::uint64_t directLightContributionHostBytes{0};
+    std::string directLightContributionExecutionPath;
+    std::string directLightContributionFallbackReason;
     std::uint64_t directLightAnyHitFrontierPackedRayBytes{0};
     std::uint64_t directLightAnyHitFrontierHostQueryBytes{0};
     std::uint64_t directLightAnyHitFrontierStateHandleBytes{0};
@@ -231,6 +233,8 @@ namespace render {
     void recordDirectLightSelectionHostBytes(std::uint64_t depth, std::uint64_t bytes);
     void recordDirectLightOcclusionHostBytes(std::uint64_t depth, std::uint64_t bytes);
     void recordDirectLightContributionHostBytes(std::uint64_t depth, std::uint64_t bytes);
+    void recordDirectLightContributionExecution(std::string executionPath,
+                                                std::string fallbackReason = {});
     void recordDirectLightAnyHitBatch(std::uint64_t depth, std::uint64_t batchChunks,
                                       std::uint64_t batchRays, std::uint64_t packedRayBytes = 0,
                                       std::uint64_t hostQueryBytes = 0,

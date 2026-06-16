@@ -458,6 +458,18 @@ namespace render {
     WavefrontOcclusionFlags m_occluded;
   };
 
+  void recordDirectLightContributionExecution(const WavefrontIntersectionBackend& backend,
+                                              IntegratorBatchMetrics* metrics) {
+    if (!metrics) {
+      return;
+    }
+
+    const std::string request = backend.requestedName() ? backend.requestedName() : "";
+    metrics->recordDirectLightContributionExecution(
+      "cpu", request == "gpu" ? "GPU diffuse direct-light contribution kernel unavailable"
+                              : std::string());
+  }
+
   class PathTracingIntegrator::DirectLightContributionBatch {
   public:
     explicit DirectLightContributionBatch(std::size_t count)
@@ -712,6 +724,7 @@ namespace render {
     IntegratorBatchMetrics* metrics) const {
     const WavefrontIntersectionBackend& resolvedIntersectionBackend =
       intersectionBackend ? *intersectionBackend : CpuWavefrontIntersectionBackend::instance();
+    recordDirectLightContributionExecution(resolvedIntersectionBackend, metrics);
     DirectLightVisibilityBatch visibilityBatch(static_cast<std::size_t>(m_directLightSamples));
 
     for (int sampleIndex = 0; sampleIndex != m_directLightSamples; ++sampleIndex) {
@@ -758,6 +771,7 @@ namespace render {
     HostBatchPathFrontier& paths, int bounce,
     const WavefrontIntersectionBackend& intersectionBackend,
     IntegratorBatchMetrics* metrics) const {
+    recordDirectLightContributionExecution(intersectionBackend, metrics);
     DirectLightContributionBatch contributions(activeHits.size());
     contributions.recordHostBytes(bounce, metrics);
 
