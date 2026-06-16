@@ -429,6 +429,66 @@ The graph should eventually distinguish at least these modes:
    GPU tracing uses Metal/Vulkan hardware ray tracing acceleration structures
    while preserving the same algorithm/schedule semantics.
 
+### User-Facing Execution Controls
+
+Scene render intent and rendercli/Modeler overrides should expose a broad
+tracing execution preference, not internal graph nodes or individual backend
+services. The durable field is:
+
+```json
+{
+  "renderIntent": {
+    "engineOptions": {
+      "raytracer": {
+        "execution": {
+          "tracingExecution": "auto"
+        }
+      }
+    }
+  }
+}
+```
+
+Valid values are:
+
+- `auto` - the compiler chooses the best supported tracing execution for the
+  selected executor, integrator, scene support, device availability, and
+  expected work size. This is the default when the field is omitted.
+- `cpu` - request CPU execution. The compiler must not select GPU-owned
+  tracing work for this request, though ordinary CPU graph passes and CPU
+  resource transfers may still appear.
+- `hybrid` - request a CPU-owned tracing algorithm/schedule that may use GPU
+  backend services such as closest-hit/any-hit intersection, resident
+  frontiers, compaction, or accumulation when those services are available.
+- `gpu` - request a GPU-owned tracing loop for the selected algorithm and
+  supported scene subset. Unsupported scenes or unavailable platform support
+  must produce explicit fallback diagnostics instead of silently becoming CPU.
+
+The field describes execution intent. It does not name graph passes, graph
+nodes, Metal/Vulkan kernels, or service-level controls. During the transition
+from the existing intersection-only control, `execution.intersectionBackend`
+remains a narrower compatibility override for the closest-hit/any-hit backend
+service. Valid combinations are:
+
+- omitted `tracingExecution` plus any `intersectionBackend` value preserves
+  existing behavior;
+- `tracingExecution: "auto"` with `intersectionBackend: "auto"` or omitted is
+  the preferred policy-selected spelling;
+- `tracingExecution: "cpu"` is incompatible with `intersectionBackend: "gpu"`
+  because the broad request forbids GPU tracing services;
+- `tracingExecution: "hybrid"` may combine with `intersectionBackend: "auto"`
+  or `"gpu"` to request GPU intersection inside a CPU-owned schedule;
+- `tracingExecution: "gpu"` plus `intersectionBackend: "cpu"` is invalid once
+  full GPU compilation is active because a GPU-owned tracing loop cannot force
+  its core scene queries through the CPU service;
+- `tracingExecution: "gpu"` plus `intersectionBackend: "auto"` or omitted lets
+  the compiler pick the required platform service and report fallback when a
+  full GPU plan cannot run.
+
+Future rendercli and Modeler controls should label these as execution
+preferences ("Auto", "CPU", "Hybrid", "GPU") and keep service-level controls
+behind advanced diagnostics or compatibility affordances.
+
 ### GPU Accumulation Buffer Layout
 
 `render::TracingAccumulationLayout` defines the v1 backend accumulation layout.
@@ -1986,28 +2046,40 @@ manually request internal graph nodes.
 
 1. **Define user-facing execution controls.**
    - Depends on: none.
-   - Output: render intent fields and valid values for CPU, hybrid, GPU, and
-     auto execution preferences.
+   - Output: ~~render intent fields and valid values for CPU, hybrid, GPU, and
+     auto execution preferences.~~ ✅ **Done.** `tracingExecution` now defines
+     the durable intent values and documents transition rules for the existing
+     intersection-backend service control in issue #618.
 
 2. **Teach the graph compiler to synthesize execution modes.**
    - Depends on: job 1.
-   - Output: graph compiler picks CPU, hybrid intersection, or full GPU subset
-     from intent, scene support, and backend availability.
+   - Output: ~~graph compiler picks CPU, hybrid intersection, or full GPU
+     subset from intent, scene support, and backend availability.~~ ✅
+     **Done.** Issue #619 records predicted CPU/hybrid/GPU modes and fallback
+     reasons in compiled tracing pass state, then adds actual mode metadata to
+     graph traces.
 
 3. **Update rendercli flags and validation.**
    - Depends on: jobs 1 and 2.
-   - Output: rendercli can request execution preference and rejects invalid
-     combinations with useful errors.
+   - Output: ~~rendercli can request execution preference and rejects invalid
+     combinations with useful errors.~~ ✅ **Done.** Issue #620 adds
+     `--tracing_execution auto|cpu|hybrid|gpu`, exports it in graph pass state,
+     and validates unsupported or conflicting CLI combinations.
 
 4. **Update Modeler Render Settings.**
    - Depends on: jobs 1, 2, and 3.
-   - Output: grouped controls expose tracing execution without making internal
-     backend services the primary user model.
+   - Output: ~~grouped controls expose tracing execution without making internal
+     backend services the primary user model.~~ ✅ **Done.** Issue #621 adds
+     Modeler Render Settings controls for `auto`, `cpu`, `hybrid`, and `gpu`
+     tracing execution, while keeping the intersection backend as a
+     hybrid-only advanced override.
 
 5. **Show predicted and actual graph execution.**
    - Depends on: jobs 2 and 4.
-   - Output: render dialog graph tab shows predicted mode; executed trace shows
-     actual mode and fallback.
+   - Output: ~~render dialog graph tab shows predicted mode; executed trace
+     shows actual mode and fallback.~~ ✅ **Done.** Issue #622 adds predicted
+     tracing execution rows to the Modeler render dialog graph tab and feeds the
+     completed graph trace back into the dialog with actual mode/fallback rows.
 
 **Gate:** users can request a broad execution intent and inspect what graph was
 compiled and what actually ran.

@@ -76,8 +76,8 @@ namespace engine::graph {
       label.empty() ? (!objectName.empty() ? objectName : objectId) : label;
 
     if (!objectId.empty()) {
-      auto& subset = recordSubset("object_id:" + objectId, displayLabel,
-                                  SceneSelector::objectId(objectId));
+      auto& subset =
+        recordSubset("object_id:" + objectId, displayLabel, SceneSelector::objectId(objectId));
       ++subset.elementCount;
     }
     if (!objectName.empty()) {
@@ -96,10 +96,25 @@ namespace engine::graph {
       if (layer.empty()) {
         continue;
       }
-      auto& subset = recordSubset("layer:" + layer, "Layer: " + layer,
-                                  SceneSelector::layer(layer));
+      auto& subset = recordSubset("layer:" + layer, "Layer: " + layer, SceneSelector::layer(layer));
       ++subset.elementCount;
     }
+  }
+
+  void RenderSceneAnalysis::setFullGpuTracingSupported(bool supported, std::string reason) {
+    m_fullGpuTracingSupported = supported;
+    m_fullGpuTracingUnsupportedReason =
+      supported ? std::string()
+                : (reason.empty() ? "full GPU tracing subset is not implemented for this scene"
+                                  : std::move(reason));
+  }
+
+  void RenderSceneAnalysis::setFullGpuTracingBackendAvailable(bool available, std::string reason) {
+    m_fullGpuTracingBackendAvailable = available;
+    m_fullGpuTracingBackendUnavailableReason =
+      available
+        ? std::string()
+        : (reason.empty() ? "full GPU tracing backend is not available" : std::move(reason));
   }
 
   bool RenderSceneAnalysis::hasKnownVisibleSurfaceCount() const {
@@ -150,6 +165,22 @@ namespace engine::graph {
 
   bool RenderSceneAnalysis::hasVisibleLights() const {
     return !m_visibleLightCount || *m_visibleLightCount > 0;
+  }
+
+  bool RenderSceneAnalysis::fullGpuTracingSupported() const {
+    return m_fullGpuTracingSupported;
+  }
+
+  bool RenderSceneAnalysis::fullGpuTracingBackendAvailable() const {
+    return m_fullGpuTracingBackendAvailable;
+  }
+
+  const std::string& RenderSceneAnalysis::fullGpuTracingUnsupportedReason() const {
+    return m_fullGpuTracingUnsupportedReason;
+  }
+
+  const std::string& RenderSceneAnalysis::fullGpuTracingBackendUnavailableReason() const {
+    return m_fullGpuTracingBackendUnavailableReason;
   }
 
   bool RenderSceneAnalysis::shouldCompileRasterPreviewShadows(RenderExecutorKind executor,
@@ -214,11 +245,11 @@ namespace engine::graph {
 
   RenderSceneAnalysis::SelectableSubset&
   RenderSceneAnalysis::recordSubset(std::string id, std::string label, SceneSelector selector) {
-    auto existing = std::find_if(m_selectableSubsets.begin(), m_selectableSubsets.end(),
-                                 [&](const SelectableSubset& subset) {
-                                   return subset.id == id && subset.selector.kind == selector.kind &&
-                                          subset.selector.value == selector.value;
-                                 });
+    auto existing = std::find_if(
+      m_selectableSubsets.begin(), m_selectableSubsets.end(), [&](const SelectableSubset& subset) {
+        return subset.id == id && subset.selector.kind == selector.kind &&
+               subset.selector.value == selector.value;
+      });
     if (existing != m_selectableSubsets.end()) {
       return *existing;
     }

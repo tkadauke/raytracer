@@ -2,6 +2,7 @@
 
 #include "engine/graph/RenderGraphExecutionTrace.h"
 #include "engine/graph/RenderPassState.h"
+#include "engine/graph/RaytracerPassState.h"
 
 #include <QBrush>
 #include <QEvent>
@@ -126,6 +127,7 @@ struct RenderGraphInspectorWidget::Private {
                                          const QString& resolvedDevice) const;
   QString tracingCapabilityFallbackSummary(const QJsonObject& fallback) const;
   QString tracingCapabilityUnsupportedSummary(const QJsonArray& capabilities) const;
+  QString tracingExecutionModeText(const QString& value) const;
   QString intersectionScenePayloadSummary(const QJsonObject& batching) const;
   QString passStateText(const RenderPassNode& pass) const;
   void addDetailRow(DetailRows& rows, const QString& name, const QString& value) const;
@@ -140,6 +142,8 @@ struct RenderGraphInspectorWidget::Private {
                                          const QJsonObject& metadata, const QString& key) const;
   void addDetailMillisecondsMetadataRow(DetailRows& rows, const QString& name,
                                         const QJsonObject& metadata, const QString& key) const;
+  void addPredictedTracingExecutionRows(DetailRows& rows, const RenderPassNode& pass) const;
+  void addActualTracingExecutionRows(DetailRows& rows, const QJsonObject& metadata) const;
   void addIntersectionBackendDetailRows(DetailRows& rows, const QJsonObject& batching) const;
   DetailRows passDetailRows(const RenderPlan& plan, const RenderPassId& passId) const;
   QString passTraceLine(const RenderPassNode& pass) const;
@@ -529,6 +533,17 @@ QString RenderGraphInspectorWidget::Private::tracingCapabilityUnsupportedSummary
   return QStringLiteral("%1: %2").arg(names.size()).arg(names.join(QStringLiteral(", ")));
 }
 
+QString
+RenderGraphInspectorWidget::Private::tracingExecutionModeText(const QString& value) const {
+  if (value.isEmpty())
+    return QString();
+  if (value == QStringLiteral("cpu"))
+    return QStringLiteral("CPU");
+  if (value == QStringLiteral("gpu"))
+    return QStringLiteral("GPU");
+  return metadataIdentifierText(value);
+}
+
 QString RenderGraphInspectorWidget::Private::intersectionScenePayloadSummary(
   const QJsonObject& batching) const {
   const std::vector<std::pair<QString, qulonglong>> counts = {
@@ -629,6 +644,41 @@ void RenderGraphInspectorWidget::Private::addDetailMillisecondsMetadataRow(
 
   addDetailRow(rows, name,
                QStringLiteral("%1 ms").arg(metadata.value(key).toDouble() * 1000.0, 0, 'f', 3));
+}
+
+void RenderGraphInspectorWidget::Private::addPredictedTracingExecutionRows(
+  DetailRows& rows, const RenderPassNode& pass) const {
+  const auto* state = RaytracerBeautyPassState::fromPass(pass);
+  if (!state || !state->tracingExecution() || !state->predictedTracingExecution())
+    return;
+
+  addDetailRow(rows, QStringLiteral("Requested tracing execution"),
+               tracingExecutionModeText(
+                 QString::fromLatin1(tracingExecutionPreferenceName(*state->tracingExecution()))));
+  addDetailRow(
+    rows, QStringLiteral("Predicted tracing execution"),
+    tracingExecutionModeText(
+      QString::fromLatin1(tracingExecutionPreferenceName(*state->predictedTracingExecution()))));
+  addDetailRow(rows, QStringLiteral("Predicted tracing fallback"),
+               QString::fromStdString(state->tracingExecutionFallbackReason()));
+}
+
+void RenderGraphInspectorWidget::Private::addActualTracingExecutionRows(
+  DetailRows& rows, const QJsonObject& metadata) const {
+  const QJsonObject tracingExecution =
+    metadata.value(QStringLiteral("tracingExecution")).toObject();
+  if (tracingExecution.isEmpty())
+    return;
+
+  addDetailRow(rows, QStringLiteral("Actual tracing execution"),
+               tracingExecutionModeText(
+                 tracingExecution.value(QStringLiteral("actualMode")).toString()));
+  QString actualFallback =
+    tracingExecution.value(QStringLiteral("actualFallbackReason")).toString();
+  if (actualFallback.isEmpty())
+    actualFallback = QStringLiteral("none");
+  addDetailRow(rows, QStringLiteral("Actual tracing fallback"),
+               actualFallback);
 }
 
 void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
@@ -1005,6 +1055,7 @@ RenderGraphInspectorWidget::Private::passDetailRows(const RenderPlan& plan,
   addDetailRow(rows, QStringLiteral("Concurrent"),
                pass->canRunConcurrently ? QStringLiteral("true") : QStringLiteral("false"));
   addDetailRow(rows, QStringLiteral("State"), passStateText(*pass));
+  addPredictedTracingExecutionRows(rows, *pass);
 
   const RenderGraphExecutionTrace* matchedTrace =
     trace && trace->matchesPlan(plan) ? trace.get() : nullptr;
@@ -1029,6 +1080,7 @@ RenderGraphInspectorWidget::Private::passDetailRows(const RenderPlan& plan,
     outputs << qstr(output.resourceId());
   addDetailRow(rows, QStringLiteral("Trace outputs"), outputs.join(QStringLiteral(", ")));
 
+  addActualTracingExecutionRows(rows, passTrace->metadata());
   addIntersectionBackendDetailRows(
     rows, passTrace->metadata().value(QStringLiteral("batching")).toObject());
   return rows;

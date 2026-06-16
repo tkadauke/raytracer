@@ -35,6 +35,21 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Defined the hybrid visibility graph pass contract for E13, including
   any-hit/closest-hit query families, typed visibility resources, and explicit
   CPU/raster/disabled-output fallbacks. — GPT-5 Codex
+- Added Modeler render dialog graph inspection rows for predicted tracing
+  execution before render and actual execution/fallback after render for
+  roadmap E10 job 5. — GPT-5 Codex
+- Added grouped Modeler Render Settings controls for tracing execution
+  `auto|cpu|hybrid|gpu`, with the wavefront intersection backend kept as a
+  hybrid-only advanced override for roadmap E10 job 4. — GPT-5 Codex
+- Added rendercli `--tracing_execution auto|cpu|hybrid|gpu` graph intent
+  support with validation for unsupported and conflicting execution requests
+  for roadmap E10 job 3. — GPT-5 Codex
+- Added graph-compiler tracing execution decisions that predict CPU, hybrid,
+  or GPU modes, surface fallback reasons, and record actual execution mode in
+  graph traces for roadmap E10 job 2. — GPT-5 Codex
+- Added the `tracingExecution` render intent field with `auto`, `cpu`,
+  `hybrid`, and `gpu` values to define user-facing tracing execution
+  preferences for roadmap E10 job 1. — GPT-5 Codex
 - Added GPU tracing texture record compilation for `ConstantColorTexture` with
   explicit unsupported texture reason diagnostics; advances E3 job 3.
   — GPT-5 Codex

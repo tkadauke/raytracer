@@ -1145,6 +1145,33 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_EQ(QStringLiteral("none"), rowValue(rows, QStringLiteral("Tracing fallback")));
     EXPECT_THAT(rowValue(rows, QStringLiteral("Unsupported capabilities")).toStdString(),
                 ::testing::HasSubstr("Sampling GPU RNG"));
+    EXPECT_EQ(QStringLiteral("CPU"), rowValue(rows, QStringLiteral("Actual tracing execution")));
+    EXPECT_EQ(QStringLiteral("none"), rowValue(rows, QStringLiteral("Actual tracing fallback")));
+  }
+
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldShowPredictedTracingExecutionBeforeTrace) {
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::PathTracer;
+    intent.engineOptions.raytracer().setIntegrator("pathtracer");
+    intent.engineOptions.raytracer().setTracingExecution(TracingExecutionPreference::GPU);
+
+    RenderSceneAnalysis analysis;
+    analysis.setFullGpuTracingSupported(false, "transparent material requires CPU shading");
+    RenderGraphCompiler compiler;
+
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(compiler.compile({24, 24, 1}, intent, analysis));
+
+    const auto rows = widget.passDetailRows(QStringLiteral("wavefront_beauty"));
+
+    EXPECT_EQ(QStringLiteral("GPU"),
+              rowValue(rows, QStringLiteral("Requested tracing execution")));
+    EXPECT_EQ(QStringLiteral("Hybrid"),
+              rowValue(rows, QStringLiteral("Predicted tracing execution")));
+    EXPECT_EQ(QStringLiteral("full GPU tracing backend is not available"),
+              rowValue(rows, QStringLiteral("Predicted tracing fallback")));
+    EXPECT_EQ(QStringLiteral("not available"), rowValue(rows, QStringLiteral("Trace")));
+    EXPECT_TRUE(rowValue(rows, QStringLiteral("Actual tracing execution")).isEmpty());
   }
 
   TEST_F(RenderGraphInspectorWidgetTest,

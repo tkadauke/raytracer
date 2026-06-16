@@ -136,8 +136,15 @@ struct RenderWindow::Private {
       }
       if (settingsWidget->engine() == "Path Tracer") {
         options.setDirectLightSamples(settingsWidget->directLightSamples());
-        if (settingsWidget->pathTracingSchedule() == "Wavefront") {
-          options.setTracingBackend(settingsWidget->wavefrontTracingBackend().toStdString());
+        options.setTracingExecution(settingsWidget->tracingExecution().toLower().toStdString());
+        if (settingsWidget->tracingExecution() == "CPU") {
+          options.setIntersectionBackend("cpu");
+        } else if (settingsWidget->tracingExecution() == "GPU") {
+          options.setIntersectionBackend("gpu");
+        } else if (settingsWidget->pathTracingSchedule() == "Wavefront" &&
+                   settingsWidget->tracingExecution() == "Hybrid") {
+          options.setIntersectionBackend(
+            settingsWidget->wavefrontIntersectionBackend().toStdString());
         }
       }
       options.setMaximumThreads(settingsWidget->renderThreads());
@@ -185,6 +192,7 @@ RenderWindow::RenderWindow(QWidget* parent)
     : QWidget(parent),
       p(std::make_unique<Private>()) {
   p->graph = std::make_shared<engine::graph::GraphRenderEngine>(nullptr);
+  p->graph->setExecutionTraceEnabled(true);
 
   auto grid = new QGridLayout(this);
   p->settingsWidget = new RenderSettingsWidget(this);
@@ -236,6 +244,8 @@ void RenderWindow::render() {
   p->time.restart();
 
   p->settingsWidget->setBusy(true);
+  p->graphInspector->setExecutionTrace(nullptr);
+  p->graphInspector->clearExecutionState();
 
   p->renderWidget->resize(p->settingsWidget->resolution());
   p->renderWidget->setBufferSize(p->settingsWidget->resolution());
@@ -264,6 +274,8 @@ void RenderWindow::stop() {
 void RenderWindow::finished() {
   p->settingsWidget->setBusy(false);
   p->busy = false;
+  p->graphInspector->setExecutionTrace(
+    p->graph->lastExecutionTraceForPlan(p->graphInspector->effectivePlan()));
 }
 
 void RenderWindow::setScene(::Scene* scene) {

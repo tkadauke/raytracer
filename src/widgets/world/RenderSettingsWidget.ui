@@ -452,13 +452,47 @@
        </widget>
       </item>
       <item row="12" column="0">
+       <widget class="QLabel" name="label_tracingExecution">
+        <property name="text">
+         <string>Tracing execution</string>
+        </property>
+       </widget>
+      </item>
+      <item row="12" column="1">
+       <widget class="QComboBox" name="tracingExecution">
+        <property name="toolTip">
+         <string>Broad tracing execution preference. Auto lets the graph compiler choose; CPU forbids GPU tracing services; Hybrid uses CPU scheduling with available GPU services; GPU requests a full GPU tracing loop with explicit fallback diagnostics.</string>
+        </property>
+        <item>
+         <property name="text">
+          <string>Auto</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>CPU</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Hybrid</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>GPU</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="13" column="0">
        <widget class="QLabel" name="label_wavefrontIntersectionBackend">
        <property name="text">
          <string>Tracing backend</string>
         </property>
        </widget>
       </item>
-      <item row="12" column="1">
+      <item row="13" column="1">
        <widget class="QComboBox" name="wavefrontIntersectionBackend">
         <property name="toolTip">
          <string>Tracing execution backend for wavefront Whitted and path-tracing batches. GPU uses supported backend services for eligible scenes and otherwise reports a visible CPU fallback.</string>

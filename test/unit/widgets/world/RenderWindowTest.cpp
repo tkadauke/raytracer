@@ -19,11 +19,30 @@
 #include <QComboBox>
 #include <QCoreApplication>
 #include <QDoubleSpinBox>
+#include <QElapsedTimer>
+#include <QEventLoop>
 #include <QJsonObject>
 #include <QSpinBox>
 
 namespace RenderWindowTest {
   class RenderWindowTest : public ::testing::GuiTest {};
+
+  QString rowValue(const RenderGraphInspectorWidget::DetailRows& rows, const QString& name) {
+    for (const auto& row : rows) {
+      if (row.first == name)
+        return row.second;
+    }
+    return QString();
+  }
+
+  void processUntilIdle(RenderWindow& window) {
+    QElapsedTimer timer;
+    timer.start();
+    while (window.isBusy() && timer.elapsed() < 5000) {
+      QCoreApplication::processEvents(QEventLoop::AllEvents, 20);
+    }
+    QCoreApplication::processEvents(QEventLoop::AllEvents, 20);
+  }
 
   TEST_F(RenderWindowTest, ShouldInitialize) {
     RenderWindow window;
@@ -155,6 +174,44 @@ namespace RenderWindowTest {
     EXPECT_NE(nullptr, graphInspector->effectivePlan().findPass("wireframe_beauty"));
   }
 
+  TEST_F(RenderWindowTest, ShouldShowPredictedAndActualTracingExecutionInGraphTab) {
+    RenderWindow window;
+    Scene scene;
+    window.setScene(&scene);
+
+    auto* engineType = window.findChild<QComboBox*>("engineType");
+    auto* resolution = window.findChild<QComboBox*>("resolution");
+    auto* samples = window.findChild<QSpinBox*>("samplesPerPixel");
+    auto* tracingExecution = window.findChild<QComboBox*>("tracingExecution");
+    ASSERT_NE(nullptr, engineType);
+    ASSERT_NE(nullptr, resolution);
+    ASSERT_NE(nullptr, samples);
+    ASSERT_NE(nullptr, tracingExecution);
+
+    engineType->setCurrentText("Path Tracer");
+    resolution->setCurrentText("40x30");
+    samples->setValue(1);
+    tracingExecution->setCurrentText("CPU");
+    QCoreApplication::processEvents();
+
+    auto* graphInspector = window.findChild<RenderGraphInspectorWidget*>();
+    ASSERT_NE(nullptr, graphInspector);
+    auto rows = graphInspector->passDetailRows(QStringLiteral("wavefront_beauty"));
+    EXPECT_EQ(QStringLiteral("CPU"),
+              rowValue(rows, QStringLiteral("Predicted tracing execution")));
+    EXPECT_EQ(QStringLiteral("not available"), rowValue(rows, QStringLiteral("Trace")));
+
+    window.render();
+    processUntilIdle(window);
+    ASSERT_FALSE(window.isBusy());
+
+    rows = graphInspector->passDetailRows(QStringLiteral("wavefront_beauty"));
+    EXPECT_EQ(QStringLiteral("CPU"), rowValue(rows, QStringLiteral("Actual tracing execution")));
+    EXPECT_EQ(QStringLiteral("none"), rowValue(rows, QStringLiteral("Actual tracing fallback")));
+
+    window.stop();
+  }
+
   TEST_F(RenderWindowTest, ShouldCompilePathTracerDenoiserOverrideIntoRenderGraph) {
     RenderWindow window;
     Scene scene;
@@ -162,12 +219,14 @@ namespace RenderWindowTest {
 
     auto* engineType = window.findChild<QComboBox*>("engineType");
     auto* directLightSamples = window.findChild<QSpinBox*>("pathTracerDirectLightSamples");
+    auto* tracingExecution = window.findChild<QComboBox*>("tracingExecution");
     auto* intersectionBackend = window.findChild<QComboBox*>("wavefrontIntersectionBackend");
     auto* denoiser = window.findChild<QComboBox*>("rayDenoiser");
     auto* radius = window.findChild<QSpinBox*>("rayDenoiseRadius");
     auto* colorSigma = window.findChild<QDoubleSpinBox*>("rayDenoiseColorSigma");
     ASSERT_NE(nullptr, engineType);
     ASSERT_NE(nullptr, directLightSamples);
+    ASSERT_NE(nullptr, tracingExecution);
     ASSERT_NE(nullptr, intersectionBackend);
     ASSERT_NE(nullptr, denoiser);
     ASSERT_NE(nullptr, radius);
@@ -175,6 +234,7 @@ namespace RenderWindowTest {
 
     engineType->setCurrentText("Path Tracer");
     directLightSamples->setValue(4);
+    tracingExecution->setCurrentText("Hybrid");
     intersectionBackend->setCurrentText("GPU");
     denoiser->setCurrentText("Bilateral");
     radius->setValue(5);
@@ -192,8 +252,10 @@ namespace RenderWindowTest {
     EXPECT_EQ("pathtracer", *state->integrator());
     ASSERT_TRUE(state->directLightSamples().has_value());
     EXPECT_EQ(4, *state->directLightSamples());
-    ASSERT_TRUE(state->tracingBackend().has_value());
-    EXPECT_STREQ("gpu", state->tracingBackend()->id());
+    ASSERT_TRUE(state->tracingExecution().has_value());
+    EXPECT_EQ(engine::graph::TracingExecutionPreference::Hybrid, *state->tracingExecution());
+    ASSERT_TRUE(state->intersectionBackend().has_value());
+    EXPECT_STREQ("gpu", state->intersectionBackend()->id());
     ASSERT_TRUE(state->denoiser().has_value());
     EXPECT_EQ("bilateral", *state->denoiser());
     ASSERT_TRUE(state->denoiseRadius().has_value());
@@ -232,6 +294,34 @@ namespace RenderWindowTest {
     EXPECT_EQ("pathtracer", *state->integrator());
     ASSERT_TRUE(state->directLightSamples().has_value());
     EXPECT_EQ(3, *state->directLightSamples());
+  }
+
+  TEST_F(RenderWindowTest, ShouldOverrideHiddenBackendForBroadTracingExecution) {
+    RenderWindow window;
+    Scene scene;
+    engine::graph::RenderIntent intent;
+    intent.defaultExecutor = engine::graph::RenderExecutorPreference::PathTracer;
+    intent.engineOptions.raytracer().setIntersectionBackend("gpu");
+    scene.setRenderIntent(intent);
+    window.setScene(&scene);
+
+    auto* tracingExecution = window.findChild<QComboBox*>("tracingExecution");
+    ASSERT_NE(nullptr, tracingExecution);
+
+    tracingExecution->setCurrentText("CPU");
+    QCoreApplication::processEvents();
+
+    auto* graphInspector = window.findChild<RenderGraphInspectorWidget*>();
+    ASSERT_NE(nullptr, graphInspector);
+    const auto plan = graphInspector->effectivePlan();
+    const auto* beautyPass = plan.findPass("wavefront_beauty");
+    ASSERT_NE(nullptr, beautyPass);
+    const auto* state = engine::graph::RaytracerBeautyPassState::fromPass(*beautyPass);
+    ASSERT_NE(nullptr, state);
+    ASSERT_TRUE(state->tracingExecution().has_value());
+    EXPECT_EQ(engine::graph::TracingExecutionPreference::CPU, *state->tracingExecution());
+    ASSERT_TRUE(state->intersectionBackend().has_value());
+    EXPECT_STREQ("cpu", state->intersectionBackend()->id());
   }
 
   TEST_F(RenderWindowTest, ShouldInitializeFinalDialogAndGraphFromSceneRenderIntent) {
