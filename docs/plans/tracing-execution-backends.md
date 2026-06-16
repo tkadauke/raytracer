@@ -2031,10 +2031,12 @@ diffuse path tracer for the first supported subset.
    - Depends on: jobs 1 and 3.
    - Output: E5 accumulation resolves to rendercli/Modeler-visible image data.
 
-5. **Add end-to-end parity scenes.**
+5. ~~**Add end-to-end parity scenes.**~~ ✅ **Done.** Added fixed-seed
+   rendercli CPU vs GPU-requested parity coverage for direct, indirect,
+   environment, and explicit unsupported fallback scenes for issue #616.
    - Depends on: jobs 3 and 4.
-   - Output: fixed-seed CPU vs GPU diffuse path-tracing comparisons for direct,
-     indirect, environment, and unsupported fallback scenes.
+   - Output: ~~fixed-seed CPU vs GPU diffuse path-tracing comparisons for
+     direct, indirect, environment, and unsupported fallback scenes.~~
 
 6. **Update residency metrics from estimates to actuals.**
    - Depends on: jobs 2, 3, and 5.
