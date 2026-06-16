@@ -88,14 +88,6 @@ namespace engine::graph {
       return QString::fromUtf8(value);
     }
 
-    Recti rectFromJson(const QJsonObject& object, const char* key, const std::string& path) {
-      return detail::rectFromJson(object, key, path, optionsError);
-    }
-
-    Colord colorFromJson(const QJsonObject& object, const char* key, const std::string& path) {
-      return detail::colorFromJson(object, key, path, optionsError);
-    }
-
     std::string colorWriteMaskString(std::uint8_t mask) {
       mask &= Rasterizer::ColorWriteAll;
       if (mask == 0)
@@ -786,9 +778,11 @@ namespace engine::graph {
                          "blendSource", "blendDestination", "blendOp", "blendConstantColor",
                          "blendConstantAlpha", "alphaTest", "alphaFunc", "alphaReference"});
     if (hasField(framebuffer, "viewport"))
-      options.setViewportRect(rectFromJson(framebuffer, "viewport", path + ".framebuffer"));
+      options.setViewportRect(
+        detail::rectFromJson(framebuffer, "viewport", path + ".framebuffer", optionsError));
     if (hasField(framebuffer, "scissor"))
-      options.setScissorRect(rectFromJson(framebuffer, "scissor", path + ".framebuffer"));
+      options.setScissorRect(
+        detail::rectFromJson(framebuffer, "scissor", path + ".framebuffer", optionsError));
     if (hasField(framebuffer, "depthBias"))
       options.setDepthBias(doubleField(framebuffer, "depthBias", path + ".framebuffer"));
     if (hasField(framebuffer, "colorWriteMask"))
@@ -812,7 +806,8 @@ namespace engine::graph {
         hasField(framebuffer, "blendConstantAlpha")) {
       options.setBlendConstant(
         hasField(framebuffer, "blendConstantColor")
-          ? colorFromJson(framebuffer, "blendConstantColor", path + ".framebuffer")
+          ? detail::colorFromJson(framebuffer, "blendConstantColor", path + ".framebuffer",
+                                  optionsError)
           : Colord::white(),
         hasField(framebuffer, "blendConstantAlpha")
           ? doubleField(framebuffer, "blendConstantAlpha", path + ".framebuffer")

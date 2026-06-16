@@ -105,14 +105,6 @@ namespace engine::graph {
       return value.toString().toStdString();
     }
 
-    Recti rectFromJson(const QJsonObject& object, const char* key, const std::string& path) {
-      return detail::rectFromJson(object, key, path, stateError);
-    }
-
-    Colord colorFromJson(const QJsonObject& object, const char* key, const std::string& path) {
-      return detail::colorFromJson(object, key, path, stateError);
-    }
-
     template<class T>
     const char* enumName(T value, std::initializer_list<std::pair<T, const char*>> values,
                          const char* fallback) {
@@ -826,9 +818,9 @@ namespace engine::graph {
                          "stencilPassOp"});
     RasterFramebufferState state;
     if (hasField(object, "viewport"))
-      state.setViewportRect(rectFromJson(object, "viewport", path));
+      state.setViewportRect(detail::rectFromJson(object, "viewport", path, stateError));
     if (hasField(object, "scissor"))
-      state.setScissorRect(rectFromJson(object, "scissor", path));
+      state.setScissorRect(detail::rectFromJson(object, "scissor", path, stateError));
     if (hasField(object, "colorLoadOp"))
       state.setColorLoadOp(attachmentLoadOpFromString(stringField(object, "colorLoadOp", path),
                                                       path + ".colorLoadOp"));
@@ -871,7 +863,7 @@ namespace engine::graph {
       state.setBlendOp(blendOpFromString(stringField(object, "blendOp", path), path + ".blendOp"));
     if (hasField(object, "blendConstantColor") || hasField(object, "blendConstantAlpha")) {
       const Colord color = hasField(object, "blendConstantColor")
-                             ? colorFromJson(object, "blendConstantColor", path)
+                             ? detail::colorFromJson(object, "blendConstantColor", path, stateError)
                              : Colord::white();
       const double alpha = hasField(object, "blendConstantAlpha")
                              ? doubleField(object, "blendConstantAlpha", path)
