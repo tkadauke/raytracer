@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Added Modeler render dialog graph inspection rows for predicted tracing
+  execution before render and actual execution/fallback after render for
+  roadmap E10 job 5. — GPT-5 Codex
 - Added grouped Modeler Render Settings controls for tracing execution
   `auto|cpu|hybrid|gpu`, with the wavefront intersection backend kept as a
   hybrid-only advanced override for roadmap E10 job 4. — GPT-5 Codex

@@ -1824,8 +1824,10 @@ manually request internal graph nodes.
 
 5. **Show predicted and actual graph execution.**
    - Depends on: jobs 2 and 4.
-   - Output: render dialog graph tab shows predicted mode; executed trace shows
-     actual mode and fallback.
+   - Output: ~~render dialog graph tab shows predicted mode; executed trace
+     shows actual mode and fallback.~~ ✅ **Done.** Issue #622 adds predicted
+     tracing execution rows to the Modeler render dialog graph tab and feeds the
+     completed graph trace back into the dialog with actual mode/fallback rows.
 
 **Gate:** users can request a broad execution intent and inspect what graph was
 compiled and what actually ran.
