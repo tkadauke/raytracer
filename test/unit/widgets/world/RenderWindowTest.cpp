@@ -19,11 +19,30 @@
 #include <QComboBox>
 #include <QCoreApplication>
 #include <QDoubleSpinBox>
+#include <QElapsedTimer>
+#include <QEventLoop>
 #include <QJsonObject>
 #include <QSpinBox>
 
 namespace RenderWindowTest {
   class RenderWindowTest : public ::testing::GuiTest {};
+
+  QString rowValue(const RenderGraphInspectorWidget::DetailRows& rows, const QString& name) {
+    for (const auto& row : rows) {
+      if (row.first == name)
+        return row.second;
+    }
+    return QString();
+  }
+
+  void processUntilIdle(RenderWindow& window) {
+    QElapsedTimer timer;
+    timer.start();
+    while (window.isBusy() && timer.elapsed() < 5000) {
+      QCoreApplication::processEvents(QEventLoop::AllEvents, 20);
+    }
+    QCoreApplication::processEvents(QEventLoop::AllEvents, 20);
+  }
 
   TEST_F(RenderWindowTest, ShouldInitialize) {
     RenderWindow window;
@@ -153,6 +172,44 @@ namespace RenderWindowTest {
     engineType->setCurrentText("Wireframe");
 
     EXPECT_NE(nullptr, graphInspector->effectivePlan().findPass("wireframe_beauty"));
+  }
+
+  TEST_F(RenderWindowTest, ShouldShowPredictedAndActualTracingExecutionInGraphTab) {
+    RenderWindow window;
+    Scene scene;
+    window.setScene(&scene);
+
+    auto* engineType = window.findChild<QComboBox*>("engineType");
+    auto* resolution = window.findChild<QComboBox*>("resolution");
+    auto* samples = window.findChild<QSpinBox*>("samplesPerPixel");
+    auto* tracingExecution = window.findChild<QComboBox*>("tracingExecution");
+    ASSERT_NE(nullptr, engineType);
+    ASSERT_NE(nullptr, resolution);
+    ASSERT_NE(nullptr, samples);
+    ASSERT_NE(nullptr, tracingExecution);
+
+    engineType->setCurrentText("Path Tracer");
+    resolution->setCurrentText("40x30");
+    samples->setValue(1);
+    tracingExecution->setCurrentText("CPU");
+    QCoreApplication::processEvents();
+
+    auto* graphInspector = window.findChild<RenderGraphInspectorWidget*>();
+    ASSERT_NE(nullptr, graphInspector);
+    auto rows = graphInspector->passDetailRows(QStringLiteral("wavefront_beauty"));
+    EXPECT_EQ(QStringLiteral("CPU"),
+              rowValue(rows, QStringLiteral("Predicted tracing execution")));
+    EXPECT_EQ(QStringLiteral("not available"), rowValue(rows, QStringLiteral("Trace")));
+
+    window.render();
+    processUntilIdle(window);
+    ASSERT_FALSE(window.isBusy());
+
+    rows = graphInspector->passDetailRows(QStringLiteral("wavefront_beauty"));
+    EXPECT_EQ(QStringLiteral("CPU"), rowValue(rows, QStringLiteral("Actual tracing execution")));
+    EXPECT_EQ(QStringLiteral("none"), rowValue(rows, QStringLiteral("Actual tracing fallback")));
+
+    window.stop();
   }
 
   TEST_F(RenderWindowTest, ShouldCompilePathTracerDenoiserOverrideIntoRenderGraph) {
