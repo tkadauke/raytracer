@@ -20,6 +20,7 @@ namespace render {
   class Scene;
   class State;
   class WavefrontIntersectionBackend;
+  struct ResidentPathLoopDiagnostics;
 
   struct IntegratorRaySample {
     Rayd ray{Rayd::undefined};
@@ -162,6 +163,22 @@ namespace render {
     bool intersectionBackendSupportsPreparedRayBatchCompaction{false};
     bool intersectionBackendSupportsResidentDirectLightBatches{false};
     std::string intersectionBackendResidentDirectLightBatchesUnavailableReason;
+    std::string residentPathLoopExecutionPath;
+    std::string residentPathLoopResidency;
+    std::uint64_t residentPathLoopDepths{0};
+    std::uint64_t residentPathLoopInputPaths{0};
+    std::uint64_t residentPathLoopRetainedPaths{0};
+    std::uint64_t residentPathLoopRemovedPaths{0};
+    std::uint64_t residentPathLoopMovedPaths{0};
+    std::uint64_t residentPathLoopRetainedIndexBytes{0};
+    std::uint64_t residentPathLoopResidentPathStateBytes{0};
+    std::uint64_t residentPathLoopInputResidentPathStateBytes{0};
+    std::uint64_t residentPathLoopRetainedResidentPathStateBytes{0};
+    std::uint64_t residentPathLoopRemovedResidentPathStateBytes{0};
+    std::uint64_t residentPathLoopCompactionPasses{0};
+    std::uint64_t residentPathLoopRoundTrips{0};
+    std::uint64_t residentPathLoopSavedHostReadbacks{0};
+    std::uint64_t residentPathLoopSavedHostReadbackBytes{0};
     double intersectionWorkerSeconds{0.0};
     double shadingWorkerSeconds{0.0};
     double pathSetupWorkerSeconds{0.0};
@@ -208,6 +225,8 @@ namespace render {
                                   std::uint64_t removedHostPathStateBytes = 0);
     void recordHostFrontierCompaction(std::uint64_t inputSamples, std::uint64_t retainedSamples,
                                       std::uint64_t movedSamples);
+    void recordResidentPathLoopExecution(const ResidentPathLoopDiagnostics& diagnostics,
+                                         std::uint64_t roundTrips = 0);
     void recordResidentPathLoopAccumulation(const TracingAccumulationDiagnostics& diagnostics);
     [[nodiscard]] double frontierCompactionRemovedSampleFraction() const;
     [[nodiscard]] double frontierCompactionMovedRetainedSampleFraction() const;

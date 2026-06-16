@@ -50,6 +50,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Added the `tracingExecution` render intent field with `auto`, `cpu`,
   `hybrid`, and `gpu` values to define user-facing tracing execution
   preferences for roadmap E10 job 1. — GPT-5 Codex
+- Reported actual resident path-loop execution metrics in wavefront JSON,
+  rendercli summaries, and Modeler graph details, including resident path-state
+  bytes, compaction execution, round trips, and saved host readbacks for
+  roadmap E9 job 6. — GPT-5 Codex
 - Added resident path-loop image resolve through the tracing accumulation
   buffer, with accumulation resolve/readback diagnostics surfaced through
   wavefront metrics for roadmap E9 job 4. — GPT-5 Codex

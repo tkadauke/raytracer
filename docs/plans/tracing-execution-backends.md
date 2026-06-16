@@ -2038,10 +2038,12 @@ diffuse path tracer for the first supported subset.
    - Output: ~~fixed-seed CPU vs GPU diffuse path-tracing comparisons for
      direct, indirect, environment, and unsupported fallback scenes.~~
 
-6. **Update residency metrics from estimates to actuals.**
+6. **~~Update residency metrics from estimates to actuals.~~** ✅ **Done.**
+   Added resident path-loop actual execution counters for issue #617, surfaced
+   through wavefront JSON, rendercli summaries, and Modeler graph details.
    - Depends on: jobs 2, 3, and 5.
-   - Output: trace shows resident path-state bytes, actual compaction execution,
-     actual round trips, and actual saved host readbacks.
+   - Output: ~~trace shows resident path-state bytes, actual compaction execution,
+     actual round trips, and actual saved host readbacks.~~
 
 **Gate:** a supported diffuse scene can render end-to-end through the GPU
 path-loop subset and compare against the CPU path tracer.

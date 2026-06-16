@@ -806,6 +806,43 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                               QStringLiteral("frontierResidentQueryRoundTripsEstimate"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Resident frontier savings"), batching,
                               QStringLiteral("frontierResidentQueryRoundTripSavingsEstimate"));
+  addDetailStringMetadataRow(rows, QStringLiteral("Resident path-loop execution"), batching,
+                             QStringLiteral("residentPathLoopExecutionPath"));
+  addDetailStringMetadataRow(rows, QStringLiteral("Resident path-loop residency"), batching,
+                             QStringLiteral("residentPathLoopResidency"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Resident path-loop depths"), batching,
+                              QStringLiteral("residentPathLoopDepths"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Resident path-loop input paths"), batching,
+                              QStringLiteral("residentPathLoopInputPaths"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Resident path-loop retained paths"), batching,
+                              QStringLiteral("residentPathLoopRetainedPaths"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Resident path-loop removed paths"), batching,
+                              QStringLiteral("residentPathLoopRemovedPaths"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Resident path-loop moved paths"), batching,
+                              QStringLiteral("residentPathLoopMovedPaths"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Resident path-loop retained-index bytes"),
+                              batching, QStringLiteral("residentPathLoopRetainedIndexBytes"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Resident path-loop path-state bytes"),
+                              batching,
+                              QStringLiteral("residentPathLoopResidentPathStateBytes"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Resident path-loop input path-state bytes"),
+                              batching,
+                              QStringLiteral("residentPathLoopInputResidentPathStateBytes"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Resident path-loop retained path-state bytes"),
+                              batching,
+                              QStringLiteral("residentPathLoopRetainedResidentPathStateBytes"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Resident path-loop removed path-state bytes"),
+                              batching,
+                              QStringLiteral("residentPathLoopRemovedResidentPathStateBytes"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Resident path-loop compaction passes"),
+                              batching, QStringLiteral("residentPathLoopCompactionPasses"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Resident path-loop round trips"), batching,
+                              QStringLiteral("residentPathLoopRoundTrips"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Resident path-loop saved host readbacks"),
+                              batching, QStringLiteral("residentPathLoopSavedHostReadbacks"));
+  addDetailIntegerMetadataRow(
+    rows, QStringLiteral("Resident path-loop saved host readback bytes"), batching,
+    QStringLiteral("residentPathLoopSavedHostReadbackBytes"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Mixed-depth query round trips"), batching,
                               QStringLiteral("frontierMixedQueryRoundTrips"));
   addDetailBoolMetadataRow(rows, QStringLiteral("Packed closest-hit eligible"), batching,

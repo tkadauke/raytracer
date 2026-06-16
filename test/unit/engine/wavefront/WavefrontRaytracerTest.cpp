@@ -5,6 +5,7 @@
 #include "render/GpuIntersectionScene.h"
 #include "render/Integrator.h"
 #include "render/PathTracingIntegrator.h"
+#include "render/TracingPathStateBuffer.h"
 #include "render/WavefrontIntersectionBackend.h"
 #include "render/WhittedIntegrator.h"
 #include "render/cameras/PinholeCamera.h"
@@ -2392,6 +2393,48 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(1.0, accumulation.value("readbackOperations").toDouble());
     EXPECT_EQ(static_cast<double>(layout.resolveBytes()),
               accumulation.value("readbackBytes").toDouble());
+  }
+
+  TEST(WavefrontRaytracer, SerializesResidentPathLoopActualExecutionMetrics) {
+    engine::wavefront::WavefrontRenderMetrics metrics;
+    render::IntegratorBatchMetrics batch;
+    batch.reset(/*scalarFallback=*/false);
+
+    render::TracingPathStateBuffers buffers(2);
+    const Rayd ray(Vector4d(0.0, 0.0, 0.0, 1.0), Vector3d(0.0, 0.0, 1.0));
+    buffers.appendActive(render::makeGpuPathStateRecord(ray, Colord::white(), Colord::black(),
+                                                        /*pixelIndex=*/0, /*sampleIndex=*/0,
+                                                        /*depth=*/0));
+    buffers.appendActive(render::makeGpuPathStateRecord(ray, Colord::white(), Colord::black(),
+                                                        /*pixelIndex=*/1, /*sampleIndex=*/0,
+                                                        /*depth=*/0));
+
+    render::ResidentPathLoopSettings settings;
+    settings.maxDepth = 2;
+    settings.russianRouletteDepth = 10;
+    const render::ResidentPathLoopDiagnostics diagnostics = render::loopResidentDiffusePaths(
+      buffers, settings, [](const render::GpuPathStateRecord& record, std::uint32_t) {
+        if (record.pixelIndex == 1) {
+          return std::optional<render::GpuPathStateRecord>();
+        }
+        return std::optional<render::GpuPathStateRecord>(record);
+      });
+    batch.recordResidentPathLoopExecution(diagnostics, /*roundTrips=*/1);
+
+    metrics.batching.addIntegratorMetrics(batch);
+    const QJsonObject batching = metrics.toJson().value("batching").toObject();
+    EXPECT_EQ("gpu_resident_path_loop",
+              batching.value("residentPathLoopExecutionPath").toString().toStdString());
+    EXPECT_EQ("cpu_host", batching.value("residentPathLoopResidency").toString().toStdString());
+    EXPECT_EQ(2.0, batching.value("residentPathLoopDepths").toDouble());
+    EXPECT_EQ(3.0, batching.value("residentPathLoopInputPaths").toDouble());
+    EXPECT_EQ(1.0, batching.value("residentPathLoopRetainedPaths").toDouble());
+    EXPECT_EQ(2.0, batching.value("residentPathLoopRemovedPaths").toDouble());
+    EXPECT_EQ(2.0, batching.value("residentPathLoopCompactionPasses").toDouble());
+    EXPECT_EQ(1.0, batching.value("residentPathLoopRoundTrips").toDouble());
+    EXPECT_EQ(2.0, batching.value("residentPathLoopSavedHostReadbacks").toDouble());
+    EXPECT_EQ(3.0 * static_cast<double>(sizeof(render::GpuPathStateRecord)),
+              batching.value("residentPathLoopSavedHostReadbackBytes").toDouble());
   }
 
   TEST(WavefrontRaytracer, MetricsRecordPerPixelSampleRadianceVariance) {
