@@ -1997,7 +1997,11 @@ contributions through the GPU path and match the CPU estimator.
    - Output: supported emission/direct-light contribution feeds E5
      accumulation or the CPU reference equivalent.
 
-5. **Sample diffuse continuation.**
+5. ~~**Sample diffuse continuation.**~~ ✅ **Done.** `render::GpuDiffusePathStep`
+   now emits a compact next path-state frontier only for surviving diffuse
+   continuations, using the GPU sample-stream BSDF and continuation dimensions
+   to populate direction, PDF, throughput, previous-event flags, and
+   Russian-roulette termination behavior. Closes #610.
    - Depends on: jobs 2, 3, and 4.
    - Output: next path-state records using E4 sample dimensions.
 

@@ -67,6 +67,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Added GPU-facing active/next path-state buffer layout records plus a CPU
   reference ping-pong buffer for the E9 resident path-loop roadmap.
   — GPT-5 Codex
+- Added compact next-frontier records for GPU diffuse path-step continuations,
+  with fixed-sample direction, PDF, throughput, flag, and Russian-roulette
+  termination coverage for E8 job 5. — GPT-5 Codex
 - Added GPU diffuse path-step emission and direct-light contribution diagnostics,
   including execution paths and contribution counters for E8 job 4.
   — GPT-5 Codex
