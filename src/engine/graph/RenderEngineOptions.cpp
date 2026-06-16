@@ -4,9 +4,8 @@
 #include "engine/graph/RaytracerPassState.h"
 #include "engine/graph/RenderGraphTypes.h"
 #include "engine/graph/WireframePassState.h"
+#include "engine/graph/detail/JsonStateHelpers.h"
 #include "engine/raster/Rasterizer.h"
-
-#include <QJsonArray>
 
 #include <algorithm>
 #include <cmath>
@@ -89,56 +88,12 @@ namespace engine::graph {
       return QString::fromUtf8(value);
     }
 
-    QJsonArray rectToJson(const Recti& rect) {
-      return QJsonArray{rect.left(), rect.top(), rect.width(), rect.height()};
-    }
-
     Recti rectFromJson(const QJsonObject& object, const char* key, const std::string& path) {
-      const auto value = object.value(key);
-      if (!value.isArray())
-        optionsError(path + "." + key, "expected [x, y, width, height]");
-
-      const auto array = value.toArray();
-      if (array.size() != 4)
-        optionsError(path + "." + key, "expected four integers");
-
-      int values[4];
-      for (int i = 0; i != 4; ++i) {
-        if (!array.at(i).isDouble())
-          optionsError(path + "." + key + "[" + std::to_string(i) + "]", "expected integer");
-        const double number = array.at(i).toDouble();
-        if (!std::isfinite(number) || std::floor(number) != number)
-          optionsError(path + "." + key + "[" + std::to_string(i) + "]", "expected integer");
-        values[i] = static_cast<int>(number);
-      }
-      if (values[2] < 0 || values[3] < 0)
-        optionsError(path + "." + key, "width and height must be non-negative");
-      return Recti(values[0], values[1], values[2], values[3]);
-    }
-
-    QJsonArray colorToJson(const Colord& color) {
-      return QJsonArray{color.r(), color.g(), color.b()};
+      return detail::rectFromJson(object, key, path, optionsError);
     }
 
     Colord colorFromJson(const QJsonObject& object, const char* key, const std::string& path) {
-      const auto value = object.value(key);
-      if (!value.isArray())
-        optionsError(path + "." + key, "expected [r, g, b]");
-
-      const auto array = value.toArray();
-      if (array.size() != 3)
-        optionsError(path + "." + key, "expected three numbers");
-
-      double values[3];
-      for (int i = 0; i != 3; ++i) {
-        if (!array.at(i).isDouble())
-          optionsError(path + "." + key + "[" + std::to_string(i) + "]", "expected number");
-        values[i] = array.at(i).toDouble();
-        if (!std::isfinite(values[i]) || values[i] < 0.0 || values[i] > 1.0)
-          optionsError(path + "." + key + "[" + std::to_string(i) + "]",
-                       "expected number from 0 to 1");
-      }
-      return Colord(values[0], values[1], values[2]);
+      return detail::colorFromJson(object, key, path, optionsError);
     }
 
     std::string colorWriteMaskString(std::uint8_t mask) {
@@ -730,9 +685,9 @@ namespace engine::graph {
 
     QJsonObject framebuffer;
     if (m_viewportRect)
-      framebuffer["viewport"] = rectToJson(*m_viewportRect);
+      framebuffer["viewport"] = detail::rectToJson(*m_viewportRect);
     if (m_scissorRect)
-      framebuffer["scissor"] = rectToJson(*m_scissorRect);
+      framebuffer["scissor"] = detail::rectToJson(*m_scissorRect);
     if (m_depthBias)
       framebuffer["depthBias"] = *m_depthBias;
     if (m_colorWriteMask)
@@ -746,7 +701,7 @@ namespace engine::graph {
     if (m_blendOp)
       framebuffer["blendOp"] = qstr(*m_blendOp);
     if (m_blendConstantColor)
-      framebuffer["blendConstantColor"] = colorToJson(*m_blendConstantColor);
+      framebuffer["blendConstantColor"] = detail::colorToJson(*m_blendConstantColor);
     if (m_blendConstantAlpha)
       framebuffer["blendConstantAlpha"] = *m_blendConstantAlpha;
     if (m_alphaTestEnabled)
