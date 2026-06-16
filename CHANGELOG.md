@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Added GPU-requested diffuse direct-light parity metrics for path-tracer
+  renders, including CPU/GPU-requested image parity assertions and explicit
+  contribution execution/fallback trace fields, closing roadmap §E7 job 6.
+  — GPT-5 Codex
 - Added tracing backend benchmark scene definitions and a rendercli capture
   wrapper for small primitive, large mesh, visibility-heavy, indirect diffuse,
   and unsupported fallback workloads, closing roadmap E12 job 1. — GPT-5 Codex

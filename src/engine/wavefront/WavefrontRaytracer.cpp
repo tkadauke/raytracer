@@ -279,6 +279,10 @@ namespace engine::wavefront {
     directLightSelectionHostBytes += metrics.directLightSelectionHostBytes;
     directLightOcclusionHostBytes += metrics.directLightOcclusionHostBytes;
     directLightContributionHostBytes += metrics.directLightContributionHostBytes;
+    mergeLabel(directLightContributionExecutionPath,
+               metrics.directLightContributionExecutionPath);
+    mergeLabel(directLightContributionFallbackReason,
+               metrics.directLightContributionFallbackReason);
     directLightAnyHitFrontierPackedRayBytes += metrics.directLightAnyHitFrontierPackedRayBytes;
     directLightAnyHitFrontierHostQueryBytes += metrics.directLightAnyHitFrontierHostQueryBytes;
     directLightAnyHitFrontierStateHandleBytes += metrics.directLightAnyHitFrontierStateHandleBytes;
@@ -838,8 +842,18 @@ namespace engine::wavefront {
     records.directLighting.visibility = records.intersection.anyHit;
     records.directLighting.visibility.domain = Domain::DirectLighting;
     records.directLighting.visibility.name = "lighting.direct_light_visibility";
-    records.directLighting.contribution = render::TracingCapabilityRecord::cpu(
-      Domain::DirectLighting, "lighting.direct_light_contribution");
+    const std::string contributionPath =
+      directLightContributionExecutionPath.empty() ? "cpu" : directLightContributionExecutionPath;
+    if (!directLightContributionFallbackReason.empty()) {
+      records.directLighting.contribution = render::TracingCapabilityRecord::fallbackRecord(
+        Domain::DirectLighting, "lighting.direct_light_contribution", Device::GPU, Device::CPU,
+        contributionPath, directLightContributionFallbackReason);
+    } else {
+      records.directLighting.contribution =
+        render::TracingCapabilityRecord::cpu(Domain::DirectLighting,
+                                             "lighting.direct_light_contribution",
+                                             contributionPath);
+    }
 
     records.bsdf.eval = render::TracingCapabilityRecord::cpu(Domain::BSDF, "shading.bsdf_eval");
     records.bsdf.sample =
@@ -1069,6 +1083,10 @@ namespace engine::wavefront {
       QString::fromStdString(batching.intersectionBackendClosestHitExecutionPath);
     batchingJson["intersectionBackendAnyHitExecutionPath"] =
       QString::fromStdString(batching.intersectionBackendAnyHitExecutionPath);
+    batchingJson["directLightContributionExecutionPath"] =
+      QString::fromStdString(batching.directLightContributionExecutionPath);
+    batchingJson["directLightContributionFallbackReason"] =
+      QString::fromStdString(batching.directLightContributionFallbackReason);
     batchingJson["intersectionBackendClosestHitFrontierResidency"] =
       QString::fromStdString(batching.intersectionBackendClosestHitFrontierResidency);
     batchingJson["intersectionBackendAnyHitFrontierResidency"] =

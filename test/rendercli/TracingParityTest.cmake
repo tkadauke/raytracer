@@ -257,7 +257,7 @@ function(tracing_parity_render_supported category scene_file depth samples rms_t
     NAME "rendercli tracing parity ${category} CPU baseline"
     OUTPUT_VARIABLE cpu_stdout
     STDOUT_MATCHES
-      "wavefront_metrics.*integrator=pathtracer.*execution=depth_major_paths.*tracing_backend=cpu.*tracing_backend_mode=wavefront_intersection.*tracing_backend_fallback=none.*intersection_backend_request=cpu.*intersection_backend=cpu.*intersection_backend_availability=available.*intersection_backend_fallback=none.*intersection_backend_execution=runtime_scene.*closest_hit_execution=runtime_scene.*intersection_expected_closest_hit_rays=[1-9][0-9]*.*intersection_scene_compiled=false.*closest_hit_rays=[1-9][0-9]*"
+      "wavefront_metrics.*integrator=pathtracer.*execution=depth_major_paths.*tracing_backend=cpu.*tracing_backend_mode=wavefront_intersection.*tracing_backend_fallback=none.*intersection_backend_request=cpu.*intersection_backend=cpu.*intersection_backend_availability=available.*intersection_backend_fallback=none.*intersection_backend_execution=runtime_scene.*closest_hit_execution=runtime_scene.*intersection_expected_closest_hit_rays=[1-9][0-9]*.*intersection_scene_compiled=false.*closest_hit_rays=[1-9][0-9]*.*direct_light_contribution_execution=cpu.*direct_light_contribution_fallback=none"
     COMMAND
       "${RENDERCLI}" ${common_render_args}
       --wavefront_intersection_backend cpu
@@ -275,12 +275,18 @@ function(tracing_parity_render_supported category scene_file depth samples rms_t
   tracing_parity_assert_json_matches(
     "tracing parity ${category} CPU metrics uncompiled scene" "${cpu_metrics}"
     "\"intersectionSceneCompiled\"[ \r\n]*:[ \r\n]*false")
+  tracing_parity_assert_json_matches(
+    "tracing parity ${category} CPU metrics direct light contribution execution" "${cpu_metrics}"
+    "\"directLightContributionExecutionPath\"[ \r\n]*:[ \r\n]*\"cpu\"")
+  tracing_parity_assert_json_matches(
+    "tracing parity ${category} CPU metrics direct light contribution fallback" "${cpu_metrics}"
+    "\"directLightContributionFallbackReason\"[ \r\n]*:[ \r\n]*\"\"")
 
   rendercli_run(
     NAME "rendercli tracing parity ${category} GPU-requested candidate"
     OUTPUT_VARIABLE gpu_request_stdout
     STDOUT_MATCHES
-      "wavefront_metrics.*integrator=pathtracer.*execution=depth_major_paths.*tracing_backend=(cpu|metal|vulkan).*tracing_backend_mode=wavefront_intersection.*intersection_backend_request=gpu.*intersection_backend=(cpu|metal|vulkan).*intersection_backend_availability=(available|fallback).*intersection_backend_execution=(packed_cpu|metal|vulkan).*closest_hit_execution=(packed_cpu|metal|vulkan).*intersection_expected_closest_hit_rays=[1-9][0-9]*.*intersection_scene_compiled=true.*intersection_scene_unsupported=0.*closest_hit_rays=[1-9][0-9]*"
+      "wavefront_metrics.*integrator=pathtracer.*execution=depth_major_paths.*tracing_backend=(cpu|metal|vulkan).*tracing_backend_mode=wavefront_intersection.*intersection_backend_request=gpu.*intersection_backend=(cpu|metal|vulkan).*intersection_backend_availability=(available|fallback).*intersection_backend_execution=(packed_cpu|metal|vulkan).*closest_hit_execution=(packed_cpu|metal|vulkan).*intersection_expected_closest_hit_rays=[1-9][0-9]*.*intersection_scene_compiled=true.*intersection_scene_unsupported=0.*closest_hit_rays=[1-9][0-9]*.*direct_light_contribution_execution=cpu.*direct_light_contribution_fallback=GPU_diffuse_direct-light_contribution_kernel_unavailable"
       "${extra_gpu_stdout_regex}"
     COMMAND
       "${RENDERCLI}" ${common_render_args}
@@ -304,7 +310,10 @@ function(tracing_parity_render_supported category scene_file depth samples rms_t
           "\"intersectionBackendExecutionPath\"[ \r\n]*:[ \r\n]*\"(packed_cpu|metal|vulkan)\""
           "\"intersectionBackendClosestHitExecutionPath\"[ \r\n]*:[ \r\n]*\"(packed_cpu|metal|vulkan)\""
           "\"tracingBackendMode\"[ \r\n]*:[ \r\n]*\"wavefront_intersection\""
-          "\"tracingBackendCapabilities\"[ \r\n]*:[ \r\n]*\\[")
+          "\"tracingBackendCapabilities\"[ \r\n]*:[ \r\n]*\\["
+          "\"directLightContributionExecutionPath\"[ \r\n]*:[ \r\n]*\"cpu\""
+          "\"directLightContributionFallbackReason\"[ \r\n]*:[ \r\n]*\"GPU diffuse direct-light contribution kernel unavailable\""
+          "\"name\"[ \r\n]*:[ \r\n]*\"lighting\\.direct_light_contribution\"[^}]*\"support\"[ \r\n]*:[ \r\n]*\"fallback\"")
     tracing_parity_assert_json_matches(
       "tracing parity ${category} GPU-requested metrics ${expectation}"
       "${gpu_request_metrics}" "${expectation}")

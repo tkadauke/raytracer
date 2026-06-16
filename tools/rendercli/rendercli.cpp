@@ -639,6 +639,10 @@ namespace {
         << unsignedValue(batching, "directLightOcclusionHostBytes")
         << " direct_light_contribution_host_bytes="
         << unsignedValue(batching, "directLightContributionHostBytes")
+        << " direct_light_contribution_execution="
+        << compactTextValue(batching.value("directLightContributionExecutionPath"), "none")
+        << " direct_light_contribution_fallback="
+        << compactTextValue(batching.value("directLightContributionFallbackReason"), "none")
         << " direct_light_any_hit_frontier_packed_ray_bytes="
         << unsignedValue(batching, "directLightAnyHitFrontierPackedRayBytes")
         << " direct_light_any_hit_frontier_host_query_bytes="
