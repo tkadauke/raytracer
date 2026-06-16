@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Added GPU-requested diffuse direct-light parity metrics for path-tracer
+  renders, including CPU/GPU-requested image parity assertions and explicit
+  contribution execution/fallback trace fields, closing roadmap §E7 job 6.
+  — GPT-5 Codex
 - Added tracing backend benchmark scene definitions and a rendercli capture
   wrapper for small primitive, large mesh, visibility-heavy, indirect diffuse,
   and unsupported fallback workloads, closing roadmap E12 job 1. — GPT-5 Codex
@@ -82,6 +86,22 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Added a CPU reference diffuse path-step kernel for hit, miss, emission,
   direct-light, and diffuse-continuation records, closing E8 job 2. — GPT-5
   Codex
+- Connected GPU diffuse direct-light visibility records to `IntersectionService`
+  any-hit occlusion, with direct-light metrics preserving visibility GPU versus
+  contribution CPU reporting, closing roadmap §E7 job 5. — GPT-5 Codex
+- Added GPU diffuse direct-light contribution coverage for matte surfaces,
+  including non-delta MIS and invalid-PDF regression tests, closing roadmap
+  §E7 job 4. — GPT-5 Codex
+- Added compiled GPU light sampling for point, directional, and rectangular
+  area light records, with selection/PDF parity tests and explicit unsupported
+  record fallback status, closing roadmap §E7 job 3. — GPT-5 Codex
+- Added record-based CPU reference direct-light batches for GPU tracing parity
+  tests, including packed light selection, visibility records, occlusion-aware
+  matte contribution records, and deterministic GPU sample-stream inputs,
+  closing roadmap §E7 job 2. — GPT-5 Codex
+- Defined GPU diffuse direct-light work records for surface hits, throughput,
+  sample state, light selection, and visibility inputs, closing roadmap §E7
+  job 1. — GPT-5 Codex
 - Added GPU tracing texture record compilation for `ConstantColorTexture` with
   explicit unsupported texture reason diagnostics; advances E3 job 3.
   — GPT-5 Codex

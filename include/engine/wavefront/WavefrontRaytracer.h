@@ -210,6 +210,8 @@ namespace engine::wavefront {
       std::uint64_t directLightSelectionHostBytes = 0;
       std::uint64_t directLightOcclusionHostBytes = 0;
       std::uint64_t directLightContributionHostBytes = 0;
+      std::string directLightContributionExecutionPath;
+      std::string directLightContributionFallbackReason;
       std::uint64_t directLightAnyHitFrontierPackedRayBytes = 0;
       std::uint64_t directLightAnyHitFrontierHostQueryBytes = 0;
       std::uint64_t directLightAnyHitFrontierStateHandleBytes = 0;

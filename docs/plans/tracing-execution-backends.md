@@ -1923,35 +1923,54 @@ for the supported scene subset.
 
 **Jobs:**
 
-1. **Define direct-light work records.**
+1. ~~**Define direct-light work records.**~~ ✅ **Done.** Issue #600 adds
+   documented GPU diffuse direct-light surface, sample-state, light-selection,
+   and visibility records with unit tests for layout and sample-dimension
+   addressing.
    - Depends on: none.
    - Output: hit point/reconstructible hit data, normal, material id, incoming
      direction, throughput, sample state, and light-selection inputs.
 
-2. **Add CPU reference direct-light batch.**
+2. ~~**Add CPU reference direct-light batch.**~~ ✅ **Done.** Issue #601 adds
+   record-based CPU reference visibility and contribution batches over packed
+   tracing scene records for GPU parity tests.
    - Depends on: job 1.
    - Output: record-based CPU implementation matching current path-tracer
      direct-light semantics.
 
-3. **Implement supported light sampling.**
+3. ~~**Implement supported light sampling.**~~ ✅ **Done.** Issue #602 adds
+   compiled-record light selection and sampling for point, directional, and
+   rectangular area lights, with fixed-sample parity against runtime
+   `LightSampler` / `Light::sample` and explicit unsupported-record fallback
+   status.
    - Depends on: jobs 1 and 2.
-   - Output: point, directional, and rectangular area light sampling for the
-     compiled light records.
+   - ~~Output: point, directional, and rectangular area light sampling for the
+     compiled light records.~~
 
-4. **Implement diffuse contribution evaluation.**
+4. ~~**Implement diffuse contribution evaluation.**~~ ✅ **Done.** Issue #603
+   pins matte diffuse direct-light contribution evaluation with analytic
+   point-light, occlusion, invalid-PDF, and non-delta area-light MIS tests over
+   the packed CPU/GPU work records.
    - Depends on: jobs 2 and 3.
-   - Output: Matte diffuse direct-light contribution with MIS behavior matching
-     CPU reference.
+   - ~~Output: Matte diffuse direct-light contribution with MIS behavior matching
+     CPU reference.~~
 
-5. **Connect visibility through the intersection service.**
+5. ~~**Connect visibility through the intersection service.**~~ ✅ **Done.** Issue #604
+   routes packed direct-light visibility records and path-tracer direct-light
+   any-hit frontiers through `render::IntersectionService`, preserving
+   occlusion flags for contribution evaluation and capability metrics that
+   distinguish visibility GPU from CPU contribution.
    - Depends on: jobs 3 and 4.
-   - Output: any-hit visibility queries use E1's service and produce occluded
-     flags for contribution evaluation.
+   - ~~Output: any-hit visibility queries use E1's service and produce occluded
+     flags for contribution evaluation.~~
 
-6. **Add parity tests and metrics.**
+6. ~~**Add parity tests and metrics.**~~ ✅ **Done.** Issue #605 adds
+   CPU-vs-GPU-requested matte direct-light image parity assertions and direct
+   light contribution execution/fallback fields in metrics JSON, rendercli
+   summaries, and tracing capability records.
    - Depends on: job 5.
-   - Output: analytic diffuse tests, MIS tests, image/record parity, and trace
-     fields distinguishing visibility-only GPU from contribution GPU.
+   - ~~Output: analytic diffuse tests, MIS tests, image/record parity, and trace
+     fields distinguishing visibility-only GPU from contribution GPU.~~
 
 **Gate:** a supported matte direct-light scene can compute direct-light
 contributions through the GPU path and match the CPU estimator.
