@@ -2,6 +2,7 @@
 
 #include "core/Color.h"
 #include "render/GpuIntersectionScene.h"
+#include "render/samplers/SampleStream.h"
 #include "render/textures/Texture.h"
 
 #include <array>
@@ -186,6 +187,8 @@ namespace render {
     GpuDiffusePathStateRecord pathState;
     pathState.flags = gpuDiffusePathStateActiveFlag;
     pathState.throughput = {1.0f, 1.0f, 1.0f, 0.0f};
+    pathState.sampleDimensionBase = static_cast<std::uint32_t>(SampleDimension::BSDF);
+    pathState.sampleDimensionStride = static_cast<std::uint32_t>(kPathSampleDimensionStride);
     return pathState;
   }
 

@@ -15,9 +15,9 @@
 using namespace render;
 
 namespace {
-  constexpr std::uint32_t kLightSelectionDimensionOffset = 0;
+  constexpr std::uint32_t kBsdfSampleDimensionOffset = 0;
   constexpr std::uint32_t kLightSampleDimensionOffset = 1;
-  constexpr std::uint32_t kBsdfSampleDimensionOffset = 2;
+  constexpr std::uint32_t kLightSelectionDimensionOffset = 2;
   constexpr std::uint32_t kContinuationDimensionOffset = 3;
   constexpr double kLightTolerance = 1e-9;
   constexpr const char* kPackedCpuExecutionPath = "packed_cpu";
@@ -292,14 +292,14 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
                                   const std::vector<GpuIntersectionHitRecord>& closestHits) const {
   GpuDiffusePathStepResult result;
   result.closestHitRecords = closestHits;
-  result.pathStates = pathStates;
   result.stepRecords.resize(pathStates.size());
+  result.pathStates.reserve(pathStates.size());
 
   const std::map<std::uint32_t, GpuIntersectionHitRecord> hitRecords = hitsByRayIndex(closestHits);
   GpuIntersectionIntersector intersector;
 
-  for (std::size_t pathIndex = 0; pathIndex != result.pathStates.size(); ++pathIndex) {
-    GpuDiffusePathStateRecord& pathState = result.pathStates[pathIndex];
+  for (std::size_t pathIndex = 0; pathIndex != pathStates.size(); ++pathIndex) {
+    GpuDiffusePathStateRecord pathState = pathStates[pathIndex];
     GpuDiffusePathStepRecord& stepRecord = result.stepRecords[pathIndex];
     stepRecord.pathIndex = static_cast<std::uint32_t>(pathIndex);
     stepRecord.pixelIndex = pathState.pixelIndex;
@@ -323,6 +323,7 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
       stepRecord.event = static_cast<std::uint32_t>(GpuDiffusePathStepEvent::Miss);
       stepRecord.missRadiance = color4(contribution);
       terminate(pathState);
+      stepRecord.flags = pathState.flags;
       ++result.metrics.misses;
       ++result.metrics.terminatedPaths;
       continue;
@@ -361,6 +362,7 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
       pathState.accumulatedRadiance = color4(accumulated);
       stepRecord.emittedRadiance = color4(contribution);
       terminate(pathState);
+      stepRecord.flags = pathState.flags;
       ++result.metrics.emissiveHits;
       ++result.metrics.terminatedPaths;
       continue;
@@ -434,6 +436,7 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
     if (nextThroughput == Colord::black()) {
       pathState.accumulatedRadiance = color4(accumulated);
       terminate(pathState);
+      stepRecord.flags = pathState.flags;
       ++result.metrics.terminatedPaths;
       continue;
     }
@@ -452,6 +455,7 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
     pathState.flags &= ~gpuDiffusePathStateTerminatedFlag;
     stepRecord.continuationThroughput = color4(nextThroughput);
     stepRecord.flags = pathState.flags;
+    result.pathStates.push_back(pathState);
     ++result.metrics.spawnedContinuations;
   }
 
