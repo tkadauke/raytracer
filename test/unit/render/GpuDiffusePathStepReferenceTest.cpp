@@ -39,7 +39,7 @@ namespace GpuDiffusePathStepReferenceTest {
     }
 
     Vector3d vectorFrom4(const std::array<float, 4>& value) {
-      return Vector3d(value[0], value[1], value[2]);
+      return Vector3d(value);
     }
 
     GpuDiffusePathStateRecord activePath(std::uint32_t rayIndex = 7) {

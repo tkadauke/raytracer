@@ -11,6 +11,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Added `std::array` constructors for generic vector types and non-SIMD
+  `Vector2`/`Vector3`/`Vector4` wrappers. — GPT-5 Codex
 - Added GPU-requested diffuse direct-light parity metrics for path-tracer
   renders, including CPU/GPU-requested image parity assertions and explicit
   contribution execution/fallback trace fields, closing roadmap §E7 job 6.
