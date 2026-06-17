@@ -3,6 +3,7 @@
 #include "core/math/Vector.h"
 #include "test/helpers/TypeTestHelper.h"
 
+#include <array>
 #include <limits>
 #include <type_traits>
 
@@ -71,6 +72,14 @@ namespace VectorTest {
 
   TYPED_TEST(VectorTest, ShouldInitializeVectorFromCArray) {
     Vector<3, TypeParam> vector({1, 2, 3});
+    ASSERT_EQ(1, vector[0]);
+    ASSERT_EQ(2, vector[1]);
+    ASSERT_EQ(3, vector[2]);
+  }
+
+  TYPED_TEST(VectorTest, ShouldInitializeVectorFromStdArray) {
+    const std::array<int, 4> values{1, 2, 3, 4};
+    Vector<3, TypeParam> vector(values);
     ASSERT_EQ(1, vector[0]);
     ASSERT_EQ(2, vector[1]);
     ASSERT_EQ(3, vector[2]);
@@ -788,6 +797,14 @@ namespace Vector3Test {
     ASSERT_EQ(1, vector.x());
     ASSERT_EQ(2, vector.y());
     ASSERT_EQ(3, vector.z());
+  }
+
+  TEST(Vector3Test, ShouldInitializeGenericVector3FromStdArray) {
+    const std::array<float, 4> values{1.5f, 2.5f, 3.5f, 4.5f};
+    Vector3d vector(values);
+    ASSERT_EQ(1.5, vector.x());
+    ASSERT_EQ(2.5, vector.y());
+    ASSERT_EQ(3.5, vector.z());
   }
 
   TYPED_TEST(Vector3Test, ShouldInitializeZCoordinateAsZeroByDefault) {

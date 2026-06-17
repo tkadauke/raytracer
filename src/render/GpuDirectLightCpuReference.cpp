@@ -20,7 +20,7 @@ namespace render {
     static_assert(sizeof(GpuDirectLightContributionRecord) % 16 == 0);
 
     Vector3d vector3(const std::array<float, 4>& value) {
-      return Vector3d(value[0], value[1], value[2]);
+      return Vector3d(value);
     }
 
     Vector4d point4(const std::array<float, 4>& value) {

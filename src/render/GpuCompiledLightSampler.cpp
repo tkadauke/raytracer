@@ -12,7 +12,7 @@ namespace render {
     constexpr double tolerance = 1e-9;
 
     Vector3d vector3(const std::array<float, 4>& value) {
-      return Vector3d(value[0], value[1], value[2]);
+      return Vector3d(value);
     }
 
     Colord color(const std::array<float, 4>& value) {

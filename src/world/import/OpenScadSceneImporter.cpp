@@ -979,7 +979,7 @@ namespace {
             }
             components[i] = *number;
           }
-          return Vector3d(components[0], components[1], components[2]);
+          return Vector3d(components);
         }
         error(QString("Parameter '%1' must be a number or vector").arg(name), arg->location);
       }

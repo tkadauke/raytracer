@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cmath>
 #include <functional>
 #include <iostream>
@@ -18,8 +19,8 @@
   * 
   * This vector type implements many of the operations that are defined for
   * vectors of arbitrary dimension, like operator+(), operator*(), or length().
-  * It features a default null-vector constructor, a copy constructor for C
-  * arrays and a generic copy constructor for any Vector type of arbitrary
+  * It features a default null-vector constructor, copy constructors for C
+  * arrays and std::array, and a generic copy constructor for any Vector type of arbitrary
   * dimension and coordinate type. Additionally, many of the operations exist in
   * two different versions, one that changes the original vector (like
   * operator+=()), and one that returns a new vector (like operator+()).
@@ -98,6 +99,20 @@ public:
       : m_coordinates{} {
     for (int i = 0; i != Dimensions; ++i) {
       m_coordinates[i] = cells[i];
+    }
+  }
+
+  /**
+    * Constructs a vector component wise from the first Dimensions values in
+    * the given array.
+    */
+  template<class Source, std::size_t Size,
+           typename = std::enable_if_t<(Size >= static_cast<std::size_t>(Dimensions)) &&
+                                       std::is_convertible_v<Source, T>>>
+  inline constexpr explicit Vector(const std::array<Source, Size>& cells)
+      : m_coordinates{} {
+    for (int i = 0; i != Dimensions; ++i) {
+      m_coordinates[i] = static_cast<T>(cells[static_cast<std::size_t>(i)]);
     }
   }
 
@@ -623,7 +638,7 @@ operator*(const T& factor, const Vector<Dimensions, T, StorageCellType, Derived>
   * vectors (right(), up()), the null vector null, and the undefined vector.
   * 
   * Construction of vectors is as expected. The default constructor creates the
-  * null vector, there is a component-wise constructor, and a generic copy
+  * null vector, there are component-wise and std::array constructors, and a generic copy
   * constructor that converts any vector type to a two-dimensional vector.
   * 
   * As special operations only available to two-dimensional vectors, this
@@ -680,6 +695,15 @@ public:
   }
 
   /**
+    * Constructs a Vector2<T> from the first two values in the given array.
+    */
+  template<class Source, std::size_t Size,
+           typename = std::enable_if_t<(Size >= 2u) && std::is_convertible_v<Source, T>>>
+  inline constexpr explicit Vector2(const std::array<Source, Size>& cells)
+      : Base(cells) {
+  }
+
+  /**
     * Constructs a Vector2<T> from an arbitrary-dimensioned and arbitrary-
     * typed source Vector.
     */
@@ -733,7 +757,7 @@ public:
   * infinity vectors (minusInfinity(), plusInfinity()), among others.
   * 
   * Construction of vectors is as expected. The default constructor creates the
-  * null vector, there is a component-wise constructor, and a generic copy
+  * null vector, there are component-wise and std::array constructors, and a generic copy
   * constructor that converts any vector type to a three-dimensional vector.
   * 
   * As special operations only available to three-dimensional vectors, this
@@ -824,6 +848,15 @@ public:
     setCoordinate(0, x);
     setCoordinate(1, y);
     setCoordinate(2, z);
+  }
+
+  /**
+    * Constructs a Vector3<T> from the first three values in the given array.
+    */
+  template<class Source, std::size_t Size,
+           typename = std::enable_if_t<(Size >= 3u) && std::is_convertible_v<Source, T>>>
+  inline constexpr explicit Vector3(const std::array<Source, Size>& cells)
+      : Base(cells) {
   }
 
   /**
@@ -984,6 +1017,15 @@ public:
     setCoordinate(1, y);
     setCoordinate(2, z);
     setCoordinate(3, w);
+  }
+
+  /**
+    * Constructs a Vector4<T> from the first four values in the given array.
+    */
+  template<class Source, std::size_t Size,
+           typename = std::enable_if_t<(Size >= 4u) && std::is_convertible_v<Source, T>>>
+  inline constexpr explicit Vector4(const std::array<Source, Size>& cells)
+      : Base(cells) {
   }
 
   /**
