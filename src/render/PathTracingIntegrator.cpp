@@ -758,6 +758,31 @@ namespace render {
       return metrics != nullptr;
     }
 
+    void recordResolvedFrontier(const ActivePathHits& activeHits) const {
+      if (!metrics) {
+        return;
+      }
+
+      metrics->recordActiveHitHostBytes(activeHits.hostBytes());
+      metrics->recordFrontierIntersections(frontierRayHits, frontierRayMisses);
+      metrics->recordFrontierTraversal(frontierPacketChunks, frontierPacketRays,
+                                       frontierRay4PacketChunks, frontierRay8PacketChunks,
+                                       frontierScalarRays, frontierPacketScalarFallbackRays,
+                                       /*packetRefinedRays=*/0);
+      metrics->recordFrontierClosestHitBatch(frontierClosestHitBatchChunks,
+                                             frontierClosestHitBatchRays);
+      metrics->recordPacketScalarFallbacksByReason(frontierPacketScalarFallbackRaysByReason);
+    }
+
+    void recordDepthOutcome(std::size_t retainedPathCount) const {
+      if (!metrics) {
+        return;
+      }
+
+      metrics->recordRadianceDeltaDepth(depthDeltaSquaredSum, depthMaxDelta);
+      metrics->recordRetainedActiveDepth(retainedPathCount);
+    }
+
     void recordPacketScalarFallbacks(const State& state,
                                      const std::map<std::string, std::uint64_t>& reasonsBefore) {
       for (const auto& [reason, count] : state.packetHitScalarFallbacksByReason) {
@@ -1685,20 +1710,7 @@ namespace render {
       depthMetrics.metrics = metrics;
       intersectActiveFrontier(intersectionBackend, scene, paths, activeHits, bounce, depthMetrics,
                               metrics);
-      if (metrics) {
-        metrics->recordActiveHitHostBytes(activeHits.hostBytes());
-        metrics->recordFrontierIntersections(depthMetrics.frontierRayHits,
-                                             depthMetrics.frontierRayMisses);
-        metrics->recordFrontierTraversal(
-          depthMetrics.frontierPacketChunks, depthMetrics.frontierPacketRays,
-          depthMetrics.frontierRay4PacketChunks, depthMetrics.frontierRay8PacketChunks,
-          depthMetrics.frontierScalarRays, depthMetrics.frontierPacketScalarFallbackRays,
-          /*packetRefinedRays=*/0);
-        metrics->recordFrontierClosestHitBatch(depthMetrics.frontierClosestHitBatchChunks,
-                                               depthMetrics.frontierClosestHitBatchRays);
-        metrics->recordPacketScalarFallbacksByReason(
-          depthMetrics.frontierPacketScalarFallbackRaysByReason);
-      }
+      depthMetrics.recordResolvedFrontier(activeHits);
 
       HostBatchPathFrontier spawnedPaths;
       spawnedPaths.reserve(activeHits.size() * 2);
@@ -1712,9 +1724,7 @@ namespace render {
         intersectionBackend, frontierCompaction, spawnedPaths, metrics);
 
       if (metrics) {
-        metrics->recordRadianceDeltaDepth(depthMetrics.depthDeltaSquaredSum,
-                                          depthMetrics.depthMaxDelta);
-        metrics->recordRetainedActiveDepth(retainedPathCount);
+        depthMetrics.recordDepthOutcome(retainedPathCount);
         paths.recordRetainedHostPathStateBytes(metrics);
       }
 

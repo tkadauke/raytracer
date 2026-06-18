@@ -1372,6 +1372,12 @@ Progress:
   skipped frontier, active-hit, direct-light, spawned-continuation, retained,
   and radiance-delta diagnostics. That keeps cancelled renders comparable with
   completed depth rows when inspecting resident-frontier opportunities.
+- Path-tracing depth-frontier metrics now publish through the
+  `BatchDepthMetrics` owner instead of a field-by-field list in the depth
+  scheduler. Active-hit bytes, frontier hit/miss counts, packet traversal
+  counts, closest-hit batch counts, fallback reasons, retained counts, and
+  radiance-delta rows therefore stay with the depth object that resident
+  frontier implementations will update.
 - Wavefront tile metric merging now carries active-hit host bytes and
   direct-light selection, occlusion-result, and contribution host-byte totals
   plus per-depth arrays across every sample batch in a tile. Adaptive or
