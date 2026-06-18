@@ -1376,6 +1376,10 @@ Progress:
   skipped frontier, active-hit, direct-light, spawned-continuation, retained,
   and radiance-delta diagnostics. That keeps cancelled renders comparable with
   completed depth rows when inspecting resident-frontier opportunities.
+- Cancelled path-tracing depth rows now publish through the same
+  `BatchDepthMetrics` owner as completed depth rows. The integrator loop no
+  longer carries a separate ad hoc cancellation field list that can drift from
+  normal frontier/direct-light diagnostics.
 - Path-tracing depth-frontier metrics now publish through the
   `BatchDepthMetrics` owner instead of a field-by-field list in the depth
   scheduler. Active-hit bytes, frontier hit/miss counts, packet traversal
