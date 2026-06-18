@@ -381,6 +381,29 @@ namespace render {
       }
     }
 
+    void collectScalarSelections(const PathTracingIntegrator& integrator,
+                                 const LightSampler& lightSampler, const HitPoint& hitPoint,
+                                 State& state, int bounce, int directLightSamples,
+                                 IntegratorBatchMetrics* metrics) {
+      core::util::ScopedTimer timer(metrics ? &metrics->shadingWorkerSeconds : nullptr);
+      for (int sampleIndex = 0; sampleIndex != directLightSamples; ++sampleIndex) {
+        const LightSampler::Selection selection =
+          lightSampler.select(integrator.lightSelectionSample(state, bounce, sampleIndex));
+        if (!selection) {
+          continue;
+        }
+
+        DirectLightingCandidate candidate = integrator.directLightingCandidate(
+          *selection.light, hitPoint,
+          integrator.lightSample(state, bounce, selection.lightIndex, sampleIndex));
+        if (!candidate.valid) {
+          continue;
+        }
+
+        add(/*hitIndex=*/0, std::move(candidate), selection.pdf, state);
+      }
+    }
+
     [[nodiscard]] bool empty() const {
       return m_shadowQueries.empty();
     }
@@ -405,6 +428,23 @@ namespace render {
       const DirectLightingSelection& selection = m_selections[index];
       return integrator.resolveDirectLightingCandidate(selection.candidate, material, hitPoint, wi,
                                                        occluded(index), state);
+    }
+
+    [[nodiscard]] Colord resolveScalarContribution(const PathTracingIntegrator& integrator,
+                                                   const PathMaterialTransport& material,
+                                                   const HitPoint& hitPoint, const Vector3d& wi,
+                                                   State& state, int directLightSamples,
+                                                   IntegratorBatchMetrics* metrics) const {
+      Colord contribution = Colord::black();
+      for (std::size_t index = 0; index != size(); ++index) {
+        const DirectLightingSample sample =
+          resolveSample(index, integrator, material, hitPoint, wi, state);
+        if (metrics) {
+          metrics->recordDirectLightSample(sample.occluded, sample.contributing());
+        }
+        contribution += sample.contribution / selectionPdf(index);
+      }
+      return contribution / static_cast<double>(std::max(1, directLightSamples));
     }
 
     void recordEmptyVisibility(int bounce, IntegratorBatchMetrics* metrics) const {
@@ -567,6 +607,34 @@ namespace render {
       const auto divisor = static_cast<double>(std::max(1, sampleCount));
       for (Colord& contribution : m_contributions) {
         contribution = contribution / divisor;
+      }
+    }
+
+    void accumulateResolvedVisibility(const PathTracingIntegrator& integrator,
+                                      const DirectLightVisibilityBatch& visibilityBatch,
+                                      const ActivePathHits& activeHits,
+                                      HostBatchPathFrontier& paths,
+                                      IntegratorBatchMetrics* metrics) {
+      core::util::ScopedTimer timer(metrics ? &metrics->shadingWorkerSeconds : nullptr);
+      for (std::size_t selectionIndex = 0; selectionIndex != visibilityBatch.size();
+           ++selectionIndex) {
+        const std::size_t hitIndex = visibilityBatch.hitIndex(selectionIndex);
+        const BatchHit& hit = activeHits[hitIndex];
+        BatchPath& path = paths[hit.pathIndex];
+        const auto material = hit.material ? hit.material : hit.primitive->material();
+        if (!material) {
+          continue;
+        }
+
+        const PathMaterialTransport& transport = material->pathTransport();
+        const Vector3d wi = -path.ray.direction().normalized();
+        const DirectLightingSample sample = visibilityBatch.resolveSample(
+          selectionIndex, integrator, transport, hit.hitPoint, wi, path.state);
+        if (metrics) {
+          metrics->recordDirectLightSample(sample.occluded, sample.contributing());
+        }
+        addWeighted(hitIndex, sample.contribution,
+                    1.0 / visibilityBatch.selectionPdf(selectionIndex));
       }
     }
 
@@ -828,21 +896,8 @@ namespace render {
     recordDirectLightContributionExecution(resolvedIntersectionBackend, metrics);
     DirectLightVisibilityBatch visibilityBatch(static_cast<std::size_t>(m_directLightSamples));
 
-    for (int sampleIndex = 0; sampleIndex != m_directLightSamples; ++sampleIndex) {
-      const LightSampler::Selection selection =
-        lightSampler.select(lightSelectionSample(state, bounce, sampleIndex));
-      if (!selection) {
-        continue;
-      }
-
-      DirectLightingCandidate candidate = directLightingCandidate(
-        *selection.light, hitPoint, lightSample(state, bounce, selection.lightIndex, sampleIndex));
-      if (!candidate.valid) {
-        continue;
-      }
-
-      visibilityBatch.add(/*hitIndex=*/0, std::move(candidate), selection.pdf, state);
-    }
+    visibilityBatch.collectScalarSelections(*this, lightSampler, hitPoint, state, bounce,
+                                            m_directLightSamples, metrics);
 
     if (visibilityBatch.empty()) {
       visibilityBatch.recordEmptyVisibility(bounce, metrics);
@@ -854,16 +909,8 @@ namespace render {
       visibilityBatch.resolveOcclusion(scene, resolvedIntersectionBackend, bounce, metrics);
     }
 
-    Colord contribution = Colord::black();
-    for (std::size_t index = 0; index != visibilityBatch.size(); ++index) {
-      const DirectLightingSample sample =
-        visibilityBatch.resolveSample(index, *this, material, hitPoint, wi, state);
-      if (metrics) {
-        metrics->recordDirectLightSample(sample.occluded, sample.contributing());
-      }
-      contribution += sample.contribution / visibilityBatch.selectionPdf(index);
-    }
-    return contribution / static_cast<double>(m_directLightSamples);
+    return visibilityBatch.resolveScalarContribution(*this, material, hitPoint, wi, state,
+                                                     m_directLightSamples, metrics);
   }
 
   PathTracingIntegrator::DirectLightContributionBatch
@@ -896,30 +943,7 @@ namespace render {
       visibilityBatch.resolveOcclusion(scene, intersectionBackend, bounce, metrics);
     }
 
-    {
-      core::util::ScopedTimer timer(metrics ? &metrics->shadingWorkerSeconds : nullptr);
-      for (std::size_t selectionIndex = 0; selectionIndex != visibilityBatch.size();
-           ++selectionIndex) {
-        const std::size_t hitIndex = visibilityBatch.hitIndex(selectionIndex);
-        const BatchHit& hit = activeHits[hitIndex];
-        BatchPath& path = paths[hit.pathIndex];
-        const auto material = hit.material ? hit.material : hit.primitive->material();
-        if (!material) {
-          continue;
-        }
-
-        const PathMaterialTransport& transport = material->pathTransport();
-        const Vector3d wi = -path.ray.direction().normalized();
-        const DirectLightingSample sample = visibilityBatch.resolveSample(
-          selectionIndex, *this, transport, hit.hitPoint, wi, path.state);
-        if (metrics) {
-          metrics->recordDirectLightSample(sample.occluded, sample.contributing());
-        }
-        contributions.addWeighted(hitIndex, sample.contribution,
-                                  1.0 / visibilityBatch.selectionPdf(selectionIndex));
-      }
-    }
-
+    contributions.accumulateResolvedVisibility(*this, visibilityBatch, activeHits, paths, metrics);
     contributions.average(m_directLightSamples);
     return contributions;
   }

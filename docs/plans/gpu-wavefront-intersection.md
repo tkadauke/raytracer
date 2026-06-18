@@ -1283,6 +1283,12 @@ Progress:
   active hits and path state, then the batch builds its own selection/query
   payload before resolving visibility, narrowing the future resident
   direct-light boundary another step.
+- Scalar and batched direct-light contribution resolution now route through the
+  visibility and contribution batch owners instead of open-coded loops in the
+  path-tracing scheduler. Scalar direct lighting uses the same visibility-batch
+  selection/resolution path as depth-major batches, and batched contribution
+  accumulation lives with the contribution batch that owns the resolved color
+  payload.
 - Direct-light contribution batches now record their own host-byte footprint
   when created, keeping resolved lighting payload accounting with the object
   that owns that payload.
