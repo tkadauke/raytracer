@@ -1376,6 +1376,12 @@ Progress:
   to decide compaction retention, and direct-light contribution execution
   metadata is recorded by `PathTracingIntegrator` instead of a file-local
   helper.
+- Path-tracing active-hit batches now also build the retained-path compaction
+  request while shading, and the host path frontier owns the compact-and-append
+  depth finalization step. The depth scheduler still coordinates the phases,
+  but retained-index construction and spawned-continuation append bookkeeping
+  now live with the frontier owners that a resident path-state implementation
+  will replace.
 
 ---
 

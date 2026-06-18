@@ -214,6 +214,17 @@ namespace render {
       result.record(metrics);
     }
 
+    [[nodiscard]] std::size_t compactAndAppendSpawned(const WavefrontIntersectionBackend& backend,
+                                                      const Compaction& compaction,
+                                                      HostBatchPathFrontier& spawnedPaths,
+                                                      IntegratorBatchMetrics* metrics) {
+      core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
+      spawnedPaths.recordSpawnedContinuations(metrics);
+      compactWith(backend, compaction, metrics);
+      appendAll(spawnedPaths);
+      return size();
+    }
+
   private:
     std::vector<BatchPath> m_paths;
   };
@@ -297,12 +308,12 @@ namespace render {
       compaction.retain(m_hits[hitIndex].pathIndex);
     }
 
-    void shadeAndRetain(const PathTracingIntegrator& integrator, const Scene& scene,
-                        const LightSampler& lightSampler, HostBatchPathFrontier& paths,
-                        HostBatchPathFrontier& spawnedPaths,
-                        const DirectLightContributionBatch& directLightContributions, int bounce,
-                        BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics,
-                        HostBatchPathFrontier::Compaction& compaction) const;
+    HostBatchPathFrontier::Compaction
+    shadeAndRetain(const PathTracingIntegrator& integrator, const Scene& scene,
+                   const LightSampler& lightSampler, HostBatchPathFrontier& paths,
+                   HostBatchPathFrontier& spawnedPaths,
+                   const DirectLightContributionBatch& directLightContributions, int bounce,
+                   BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const;
 
   private:
     std::vector<BatchHit> m_hits;
@@ -642,18 +653,20 @@ namespace render {
     std::vector<Colord> m_contributions;
   };
 
-  void PathTracingIntegrator::ActivePathHits::shadeAndRetain(
+  PathTracingIntegrator::HostBatchPathFrontier::Compaction
+  PathTracingIntegrator::ActivePathHits::shadeAndRetain(
     const PathTracingIntegrator& integrator, const Scene& scene, const LightSampler& lightSampler,
     HostBatchPathFrontier& paths, HostBatchPathFrontier& spawnedPaths,
     const DirectLightContributionBatch& directLightContributions, int bounce,
-    BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics,
-    HostBatchPathFrontier::Compaction& compaction) const {
+    BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
+    HostBatchPathFrontier::Compaction compaction = paths.beginCompaction();
     for (std::size_t hitIndex = 0; hitIndex != size(); ++hitIndex) {
       if (integrator.shadeActiveHit(scene, lightSampler, *this, hitIndex, paths, spawnedPaths,
                                     directLightContributions, bounce, depthMetrics, metrics)) {
         retainPath(compaction, hitIndex);
       }
     }
+    return compaction;
   }
 
   struct PathTracingIntegrator::BatchDepthMetrics {
@@ -1620,7 +1633,6 @@ namespace render {
       if (activeCount == 0) {
         break;
       }
-      HostBatchPathFrontier::Compaction frontierCompaction = paths.beginCompaction();
       if (metrics) {
         metrics->recordActiveDepth(activeCount);
         paths.recordActiveHostPathStateBytes(metrics);
@@ -1657,18 +1669,11 @@ namespace render {
       const DirectLightContributionBatch directLightContributions = sampleDirectLightingBatch(
         scene, lightSampler, activeHits, paths, bounce, intersectionBackend, metrics);
 
-      activeHits.shadeAndRetain(*this, scene, lightSampler, paths, spawnedPaths,
-                                directLightContributions, bounce, depthMetrics, metrics,
-                                frontierCompaction);
-
-      {
-        core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds
-                                              : nullptr);
-        spawnedPaths.recordSpawnedContinuations(metrics);
-        paths.compactWith(intersectionBackend, frontierCompaction, metrics);
-        paths.appendAll(spawnedPaths);
-      }
-      const std::size_t retainedPathCount = paths.size();
+      const HostBatchPathFrontier::Compaction frontierCompaction =
+        activeHits.shadeAndRetain(*this, scene, lightSampler, paths, spawnedPaths,
+                                  directLightContributions, bounce, depthMetrics, metrics);
+      const std::size_t retainedPathCount = paths.compactAndAppendSpawned(
+        intersectionBackend, frontierCompaction, spawnedPaths, metrics);
 
       if (metrics) {
         metrics->recordRadianceDeltaDepth(depthMetrics.depthDeltaSquaredSum,
