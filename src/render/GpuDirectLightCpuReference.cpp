@@ -3,7 +3,6 @@
 #include "core/math/Constants.h"
 #include "core/math/Ray.h"
 #include "render/GpuCompiledLightSampler.h"
-#include "render/GpuFloat4.h"
 #include "render/IntersectionService.h"
 #include "render/MIS.h"
 #include "render/State.h"
@@ -36,8 +35,8 @@ namespace render {
       GpuDirectLightVisibilityRecord visibility;
       visibility.workIndex = workIndex;
       visibility.lightIndex = lightIndex;
-      visibility.lightRadiance = gpuFloat4Zero();
-      visibility.lightSample = gpuFloat4Zero();
+      visibility.lightRadiance = {};
+      visibility.lightSample = {};
       return visibility;
     }
 
@@ -46,8 +45,8 @@ namespace render {
                                                           std::uint32_t lightIndex,
                                                           double selectionPdf,
                                                           const GpuTracingLightRecord& light) {
-      const Vector3d point = gpuFloat4ToVector3(work.surface.point);
-      const Vector3d normal = gpuFloat4ToVector3(work.surface.normal).normalizedOrZero(tolerance);
+      const Vector3d point = Vector3d(work.surface.point);
+      const Vector3d normal = Vector3d(work.surface.normal).normalizedOrZero(tolerance);
       Vector2d lightSample(0.5, 0.5);
 
       if (static_cast<GpuTracingLightKind>(light.kind) == GpuTracingLightKind::RectangularArea) {
@@ -67,7 +66,7 @@ namespace render {
         return invalidVisibility(workIndex, lightIndex);
       }
 
-      const Rayd shadowRay(gpuFloat4ToPoint4(work.surface.point), sample.direction);
+      const Rayd shadowRay(Vector4d(work.surface.point), sample.direction);
       const Rayd shifted = shadowRay.epsilonShifted();
 
       GpuDirectLightVisibilityRecord visibility;
@@ -75,9 +74,9 @@ namespace render {
       visibility.lightIndex = lightIndex;
       visibility.flags =
         gpuDirectLightVisibilityValid | (sample.delta ? gpuDirectLightVisibilityDeltaLight : 0u);
-      visibility.rayOrigin = gpuFloat4(Vector3d(shifted.origin()), 1.0f);
-      visibility.rayDirection = gpuFloat4(shifted.direction(), 0.0f);
-      visibility.lightRadiance = gpuColor4(sample.radiance);
+      visibility.rayOrigin = Vector3d(shifted.origin()).toFloat4(1.0f);
+      visibility.rayDirection = shifted.direction().toFloat4();
+      visibility.lightRadiance = sample.radiance.toFloat4();
       visibility.lightSample = {static_cast<float>(sample.surfaceSample.x()),
                                 static_cast<float>(sample.surfaceSample.y()), 0.0f, 0.0f};
       visibility.minDistance = static_cast<float>(Rayd::epsilon);
@@ -96,13 +95,13 @@ namespace render {
           GpuTracingTextureKind::ConstantColor) {
         return Colord::black();
       }
-      return gpuFloat4ToColor(texture.parameters);
+      return Colord(texture.parameters);
     }
 
     Rayd visibilityRay(const GpuDirectLightVisibilityRecord& visibility) {
       return Rayd(Vector4d(visibility.rayOrigin[0], visibility.rayOrigin[1],
                            visibility.rayOrigin[2], visibility.rayOrigin[3]),
-                  gpuFloat4ToVector3(visibility.rayDirection));
+                  Vector3d(visibility.rayDirection));
     }
 
   }
@@ -202,10 +201,9 @@ namespace render {
       return result;
     }
 
-    const Vector3d wi =
-      gpuFloat4ToVector3(work.surface.incomingDirection).normalizedOrZero(tolerance);
-    const Vector3d wo = gpuFloat4ToVector3(visibility.rayDirection).normalizedOrZero(tolerance);
-    const Vector3d normal = gpuFloat4ToVector3(work.surface.normal).normalizedOrZero(tolerance);
+    const Vector3d wi = Vector3d(work.surface.incomingDirection).normalizedOrZero(tolerance);
+    const Vector3d wo = Vector3d(visibility.rayDirection).normalizedOrZero(tolerance);
+    const Vector3d normal = Vector3d(work.surface.normal).normalizedOrZero(tolerance);
     const double normalDotOut = normal * wo;
     double bsdfPdf = 0.0;
     if (normal * wi >= 0.0 && normalDotOut > 0.0) {
@@ -215,18 +213,18 @@ namespace render {
     const bool deltaLight = (visibility.flags & gpuDirectLightVisibilityDeltaLight) != 0u;
     const double otherPdf = deltaLight ? 0.0 : bsdfPdf;
     Colord contribution = mis::estimateDirectLightingFromLightSample(
-      bsdfValue, gpuFloat4ToColor(visibility.lightRadiance), normalDotOut, visibility.lightPdf,
-      otherPdf, deltaLight);
+      bsdfValue, Colord(visibility.lightRadiance), normalDotOut, visibility.lightPdf, otherPdf,
+      deltaLight);
     if (visibility.selectionPdf > 0.0) {
       contribution = contribution / visibility.selectionPdf;
     } else {
       contribution = Colord::black();
     }
-    contribution = contribution * gpuFloat4ToColor(work.surface.throughput);
+    contribution = contribution * Colord(work.surface.throughput);
 
     if (contribution != Colord::black()) {
       result.flags |= gpuDirectLightContributionContributing;
-      result.contribution = gpuColor4(contribution);
+      result.contribution = contribution.toFloat4();
     }
     return result;
   }

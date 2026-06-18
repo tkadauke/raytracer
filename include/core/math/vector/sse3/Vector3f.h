@@ -4,6 +4,8 @@
 
 #if RAYTRACER_SIMD_SSE
 
+#include <array>
+#include <type_traits>
 #include <xmmintrin.h>
 
 #if defined(__GNUC__)
@@ -39,6 +41,13 @@ public:
 
   inline explicit Vector3(const CellsType& cells) {
     m_vector[0] = _mm_set_ps(0.0f, cells[2], cells[1], cells[0]);
+  }
+
+  template<class Source, std::size_t Size,
+           typename = std::enable_if_t<(Size >= 3u) && std::is_convertible_v<Source, float>>>
+  inline explicit Vector3(const std::array<Source, Size>& cells) {
+    m_vector[0] = _mm_set_ps(0.0f, static_cast<float>(cells[2]), static_cast<float>(cells[1]),
+                             static_cast<float>(cells[0]));
   }
 
   template<class T>

@@ -13,18 +13,16 @@ namespace render {
     constexpr double tolerance = 1e-9;
 
     double rectangleArea(const GpuTracingLightRecord& light) {
-      return (gpuFloat4ToVector3(light.u) ^ gpuFloat4ToVector3(light.v)).length();
+      return (Vector3d(light.u) ^ Vector3d(light.v)).length();
     }
 
     Vector3d rectangleNormal(const GpuTracingLightRecord& light) {
-      return (gpuFloat4ToVector3(light.u) ^ gpuFloat4ToVector3(light.v))
-        .normalizedOrZero(tolerance);
+      return (Vector3d(light.u) ^ Vector3d(light.v)).normalizedOrZero(tolerance);
     }
 
     Vector3d areaLightPoint(const GpuTracingLightRecord& light, const Vector2d& sample) {
-      return gpuFloat4ToVector3(light.positionOrDirection) +
-             gpuFloat4ToVector3(light.u) * (sample.x() - 0.5) +
-             gpuFloat4ToVector3(light.v) * (sample.y() - 0.5);
+      return Vector3d(light.positionOrDirection) + Vector3d(light.u) * (sample.x() - 0.5) +
+             Vector3d(light.v) * (sample.y() - 0.5);
     }
 
     double areaLightSurfaceCosine(const GpuTracingLightRecord& light,
@@ -33,9 +31,9 @@ namespace render {
     }
 
     bool areaLightContainsPoint(const GpuTracingLightRecord& light, const Vector3d& point) {
-      const Vector3d edgeU = gpuFloat4ToVector3(light.u);
-      const Vector3d edgeV = gpuFloat4ToVector3(light.v);
-      const Vector3d local = point - gpuFloat4ToVector3(light.positionOrDirection);
+      const Vector3d edgeU = Vector3d(light.u);
+      const Vector3d edgeV = Vector3d(light.v);
+      const Vector3d local = point - Vector3d(light.positionOrDirection);
       const double uu = edgeU * edgeU;
       const double uv = edgeU * edgeV;
       const double vv = edgeV * edgeV;
@@ -119,7 +117,7 @@ namespace render {
     const auto kind = static_cast<GpuTracingLightKind>(light.kind);
     switch (kind) {
     case GpuTracingLightKind::Point: {
-      const Vector3d offset = gpuFloat4ToVector3(light.positionOrDirection) - point;
+      const Vector3d offset = Vector3d(light.positionOrDirection) - point;
       const double distance = offset.length();
       if (distance <= tolerance) {
         return invalidSample(GpuCompiledLightSampleStatus::CoincidentPoint, lightSample);
@@ -127,22 +125,21 @@ namespace render {
 
       return {GpuCompiledLightSampleStatus::Valid,
               offset / distance,
-              gpuFloat4ToColor(light.parameters),
+              Colord(light.parameters),
               distance,
               1.0,
               true,
               lightSample};
     }
     case GpuTracingLightKind::Directional: {
-      const Vector3d direction =
-        gpuFloat4ToVector3(light.positionOrDirection).normalizedOrZero(tolerance);
+      const Vector3d direction = Vector3d(light.positionOrDirection).normalizedOrZero(tolerance);
       if (direction == Vector3d::null) {
         return invalidSample(GpuCompiledLightSampleStatus::DegenerateLight, lightSample);
       }
 
       return {GpuCompiledLightSampleStatus::Valid,
               direction,
-              gpuFloat4ToColor(light.parameters),
+              Colord(light.parameters),
               std::numeric_limits<double>::infinity(),
               1.0,
               true,
@@ -169,7 +166,7 @@ namespace render {
       const double solidAnglePdf = (distance * distance) / (cosLight * area);
       return {GpuCompiledLightSampleStatus::Valid,
               directionToLight,
-              gpuFloat4ToColor(light.parameters),
+              Colord(light.parameters),
               distance,
               solidAnglePdf,
               false,
@@ -197,8 +194,7 @@ namespace render {
       return 0.0;
     }
 
-    const double t =
-      ((gpuFloat4ToVector3(light.positionOrDirection) - point) * normal) / normalDotDirection;
+    const double t = ((Vector3d(light.positionOrDirection) - point) * normal) / normalDotDirection;
     if (t <= tolerance) {
       return 0.0;
     }
