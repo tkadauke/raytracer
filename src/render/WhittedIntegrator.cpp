@@ -414,6 +414,26 @@ namespace render {
         metrics->recordRadianceDeltaDepth(depthDeltaSquaredSum, depthMaxDelta);
       }
     }
+
+    void recordCancelledDepth(int depth) const {
+      if (!metrics) {
+        return;
+      }
+
+      const std::uint64_t depthIndex = static_cast<std::uint64_t>(std::max(0, depth));
+      metrics->recordActiveHitHostBytes(0);
+      metrics->recordFrontierIntersections(0, 0);
+      metrics->recordFrontierTraversal(0, 0, 0, 0, 0, 0, 0);
+      metrics->recordFrontierClosestHitBatch(0, 0);
+      metrics->recordDirectLightAnyHitBatch(depthIndex, 0, 0);
+      metrics->recordDirectLightSelectionHostBytes(depthIndex, 0);
+      metrics->recordDirectLightOcclusionHostBytes(depthIndex, 0);
+      metrics->recordDirectLightContributionHostBytes(depthIndex, 0);
+      metrics->recordRadianceDeltaDepth(0.0, 0.0);
+      metrics->recordSpawnedContinuations(0, 0);
+      metrics->recordRetainedActiveDepth(0);
+      metrics->recordRetainedHostPathStateBytes(0);
+    }
   };
 
   class WhittedIntegrator::ClosestHitQueuedRayFrontierBatch {
@@ -1384,12 +1404,17 @@ namespace render {
       const std::uint64_t currentActiveSamples = activeSamples.recordActiveDepth(current, metrics);
       current.recordActiveHostPathStateBytes(metrics);
 
-      next.prepareForNextDepth(current.size());
-      nextActiveSamples.clear();
-
       BatchDepthMetrics depthMetrics;
       depthMetrics.metrics = metrics;
       depthMetrics.trackRadianceDelta = trackRadianceDelta;
+      if (isCancelled()) {
+        depthMetrics.recordCancelledDepth(depth);
+        break;
+      }
+
+      next.prepareForNextDepth(current.size());
+      nextActiveSamples.clear();
+
       depthMetrics.captureRadianceBefore(activeSamples, result);
       intersectActiveFrontier(intersectionBackend, scene, current, activeHits, result, depthMetrics,
                               metrics);

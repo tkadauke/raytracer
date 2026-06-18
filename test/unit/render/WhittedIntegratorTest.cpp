@@ -69,6 +69,28 @@ namespace WhittedIntegratorTest {
       std::vector<std::uint64_t> activeSampleCounts;
     };
 
+    class CancellingBatchObserver final : public IntegratorBatchObserver {
+    public:
+      explicit CancellingBatchObserver(bool& cancelled)
+          : m_cancelled(cancelled) {
+      }
+
+      IntegratorBatchFeedback depthCompleted(std::uint64_t completedDepth,
+                                             const std::vector<Colord>&,
+                                             std::uint64_t activeSamples) override {
+        completedDepths.push_back(completedDepth);
+        activeSampleCounts.push_back(activeSamples);
+        m_cancelled = true;
+        return {};
+      }
+
+      std::vector<std::uint64_t> completedDepths;
+      std::vector<std::uint64_t> activeSampleCounts;
+
+    private:
+      bool& m_cancelled;
+    };
+
     class RecursiveProbeMaterial final : public Material {
     public:
       Colord shade(const RayCaster* raycaster, const Scene& scene, const Rayd&,
@@ -776,6 +798,59 @@ namespace WhittedIntegratorTest {
     ASSERT_COLOR_NEAR(colors[0], observer.snapshots.back()[0], 1e-12);
     EXPECT_GT(metrics.progressSnapshotWorkerSeconds, 0.0);
     EXPECT_EQ(0.0, metrics.convergenceTestWorkerSeconds);
+  }
+
+  TEST(WhittedIntegrator, BatchedRadianceCancellationPreservesAccumulatedContribution) {
+    Scene scene;
+    scene.setBackground(Colord(0.2, 0.4, 0.6));
+    auto primitive = makePrimaryOnlyHit();
+    primitive->setMaterial(std::make_shared<ContinuationMaterial>());
+    scene.add(primitive);
+    WhittedIntegrator integrator;
+    bool cancelled = false;
+    integrator.setCancellationCallback([&cancelled] { return cancelled; });
+    FixedRayCaster rayCaster;
+    IntegratorBatchMetrics metrics;
+    CancellingBatchObserver observer(cancelled);
+    IntegratorBatchSettings settings;
+    settings.progressObserver = &observer;
+    std::vector<IntegratorRaySample> samples{
+      IntegratorRaySample{Rayd(Vector3d::null, Vector3d::forward()), 0.0, nullptr}};
+
+    const std::vector<Colord> colors =
+      integrator.radianceBatch(scene, samples, rayCaster, &metrics, settings);
+
+    ASSERT_EQ(1u, colors.size());
+    ASSERT_COLOR_NEAR(Colord(0.1, 0.0, 0.0), colors[0], 1e-12);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u}), observer.completedDepths);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u}), observer.activeSampleCounts);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u, 1u}), metrics.activeSamplesPerDepth);
+    ASSERT_EQ(2u, metrics.activeHostPathStateBytesPerDepth.size());
+    EXPECT_GT(metrics.activeHostPathStateBytesPerDepth[0], 0u);
+    EXPECT_GT(metrics.activeHostPathStateBytesPerDepth[1], 0u);
+    ASSERT_EQ(2u, metrics.activeHitHostBytesPerDepth.size());
+    EXPECT_GT(metrics.activeHitHostBytesPerDepth[0], 0u);
+    EXPECT_EQ(0u, metrics.activeHitHostBytesPerDepth[1]);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u, 0u}), metrics.frontierRayHitsPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u, 0u}), metrics.frontierRayMissesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u, 0u}), metrics.frontierClosestHitBatchChunksPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u, 0u}), metrics.directLightAnyHitBatchChunksPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u, 0u}), metrics.directLightAnyHitBatchRaysPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u, 0u}), metrics.directLightSelectionHostBytesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u, 0u}), metrics.directLightOcclusionHostBytesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u, 0u}),
+              metrics.directLightContributionHostBytesPerDepth);
+    ASSERT_EQ(2u, metrics.radianceDeltaSquaredSumPerDepth.size());
+    EXPECT_GT(metrics.radianceDeltaSquaredSumPerDepth[0], 0.0);
+    EXPECT_EQ(0.0, metrics.radianceDeltaSquaredSumPerDepth[1]);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u, 0u}), metrics.spawnedContinuationSamplesPerDepth);
+    ASSERT_EQ(2u, metrics.spawnedContinuationHostPathStateBytesPerDepth.size());
+    EXPECT_GT(metrics.spawnedContinuationHostPathStateBytesPerDepth[0], 0u);
+    EXPECT_EQ(0u, metrics.spawnedContinuationHostPathStateBytesPerDepth[1]);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u, 0u}), metrics.retainedActiveSamplesPerDepth);
+    ASSERT_EQ(2u, metrics.retainedHostPathStateBytesPerDepth.size());
+    EXPECT_GT(metrics.retainedHostPathStateBytesPerDepth[0], 0u);
+    EXPECT_EQ(0u, metrics.retainedHostPathStateBytesPerDepth[1]);
   }
 
   TEST(WhittedIntegrator, BatchedRadianceCountsBranchedContinuationsAsOneActiveSample) {

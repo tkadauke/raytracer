@@ -369,6 +369,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Fixed cancelled Whitted wavefront batches so they preserve already accumulated
+  sample color and publish zeroed skipped-depth frontier/direct-light
+  diagnostics. — GPT-5 Codex
 - Fixed GPU-requested wavefront intersection fallback summaries so grouped
   unsupported-scene reasons are emitted in deterministic order, with
   transparent-material fallback pinned in metrics JSON. — GPT-5 Codex

@@ -1413,6 +1413,11 @@ Progress:
   `BatchDepthMetrics` owner as completed depth rows. The integrator loop no
   longer carries a separate ad hoc cancellation field list that can drift from
   normal frontier/direct-light diagnostics.
+- Whitted cancellation at a depth boundary now publishes the same zeroed
+  frontier, active-hit, direct-light, spawned-continuation, retained, and
+  radiance-delta diagnostics through its `BatchDepthMetrics` owner. Cancelled
+  Whitted batches preserve already accumulated sample color instead of adding a
+  synthetic background contribution for the skipped depth.
 - Path-tracing depth-frontier metrics now publish through the
   `BatchDepthMetrics` owner instead of a field-by-field list in the depth
   scheduler. Active-hit bytes, frontier hit/miss counts, packet traversal
