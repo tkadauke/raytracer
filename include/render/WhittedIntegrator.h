@@ -51,6 +51,7 @@ namespace render {
 
   private:
     class ActiveQueuedHits;
+    class ActiveSampleTracker;
     struct BatchDepthMetrics;
     class DirectLightVisibilityBatch;
     class ClosestHitQueuedRayFrontierBatch;
@@ -65,14 +66,6 @@ namespace render {
                                     std::vector<Colord>& result, const std::string& event) const;
     void recordQueuedRayMiss(const Scene& scene, QueuedRay& queued, std::vector<Colord>& result,
                              BatchDepthMetrics& depthMetrics) const;
-    void clearActiveSampleMarks(std::vector<unsigned char>& sampleMarks,
-                                const std::vector<std::size_t>& activeSampleIndices) const;
-    void markActiveSample(std::vector<unsigned char>& sampleMarks,
-                          std::vector<std::size_t>& activeSampleIndices,
-                          std::size_t sampleIndex) const;
-    std::uint64_t collectCurrentActiveSamples(const QueuedRayFrontier& current,
-                                              std::vector<unsigned char>& activeSamples,
-                                              std::vector<std::size_t>& activeSampleIndices) const;
     std::size_t partitionTraceableQueuedRays(QueuedRayFrontier& current) const;
     void intersectQueuedRayScalar(const WavefrontIntersectionBackend& intersectionBackend,
                                   const Scene& scene, QueuedRayFrontier& current,
@@ -104,14 +97,10 @@ namespace render {
     void queueOrResolveContinuation(const Scene& scene, const WhittedContinuation& continuation,
                                     const QueuedRay& parent, QueuedRayFrontier& next,
                                     std::vector<Colord>& result,
-                                    std::vector<unsigned char>& nextActiveSamples,
-                                    bool countNextActiveSamples,
-                                    std::vector<std::size_t>& nextActiveSampleIndices) const;
+                                    ActiveSampleTracker& nextActiveSamples) const;
     void shadeQueuedHit(const Scene& scene, const RayCaster& recursiveRayCaster,
                         const QueuedHit& hit, QueuedRayFrontier& current, QueuedRayFrontier& next,
-                        std::vector<Colord>& result, std::vector<unsigned char>& nextActiveSamples,
-                        bool countNextActiveSamples,
-                        std::vector<std::size_t>& nextActiveSampleIndices,
+                        std::vector<Colord>& result, ActiveSampleTracker& nextActiveSamples,
                         IntegratorBatchMetrics* metrics) const;
     bool canUseBatchedLocalWhittedDirectLighting(const Material& material, const Rayd& ray,
                                                  const HitPoint& hitPoint) const;

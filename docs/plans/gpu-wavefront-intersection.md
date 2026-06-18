@@ -1378,6 +1378,10 @@ Progress:
   count, records spawned/retained frontier metrics, and performs the depth
   handoff. That keeps Whitted depth finalization aligned with the path-tracing
   frontier owner.
+- Whitted active-sample tracking now lives behind a small owner instead of a
+  loose mark-vector/index-vector pair. Current-depth collection, next-depth
+  marking, duplicate suppression, and fallback active counts now move together,
+  narrowing another host-side scheduler boundary for future resident path state.
 - Path-tracing direct-light selection and occlusion host-byte depth arrays now
   record explicit zero rows for depths with no visibility work. That keeps
   selection, occlusion, and contribution byte diagnostics aligned by depth when

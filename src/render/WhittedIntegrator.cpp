@@ -114,15 +114,6 @@ namespace render {
       }
     }
 
-    [[nodiscard]] std::uint64_t
-    retainedActiveSampleCount(bool countNextActiveSamples,
-                              const std::vector<std::size_t>& nextActiveSampleIndices) const {
-      if (countNextActiveSamples) {
-        return static_cast<std::uint64_t>(nextActiveSampleIndices.size());
-      }
-      return static_cast<std::uint64_t>(size());
-    }
-
     void recordCompletedDepth(std::uint64_t retainedActiveSamples,
                               IntegratorBatchMetrics* metrics) const {
       if (!metrics) {
@@ -171,6 +162,67 @@ namespace render {
 
   private:
     std::vector<QueuedRay> m_rays;
+  };
+
+  class WhittedIntegrator::ActiveSampleTracker {
+  public:
+    void reset(std::size_t sampleCount, bool enabled) {
+      m_enabled = enabled;
+      m_marks.assign(enabled ? sampleCount : 0, 0);
+      m_indices.clear();
+    }
+
+    void reserve(std::size_t count) {
+      m_indices.reserve(count);
+    }
+
+    void clear() {
+      if (!m_enabled) {
+        return;
+      }
+      for (const std::size_t sampleIndex : m_indices) {
+        m_marks[sampleIndex] = 0;
+      }
+      m_indices.clear();
+    }
+
+    void mark(std::size_t sampleIndex) {
+      if (!m_enabled) {
+        return;
+      }
+      if (sampleIndex >= m_marks.size()) {
+        throw std::logic_error("Whitted active sample tracker received an invalid sample index");
+      }
+      if (m_marks[sampleIndex] != 0) {
+        return;
+      }
+      m_marks[sampleIndex] = 1;
+      m_indices.push_back(sampleIndex);
+    }
+
+    [[nodiscard]] std::uint64_t collect(const QueuedRayFrontier& frontier) {
+      if (!m_enabled) {
+        return static_cast<std::uint64_t>(frontier.size());
+      }
+      clear();
+      for (const QueuedRay& queued : frontier) {
+        mark(queued.sampleIndex);
+      }
+      return static_cast<std::uint64_t>(m_indices.size());
+    }
+
+    [[nodiscard]] std::uint64_t countOr(std::uint64_t fallbackCount) const {
+      return m_enabled ? static_cast<std::uint64_t>(m_indices.size()) : fallbackCount;
+    }
+
+    [[nodiscard]] const std::vector<std::size_t>& indices() const {
+      return m_indices;
+    }
+
+  private:
+    bool m_enabled{false};
+    std::vector<unsigned char> m_marks;
+    std::vector<std::size_t> m_indices;
   };
 
   struct WhittedIntegrator::QueuedHit {
@@ -223,9 +275,7 @@ namespace render {
                const WavefrontIntersectionBackend& intersectionBackend,
                const RayCaster& recursiveRayCaster, int depth, QueuedRayFrontier& current,
                QueuedRayFrontier& next, std::vector<Colord>& result,
-               std::vector<unsigned char>& nextActiveSamples, bool countNextActiveSamples,
-               std::vector<std::size_t>& nextActiveSampleIndices,
-               IntegratorBatchMetrics* metrics) const;
+               ActiveSampleTracker& nextActiveSamples, IntegratorBatchMetrics* metrics) const;
 
   private:
     std::vector<QueuedHit> m_hits;
@@ -604,41 +654,6 @@ namespace render {
     queued.state.recordEvent(nullptr, "Raytracer: Nothing hit, returning background color");
     result[queued.sampleIndex] += queued.weight * scene.background();
     queued.state.recurseOut();
-  }
-
-  void WhittedIntegrator::clearActiveSampleMarks(
-    std::vector<unsigned char>& sampleMarks,
-    const std::vector<std::size_t>& activeSampleIndices) const {
-    for (const std::size_t sampleIndex : activeSampleIndices) {
-      sampleMarks[sampleIndex] = 0;
-    }
-  }
-
-  void WhittedIntegrator::markActiveSample(std::vector<unsigned char>& sampleMarks,
-                                           std::vector<std::size_t>& activeSampleIndices,
-                                           std::size_t sampleIndex) const {
-    if (sampleMarks.empty() || sampleMarks[sampleIndex]) {
-      return;
-    }
-
-    sampleMarks[sampleIndex] = 1;
-    activeSampleIndices.push_back(sampleIndex);
-  }
-
-  std::uint64_t WhittedIntegrator::collectCurrentActiveSamples(
-    const QueuedRayFrontier& current, std::vector<unsigned char>& activeSamples,
-    std::vector<std::size_t>& activeSampleIndices) const {
-    if (activeSamples.empty()) {
-      return current.size();
-    }
-
-    clearActiveSampleMarks(activeSamples, activeSampleIndices);
-    activeSampleIndices.clear();
-    for (const auto& queued : current) {
-      markActiveSample(activeSamples, activeSampleIndices, queued.sampleIndex);
-    }
-
-    return activeSampleIndices.size();
   }
 
   std::size_t WhittedIntegrator::partitionTraceableQueuedRays(QueuedRayFrontier& current) const {
@@ -1089,11 +1104,12 @@ namespace render {
     }
   }
 
-  void WhittedIntegrator::queueOrResolveContinuation(
-    const Scene& scene, const WhittedContinuation& continuation, const QueuedRay& parent,
-    QueuedRayFrontier& next, std::vector<Colord>& result,
-    std::vector<unsigned char>& nextActiveSamples, bool countNextActiveSamples,
-    std::vector<std::size_t>& nextActiveSampleIndices) const {
+  void WhittedIntegrator::queueOrResolveContinuation(const Scene& scene,
+                                                     const WhittedContinuation& continuation,
+                                                     const QueuedRay& parent,
+                                                     QueuedRayFrontier& next,
+                                                     std::vector<Colord>& result,
+                                                     ActiveSampleTracker& nextActiveSamples) const {
     QueuedRay queued{
       parent.sampleIndex,
       continuation.ray,
@@ -1103,9 +1119,7 @@ namespace render {
 
     if (queuedRayShouldTrace(queued)) {
       next.push(std::move(queued));
-      if (countNextActiveSamples) {
-        markActiveSample(nextActiveSamples, nextActiveSampleIndices, parent.sampleIndex);
-      }
+      nextActiveSamples.mark(parent.sampleIndex);
       return;
     }
 
@@ -1123,9 +1137,7 @@ namespace render {
   void WhittedIntegrator::shadeQueuedHit(const Scene& scene, const RayCaster& recursiveRayCaster,
                                          const QueuedHit& hit, QueuedRayFrontier& current,
                                          QueuedRayFrontier& next, std::vector<Colord>& result,
-                                         std::vector<unsigned char>& nextActiveSamples,
-                                         bool countNextActiveSamples,
-                                         std::vector<std::size_t>& nextActiveSampleIndices,
+                                         ActiveSampleTracker& nextActiveSamples,
                                          IntegratorBatchMetrics* metrics) const {
     auto& queued = current[hit.queuedIndex];
     ScopeExit recurseOut([&] { queued.state.recurseOut(); });
@@ -1158,8 +1170,7 @@ namespace render {
     result[queued.sampleIndex] += queued.weight * shaded.localRadiance;
 
     for (const auto& continuation : shaded.continuations) {
-      queueOrResolveContinuation(scene, continuation, queued, next, result, nextActiveSamples,
-                                 countNextActiveSamples, nextActiveSampleIndices);
+      queueOrResolveContinuation(scene, continuation, queued, next, result, nextActiveSamples);
     }
   }
 
@@ -1211,8 +1222,7 @@ namespace render {
     const WhittedIntegrator& integrator, const Scene& scene,
     const WavefrontIntersectionBackend& intersectionBackend, const RayCaster& recursiveRayCaster,
     int depth, QueuedRayFrontier& current, QueuedRayFrontier& next, std::vector<Colord>& result,
-    std::vector<unsigned char>& nextActiveSamples, bool countNextActiveSamples,
-    std::vector<std::size_t>& nextActiveSampleIndices, IntegratorBatchMetrics* metrics) const {
+    ActiveSampleTracker& nextActiveSamples, IntegratorBatchMetrics* metrics) const {
     if (empty()) {
       DirectLightVisibilityBatch emptyBatch(0, 0);
       emptyBatch.recordEmptyVisibility(depth, metrics);
@@ -1239,8 +1249,7 @@ namespace render {
       }
 
       integrator.shadeQueuedHit(scene, recursiveRayCaster, hit, current, next, result,
-                                nextActiveSamples, countNextActiveSamples, nextActiveSampleIndices,
-                                metrics);
+                                nextActiveSamples, metrics);
     }
   }
 
@@ -1263,12 +1272,10 @@ namespace render {
     const bool countNextActiveSamples = settings.progressObserver || settings.convergenceEnabled;
     std::vector<Colord> result;
     std::vector<Colord> resultBeforeActiveSamples;
-    std::vector<std::size_t> activeSampleIndices;
-    std::vector<std::size_t> nextActiveSampleIndices;
-    std::vector<unsigned char> activeSamples;
-    std::vector<unsigned char> nextActiveSamples;
-    activeSampleIndices.reserve(samples.size());
-    nextActiveSampleIndices.reserve(samples.size());
+    ActiveSampleTracker activeSamples;
+    ActiveSampleTracker nextActiveSamples;
+    activeSamples.reserve(samples.size());
+    nextActiveSamples.reserve(samples.size());
 
     QueuedRayFrontier current;
     QueuedRayFrontier next;
@@ -1276,8 +1283,8 @@ namespace render {
     {
       core::util::ScopedTimer timer(metrics ? &metrics->pathSetupWorkerSeconds : nullptr);
       result.resize(samples.size(), Colord::black());
-      activeSamples.assign(countCurrentActiveSamples ? samples.size() : 0, 0);
-      nextActiveSamples.assign(countNextActiveSamples ? samples.size() : 0, 0);
+      activeSamples.reset(samples.size(), countCurrentActiveSamples);
+      nextActiveSamples.reset(samples.size(), countNextActiveSamples);
       current.reserve(samples.size());
       next.reserve(samples.size());
       activeHits.reserve(samples.size());
@@ -1292,25 +1299,21 @@ namespace render {
     }
 
     for (int depth = 0; depth != m_maximumRecursionDepth && !current.empty(); ++depth) {
-      const std::uint64_t currentActiveSamples =
-        collectCurrentActiveSamples(current, activeSamples, activeSampleIndices);
+      const std::uint64_t currentActiveSamples = activeSamples.collect(current);
       if (metrics) {
         metrics->recordActiveDepth(currentActiveSamples);
         current.recordActiveHostPathStateBytes(metrics);
       }
       if (trackRadianceDelta) {
         resultBeforeActiveSamples.clear();
-        resultBeforeActiveSamples.reserve(activeSampleIndices.size());
-        for (const std::size_t sampleIndex : activeSampleIndices) {
+        resultBeforeActiveSamples.reserve(activeSamples.indices().size());
+        for (const std::size_t sampleIndex : activeSamples.indices()) {
           resultBeforeActiveSamples.push_back(result[sampleIndex]);
         }
       }
 
       next.prepareForNextDepth(current.size());
-      if (countNextActiveSamples) {
-        clearActiveSampleMarks(nextActiveSamples, nextActiveSampleIndices);
-        nextActiveSampleIndices.clear();
-      }
+      nextActiveSamples.clear();
 
       BatchDepthMetrics depthMetrics;
       depthMetrics.trackFrontierMetrics = metrics != nullptr;
@@ -1322,12 +1325,12 @@ namespace render {
       }
 
       activeHits.shade(*this, scene, intersectionBackend, recursiveRayCaster, depth, current, next,
-                       result, nextActiveSamples, countNextActiveSamples, nextActiveSampleIndices,
-                       metrics);
+                       result, nextActiveSamples, metrics);
 
       double depthDeltaSquaredSum = 0.0;
       double depthMaxDelta = 0.0;
       if (trackRadianceDelta) {
+        const std::vector<std::size_t>& activeSampleIndices = activeSamples.indices();
         for (std::size_t activeIndex = 0; activeIndex != activeSampleIndices.size();
              ++activeIndex) {
           const std::size_t sampleIndex = activeSampleIndices[activeIndex];
@@ -1345,7 +1348,7 @@ namespace render {
       }
 
       const std::uint64_t nextActiveSampleCount =
-        next.retainedActiveSampleCount(countNextActiveSamples, nextActiveSampleIndices);
+        nextActiveSamples.countOr(static_cast<std::uint64_t>(next.size()));
       next.recordCompletedDepth(nextActiveSampleCount, metrics);
       IntegratorBatchFeedback feedback;
       if (settings.progressObserver) {
