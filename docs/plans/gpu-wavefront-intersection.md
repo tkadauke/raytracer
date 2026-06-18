@@ -1339,10 +1339,10 @@ Progress:
   per queued ray contract, keeping Whitted and path-tracing backend-owned
   frontiers aligned for future resident-frontier implementations.
 - Whitted closest-hit batch execution now stages query construction, backend
-  frontier ownership, result validation, and hit lookup through a dedicated
-  queued-ray frontier batch object. The render behavior is unchanged, but the
-  Whitted scheduler no longer owns the backend frontier as a raw local vector
-  pair.
+  frontier ownership, result validation, and hit/miss materialization through a
+  dedicated queued-ray frontier batch object. The render behavior is unchanged,
+  but the Whitted scheduler no longer owns the backend frontier as a raw local
+  vector pair or loops over batch hit records directly.
 - Whitted wavefront metrics now report active-hit host bytes for the queued-hit
   records that bridge closest-hit frontier resolution to material shading,
   matching the path-tracing active-hit host-byte diagnostic.

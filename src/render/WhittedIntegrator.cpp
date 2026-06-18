@@ -429,11 +429,29 @@ namespace render {
       }
     }
 
-    [[nodiscard]] const WavefrontClosestHitResult* hit(std::size_t queuedIndex) const {
-      if (queuedIndex >= m_hits.size() || !m_hits[queuedIndex].hit()) {
-        return nullptr;
+    void materializeHits(const WhittedIntegrator& integrator, const Scene& scene,
+                         QueuedRayFrontier& current, ActiveQueuedHits& activeHits,
+                         SampleColorBuffer& result, BatchDepthMetrics& depthMetrics,
+                         IntegratorBatchMetrics* metrics) const {
+      core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
+      for (std::size_t queuedIndex = 0; queuedIndex != m_expectedHitCount; ++queuedIndex) {
+        auto& queued = current[queuedIndex];
+        if (integrator.isCancelled()) {
+          result[queued.sampleIndex] += queued.weight * scene.background();
+          queued.state.recurseOut();
+          continue;
+        }
+        const WavefrontClosestHitResult& hit = m_hits[queuedIndex];
+        if (!hit.hit()) {
+          integrator.recordQueuedRayMiss(scene, queued, result, depthMetrics);
+          continue;
+        }
+
+        if (depthMetrics.trackFrontierMetrics) {
+          ++depthMetrics.frontierRayHits;
+        }
+        activeHits.add(queuedIndex, hit.primitive, hit.material, hit.hitPoint);
       }
-      return &m_hits[queuedIndex];
     }
 
   private:
@@ -1086,26 +1104,7 @@ namespace render {
     IntegratorBatchMetrics* metrics) const {
     ClosestHitQueuedRayFrontierBatch frontier(current, traceableCount, depthMetrics, metrics);
     frontier.intersect(scene, intersectionBackend, metrics);
-
-    core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
-    for (std::size_t queuedIndex = 0; queuedIndex != traceableCount; ++queuedIndex) {
-      auto& queued = current[queuedIndex];
-      if (isCancelled()) {
-        result[queued.sampleIndex] += queued.weight * scene.background();
-        queued.state.recurseOut();
-        continue;
-      }
-      const WavefrontClosestHitResult* hit = frontier.hit(queuedIndex);
-      if (!hit) {
-        recordQueuedRayMiss(scene, queued, result, depthMetrics);
-        continue;
-      }
-
-      if (depthMetrics.trackFrontierMetrics) {
-        ++depthMetrics.frontierRayHits;
-      }
-      activeHits.add(queuedIndex, hit->primitive, hit->material, hit->hitPoint);
-    }
+    frontier.materializeHits(*this, scene, current, activeHits, result, depthMetrics, metrics);
   }
 
   void WhittedIntegrator::intersectActiveFrontier(
