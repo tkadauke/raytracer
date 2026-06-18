@@ -259,6 +259,28 @@ namespace {
     }
     return result;
   }
+
+  TracingAccumulationDiagnostics
+  accumulateGpuDiffusePathLoopImage(const std::vector<GpuDiffusePathStateRecord>& records,
+                                    const TracingAccumulationLayout& layout,
+                                    TracingAccumulationBuffer& accumulation) {
+    TracingAccumulationDiagnostics diagnostics = TracingAccumulationDiagnostics::forLayout(
+      layout, "gpu_diffuse_path_loop", "resident_accumulation_resolve");
+    diagnostics.recordClear();
+
+    const std::uint64_t pixelCount = layout.pixelCount();
+    for (const GpuDiffusePathStateRecord& record : records) {
+      if (record.pixelIndex >= pixelCount) {
+        throw std::out_of_range("gpu diffuse path-loop resolve pixel index is out of range");
+      }
+      const int x = static_cast<int>(record.pixelIndex % static_cast<std::uint64_t>(layout.width));
+      const int y = static_cast<int>(record.pixelIndex / static_cast<std::uint64_t>(layout.width));
+      accumulation.addSample(x, y, colorFrom4(record.accumulatedRadiance));
+      diagnostics.recordAdd(1);
+    }
+
+    return diagnostics;
+  }
 }
 
 void GpuDiffusePathStepMetrics::merge(const GpuDiffusePathStepMetrics& source) {
@@ -543,23 +565,37 @@ GpuDiffusePathLoop::run(const GpuTracingSceneSections& scene,
 TracingAccumulationDiagnostics
 render::resolveGpuDiffusePathLoopImage(const std::vector<GpuDiffusePathStateRecord>& records,
                                        const TracingAccumulationLayout& layout,
+                                       Buffer<Colord>& target) {
+  TracingAccumulationBuffer accumulation(layout);
+  TracingAccumulationDiagnostics diagnostics =
+    accumulateGpuDiffusePathLoopImage(records, layout, accumulation);
+  if (target.width() != layout.width || target.height() != layout.height) {
+    throw std::invalid_argument("gpu diffuse path-loop HDR target dimensions do not match layout");
+  }
+  for (int y = 0; y != layout.height; ++y) {
+    for (int x = 0; x != layout.width; ++x) {
+      target[y][x] = accumulation.resolvedColor(x, y);
+    }
+  }
+  diagnostics.recordResolve();
+  diagnostics.recordReadback(layout.colorSumBytes());
+  return diagnostics;
+}
+
+TracingAccumulationDiagnostics
+render::resolveGpuDiffusePathLoopImage(const GpuDiffusePathLoopResult& result,
+                                       const TracingAccumulationLayout& layout,
+                                       Buffer<Colord>& target) {
+  return render::resolveGpuDiffusePathLoopImage(result.resolvedPathStates, layout, target);
+}
+
+TracingAccumulationDiagnostics
+render::resolveGpuDiffusePathLoopImage(const std::vector<GpuDiffusePathStateRecord>& records,
+                                       const TracingAccumulationLayout& layout,
                                        Buffer<unsigned int>& target, const Tonemap* tonemap) {
   TracingAccumulationBuffer accumulation(layout);
-  TracingAccumulationDiagnostics diagnostics = TracingAccumulationDiagnostics::forLayout(
-    layout, "gpu_diffuse_path_loop", "resident_accumulation_resolve");
-  diagnostics.recordClear();
-
-  const std::uint64_t pixelCount = layout.pixelCount();
-  for (const GpuDiffusePathStateRecord& record : records) {
-    if (record.pixelIndex >= pixelCount) {
-      throw std::out_of_range("gpu diffuse path-loop resolve pixel index is out of range");
-    }
-    const int x = static_cast<int>(record.pixelIndex % static_cast<std::uint64_t>(layout.width));
-    const int y = static_cast<int>(record.pixelIndex / static_cast<std::uint64_t>(layout.width));
-    accumulation.addSample(x, y, colorFrom4(record.accumulatedRadiance));
-    diagnostics.recordAdd(1);
-  }
-
+  TracingAccumulationDiagnostics diagnostics =
+    accumulateGpuDiffusePathLoopImage(records, layout, accumulation);
   accumulation.resolve(target, tonemap);
   diagnostics.recordResolve();
   diagnostics.recordReadback(layout.resolveBytes());

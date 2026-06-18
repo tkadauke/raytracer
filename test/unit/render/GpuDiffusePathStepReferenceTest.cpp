@@ -812,4 +812,45 @@ namespace GpuDiffusePathStepReferenceTest {
     };
     EXPECT_THROW(resolve(), std::out_of_range);
   }
+
+  TEST(GpuDiffusePathLoop, ResolvesMultipleSamplesPerPixelIntoHdrImage) {
+    GpuDiffusePathStateRecord first = makeTerminatedGpuDiffusePathState();
+    first.pixelIndex = 0;
+    first.accumulatedRadiance = {0.25f, 0.5f, 0.75f, 0.0f};
+    GpuDiffusePathStateRecord second = makeTerminatedGpuDiffusePathState();
+    second.pixelIndex = 0;
+    second.accumulatedRadiance = {0.75f, 0.25f, 0.0f, 0.0f};
+    GpuDiffusePathStateRecord third = makeTerminatedGpuDiffusePathState();
+    third.pixelIndex = 2;
+    third.accumulatedRadiance = {0.25f, 0.0f, 0.5f, 0.0f};
+
+    Buffer<Colord> resolved(2, 2);
+    const TracingAccumulationLayout layout = TracingAccumulationLayout::image(2, 2);
+    GpuDiffusePathLoopResult result;
+    result.resolvedPathStates = {first, second, third};
+    const TracingAccumulationDiagnostics diagnostics =
+      resolveGpuDiffusePathLoopImage(result, layout, resolved);
+
+    ASSERT_COLOR_NEAR(Colord(0.5, 0.375, 0.375), resolved[0][0], 1e-12);
+    ASSERT_COLOR_NEAR(Colord::black(), resolved[0][1], 1e-12);
+    ASSERT_COLOR_NEAR(Colord(0.25, 0.0, 0.5), resolved[1][0], 1e-12);
+    ASSERT_COLOR_NEAR(Colord::black(), resolved[1][1], 1e-12);
+    EXPECT_EQ("gpu_diffuse_path_loop", diagnostics.backend);
+    EXPECT_EQ("resident_accumulation_resolve", diagnostics.residency);
+    EXPECT_EQ(layout.totalBytes(), diagnostics.residentBytes);
+    EXPECT_EQ(1u, diagnostics.clearOperations);
+    EXPECT_EQ(3u, diagnostics.addOperations);
+    EXPECT_EQ(3u, diagnostics.addedSamples);
+    EXPECT_EQ(1u, diagnostics.resolveOperations);
+    EXPECT_EQ(1u, diagnostics.readbackOperations);
+    EXPECT_EQ(layout.colorSumBytes(), diagnostics.readbackBytes);
+
+    Buffer<Colord> wrongSize(1, 2);
+    const auto resolveWrongSize = [&]() {
+      const TracingAccumulationDiagnostics unused =
+        resolveGpuDiffusePathLoopImage(result, layout, wrongSize);
+      (void)unused;
+    };
+    EXPECT_THROW(resolveWrongSize(), std::invalid_argument);
+  }
 }

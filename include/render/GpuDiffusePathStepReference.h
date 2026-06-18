@@ -86,6 +86,12 @@ namespace render {
 
   [[nodiscard]] TracingAccumulationDiagnostics
   resolveGpuDiffusePathLoopImage(const std::vector<GpuDiffusePathStateRecord>& records,
+                                 const TracingAccumulationLayout& layout, Buffer<Colord>& target);
+  [[nodiscard]] TracingAccumulationDiagnostics
+  resolveGpuDiffusePathLoopImage(const GpuDiffusePathLoopResult& result,
+                                 const TracingAccumulationLayout& layout, Buffer<Colord>& target);
+  [[nodiscard]] TracingAccumulationDiagnostics
+  resolveGpuDiffusePathLoopImage(const std::vector<GpuDiffusePathStateRecord>& records,
                                  const TracingAccumulationLayout& layout,
                                  Buffer<unsigned int>& target, const Tonemap* tonemap = nullptr);
   [[nodiscard]] TracingAccumulationDiagnostics
