@@ -446,6 +446,12 @@ namespace render {
                              int bounce, int directLightSamples,
                              IntegratorBatchMetrics* metrics) const;
 
+    [[nodiscard]] DirectLightContributionBatch materializeActiveHitContributions(
+      const PathTracingIntegrator& integrator, const Scene& scene, const LightSampler& lightSampler,
+      const ActivePathHits& activeHits, HostBatchPathFrontier& paths, int bounce,
+      int directLightSamples, const WavefrontIntersectionBackend& intersectionBackend,
+      IntegratorBatchMetrics* metrics);
+
     void recordEmptyVisibility(int bounce, IntegratorBatchMetrics* metrics) const {
       if (!empty()) {
         throw std::logic_error("direct-light visibility batch recorded as empty while it still "
@@ -643,6 +649,29 @@ namespace render {
     accumulateResolvedContributions(integrator, activeHits, paths, contributions, metrics);
     contributions.average(directLightSamples);
     return contributions;
+  }
+
+  PathTracingIntegrator::DirectLightContributionBatch
+  PathTracingIntegrator::DirectLightVisibilityBatch::materializeActiveHitContributions(
+    const PathTracingIntegrator& integrator, const Scene& scene, const LightSampler& lightSampler,
+    const ActivePathHits& activeHits, HostBatchPathFrontier& paths, int bounce,
+    int directLightSamples, const WavefrontIntersectionBackend& intersectionBackend,
+    IntegratorBatchMetrics* metrics) {
+    collectActiveHitSelections(integrator, lightSampler, activeHits, paths, bounce,
+                               directLightSamples, metrics);
+    if (empty()) {
+      recordEmptyVisibility(bounce, metrics);
+      return materializeContributions(integrator, activeHits, paths, bounce, directLightSamples,
+                                      metrics);
+    }
+
+    {
+      core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
+      resolveOcclusion(scene, intersectionBackend, bounce, metrics);
+    }
+
+    return materializeContributions(integrator, activeHits, paths, bounce, directLightSamples,
+                                    metrics);
   }
 
   void PathTracingIntegrator::DirectLightVisibilityBatch::accumulateResolvedContributions(
@@ -954,28 +983,9 @@ namespace render {
 
     DirectLightVisibilityBatch visibilityBatch(activeHits.size() *
                                                static_cast<std::size_t>(m_directLightSamples));
-    if (activeHits.empty()) {
-      visibilityBatch.recordEmptyVisibility(bounce, metrics);
-      return visibilityBatch.materializeContributions(*this, activeHits, paths, bounce,
-                                                      m_directLightSamples, metrics);
-    }
-
-    visibilityBatch.collectActiveHitSelections(*this, lightSampler, activeHits, paths, bounce,
-                                               m_directLightSamples, metrics);
-
-    if (visibilityBatch.empty()) {
-      visibilityBatch.recordEmptyVisibility(bounce, metrics);
-      return visibilityBatch.materializeContributions(*this, activeHits, paths, bounce,
-                                                      m_directLightSamples, metrics);
-    }
-
-    {
-      core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
-      visibilityBatch.resolveOcclusion(scene, intersectionBackend, bounce, metrics);
-    }
-
-    return visibilityBatch.materializeContributions(*this, activeHits, paths, bounce,
-                                                    m_directLightSamples, metrics);
+    return visibilityBatch.materializeActiveHitContributions(*this, scene, lightSampler, activeHits,
+                                                             paths, bounce, m_directLightSamples,
+                                                             intersectionBackend, metrics);
   }
 
   bool PathTracingIntegrator::canContinueWithSample(const MaterialBsdfSample& sample,

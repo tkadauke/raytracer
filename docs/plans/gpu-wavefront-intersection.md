@@ -1302,6 +1302,11 @@ Progress:
   storage, records its host bytes, maps selections into it, or averages it;
   those steps are owned by the visibility boundary that a future resident
   direct-light backend will replace.
+- Batched path tracing now asks the direct-light visibility batch to run the
+  whole active-hit contribution lifecycle: collect light selections, resolve
+  visibility, validate results, and materialize averaged contributions. The
+  depth scheduler no longer special-cases empty direct-light batches or owns the
+  visibility-to-contribution transition.
 - Direct-light visibility resolution now validates that backend any-hit
   frontiers return exactly one occlusion flag per light-selection record. That
   makes malformed resident-backend results fail loudly instead of silently
