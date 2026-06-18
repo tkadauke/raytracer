@@ -2293,15 +2293,24 @@ real-time-ish shadows and graph visibility work.
    - Output: pass that submits any-hit/closest-hit work through E1 and writes a
      usable debug/visibility resource.
 
-3. **Integrate hybrid ray-traced shadow option.**
+3. ~~**Integrate hybrid ray-traced shadow option.**~~ ✅ **Done.** Raster
+   shadow mode `ray_traced` now compiles a `hybrid_ray_traced_shadows` graph
+   pass, submits primary closest-hit plus shadow any-hit queries through
+   `render::IntersectionService`, writes `hybrid_shadow_mask`, and composites
+   the mask over raster beauty output.
    - Depends on: job 2.
-   - Output: raster or graph beauty pass can opt into GPU visibility shadows
-     where scene/backend support exists.
+   - Output: ~~raster or graph beauty pass can opt into GPU visibility shadows
+     where scene/backend support exists.~~
 
-4. **Add rendercli and Modeler tests.**
+4. ~~**Add rendercli and Modeler tests.**~~ ✅ **Done.** GraphRenderEngine tests
+   prove the hybrid shadow pass darkens occluded raster receivers and records
+   intersection-service metadata; rendercli functional coverage now proves
+   `--shadow_mode ray_traced` changes raster output and writes trace metadata
+   for closest-hit plus any-hit shadow queries without claiming full GPU
+   tracing.
    - Depends on: jobs 2 and 3.
-   - Output: rendered/AOV tests and graph trace assertions for GPU intersection
-     service usage without claiming full GPU tracing.
+   - Output: ~~rendered/AOV tests and graph trace assertions for GPU
+     intersection service usage without claiming full GPU tracing.~~
 
 5. ~~**Document limitations.**~~ ✅ **Done.** The intersection-service
    contract and user-facing rendercli/Modeler docs now call out that

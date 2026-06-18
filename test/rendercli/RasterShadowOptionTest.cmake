@@ -36,17 +36,42 @@ rendercli_assert_image_hash_differs("${unshadowed_render}" "${shadowed_render}"
                                     NAME "rendercli --shadow_maps changes raster output")
 
 set(ray_traced_shadow_render "${TEST_OUTPUT_DIR}/raster-shadows-ray-traced.png")
+set(ray_traced_shadow_trace "${TEST_OUTPUT_DIR}/raster-shadows-ray-traced-trace.json")
 rendercli_run(
   NAME "rendercli --shadow_mode ray_traced renders deterministic shadow scene"
   COMMAND
     "${RENDERCLI}" --engine raster --width 64 --height 64
     --shadow_mode ray_traced --wavefront_intersection_backend cpu
+    --render_graph_trace_out "${ray_traced_shadow_trace}"
     "${shadow_scene}" "${ray_traced_shadow_render}"
 )
 rendercli_assert_image_dimensions("${ray_traced_shadow_render}" 64 64
                                   NAME "rendercli --shadow_mode ray_traced dimensions")
 rendercli_assert_image_nonempty("${ray_traced_shadow_render}"
                                 NAME "rendercli --shadow_mode ray_traced pixels")
+rendercli_assert_image_hash_differs(
+  "${unshadowed_render}" "${ray_traced_shadow_render}"
+  NAME "rendercli --shadow_mode ray_traced changes raster output"
+)
+rendercli_assert_nonempty("${ray_traced_shadow_trace}"
+                          NAME "rendercli --shadow_mode ray_traced trace output")
+file(READ "${ray_traced_shadow_trace}" ray_traced_shadow_trace_json)
+foreach(expectation IN ITEMS
+    "\"id\"[ \r\n]*:[ \r\n]*\"hybrid_ray_traced_shadows\""
+    "\"intersectionService\""
+    "\"queryFamily\"[ \r\n]*:[ \r\n]*\"closest_hit\\+any_hit\""
+    "\"queryTag\"[ \r\n]*:[ \r\n]*\"hybrid_shadows\""
+    "\"requestedBackend\"[ \r\n]*:[ \r\n]*\"cpu\""
+    "\"shadowQueryCount\"[ \r\n]*:[ \r\n]*[1-9][0-9]*(\\.[0-9]+)?"
+    "\"occludedCount\"[ \r\n]*:[ \r\n]*[1-9][0-9]*(\\.[0-9]+)?"
+    "\"anyHitExecutionPath\"[ \r\n]*:[ \r\n]*\"runtime_scene\""
+)
+  if(NOT ray_traced_shadow_trace_json MATCHES "${expectation}")
+    message(FATAL_ERROR
+      "rendercli --shadow_mode ray_traced trace did not contain ${expectation}: ${ray_traced_shadow_trace}"
+    )
+  endif()
+endforeach()
 
 foreach(cascade_count IN ITEMS 1 2 4)
   set(cascade_render "${TEST_OUTPUT_DIR}/raster-shadow-cascades-${cascade_count}.png")
