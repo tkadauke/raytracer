@@ -337,19 +337,6 @@ namespace render {
       return m_selections.empty();
     }
 
-    [[nodiscard]] std::size_t size() const {
-      return m_selections.size();
-    }
-
-    [[nodiscard]] const Selection& selection(std::size_t index) const {
-      return m_selections[index];
-    }
-
-    [[nodiscard]] bool occluded(std::size_t index) const {
-      validateResolvedOcclusionCount();
-      return index < m_occluded.size() && m_occluded[index] != 0U;
-    }
-
     void recordEmptyVisibility(int depth, IntegratorBatchMetrics* metrics) const {
       if (!empty()) {
         throw std::logic_error("Whitted direct-light visibility batch recorded as empty while it "
@@ -415,7 +402,39 @@ namespace render {
       }
     }
 
+    void applyResolvedContributions(const ActiveQueuedHits& activeHits, QueuedRayFrontier& current,
+                                    std::vector<Colord>& result, int depth,
+                                    IntegratorBatchMetrics* metrics) const {
+      validateResolvedOcclusionCount();
+      for (std::size_t selectionIndex = 0; selectionIndex != m_selections.size();
+           ++selectionIndex) {
+        const Selection& selection = m_selections[selectionIndex];
+        const QueuedHit& hit = activeHits[selection.hitIndex];
+        QueuedRay& queued = current[hit.queuedIndex];
+        const bool blocked = occluded(selectionIndex);
+        const bool contributing = !blocked && selection.contribution != Colord::black();
+        if (metrics) {
+          metrics->recordDirectLightSample(blocked, contributing);
+        }
+        if (!contributing) {
+          continue;
+        }
+        const Colord weightedContribution = queued.weight * selection.contribution;
+        result[queued.sampleIndex] += weightedContribution;
+        if (metrics) {
+          metrics->recordDirectLightRadiance(weightedContribution,
+                                             queued.state.recursionDepth <= 1);
+        }
+      }
+      recordContributionHostBytes(depth, metrics);
+    }
+
   private:
+    [[nodiscard]] bool occluded(std::size_t index) const {
+      validateResolvedOcclusionCount();
+      return index < m_occluded.size() && m_occluded[index] != 0U;
+    }
+
     [[nodiscard]] std::uint64_t hostSelectionBytes() const {
       return static_cast<std::uint64_t>(m_selections.size()) * sizeof(Selection);
     }
@@ -1154,27 +1173,7 @@ namespace render {
     } else {
       visibility.resolveOcclusion(scene, intersectionBackend, depth, metrics);
       core::util::ScopedTimer timer(metrics ? &metrics->shadingWorkerSeconds : nullptr);
-      for (std::size_t selectionIndex = 0; selectionIndex != visibility.size(); ++selectionIndex) {
-        const DirectLightVisibilityBatch::Selection& selection =
-          visibility.selection(selectionIndex);
-        const QueuedHit& hit = activeHits[selection.hitIndex];
-        QueuedRay& queued = current[hit.queuedIndex];
-        const bool occluded = visibility.occluded(selectionIndex);
-        const bool contributing = !occluded && selection.contribution != Colord::black();
-        if (metrics) {
-          metrics->recordDirectLightSample(occluded, contributing);
-        }
-        if (!contributing) {
-          continue;
-        }
-        const Colord weightedContribution = queued.weight * selection.contribution;
-        result[queued.sampleIndex] += weightedContribution;
-        if (metrics) {
-          metrics->recordDirectLightRadiance(weightedContribution,
-                                             queued.state.recursionDepth <= 1);
-        }
-      }
-      visibility.recordContributionHostBytes(depth, metrics);
+      visibility.applyResolvedContributions(activeHits, current, result, depth, metrics);
     }
 
     for (std::size_t hitIndex = 0; hitIndex != activeHits.size(); ++hitIndex) {

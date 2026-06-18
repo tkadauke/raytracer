@@ -590,6 +590,8 @@ namespace WhittedIntegratorTest {
     EXPECT_GT(metrics.directLightSelectionHostBytes, 0u);
     EXPECT_GT(metrics.directLightOcclusionHostBytes, 0u);
     EXPECT_GT(metrics.directLightContributionHostBytes, 0u);
+    EXPECT_EQ((std::vector<std::uint64_t>{metrics.directLightContributionHostBytes}),
+              metrics.directLightContributionHostBytesPerDepth);
   }
 
   TEST(WhittedIntegrator, BatchedRadianceMatchesScalarLocalDirectLightShadows) {
@@ -615,8 +617,7 @@ namespace WhittedIntegratorTest {
     IntegratorBatchSettings settings;
     settings.intersectionBackend = &backend;
     IntegratorBatchMetrics metrics;
-    std::vector<IntegratorRaySample> samples{
-      IntegratorRaySample{primaryRay, 0.0, nullptr}};
+    std::vector<IntegratorRaySample> samples{IntegratorRaySample{primaryRay, 0.0, nullptr}};
 
     const std::vector<Colord> colors =
       integrator.radianceBatch(*scene, samples, rayCaster, &metrics, settings);
@@ -629,6 +630,9 @@ namespace WhittedIntegratorTest {
     EXPECT_EQ(1u, metrics.directLightSamples);
     EXPECT_EQ(0u, metrics.directLightContributingSamples);
     EXPECT_EQ(1u, metrics.directLightOccludedSamples);
+    EXPECT_GT(metrics.directLightContributionHostBytes, 0u);
+    EXPECT_EQ((std::vector<std::uint64_t>{metrics.directLightContributionHostBytes}),
+              metrics.directLightContributionHostBytesPerDepth);
     EXPECT_EQ(1u, metrics.anyHitQueries);
     EXPECT_EQ(1u, metrics.anyHitRaysSubmitted);
   }
