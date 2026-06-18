@@ -1350,6 +1350,9 @@ Progress:
   centralizes reservation, insertion, iteration, and host-byte sizing. The
   scheduler still shades on the host, but it no longer treats the active-hit
   list as an unstructured vector at the depth loop boundary.
+- Whitted active-hit batches now own the per-depth shade traversal. The main
+  depth scheduler no longer loops over active hits directly to decide whether a
+  hit used batched local direct lighting or needs fallback material shading.
 - Whitted direct-light visibility batches now also own resolved contribution
   materialization, contribution host-byte accounting, and contribution
   execution-path metadata. The scheduler still shades on the host, but it no

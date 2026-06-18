@@ -219,6 +219,14 @@ namespace render {
       return m_hits.end();
     }
 
+    void shade(const WhittedIntegrator& integrator, const Scene& scene,
+               const WavefrontIntersectionBackend& intersectionBackend,
+               const RayCaster& recursiveRayCaster, int depth, QueuedRayFrontier& current,
+               QueuedRayFrontier& next, std::vector<Colord>& result,
+               std::vector<unsigned char>& nextActiveSamples, bool countNextActiveSamples,
+               std::vector<std::size_t>& nextActiveSampleIndices,
+               IntegratorBatchMetrics* metrics) const;
+
   private:
     std::vector<QueuedHit> m_hits;
   };
@@ -1199,40 +1207,40 @@ namespace render {
     }
   }
 
-  void WhittedIntegrator::shadeActiveHits(
-    const Scene& scene, const WavefrontIntersectionBackend& intersectionBackend,
-    const RayCaster& recursiveRayCaster, int depth, const ActiveQueuedHits& activeHits,
-    QueuedRayFrontier& current, QueuedRayFrontier& next, std::vector<Colord>& result,
+  void WhittedIntegrator::ActiveQueuedHits::shade(
+    const WhittedIntegrator& integrator, const Scene& scene,
+    const WavefrontIntersectionBackend& intersectionBackend, const RayCaster& recursiveRayCaster,
+    int depth, QueuedRayFrontier& current, QueuedRayFrontier& next, std::vector<Colord>& result,
     std::vector<unsigned char>& nextActiveSamples, bool countNextActiveSamples,
     std::vector<std::size_t>& nextActiveSampleIndices, IntegratorBatchMetrics* metrics) const {
-    if (activeHits.empty()) {
+    if (empty()) {
       DirectLightVisibilityBatch emptyBatch(0, 0);
       emptyBatch.recordEmptyVisibility(depth, metrics);
       return;
     }
 
-    DirectLightVisibilityBatch visibility(activeHits.size(),
-                                          activeHits.size() * scene.lights().size());
-    visibility.collectLocalDirectLighting(*this, scene, activeHits, current, result, metrics);
+    DirectLightVisibilityBatch visibility(size(), size() * scene.lights().size());
+    visibility.collectLocalDirectLighting(integrator, scene, *this, current, result, metrics);
 
     if (visibility.empty()) {
       visibility.recordEmptyVisibility(depth, metrics);
     } else {
       visibility.resolveOcclusion(scene, intersectionBackend, depth, metrics);
       core::util::ScopedTimer timer(metrics ? &metrics->shadingWorkerSeconds : nullptr);
-      visibility.applyResolvedContributions(intersectionBackend, activeHits, current, result, depth,
+      visibility.applyResolvedContributions(intersectionBackend, *this, current, result, depth,
                                             metrics);
     }
 
-    for (std::size_t hitIndex = 0; hitIndex != activeHits.size(); ++hitIndex) {
-      const QueuedHit& hit = activeHits[hitIndex];
+    for (std::size_t hitIndex = 0; hitIndex != size(); ++hitIndex) {
+      const QueuedHit& hit = (*this)[hitIndex];
       if (visibility.locallyShaded(hitIndex)) {
         current[hit.queuedIndex].state.recurseOut();
         continue;
       }
 
-      shadeQueuedHit(scene, recursiveRayCaster, hit, current, next, result, nextActiveSamples,
-                     countNextActiveSamples, nextActiveSampleIndices, metrics);
+      integrator.shadeQueuedHit(scene, recursiveRayCaster, hit, current, next, result,
+                                nextActiveSamples, countNextActiveSamples, nextActiveSampleIndices,
+                                metrics);
     }
   }
 
@@ -1313,9 +1321,9 @@ namespace render {
         depthMetrics.publish(metrics);
       }
 
-      shadeActiveHits(scene, intersectionBackend, recursiveRayCaster, depth, activeHits, current,
-                      next, result, nextActiveSamples, countNextActiveSamples,
-                      nextActiveSampleIndices, metrics);
+      activeHits.shade(*this, scene, intersectionBackend, recursiveRayCaster, depth, current, next,
+                       result, nextActiveSamples, countNextActiveSamples, nextActiveSampleIndices,
+                       metrics);
 
       double depthDeltaSquaredSum = 0.0;
       double depthMaxDelta = 0.0;

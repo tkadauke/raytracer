@@ -115,15 +115,6 @@ namespace render {
                         IntegratorBatchMetrics* metrics) const;
     bool canUseBatchedLocalWhittedDirectLighting(const Material& material, const Rayd& ray,
                                                  const HitPoint& hitPoint) const;
-    void shadeActiveHits(const Scene& scene,
-                         const WavefrontIntersectionBackend& intersectionBackend,
-                         const RayCaster& recursiveRayCaster, int depth,
-                         const ActiveQueuedHits& activeHits, QueuedRayFrontier& current,
-                         QueuedRayFrontier& next, std::vector<Colord>& result,
-                         std::vector<unsigned char>& nextActiveSamples, bool countNextActiveSamples,
-                         std::vector<std::size_t>& nextActiveSampleIndices,
-                         IntegratorBatchMetrics* metrics) const;
-
     int m_maximumRecursionDepth;
     CancellationCallback m_cancellationCallback;
   };
