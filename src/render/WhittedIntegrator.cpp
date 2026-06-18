@@ -421,18 +421,7 @@ namespace render {
       }
 
       const std::uint64_t depthIndex = static_cast<std::uint64_t>(std::max(0, depth));
-      metrics->recordActiveHitHostBytes(0);
-      metrics->recordFrontierIntersections(0, 0);
-      metrics->recordFrontierTraversal(0, 0, 0, 0, 0, 0, 0);
-      metrics->recordFrontierClosestHitBatch(0, 0);
-      metrics->recordDirectLightAnyHitBatch(depthIndex, 0, 0);
-      metrics->recordDirectLightSelectionHostBytes(depthIndex, 0);
-      metrics->recordDirectLightOcclusionHostBytes(depthIndex, 0);
-      metrics->recordDirectLightContributionHostBytes(depthIndex, 0);
-      metrics->recordRadianceDeltaDepth(0.0, 0.0);
-      metrics->recordSpawnedContinuations(0, 0);
-      metrics->recordRetainedActiveDepth(0);
-      metrics->recordRetainedHostPathStateBytes(0);
+      metrics->recordSkippedDepthDiagnostics(depthIndex);
     }
   };
 

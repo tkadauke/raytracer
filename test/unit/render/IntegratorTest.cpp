@@ -152,6 +152,36 @@ namespace IntegratorTest {
     EXPECT_DOUBLE_EQ(0.0, metrics.frontierPartitionWorkerSeconds);
   }
 
+  TEST(Integrator, BatchedRadiancePublishesScalarProgressThroughSharedLifecycle) {
+    Scene scene;
+    scene.setBackground(Colord(0.1, 0.2, 0.3));
+    FixedRayCaster rayCaster;
+    RecursiveProbeIntegrator integrator;
+    RecordingDepthObserver observer;
+    observer.convergenceRadianceDeltaRms = 0.01;
+    IntegratorBatchSettings settings;
+    settings.progressObserver = &observer;
+    settings.convergenceEnabled = true;
+    settings.activeSampleFractionThreshold = 1.0;
+    settings.radianceDeltaRmsThreshold = 0.05;
+    IntegratorBatchMetrics metrics;
+    std::vector<IntegratorRaySample> samples{
+      IntegratorRaySample{Rayd(Vector3d::null, Vector3d::forward()), 0.0, nullptr},
+      IntegratorRaySample{Rayd(Vector3d::null, Vector3d::right()), 0.0, nullptr}};
+
+    const std::vector<Colord> colors =
+      integrator.radianceBatch(scene, samples, rayCaster, &metrics, settings);
+
+    ASSERT_EQ(2u, colors.size());
+    EXPECT_EQ(1u, observer.calls);
+    EXPECT_EQ(1u, observer.lastCompletedDepth);
+    EXPECT_EQ(2u, observer.lastSampleCount);
+    EXPECT_EQ(2u, observer.lastActiveSamples);
+    EXPECT_TRUE(metrics.stoppedByConvergence);
+    EXPECT_EQ(1u, metrics.stoppedAfterDepth);
+    EXPECT_EQ(1u, metrics.observerConvergenceFeedbackDepths);
+  }
+
   TEST(IntegratorBatchSettings, DepthProgressUsesObserverConvergenceFeedback) {
     std::vector<Colord> colors{Colord(0.25, 0.5, 0.75), Colord(0.0, 0.0, 0.0)};
     RecordingDepthObserver observer;
@@ -275,6 +305,40 @@ namespace IntegratorTest {
     EXPECT_EQ(45u, target.directLightAnyHitFrontierStateHandleBytes);
     EXPECT_EQ((std::vector<double>{13.0}), target.radianceDeltaSquaredSumPerDepth);
     EXPECT_EQ((std::vector<double>{2.0}), target.maxRadianceDeltaPerDepth);
+  }
+
+  TEST(IntegratorBatchMetrics, SkippedDepthDiagnosticsPublishesZeroRows) {
+    IntegratorBatchMetrics metrics;
+    metrics.reset(/*scalarFallback=*/false);
+    metrics.recordActiveDepth(3);
+
+    metrics.recordSkippedDepthDiagnostics(/*depth=*/2);
+
+    EXPECT_EQ((std::vector<std::uint64_t>{3u}), metrics.activeSamplesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.activeHitHostBytesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierRayHitsPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierRayMissesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierPacketChunksPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierPacketRaysPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierClosestHitBatchChunksPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.frontierClosestHitBatchRaysPerDepth);
+    ASSERT_EQ(3u, metrics.directLightAnyHitBatchChunksPerDepth.size());
+    ASSERT_EQ(3u, metrics.directLightAnyHitBatchRaysPerDepth.size());
+    ASSERT_EQ(3u, metrics.directLightSelectionHostBytesPerDepth.size());
+    ASSERT_EQ(3u, metrics.directLightOcclusionHostBytesPerDepth.size());
+    ASSERT_EQ(3u, metrics.directLightContributionHostBytesPerDepth.size());
+    EXPECT_EQ(0u, metrics.directLightAnyHitBatchChunksPerDepth[2]);
+    EXPECT_EQ(0u, metrics.directLightAnyHitBatchRaysPerDepth[2]);
+    EXPECT_EQ(0u, metrics.directLightSelectionHostBytesPerDepth[2]);
+    EXPECT_EQ(0u, metrics.directLightOcclusionHostBytesPerDepth[2]);
+    EXPECT_EQ(0u, metrics.directLightContributionHostBytesPerDepth[2]);
+    EXPECT_EQ((std::vector<double>{0.0}), metrics.radianceDeltaSquaredSumPerDepth);
+    EXPECT_EQ((std::vector<double>{0.0}), metrics.maxRadianceDeltaPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.spawnedContinuationSamplesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}),
+              metrics.spawnedContinuationHostPathStateBytesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.retainedActiveSamplesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}), metrics.retainedHostPathStateBytesPerDepth);
   }
 
   TEST(Integrator, FrontierResidencyMetricsTrackFrontierPayloadBytes) {

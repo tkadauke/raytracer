@@ -1499,6 +1499,11 @@ Progress:
   stopped-depth metadata, and timing buckets therefore share one lifecycle
   before resident path-state and frontier execution start replacing the current
   host loops.
+- The same batch lifecycle now also covers the scalar fallback batch path, and
+  skipped-depth zero-row diagnostics have one `IntegratorBatchMetrics` entry
+  point. Whitted and path-tracing cancellation paths no longer duplicate the
+  frontier, direct-light, continuation, retained-state, and radiance-delta
+  field list that resident-frontier diagnostics rely on.
 
 ---
 

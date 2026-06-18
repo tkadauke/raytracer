@@ -1231,6 +1231,21 @@ namespace render {
     compatibilityShadeRadianceLuminanceSum += contributionLuminance(contribution);
   }
 
+  void IntegratorBatchMetrics::recordSkippedDepthDiagnostics(std::uint64_t depth) {
+    recordActiveHitHostBytes(0);
+    recordFrontierIntersections(0, 0);
+    recordFrontierTraversal(0, 0, 0, 0, 0, 0, 0);
+    recordFrontierClosestHitBatch(0, 0);
+    recordDirectLightAnyHitBatch(depth, 0, 0);
+    recordDirectLightSelectionHostBytes(depth, 0);
+    recordDirectLightOcclusionHostBytes(depth, 0);
+    recordDirectLightContributionHostBytes(depth, 0);
+    recordRadianceDeltaDepth(0.0, 0.0);
+    recordSpawnedContinuations(0, 0);
+    recordRetainedActiveDepth(0);
+    recordRetainedHostPathStateBytes(0);
+  }
+
   double IntegratorBatchMetrics::contributionLuminance(const Colord& contribution) const {
     return contribution.r() * 0.299 + contribution.g() * 0.587 + contribution.b() * 0.114;
   }
@@ -1288,6 +1303,7 @@ namespace render {
     std::vector<Colord> result;
     result.reserve(samples.size());
 
+    const bool trackRadianceDelta = metrics || settings.convergenceEnabled;
     double deltaSquaredSum = 0.0;
     double maxDelta = 0.0;
     for (const auto& sample : samples) {
@@ -1297,7 +1313,7 @@ namespace render {
       state.animationTime = sample.animationTime;
       state.sampleStream = sample.sampleStream();
       const Colord color = radiance(scene, sample.ray, state, recursiveRayCaster);
-      if (metrics) {
+      if (trackRadianceDelta) {
         const double deltaSquared = radianceDeltaSquared(Colord::black(), color);
         deltaSquaredSum += deltaSquared;
         maxDelta = std::max(maxDelta, std::sqrt(deltaSquared));
@@ -1311,10 +1327,14 @@ namespace render {
         metrics->recordRetainedActiveDepth(0);
         metrics->recordRadianceDeltaDepth(deltaSquaredSum, maxDelta);
       }
-      if (settings.progressObserver) {
-        (void)settings.progressObserver->depthCompleted(/*completedDepth=*/1, result,
-                                                        samples.size());
-      }
+      (void)settings.publishDepthProgressAndCheckConvergence(
+        IntegratorBatchDepthProgress{/*completedDepth=*/1,
+                                     /*sampleColors=*/&result,
+                                     /*retainedActiveSamples=*/samples.size(),
+                                     /*totalSamples=*/samples.size(),
+                                     /*activeSamplesAtDepth=*/samples.size(),
+                                     /*radianceDeltaSquaredSum=*/deltaSquaredSum},
+        metrics);
     }
 
     return result;

@@ -791,18 +791,7 @@ namespace render {
       }
 
       const std::uint64_t depth = static_cast<std::uint64_t>(std::max(0, bounce));
-      metrics->recordActiveHitHostBytes(0);
-      metrics->recordFrontierIntersections(0, 0);
-      metrics->recordFrontierTraversal(0, 0, 0, 0, 0, 0, 0);
-      metrics->recordFrontierClosestHitBatch(0, 0);
-      metrics->recordDirectLightAnyHitBatch(depth, 0, 0);
-      metrics->recordDirectLightSelectionHostBytes(depth, 0);
-      metrics->recordDirectLightOcclusionHostBytes(depth, 0);
-      metrics->recordDirectLightContributionHostBytes(depth, 0);
-      metrics->recordRadianceDeltaDepth(0.0, 0.0);
-      metrics->recordSpawnedContinuations(0, 0);
-      metrics->recordRetainedActiveDepth(0);
-      metrics->recordRetainedHostPathStateBytes(0);
+      metrics->recordSkippedDepthDiagnostics(depth);
     }
 
     void recordPacketScalarFallbacks(const State& state,

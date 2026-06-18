@@ -306,6 +306,7 @@ namespace render {
     void recordAmbientRadiance(const Colord& contribution);
     void recordMissRadiance(const Colord& contribution);
     void recordCompatibilityShadeRadiance(const Colord& contribution);
+    void recordSkippedDepthDiagnostics(std::uint64_t depth);
     double contributionLuminance(const Colord& contribution) const;
   };
 
