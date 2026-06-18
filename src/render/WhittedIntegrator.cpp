@@ -250,6 +250,20 @@ namespace render {
         }
       }
     }
+
+    void publish(IntegratorBatchMetrics* metrics) const {
+      if (!metrics) {
+        return;
+      }
+      metrics->recordFrontierIntersections(frontierRayHits, frontierRayMisses);
+      metrics->recordFrontierTraversal(frontierPacketChunks, frontierPacketRays,
+                                       frontierRay4PacketChunks, frontierRay8PacketChunks,
+                                       frontierScalarRays, frontierPacketScalarFallbackRays,
+                                       frontierPacketRefinedRays);
+      metrics->recordFrontierClosestHitBatch(frontierClosestHitBatchChunks,
+                                             frontierClosestHitBatchRays);
+      metrics->recordPacketScalarFallbacksByReason(frontierPacketScalarFallbackRaysByReason);
+    }
   };
 
   class WhittedIntegrator::ClosestHitQueuedRayFrontierBatch {
@@ -1296,17 +1310,7 @@ namespace render {
                               metrics);
       if (metrics) {
         metrics->recordActiveHitHostBytes(activeHits.hostBytes());
-        metrics->recordFrontierIntersections(depthMetrics.frontierRayHits,
-                                             depthMetrics.frontierRayMisses);
-        metrics->recordFrontierTraversal(
-          depthMetrics.frontierPacketChunks, depthMetrics.frontierPacketRays,
-          depthMetrics.frontierRay4PacketChunks, depthMetrics.frontierRay8PacketChunks,
-          depthMetrics.frontierScalarRays, depthMetrics.frontierPacketScalarFallbackRays,
-          depthMetrics.frontierPacketRefinedRays);
-        metrics->recordFrontierClosestHitBatch(depthMetrics.frontierClosestHitBatchChunks,
-                                               depthMetrics.frontierClosestHitBatchRays);
-        metrics->recordPacketScalarFallbacksByReason(
-          depthMetrics.frontierPacketScalarFallbackRaysByReason);
+        depthMetrics.publish(metrics);
       }
 
       shadeActiveHits(scene, intersectionBackend, recursiveRayCaster, depth, activeHits, current,
