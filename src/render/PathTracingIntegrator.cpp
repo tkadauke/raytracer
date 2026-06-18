@@ -348,6 +348,39 @@ namespace render {
       m_selections.push_back(DirectLightingSelection{hitIndex, std::move(candidate), selectionPdf});
     }
 
+    void collectActiveHitSelections(const PathTracingIntegrator& integrator,
+                                    const LightSampler& lightSampler,
+                                    const ActivePathHits& activeHits, HostBatchPathFrontier& paths,
+                                    int bounce, int directLightSamples,
+                                    IntegratorBatchMetrics* metrics) {
+      core::util::ScopedTimer timer(metrics ? &metrics->shadingWorkerSeconds : nullptr);
+      for (std::size_t hitIndex = 0; hitIndex != activeHits.size(); ++hitIndex) {
+        const BatchHit& hit = activeHits[hitIndex];
+        BatchPath& path = paths[hit.pathIndex];
+        const auto material = hit.material ? hit.material : hit.primitive->material();
+        if (!material || !material->pathTransport().supportsPathTracing()) {
+          continue;
+        }
+
+        for (int sampleIndex = 0; sampleIndex != directLightSamples; ++sampleIndex) {
+          const LightSampler::Selection selection =
+            lightSampler.select(integrator.lightSelectionSample(path.state, bounce, sampleIndex));
+          if (!selection) {
+            continue;
+          }
+
+          DirectLightingCandidate candidate = integrator.directLightingCandidate(
+            *selection.light, hit.hitPoint,
+            integrator.lightSample(path.state, bounce, selection.lightIndex, sampleIndex));
+          if (!candidate.valid) {
+            continue;
+          }
+
+          add(hitIndex, std::move(candidate), selection.pdf, path.state);
+        }
+      }
+    }
+
     [[nodiscard]] bool empty() const {
       return m_shadowQueries.empty();
     }
@@ -850,38 +883,8 @@ namespace render {
       return contributions;
     }
 
-    {
-      core::util::ScopedTimer timer(metrics ? &metrics->shadingWorkerSeconds : nullptr);
-      for (std::size_t hitIndex = 0; hitIndex != activeHits.size(); ++hitIndex) {
-        const BatchHit& hit = activeHits[hitIndex];
-        BatchPath& path = paths[hit.pathIndex];
-        const auto material = hit.material ? hit.material : hit.primitive->material();
-        if (!material) {
-          continue;
-        }
-        const PathMaterialTransport& transport = material->pathTransport();
-        if (!transport.supportsPathTracing()) {
-          continue;
-        }
-
-        for (int sampleIndex = 0; sampleIndex != m_directLightSamples; ++sampleIndex) {
-          const LightSampler::Selection selection =
-            lightSampler.select(lightSelectionSample(path.state, bounce, sampleIndex));
-          if (!selection) {
-            continue;
-          }
-
-          DirectLightingCandidate candidate = directLightingCandidate(
-            *selection.light, hit.hitPoint,
-            lightSample(path.state, bounce, selection.lightIndex, sampleIndex));
-          if (!candidate.valid) {
-            continue;
-          }
-
-          visibilityBatch.add(hitIndex, std::move(candidate), selection.pdf, path.state);
-        }
-      }
-    }
+    visibilityBatch.collectActiveHitSelections(*this, lightSampler, activeHits, paths, bounce,
+                                               m_directLightSamples, metrics);
 
     if (visibilityBatch.empty()) {
       visibilityBatch.recordEmptyVisibility(bounce, metrics);

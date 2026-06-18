@@ -1278,6 +1278,11 @@ Progress:
 - Direct-light visibility byte-count helpers are now private to the visibility
   batch, so callers cannot bypass the empty/materialized visibility recording
   paths.
+- Direct-light visibility batches now also own active-hit light selection and
+  shadow-query construction for batched path tracing. The scheduler supplies
+  active hits and path state, then the batch builds its own selection/query
+  payload before resolving visibility, narrowing the future resident
+  direct-light boundary another step.
 - Direct-light contribution batches now record their own host-byte footprint
   when created, keeping resolved lighting payload accounting with the object
   that owns that payload.
