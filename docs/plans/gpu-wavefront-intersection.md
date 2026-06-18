@@ -1218,6 +1218,10 @@ Progress:
   host path-state byte metrics. The path-tracing scheduler asks the frontier
   owner to report its footprint instead of recomputing those byte totals in the
   main loop.
+- The host path frontier now publishes the active-depth metric row together
+  with active host path-state bytes. The depth scheduler keeps only the
+  original active count it needs for convergence RMS math, while metric
+  publication stays with the frontier owner that sizes host path state.
 - Path-tracing closest-hit batch execution now stages query construction,
   pre-depth radiance snapshots, backend frontier ownership, and returned hit
   records through a dedicated closest-hit frontier batch object. This keeps the

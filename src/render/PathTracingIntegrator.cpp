@@ -169,8 +169,9 @@ namespace render {
       return beginCompaction().request().inputPathStateBytes();
     }
 
-    void recordActiveHostPathStateBytes(IntegratorBatchMetrics* metrics) const {
+    void recordActiveDepth(IntegratorBatchMetrics* metrics) const {
       if (metrics) {
+        metrics->recordActiveDepth(size());
         metrics->recordActiveHostPathStateBytes(hostPathStateBytes());
       }
     }
@@ -1690,14 +1691,11 @@ namespace render {
     activeHits.reserve(samples.size());
 
     for (int bounce = 0; bounce < m_maximumRecursionDepth; ++bounce) {
-      const std::uint64_t activeCount = paths.size();
-      if (activeCount == 0) {
+      if (paths.empty()) {
         break;
       }
-      if (metrics) {
-        metrics->recordActiveDepth(activeCount);
-        paths.recordActiveHostPathStateBytes(metrics);
-      }
+      const std::uint64_t activeCount = paths.size();
+      paths.recordActiveDepth(metrics);
       if (isCancelled()) {
         if (metrics) {
           recordCancelledDepthMetrics(bounce, *metrics);
