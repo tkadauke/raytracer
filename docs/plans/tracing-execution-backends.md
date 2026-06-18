@@ -78,6 +78,11 @@ end state for GPU tracing.
   textures, PointLight, DirectionalLight, and RectangularAreaLight.
 - `render::GpuSampleStream` provides the CPU reference for deterministic
   GPU-style sampling dimensions with fixed-vector coverage.
+- Supported diffuse path-tracing scenes can route GPU execution requests
+  through the compiled diffuse path-loop CPU reference from the live render
+  graph path. rendercli, Modeler preview, and the render dialog all report
+  that execution honestly as `compiled_cpu_reference` until a platform
+  full-GPU path-loop kernel exists.
 - CPU reference tracing accumulation, the current CPU wavefront tile
   accumulator, optional Metal accumulation buffers, and optional Vulkan
   synthetic accumulation results expose resource residency, byte,
@@ -94,21 +99,26 @@ end state for GPU tracing.
 
 ### Not Yet Available
 
-- GPU-owned path state.
-- GPU-side path/frontier compaction for scheduler-owned path records.
-- GPU material records beyond the initial Matte and Emissive subset.
+- Platform GPU-owned path state.
+- Platform GPU-side path/frontier compaction for scheduler-owned path records.
+- Platform full-GPU path-loop kernels. The current supported path-loop is a
+  compiled CPU-reference implementation over GPU-facing records.
+- GPU material records beyond the current Matte, Emissive, Phong, and
+  Reflective subset.
 - GPU texture records beyond ConstantColor.
 - GPU light records beyond PointLight, DirectionalLight, and
-  RectangularAreaLight, and GPU-side light sampling/contribution kernels.
-- GPU BSDF evaluation.
-- GPU direct-light contribution evaluation.
-- GPU path continuation generation and Russian roulette.
-- Integrated GPU accumulation/progressive sample buffers in the render loop.
-- Full GPU path-tracing loop.
-- Full GPU Whitted loop.
+  RectangularAreaLight.
+- Platform GPU BSDF evaluation.
+- Platform GPU direct-light contribution evaluation.
+- Platform GPU path continuation generation and Russian roulette.
+- Integrated platform GPU accumulation/progressive sample buffers in the live
+  render loop.
+- Full platform GPU path-tracing loop.
+- Full platform GPU Whitted loop.
 - Hardware ray tracing backends.
-- A render graph compiler model that can synthesize CPU, hybrid, and full GPU
-  tracing plans from render intent, scene support, and user overrides.
+- A render graph compiler model that can synthesize platform full-GPU tracing
+  plans after those kernels exist; the current compiler can predict and report
+  the supported compiled-reference GPU subset.
 
 ---
 
@@ -2067,17 +2077,14 @@ diffuse path tracer for the first supported subset.
    - Output: ~~supported diffuse paths execute multiple bounces and terminate
      according to the same policy as CPU.~~
 
-4. **Resolve accumulated image.**
+4. ~~**Resolve accumulated image.**~~ ✅ **Done.**
    - Depends on: jobs 1 and 3.
-   - Output: E5 accumulation resolves to rendercli/Modeler-visible image data.
-   - Progress: the CPU-reference resident path loop now emits terminal
-     `GpuPathStateRecord` rows and `resolveResidentPathLoopImage(...)` can
-     consume full loop diagnostics directly. The compiled diffuse path-step
-     path also emits terminal `GpuDiffusePathStateRecord` rows, can loop the
-     supported diffuse subset over multiple depths, and can resolve those
-     terminal records through E5 accumulation diagnostics. The remaining part
-     is routing that resolved image through the live rendercli/Modeler
-     full-GPU request path.
+   - Output: ~~E5 accumulation resolves to rendercli/Modeler-visible image
+     data.~~ Supported live graph renders now route GPU-requested diffuse
+     path-tracing scenes through the compiled CPU-reference diffuse path loop,
+     resolve terminal records through E5 accumulation diagnostics, and expose
+     the result in rendercli, Modeler preview, and the render dialog trace as
+     `compiled_cpu_reference`.
 
 5. ~~**Add end-to-end parity scenes.**~~ ✅ **Done.** Added fixed-seed
    rendercli CPU vs GPU-requested parity coverage for direct, indirect,

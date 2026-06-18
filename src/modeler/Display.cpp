@@ -227,9 +227,12 @@ void RenderDisplay::setScene(Scene* scene, const StepPlaybackStyle& playbackStyl
   // In-flight preview renders use an engine snapshot, so replacing
   // the control engine's scene does not tear the scene out from
   // under the worker that is finishing the previous frame.
-  m_engine->setScene(scene->toRaytracerScene(playbackStyle));
+  auto raytracerScene = scene->toRaytracerScene(playbackStyle);
+  m_engine->setScene(raytracerScene);
   if (m_graphEngine) {
-    m_graphEngine->setSceneAnalysis(scene->renderGraphAnalysis());
+    auto analysis = scene->renderGraphAnalysis();
+    analysis.setFullGpuTracingSupportFromScene(*raytracerScene);
+    m_graphEngine->setSceneAnalysis(analysis);
     bindSceneCameras(*scene);
   }
   const bool needsSceneCamera =

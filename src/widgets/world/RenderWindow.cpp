@@ -281,6 +281,7 @@ void RenderWindow::finished() {
 void RenderWindow::setScene(::Scene* scene) {
   auto raytracerScene = scene->toRaytracerScene();
   p->sceneAnalysis = scene->renderGraphAnalysis();
+  p->sceneAnalysis.setFullGpuTracingSupportFromScene(*raytracerScene);
   p->baseIntent = scene->renderIntentWithActiveCameraDefault();
   p->settingsWidget->setRenderIntent(p->baseIntent);
 

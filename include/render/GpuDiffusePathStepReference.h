@@ -52,6 +52,7 @@ namespace render {
 
   struct GpuDiffusePathLoopSettings {
     std::uint32_t maxDepth{8};
+    std::uint32_t russianRouletteDepth{3};
   };
 
   struct GpuDiffusePathLoopResult {
@@ -84,7 +85,8 @@ namespace render {
   public:
     [[nodiscard]] GpuDiffusePathStepResult
     step(const GpuTracingSceneSections& scene,
-         const std::vector<GpuDiffusePathStateRecord>& pathStates) const;
+         const std::vector<GpuDiffusePathStateRecord>& pathStates,
+         const GpuDiffusePathLoopSettings& settings = {}) const;
   };
 
   class GpuDiffusePathStepReference {
@@ -92,7 +94,8 @@ namespace render {
     [[nodiscard]] GpuDiffusePathStepResult
     step(const GpuTracingSceneSections& scene,
          const std::vector<GpuDiffusePathStateRecord>& pathStates,
-         const std::vector<GpuIntersectionHitRecord>& closestHits) const;
+         const std::vector<GpuIntersectionHitRecord>& closestHits,
+         const GpuDiffusePathLoopSettings& settings = {}) const;
   };
 
   class GpuDiffusePathLoop {

@@ -2,6 +2,7 @@
 
 #include "core/Buffer.h"
 #include "engine/graph/GraphRenderEngine.h"
+#include "engine/graph/RaytracerPassState.h"
 #include "engine/graph/RenderGraphArtifactCache.h"
 #include "engine/graph/RenderGraphExecutionObserver.h"
 #include "engine/graph/RenderGraphExecutionTrace.h"
@@ -2177,6 +2178,77 @@ namespace GraphRenderEngineTest {
     EXPECT_GE(timings.value("integratorResidualWorkerSeconds").toDouble(), 0.0);
     EXPECT_GT(timings.value("totalRenderSeconds").toDouble(), 0.0);
     EXPECT_EQ(metadata, wavefront->toJson().value("metadata").toObject());
+  }
+
+  TEST(GraphRenderEngine, ExecutesCompiledDiffusePathLoopForSupportedGpuTracingRequest) {
+    const Colord background(0.125, 0.25, 0.5);
+    auto scene = std::make_shared<render::Scene>();
+    scene->setBackground(background);
+    scene->setEnvironmentRadiance(background);
+    auto receiver = std::make_shared<render::Rectangle>(
+      Vector3d(-20.0, -20.0, 0.0), Vector3d(40.0, 0.0, 0.0), Vector3d(0.0, 40.0, 0.0));
+    receiver->setMaterial(matte(Colord(0.8, 0.8, 0.8)));
+    scene->add(receiver);
+
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Wavefront;
+    intent.engineOptions.raytracer().setIntegrator("pathtracer");
+    intent.engineOptions.raytracer().setTracingExecution(TracingExecutionPreference::GPU);
+    intent.engineOptions.raytracer().setSamplesPerPixel(1);
+    intent.engineOptions.raytracer().setMaximumRecursionDepth(2);
+    intent.engineOptions.raytracer().setSampleStreamMode("gpu_sample_stream");
+
+    RenderSceneAnalysis analysis;
+    analysis.setFullGpuTracingSupportFromScene(*scene);
+    RenderGraphCompiler compiler;
+    const RenderPlan plan = compiler.compile({8, 8, 1}, intent, analysis);
+    ASSERT_FALSE(plan.passes().empty());
+    const RaytracerBeautyPassState* state = RaytracerBeautyPassState::fromPass(plan.passes()[0]);
+    ASSERT_NE(nullptr, state);
+    ASSERT_TRUE(state->predictedTracingExecution());
+    EXPECT_EQ(TracingExecutionPreference::GPU, *state->predictedTracingExecution());
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(plan);
+
+    Buffer<Colord> buffer(8, 8);
+    engine.render(buffer);
+
+    auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const RenderPassTrace* wavefront = trace->findPass("wavefront_beauty");
+    ASSERT_NE(nullptr, wavefront);
+
+    const QJsonObject metadata = wavefront->metadata();
+    const QJsonObject tracingExecution = metadata.value("tracingExecution").toObject();
+    EXPECT_EQ("gpu", tracingExecution.value("requestedMode").toString().toStdString());
+    EXPECT_EQ("gpu", tracingExecution.value("predictedMode").toString().toStdString());
+    EXPECT_EQ("cpu", tracingExecution.value("actualMode").toString().toStdString());
+    EXPECT_NE(std::string::npos, tracingExecution.value("actualFallbackReason")
+                                   .toString()
+                                   .toStdString()
+                                   .find("compiled CPU-reference diffuse path loop"));
+
+    const QJsonObject batching = metadata.value("batching").toObject();
+    EXPECT_EQ("compiled_diffuse_path_loop",
+              batching.value("executionMode").toString().toStdString());
+    EXPECT_EQ("compiled_cpu_reference",
+              batching.value("tracingBackendMode").toString().toStdString());
+    EXPECT_EQ(64.0, batching.value("initialPathCount").toDouble());
+    EXPECT_GT(batching.value("hits").toDouble(), 0.0);
+
+    const QJsonObject input = metadata.value("input").toObject();
+    EXPECT_EQ("gpu_sample_stream", input.value("sampleStreamMode").toString().toStdString());
+    EXPECT_EQ(64.0, input.value("primarySamples").toDouble());
+
+    const QJsonObject loop = metadata.value("compiledDiffusePathLoop").toObject();
+    EXPECT_EQ("compiled_cpu_reference", loop.value("backend").toString().toStdString());
+    EXPECT_FALSE(loop.value("fullPlatformGpuKernel").toBool());
+
+    const QJsonObject accumulation = metadata.value("accumulation").toObject();
+    EXPECT_EQ("gpu_diffuse_path_loop", accumulation.value("backend").toString().toStdString());
+    EXPECT_EQ(64.0, accumulation.value("addedSamples").toDouble());
   }
 
   TEST(GraphRenderEngine, CompilePlanUsesSceneAnalysisAndClonesIt) {

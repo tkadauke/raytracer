@@ -292,6 +292,11 @@ namespace render {
     [[nodiscard]] bool supported() const;
   };
 
+  struct GpuDiffusePathLoopSupport {
+    bool supported{false};
+    std::string reason;
+  };
+
   [[nodiscard]] GpuTracingEnvironmentRecord makeGpuTracingConstantEnvironment(const Colord& color);
   [[nodiscard]] std::optional<GpuTracingTextureRecord>
   makeGpuTracingTextureRecord(const Texturec& texture, std::string* unsupportedReason = nullptr);
@@ -307,6 +312,13 @@ namespace render {
   [[nodiscard]] GpuTracingSceneCompilation
   compileGpuTracingScene(const CompiledIntersectionScene& intersectionScene, const Scene& scene);
   [[nodiscard]] GpuTracingSceneCompilation compileGpuTracingScene(const Scene& scene);
+  [[nodiscard]] GpuDiffusePathLoopSupport
+  gpuDiffusePathLoopSupport(const GpuTracingSceneCompilation& compilation, const Scene& scene);
+  [[nodiscard]] bool supportsGpuDiffusePathLoop(const GpuTracingSceneCompilation& compilation,
+                                                const Scene& scene);
+  [[nodiscard]] std::string
+  gpuDiffusePathLoopUnsupportedReason(const GpuTracingSceneCompilation& compilation,
+                                      const Scene& scene);
   [[nodiscard]] GpuTracingSceneDiagnostics
   compileGpuTracingSceneDiagnostics(const CompiledIntersectionScene& intersectionScene,
                                     const Scene& scene);

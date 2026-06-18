@@ -14,6 +14,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Added convertible C-array constructors for `Color`, SSE color
   specializations, and vector types so array-backed helpers can delegate to the
   math primitives directly. — GPT-5 Codex
+- Routed supported GPU-requested path-tracing graph renders through the
+  compiled diffuse path-loop CPU reference, with rendercli and Modeler traces
+  reporting `compiled_cpu_reference` execution until platform full-GPU kernels
+  exist. — GPT-5 Codex
 - Added `std::array` constructors for generic vector types and non-SIMD
   `Vector2`/`Vector3`/`Vector4` wrappers. — GPT-5 Codex
 - Added GPU-requested diffuse direct-light parity metrics for path-tracer

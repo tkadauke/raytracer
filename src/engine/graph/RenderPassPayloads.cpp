@@ -22,6 +22,8 @@
 #include "engine/wavefront/WavefrontRaytracer.h"
 #include "engine/wireframe/Wireframe.h"
 #include "render/cameras/Camera.h"
+#include "render/GpuDiffusePathStepReference.h"
+#include "render/GpuTracingScene.h"
 #include "render/HomogeneousClipVolume.h"
 #include "render/IntersectionService.h"
 #include "render/lights/Light.h"
@@ -32,7 +34,10 @@
 #include "render/State.h"
 #include "render/textures/Texture.h"
 #include "render/tonemap/Tonemap.h"
+#include "render/TracingAccumulationLayout.h"
 #include "render/viewplanes/ViewPlane.h"
+
+#include <QJsonArray>
 
 #include <algorithm>
 #include <cmath>
@@ -90,6 +95,13 @@ namespace engine::graph {
                              const std::string& action) {
       if (!core::util::bufferDimensionsEqual(source, destination)) {
         throw std::runtime_error(action + " requires matching depth/color buffer dimensions");
+      }
+    }
+
+    void requireMatchingSize(const Buffer<Colord>& source, const Buffer<unsigned int>& destination,
+                             const std::string& action) {
+      if (!core::util::bufferDimensionsEqual(source, destination)) {
+        throw std::runtime_error(action + " requires matching color/display buffer dimensions");
       }
     }
 
@@ -574,6 +586,188 @@ namespace engine::graph {
       return metadata;
     }
 
+    QJsonArray unsignedArrayToJson(const std::vector<std::uint64_t>& values) {
+      QJsonArray result;
+      for (const std::uint64_t value : values) {
+        result.push_back(static_cast<double>(value));
+      }
+      return result;
+    }
+
+    QJsonObject
+    accumulationDiagnosticsToJson(const render::TracingAccumulationDiagnostics& diagnostics) {
+      QJsonObject layout;
+      layout["width"] = diagnostics.layout.width;
+      layout["height"] = diagnostics.layout.height;
+      layout["pixelCount"] = static_cast<double>(diagnostics.layout.pixelCount());
+      layout["colorSumFormat"] = render::toString(diagnostics.layout.colorSumFormat);
+      layout["sampleCountFormat"] = render::toString(diagnostics.layout.sampleCountFormat);
+      layout["momentFormat"] = render::toString(diagnostics.layout.momentFormat);
+      layout["resolveFormat"] = render::toString(diagnostics.layout.resolveFormat);
+      layout["colorSumBytes"] = static_cast<double>(diagnostics.layout.colorSumBytes());
+      layout["sampleCountBytes"] = static_cast<double>(diagnostics.layout.sampleCountBytes());
+      layout["momentBytes"] = static_cast<double>(diagnostics.layout.momentBytes());
+      layout["resolveBytes"] = static_cast<double>(diagnostics.layout.resolveBytes());
+      layout["accumulationBytes"] = static_cast<double>(diagnostics.layout.accumulationBytes());
+      layout["totalBytes"] = static_cast<double>(diagnostics.layout.totalBytes());
+
+      QJsonObject result;
+      result["backend"] = QString::fromStdString(diagnostics.backend);
+      result["residency"] = QString::fromStdString(diagnostics.residency);
+      result["layout"] = layout;
+      result["residentBytes"] = static_cast<double>(diagnostics.residentBytes);
+      result["clearOperations"] = static_cast<double>(diagnostics.clearOperations);
+      result["addOperations"] = static_cast<double>(diagnostics.addOperations);
+      result["addedSamples"] = static_cast<double>(diagnostics.addedSamples);
+      result["resolveOperations"] = static_cast<double>(diagnostics.resolveOperations);
+      result["readbackOperations"] = static_cast<double>(diagnostics.readbackOperations);
+      result["readbackBytes"] = static_cast<double>(diagnostics.readbackBytes);
+      return result;
+    }
+
+    QJsonObject
+    gpuTracingSceneDiagnosticsToJson(const render::GpuTracingSceneDiagnostics& diagnostics) {
+      QJsonObject result;
+      result["compiled"] = diagnostics.compiled;
+      result["materials"] = static_cast<double>(diagnostics.materials);
+      result["textures"] = static_cast<double>(diagnostics.textures);
+      result["lights"] = static_cast<double>(diagnostics.lights);
+      result["environment"] = static_cast<double>(diagnostics.environment);
+      result["debugIds"] = static_cast<double>(diagnostics.debugIds);
+      result["unsupportedPrimitives"] = static_cast<double>(diagnostics.unsupportedPrimitives);
+      result["unsupportedMaterials"] = static_cast<double>(diagnostics.unsupportedMaterials);
+      result["unsupportedTextures"] = static_cast<double>(diagnostics.unsupportedTextures);
+      result["unsupportedLights"] = static_cast<double>(diagnostics.unsupportedLights);
+      result["uploadBytes"] = static_cast<double>(diagnostics.uploadBytes);
+      return result;
+    }
+
+    QJsonObject
+    compiledDiffusePathLoopMetadata(const render::GpuTracingSceneCompilation& compilation,
+                                    const render::GpuDiffusePrimaryPathStateGeneration& generation,
+                                    const render::GpuDiffusePathLoopResult& loop,
+                                    const render::TracingAccumulationDiagnostics& accumulation) {
+      QJsonObject input;
+      input["primarySamples"] = static_cast<double>(generation.generatedPrimarySamples);
+      input["skippedPrimarySamples"] = static_cast<double>(generation.skippedPrimarySamples);
+      input["sampleStreamMode"] = QStringLiteral("gpu_sample_stream");
+      input["requestedX"] = generation.requestedRect.x();
+      input["requestedY"] = generation.requestedRect.y();
+      input["requestedWidth"] = generation.requestedRect.width();
+      input["requestedHeight"] = generation.requestedRect.height();
+      input["actualX"] = generation.actualRect.x();
+      input["actualY"] = generation.actualRect.y();
+      input["actualWidth"] = generation.actualRect.width();
+      input["actualHeight"] = generation.actualRect.height();
+
+      QJsonObject batching;
+      batching["integrator"] = QStringLiteral("pathtracer");
+      batching["executionMode"] = QStringLiteral("compiled_diffuse_path_loop");
+      batching["tracingBackendMode"] = QStringLiteral("compiled_cpu_reference");
+      batching["closestHitExecutionPath"] =
+        QString::fromStdString(loop.metrics.closestHitExecutionPath);
+      batching["emissionExecutionPath"] =
+        QString::fromStdString(loop.metrics.emissionExecutionPath);
+      batching["directLightVisibilityExecutionPath"] =
+        QString::fromStdString(loop.metrics.directLightVisibilityExecutionPath);
+      batching["directLightContributionExecutionPath"] =
+        QString::fromStdString(loop.metrics.directLightContributionExecutionPath);
+      batching["intersectionBackendExecutionPath"] =
+        QString::fromStdString(loop.metrics.closestHitExecutionPath);
+      batching["intersectionBackendClosestHitExecutionPath"] =
+        QString::fromStdString(loop.metrics.closestHitExecutionPath);
+      batching["intersectionBackendAnyHitExecutionPath"] =
+        QString::fromStdString(loop.metrics.directLightVisibilityExecutionPath);
+      batching["initialPathCount"] = static_cast<double>(loop.initialPathCount);
+      batching["depthCount"] = static_cast<double>(loop.depthCount);
+      batching["maxDepthTerminatedPaths"] = static_cast<double>(loop.maxDepthTerminatedPaths);
+      batching["activePathsPerDepth"] = unsignedArrayToJson(loop.activePathsPerDepth);
+      batching["resolvedPathStates"] = static_cast<double>(loop.resolvedPathStates.size());
+      batching["stepRecords"] = static_cast<double>(loop.stepRecords.size());
+      batching["activePaths"] = static_cast<double>(loop.metrics.activePaths);
+      batching["closestHitRays"] = static_cast<double>(loop.metrics.closestHitRays);
+      batching["misses"] = static_cast<double>(loop.metrics.misses);
+      batching["hits"] = static_cast<double>(loop.metrics.hits);
+      batching["unsupportedHits"] = static_cast<double>(loop.metrics.unsupportedHits);
+      batching["emissiveHits"] = static_cast<double>(loop.metrics.emissiveHits);
+      batching["emissionContributionEvaluations"] =
+        static_cast<double>(loop.metrics.emissionContributionEvaluations);
+      batching["directLightSamples"] = static_cast<double>(loop.metrics.directLightSamples);
+      batching["directLightVisibilityRays"] =
+        static_cast<double>(loop.metrics.directLightVisibilityRays);
+      batching["directLightContributionEvaluations"] =
+        static_cast<double>(loop.metrics.directLightContributionEvaluations);
+      batching["directLightContributingSamples"] =
+        static_cast<double>(loop.metrics.directLightContributingSamples);
+      batching["directLightOccludedSamples"] =
+        static_cast<double>(loop.metrics.directLightOccludedSamples);
+      batching["spawnedContinuations"] = static_cast<double>(loop.metrics.spawnedContinuations);
+      batching["terminatedPaths"] = static_cast<double>(loop.metrics.terminatedPaths);
+
+      QJsonObject compiledLoop;
+      compiledLoop["backend"] = QStringLiteral("compiled_cpu_reference");
+      compiledLoop["residency"] = QStringLiteral("host_records");
+      compiledLoop["fullPlatformGpuKernel"] = false;
+      compiledLoop["note"] = QStringLiteral(
+        "executes the GPU tracing record contract through the CPU reference path-loop");
+
+      QJsonObject metadata;
+      metadata["input"] = input;
+      metadata["batching"] = batching;
+      metadata["compiledTracingScene"] = gpuTracingSceneDiagnosticsToJson(compilation.diagnostics);
+      metadata["compiledDiffusePathLoop"] = compiledLoop;
+      metadata["accumulation"] = accumulationDiagnosticsToJson(accumulation);
+      return metadata;
+    }
+
+    bool predictedGpuTracing(const RaytracerBeautyPassState& state) {
+      return state.predictedTracingExecution() &&
+             *state.predictedTracingExecution() == TracingExecutionPreference::GPU;
+    }
+
+    std::optional<std::string>
+    compiledDiffusePathLoopFallbackReason(const RaytracerBeautyPassState& state,
+                                          const GraphRenderEngine& graph) {
+      if (!predictedGpuTracing(state)) {
+        return "compiled diffuse path loop requires predicted GPU tracing execution";
+      }
+      if (state.integrator().value_or("whitted") != "pathtracer") {
+        return "compiled diffuse path loop currently supports only the pathtracer integrator";
+      }
+      if (graph.hasBackgroundColorOverride()) {
+        return "compiled diffuse path loop cannot apply graph background-color overrides yet";
+      }
+      if (state.sampleStreamMode() && *state.sampleStreamMode() != "gpu_sample_stream") {
+        return "compiled diffuse path loop requires the GPU sample stream";
+      }
+      if (state.directLightSamples().value_or(1) != 1) {
+        return "compiled diffuse path loop currently supports one direct-light sample per hit";
+      }
+      if (state.convergenceEnabled().value_or(false)) {
+        return "compiled diffuse path loop does not support wavefront convergence yet";
+      }
+      if (state.adaptiveSamplingEnabled().value_or(false)) {
+        return "compiled diffuse path loop does not support adaptive sampling yet";
+      }
+      if (state.denoiser() && *state.denoiser() != "none") {
+        return "compiled diffuse path loop does not support denoising yet";
+      }
+      if (state.denoiseRadius() || state.denoiseColorSigma()) {
+        return "compiled diffuse path loop does not support denoising yet";
+      }
+      return std::nullopt;
+    }
+
+    void packColorBuffer(const Buffer<Colord>& source, Buffer<unsigned int>& destination,
+                         const std::shared_ptr<render::Tonemap>& tonemap) {
+      requireMatchingSize(source, destination, "compiled diffuse path-loop color pack");
+      for (int y = 0; y != source.height(); ++y) {
+        for (int x = 0; x != source.width(); ++x) {
+          destination[y][x] = (tonemap ? tonemap->apply(source[y][x]) : source[y][x]).rgb();
+        }
+      }
+    }
+
     /**
       * Whole-frame beauty payload backed by the Whitted raytracer.
       */
@@ -622,11 +816,14 @@ namespace engine::graph {
       }
 
       void recordWavefrontMetrics(RenderExecutionContext& context,
-                                  const ::engine::wavefront::WavefrontRaytracer& wavefront) const {
+                                  const ::engine::wavefront::WavefrontRaytracer& wavefront,
+                                  const std::string& actualFallbackReason = {}) const {
         QJsonObject metrics = wavefront.lastMetrics().toJson();
+        const QString fallback = actualFallbackReason.empty()
+                                   ? actualTracingFallbackReasonFromWavefrontMetrics(metrics)
+                                   : QString::fromStdString(actualFallbackReason);
         context.setTraceMetadata(withTracingExecutionMetadata(
-          metrics, context.pass(), actualTracingExecutionFromWavefrontMetrics(metrics),
-          actualTracingFallbackReasonFromWavefrontMetrics(metrics)));
+          metrics, context.pass(), actualTracingExecutionFromWavefrontMetrics(metrics), fallback));
       }
     };
 
@@ -644,8 +841,15 @@ namespace engine::graph {
         auto wavefront = createWavefront(context);
         prepareEngine(*wavefront, context.graph(), context.cancelled(), context.graph().tonemap());
         context.setActiveEngine(wavefront);
+        std::string compiledFallbackReason;
+        if (tryExecuteCompiledDiffusePathLoop(context, *wavefront,
+                                              &context.storage().color(write.resource), nullptr,
+                                              compiledFallbackReason)) {
+          return;
+        }
+        recordCompiledDiffusePathLoopFallback(context, compiledFallbackReason);
         wavefront->render(context.storage().color(write.resource));
-        recordWavefrontMetrics(context, *wavefront);
+        recordWavefrontMetrics(context, *wavefront, compiledFallbackReason);
       }
 
       bool executeDisplay(RenderExecutionContext& context, Buffer<unsigned int>& buffer,
@@ -654,8 +858,14 @@ namespace engine::graph {
         auto wavefront = createWavefront(context);
         prepareEngine(*wavefront, context.graph(), context.cancelled(), std::move(tonemap));
         context.setActiveEngine(wavefront);
+        std::string compiledFallbackReason;
+        if (tryExecuteCompiledDiffusePathLoop(context, *wavefront, nullptr, &buffer,
+                                              compiledFallbackReason)) {
+          return true;
+        }
+        recordCompiledDiffusePathLoopFallback(context, compiledFallbackReason);
         wavefront->render(buffer);
-        recordWavefrontMetrics(context, *wavefront);
+        recordWavefrontMetrics(context, *wavefront, compiledFallbackReason);
         return true;
       }
 
@@ -669,12 +879,121 @@ namespace engine::graph {
         auto wavefront = createWavefront(context);
         prepareEngine(*wavefront, context.graph(), context.cancelled(), std::move(tonemap));
         context.setActiveEngine(wavefront);
+        std::string compiledFallbackReason;
+        if (tryExecuteCompiledDiffusePathLoop(context, *wavefront,
+                                              &context.storage().color(write.resource), &buffer,
+                                              compiledFallbackReason)) {
+          return true;
+        }
+        recordCompiledDiffusePathLoopFallback(context, compiledFallbackReason);
         wavefront->render(context.storage().color(write.resource), buffer, wavefront->tonemap());
-        recordWavefrontMetrics(context, *wavefront);
+        recordWavefrontMetrics(context, *wavefront, compiledFallbackReason);
         return true;
       }
 
     private:
+      bool tryExecuteCompiledDiffusePathLoop(RenderExecutionContext& context,
+                                             ::engine::wavefront::WavefrontRaytracer& wavefront,
+                                             Buffer<Colord>* hdrTarget,
+                                             Buffer<unsigned int>* displayTarget,
+                                             std::string& fallbackReason) const {
+        const RaytracerBeautyPassState state =
+          RaytracerBeautyPassState::valueFromPass(context.pass());
+        if (!predictedGpuTracing(state)) {
+          return false;
+        }
+
+        if (const auto reason = compiledDiffusePathLoopFallbackReason(state, context.graph())) {
+          fallbackReason = *reason;
+          return false;
+        }
+        if (context.cancelled()) {
+          fallbackReason = "compiled diffuse path loop skipped because rendering was cancelled";
+          return false;
+        }
+
+        auto scene = context.graph().scene();
+        auto camera = wavefront.camera();
+        if (!scene) {
+          fallbackReason = "compiled diffuse path loop requires a render scene";
+          return false;
+        }
+        if (!camera) {
+          fallbackReason = "compiled diffuse path loop requires a camera";
+          return false;
+        }
+        if (!camera->viewPlane()) {
+          fallbackReason = "compiled diffuse path loop requires a camera view plane";
+          return false;
+        }
+
+        const int width = hdrTarget ? hdrTarget->width() : displayTarget->width();
+        const int height = hdrTarget ? hdrTarget->height() : displayTarget->height();
+        if (displayTarget &&
+            (displayTarget->width() != width || displayTarget->height() != height)) {
+          fallbackReason =
+            "compiled diffuse path loop requires matching HDR and display target dimensions";
+          return false;
+        }
+
+        const render::GpuTracingSceneCompilation compilation =
+          render::compileGpuTracingScene(*scene);
+        const render::GpuDiffusePathLoopSupport support =
+          render::gpuDiffusePathLoopSupport(compilation, *scene);
+        if (!support.supported) {
+          fallbackReason = support.reason;
+          return false;
+        }
+
+        const Recti targetRect(width, height);
+        camera->viewPlane()->setup(camera->matrix(), targetRect);
+        const std::optional<std::uint64_t> samplingSeed = wavefront.samplingSeed();
+        const std::uint64_t seedValue = samplingSeed.value_or(0);
+        const std::uint32_t sampleSeed = static_cast<std::uint32_t>(seedValue ^ (seedValue >> 32u));
+        const render::GpuDiffusePrimaryPathStateGeneration generation =
+          render::GpuDiffusePrimaryPathStateGenerator().generate(*camera, targetRect, samplingSeed,
+                                                                 sampleSeed);
+
+        render::GpuDiffusePathLoopSettings settings;
+        settings.maxDepth = static_cast<std::uint32_t>(state.maximumRecursionDepth().value_or(8));
+        settings.russianRouletteDepth =
+          static_cast<std::uint32_t>(state.russianRouletteDepth().value_or(3));
+        const render::GpuDiffusePathLoopResult loop =
+          render::GpuDiffusePathLoop().run(compilation.sections, generation.pathStates, settings);
+        const render::TracingAccumulationLayout layout =
+          render::TracingAccumulationLayout::image(width, height);
+
+        render::TracingAccumulationDiagnostics accumulation;
+        if (hdrTarget) {
+          accumulation = render::resolveGpuDiffusePathLoopImage(loop, layout, *hdrTarget);
+          if (displayTarget) {
+            packColorBuffer(*hdrTarget, *displayTarget, wavefront.tonemap());
+          }
+        } else {
+          accumulation = render::resolveGpuDiffusePathLoopImage(loop, layout, *displayTarget,
+                                                                wavefront.tonemap().get());
+        }
+
+        context.recordTraceMessage("compiled diffuse path loop rendered " +
+                                   std::to_string(generation.generatedPrimarySamples) +
+                                   " primary path state(s) through the CPU reference backend");
+        QJsonObject metadata =
+          compiledDiffusePathLoopMetadata(compilation, generation, loop, accumulation);
+        context.setTraceMetadata(withTracingExecutionMetadata(
+          metadata, context.pass(), QStringLiteral("cpu"),
+          QStringLiteral("GPU tracing request executed by compiled CPU-reference diffuse "
+                         "path loop; platform full-GPU path-loop kernel is not available yet")));
+        return true;
+      }
+
+      void recordCompiledDiffusePathLoopFallback(RenderExecutionContext& context,
+                                                 const std::string& fallbackReason) const {
+        if (fallbackReason.empty()) {
+          return;
+        }
+        context.recordTraceMessage("compiled diffuse path loop fallback: " + fallbackReason);
+      }
+
       std::shared_ptr<render::RenderEngine>
       createEngine(const RenderExecutionContext& context) const override {
         return createWavefront(context);

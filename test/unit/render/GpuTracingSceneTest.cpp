@@ -541,6 +541,60 @@ namespace GpuTracingSceneTest {
                     "precision"));
   }
 
+  TEST(GpuTracingScene, DiffusePathLoopSupportAcceptsMatteAndEmissiveScenes) {
+    auto matte = std::make_shared<MatteMaterial>(
+      std::make_shared<ConstantColorTexture>(Colord(0.25, 0.5, 0.75)));
+    auto sphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    sphere->setMaterial(matte);
+    auto emissive = std::make_shared<EmissiveMaterial>(Colord(1.0, 0.5, 0.25));
+    auto lightSphere = std::make_shared<Sphere>(Vector3d(3.0, 0.0, 0.0), 0.5);
+    lightSphere->setMaterial(emissive);
+    Scene scene;
+    scene.setBackground(Colord(0.1, 0.2, 0.3));
+    scene.setEnvironmentRadiance(Colord(0.1, 0.2, 0.3));
+    scene.add(sphere);
+    scene.add(lightSphere);
+
+    const GpuTracingSceneCompilation compilation = compileGpuTracingScene(scene);
+    const GpuDiffusePathLoopSupport support = gpuDiffusePathLoopSupport(compilation, scene);
+
+    EXPECT_TRUE(support.supported);
+    EXPECT_TRUE(support.reason.empty());
+    EXPECT_TRUE(supportsGpuDiffusePathLoop(compilation, scene));
+  }
+
+  TEST(GpuTracingScene, DiffusePathLoopSupportRejectsNonDiffuseMaterials) {
+    auto phong = std::make_shared<PhongMaterial>(
+      std::make_shared<ConstantColorTexture>(Colord(0.25, 0.5, 0.75)), Colord::white(), 16.0);
+    auto sphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    sphere->setMaterial(phong);
+    Scene scene;
+    scene.setBackground(Colord(0.1, 0.2, 0.3));
+    scene.setEnvironmentRadiance(Colord(0.1, 0.2, 0.3));
+    scene.add(sphere);
+
+    const GpuTracingSceneCompilation compilation = compileGpuTracingScene(scene);
+    ASSERT_TRUE(compilation.supported());
+    const GpuDiffusePathLoopSupport support = gpuDiffusePathLoopSupport(compilation, scene);
+
+    EXPECT_FALSE(support.supported);
+    EXPECT_EQ("GPU diffuse path loop supports only matte and emissive materials", support.reason);
+    EXPECT_EQ(support.reason, gpuDiffusePathLoopUnsupportedReason(compilation, scene));
+  }
+
+  TEST(GpuTracingScene, DiffusePathLoopSupportRejectsDifferentBackgroundAndEnvironment) {
+    Scene scene;
+    scene.setBackground(Colord(0.1, 0.2, 0.3));
+    scene.setEnvironmentRadiance(Colord(0.4, 0.5, 0.6));
+
+    const GpuTracingSceneCompilation compilation = compileGpuTracingScene(scene);
+    const GpuDiffusePathLoopSupport support = gpuDiffusePathLoopSupport(compilation, scene);
+
+    EXPECT_FALSE(support.supported);
+    EXPECT_EQ("GPU diffuse path loop requires visible background to match environment radiance",
+              support.reason);
+  }
+
   TEST(GpuTracingScene, PointLightPacksPositionAndColor) {
     const PointLight light(Vector3d(1.0, 2.0, 3.0), Colord(0.25, 0.5, 0.75));
 

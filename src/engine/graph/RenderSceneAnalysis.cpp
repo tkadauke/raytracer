@@ -1,5 +1,7 @@
 #include "engine/graph/RenderSceneAnalysis.h"
 
+#include "render/GpuTracingScene.h"
+
 #include <algorithm>
 #include <sstream>
 #include <stdexcept>
@@ -115,6 +117,14 @@ namespace engine::graph {
       available
         ? std::string()
         : (reason.empty() ? "full GPU tracing backend is not available" : std::move(reason));
+  }
+
+  void RenderSceneAnalysis::setFullGpuTracingSupportFromScene(const render::Scene& scene) {
+    const render::GpuTracingSceneCompilation compilation = render::compileGpuTracingScene(scene);
+    const render::GpuDiffusePathLoopSupport support =
+      render::gpuDiffusePathLoopSupport(compilation, scene);
+    setFullGpuTracingSupported(support.supported, support.reason);
+    setFullGpuTracingBackendAvailable(true);
   }
 
   bool RenderSceneAnalysis::hasKnownVisibleSurfaceCount() const {

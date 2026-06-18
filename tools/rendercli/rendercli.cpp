@@ -286,14 +286,11 @@ namespace {
         << " execution=" << batching.value("executionMode").toString().toStdString()
         << " tracing_backend_request="
         << compactTextValue(batching.value("tracingBackendRequest"), "unknown")
-        << " tracing_backend="
-        << compactTextValue(batching.value("tracingBackend"), "unknown")
+        << " tracing_backend=" << compactTextValue(batching.value("tracingBackend"), "unknown")
         << " tracing_backend_mode="
         << compactTextValue(batching.value("tracingBackendMode"), "unknown")
         << " tracing_backend_fallback="
-        << compactTextValue(batching.value("tracingBackendFallback")
-                              .toObject()
-                              .value("reason"),
+        << compactTextValue(batching.value("tracingBackendFallback").toObject().value("reason"),
                             "none")
         << " tracing_backend_capabilities="
         << batching.value("tracingBackendCapabilities").toArray().size()
@@ -476,8 +473,7 @@ namespace {
         << compactTextValue(batching.value("residentPathLoopExecutionPath"), "none")
         << " resident_path_loop_residency="
         << compactTextValue(batching.value("residentPathLoopResidency"), "none")
-        << " resident_path_loop_depths="
-        << unsignedValue(batching, "residentPathLoopDepths")
+        << " resident_path_loop_depths=" << unsignedValue(batching, "residentPathLoopDepths")
         << " resident_path_loop_input_paths="
         << unsignedValue(batching, "residentPathLoopInputPaths")
         << " resident_path_loop_retained_paths="
@@ -516,32 +512,19 @@ namespace {
         << " min_tile_samples=" << unsignedValue(tiling, "minNonEmptyTileSamples")
         << " avg_tile_samples=" << tiling.value("averageNonEmptyTileSamples").toDouble()
         << " max_tile_samples=" << unsignedValue(tiling, "maxTileSamples")
-        << " accumulation_backend="
-        << compactTextValue(accumulation.value("backend"), "none")
-        << " accumulation_residency="
-        << compactTextValue(accumulation.value("residency"), "none")
-        << " accumulation_resident_bytes="
-        << unsignedValue(accumulation, "residentBytes")
-        << " accumulation_color_sum_bytes="
-        << unsignedValue(accumulation, "colorSumBytes")
-        << " accumulation_sample_count_bytes="
-        << unsignedValue(accumulation, "sampleCountBytes")
-        << " accumulation_moment_bytes="
-        << unsignedValue(accumulation, "momentBytes")
-        << " accumulation_resolve_bytes="
-        << unsignedValue(accumulation, "resolveBytes")
-        << " accumulation_clear_ops="
-        << unsignedValue(accumulation, "clearOperations")
-        << " accumulation_add_ops="
-        << unsignedValue(accumulation, "addOperations")
-        << " accumulation_added_samples="
-        << unsignedValue(accumulation, "addedSamples")
-        << " accumulation_resolve_ops="
-        << unsignedValue(accumulation, "resolveOperations")
-        << " accumulation_readback_ops="
-        << unsignedValue(accumulation, "readbackOperations")
-        << " accumulation_readback_bytes="
-        << unsignedValue(accumulation, "readbackBytes")
+        << " accumulation_backend=" << compactTextValue(accumulation.value("backend"), "none")
+        << " accumulation_residency=" << compactTextValue(accumulation.value("residency"), "none")
+        << " accumulation_resident_bytes=" << unsignedValue(accumulation, "residentBytes")
+        << " accumulation_color_sum_bytes=" << unsignedValue(accumulation, "colorSumBytes")
+        << " accumulation_sample_count_bytes=" << unsignedValue(accumulation, "sampleCountBytes")
+        << " accumulation_moment_bytes=" << unsignedValue(accumulation, "momentBytes")
+        << " accumulation_resolve_bytes=" << unsignedValue(accumulation, "resolveBytes")
+        << " accumulation_clear_ops=" << unsignedValue(accumulation, "clearOperations")
+        << " accumulation_add_ops=" << unsignedValue(accumulation, "addOperations")
+        << " accumulation_added_samples=" << unsignedValue(accumulation, "addedSamples")
+        << " accumulation_resolve_ops=" << unsignedValue(accumulation, "resolveOperations")
+        << " accumulation_readback_ops=" << unsignedValue(accumulation, "readbackOperations")
+        << " accumulation_readback_bytes=" << unsignedValue(accumulation, "readbackBytes")
         << " active_sample_depths=" << unsignedValue(batching, "activeSampleDepthsProcessed")
         << " active_host_path_state_bytes="
         << unsignedValue(batching, "activeHostPathStateBytesProcessed")
@@ -1789,8 +1772,15 @@ private:
   bool pathTracingRequested() const;
   bool scalarPathTracingScheduleSelected() const;
   std::optional<engine::graph::RenderExecutorPreference> engineExecutorPreference() const;
-  engine::graph::RenderGraphRequest renderGraphRequest(const Scene& scene) const;
-  engine::graph::RenderIntent renderIntent(const Scene& scene) const;
+  engine::graph::RenderSceneAnalysis
+  renderGraphSceneAnalysis(const Scene& scene,
+                           const std::shared_ptr<render::Scene>& raytracerScene = nullptr) const;
+  engine::graph::RenderGraphRequest
+  renderGraphRequest(const Scene& scene,
+                     const std::shared_ptr<render::Scene>& raytracerScene = nullptr) const;
+  engine::graph::RenderIntent
+  renderIntent(const Scene& scene,
+               const std::shared_ptr<render::Scene>& raytracerScene = nullptr) const;
   int renderGraphSampleCount(const engine::graph::RenderIntent& intent) const;
   int rayFamilyQueueSize() const;
   int rayFamilyQueueSize(int samplesPerPixel) const;
@@ -1801,9 +1791,13 @@ private:
                         bool includeImagePostProcessAA, bool includeShadowMapEnable) const;
   engine::graph::RasterShadowPassState rasterShadowPassState() const;
   engine::graph::WireframePassState wireframePassState() const;
-  engine::graph::RenderPlan compileRenderGraphPlan(const Scene& scene) const;
+  engine::graph::RenderPlan
+  compileRenderGraphPlan(const Scene& scene,
+                         const std::shared_ptr<render::Scene>& raytracerScene = nullptr) const;
   engine::graph::RenderPlan loadRenderGraphPlan() const;
-  engine::graph::RenderPlan renderGraphPlan(const Scene& scene) const;
+  engine::graph::RenderPlan
+  renderGraphPlan(const Scene& scene,
+                  const std::shared_ptr<render::Scene>& raytracerScene = nullptr) const;
   void applyRenderGraphOutputSize(const engine::graph::RenderPlan& plan, int* width,
                                   int* height) const;
   void validateRenderGraphPlan(const engine::graph::RenderPlan& plan) const;
@@ -1996,8 +1990,20 @@ std::unique_ptr<Scene> Renderer::loadScene() const {
   return RenderCliSceneLoader(std::move(options)).load();
 }
 
-engine::graph::RenderIntent Renderer::renderIntent(const Scene& scene) const {
-  return renderGraphRequest(scene).resolvedIntent();
+engine::graph::RenderSceneAnalysis
+Renderer::renderGraphSceneAnalysis(const Scene& scene,
+                                   const std::shared_ptr<render::Scene>& raytracerScene) const {
+  engine::graph::RenderSceneAnalysis analysis = scene.renderGraphAnalysis();
+  if (raytracerScene) {
+    analysis.setFullGpuTracingSupportFromScene(*raytracerScene);
+  }
+  return analysis;
+}
+
+engine::graph::RenderIntent
+Renderer::renderIntent(const Scene& scene,
+                       const std::shared_ptr<render::Scene>& raytracerScene) const {
+  return renderGraphRequest(scene, raytracerScene).resolvedIntent();
 }
 
 bool Renderer::pathTracerEngineSelected() const {
@@ -2045,7 +2051,9 @@ std::optional<engine::graph::RenderExecutorPreference> Renderer::engineExecutorP
   return engine::graph::RenderExecutorPreference::Raytracer;
 }
 
-engine::graph::RenderGraphRequest Renderer::renderGraphRequest(const Scene& scene) const {
+engine::graph::RenderGraphRequest
+Renderer::renderGraphRequest(const Scene& scene,
+                             const std::shared_ptr<render::Scene>& raytracerScene) const {
   engine::graph::RenderIntent baseIntent = scene.renderIntentWithActiveCameraDefault();
   engine::graph::RenderEngineOptions commandLineOptions = commandLineEngineOptions();
   if (!baseIntent.engineOptions.raytracer().viewPlane() &&
@@ -2059,7 +2067,7 @@ engine::graph::RenderGraphRequest Renderer::renderGraphRequest(const Scene& scen
     baseIntent.engineOptions.raytracer().setQueueSize(rayFamilyQueueSize(raySamples));
   }
   engine::graph::RenderGraphRequest request(baseIntent);
-  request.setSceneAnalysis(scene.renderGraphAnalysis());
+  request.setSceneAnalysis(renderGraphSceneAnalysis(scene, raytracerScene));
   if (m_renderGraphExecutorSet) {
     request.setExecutorOverride(m_renderGraphExecutor);
   } else if (const auto executor = engineExecutorPreference()) {
@@ -2366,8 +2374,10 @@ engine::graph::WireframePassState Renderer::wireframePassState() const {
   return state;
 }
 
-engine::graph::RenderPlan Renderer::compileRenderGraphPlan(const Scene& scene) const {
-  const auto request = renderGraphRequest(scene);
+engine::graph::RenderPlan
+Renderer::compileRenderGraphPlan(const Scene& scene,
+                                 const std::shared_ptr<render::Scene>& raytracerScene) const {
+  const auto request = renderGraphRequest(scene, raytracerScene);
   const auto intent = request.resolvedIntent();
   const auto frameIntent = intent.withWholeFrameOverridesApplied();
   auto plan = request.compile({m_width, m_height, renderGraphSampleCount(frameIntent)});
@@ -2397,11 +2407,13 @@ engine::graph::RenderPlan Renderer::loadRenderGraphPlan() const {
     .withOverrides(m_renderGraphOverrides);
 }
 
-engine::graph::RenderPlan Renderer::renderGraphPlan(const Scene& scene) const {
+engine::graph::RenderPlan
+Renderer::renderGraphPlan(const Scene& scene,
+                          const std::shared_ptr<render::Scene>& raytracerScene) const {
   if (!m_renderGraphIn.isEmpty()) {
     return loadRenderGraphPlan();
   }
-  return compileRenderGraphPlan(scene);
+  return compileRenderGraphPlan(scene, raytracerScene);
 }
 
 void Renderer::applyRenderGraphOutputSize(const engine::graph::RenderPlan& plan, int* width,
@@ -2674,7 +2686,8 @@ QString Renderer::renderGraphOutputPath() const {
 std::vector<double> Renderer::renderScene(const Scene& scene, const QString& output) const {
   auto raytracerScene = scene.toRaytracerScene(m_stepPlaybackStyle);
   const auto graphIntent =
-    m_renderGraph ? std::optional<engine::graph::RenderIntent>(renderIntent(scene)) : std::nullopt;
+    m_renderGraph ? std::optional<engine::graph::RenderIntent>(renderIntent(scene, raytracerScene))
+                  : std::nullopt;
   int outputWidth = m_width;
   int outputHeight = m_height;
 
@@ -2685,7 +2698,7 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
   engine::graph::RenderPlan graphPlan;
 
   if (m_renderGraph) {
-    graphPlan = renderGraphPlan(scene);
+    graphPlan = renderGraphPlan(scene, raytracerScene);
     validateRenderGraphPlan(graphPlan);
     if (usesRasterizer(graphPlan)) {
       for (const auto& warning : rasterRecursiveMaterialFallbackWarnings(*raytracerScene)) {
@@ -2748,7 +2761,7 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
       }
     }
     graphEngine->setIntent(*graphIntent);
-    graphEngine->setSceneAnalysis(scene.renderGraphAnalysis());
+    graphEngine->setSceneAnalysis(renderGraphSceneAnalysis(scene, raytracerScene));
     graphEngine->setPlan(graphPlan);
     bindRenderGraphExternalInputs(*graphEngine);
     graphEngine->setExecutionTraceEnabled(!m_renderGraphTraceOut.isEmpty() ||
@@ -2965,7 +2978,7 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
       writeRenderGraphTrace(*trace, m_renderGraphTraceOut);
     }
     if (!m_renderGraphAOVOutputs.empty()) {
-      writeRenderGraphAOVOutputs(*trace, renderIntent(scene));
+      writeRenderGraphAOVOutputs(*trace, renderIntent(scene, raytracerScene));
     }
   }
 
@@ -3069,7 +3082,8 @@ void Renderer::render() const {
   }
 
   if (m_renderGraphOnly) {
-    const auto plan = renderGraphPlan(*scene);
+    const auto raytracerScene = scene->toRaytracerScene(m_stepPlaybackStyle);
+    const auto plan = renderGraphPlan(*scene, raytracerScene);
     validateRenderGraphPlan(plan);
     writeRenderGraphPlan(plan, renderGraphOutputPath());
     return;

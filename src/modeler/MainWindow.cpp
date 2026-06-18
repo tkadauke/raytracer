@@ -2224,7 +2224,9 @@ void MainWindow::updateRenderGraphInspector() {
     }
   }
   if (analysisScene) {
-    request.setSceneAnalysis(analysisScene->renderGraphAnalysis());
+    auto analysis = analysisScene->renderGraphAnalysis();
+    analysis.setFullGpuTracingSupportFromScene(*analysisScene->toRaytracerScene());
+    request.setSceneAnalysis(analysis);
   }
   try {
     p->renderGraphInspectorWidget->setPlan(request.compile(targetSpec));

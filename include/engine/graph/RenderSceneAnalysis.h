@@ -10,6 +10,10 @@
 #include <string>
 #include <vector>
 
+namespace render {
+  class Scene;
+}
+
 namespace engine::graph {
   /**
     * Scene-derived facts used during render graph compilation.
@@ -72,6 +76,7 @@ namespace engine::graph {
                                 std::vector<std::string> layers = {}, std::string label = {});
     void setFullGpuTracingSupported(bool supported, std::string reason = {});
     void setFullGpuTracingBackendAvailable(bool available, std::string reason = {});
+    void setFullGpuTracingSupportFromScene(const render::Scene& scene);
 
     bool hasKnownVisibleSurfaceCount() const;
     bool hasKnownVisibleLightCount() const;

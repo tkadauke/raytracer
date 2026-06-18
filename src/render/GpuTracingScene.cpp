@@ -560,6 +560,41 @@ bool GpuTracingSceneCompilation::supported() const {
   return diagnostics.unsupportedPrimitives == 0 && materials.supported() && lights.supported();
 }
 
+GpuDiffusePathLoopSupport
+render::gpuDiffusePathLoopSupport(const GpuTracingSceneCompilation& compilation,
+                                  const Scene& scene) {
+  if (!compilation.supported()) {
+    return {false, "GPU diffuse path loop requires a fully compiled GPU tracing scene"};
+  }
+
+  if (scene.background() != scene.environmentRadiance()) {
+    return {false, "GPU diffuse path loop requires visible background to match environment "
+                   "radiance"};
+  }
+
+  for (std::size_t materialId = 1; materialId != compilation.sections.materials.size();
+       ++materialId) {
+    const auto kind =
+      static_cast<GpuTracingMaterialKind>(compilation.sections.materials[materialId].kind);
+    if (kind != GpuTracingMaterialKind::Matte && kind != GpuTracingMaterialKind::Emissive) {
+      return {false, "GPU diffuse path loop supports only matte and emissive materials"};
+    }
+  }
+
+  return {true, {}};
+}
+
+bool render::supportsGpuDiffusePathLoop(const GpuTracingSceneCompilation& compilation,
+                                        const Scene& scene) {
+  return gpuDiffusePathLoopSupport(compilation, scene).supported;
+}
+
+std::string
+render::gpuDiffusePathLoopUnsupportedReason(const GpuTracingSceneCompilation& compilation,
+                                            const Scene& scene) {
+  return gpuDiffusePathLoopSupport(compilation, scene).reason;
+}
+
 GpuTracingSceneCompilation
 render::compileGpuTracingScene(const CompiledIntersectionScene& intersectionScene,
                                const Scene& scene) {

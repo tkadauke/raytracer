@@ -756,6 +756,33 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_NEAR(1.0, vectorFrom4(firstRun.pathStates[0].ray.direction).length(), 1e-5);
   }
 
+  TEST(GpuDiffusePathStepReference, DiffuseHitBeforeRouletteDepthEmitsNextPathRecord) {
+    Scene scene;
+    auto matte =
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::white()));
+    matte->setDiffuseCoefficient(1.0);
+    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    receiver->setMaterial(matte);
+    scene.add(receiver);
+    GpuTracingSceneSections sections = sectionsFor(scene);
+    sections.geometry = GpuIntersectionSceneBuffers{};
+    const std::uint32_t material = firstMaterialId(sections, GpuTracingMaterialKind::Matte);
+
+    GpuDiffusePathStateRecord path = activePath();
+    path.throughput = {0.1f, 0.1f, 0.1f, 0.0f};
+
+    const GpuDiffusePathStepResult result =
+      GpuDiffusePathStepReference().step(sections, {path}, {hitRecord(7, material)});
+
+    ASSERT_EQ(1u, result.pathStates.size());
+    EXPECT_TRUE(result.terminatedPathStates.empty());
+    EXPECT_TRUE(gpuDiffusePathStateIsActive(result.pathStates[0]));
+    EXPECT_EQ(1u, result.pathStates[0].depth);
+    EXPECT_EQ(1u, result.metrics.spawnedContinuations);
+    EXPECT_EQ(0u, result.metrics.terminatedPaths);
+    ASSERT_COLOR_NEAR(Colord(0.1, 0.1, 0.1), colorFrom4(result.pathStates[0].throughput), 1e-6);
+  }
+
   TEST(GpuDiffusePathStepReference, RouletteTerminatedDiffuseHitEmitsNoNextPathRecord) {
     Scene scene;
     auto matte =
@@ -769,6 +796,7 @@ namespace GpuDiffusePathStepReferenceTest {
     const std::uint32_t material = firstMaterialId(sections, GpuTracingMaterialKind::Matte);
 
     GpuDiffusePathStateRecord path = activePath();
+    path.depth = 3;
     path.throughput = {0.1f, 0.1f, 0.1f, 0.0f};
 
     const GpuDiffusePathStepResult result =

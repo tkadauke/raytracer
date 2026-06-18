@@ -382,7 +382,8 @@ void GpuDiffusePathStepMetrics::merge(const GpuDiffusePathStepMetrics& source) {
 
 GpuDiffusePathStepResult
 GpuDiffusePathStep::step(const GpuTracingSceneSections& scene,
-                         const std::vector<GpuDiffusePathStateRecord>& pathStates) const {
+                         const std::vector<GpuDiffusePathStateRecord>& pathStates,
+                         const GpuDiffusePathLoopSettings& settings) const {
   std::vector<GpuIntersectionRay> activeRays;
   activeRays.reserve(pathStates.size());
   for (const GpuDiffusePathStateRecord& pathState : pathStates) {
@@ -394,7 +395,7 @@ GpuDiffusePathStep::step(const GpuTracingSceneSections& scene,
   const std::vector<GpuIntersectionHitRecord> closestHits =
     GpuIntersectionIntersector().intersectClosest(scene.geometry, activeRays);
   GpuDiffusePathStepResult result =
-    GpuDiffusePathStepReference().step(scene, pathStates, closestHits);
+    GpuDiffusePathStepReference().step(scene, pathStates, closestHits, settings);
   result.closestHitRecords = closestHits;
   if (!activeRays.empty()) {
     result.metrics.closestHitExecutionPath = kPackedCpuExecutionPath;
@@ -406,7 +407,8 @@ GpuDiffusePathStep::step(const GpuTracingSceneSections& scene,
 GpuDiffusePathStepResult
 GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
                                   const std::vector<GpuDiffusePathStateRecord>& pathStates,
-                                  const std::vector<GpuIntersectionHitRecord>& closestHits) const {
+                                  const std::vector<GpuIntersectionHitRecord>& closestHits,
+                                  const GpuDiffusePathLoopSettings& settings) const {
   GpuDiffusePathStepResult result;
   result.closestHitRecords = closestHits;
   result.stepRecords.resize(pathStates.size());
@@ -550,10 +552,12 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
     const double normalDotOut = normal * wo;
     Colord nextThroughput =
       pdf <= 0.0 ? Colord::black() : throughput * (bsdf * (normalDotOut / pdf));
-    const double roulette =
-      sample1D(pathState, sampleDimension(pathState, kContinuationDimensionOffset));
-    const PathContinuation continuation = pathContinuation(nextThroughput, roulette);
-    nextThroughput = continuedThroughput(nextThroughput, continuation);
+    if (pathState.depth >= settings.russianRouletteDepth) {
+      const double roulette =
+        sample1D(pathState, sampleDimension(pathState, kContinuationDimensionOffset));
+      const PathContinuation continuation = pathContinuation(nextThroughput, roulette);
+      nextThroughput = continuedThroughput(nextThroughput, continuation);
+    }
 
     if (nextThroughput == Colord::black()) {
       pathState.accumulatedRadiance = accumulated.toFloat4(0.0f);
@@ -612,7 +616,7 @@ GpuDiffusePathLoop::run(const GpuTracingSceneSections& scene,
   GpuDiffusePathStep stepper;
   while (!active.empty()) {
     result.activePathsPerDepth.push_back(active.size());
-    const GpuDiffusePathStepResult step = stepper.step(scene, active);
+    const GpuDiffusePathStepResult step = stepper.step(scene, active, settings);
     ++result.depthCount;
     result.metrics.merge(step.metrics);
     result.stepRecords.insert(result.stepRecords.end(), step.stepRecords.begin(),
