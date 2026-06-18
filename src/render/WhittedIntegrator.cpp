@@ -249,6 +249,15 @@ namespace render {
       return static_cast<std::uint64_t>(m_indices.size());
     }
 
+    [[nodiscard]] std::uint64_t recordActiveDepth(const QueuedRayFrontier& frontier,
+                                                  IntegratorBatchMetrics* metrics) {
+      const std::uint64_t activeSamples = collect(frontier);
+      if (metrics) {
+        metrics->recordActiveDepth(activeSamples);
+      }
+      return activeSamples;
+    }
+
     [[nodiscard]] std::uint64_t countOr(std::uint64_t fallbackCount) const {
       return m_enabled ? static_cast<std::uint64_t>(m_indices.size()) : fallbackCount;
     }
@@ -1372,11 +1381,8 @@ namespace render {
     }
 
     for (int depth = 0; depth != m_maximumRecursionDepth && !current.empty(); ++depth) {
-      const std::uint64_t currentActiveSamples = activeSamples.collect(current);
-      if (metrics) {
-        metrics->recordActiveDepth(currentActiveSamples);
-        current.recordActiveHostPathStateBytes(metrics);
-      }
+      const std::uint64_t currentActiveSamples = activeSamples.recordActiveDepth(current, metrics);
+      current.recordActiveHostPathStateBytes(metrics);
 
       next.prepareForNextDepth(current.size());
       nextActiveSamples.clear();

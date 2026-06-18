@@ -1386,6 +1386,9 @@ Progress:
   loose mark-vector/index-vector pair. Current-depth collection, next-depth
   marking, duplicate suppression, and fallback active counts now move together,
   narrowing another host-side scheduler boundary for future resident path state.
+- Whitted active-depth metric publication now also lives with that tracker: the
+  depth scheduler asks for the current active sample count, while the tracker
+  records the active-depth row from the same collection pass.
 - Path-tracing direct-light selection and occlusion host-byte depth arrays now
   record explicit zero rows for depths with no visibility work. That keeps
   selection, occlusion, and contribution byte diagnostics aligned by depth when
