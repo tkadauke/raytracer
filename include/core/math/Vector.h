@@ -157,6 +157,18 @@ public:
   }
 
   /**
+    * @returns the first four vector components as floats. If the vector has
+    * fewer than four dimensions, missing components are filled with @p fill.
+    */
+  [[nodiscard]] inline constexpr std::array<float, 4> toFloat4(float fill = 0.0f) const noexcept {
+    std::array<float, 4> result{fill, fill, fill, fill};
+    for (int i = 0; i != std::min(Dimensions, 4); ++i) {
+      result[static_cast<std::size_t>(i)] = static_cast<float>(coordinate(i));
+    }
+    return result;
+  }
+
+  /**
     * Sets the coordinate with index dim to value.
     */
   inline constexpr void setCoordinate(int dim, const T& value) noexcept {

@@ -2,7 +2,6 @@
 
 #include "core/math/Constants.h"
 #include "core/math/Ray.h"
-#include "render/GpuFloat4.h"
 #include "render/MIS.h"
 #include "render/PathTermination.h"
 #include "render/samplers/GpuSampleStream.h"
@@ -25,7 +24,7 @@ namespace {
   constexpr const char* kCpuRecordExecutionPath = "cpu_record";
 
   Rayd rayFromRecord(const GpuIntersectionRay& ray) {
-    return Rayd(gpuFloat4ToPoint4(ray.origin), gpuFloat4ToVector3(ray.direction));
+    return Rayd(Vector4d(ray.origin), Vector3d(ray.direction));
   }
 
   GpuIntersectionRay packRay(const Rayd& ray, std::uint32_t rayIndex, double minDistance,
@@ -60,12 +59,11 @@ namespace {
       return Colord::black();
     }
 
-    return gpuFloat4ToColor(texture.parameters);
+    return Colord(texture.parameters);
   }
 
   Colord environmentRadiance(const GpuTracingSceneSections& scene) {
-    return scene.environment.empty() ? Colord::black()
-                                     : gpuFloat4ToColor(scene.environment.front().color);
+    return scene.environment.empty() ? Colord::black() : Colord(scene.environment.front().color);
   }
 
   struct LightSampleRecord {
@@ -80,36 +78,35 @@ namespace {
   double rectangularLightSurfaceCosine(const GpuTracingLightRecord& light,
                                        const Vector3d& directionToLight) {
     const Vector3d normal =
-      (gpuFloat4ToVector3(light.u) ^ gpuFloat4ToVector3(light.v)).normalizedOrZero(kLightTolerance);
+      (Vector3d(light.u) ^ Vector3d(light.v)).normalizedOrZero(kLightTolerance);
     return std::max(0.0, normal * -directionToLight);
   }
 
   Vector3d rectangularLightPoint(const GpuTracingLightRecord& light, const Vector2d& sample) {
-    return gpuFloat4ToVector3(light.positionOrDirection) +
-           gpuFloat4ToVector3(light.u) * (sample.x() - 0.5) +
-           gpuFloat4ToVector3(light.v) * (sample.y() - 0.5);
+    return Vector3d(light.positionOrDirection) + Vector3d(light.u) * (sample.x() - 0.5) +
+           Vector3d(light.v) * (sample.y() - 0.5);
   }
 
   double rectangularLightArea(const GpuTracingLightRecord& light) {
-    return (gpuFloat4ToVector3(light.u) ^ gpuFloat4ToVector3(light.v)).length();
+    return (Vector3d(light.u) ^ Vector3d(light.v)).length();
   }
 
   LightSampleRecord sampleLight(const GpuTracingLightRecord& light, const Vector3d& point,
                                 const Vector2d& sample) {
     const auto kind = static_cast<GpuTracingLightKind>(light.kind);
     if (kind == GpuTracingLightKind::Point) {
-      const Vector3d offset = gpuFloat4ToVector3(light.positionOrDirection) - point;
+      const Vector3d offset = Vector3d(light.positionOrDirection) - point;
       const double distance = offset.length();
       if (distance <= kLightTolerance) {
         return {};
       }
-      return {true, offset / distance, gpuFloat4ToColor(light.parameters), distance, 1.0, true};
+      return {true, offset / distance, Colord(light.parameters), distance, 1.0, true};
     }
 
     if (kind == GpuTracingLightKind::Directional) {
       return {true,
-              gpuFloat4ToVector3(light.positionOrDirection).normalized(),
-              gpuFloat4ToColor(light.parameters),
+              Vector3d(light.positionOrDirection).normalized(),
+              Colord(light.parameters),
               std::numeric_limits<double>::infinity(),
               1.0,
               true};
@@ -136,7 +133,7 @@ namespace {
 
       return {true,
               direction,
-              gpuFloat4ToColor(light.parameters),
+              Colord(light.parameters),
               distance,
               (distance * distance) / (cosLight * area),
               false};
@@ -159,22 +156,22 @@ namespace {
       }
 
       if (kind == GpuTracingLightKind::RectangularArea) {
-        const Vector3d normal = (gpuFloat4ToVector3(light.u) ^ gpuFloat4ToVector3(light.v))
-                                  .normalizedOrZero(kLightTolerance);
+        const Vector3d normal =
+          (Vector3d(light.u) ^ Vector3d(light.v)).normalizedOrZero(kLightTolerance);
         const double normalDotDirection = normal * direction;
         if (std::abs(normalDotDirection) <= kLightTolerance) {
           continue;
         }
         const double t =
-          ((gpuFloat4ToVector3(light.positionOrDirection) - point) * normal) / normalDotDirection;
+          ((Vector3d(light.positionOrDirection) - point) * normal) / normalDotDirection;
         if (t <= kLightTolerance) {
           continue;
         }
 
         const Vector3d lightPoint = point + direction * t;
-        const Vector3d local = lightPoint - gpuFloat4ToVector3(light.positionOrDirection);
-        const Vector3d u = gpuFloat4ToVector3(light.u);
-        const Vector3d v = gpuFloat4ToVector3(light.v);
+        const Vector3d local = lightPoint - Vector3d(light.positionOrDirection);
+        const Vector3d u = Vector3d(light.u);
+        const Vector3d v = Vector3d(light.v);
         const double uu = u * u;
         const double uv = u * v;
         const double vv = v * v;
@@ -302,12 +299,11 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
                                 : hitIt->second;
 
     if (!hit.hit) {
-      const Colord contribution =
-        gpuFloat4ToColor(pathState.throughput) * environmentRadiance(scene);
+      const Colord contribution = Colord(pathState.throughput) * environmentRadiance(scene);
       pathState.accumulatedRadiance =
-        gpuColor4(gpuFloat4ToColor(pathState.accumulatedRadiance) + contribution, 0.0f);
+        (Colord(pathState.accumulatedRadiance) + contribution).toFloat4(0.0f);
       stepRecord.event = static_cast<std::uint32_t>(GpuDiffusePathStepEvent::Miss);
-      stepRecord.missRadiance = gpuColor4(contribution, 0.0f);
+      stepRecord.missRadiance = contribution.toFloat4(0.0f);
       terminate(pathState);
       stepRecord.flags = pathState.flags;
       ++result.metrics.misses;
@@ -331,12 +327,12 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
 
     const GpuTracingMaterialRecord& material = scene.materials[hit.material];
     const auto materialKind = static_cast<GpuTracingMaterialKind>(material.kind);
-    const Vector3d point = gpuFloat4ToVector3(hit.point);
-    const Vector3d normal = gpuFloat4ToVector3(hit.normal).normalized();
+    const Vector3d point = Vector3d(hit.point);
+    const Vector3d normal = Vector3d(hit.normal).normalized();
     const Rayd ray = rayFromRecord(pathState.ray);
     const Vector3d wi = -ray.direction().normalized();
-    const Colord throughput = gpuFloat4ToColor(pathState.throughput);
-    Colord accumulated = gpuFloat4ToColor(pathState.accumulatedRadiance);
+    const Colord throughput = Colord(pathState.throughput);
+    Colord accumulated = Colord(pathState.accumulatedRadiance);
 
     if (materialKind == GpuTracingMaterialKind::Emissive) {
       result.metrics.emissionExecutionPath = kCpuRecordExecutionPath;
@@ -345,8 +341,8 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
         (normal * wi) > 0.0 ? textureColor(scene, material.emissionTexture) : Colord::black();
       const Colord contribution = throughput * emitted;
       accumulated += contribution;
-      pathState.accumulatedRadiance = gpuColor4(accumulated, 0.0f);
-      stepRecord.emittedRadiance = gpuColor4(contribution, 0.0f);
+      pathState.accumulatedRadiance = accumulated.toFloat4(0.0f);
+      stepRecord.emittedRadiance = contribution.toFloat4(0.0f);
       terminate(pathState);
       stepRecord.flags = pathState.flags;
       ++result.metrics.emissiveHits;
@@ -378,7 +374,7 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
         result.metrics.directLightVisibilityExecutionPath = kPackedCpuExecutionPath;
         result.metrics.directLightContributionExecutionPath = kCpuRecordExecutionPath;
         ++result.metrics.directLightSamples;
-        const Rayd shadowRay = Rayd(gpuFloat4ToPoint4(hit.point), light.direction).epsilonShifted();
+        const Rayd shadowRay = Rayd(Vector4d(hit.point), light.direction).epsilonShifted();
         const std::uint32_t shadowRayIndex =
           static_cast<std::uint32_t>(result.directLightShadowRays.size());
         const GpuIntersectionRay packedShadowRay =
@@ -402,7 +398,7 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
             ++result.metrics.directLightContributingSamples;
           }
           accumulated += contribution;
-          stepRecord.directLightRadiance = gpuColor4(contribution, 0.0f);
+          stepRecord.directLightRadiance = contribution.toFloat4(0.0f);
         }
       }
     }
@@ -420,18 +416,17 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
     nextThroughput = continuedThroughput(nextThroughput, continuation);
 
     if (nextThroughput == Colord::black()) {
-      pathState.accumulatedRadiance = gpuColor4(accumulated, 0.0f);
+      pathState.accumulatedRadiance = accumulated.toFloat4(0.0f);
       terminate(pathState);
       stepRecord.flags = pathState.flags;
       ++result.metrics.terminatedPaths;
       continue;
     }
 
-    pathState.ray =
-      packRay(Rayd(gpuFloat4ToPoint4(hit.point), wo).epsilonShifted(), pathState.ray.rayIndex,
-              /*minDistance=*/0.0, std::numeric_limits<double>::infinity());
-    pathState.throughput = gpuColor4(nextThroughput, 0.0f);
-    pathState.accumulatedRadiance = gpuColor4(accumulated, 0.0f);
+    pathState.ray = packRay(Rayd(Vector4d(hit.point), wo).epsilonShifted(), pathState.ray.rayIndex,
+                            /*minDistance=*/0.0, std::numeric_limits<double>::infinity());
+    pathState.throughput = nextThroughput.toFloat4(0.0f);
+    pathState.accumulatedRadiance = accumulated.toFloat4(0.0f);
     pathState.depth += 1u;
     pathState.previousBsdfPdf = static_cast<float>(pdf);
     pathState.previousLightPdf = static_cast<float>(lightPdf(scene, point, wo));
@@ -439,7 +434,7 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
     pathState.previousEventFlags = gpuDiffusePathStateSampledFromBsdfFlag;
     pathState.flags |= gpuDiffusePathStateActiveFlag;
     pathState.flags &= ~gpuDiffusePathStateTerminatedFlag;
-    stepRecord.continuationThroughput = gpuColor4(nextThroughput, 0.0f);
+    stepRecord.continuationThroughput = nextThroughput.toFloat4(0.0f);
     stepRecord.flags = pathState.flags;
     result.pathStates.push_back(pathState);
     ++result.metrics.spawnedContinuations;

@@ -1,7 +1,9 @@
 #pragma once
 
-#include <iostream>
 #include <algorithm>
+#include <array>
+#include <iostream>
+#include <type_traits>
 
 #include "core/DivisionByZeroException.h"
 #include "core/InequalityOperator.h"
@@ -62,6 +64,17 @@ public:
   inline explicit Color(const ComponentsType& cells) {
     for (int i = 0; i != 3; ++i) {
       m_components[i] = cells[i];
+    }
+  }
+
+  /**
+    * Constructs a color from the first three values in the given array.
+    */
+  template<class Source, std::size_t Size,
+           typename = std::enable_if_t<(Size >= 3u) && std::is_convertible_v<Source, T>>>
+  inline explicit Color(const std::array<Source, Size>& cells) {
+    for (int i = 0; i != 3; ++i) {
+      m_components[i] = static_cast<T>(cells[static_cast<std::size_t>(i)]);
     }
   }
 
@@ -181,6 +194,13 @@ public:
     */
   inline const T& b() const {
     return component(2);
+  }
+
+  /**
+    * @returns the RGB components as floats with @p alpha as the fourth value.
+    */
+  [[nodiscard]] inline std::array<float, 4> toFloat4(float alpha = 1.0f) const {
+    return {static_cast<float>(r()), static_cast<float>(g()), static_cast<float>(b()), alpha};
   }
 
   /**

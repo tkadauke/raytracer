@@ -1,6 +1,5 @@
 #include "render/GpuTracingScene.h"
 
-#include "render/GpuFloat4.h"
 #include "render/IntersectionSceneCompiler.h"
 #include "render/lights/DirectionalLight.h"
 #include "render/lights/Light.h"
@@ -387,7 +386,7 @@ std::size_t GpuTracingSceneSections::uploadByteCount() const {
 
 GpuTracingEnvironmentRecord render::makeGpuTracingConstantEnvironment(const Colord& color) {
   GpuTracingEnvironmentRecord record;
-  record.color = gpuColor4(color);
+  record.color = color.toFloat4();
   return record;
 }
 
@@ -423,7 +422,7 @@ render::makeGpuTracingTextureRecord(const Texturec& texture, std::string* unsupp
   if (const auto* constantColor = dynamic_cast<const ConstantColorTexture*>(&texture)) {
     GpuTracingTextureRecord record;
     record.kind = static_cast<std::uint32_t>(GpuTracingTextureKind::ConstantColor);
-    record.parameters = gpuColor4(constantColor->color());
+    record.parameters = constantColor->color().toFloat4();
     return record;
   }
 
@@ -507,26 +506,26 @@ render::makeGpuTracingLightRecord(const Light& light, std::string* unsupportedRe
   if (const auto* pointLight = dynamic_cast<const PointLight*>(&light)) {
     GpuTracingLightRecord record;
     record.kind = static_cast<std::uint32_t>(GpuTracingLightKind::Point);
-    record.positionOrDirection = gpuFloat4(pointLight->position(), 1.0f);
-    record.parameters = gpuColor4(pointLight->color());
+    record.positionOrDirection = pointLight->position().toFloat4(1.0f);
+    record.parameters = pointLight->color().toFloat4();
     return record;
   }
 
   if (const auto* directionalLight = dynamic_cast<const DirectionalLight*>(&light)) {
     GpuTracingLightRecord record;
     record.kind = static_cast<std::uint32_t>(GpuTracingLightKind::Directional);
-    record.positionOrDirection = gpuFloat4(directionalLight->direction(), 0.0f);
-    record.parameters = gpuColor4(directionalLight->color());
+    record.positionOrDirection = directionalLight->direction().toFloat4();
+    record.parameters = directionalLight->color().toFloat4();
     return record;
   }
 
   if (const auto* areaLight = dynamic_cast<const RectangularAreaLight*>(&light)) {
     GpuTracingLightRecord record;
     record.kind = static_cast<std::uint32_t>(GpuTracingLightKind::RectangularArea);
-    record.positionOrDirection = gpuFloat4(areaLight->center(), 1.0f);
-    record.u = gpuFloat4(areaLight->edgeU(), 0.0f);
-    record.v = gpuFloat4(areaLight->edgeV(), 0.0f);
-    record.parameters = gpuColor4(areaLight->color());
+    record.positionOrDirection = areaLight->center().toFloat4(1.0f);
+    record.u = areaLight->edgeU().toFloat4();
+    record.v = areaLight->edgeV().toFloat4();
+    record.parameters = areaLight->color().toFloat4();
     return record;
   }
 
