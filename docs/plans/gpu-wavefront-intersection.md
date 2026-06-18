@@ -1206,6 +1206,12 @@ Progress:
   resident-frontier round-trip estimate, and an estimated savings count for
   mixed closest-hit plus any-hit depths. This gives the resident-frontier work a
   concrete target before scheduler state is moved onto the device.
+- Wavefront metrics now also size the result payload at those mixed
+  closest-hit plus any-hit depths: closest-hit readback bytes, any-hit readback
+  bytes, and total mixed-depth readback bytes appear in JSON, rendercli compact
+  summaries, and Modeler graph details. This keeps the resident-frontier target
+  tied to both boundary count and payload size without claiming that CPU shading
+  can avoid the readback today.
 - The wavefront/path-tracing textbook backend widget now includes a
   hybrid-boundary view and a resident-frontier target view. The chapter uses
   that control to connect the new mixed-depth, round-trip, throughput, and

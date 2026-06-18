@@ -1524,9 +1524,8 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(
       "GPU backend unavailable",
       closestHitCapability.value("fallback").toObject().value("reason").toString().toStdString());
-    EXPECT_EQ(
-      "cpu",
-      batching.value("directLightContributionExecutionPath").toString().toStdString());
+    EXPECT_EQ("cpu",
+              batching.value("directLightContributionExecutionPath").toString().toStdString());
     EXPECT_EQ("GPU diffuse direct-light contribution kernel unavailable",
               batching.value("directLightContributionFallbackReason").toString().toStdString());
     const QJsonObject tracingFallback = batching.value("tracingBackendFallback").toObject();
@@ -1974,6 +1973,15 @@ namespace WavefrontRaytracerTest {
     EXPECT_GT(renderCase.lastMetrics().batching.mixedQueryDepthRays(), 0u);
     EXPECT_GT(renderCase.lastMetrics().batching.mixedQueryDepthClosestHitRays(), 0u);
     EXPECT_GT(renderCase.lastMetrics().batching.mixedQueryDepthAnyHitRays(), 0u);
+    EXPECT_EQ(renderCase.lastMetrics().batching.mixedQueryDepthClosestHitRays() *
+                sizeof(render::GpuIntersectionHitRecord),
+              renderCase.lastMetrics().batching.mixedQueryDepthClosestHitReadbackBytes());
+    EXPECT_EQ(renderCase.lastMetrics().batching.mixedQueryDepthAnyHitRays() *
+                sizeof(render::GpuIntersectionOcclusionRecord),
+              renderCase.lastMetrics().batching.mixedQueryDepthAnyHitReadbackBytes());
+    EXPECT_EQ(renderCase.lastMetrics().batching.mixedQueryDepthClosestHitReadbackBytes() +
+                renderCase.lastMetrics().batching.mixedQueryDepthAnyHitReadbackBytes(),
+              renderCase.lastMetrics().batching.mixedQueryDepthReadbackBytes());
     EXPECT_GT(renderCase.lastMetrics().batching.directLightSamples, 0u);
 
     const QJsonObject batching = renderCase.lastMetrics().toJson().value("batching").toObject();
@@ -2018,6 +2026,14 @@ namespace WavefrontRaytracerTest {
       static_cast<double>(
         renderCase.lastMetrics().batching.residentDirectLightBatchRoundTripSavingsEstimate()),
       batching.value("residentDirectLightBatchRoundTripSavingsEstimate").toDouble());
+    EXPECT_EQ(static_cast<double>(renderCase.lastMetrics().batching.mixedQueryDepthReadbackBytes()),
+              batching.value("frontierMixedQueryReadbackBytes").toDouble());
+    EXPECT_EQ(static_cast<double>(
+                renderCase.lastMetrics().batching.mixedQueryDepthClosestHitReadbackBytes()),
+              batching.value("frontierMixedQueryClosestHitReadbackBytes").toDouble());
+    EXPECT_EQ(
+      static_cast<double>(renderCase.lastMetrics().batching.mixedQueryDepthAnyHitReadbackBytes()),
+      batching.value("frontierMixedQueryAnyHitReadbackBytes").toDouble());
     EXPECT_EQ(static_cast<double>(renderCase.lastMetrics().batching.activeHitHostBytesProcessed),
               batching.value("activeHitHostBytesProcessed").toDouble());
     EXPECT_EQ(
@@ -2399,8 +2415,8 @@ namespace WavefrontRaytracerTest {
 
     const render::TracingAccumulationLayout layout = render::TracingAccumulationLayout::image(4, 3);
     render::TracingAccumulationDiagnostics diagnostics =
-      render::TracingAccumulationDiagnostics::forLayout(
-        layout, "gpu_resident_path_loop", "resident_accumulation_resolve");
+      render::TracingAccumulationDiagnostics::forLayout(layout, "gpu_resident_path_loop",
+                                                        "resident_accumulation_resolve");
     diagnostics.recordClear();
     diagnostics.recordAdd(/*samples=*/7, /*operations=*/1);
     diagnostics.recordResolve();
@@ -2412,8 +2428,7 @@ namespace WavefrontRaytracerTest {
     metrics.accumulation.diagnostics = *metrics.batching.residentPathLoopAccumulation;
 
     const QJsonObject accumulation = metrics.toJson().value("accumulation").toObject();
-    EXPECT_EQ("gpu_resident_path_loop",
-              accumulation.value("backend").toString().toStdString());
+    EXPECT_EQ("gpu_resident_path_loop", accumulation.value("backend").toString().toStdString());
     EXPECT_EQ("resident_accumulation_resolve",
               accumulation.value("residency").toString().toStdString());
     EXPECT_EQ(12.0, accumulation.value("pixelCount").toDouble());

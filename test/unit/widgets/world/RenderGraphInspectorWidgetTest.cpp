@@ -1164,8 +1164,7 @@ namespace RenderGraphInspectorWidgetTest {
 
     const auto rows = widget.passDetailRows(QStringLiteral("wavefront_beauty"));
 
-    EXPECT_EQ(QStringLiteral("GPU"),
-              rowValue(rows, QStringLiteral("Requested tracing execution")));
+    EXPECT_EQ(QStringLiteral("GPU"), rowValue(rows, QStringLiteral("Requested tracing execution")));
     EXPECT_EQ(QStringLiteral("Hybrid"),
               rowValue(rows, QStringLiteral("Predicted tracing execution")));
     EXPECT_EQ(QStringLiteral("full GPU tracing backend is not available"),
@@ -1394,7 +1393,8 @@ namespace RenderGraphInspectorWidgetTest {
     ASSERT_NE(nullptr, passTrace);
     const QJsonObject service =
       passTrace->metadata().value(QStringLiteral("intersectionService")).toObject();
-    EXPECT_EQ(QStringLiteral("closest_hit"), service.value(QStringLiteral("queryFamily")).toString());
+    EXPECT_EQ(QStringLiteral("closest_hit"),
+              service.value(QStringLiteral("queryFamily")).toString());
     EXPECT_EQ(QStringLiteral("debug_aov"), service.value(QStringLiteral("queryTag")).toString());
     EXPECT_EQ(QStringLiteral("cpu"), service.value(QStringLiteral("requestedBackend")).toString());
     EXPECT_GT(service.value(QStringLiteral("queryCount")).toDouble(), 0.0);
@@ -1440,7 +1440,7 @@ namespace RenderGraphInspectorWidgetTest {
   }
 
   TEST_F(RenderGraphInspectorWidgetTest, ShouldShowWavefrontQueryRoundTripFamiliesOnPassTooltip) {
-    auto trace = wavefrontGpuTrace();
+    auto trace = wavefrontDirectLightGpuTrace();
     ASSERT_TRUE(trace);
 
     RenderGraphInspectorWidget widget;
@@ -1457,6 +1457,7 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("query round trips")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("closest-hit")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("any-hit")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("mixed-depth readback bytes")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("active-hit host bytes")));
   }
 

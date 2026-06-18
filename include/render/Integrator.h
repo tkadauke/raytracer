@@ -273,6 +273,9 @@ namespace render {
     [[nodiscard]] std::uint64_t mixedQueryDepthRays() const;
     [[nodiscard]] std::uint64_t mixedQueryDepthClosestHitRays() const;
     [[nodiscard]] std::uint64_t mixedQueryDepthAnyHitRays() const;
+    [[nodiscard]] std::uint64_t mixedQueryDepthReadbackBytes() const;
+    [[nodiscard]] std::uint64_t mixedQueryDepthClosestHitReadbackBytes() const;
+    [[nodiscard]] std::uint64_t mixedQueryDepthAnyHitReadbackBytes() const;
     void recordPacketScalarFallbacksByReason(const std::map<std::string, std::uint64_t>& reasons);
     void recordPacketHitRefinement(const std::string& materialLabel);
     void recordIntersectionBackend(const WavefrontIntersectionBackend& backend);

@@ -272,6 +272,9 @@ namespace engine::wavefront {
       [[nodiscard]] std::uint64_t mixedQueryDepthRays() const;
       [[nodiscard]] std::uint64_t mixedQueryDepthClosestHitRays() const;
       [[nodiscard]] std::uint64_t mixedQueryDepthAnyHitRays() const;
+      [[nodiscard]] std::uint64_t mixedQueryDepthReadbackBytes() const;
+      [[nodiscard]] std::uint64_t mixedQueryDepthClosestHitReadbackBytes() const;
+      [[nodiscard]] std::uint64_t mixedQueryDepthAnyHitReadbackBytes() const;
       [[nodiscard]] double intersectionBackendKernelRaysPerSecond() const;
       [[nodiscard]] render::TracingExecutionCapabilityRecords tracingExecutionCapabilities() const;
     } batching;

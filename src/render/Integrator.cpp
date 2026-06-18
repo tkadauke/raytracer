@@ -327,8 +327,7 @@ namespace render {
     directLightOcclusionHostBytes += source.directLightOcclusionHostBytes;
     directLightContributionHostBytes += source.directLightContributionHostBytes;
     mergeLabel(directLightContributionExecutionPath, source.directLightContributionExecutionPath);
-    mergeLabel(directLightContributionFallbackReason,
-               source.directLightContributionFallbackReason);
+    mergeLabel(directLightContributionFallbackReason, source.directLightContributionFallbackReason);
     emittedRadianceLuminanceSum += source.emittedRadianceLuminanceSum;
     directLightRadianceLuminanceSum += source.directLightRadianceLuminanceSum;
     primaryDirectLightRadianceLuminanceSum += source.primaryDirectLightRadianceLuminanceSum;
@@ -370,9 +369,8 @@ namespace render {
     residentPathLoopRemovedPaths += source.residentPathLoopRemovedPaths;
     residentPathLoopMovedPaths += source.residentPathLoopMovedPaths;
     residentPathLoopRetainedIndexBytes += source.residentPathLoopRetainedIndexBytes;
-    residentPathLoopResidentPathStateBytes =
-      std::max(residentPathLoopResidentPathStateBytes,
-               source.residentPathLoopResidentPathStateBytes);
+    residentPathLoopResidentPathStateBytes = std::max(
+      residentPathLoopResidentPathStateBytes, source.residentPathLoopResidentPathStateBytes);
     residentPathLoopInputResidentPathStateBytes +=
       source.residentPathLoopInputResidentPathStateBytes;
     residentPathLoopRetainedResidentPathStateBytes +=
@@ -484,12 +482,9 @@ namespace render {
       residentPathLoopRemovedPaths += compaction.removedPathCount();
       residentPathLoopMovedPaths += compaction.movedPathCount();
       residentPathLoopRetainedIndexBytes += compaction.retainedIndexBytes();
-      residentPathLoopInputResidentPathStateBytes +=
-        compaction.inputResidentPathStateBytes();
-      residentPathLoopRetainedResidentPathStateBytes +=
-        compaction.retainedResidentPathStateBytes();
-      residentPathLoopRemovedResidentPathStateBytes +=
-        compaction.removedResidentPathStateBytes();
+      residentPathLoopInputResidentPathStateBytes += compaction.inputResidentPathStateBytes();
+      residentPathLoopRetainedResidentPathStateBytes += compaction.retainedResidentPathStateBytes();
+      residentPathLoopRemovedResidentPathStateBytes += compaction.removedResidentPathStateBytes();
       ++residentPathLoopSavedHostReadbacks;
       residentPathLoopSavedHostReadbackBytes += compaction.inputResidentPathStateBytes();
     }
@@ -679,8 +674,8 @@ namespace render {
     directLightContributionHostBytes += bytes;
   }
 
-  void IntegratorBatchMetrics::recordDirectLightContributionExecution(
-    std::string executionPath, std::string fallbackReason) {
+  void IntegratorBatchMetrics::recordDirectLightContributionExecution(std::string executionPath,
+                                                                      std::string fallbackReason) {
     mergeLabel(directLightContributionExecutionPath,
                executionPath.empty() ? std::string("unknown") : executionPath);
     mergeLabel(directLightContributionFallbackReason, fallbackReason);
@@ -828,6 +823,18 @@ namespace render {
       }
     }
     return rays;
+  }
+
+  std::uint64_t IntegratorBatchMetrics::mixedQueryDepthReadbackBytes() const {
+    return mixedQueryDepthClosestHitReadbackBytes() + mixedQueryDepthAnyHitReadbackBytes();
+  }
+
+  std::uint64_t IntegratorBatchMetrics::mixedQueryDepthClosestHitReadbackBytes() const {
+    return mixedQueryDepthClosestHitRays() * sizeof(GpuIntersectionHitRecord);
+  }
+
+  std::uint64_t IntegratorBatchMetrics::mixedQueryDepthAnyHitReadbackBytes() const {
+    return mixedQueryDepthAnyHitRays() * sizeof(GpuIntersectionOcclusionRecord);
   }
 
   void IntegratorBatchMetrics::recordPacketScalarFallbacksByReason(

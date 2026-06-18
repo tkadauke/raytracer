@@ -132,48 +132,48 @@ namespace engine::wavefront {
 
     QString tracingDomainLabel(render::TracingExecutionDomain domain) {
       switch (domain) {
-        case render::TracingExecutionDomain::Intersection:
-          return QStringLiteral("intersection");
-        case render::TracingExecutionDomain::SceneRecords:
-          return QStringLiteral("scene_records");
-        case render::TracingExecutionDomain::Sampling:
-          return QStringLiteral("sampling");
-        case render::TracingExecutionDomain::DirectLighting:
-          return QStringLiteral("direct_lighting");
-        case render::TracingExecutionDomain::BSDF:
-          return QStringLiteral("bsdf");
-        case render::TracingExecutionDomain::PathState:
-          return QStringLiteral("path_state");
-        case render::TracingExecutionDomain::Accumulation:
-          return QStringLiteral("accumulation");
+      case render::TracingExecutionDomain::Intersection:
+        return QStringLiteral("intersection");
+      case render::TracingExecutionDomain::SceneRecords:
+        return QStringLiteral("scene_records");
+      case render::TracingExecutionDomain::Sampling:
+        return QStringLiteral("sampling");
+      case render::TracingExecutionDomain::DirectLighting:
+        return QStringLiteral("direct_lighting");
+      case render::TracingExecutionDomain::BSDF:
+        return QStringLiteral("bsdf");
+      case render::TracingExecutionDomain::PathState:
+        return QStringLiteral("path_state");
+      case render::TracingExecutionDomain::Accumulation:
+        return QStringLiteral("accumulation");
       }
       return QStringLiteral("unknown");
     }
 
     QString tracingDeviceLabel(render::TracingExecutionDevice device) {
       switch (device) {
-        case render::TracingExecutionDevice::CPU:
-          return QStringLiteral("cpu");
-        case render::TracingExecutionDevice::Hybrid:
-          return QStringLiteral("hybrid");
-        case render::TracingExecutionDevice::GPU:
-          return QStringLiteral("gpu");
-        case render::TracingExecutionDevice::Unsupported:
-          return QStringLiteral("unsupported");
+      case render::TracingExecutionDevice::CPU:
+        return QStringLiteral("cpu");
+      case render::TracingExecutionDevice::Hybrid:
+        return QStringLiteral("hybrid");
+      case render::TracingExecutionDevice::GPU:
+        return QStringLiteral("gpu");
+      case render::TracingExecutionDevice::Unsupported:
+        return QStringLiteral("unsupported");
       }
       return QStringLiteral("unsupported");
     }
 
     QString tracingSupportLabel(render::TracingCapabilitySupport support) {
       switch (support) {
-        case render::TracingCapabilitySupport::Supported:
-          return QStringLiteral("supported");
-        case render::TracingCapabilitySupport::Restricted:
-          return QStringLiteral("restricted");
-        case render::TracingCapabilitySupport::Unsupported:
-          return QStringLiteral("unsupported");
-        case render::TracingCapabilitySupport::Fallback:
-          return QStringLiteral("fallback");
+      case render::TracingCapabilitySupport::Supported:
+        return QStringLiteral("supported");
+      case render::TracingCapabilitySupport::Restricted:
+        return QStringLiteral("restricted");
+      case render::TracingCapabilitySupport::Unsupported:
+        return QStringLiteral("unsupported");
+      case render::TracingCapabilitySupport::Fallback:
+        return QStringLiteral("fallback");
       }
       return QStringLiteral("unsupported");
     }
@@ -210,8 +210,8 @@ namespace engine::wavefront {
       return json;
     }
 
-    QJsonObject tracingBackendFallbackToJson(
-      const render::TracingExecutionCapabilityRecords& records) {
+    QJsonObject
+    tracingBackendFallbackToJson(const render::TracingExecutionCapabilityRecords& records) {
       for (const auto& record : records.flattened()) {
         if (record.fallsBack()) {
           QJsonObject json = tracingFallbackToJson(record.fallback);
@@ -279,8 +279,7 @@ namespace engine::wavefront {
     directLightSelectionHostBytes += metrics.directLightSelectionHostBytes;
     directLightOcclusionHostBytes += metrics.directLightOcclusionHostBytes;
     directLightContributionHostBytes += metrics.directLightContributionHostBytes;
-    mergeLabel(directLightContributionExecutionPath,
-               metrics.directLightContributionExecutionPath);
+    mergeLabel(directLightContributionExecutionPath, metrics.directLightContributionExecutionPath);
     mergeLabel(directLightContributionFallbackReason,
                metrics.directLightContributionFallbackReason);
     directLightAnyHitFrontierPackedRayBytes += metrics.directLightAnyHitFrontierPackedRayBytes;
@@ -434,9 +433,8 @@ namespace engine::wavefront {
     residentPathLoopRemovedPaths += metrics.residentPathLoopRemovedPaths;
     residentPathLoopMovedPaths += metrics.residentPathLoopMovedPaths;
     residentPathLoopRetainedIndexBytes += metrics.residentPathLoopRetainedIndexBytes;
-    residentPathLoopResidentPathStateBytes =
-      std::max(residentPathLoopResidentPathStateBytes,
-               metrics.residentPathLoopResidentPathStateBytes);
+    residentPathLoopResidentPathStateBytes = std::max(
+      residentPathLoopResidentPathStateBytes, metrics.residentPathLoopResidentPathStateBytes);
     residentPathLoopInputResidentPathStateBytes +=
       metrics.residentPathLoopInputResidentPathStateBytes;
     residentPathLoopRetainedResidentPathStateBytes +=
@@ -787,6 +785,19 @@ namespace engine::wavefront {
     return rays;
   }
 
+  std::uint64_t WavefrontRenderMetrics::BatchSummary::mixedQueryDepthReadbackBytes() const {
+    return mixedQueryDepthClosestHitReadbackBytes() + mixedQueryDepthAnyHitReadbackBytes();
+  }
+
+  std::uint64_t
+  WavefrontRenderMetrics::BatchSummary::mixedQueryDepthClosestHitReadbackBytes() const {
+    return mixedQueryDepthClosestHitRays() * sizeof(render::GpuIntersectionHitRecord);
+  }
+
+  std::uint64_t WavefrontRenderMetrics::BatchSummary::mixedQueryDepthAnyHitReadbackBytes() const {
+    return mixedQueryDepthAnyHitRays() * sizeof(render::GpuIntersectionOcclusionRecord);
+  }
+
   double WavefrontRenderMetrics::BatchSummary::intersectionBackendKernelRaysPerSecond() const {
     if (intersectionBackendKernelWorkerSeconds == 0.0) {
       return 0.0;
@@ -801,8 +812,8 @@ namespace engine::wavefront {
 
     render::TracingExecutionCapabilityRecords records;
     records.intersection.closestHit = tracingRecordFromExecutionLabels(
-      Domain::Intersection, "geometry.closest_hit", intersectionBackendRequest,
-      intersectionBackend, intersectionBackendPlatform, intersectionBackendAvailability,
+      Domain::Intersection, "geometry.closest_hit", intersectionBackendRequest, intersectionBackend,
+      intersectionBackendPlatform, intersectionBackendAvailability,
       intersectionBackendFallbackReason, intersectionBackendClosestHitExecutionPath);
     records.intersection.anyHit = tracingRecordFromExecutionLabels(
       Domain::Intersection, "geometry.any_hit", intersectionBackendRequest, intersectionBackend,
@@ -819,11 +830,10 @@ namespace engine::wavefront {
         executionDeviceForLabel(intersectionBackendExecutionPath), intersectionBackendExecutionPath,
         reason);
     } else {
-      records.scene.geometryRecords =
-        render::TracingCapabilityRecord::cpu(Domain::SceneRecords, "scene.geometry_records",
-                                             intersectionBackendExecutionPath.empty()
-                                               ? "runtime_scene"
-                                               : intersectionBackendExecutionPath);
+      records.scene.geometryRecords = render::TracingCapabilityRecord::cpu(
+        Domain::SceneRecords, "scene.geometry_records",
+        intersectionBackendExecutionPath.empty() ? "runtime_scene"
+                                                 : intersectionBackendExecutionPath);
     }
     records.scene.materialRecords =
       render::TracingCapabilityRecord::cpu(Domain::SceneRecords, "scene.material_records");
@@ -849,15 +859,12 @@ namespace engine::wavefront {
         Domain::DirectLighting, "lighting.direct_light_contribution", Device::GPU, Device::CPU,
         contributionPath, directLightContributionFallbackReason);
     } else {
-      records.directLighting.contribution =
-        render::TracingCapabilityRecord::cpu(Domain::DirectLighting,
-                                             "lighting.direct_light_contribution",
-                                             contributionPath);
+      records.directLighting.contribution = render::TracingCapabilityRecord::cpu(
+        Domain::DirectLighting, "lighting.direct_light_contribution", contributionPath);
     }
 
     records.bsdf.eval = render::TracingCapabilityRecord::cpu(Domain::BSDF, "shading.bsdf_eval");
-    records.bsdf.sample =
-      render::TracingCapabilityRecord::cpu(Domain::BSDF, "shading.bsdf_sample");
+    records.bsdf.sample = render::TracingCapabilityRecord::cpu(Domain::BSDF, "shading.bsdf_sample");
     records.bsdf.deltaBranches =
       render::TracingCapabilityRecord::cpu(Domain::BSDF, "shading.delta_branches");
 
@@ -871,13 +878,11 @@ namespace engine::wavefront {
         render::TracingCapabilityRecord::gpu(Domain::PathState, "state.frontier_compaction",
                                              intersectionBackendPlatform, compactionPath);
     } else if (compactionDevice == Device::Hybrid) {
-      records.pathState.frontierCompaction =
-        render::TracingCapabilityRecord::hybrid(Domain::PathState, "state.frontier_compaction",
-                                                compactionPath);
+      records.pathState.frontierCompaction = render::TracingCapabilityRecord::hybrid(
+        Domain::PathState, "state.frontier_compaction", compactionPath);
     } else {
-      records.pathState.frontierCompaction =
-        render::TracingCapabilityRecord::cpu(Domain::PathState, "state.frontier_compaction",
-                                             compactionPath);
+      records.pathState.frontierCompaction = render::TracingCapabilityRecord::cpu(
+        Domain::PathState, "state.frontier_compaction", compactionPath);
     }
     records.pathState.spawnedContinuations =
       render::TracingCapabilityRecord::cpu(Domain::PathState, "state.spawned_continuations");
@@ -957,8 +962,7 @@ namespace engine::wavefront {
         QString::fromLatin1(render::toString(accumulationLayout.momentFormat));
       accumulationJson["resolveFormat"] =
         QString::fromLatin1(render::toString(accumulationLayout.resolveFormat));
-      accumulationJson["colorSumBytes"] =
-        static_cast<double>(accumulationLayout.colorSumBytes());
+      accumulationJson["colorSumBytes"] = static_cast<double>(accumulationLayout.colorSumBytes());
       accumulationJson["sampleCountBytes"] =
         static_cast<double>(accumulationLayout.sampleCountBytes());
       accumulationJson["momentBytes"] = static_cast<double>(accumulationLayout.momentBytes());
@@ -967,8 +971,7 @@ namespace engine::wavefront {
         static_cast<double>(accumulationLayout.accumulationBytes());
       accumulationJson["totalBytes"] = static_cast<double>(accumulationLayout.totalBytes());
     }
-    accumulationJson["residentBytes"] =
-      static_cast<double>(accumulationDiagnostics.residentBytes);
+    accumulationJson["residentBytes"] = static_cast<double>(accumulationDiagnostics.residentBytes);
     accumulationJson["clearOperations"] =
       static_cast<double>(accumulationDiagnostics.clearOperations);
     accumulationJson["addOperations"] = static_cast<double>(accumulationDiagnostics.addOperations);
@@ -1229,8 +1232,7 @@ namespace engine::wavefront {
       QString::fromStdString(batching.residentPathLoopExecutionPath);
     batchingJson["residentPathLoopResidency"] =
       QString::fromStdString(batching.residentPathLoopResidency);
-    batchingJson["residentPathLoopDepths"] =
-      static_cast<double>(batching.residentPathLoopDepths);
+    batchingJson["residentPathLoopDepths"] = static_cast<double>(batching.residentPathLoopDepths);
     batchingJson["residentPathLoopInputPaths"] =
       static_cast<double>(batching.residentPathLoopInputPaths);
     batchingJson["residentPathLoopRetainedPaths"] =
@@ -1415,6 +1417,12 @@ namespace engine::wavefront {
       static_cast<double>(batching.mixedQueryDepthClosestHitRays());
     batchingJson["frontierMixedQueryAnyHitRays"] =
       static_cast<double>(batching.mixedQueryDepthAnyHitRays());
+    batchingJson["frontierMixedQueryReadbackBytes"] =
+      static_cast<double>(batching.mixedQueryDepthReadbackBytes());
+    batchingJson["frontierMixedQueryClosestHitReadbackBytes"] =
+      static_cast<double>(batching.mixedQueryDepthClosestHitReadbackBytes());
+    batchingJson["frontierMixedQueryAnyHitReadbackBytes"] =
+      static_cast<double>(batching.mixedQueryDepthAnyHitReadbackBytes());
     batchingJson["frontierRay4PacketChunksPerDepth"] = frontierRay4PacketChunksPerDepth;
     batchingJson["frontierRay8PacketChunksPerDepth"] = frontierRay8PacketChunksPerDepth;
     batchingJson["frontierScalarRaysPerDepth"] = frontierScalarRaysPerDepth;
@@ -1795,14 +1803,13 @@ namespace engine::wavefront {
     const auto renderStart = detail::WavefrontMetricsRecorder::Clock::now();
     const bool recordMetrics = p->shouldRecordRenderMetrics(*m_camera);
     if (recordMetrics) {
-      p->metrics.reset(*m_camera, buffer.width(), buffer.height(), tilePlan, p->queueSize,
-                       *p->integrator, p->denoiser.get(), expectedIntersectionRays,
-                       expectedClosestHitIntersectionRays, expectedAnyHitIntersectionRays,
-                       autoMinimumGpuIntersectionRays, autoEstimatedQueryTransferBytes,
-                       p->samplingSeed, "sampler",
-                       p->convergenceEnabled, p->convergenceActiveSampleFractionThreshold,
-                       p->convergenceRadianceDeltaRmsThreshold, p->adaptiveSamplingEnabled,
-                       p->adaptiveMinimumSamples, p->adaptiveStddevThreshold);
+      p->metrics.reset(
+        *m_camera, buffer.width(), buffer.height(), tilePlan, p->queueSize, *p->integrator,
+        p->denoiser.get(), expectedIntersectionRays, expectedClosestHitIntersectionRays,
+        expectedAnyHitIntersectionRays, autoMinimumGpuIntersectionRays,
+        autoEstimatedQueryTransferBytes, p->samplingSeed, "sampler", p->convergenceEnabled,
+        p->convergenceActiveSampleFractionThreshold, p->convergenceRadianceDeltaRmsThreshold,
+        p->adaptiveSamplingEnabled, p->adaptiveMinimumSamples, p->adaptiveStddevThreshold);
     } else {
       p->metrics.clear();
     }
@@ -1890,14 +1897,13 @@ namespace engine::wavefront {
     const auto renderStart = detail::WavefrontMetricsRecorder::Clock::now();
     const bool recordMetrics = p->shouldRecordRenderMetrics(*m_camera);
     if (recordMetrics) {
-      p->metrics.reset(*m_camera, buffer.width(), buffer.height(), tilePlan, p->queueSize,
-                       *p->integrator, p->denoiser.get(), expectedIntersectionRays,
-                       expectedClosestHitIntersectionRays, expectedAnyHitIntersectionRays,
-                       autoMinimumGpuIntersectionRays, autoEstimatedQueryTransferBytes,
-                       p->samplingSeed, "sampler",
-                       p->convergenceEnabled, p->convergenceActiveSampleFractionThreshold,
-                       p->convergenceRadianceDeltaRmsThreshold, p->adaptiveSamplingEnabled,
-                       p->adaptiveMinimumSamples, p->adaptiveStddevThreshold);
+      p->metrics.reset(
+        *m_camera, buffer.width(), buffer.height(), tilePlan, p->queueSize, *p->integrator,
+        p->denoiser.get(), expectedIntersectionRays, expectedClosestHitIntersectionRays,
+        expectedAnyHitIntersectionRays, autoMinimumGpuIntersectionRays,
+        autoEstimatedQueryTransferBytes, p->samplingSeed, "sampler", p->convergenceEnabled,
+        p->convergenceActiveSampleFractionThreshold, p->convergenceRadianceDeltaRmsThreshold,
+        p->adaptiveSamplingEnabled, p->adaptiveMinimumSamples, p->adaptiveStddevThreshold);
     } else {
       p->metrics.clear();
     }
@@ -1981,14 +1987,13 @@ namespace engine::wavefront {
     const auto renderStart = detail::WavefrontMetricsRecorder::Clock::now();
     const bool recordMetrics = p->shouldRecordRenderMetrics(*m_camera);
     if (recordMetrics) {
-      p->metrics.reset(*m_camera, hdrBuffer.width(), hdrBuffer.height(), tilePlan, p->queueSize,
-                       *p->integrator, p->denoiser.get(), expectedIntersectionRays,
-                       expectedClosestHitIntersectionRays, expectedAnyHitIntersectionRays,
-                       autoMinimumGpuIntersectionRays, autoEstimatedQueryTransferBytes,
-                       p->samplingSeed, "sampler",
-                       p->convergenceEnabled, p->convergenceActiveSampleFractionThreshold,
-                       p->convergenceRadianceDeltaRmsThreshold, p->adaptiveSamplingEnabled,
-                       p->adaptiveMinimumSamples, p->adaptiveStddevThreshold);
+      p->metrics.reset(
+        *m_camera, hdrBuffer.width(), hdrBuffer.height(), tilePlan, p->queueSize, *p->integrator,
+        p->denoiser.get(), expectedIntersectionRays, expectedClosestHitIntersectionRays,
+        expectedAnyHitIntersectionRays, autoMinimumGpuIntersectionRays,
+        autoEstimatedQueryTransferBytes, p->samplingSeed, "sampler", p->convergenceEnabled,
+        p->convergenceActiveSampleFractionThreshold, p->convergenceRadianceDeltaRmsThreshold,
+        p->adaptiveSamplingEnabled, p->adaptiveMinimumSamples, p->adaptiveStddevThreshold);
     } else {
       p->metrics.clear();
     }

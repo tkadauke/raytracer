@@ -507,8 +507,8 @@ QString RenderGraphInspectorWidget::Private::tracingCapabilityFallbackSummary(
   const QString resolved =
     metadataIdentifierText(fallback.value(QStringLiteral("resolvedDevice")).toString());
   const QString reason = fallback.value(QStringLiteral("reason")).toString();
-  QString summary = QStringLiteral("%1: %2 -> %3")
-                      .arg(metadataIdentifierText(capability), requested, resolved);
+  QString summary =
+    QStringLiteral("%1: %2 -> %3").arg(metadataIdentifierText(capability), requested, resolved);
   if (!reason.isEmpty())
     summary += QStringLiteral(" (%1)").arg(reason);
   return summary;
@@ -533,8 +533,7 @@ QString RenderGraphInspectorWidget::Private::tracingCapabilityUnsupportedSummary
   return QStringLiteral("%1: %2").arg(names.size()).arg(names.join(QStringLiteral(", ")));
 }
 
-QString
-RenderGraphInspectorWidget::Private::tracingExecutionModeText(const QString& value) const {
+QString RenderGraphInspectorWidget::Private::tracingExecutionModeText(const QString& value) const {
   if (value.isEmpty())
     return QString();
   if (value == QStringLiteral("cpu"))
@@ -655,10 +654,9 @@ void RenderGraphInspectorWidget::Private::addPredictedTracingExecutionRows(
   addDetailRow(rows, QStringLiteral("Requested tracing execution"),
                tracingExecutionModeText(
                  QString::fromLatin1(tracingExecutionPreferenceName(*state->tracingExecution()))));
-  addDetailRow(
-    rows, QStringLiteral("Predicted tracing execution"),
-    tracingExecutionModeText(
-      QString::fromLatin1(tracingExecutionPreferenceName(*state->predictedTracingExecution()))));
+  addDetailRow(rows, QStringLiteral("Predicted tracing execution"),
+               tracingExecutionModeText(QString::fromLatin1(
+                 tracingExecutionPreferenceName(*state->predictedTracingExecution()))));
   addDetailRow(rows, QStringLiteral("Predicted tracing fallback"),
                QString::fromStdString(state->tracingExecutionFallbackReason()));
 }
@@ -670,15 +668,14 @@ void RenderGraphInspectorWidget::Private::addActualTracingExecutionRows(
   if (tracingExecution.isEmpty())
     return;
 
-  addDetailRow(rows, QStringLiteral("Actual tracing execution"),
-               tracingExecutionModeText(
-                 tracingExecution.value(QStringLiteral("actualMode")).toString()));
+  addDetailRow(
+    rows, QStringLiteral("Actual tracing execution"),
+    tracingExecutionModeText(tracingExecution.value(QStringLiteral("actualMode")).toString()));
   QString actualFallback =
     tracingExecution.value(QStringLiteral("actualFallbackReason")).toString();
   if (actualFallback.isEmpty())
     actualFallback = QStringLiteral("none");
-  addDetailRow(rows, QStringLiteral("Actual tracing fallback"),
-               actualFallback);
+  addDetailRow(rows, QStringLiteral("Actual tracing fallback"), actualFallback);
 }
 
 void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
@@ -822,8 +819,7 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                               QStringLiteral("residentPathLoopMovedPaths"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Resident path-loop retained-index bytes"),
                               batching, QStringLiteral("residentPathLoopRetainedIndexBytes"));
-  addDetailIntegerMetadataRow(rows, QStringLiteral("Resident path-loop path-state bytes"),
-                              batching,
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Resident path-loop path-state bytes"), batching,
                               QStringLiteral("residentPathLoopResidentPathStateBytes"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Resident path-loop input path-state bytes"),
                               batching,
@@ -840,11 +836,17 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                               QStringLiteral("residentPathLoopRoundTrips"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Resident path-loop saved host readbacks"),
                               batching, QStringLiteral("residentPathLoopSavedHostReadbacks"));
-  addDetailIntegerMetadataRow(
-    rows, QStringLiteral("Resident path-loop saved host readback bytes"), batching,
-    QStringLiteral("residentPathLoopSavedHostReadbackBytes"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Resident path-loop saved host readback bytes"),
+                              batching, QStringLiteral("residentPathLoopSavedHostReadbackBytes"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Mixed-depth query round trips"), batching,
                               QStringLiteral("frontierMixedQueryRoundTrips"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Mixed-depth query readback bytes"), batching,
+                              QStringLiteral("frontierMixedQueryReadbackBytes"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Mixed-depth closest-hit readback bytes"),
+                              batching,
+                              QStringLiteral("frontierMixedQueryClosestHitReadbackBytes"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Mixed-depth any-hit readback bytes"), batching,
+                              QStringLiteral("frontierMixedQueryAnyHitReadbackBytes"));
   addDetailBoolMetadataRow(rows, QStringLiteral("Packed closest-hit eligible"), batching,
                            QStringLiteral("intersectionScenePackedClosestHitEligible"));
   addDetailBoolMetadataRow(rows, QStringLiteral("Packed any-hit eligible"), batching,
@@ -1386,6 +1388,11 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
           jsonIntegerValue(batching, QStringLiteral("frontierMixedQueryRoundTrips"));
         if (mixedQueryRoundTrips > 0) {
           line += QStringLiteral(", %1 mixed-depth round trips").arg(mixedQueryRoundTrips);
+        }
+        const qulonglong mixedQueryReadbackBytes =
+          jsonIntegerValue(batching, QStringLiteral("frontierMixedQueryReadbackBytes"));
+        if (mixedQueryReadbackBytes > 0) {
+          line += QStringLiteral(", %1 mixed-depth readback bytes").arg(mixedQueryReadbackBytes);
         }
         const qulonglong activeHitHostBytes =
           jsonIntegerValue(batching, QStringLiteral("activeHitHostBytesProcessed"));

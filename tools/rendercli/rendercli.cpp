@@ -444,6 +444,12 @@ namespace {
         << unsignedValue(batching, "frontierMixedQueryClosestHitRays")
         << " frontier_mixed_query_any_hit_rays="
         << unsignedValue(batching, "frontierMixedQueryAnyHitRays")
+        << " frontier_mixed_query_readback_bytes="
+        << unsignedValue(batching, "frontierMixedQueryReadbackBytes")
+        << " frontier_mixed_query_closest_hit_readback_bytes="
+        << unsignedValue(batching, "frontierMixedQueryClosestHitReadbackBytes")
+        << " frontier_mixed_query_any_hit_readback_bytes="
+        << unsignedValue(batching, "frontierMixedQueryAnyHitReadbackBytes")
         << " closest_hit_batch_preferred="
         << (batching.value("intersectionBackendPrefersClosestHitBatch").toBool() ? "true" : "false")
         << " any_hit_batch_preferred="
