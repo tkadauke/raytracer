@@ -320,11 +320,15 @@ namespace render {
     std::uint64_t frontierPacketScalarFallbackRays{0};
     std::map<std::string, std::uint64_t> frontierPacketScalarFallbackRaysByReason;
     std::uint64_t frontierPacketRefinedRays{0};
-    bool trackFrontierMetrics{false};
     bool trackRadianceDelta{false};
     double depthDeltaSquaredSum{0.0};
     double depthMaxDelta{0.0};
     std::vector<Colord> resultBeforeActiveSamples;
+    IntegratorBatchMetrics* metrics{nullptr};
+
+    bool trackFrontierMetrics() const {
+      return metrics != nullptr;
+    }
 
     void recordPacketScalarFallbacks(const State& state,
                                      const std::map<std::string, std::uint64_t>& reasonsBefore) {
@@ -363,16 +367,17 @@ namespace render {
         const double deltaSquared = integrator.radianceDeltaSquared(
           resultBeforeActiveSamples[activeIndex], result[sampleIndex]);
         depthDeltaSquaredSum += deltaSquared;
-        if (trackFrontierMetrics) {
+        if (trackFrontierMetrics()) {
           depthMaxDelta = std::max(depthMaxDelta, std::sqrt(deltaSquared));
         }
       }
     }
 
-    void publish(IntegratorBatchMetrics* metrics) const {
+    void recordResolvedFrontier(const ActiveQueuedHits& activeHits) const {
       if (!metrics) {
         return;
       }
+      metrics->recordActiveHitHostBytes(activeHits.hostBytes());
       metrics->recordFrontierIntersections(frontierRayHits, frontierRayMisses);
       metrics->recordFrontierTraversal(frontierPacketChunks, frontierPacketRays,
                                        frontierRay4PacketChunks, frontierRay8PacketChunks,
@@ -383,7 +388,7 @@ namespace render {
       metrics->recordPacketScalarFallbacksByReason(frontierPacketScalarFallbackRaysByReason);
     }
 
-    void publishRadianceDelta(IntegratorBatchMetrics* metrics) const {
+    void publishRadianceDelta() const {
       if (metrics) {
         metrics->recordRadianceDeltaDepth(depthDeltaSquaredSum, depthMaxDelta);
       }
@@ -400,7 +405,7 @@ namespace render {
       {
         core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds
                                               : nullptr);
-        if (depthMetrics.trackFrontierMetrics) {
+        if (depthMetrics.trackFrontierMetrics()) {
           ++depthMetrics.frontierClosestHitBatchChunks;
           depthMetrics.frontierClosestHitBatchRays += traceableCount;
         }
@@ -447,7 +452,7 @@ namespace render {
           continue;
         }
 
-        if (depthMetrics.trackFrontierMetrics) {
+        if (depthMetrics.trackFrontierMetrics()) {
           ++depthMetrics.frontierRayHits;
         }
         activeHits.add(queuedIndex, hit.primitive, hit.material, hit.hitPoint);
@@ -732,7 +737,7 @@ namespace render {
   void WhittedIntegrator::recordQueuedRayMiss(const Scene& scene, QueuedRay& queued,
                                               SampleColorBuffer& result,
                                               BatchDepthMetrics& depthMetrics) const {
-    if (depthMetrics.trackFrontierMetrics) {
+    if (depthMetrics.trackFrontierMetrics()) {
       ++depthMetrics.frontierRayMisses;
     }
     queued.state.recordEvent(nullptr, "Raytracer: Nothing hit, returning background color");
@@ -780,7 +785,7 @@ namespace render {
       return;
     }
 
-    if (depthMetrics.trackFrontierMetrics) {
+    if (depthMetrics.trackFrontierMetrics()) {
       ++depthMetrics.frontierScalarRays;
     }
     WavefrontClosestHitResult hit;
@@ -804,7 +809,7 @@ namespace render {
       return;
     }
 
-    if (depthMetrics.trackFrontierMetrics) {
+    if (depthMetrics.trackFrontierMetrics()) {
       ++depthMetrics.frontierRayHits;
     }
     activeHits.add(queuedIndex, hit.primitive, hit.material, hit.hitPoint);
@@ -825,7 +830,7 @@ namespace render {
 
     {
       core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
-      if (depthMetrics.trackFrontierMetrics) {
+      if (depthMetrics.trackFrontierMetrics()) {
         ++depthMetrics.frontierPacketChunks;
         ++depthMetrics.frontierRay4PacketChunks;
         depthMetrics.frontierPacketRays += activeLaneCount;
@@ -834,7 +839,7 @@ namespace render {
       for (std::size_t lane = 0; lane < Ray4::lanes && lane < laneCount; ++lane) {
         auto& queued = current[firstQueuedIndex + lane];
         queued.state.recurseIn();
-        if (depthMetrics.trackFrontierMetrics) {
+        if (depthMetrics.trackFrontierMetrics()) {
           (*packetFallbacksBefore)[lane] = queued.state.packetHitScalarFallbacksByReason;
         }
         rays[lane] = queued.ray;
@@ -878,7 +883,7 @@ namespace render {
       core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
       for (std::size_t lane = 0; lane != activeLaneCount; ++lane) {
         auto& queued = current[firstQueuedIndex + lane];
-        if (depthMetrics.trackFrontierMetrics) {
+        if (depthMetrics.trackFrontierMetrics()) {
           depthMetrics.recordPacketScalarFallbacks(queued.state, (*packetFallbacksBefore)[lane]);
         }
         if (!packetHits.hit(lane)) {
@@ -886,7 +891,7 @@ namespace render {
           continue;
         }
 
-        if (depthMetrics.trackFrontierMetrics) {
+        if (depthMetrics.trackFrontierMetrics()) {
           ++depthMetrics.frontierRayHits;
         }
         const Primitive* primitive = packetHits.primitive(lane);
@@ -898,7 +903,7 @@ namespace render {
 
     for (std::size_t lane = 0; lane != activeLaneCount; ++lane) {
       auto& queued = current[firstQueuedIndex + lane];
-      if (depthMetrics.trackFrontierMetrics) {
+      if (depthMetrics.trackFrontierMetrics()) {
         core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds
                                               : nullptr);
         depthMetrics.recordPacketScalarFallbacks(queued.state, (*packetFallbacksBefore)[lane]);
@@ -915,7 +920,7 @@ namespace render {
       const auto hitMaterial = hitPrimitive ? hitPrimitive->material() : nullptr;
       if (hitMaterial && hitMaterial->requiresWhittedPacketHitRefinement() &&
           !packetHits.scalarFallback(lane)) {
-        if (depthMetrics.trackFrontierMetrics) {
+        if (depthMetrics.trackFrontierMetrics()) {
           ++depthMetrics.frontierPacketRefinedRays;
           metrics->recordPacketHitRefinement(hitMaterial->whittedPacketHitRefinementLabel());
         }
@@ -946,7 +951,7 @@ namespace render {
         continue;
       }
 
-      if (depthMetrics.trackFrontierMetrics) {
+      if (depthMetrics.trackFrontierMetrics()) {
         ++depthMetrics.frontierRayHits;
       }
       activeHits.add(firstQueuedIndex + lane, hitPrimitive, hitPrimitive->material(), hitPoint);
@@ -969,7 +974,7 @@ namespace render {
 
     {
       core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
-      if (depthMetrics.trackFrontierMetrics) {
+      if (depthMetrics.trackFrontierMetrics()) {
         ++depthMetrics.frontierPacketChunks;
         ++depthMetrics.frontierRay8PacketChunks;
         depthMetrics.frontierPacketRays += activeLaneCount;
@@ -978,7 +983,7 @@ namespace render {
       for (std::size_t lane = 0; lane < Ray8::lanes && lane < laneCount; ++lane) {
         auto& queued = current[firstQueuedIndex + lane];
         queued.state.recurseIn();
-        if (depthMetrics.trackFrontierMetrics) {
+        if (depthMetrics.trackFrontierMetrics()) {
           (*packetFallbacksBefore)[lane] = queued.state.packetHitScalarFallbacksByReason;
         }
         rays[lane] = queued.ray;
@@ -1022,7 +1027,7 @@ namespace render {
       core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
       for (std::size_t lane = 0; lane != activeLaneCount; ++lane) {
         auto& queued = current[firstQueuedIndex + lane];
-        if (depthMetrics.trackFrontierMetrics) {
+        if (depthMetrics.trackFrontierMetrics()) {
           depthMetrics.recordPacketScalarFallbacks(queued.state, (*packetFallbacksBefore)[lane]);
         }
         if (!packetHits.hit(lane)) {
@@ -1030,7 +1035,7 @@ namespace render {
           continue;
         }
 
-        if (depthMetrics.trackFrontierMetrics) {
+        if (depthMetrics.trackFrontierMetrics()) {
           ++depthMetrics.frontierRayHits;
         }
         const Primitive* primitive = packetHits.primitive(lane);
@@ -1042,7 +1047,7 @@ namespace render {
 
     for (std::size_t lane = 0; lane != activeLaneCount; ++lane) {
       auto& queued = current[firstQueuedIndex + lane];
-      if (depthMetrics.trackFrontierMetrics) {
+      if (depthMetrics.trackFrontierMetrics()) {
         core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds
                                               : nullptr);
         depthMetrics.recordPacketScalarFallbacks(queued.state, (*packetFallbacksBefore)[lane]);
@@ -1059,7 +1064,7 @@ namespace render {
       const auto hitMaterial = hitPrimitive ? hitPrimitive->material() : nullptr;
       if (hitMaterial && hitMaterial->requiresWhittedPacketHitRefinement() &&
           !packetHits.scalarFallback(lane)) {
-        if (depthMetrics.trackFrontierMetrics) {
+        if (depthMetrics.trackFrontierMetrics()) {
           ++depthMetrics.frontierPacketRefinedRays;
           metrics->recordPacketHitRefinement(hitMaterial->whittedPacketHitRefinementLabel());
         }
@@ -1090,7 +1095,7 @@ namespace render {
         continue;
       }
 
-      if (depthMetrics.trackFrontierMetrics) {
+      if (depthMetrics.trackFrontierMetrics()) {
         ++depthMetrics.frontierRayHits;
       }
       activeHits.add(firstQueuedIndex + lane, hitPrimitive, hitPrimitive->material(), hitPoint);
@@ -1373,21 +1378,18 @@ namespace render {
       nextActiveSamples.clear();
 
       BatchDepthMetrics depthMetrics;
-      depthMetrics.trackFrontierMetrics = metrics != nullptr;
+      depthMetrics.metrics = metrics;
       depthMetrics.trackRadianceDelta = trackRadianceDelta;
       depthMetrics.captureRadianceBefore(activeSamples, result);
       intersectActiveFrontier(intersectionBackend, scene, current, activeHits, result, depthMetrics,
                               metrics);
-      if (metrics) {
-        metrics->recordActiveHitHostBytes(activeHits.hostBytes());
-        depthMetrics.publish(metrics);
-      }
+      depthMetrics.recordResolvedFrontier(activeHits);
 
       activeHits.shade(*this, scene, intersectionBackend, recursiveRayCaster, depth, current, next,
                        result, nextActiveSamples, metrics);
 
       depthMetrics.recordRadianceDelta(*this, activeSamples, result);
-      depthMetrics.publishRadianceDelta(metrics);
+      depthMetrics.publishRadianceDelta();
 
       const std::uint64_t nextActiveSampleCount =
         nextActiveSamples.countOr(static_cast<std::uint64_t>(next.size()));

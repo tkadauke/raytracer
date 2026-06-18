@@ -1415,8 +1415,9 @@ Progress:
 - Whitted depth-frontier metrics now also publish through their
   `BatchDepthMetrics` owner instead of a field-by-field list in the depth
   scheduler. Closest-hit batch counts, packet traversal counts, hit/miss
-  counts, and packet fallback reasons therefore stay with the frontier metrics
-  object that resident-frontier implementations will update.
+  counts, packet fallback reasons, and active-hit host-byte rows therefore stay
+  with the frontier metrics object that resident-frontier implementations will
+  update.
 - Whitted radiance-delta snapshots and per-depth delta accumulation now also
   live on `BatchDepthMetrics`. The depth scheduler still uses the resulting RMS
   for convergence, but the snapshot vector, squared-sum, max-delta, and metrics
