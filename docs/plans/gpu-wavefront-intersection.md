@@ -1343,6 +1343,13 @@ Progress:
 - Direct-light any-hit frontier payload byte totals now merge only through the
   whole-batch metric merge path, not the backend-label merge path. That removes
   a double-count in tiled or adaptive renders.
+- Path-tracing sample-color storage now lives behind a dedicated
+  `SampleColorBuffer` owner inside `PathTracingIntegrator::radianceBatch`. The
+  public batch API still returns `std::vector<Colord>` and progress observers
+  still receive a vector view, but active path records no longer point at a raw
+  local vector owned directly by the scheduler loop. That narrows another
+  host-resident state boundary a future resident path-loop implementation will
+  replace.
 
 ---
 

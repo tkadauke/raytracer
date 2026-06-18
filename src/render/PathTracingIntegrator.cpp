@@ -82,6 +82,32 @@ namespace render {
     Colord* m_accumulated;
   };
 
+  class PathTracingIntegrator::SampleColorBuffer {
+  public:
+    void resize(std::size_t sampleCount) {
+      m_colors.resize(sampleCount, Colord::black());
+    }
+
+    [[nodiscard]] std::size_t size() const {
+      return m_colors.size();
+    }
+
+    Colord& operator[](std::size_t sampleIndex) {
+      return m_colors[sampleIndex];
+    }
+
+    [[nodiscard]] const std::vector<Colord>& colors() const {
+      return m_colors;
+    }
+
+    [[nodiscard]] std::vector<Colord> release() {
+      return std::move(m_colors);
+    }
+
+  private:
+    std::vector<Colord> m_colors;
+  };
+
   class PathTracingIntegrator::HostBatchPathFrontier {
   public:
     class Compaction {
@@ -1513,12 +1539,12 @@ namespace render {
       metrics->recordTracingScene(scene, intersectionBackend);
     }
 
-    std::vector<Colord> sampleColors;
+    SampleColorBuffer sampleColors;
     const LightSampler lightSampler(scene.lights());
     HostBatchPathFrontier paths;
     {
       core::util::ScopedTimer timer(metrics ? &metrics->pathSetupWorkerSeconds : nullptr);
-      sampleColors.resize(samples.size(), Colord::black());
+      sampleColors.resize(samples.size());
       paths.reserve(samples.size());
       for (std::size_t index = 0; index != samples.size(); ++index) {
         const auto& sample = samples[index];
@@ -1603,8 +1629,8 @@ namespace render {
       IntegratorBatchFeedback feedback;
       if (settings.progressObserver) {
         core::util::ScopedTimer timer(metrics ? &metrics->progressSnapshotWorkerSeconds : nullptr);
-        feedback = settings.progressObserver->depthCompleted(static_cast<std::uint64_t>(bounce + 1),
-                                                             sampleColors, retainedPathCount);
+        feedback = settings.progressObserver->depthCompleted(
+          static_cast<std::uint64_t>(bounce + 1), sampleColors.colors(), retainedPathCount);
       }
 
       if (settings.convergenceEnabled && totalSampleCount != 0) {
@@ -1631,6 +1657,6 @@ namespace render {
       }
     }
 
-    return sampleColors;
+    return sampleColors.release();
   }
 }

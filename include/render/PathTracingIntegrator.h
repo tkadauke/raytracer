@@ -139,6 +139,7 @@ namespace render {
     class DirectLightVisibilityBatch;
     class HostBatchPathFrontier;
     struct PathContinuationState;
+    class SampleColorBuffer;
     struct ScalarPath;
 
     bool isCancelled() const;
