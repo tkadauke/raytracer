@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include "core/Buffer.h"
 #include "core/Color.h"
 #include "core/math/Constants.h"
 #include "test/helpers/ColorTestHelper.h"
@@ -20,6 +21,7 @@
 #include <cmath>
 #include <limits>
 #include <memory>
+#include <stdexcept>
 #include <vector>
 
 namespace GpuDiffusePathStepReferenceTest {
@@ -193,6 +195,12 @@ namespace GpuDiffusePathStepReferenceTest {
         expectPathStateNear(actual.pathStates[index], expected.pathStates[index]);
       }
 
+      ASSERT_EQ(expected.terminatedPathStates.size(), actual.terminatedPathStates.size());
+      for (std::size_t index = 0; index != actual.terminatedPathStates.size(); ++index) {
+        expectPathStateNear(actual.terminatedPathStates[index],
+                            expected.terminatedPathStates[index]);
+      }
+
       ASSERT_EQ(expected.directLightShadowRays.size(), actual.directLightShadowRays.size());
       for (std::size_t index = 0; index != actual.directLightShadowRays.size(); ++index) {
         expectGpuRayNear(actual.directLightShadowRays[index],
@@ -310,6 +318,10 @@ namespace GpuDiffusePathStepReferenceTest {
     ASSERT_COLOR_NEAR(Colord(0.125, 0.125, 0.09375), colorFrom4(actual.stepRecords[0].missRadiance),
                       1e-6);
     EXPECT_TRUE(actual.pathStates.empty());
+    ASSERT_EQ(1u, actual.terminatedPathStates.size());
+    EXPECT_TRUE(gpuDiffusePathStateIsTerminated(actual.terminatedPathStates[0]));
+    ASSERT_COLOR_NEAR(Colord(0.125, 0.125, 0.09375),
+                      colorFrom4(actual.terminatedPathStates[0].accumulatedRadiance), 1e-6);
     EXPECT_EQ("packed_cpu", actual.metrics.closestHitExecutionPath);
     EXPECT_EQ(1u, actual.metrics.closestHitRays);
     EXPECT_EQ(1u, actual.metrics.misses);
@@ -397,6 +409,9 @@ namespace GpuDiffusePathStepReferenceTest {
               sections.materials[result.closestHitRecords[0].material].kind);
 
     EXPECT_TRUE(result.pathStates.empty());
+    ASSERT_EQ(1u, result.terminatedPathStates.size());
+    EXPECT_TRUE(gpuDiffusePathStateIsTerminated(result.terminatedPathStates[0]));
+    EXPECT_NE(0u, result.terminatedPathStates[0].flags & gpuDiffusePathStateUnsupportedFlag);
     EXPECT_NE(0u, result.stepRecords[0].flags & gpuDiffusePathStateUnsupportedFlag);
     EXPECT_EQ(static_cast<std::uint32_t>(GpuDiffusePathStepEvent::Unsupported),
               result.stepRecords[0].event);
@@ -425,6 +440,9 @@ namespace GpuDiffusePathStepReferenceTest {
               actual.stepRecords[0].event);
     EXPECT_NE(0u, actual.stepRecords[0].flags & gpuDiffusePathStateUnsupportedFlag);
     EXPECT_TRUE(actual.pathStates.empty());
+    ASSERT_EQ(1u, actual.terminatedPathStates.size());
+    EXPECT_TRUE(gpuDiffusePathStateIsTerminated(actual.terminatedPathStates[0]));
+    EXPECT_NE(0u, actual.terminatedPathStates[0].flags & gpuDiffusePathStateUnsupportedFlag);
     EXPECT_EQ(1u, actual.metrics.unsupportedHits);
     EXPECT_EQ(1u, actual.metrics.terminatedPaths);
   }
@@ -442,6 +460,10 @@ namespace GpuDiffusePathStepReferenceTest {
     const GpuDiffusePathStepResult result = GpuDiffusePathStep().step(sections, {path});
 
     EXPECT_TRUE(result.pathStates.empty());
+    ASSERT_EQ(1u, result.terminatedPathStates.size());
+    EXPECT_TRUE(gpuDiffusePathStateIsTerminated(result.terminatedPathStates[0]));
+    ASSERT_COLOR_NEAR(Colord(0.5, 1.5, 3.0),
+                      colorFrom4(result.terminatedPathStates[0].accumulatedRadiance), 1e-5);
     ASSERT_COLOR_NEAR(Colord(0.5, 1.5, 3.0), colorFrom4(result.stepRecords[0].emittedRadiance),
                       1e-5);
     EXPECT_EQ("packed_cpu", result.metrics.closestHitExecutionPath);
@@ -493,6 +515,10 @@ namespace GpuDiffusePathStepReferenceTest {
       sections, {path}, {GpuIntersectionScenePacker().packMiss(7)});
 
     EXPECT_TRUE(result.pathStates.empty());
+    ASSERT_EQ(1u, result.terminatedPathStates.size());
+    EXPECT_TRUE(gpuDiffusePathStateIsTerminated(result.terminatedPathStates[0]));
+    ASSERT_COLOR_NEAR(Colord(0.125, 0.125, 0.09375),
+                      colorFrom4(result.terminatedPathStates[0].accumulatedRadiance), 1e-6);
     ASSERT_COLOR_NEAR(Colord(0.125, 0.125, 0.09375), colorFrom4(result.stepRecords[0].missRadiance),
                       1e-6);
     EXPECT_EQ(static_cast<std::uint32_t>(GpuDiffusePathStepEvent::Miss),
@@ -674,10 +700,116 @@ namespace GpuDiffusePathStepReferenceTest {
       GpuDiffusePathStepReference().step(sections, {path}, {hitRecord(7, material)});
 
     EXPECT_TRUE(result.pathStates.empty());
+    ASSERT_EQ(1u, result.terminatedPathStates.size());
+    EXPECT_TRUE(gpuDiffusePathStateIsTerminated(result.terminatedPathStates[0]));
     EXPECT_EQ(0u, result.metrics.spawnedContinuations);
     EXPECT_EQ(1u, result.metrics.terminatedPaths);
     EXPECT_NE(0u, result.stepRecords[0].flags & gpuDiffusePathStateTerminatedFlag);
     ASSERT_COLOR_NEAR(Colord::black(), colorFrom4(result.stepRecords[0].continuationThroughput),
                       1e-6);
+  }
+
+  TEST(GpuDiffusePathLoop, ResolvesMissedPathsIntoImage) {
+    Scene scene;
+    scene.setEnvironmentRadiance(Colord(0.25, 0.5, 0.75));
+    GpuTracingSceneSections sections = sectionsFor(scene);
+    GpuDiffusePathStateRecord path = activePath();
+    path.pixelIndex = 0;
+    path.throughput = {0.5f, 0.25f, 0.125f, 0.0f};
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 4;
+    const GpuDiffusePathLoopResult result = GpuDiffusePathLoop().run(sections, {path}, settings);
+
+    EXPECT_EQ(1u, result.initialPathCount);
+    EXPECT_EQ(1u, result.depthCount);
+    ASSERT_EQ(1u, result.activePathsPerDepth.size());
+    EXPECT_EQ(1u, result.activePathsPerDepth[0]);
+    ASSERT_EQ(1u, result.resolvedPathStates.size());
+    EXPECT_TRUE(gpuDiffusePathStateIsTerminated(result.resolvedPathStates[0]));
+    ASSERT_COLOR_NEAR(Colord(0.125, 0.125, 0.09375),
+                      colorFrom4(result.resolvedPathStates[0].accumulatedRadiance), 1e-6);
+    EXPECT_EQ(1u, result.metrics.misses);
+    EXPECT_EQ(1u, result.metrics.terminatedPaths);
+    EXPECT_EQ("packed_cpu", result.metrics.closestHitExecutionPath);
+
+    Buffer<unsigned int> resolved(1, 1);
+    const TracingAccumulationLayout layout = TracingAccumulationLayout::image(1, 1);
+    const TracingAccumulationDiagnostics diagnostics =
+      resolveGpuDiffusePathLoopImage(result, layout, resolved);
+
+    EXPECT_EQ(Colord(0.125, 0.125, 0.09375).rgb(), resolved[0][0]);
+    EXPECT_EQ("gpu_diffuse_path_loop", diagnostics.backend);
+    EXPECT_EQ("resident_accumulation_resolve", diagnostics.residency);
+    EXPECT_EQ(layout.totalBytes(), diagnostics.residentBytes);
+    EXPECT_EQ(1u, diagnostics.clearOperations);
+    EXPECT_EQ(1u, diagnostics.addOperations);
+    EXPECT_EQ(1u, diagnostics.addedSamples);
+    EXPECT_EQ(1u, diagnostics.resolveOperations);
+    EXPECT_EQ(1u, diagnostics.readbackOperations);
+    EXPECT_EQ(layout.resolveBytes(), diagnostics.readbackBytes);
+  }
+
+  TEST(GpuDiffusePathLoop, TerminatesSurvivingContinuationsAtMaxDepth) {
+    Scene scene;
+    auto matte =
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::white()));
+    matte->setDiffuseCoefficient(1.0);
+    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    receiver->setMaterial(matte);
+    scene.add(receiver);
+    GpuTracingSceneSections sections = sectionsFor(scene);
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 1;
+    const GpuDiffusePathLoopResult result =
+      GpuDiffusePathLoop().run(sections, {activePath()}, settings);
+
+    EXPECT_EQ(1u, result.depthCount);
+    EXPECT_EQ(1u, result.maxDepthTerminatedPaths);
+    ASSERT_EQ(1u, result.resolvedPathStates.size());
+    EXPECT_TRUE(gpuDiffusePathStateIsTerminated(result.resolvedPathStates[0]));
+    EXPECT_FALSE(gpuDiffusePathStateIsActive(result.resolvedPathStates[0]));
+    EXPECT_EQ(1u, result.resolvedPathStates[0].depth);
+    EXPECT_EQ(1u, result.metrics.spawnedContinuations);
+    EXPECT_EQ(1u, result.metrics.terminatedPaths);
+
+    Buffer<unsigned int> resolved(2, 2);
+    const TracingAccumulationDiagnostics diagnostics =
+      resolveGpuDiffusePathLoopImage(result, TracingAccumulationLayout::image(2, 2), resolved);
+    EXPECT_EQ(1u, diagnostics.addedSamples);
+  }
+
+  TEST(GpuDiffusePathLoop, ResolvesMultipleSamplesPerPixelAndRejectsOutOfRangePixels) {
+    GpuDiffusePathStateRecord first = makeTerminatedGpuDiffusePathState();
+    first.pixelIndex = 0;
+    first.accumulatedRadiance = {0.25f, 0.5f, 0.75f, 0.0f};
+    GpuDiffusePathStateRecord second = makeTerminatedGpuDiffusePathState();
+    second.pixelIndex = 0;
+    second.accumulatedRadiance = {0.75f, 0.25f, 0.0f, 0.0f};
+    GpuDiffusePathStateRecord third = makeTerminatedGpuDiffusePathState();
+    third.pixelIndex = 2;
+    third.accumulatedRadiance = {0.25f, 0.0f, 0.5f, 0.0f};
+
+    Buffer<unsigned int> resolved(2, 2);
+    const TracingAccumulationLayout layout = TracingAccumulationLayout::image(2, 2);
+    const TracingAccumulationDiagnostics diagnostics =
+      resolveGpuDiffusePathLoopImage({first, second, third}, layout, resolved);
+
+    EXPECT_EQ(Colord(0.5, 0.375, 0.375).rgb(), resolved[0][0]);
+    EXPECT_EQ(Colord::black().rgb(), resolved[0][1]);
+    EXPECT_EQ(Colord(0.25, 0.0, 0.5).rgb(), resolved[1][0]);
+    EXPECT_EQ(Colord::black().rgb(), resolved[1][1]);
+    EXPECT_EQ(3u, diagnostics.addedSamples);
+
+    GpuDiffusePathStateRecord outOfRange = makeTerminatedGpuDiffusePathState();
+    outOfRange.pixelIndex = 4;
+    outOfRange.accumulatedRadiance = {1.0f, 1.0f, 1.0f, 0.0f};
+    const auto resolve = [&]() {
+      const TracingAccumulationDiagnostics unused =
+        resolveGpuDiffusePathLoopImage({outOfRange}, layout, resolved);
+      (void)unused;
+    };
+    EXPECT_THROW(resolve(), std::out_of_range);
   }
 }

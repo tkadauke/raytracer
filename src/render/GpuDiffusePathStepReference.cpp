@@ -1,9 +1,11 @@
 #include "render/GpuDiffusePathStepReference.h"
 
+#include "core/Buffer.h"
 #include "core/math/Constants.h"
 #include "core/math/Ray.h"
 #include "render/MIS.h"
 #include "render/PathTermination.h"
+#include "render/TracingAccumulationReference.h"
 #include "render/samplers/GpuSampleStream.h"
 
 #include <algorithm>
@@ -11,6 +13,7 @@
 #include <limits>
 #include <map>
 #include <optional>
+#include <stdexcept>
 
 using namespace render;
 
@@ -235,6 +238,19 @@ namespace {
     terminate(pathState);
   }
 
+  void mergeLabel(std::string& target, const std::string& source) {
+    if (source.empty()) {
+      return;
+    }
+    if (target.empty()) {
+      target = source;
+      return;
+    }
+    if (target != source) {
+      target = "mixed";
+    }
+  }
+
   std::map<std::uint32_t, GpuIntersectionHitRecord>
   hitsByRayIndex(const std::vector<GpuIntersectionHitRecord>& closestHits) {
     std::map<std::uint32_t, GpuIntersectionHitRecord> result;
@@ -243,6 +259,27 @@ namespace {
     }
     return result;
   }
+}
+
+void GpuDiffusePathStepMetrics::merge(const GpuDiffusePathStepMetrics& source) {
+  mergeLabel(closestHitExecutionPath, source.closestHitExecutionPath);
+  mergeLabel(emissionExecutionPath, source.emissionExecutionPath);
+  mergeLabel(directLightVisibilityExecutionPath, source.directLightVisibilityExecutionPath);
+  mergeLabel(directLightContributionExecutionPath, source.directLightContributionExecutionPath);
+  activePaths += source.activePaths;
+  closestHitRays += source.closestHitRays;
+  misses += source.misses;
+  hits += source.hits;
+  unsupportedHits += source.unsupportedHits;
+  emissiveHits += source.emissiveHits;
+  emissionContributionEvaluations += source.emissionContributionEvaluations;
+  directLightSamples += source.directLightSamples;
+  directLightVisibilityRays += source.directLightVisibilityRays;
+  directLightContributionEvaluations += source.directLightContributionEvaluations;
+  directLightContributingSamples += source.directLightContributingSamples;
+  directLightOccludedSamples += source.directLightOccludedSamples;
+  spawnedContinuations += source.spawnedContinuations;
+  terminatedPaths += source.terminatedPaths;
 }
 
 GpuDiffusePathStepResult
@@ -276,6 +313,7 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
   result.closestHitRecords = closestHits;
   result.stepRecords.resize(pathStates.size());
   result.pathStates.reserve(pathStates.size());
+  result.terminatedPathStates.reserve(pathStates.size());
 
   const std::map<std::uint32_t, GpuIntersectionHitRecord> hitRecords = hitsByRayIndex(closestHits);
   GpuIntersectionIntersector intersector;
@@ -306,6 +344,7 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
       stepRecord.missRadiance = contribution.toFloat4(0.0f);
       terminate(pathState);
       stepRecord.flags = pathState.flags;
+      result.terminatedPathStates.push_back(pathState);
       ++result.metrics.misses;
       ++result.metrics.terminatedPaths;
       continue;
@@ -320,6 +359,7 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
       markUnsupported(pathState);
       stepRecord.event = static_cast<std::uint32_t>(GpuDiffusePathStepEvent::Unsupported);
       stepRecord.flags = pathState.flags;
+      result.terminatedPathStates.push_back(pathState);
       ++result.metrics.unsupportedHits;
       ++result.metrics.terminatedPaths;
       continue;
@@ -345,6 +385,7 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
       stepRecord.emittedRadiance = contribution.toFloat4(0.0f);
       terminate(pathState);
       stepRecord.flags = pathState.flags;
+      result.terminatedPathStates.push_back(pathState);
       ++result.metrics.emissiveHits;
       ++result.metrics.terminatedPaths;
       continue;
@@ -354,6 +395,7 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
       markUnsupported(pathState);
       stepRecord.event = static_cast<std::uint32_t>(GpuDiffusePathStepEvent::Unsupported);
       stepRecord.flags = pathState.flags;
+      result.terminatedPathStates.push_back(pathState);
       ++result.metrics.unsupportedHits;
       ++result.metrics.terminatedPaths;
       continue;
@@ -419,6 +461,7 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
       pathState.accumulatedRadiance = accumulated.toFloat4(0.0f);
       terminate(pathState);
       stepRecord.flags = pathState.flags;
+      result.terminatedPathStates.push_back(pathState);
       ++result.metrics.terminatedPaths;
       continue;
     }
@@ -441,4 +484,91 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
   }
 
   return result;
+}
+
+GpuDiffusePathLoopResult
+GpuDiffusePathLoop::run(const GpuTracingSceneSections& scene,
+                        const std::vector<GpuDiffusePathStateRecord>& initialPathStates,
+                        const GpuDiffusePathLoopSettings& settings) const {
+  GpuDiffusePathLoopResult result;
+  result.initialPathCount = initialPathStates.size();
+
+  std::vector<GpuDiffusePathStateRecord> active;
+  active.reserve(initialPathStates.size());
+  for (GpuDiffusePathStateRecord pathState : initialPathStates) {
+    if (gpuDiffusePathStateIsActive(pathState) && pathState.depth < settings.maxDepth) {
+      active.push_back(pathState);
+      continue;
+    }
+
+    if (gpuDiffusePathStateIsActive(pathState)) {
+      terminate(pathState);
+      ++result.maxDepthTerminatedPaths;
+      ++result.metrics.terminatedPaths;
+    }
+    if (gpuDiffusePathStateIsTerminated(pathState)) {
+      result.resolvedPathStates.push_back(pathState);
+    }
+  }
+
+  GpuDiffusePathStep stepper;
+  while (!active.empty()) {
+    result.activePathsPerDepth.push_back(active.size());
+    const GpuDiffusePathStepResult step = stepper.step(scene, active);
+    ++result.depthCount;
+    result.metrics.merge(step.metrics);
+    result.stepRecords.insert(result.stepRecords.end(), step.stepRecords.begin(),
+                              step.stepRecords.end());
+    result.resolvedPathStates.insert(result.resolvedPathStates.end(),
+                                     step.terminatedPathStates.begin(),
+                                     step.terminatedPathStates.end());
+
+    active.clear();
+    active.reserve(step.pathStates.size());
+    for (GpuDiffusePathStateRecord pathState : step.pathStates) {
+      if (pathState.depth >= settings.maxDepth) {
+        terminate(pathState);
+        result.resolvedPathStates.push_back(pathState);
+        ++result.maxDepthTerminatedPaths;
+        ++result.metrics.terminatedPaths;
+      } else {
+        active.push_back(pathState);
+      }
+    }
+  }
+
+  return result;
+}
+
+TracingAccumulationDiagnostics
+render::resolveGpuDiffusePathLoopImage(const std::vector<GpuDiffusePathStateRecord>& records,
+                                       const TracingAccumulationLayout& layout,
+                                       Buffer<unsigned int>& target, const Tonemap* tonemap) {
+  TracingAccumulationBuffer accumulation(layout);
+  TracingAccumulationDiagnostics diagnostics = TracingAccumulationDiagnostics::forLayout(
+    layout, "gpu_diffuse_path_loop", "resident_accumulation_resolve");
+  diagnostics.recordClear();
+
+  const std::uint64_t pixelCount = layout.pixelCount();
+  for (const GpuDiffusePathStateRecord& record : records) {
+    if (record.pixelIndex >= pixelCount) {
+      throw std::out_of_range("gpu diffuse path-loop resolve pixel index is out of range");
+    }
+    const int x = static_cast<int>(record.pixelIndex % static_cast<std::uint64_t>(layout.width));
+    const int y = static_cast<int>(record.pixelIndex / static_cast<std::uint64_t>(layout.width));
+    accumulation.addSample(x, y, colorFrom4(record.accumulatedRadiance));
+    diagnostics.recordAdd(1);
+  }
+
+  accumulation.resolve(target, tonemap);
+  diagnostics.recordResolve();
+  diagnostics.recordReadback(layout.resolveBytes());
+  return diagnostics;
+}
+
+TracingAccumulationDiagnostics
+render::resolveGpuDiffusePathLoopImage(const GpuDiffusePathLoopResult& result,
+                                       const TracingAccumulationLayout& layout,
+                                       Buffer<unsigned int>& target, const Tonemap* tonemap) {
+  return render::resolveGpuDiffusePathLoopImage(result.resolvedPathStates, layout, target, tonemap);
 }

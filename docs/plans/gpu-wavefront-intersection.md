@@ -1429,6 +1429,12 @@ Progress:
   can consume the loop diagnostics directly. That closes the data handoff
   between resident path-state execution and image resolve for the first
   supported subset before a live GPU path-loop backend owns it.
+- The compiled diffuse path-step path now mirrors that handoff: one-bounce
+  steps emit terminal `GpuDiffusePathStateRecord` rows, the supported diffuse
+  subset can run through a multi-depth loop over compact path frontiers, and
+  terminal records resolve through the tracing accumulation diagnostics. The
+  remaining work is to route this compiled loop into the live render graph
+  request path instead of keeping it as a backend/reference boundary.
 
 ---
 

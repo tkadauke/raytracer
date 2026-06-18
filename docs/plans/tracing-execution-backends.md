@@ -2072,8 +2072,12 @@ diffuse path tracer for the first supported subset.
    - Output: E5 accumulation resolves to rendercli/Modeler-visible image data.
    - Progress: the CPU-reference resident path loop now emits terminal
      `GpuPathStateRecord` rows and `resolveResidentPathLoopImage(...)` can
-     consume full loop diagnostics directly. The remaining part is routing that
-     resolved image through the live rendercli/Modeler full-GPU request path.
+     consume full loop diagnostics directly. The compiled diffuse path-step
+     path also emits terminal `GpuDiffusePathStateRecord` rows, can loop the
+     supported diffuse subset over multiple depths, and can resolve those
+     terminal records through E5 accumulation diagnostics. The remaining part
+     is routing that resolved image through the live rendercli/Modeler
+     full-GPU request path.
 
 5. ~~**Add end-to-end parity scenes.**~~ ✅ **Done.** Added fixed-seed
    rendercli CPU vs GPU-requested parity coverage for direct, indirect,
