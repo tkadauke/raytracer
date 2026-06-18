@@ -637,6 +637,25 @@ namespace render {
       return &m_hits[pathIndex];
     }
 
+    void appendActiveHits(const PathTracingIntegrator& integrator, const Scene& scene,
+                          HostBatchPathFrontier& paths, ActivePathHits& activeHits, int bounce,
+                          BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
+      core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
+      for (std::size_t pathIndex = 0; pathIndex != paths.size(); ++pathIndex) {
+        BatchPath& path = paths[pathIndex];
+        const Colord beforeDepth = accumulatedBeforeDepth(pathIndex, depthMetrics);
+        const WavefrontClosestHitResult* result = hit(pathIndex);
+        if (!result) {
+          integrator.recordFrontierMiss(scene, path, depthMetrics, beforeDepth);
+          continue;
+        }
+
+        integrator.recordFrontierHit(pathIndex, path, *result->primitive, result->hitPoint, bounce,
+                                     depthMetrics, activeHits);
+        activeHits.setLastMaterial(result->material);
+      }
+    }
+
   private:
     void validateHitCount() const {
       if (m_hits.size() != m_expectedHitCount) {
@@ -1218,22 +1237,7 @@ namespace render {
     BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
     ClosestHitPathFrontierBatch frontier(paths, depthMetrics, metrics);
     frontier.intersect(scene, intersectionBackend, metrics);
-
-    core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds : nullptr);
-    for (std::size_t pathIndex = 0; pathIndex != paths.size(); ++pathIndex) {
-      BatchPath& path = paths[pathIndex];
-      const Colord accumulatedBeforeDepth =
-        frontier.accumulatedBeforeDepth(pathIndex, depthMetrics);
-      const WavefrontClosestHitResult* hit = frontier.hit(pathIndex);
-      if (!hit) {
-        recordFrontierMiss(scene, path, depthMetrics, accumulatedBeforeDepth);
-        continue;
-      }
-
-      recordFrontierHit(pathIndex, path, *hit->primitive, hit->hitPoint, bounce, depthMetrics,
-                        activeHits);
-      activeHits.setLastMaterial(hit->material);
-    }
+    frontier.appendActiveHits(*this, scene, paths, activeHits, bounce, depthMetrics, metrics);
   }
 
   void PathTracingIntegrator::intersectActiveFrontier(

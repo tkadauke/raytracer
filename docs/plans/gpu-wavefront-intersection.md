@@ -1350,6 +1350,11 @@ Progress:
   local vector owned directly by the scheduler loop. That narrows another
   host-resident state boundary a future resident path-loop implementation will
   replace.
+- Path-tracing closest-hit frontier batches now also own hit/miss
+  materialization into the active-hit list after backend result validation. The
+  depth scheduler no longer loops over backend hit records directly for the
+  batch-frontier path, so closest-hit query construction, result validation, and
+  active-hit staging live on the same owner.
 
 ---
 
