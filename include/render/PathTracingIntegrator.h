@@ -157,6 +157,8 @@ namespace render {
                               const ActivePathHits& activeHits, HostBatchPathFrontier& paths,
                               int bounce, const WavefrontIntersectionBackend& intersectionBackend,
                               IntegratorBatchMetrics* metrics = nullptr) const;
+    void recordDirectLightContributionExecution(const WavefrontIntersectionBackend& backend,
+                                                IntegratorBatchMetrics* metrics) const;
     Colord emittedRadiance(const LightSampler& lightSampler, const PathMaterialTransport& material,
                            const Rayd& ray, const HitPoint& hitPoint, bool sampledFromBsdf,
                            double bsdfSamplePdf, bool bsdfSampleDelta,

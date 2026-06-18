@@ -1355,6 +1355,11 @@ Progress:
   depth scheduler no longer loops over backend hit records directly for the
   batch-frontier path, so closest-hit query construction, result validation, and
   active-hit staging live on the same owner.
+- Path-tracing active-hit batches now own the per-depth shade-and-retain
+  traversal. The main depth scheduler no longer iterates active hits directly
+  to decide compaction retention, and direct-light contribution execution
+  metadata is recorded by `PathTracingIntegrator` instead of a file-local
+  helper.
 
 ---
 

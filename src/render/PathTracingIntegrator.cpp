@@ -28,6 +28,7 @@
 #include <memory>
 #include <optional>
 #include <stdexcept>
+#include <string>
 #include <utility>
 
 namespace render {
@@ -295,6 +296,13 @@ namespace render {
       compaction.retain(m_hits[hitIndex].pathIndex);
     }
 
+    void shadeAndRetain(const PathTracingIntegrator& integrator, const Scene& scene,
+                        const LightSampler& lightSampler, HostBatchPathFrontier& paths,
+                        HostBatchPathFrontier& spawnedPaths,
+                        const DirectLightContributionBatch& directLightContributions, int bounce,
+                        BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics,
+                        HostBatchPathFrontier::Compaction& compaction) const;
+
   private:
     std::vector<BatchHit> m_hits;
   };
@@ -484,18 +492,6 @@ namespace render {
     WavefrontOcclusionFlags m_occluded;
   };
 
-  void recordDirectLightContributionExecution(const WavefrontIntersectionBackend& backend,
-                                              IntegratorBatchMetrics* metrics) {
-    if (!metrics) {
-      return;
-    }
-
-    const std::string request = backend.requestedName() ? backend.requestedName() : "";
-    metrics->recordDirectLightContributionExecution(
-      "cpu", request == "gpu" ? "GPU diffuse direct-light contribution kernel unavailable"
-                              : std::string());
-  }
-
   class PathTracingIntegrator::DirectLightContributionBatch {
   public:
     explicit DirectLightContributionBatch(std::size_t count)
@@ -543,6 +539,20 @@ namespace render {
   private:
     std::vector<Colord> m_contributions;
   };
+
+  void PathTracingIntegrator::ActivePathHits::shadeAndRetain(
+    const PathTracingIntegrator& integrator, const Scene& scene, const LightSampler& lightSampler,
+    HostBatchPathFrontier& paths, HostBatchPathFrontier& spawnedPaths,
+    const DirectLightContributionBatch& directLightContributions, int bounce,
+    BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics,
+    HostBatchPathFrontier::Compaction& compaction) const {
+    for (std::size_t hitIndex = 0; hitIndex != size(); ++hitIndex) {
+      if (integrator.shadeActiveHit(scene, lightSampler, *this, hitIndex, paths, spawnedPaths,
+                                    directLightContributions, bounce, depthMetrics, metrics)) {
+        retainPath(compaction, hitIndex);
+      }
+    }
+  }
 
   struct PathTracingIntegrator::BatchDepthMetrics {
     bool trackRadianceDelta{false};
@@ -713,6 +723,18 @@ namespace render {
 
   bool PathTracingIntegrator::isCancelled() const {
     return m_cancellationCallback && m_cancellationCallback();
+  }
+
+  void PathTracingIntegrator::recordDirectLightContributionExecution(
+    const WavefrontIntersectionBackend& backend, IntegratorBatchMetrics* metrics) const {
+    if (!metrics) {
+      return;
+    }
+
+    const std::string request = backend.requestedName() ? backend.requestedName() : "";
+    metrics->recordDirectLightContributionExecution(
+      "cpu", request == "gpu" ? "GPU diffuse direct-light contribution kernel unavailable"
+                              : std::string());
   }
 
   Colord PathTracingIntegrator::missRadiance(const Scene& scene, bool backgroundVisible) const {
@@ -1607,12 +1629,9 @@ namespace render {
       const DirectLightContributionBatch directLightContributions = sampleDirectLightingBatch(
         scene, lightSampler, activeHits, paths, bounce, intersectionBackend, metrics);
 
-      for (std::size_t hitIndex = 0; hitIndex != activeHits.size(); ++hitIndex) {
-        if (shadeActiveHit(scene, lightSampler, activeHits, hitIndex, paths, spawnedPaths,
-                           directLightContributions, bounce, depthMetrics, metrics)) {
-          activeHits.retainPath(frontierCompaction, hitIndex);
-        }
-      }
+      activeHits.shadeAndRetain(*this, scene, lightSampler, paths, spawnedPaths,
+                                directLightContributions, bounce, depthMetrics, metrics,
+                                frontierCompaction);
 
       {
         core::util::ScopedTimer timer(metrics ? &metrics->frontierBookkeepingWorkerSeconds
