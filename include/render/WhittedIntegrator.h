@@ -101,7 +101,6 @@ namespace render {
                                  ActiveQueuedHits& activeHits, std::vector<Colord>& result,
                                  BatchDepthMetrics& depthMetrics,
                                  IntegratorBatchMetrics* metrics) const;
-    void prepareContinuationQueue(QueuedRayFrontier& next, std::size_t currentQueueSize) const;
     void queueOrResolveContinuation(const Scene& scene, const WhittedContinuation& continuation,
                                     const QueuedRay& parent, QueuedRayFrontier& next,
                                     std::vector<Colord>& result,
@@ -114,15 +113,14 @@ namespace render {
                         bool countNextActiveSamples,
                         std::vector<std::size_t>& nextActiveSampleIndices,
                         IntegratorBatchMetrics* metrics) const;
-    bool canUseBatchedLocalWhittedDirectLighting(const Material& material,
-                                                 const Rayd& ray,
+    bool canUseBatchedLocalWhittedDirectLighting(const Material& material, const Rayd& ray,
                                                  const HitPoint& hitPoint) const;
-    void shadeActiveHits(const Scene& scene, const WavefrontIntersectionBackend& intersectionBackend,
+    void shadeActiveHits(const Scene& scene,
+                         const WavefrontIntersectionBackend& intersectionBackend,
                          const RayCaster& recursiveRayCaster, int depth,
                          const ActiveQueuedHits& activeHits, QueuedRayFrontier& current,
                          QueuedRayFrontier& next, std::vector<Colord>& result,
-                         std::vector<unsigned char>& nextActiveSamples,
-                         bool countNextActiveSamples,
+                         std::vector<unsigned char>& nextActiveSamples, bool countNextActiveSamples,
                          std::vector<std::size_t>& nextActiveSampleIndices,
                          IntegratorBatchMetrics* metrics) const;
 

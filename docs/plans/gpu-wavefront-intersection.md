@@ -1328,6 +1328,11 @@ Progress:
 - The Whitted queued-ray frontier now records its own active, retained, and
   spawned host path-state byte metrics, matching the path tracer's frontier
   metric ownership.
+- Whitted next-depth lifecycle now also lives with the queued-ray frontier. The
+  frontier prepares its next-depth storage, reports the retained active sample
+  count, records spawned/retained frontier metrics, and performs the depth
+  handoff. That keeps Whitted depth finalization aligned with the path-tracing
+  frontier owner.
 - Path-tracing direct-light selection and occlusion host-byte depth arrays now
   record explicit zero rows for depths with no visibility work. That keeps
   selection, occlusion, and contribution byte diagnostics aligned by depth when

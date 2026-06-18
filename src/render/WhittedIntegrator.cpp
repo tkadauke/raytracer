@@ -77,6 +77,13 @@ namespace render {
       m_rays.clear();
     }
 
+    void prepareForNextDepth(std::size_t expectedCount) {
+      clear();
+      if (capacity() < expectedCount) {
+        reserve(expectedCount);
+      }
+    }
+
     [[nodiscard]] bool empty() const {
       return m_rays.empty();
     }
@@ -107,12 +114,35 @@ namespace render {
       }
     }
 
+    [[nodiscard]] std::uint64_t
+    retainedActiveSampleCount(bool countNextActiveSamples,
+                              const std::vector<std::size_t>& nextActiveSampleIndices) const {
+      if (countNextActiveSamples) {
+        return static_cast<std::uint64_t>(nextActiveSampleIndices.size());
+      }
+      return static_cast<std::uint64_t>(size());
+    }
+
+    void recordCompletedDepth(std::uint64_t retainedActiveSamples,
+                              IntegratorBatchMetrics* metrics) const {
+      if (!metrics) {
+        return;
+      }
+      recordSpawnedContinuations(metrics);
+      metrics->recordRetainedActiveDepth(retainedActiveSamples);
+      recordRetainedHostPathStateBytes(metrics);
+    }
+
     void push(QueuedRay queued) {
       m_rays.push_back(std::move(queued));
     }
 
     void swap(QueuedRayFrontier& other) {
       m_rays.swap(other.m_rays);
+    }
+
+    void advanceTo(QueuedRayFrontier& next) {
+      swap(next);
     }
 
     QueuedRay& operator[](std::size_t index) {
@@ -988,14 +1018,6 @@ namespace render {
     }
   }
 
-  void WhittedIntegrator::prepareContinuationQueue(QueuedRayFrontier& next,
-                                                   std::size_t currentQueueSize) const {
-    next.clear();
-    if (next.capacity() < currentQueueSize) {
-      next.reserve(currentQueueSize);
-    }
-  }
-
   void WhittedIntegrator::queueOrResolveContinuation(
     const Scene& scene, const WhittedContinuation& continuation, const QueuedRay& parent,
     QueuedRayFrontier& next, std::vector<Colord>& result,
@@ -1132,9 +1154,9 @@ namespace render {
     } else {
       visibility.resolveOcclusion(scene, intersectionBackend, depth, metrics);
       core::util::ScopedTimer timer(metrics ? &metrics->shadingWorkerSeconds : nullptr);
-      for (std::size_t selectionIndex = 0; selectionIndex != visibility.size();
-           ++selectionIndex) {
-        const DirectLightVisibilityBatch::Selection& selection = visibility.selection(selectionIndex);
+      for (std::size_t selectionIndex = 0; selectionIndex != visibility.size(); ++selectionIndex) {
+        const DirectLightVisibilityBatch::Selection& selection =
+          visibility.selection(selectionIndex);
         const QueuedHit& hit = activeHits[selection.hitIndex];
         QueuedRay& queued = current[hit.queuedIndex];
         const bool occluded = visibility.occluded(selectionIndex);
@@ -1149,7 +1171,7 @@ namespace render {
         result[queued.sampleIndex] += weightedContribution;
         if (metrics) {
           metrics->recordDirectLightRadiance(weightedContribution,
-                                            queued.state.recursionDepth <= 1);
+                                             queued.state.recursionDepth <= 1);
         }
       }
       visibility.recordContributionHostBytes(depth, metrics);
@@ -1229,7 +1251,7 @@ namespace render {
         }
       }
 
-      prepareContinuationQueue(next, current.size());
+      next.prepareForNextDepth(current.size());
       if (countNextActiveSamples) {
         clearActiveSampleMarks(nextActiveSamples, nextActiveSampleIndices);
         nextActiveSampleIndices.clear();
@@ -1278,12 +1300,8 @@ namespace render {
       }
 
       const std::uint64_t nextActiveSampleCount =
-        countNextActiveSamples ? nextActiveSampleIndices.size() : next.size();
-      if (metrics) {
-        next.recordSpawnedContinuations(metrics);
-        metrics->recordRetainedActiveDepth(nextActiveSampleCount);
-        next.recordRetainedHostPathStateBytes(metrics);
-      }
+        next.retainedActiveSampleCount(countNextActiveSamples, nextActiveSampleIndices);
+      next.recordCompletedDepth(nextActiveSampleCount, metrics);
       IntegratorBatchFeedback feedback;
       if (settings.progressObserver) {
         core::util::ScopedTimer timer(metrics ? &metrics->progressSnapshotWorkerSeconds : nullptr);
@@ -1314,7 +1332,7 @@ namespace render {
         }
       }
 
-      current.swap(next);
+      current.advanceTo(next);
     }
 
     return result;
