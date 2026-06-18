@@ -63,6 +63,32 @@ namespace render {
     State state;
   };
 
+  class WhittedIntegrator::SampleColorBuffer {
+  public:
+    void resize(std::size_t sampleCount) {
+      m_colors.resize(sampleCount, Colord::black());
+    }
+
+    Colord& operator[](std::size_t sampleIndex) {
+      return m_colors[sampleIndex];
+    }
+
+    const Colord& operator[](std::size_t sampleIndex) const {
+      return m_colors[sampleIndex];
+    }
+
+    [[nodiscard]] const std::vector<Colord>& colors() const {
+      return m_colors;
+    }
+
+    [[nodiscard]] std::vector<Colord> release() {
+      return std::move(m_colors);
+    }
+
+  private:
+    std::vector<Colord> m_colors;
+  };
+
   class WhittedIntegrator::QueuedRayFrontier {
   public:
     void reserve(std::size_t count) {
@@ -274,7 +300,7 @@ namespace render {
     void shade(const WhittedIntegrator& integrator, const Scene& scene,
                const WavefrontIntersectionBackend& intersectionBackend,
                const RayCaster& recursiveRayCaster, int depth, QueuedRayFrontier& current,
-               QueuedRayFrontier& next, std::vector<Colord>& result,
+               QueuedRayFrontier& next, SampleColorBuffer& result,
                ActiveSampleTracker& nextActiveSamples, IntegratorBatchMetrics* metrics) const;
 
   private:
@@ -314,7 +340,7 @@ namespace render {
     }
 
     void captureRadianceBefore(const ActiveSampleTracker& activeSamples,
-                               const std::vector<Colord>& result) {
+                               const SampleColorBuffer& result) {
       if (!trackRadianceDelta) {
         return;
       }
@@ -327,7 +353,7 @@ namespace render {
 
     void recordRadianceDelta(const WhittedIntegrator& integrator,
                              const ActiveSampleTracker& activeSamples,
-                             const std::vector<Colord>& result) {
+                             const SampleColorBuffer& result) {
       if (!trackRadianceDelta) {
         return;
       }
@@ -441,7 +467,7 @@ namespace render {
 
     void collectLocalDirectLighting(const WhittedIntegrator& integrator, const Scene& scene,
                                     const ActiveQueuedHits& activeHits, QueuedRayFrontier& current,
-                                    std::vector<Colord>& result, IntegratorBatchMetrics* metrics);
+                                    SampleColorBuffer& result, IntegratorBatchMetrics* metrics);
 
     [[nodiscard]] bool empty() const {
       return m_selections.empty();
@@ -522,7 +548,7 @@ namespace render {
 
     void applyResolvedContributions(const WavefrontIntersectionBackend& intersectionBackend,
                                     const ActiveQueuedHits& activeHits, QueuedRayFrontier& current,
-                                    std::vector<Colord>& result, int depth,
+                                    SampleColorBuffer& result, int depth,
                                     IntegratorBatchMetrics* metrics) const {
       validateResolvedOcclusionCount();
       if (metrics) {
@@ -676,7 +702,7 @@ namespace render {
   }
 
   void WhittedIntegrator::recordQueuedRayTermination(const Scene& scene, QueuedRay& queued,
-                                                     std::vector<Colord>& result,
+                                                     SampleColorBuffer& result,
                                                      const std::string& event) const {
     if (!event.empty()) {
       queued.state.recordEvent(nullptr, event);
@@ -686,7 +712,7 @@ namespace render {
   }
 
   void WhittedIntegrator::recordQueuedRayMiss(const Scene& scene, QueuedRay& queued,
-                                              std::vector<Colord>& result,
+                                              SampleColorBuffer& result,
                                               BatchDepthMetrics& depthMetrics) const {
     if (depthMetrics.trackFrontierMetrics) {
       ++depthMetrics.frontierRayMisses;
@@ -714,7 +740,7 @@ namespace render {
   void WhittedIntegrator::intersectQueuedRayScalar(
     const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
     QueuedRayFrontier& current, std::size_t queuedIndex, ActiveQueuedHits& activeHits,
-    std::vector<Colord>& result, BatchDepthMetrics& depthMetrics,
+    SampleColorBuffer& result, BatchDepthMetrics& depthMetrics,
     IntegratorBatchMetrics* metrics) const {
     auto& queued = current[queuedIndex];
     if (isCancelled()) {
@@ -769,7 +795,7 @@ namespace render {
   void WhittedIntegrator::intersectQueuedRayPacket(
     const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
     QueuedRayFrontier& current, std::size_t firstQueuedIndex, std::size_t laneCount,
-    ActiveQueuedHits& activeHits, std::vector<Colord>& result, BatchDepthMetrics& depthMetrics,
+    ActiveQueuedHits& activeHits, SampleColorBuffer& result, BatchDepthMetrics& depthMetrics,
     IntegratorBatchMetrics* metrics) const {
     const std::size_t activeLaneCount = std::min(laneCount, Ray4::lanes);
     std::array<Rayd, Ray4::lanes> rays{Rayd::undefined, Rayd::undefined, Rayd::undefined,
@@ -912,7 +938,7 @@ namespace render {
   void WhittedIntegrator::intersectQueuedRayPacket8(
     const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
     QueuedRayFrontier& current, std::size_t firstQueuedIndex, std::size_t laneCount,
-    ActiveQueuedHits& activeHits, std::vector<Colord>& result, BatchDepthMetrics& depthMetrics,
+    ActiveQueuedHits& activeHits, SampleColorBuffer& result, BatchDepthMetrics& depthMetrics,
     IntegratorBatchMetrics* metrics) const {
     const std::size_t activeLaneCount = std::min(laneCount, Ray8::lanes);
     std::array<Rayd, Ray8::lanes> rays{Rayd::undefined, Rayd::undefined, Rayd::undefined,
@@ -1056,7 +1082,7 @@ namespace render {
   void WhittedIntegrator::intersectQueuedRayBatch(
     const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
     QueuedRayFrontier& current, std::size_t traceableCount, ActiveQueuedHits& activeHits,
-    std::vector<Colord>& result, BatchDepthMetrics& depthMetrics,
+    SampleColorBuffer& result, BatchDepthMetrics& depthMetrics,
     IntegratorBatchMetrics* metrics) const {
     ClosestHitQueuedRayFrontierBatch frontier(current, traceableCount, depthMetrics, metrics);
     frontier.intersect(scene, intersectionBackend, metrics);
@@ -1084,7 +1110,7 @@ namespace render {
 
   void WhittedIntegrator::intersectActiveFrontier(
     const WavefrontIntersectionBackend& intersectionBackend, const Scene& scene,
-    QueuedRayFrontier& current, ActiveQueuedHits& activeHits, std::vector<Colord>& result,
+    QueuedRayFrontier& current, ActiveQueuedHits& activeHits, SampleColorBuffer& result,
     BatchDepthMetrics& depthMetrics, IntegratorBatchMetrics* metrics) const {
     activeHits.clear();
     std::size_t traceableCount = 0;
@@ -1148,7 +1174,7 @@ namespace render {
                                                      const WhittedContinuation& continuation,
                                                      const QueuedRay& parent,
                                                      QueuedRayFrontier& next,
-                                                     std::vector<Colord>& result,
+                                                     SampleColorBuffer& result,
                                                      ActiveSampleTracker& nextActiveSamples) const {
     QueuedRay queued{
       parent.sampleIndex,
@@ -1176,7 +1202,7 @@ namespace render {
 
   void WhittedIntegrator::shadeQueuedHit(const Scene& scene, const RayCaster& recursiveRayCaster,
                                          const QueuedHit& hit, QueuedRayFrontier& current,
-                                         QueuedRayFrontier& next, std::vector<Colord>& result,
+                                         QueuedRayFrontier& next, SampleColorBuffer& result,
                                          ActiveSampleTracker& nextActiveSamples,
                                          IntegratorBatchMetrics* metrics) const {
     auto& queued = current[hit.queuedIndex];
@@ -1224,7 +1250,7 @@ namespace render {
 
   void WhittedIntegrator::DirectLightVisibilityBatch::collectLocalDirectLighting(
     const WhittedIntegrator& integrator, const Scene& scene, const ActiveQueuedHits& activeHits,
-    QueuedRayFrontier& current, std::vector<Colord>& result, IntegratorBatchMetrics* metrics) {
+    QueuedRayFrontier& current, SampleColorBuffer& result, IntegratorBatchMetrics* metrics) {
     core::util::ScopedTimer timer(metrics ? &metrics->shadingWorkerSeconds : nullptr);
     for (std::size_t hitIndex = 0; hitIndex != activeHits.size(); ++hitIndex) {
       const QueuedHit& hit = activeHits[hitIndex];
@@ -1261,7 +1287,7 @@ namespace render {
   void WhittedIntegrator::ActiveQueuedHits::shade(
     const WhittedIntegrator& integrator, const Scene& scene,
     const WavefrontIntersectionBackend& intersectionBackend, const RayCaster& recursiveRayCaster,
-    int depth, QueuedRayFrontier& current, QueuedRayFrontier& next, std::vector<Colord>& result,
+    int depth, QueuedRayFrontier& current, QueuedRayFrontier& next, SampleColorBuffer& result,
     ActiveSampleTracker& nextActiveSamples, IntegratorBatchMetrics* metrics) const {
     if (empty()) {
       DirectLightVisibilityBatch emptyBatch(0, 0);
@@ -1310,7 +1336,7 @@ namespace render {
     const bool trackRadianceDelta = metrics || settings.convergenceEnabled;
     const bool countCurrentActiveSamples = metrics || settings.convergenceEnabled;
     const bool countNextActiveSamples = settings.progressObserver || settings.convergenceEnabled;
-    std::vector<Colord> result;
+    SampleColorBuffer result;
     ActiveSampleTracker activeSamples;
     ActiveSampleTracker nextActiveSamples;
     activeSamples.reserve(samples.size());
@@ -1321,7 +1347,7 @@ namespace render {
     ActiveQueuedHits activeHits;
     {
       core::util::ScopedTimer timer(metrics ? &metrics->pathSetupWorkerSeconds : nullptr);
-      result.resize(samples.size(), Colord::black());
+      result.resize(samples.size());
       activeSamples.reset(samples.size(), countCurrentActiveSamples);
       nextActiveSamples.reset(samples.size(), countNextActiveSamples);
       current.reserve(samples.size());
@@ -1370,8 +1396,8 @@ namespace render {
       IntegratorBatchFeedback feedback;
       if (settings.progressObserver) {
         core::util::ScopedTimer timer(metrics ? &metrics->progressSnapshotWorkerSeconds : nullptr);
-        feedback = settings.progressObserver->depthCompleted(static_cast<std::uint64_t>(depth + 1),
-                                                             result, nextActiveSampleCount);
+        feedback = settings.progressObserver->depthCompleted(
+          static_cast<std::uint64_t>(depth + 1), result.colors(), nextActiveSampleCount);
       }
 
       if (settings.convergenceEnabled && !samples.empty()) {
@@ -1400,7 +1426,7 @@ namespace render {
       current.advanceTo(next);
     }
 
-    return result;
+    return result.release();
   }
 
   void WhittedIntegrator::setMaximumRecursionDepth(int depth) {

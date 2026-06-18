@@ -1439,6 +1439,11 @@ Progress:
   local vector owned directly by the scheduler loop. That narrows another
   host-resident state boundary a future resident path-loop implementation will
   replace.
+- Whitted sample-color storage now uses the same ownership shape through a
+  `SampleColorBuffer` owner inside `WhittedIntegrator::radianceBatch`. The
+  public batch API and progress observer surface still expose vector colors,
+  but frontier, direct-light, and material-shading helpers no longer receive a
+  raw result vector from the scheduler loop.
 - Path-tracing closest-hit frontier batches now also own hit/miss
   materialization into the active-hit list after backend result validation. The
   depth scheduler no longer loops over backend hit records directly for the

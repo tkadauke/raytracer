@@ -58,49 +58,50 @@ namespace render {
     struct QueuedHit;
     struct QueuedRay;
     class QueuedRayFrontier;
+    class SampleColorBuffer;
 
     bool isCancelled() const;
     State continuationState(const State& parent, double throughput) const;
     bool queuedRayShouldTrace(const QueuedRay& queued) const;
     void recordQueuedRayTermination(const Scene& scene, QueuedRay& queued,
-                                    std::vector<Colord>& result, const std::string& event) const;
-    void recordQueuedRayMiss(const Scene& scene, QueuedRay& queued, std::vector<Colord>& result,
+                                    SampleColorBuffer& result, const std::string& event) const;
+    void recordQueuedRayMiss(const Scene& scene, QueuedRay& queued, SampleColorBuffer& result,
                              BatchDepthMetrics& depthMetrics) const;
     std::size_t partitionTraceableQueuedRays(QueuedRayFrontier& current) const;
     void intersectQueuedRayScalar(const WavefrontIntersectionBackend& intersectionBackend,
                                   const Scene& scene, QueuedRayFrontier& current,
                                   std::size_t queuedIndex, ActiveQueuedHits& activeHits,
-                                  std::vector<Colord>& result, BatchDepthMetrics& depthMetrics,
+                                  SampleColorBuffer& result, BatchDepthMetrics& depthMetrics,
                                   IntegratorBatchMetrics* metrics) const;
     void intersectQueuedRayPacket(const WavefrontIntersectionBackend& intersectionBackend,
                                   const Scene& scene, QueuedRayFrontier& current,
                                   std::size_t firstQueuedIndex, std::size_t laneCount,
-                                  ActiveQueuedHits& activeHits, std::vector<Colord>& result,
+                                  ActiveQueuedHits& activeHits, SampleColorBuffer& result,
                                   BatchDepthMetrics& depthMetrics,
                                   IntegratorBatchMetrics* metrics) const;
     void intersectQueuedRayPacket8(const WavefrontIntersectionBackend& intersectionBackend,
                                    const Scene& scene, QueuedRayFrontier& current,
                                    std::size_t firstQueuedIndex, std::size_t laneCount,
-                                   ActiveQueuedHits& activeHits, std::vector<Colord>& result,
+                                   ActiveQueuedHits& activeHits, SampleColorBuffer& result,
                                    BatchDepthMetrics& depthMetrics,
                                    IntegratorBatchMetrics* metrics) const;
     void intersectQueuedRayBatch(const WavefrontIntersectionBackend& intersectionBackend,
                                  const Scene& scene, QueuedRayFrontier& current,
                                  std::size_t traceableCount, ActiveQueuedHits& activeHits,
-                                 std::vector<Colord>& result, BatchDepthMetrics& depthMetrics,
+                                 SampleColorBuffer& result, BatchDepthMetrics& depthMetrics,
                                  IntegratorBatchMetrics* metrics) const;
     void intersectActiveFrontier(const WavefrontIntersectionBackend& intersectionBackend,
                                  const Scene& scene, QueuedRayFrontier& current,
-                                 ActiveQueuedHits& activeHits, std::vector<Colord>& result,
+                                 ActiveQueuedHits& activeHits, SampleColorBuffer& result,
                                  BatchDepthMetrics& depthMetrics,
                                  IntegratorBatchMetrics* metrics) const;
     void queueOrResolveContinuation(const Scene& scene, const WhittedContinuation& continuation,
                                     const QueuedRay& parent, QueuedRayFrontier& next,
-                                    std::vector<Colord>& result,
+                                    SampleColorBuffer& result,
                                     ActiveSampleTracker& nextActiveSamples) const;
     void shadeQueuedHit(const Scene& scene, const RayCaster& recursiveRayCaster,
                         const QueuedHit& hit, QueuedRayFrontier& current, QueuedRayFrontier& next,
-                        std::vector<Colord>& result, ActiveSampleTracker& nextActiveSamples,
+                        SampleColorBuffer& result, ActiveSampleTracker& nextActiveSamples,
                         IntegratorBatchMetrics* metrics) const;
     bool canUseBatchedLocalWhittedDirectLighting(const Material& material, const Rayd& ray,
                                                  const HitPoint& hitPoint) const;
