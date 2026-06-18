@@ -14,28 +14,31 @@
 > execution stay on the CPU; the GPU backend answers "which primitive does this
 > ray hit?" for a batch/frontier of active rays.
 >
-> **Status:** implementation in progress. Phase 1 has the CPU backend seam,
-> render intent/graph state selection, rendercli and Modeler controls, and
-> fallback metrics in place. Phase 2 now has a diagnostic CPU-side compiled
-> intersection scene for supported leaves, ids, transforms, bounds, and
-> unsupported reasons. Scene-created GPU fallback stubs retain supported
-> compiled scenes and packed upload buffers; exact closest-hit, packet
-> closest-hit, and bounded any-hit queries for triangle, sphere, plane,
-> rectangle, disk, exact OpenCylinder, exact Torus, and static-transform
-> payloads can run through the packed CPU kernel contract and the platform
-> basic-kernel contract.
+> **Status:** v1 hybrid intersection service is implemented, measured, and
+> graph-visible. Phase 1 has the CPU backend seam, render intent/graph state
+> selection, rendercli and Modeler controls, and fallback metrics in place.
+> Phase 2 has a diagnostic CPU-side compiled intersection scene for supported
+> leaves, ids, transforms, bounds, and unsupported reasons. Scene-created GPU
+> fallback stubs retain supported compiled scenes and packed upload buffers;
+> exact closest-hit, packet closest-hit, and bounded any-hit queries for
+> triangle, sphere, plane, rectangle, disk, exact OpenCylinder, exact Torus, and
+> static-transform payloads can run through the packed CPU kernel contract and
+> the platform basic-kernel contract.
 > Transparent-material leaves now explicitly opt out of the packed
 > intersection scene so glass/refraction renders stay on the runtime CPU
 > intersection path until the packed/GPU hit metadata contract is precise
 > enough for Whitted continuation rays.
-> Metal-only smoke kernels now prove optional compute dispatch
-> outside the render path, and the first render-path Metal basic closest-hit
-> and any-hit kernels can execute for prepared triangle, sphere, plane,
-> rectangle, disk, OpenCylinder, and Torus scenes, including static transform
-> payloads, when a Metal device is available. Vulkan-enabled builds can now run
-> basic closest-hit and any-hit kernels for prepared triangle, sphere, plane,
-> rectangle, disk, OpenCylinder, and Torus scenes, including static transform
-> payloads. This is a
+> Metal-only smoke kernels prove optional compute dispatch
+> outside the render path, and render-path Metal basic closest-hit and any-hit
+> kernels can execute for prepared triangle, sphere, plane, rectangle, disk,
+> OpenCylinder, and Torus scenes, including static transform payloads, when a
+> Metal device is available. Vulkan-enabled builds can run basic closest-hit and
+> any-hit kernels for prepared triangle, sphere, plane, rectangle, disk,
+> OpenCylinder, and Torus scenes, including static transform payloads. Supported
+> GPU-requested diffuse path-tracing scenes now also route through the compiled
+> diffuse path-loop CPU reference from the live graph path and report that
+> execution honestly as `compiled_cpu_reference`; platform full-GPU path-loop
+> kernels remain part of the parent tracing execution backend plan. This is a
 > follow-up to
 > `docs/plans/wavefront-and-path-tracing.md` Phase 7+ and is now a child slice
 > of `docs/plans/tracing-execution-backends.md`. It should not replace the CPU
@@ -1432,9 +1435,14 @@ Progress:
 - The compiled diffuse path-step path now mirrors that handoff: one-bounce
   steps emit terminal `GpuDiffusePathStateRecord` rows, the supported diffuse
   subset can run through a multi-depth loop over compact path frontiers, and
-  terminal records resolve through the tracing accumulation diagnostics. The
-  remaining work is to route this compiled loop into the live render graph
-  request path instead of keeping it as a backend/reference boundary.
+  terminal records resolve through the tracing accumulation diagnostics.
+- Supported GPU-requested diffuse path-tracing graph renders now use that
+  compiled multi-depth loop from the live render path. rendercli, Modeler
+  preview, and the render dialog report the execution as
+  `compiled_cpu_reference`, which keeps the boundary explicit: the graph is no
+  longer bypassing the compiled loop, but platform Metal/Vulkan path-loop
+  kernels and scheduler-owned GPU path state still belong to the parent tracing
+  execution backend plan.
 
 ---
 
