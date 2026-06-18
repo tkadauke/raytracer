@@ -1,5 +1,6 @@
 #include "render/GpuTracingScene.h"
 
+#include "render/GpuFloat4.h"
 #include "render/IntersectionSceneCompiler.h"
 #include "render/lights/DirectionalLight.h"
 #include "render/lights/Light.h"
@@ -55,16 +56,6 @@ namespace {
     return value > std::numeric_limits<std::uint32_t>::max()
              ? std::numeric_limits<std::uint32_t>::max()
              : static_cast<std::uint32_t>(value);
-  }
-
-  std::array<float, 4> vector4(const Vector3d& vector, float w) {
-    return {static_cast<float>(vector.x()), static_cast<float>(vector.y()),
-            static_cast<float>(vector.z()), w};
-  }
-
-  std::array<float, 4> color4(const Colord& color) {
-    return {static_cast<float>(color.r()), static_cast<float>(color.g()),
-            static_cast<float>(color.b()), 1.0f};
   }
 
   void setUnsupportedReason(std::string* unsupportedReason, const char* reason) {
@@ -128,8 +119,7 @@ namespace {
     return false;
   }
 
-  void packLocalPhongParameters(const PhongMaterial& material,
-                                GpuTracingMaterialRecord& record) {
+  void packLocalPhongParameters(const PhongMaterial& material, GpuTracingMaterialRecord& record) {
     record.parameters = {static_cast<float>(material.ambientCoefficient()),
                          static_cast<float>(material.diffuseCoefficient()),
                          static_cast<float>(material.specularCoefficient()),
@@ -138,11 +128,10 @@ namespace {
 
   void packMirrorContinuationParameters(const ReflectiveMaterial& material,
                                         GpuTracingMaterialRecord& record) {
-    record.continuationParameters = {
-      static_cast<float>(material.reflectionColor().r()),
-      static_cast<float>(material.reflectionColor().g()),
-      static_cast<float>(material.reflectionColor().b()),
-      static_cast<float>(material.reflectionCoefficient())};
+    record.continuationParameters = {static_cast<float>(material.reflectionColor().r()),
+                                     static_cast<float>(material.reflectionColor().g()),
+                                     static_cast<float>(material.reflectionColor().b()),
+                                     static_cast<float>(material.reflectionCoefficient())};
   }
 
   const char* textureTypeName(const Texturec& texture) {
@@ -200,7 +189,7 @@ std::size_t GpuTracingSceneSections::uploadByteCount() const {
 
 GpuTracingEnvironmentRecord render::makeGpuTracingConstantEnvironment(const Colord& color) {
   GpuTracingEnvironmentRecord record;
-  record.color = color4(color);
+  record.color = gpuColor4(color);
   return record;
 }
 
@@ -236,7 +225,7 @@ render::makeGpuTracingTextureRecord(const Texturec& texture, std::string* unsupp
   if (const auto* constantColor = dynamic_cast<const ConstantColorTexture*>(&texture)) {
     GpuTracingTextureRecord record;
     record.kind = static_cast<std::uint32_t>(GpuTracingTextureKind::ConstantColor);
-    record.parameters = color4(constantColor->color());
+    record.parameters = gpuColor4(constantColor->color());
     return record;
   }
 
@@ -385,26 +374,26 @@ render::makeGpuTracingLightRecord(const Light& light, std::string* unsupportedRe
   if (const auto* pointLight = dynamic_cast<const PointLight*>(&light)) {
     GpuTracingLightRecord record;
     record.kind = static_cast<std::uint32_t>(GpuTracingLightKind::Point);
-    record.positionOrDirection = vector4(pointLight->position(), 1.0f);
-    record.parameters = color4(pointLight->color());
+    record.positionOrDirection = gpuFloat4(pointLight->position(), 1.0f);
+    record.parameters = gpuColor4(pointLight->color());
     return record;
   }
 
   if (const auto* directionalLight = dynamic_cast<const DirectionalLight*>(&light)) {
     GpuTracingLightRecord record;
     record.kind = static_cast<std::uint32_t>(GpuTracingLightKind::Directional);
-    record.positionOrDirection = vector4(directionalLight->direction(), 0.0f);
-    record.parameters = color4(directionalLight->color());
+    record.positionOrDirection = gpuFloat4(directionalLight->direction(), 0.0f);
+    record.parameters = gpuColor4(directionalLight->color());
     return record;
   }
 
   if (const auto* areaLight = dynamic_cast<const RectangularAreaLight*>(&light)) {
     GpuTracingLightRecord record;
     record.kind = static_cast<std::uint32_t>(GpuTracingLightKind::RectangularArea);
-    record.positionOrDirection = vector4(areaLight->center(), 1.0f);
-    record.u = vector4(areaLight->edgeU(), 0.0f);
-    record.v = vector4(areaLight->edgeV(), 0.0f);
-    record.parameters = color4(areaLight->color());
+    record.positionOrDirection = gpuFloat4(areaLight->center(), 1.0f);
+    record.u = gpuFloat4(areaLight->edgeU(), 0.0f);
+    record.v = gpuFloat4(areaLight->edgeV(), 0.0f);
+    record.parameters = gpuColor4(areaLight->color());
     return record;
   }
 

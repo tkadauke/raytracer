@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include "render/GpuFloat4.h"
 #include "render/GpuTracingScene.h"
 #include "render/IntersectionSceneCompiler.h"
 #include "render/lights/DirectionalLight.h"
@@ -89,6 +90,19 @@ namespace GpuTracingSceneTest {
     expectKernelRecordLayout<GpuDiffusePathStepRecord>();
     EXPECT_TRUE(std::is_trivially_copyable_v<GpuDiffusePathStateRecord>);
     EXPECT_TRUE(std::is_trivially_copyable_v<GpuDiffusePathStepRecord>);
+  }
+
+  TEST(GpuTracingScene, GpuFloat4HelpersPackAndUnpackVectorsAndColors) {
+    expectFloat4(gpuFloat4(Vector3d(1.25, -2.5, 3.75), 1.0f), 1.25f, -2.5f, 3.75f, 1.0f);
+    expectFloat4(gpuColor4(Colord(0.125, 0.25, 0.5)), 0.125f, 0.25f, 0.5f, 1.0f);
+    expectFloat4(gpuColor4(Colord(0.125, 0.25, 0.5), 0.0f), 0.125f, 0.25f, 0.5f, 0.0f);
+
+    const GpuFloat4 packed{-1.0f, 2.0f, 4.0f, 8.0f};
+    EXPECT_EQ(Vector3d(-1.0, 2.0, 4.0), gpuFloat4ToVector3(packed));
+    EXPECT_EQ(Vector4d(-1.0, 2.0, 4.0, 8.0), gpuFloat4ToPoint4(packed));
+    EXPECT_EQ(Colord(-1.0, 2.0, 4.0), gpuFloat4ToColor(packed));
+    EXPECT_EQ(4.0, gpuFloat4MaxColor(packed));
+    expectFloat4(gpuFloat4Zero(), 0.0f, 0.0f, 0.0f, 0.0f);
   }
 
   TEST(GpuTracingScene, LayoutVersionScopesAllCompiledSceneSections) {
