@@ -402,10 +402,18 @@ namespace render {
       }
     }
 
-    void applyResolvedContributions(const ActiveQueuedHits& activeHits, QueuedRayFrontier& current,
+    void applyResolvedContributions(const WavefrontIntersectionBackend& intersectionBackend,
+                                    const ActiveQueuedHits& activeHits, QueuedRayFrontier& current,
                                     std::vector<Colord>& result, int depth,
                                     IntegratorBatchMetrics* metrics) const {
       validateResolvedOcclusionCount();
+      if (metrics) {
+        const std::string request =
+          intersectionBackend.requestedName() ? intersectionBackend.requestedName() : "";
+        metrics->recordDirectLightContributionExecution(
+          "cpu", request == "gpu" ? "GPU Whitted direct-light contribution kernel unavailable"
+                                  : std::string());
+      }
       for (std::size_t selectionIndex = 0; selectionIndex != m_selections.size();
            ++selectionIndex) {
         const Selection& selection = m_selections[selectionIndex];
@@ -1173,7 +1181,8 @@ namespace render {
     } else {
       visibility.resolveOcclusion(scene, intersectionBackend, depth, metrics);
       core::util::ScopedTimer timer(metrics ? &metrics->shadingWorkerSeconds : nullptr);
-      visibility.applyResolvedContributions(activeHits, current, result, depth, metrics);
+      visibility.applyResolvedContributions(intersectionBackend, activeHits, current, result, depth,
+                                            metrics);
     }
 
     for (std::size_t hitIndex = 0; hitIndex != activeHits.size(); ++hitIndex) {

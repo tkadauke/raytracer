@@ -18,6 +18,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   metrics, rendercli summaries, and Modeler graph tooltips, sizing the
   host/device payload targeted by future resident-frontier scheduling.
   — GPT-5 Codex
+- Recorded Whitted direct-light contribution execution-path metadata in
+  wavefront diagnostics, distinguishing host-side contribution materialization
+  from backend visibility queries. — GPT-5 Codex
 - Routed supported GPU-requested path-tracing graph renders through the
   compiled diffuse path-loop CPU reference, with rendercli and Modeler traces
   reporting `compiled_cpu_reference` execution until platform full-GPU kernels

@@ -592,6 +592,8 @@ namespace WhittedIntegratorTest {
     EXPECT_GT(metrics.directLightContributionHostBytes, 0u);
     EXPECT_EQ((std::vector<std::uint64_t>{metrics.directLightContributionHostBytes}),
               metrics.directLightContributionHostBytesPerDepth);
+    EXPECT_EQ("cpu", metrics.directLightContributionExecutionPath);
+    EXPECT_TRUE(metrics.directLightContributionFallbackReason.empty());
   }
 
   TEST(WhittedIntegrator, BatchedRadianceMatchesScalarLocalDirectLightShadows) {
@@ -633,6 +635,8 @@ namespace WhittedIntegratorTest {
     EXPECT_GT(metrics.directLightContributionHostBytes, 0u);
     EXPECT_EQ((std::vector<std::uint64_t>{metrics.directLightContributionHostBytes}),
               metrics.directLightContributionHostBytesPerDepth);
+    EXPECT_EQ("cpu", metrics.directLightContributionExecutionPath);
+    EXPECT_TRUE(metrics.directLightContributionFallbackReason.empty());
     EXPECT_EQ(1u, metrics.anyHitQueries);
     EXPECT_EQ(1u, metrics.anyHitRaysSubmitted);
   }

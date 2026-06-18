@@ -1351,9 +1351,10 @@ Progress:
   scheduler still shades on the host, but it no longer treats the active-hit
   list as an unstructured vector at the depth loop boundary.
 - Whitted direct-light visibility batches now also own resolved contribution
-  materialization and contribution host-byte accounting. The scheduler still
-  shades on the host, but it no longer iterates raw visibility selections and
-  occlusion flags after the batch resolves them.
+  materialization, contribution host-byte accounting, and contribution
+  execution-path metadata. The scheduler still shades on the host, but it no
+  longer iterates raw visibility selections and occlusion flags after the batch
+  resolves them.
 - Whitted wavefront metrics now report spawned recursive continuation counts
   and host path-state bytes per depth. That makes Whitted queue growth visible
   in the same diagnostics already used for path-tracing exact-delta branches.
