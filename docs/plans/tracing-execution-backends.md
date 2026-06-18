@@ -2145,9 +2145,13 @@ compiled and what actually ran.
 
 **Jobs:**
 
-1. **Add textbook section for algorithm/schedule/backend.**
+1. ~~**Add textbook section for algorithm/schedule/backend.**~~ ✅ **Done.**
+   The wavefront/path-tracing textbook chapter now separates transport
+   algorithm, frame schedule, and execution backend, and explains why
+   CPU/hybrid/GPU image parity proves backend-record compatibility rather than
+   full GPU shading ownership.
    - Depends on: none.
-   - Output: explanation of why matching images can still prove backend work.
+   - Output: ~~explanation of why matching images can still prove backend work.~~
 
 2. ~~**Add rendered examples for supported subset.**~~ ✅ **Done.** Issue
    #624 adds scripted CPU, auto-policy, and GPU-requested wavefront
@@ -2237,10 +2241,14 @@ performance are proven.
      intersection-service policy; GPU is automatic only after the transfer and
      scene gates above pass.
 
-4. **Add conservative policy tests.**
+4. ~~**Add conservative policy tests.**~~ ✅ **Done.**
+   `WavefrontIntersectionAutoSelection` functional tests pin small supported
+   scenes staying on CPU before compilation, large supported scenes becoming GPU
+   candidates or explicit CPU fallbacks, direct policy GPU selection for a
+   supported large candidate, and unsupported-scene fallback.
    - Depends on: job 3.
-   - Output: functional tests pin decisions for small, supported large, and
-     unsupported scenes without relying on absolute timing.
+   - Output: ~~functional tests pin decisions for small, supported large, and
+     unsupported scenes without relying on absolute timing.~~
 
 5. ~~**Document measured thresholds.**~~ ✅ **Done.**
    - Depends on: jobs 2, 3, and 4.
