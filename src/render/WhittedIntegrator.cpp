@@ -295,6 +295,10 @@ namespace render {
     std::map<std::string, std::uint64_t> frontierPacketScalarFallbackRaysByReason;
     std::uint64_t frontierPacketRefinedRays{0};
     bool trackFrontierMetrics{false};
+    bool trackRadianceDelta{false};
+    double depthDeltaSquaredSum{0.0};
+    double depthMaxDelta{0.0};
+    std::vector<Colord> resultBeforeActiveSamples;
 
     void recordPacketScalarFallbacks(const State& state,
                                      const std::map<std::string, std::uint64_t>& reasonsBefore) {
@@ -305,6 +309,36 @@ namespace render {
           const std::uint64_t delta = count - previous;
           frontierPacketScalarFallbackRays += delta;
           frontierPacketScalarFallbackRaysByReason[reason] += delta;
+        }
+      }
+    }
+
+    void captureRadianceBefore(const ActiveSampleTracker& activeSamples,
+                               const std::vector<Colord>& result) {
+      if (!trackRadianceDelta) {
+        return;
+      }
+      resultBeforeActiveSamples.clear();
+      resultBeforeActiveSamples.reserve(activeSamples.indices().size());
+      for (const std::size_t sampleIndex : activeSamples.indices()) {
+        resultBeforeActiveSamples.push_back(result[sampleIndex]);
+      }
+    }
+
+    void recordRadianceDelta(const WhittedIntegrator& integrator,
+                             const ActiveSampleTracker& activeSamples,
+                             const std::vector<Colord>& result) {
+      if (!trackRadianceDelta) {
+        return;
+      }
+      const std::vector<std::size_t>& activeSampleIndices = activeSamples.indices();
+      for (std::size_t activeIndex = 0; activeIndex != activeSampleIndices.size(); ++activeIndex) {
+        const std::size_t sampleIndex = activeSampleIndices[activeIndex];
+        const double deltaSquared = integrator.radianceDeltaSquared(
+          resultBeforeActiveSamples[activeIndex], result[sampleIndex]);
+        depthDeltaSquaredSum += deltaSquared;
+        if (trackFrontierMetrics) {
+          depthMaxDelta = std::max(depthMaxDelta, std::sqrt(deltaSquared));
         }
       }
     }
@@ -321,6 +355,12 @@ namespace render {
       metrics->recordFrontierClosestHitBatch(frontierClosestHitBatchChunks,
                                              frontierClosestHitBatchRays);
       metrics->recordPacketScalarFallbacksByReason(frontierPacketScalarFallbackRaysByReason);
+    }
+
+    void publishRadianceDelta(IntegratorBatchMetrics* metrics) const {
+      if (metrics) {
+        metrics->recordRadianceDeltaDepth(depthDeltaSquaredSum, depthMaxDelta);
+      }
     }
   };
 
@@ -1271,7 +1311,6 @@ namespace render {
     const bool countCurrentActiveSamples = metrics || settings.convergenceEnabled;
     const bool countNextActiveSamples = settings.progressObserver || settings.convergenceEnabled;
     std::vector<Colord> result;
-    std::vector<Colord> resultBeforeActiveSamples;
     ActiveSampleTracker activeSamples;
     ActiveSampleTracker nextActiveSamples;
     activeSamples.reserve(samples.size());
@@ -1304,19 +1343,14 @@ namespace render {
         metrics->recordActiveDepth(currentActiveSamples);
         current.recordActiveHostPathStateBytes(metrics);
       }
-      if (trackRadianceDelta) {
-        resultBeforeActiveSamples.clear();
-        resultBeforeActiveSamples.reserve(activeSamples.indices().size());
-        for (const std::size_t sampleIndex : activeSamples.indices()) {
-          resultBeforeActiveSamples.push_back(result[sampleIndex]);
-        }
-      }
 
       next.prepareForNextDepth(current.size());
       nextActiveSamples.clear();
 
       BatchDepthMetrics depthMetrics;
       depthMetrics.trackFrontierMetrics = metrics != nullptr;
+      depthMetrics.trackRadianceDelta = trackRadianceDelta;
+      depthMetrics.captureRadianceBefore(activeSamples, result);
       intersectActiveFrontier(intersectionBackend, scene, current, activeHits, result, depthMetrics,
                               metrics);
       if (metrics) {
@@ -1327,25 +1361,8 @@ namespace render {
       activeHits.shade(*this, scene, intersectionBackend, recursiveRayCaster, depth, current, next,
                        result, nextActiveSamples, metrics);
 
-      double depthDeltaSquaredSum = 0.0;
-      double depthMaxDelta = 0.0;
-      if (trackRadianceDelta) {
-        const std::vector<std::size_t>& activeSampleIndices = activeSamples.indices();
-        for (std::size_t activeIndex = 0; activeIndex != activeSampleIndices.size();
-             ++activeIndex) {
-          const std::size_t sampleIndex = activeSampleIndices[activeIndex];
-          const double deltaSquared =
-            radianceDeltaSquared(resultBeforeActiveSamples[activeIndex], result[sampleIndex]);
-          depthDeltaSquaredSum += deltaSquared;
-          if (metrics) {
-            depthMaxDelta = std::max(depthMaxDelta, std::sqrt(deltaSquared));
-          }
-        }
-      }
-
-      if (metrics) {
-        metrics->recordRadianceDeltaDepth(depthDeltaSquaredSum, depthMaxDelta);
-      }
+      depthMetrics.recordRadianceDelta(*this, activeSamples, result);
+      depthMetrics.publishRadianceDelta(metrics);
 
       const std::uint64_t nextActiveSampleCount =
         nextActiveSamples.countOr(static_cast<std::uint64_t>(next.size()));
@@ -1361,10 +1378,10 @@ namespace render {
         core::util::ScopedTimer timer(metrics ? &metrics->convergenceTestWorkerSeconds : nullptr);
         const double activeFraction =
           static_cast<double>(nextActiveSampleCount) / static_cast<double>(samples.size());
-        const double rawRadianceDeltaRms =
-          currentActiveSamples == 0
-            ? 0.0
-            : std::sqrt(depthDeltaSquaredSum / static_cast<double>(currentActiveSamples));
+        const double rawRadianceDeltaRms = currentActiveSamples == 0
+                                             ? 0.0
+                                             : std::sqrt(depthMetrics.depthDeltaSquaredSum /
+                                                         static_cast<double>(currentActiveSamples));
         const double radianceDeltaRms =
           feedback.convergenceRadianceDeltaRms.value_or(rawRadianceDeltaRms);
         if (metrics && feedback.convergenceRadianceDeltaRms) {

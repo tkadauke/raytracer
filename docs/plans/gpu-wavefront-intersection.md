@@ -1417,6 +1417,10 @@ Progress:
   scheduler. Closest-hit batch counts, packet traversal counts, hit/miss
   counts, and packet fallback reasons therefore stay with the frontier metrics
   object that resident-frontier implementations will update.
+- Whitted radiance-delta snapshots and per-depth delta accumulation now also
+  live on `BatchDepthMetrics`. The depth scheduler still uses the resulting RMS
+  for convergence, but the snapshot vector, squared-sum, max-delta, and metrics
+  publication no longer sit as loose locals in the main loop.
 - Wavefront tile metric merging now carries active-hit host bytes and
   direct-light selection, occlusion-result, and contribution host-byte totals
   plus per-depth arrays across every sample batch in a tile. Adaptive or
