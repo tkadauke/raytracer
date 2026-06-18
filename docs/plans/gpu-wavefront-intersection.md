@@ -1283,6 +1283,11 @@ Progress:
   active hits and path state, then the batch builds its own selection/query
   payload before resolving visibility, narrowing the future resident
   direct-light boundary another step.
+- Direct-light visibility batches now also own the mapping from resolved
+  light-selection records to contribution slots. The contribution batch still
+  owns resolved color storage, but selection indices, PDFs, occlusion lookup,
+  and per-sample metric recording no longer leak back into the scheduler or
+  contribution container.
 - Scalar and batched direct-light contribution resolution now route through the
   visibility and contribution batch owners instead of open-coded loops in the
   path-tracing scheduler. Scalar direct lighting uses the same visibility-batch
