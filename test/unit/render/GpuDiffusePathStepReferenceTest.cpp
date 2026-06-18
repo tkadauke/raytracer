@@ -7,6 +7,7 @@
 
 #include "render/GpuDiffusePathStepReference.h"
 #include "render/IntersectionSceneCompiler.h"
+#include "render/cameras/PinholeCamera.h"
 #include "render/lights/PointLight.h"
 #include "render/materials/EmissiveMaterial.h"
 #include "render/materials/Material.h"
@@ -15,6 +16,7 @@
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
 #include "render/samplers/GpuSampleStream.h"
+#include "render/samplers/Sampler.h"
 #include "render/textures/ConstantColorTexture.h"
 
 #include <algorithm>
@@ -297,6 +299,79 @@ namespace GpuDiffusePathStepReferenceTest {
               result.stepRecords[3].event);
     EXPECT_EQ("packed_cpu", result.metrics.closestHitExecutionPath);
     EXPECT_EQ(3u, result.metrics.closestHitRays);
+  }
+
+  TEST(GpuDiffusePrimaryPathStateGenerator, GeneratesOneActivePathPerPixelSample) {
+    PinholeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 3, 2));
+    camera.viewPlane()->sampler()->setup(4, 8, 42);
+
+    const GpuDiffusePrimaryPathStateGeneration generation =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 3, 2), 99, 1234);
+
+    EXPECT_EQ(0, generation.requestedRect.left());
+    EXPECT_EQ(0, generation.requestedRect.top());
+    EXPECT_EQ(3, generation.requestedRect.width());
+    EXPECT_EQ(2, generation.requestedRect.height());
+    EXPECT_EQ(0, generation.actualRect.left());
+    EXPECT_EQ(0, generation.actualRect.top());
+    EXPECT_EQ(3, generation.actualRect.width());
+    EXPECT_EQ(2, generation.actualRect.height());
+    EXPECT_EQ(24u, generation.generatedPrimarySamples);
+    EXPECT_EQ(0u, generation.skippedPrimarySamples);
+    ASSERT_EQ(24u, generation.pathStates.size());
+
+    std::size_t pathIndex = 0;
+    for (std::uint32_t pixelIndex = 0; pixelIndex != 6; ++pixelIndex) {
+      for (std::uint32_t sampleIndex = 0; sampleIndex != 4; ++sampleIndex) {
+        const GpuDiffusePathStateRecord& path = generation.pathStates[pathIndex];
+        EXPECT_TRUE(gpuDiffusePathStateIsActive(path));
+        EXPECT_FALSE(gpuDiffusePathStateIsTerminated(path));
+        EXPECT_EQ(static_cast<std::uint32_t>(pathIndex), path.ray.rayIndex);
+        EXPECT_EQ(pixelIndex, path.pixelIndex);
+        EXPECT_EQ(sampleIndex, path.primarySampleIndex);
+        EXPECT_EQ(0u, path.depth);
+        EXPECT_EQ(1234u, path.sampleSeed);
+        EXPECT_EQ(static_cast<std::uint32_t>(SampleDimension::BSDF), path.sampleDimensionBase);
+        EXPECT_EQ(static_cast<std::uint32_t>(kPathSampleDimensionStride),
+                  path.sampleDimensionStride);
+        EXPECT_FLOAT_EQ(1.0f, path.throughput[0]);
+        EXPECT_FLOAT_EQ(1.0f, path.throughput[1]);
+        EXPECT_FLOAT_EQ(1.0f, path.throughput[2]);
+        EXPECT_FLOAT_EQ(0.0f, path.accumulatedRadiance[0]);
+        EXPECT_FLOAT_EQ(0.0f, path.accumulatedRadiance[1]);
+        EXPECT_FLOAT_EQ(0.0f, path.accumulatedRadiance[2]);
+        EXPECT_NEAR(1.0, vectorFrom4(path.ray.direction).length(), 1e-5);
+        EXPECT_GE(path.ray.timeSample, 0.0f);
+        EXPECT_LT(path.ray.timeSample, 1.0f);
+        ++pathIndex;
+      }
+    }
+  }
+
+  TEST(GpuDiffusePrimaryPathStateGenerator, UsesActualRenderableRectForFitExactCameras) {
+    PinholeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
+    camera.setAspectMode(AspectMode::FitExact);
+    camera.setAspectRatio(1.0);
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 4, 2));
+    camera.viewPlane()->sampler()->setup(1, 4, 7);
+
+    const GpuDiffusePrimaryPathStateGeneration generation =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 4, 2));
+
+    EXPECT_EQ(0, generation.requestedRect.left());
+    EXPECT_EQ(0, generation.requestedRect.top());
+    EXPECT_EQ(4, generation.requestedRect.width());
+    EXPECT_EQ(2, generation.requestedRect.height());
+    EXPECT_EQ(1, generation.actualRect.left());
+    EXPECT_EQ(0, generation.actualRect.top());
+    EXPECT_EQ(2, generation.actualRect.width());
+    EXPECT_EQ(2, generation.actualRect.height());
+    ASSERT_EQ(4u, generation.pathStates.size());
+    EXPECT_EQ(1u, generation.pathStates[0].pixelIndex);
+    EXPECT_EQ(2u, generation.pathStates[1].pixelIndex);
+    EXPECT_EQ(5u, generation.pathStates[2].pixelIndex);
+    EXPECT_EQ(6u, generation.pathStates[3].pixelIndex);
   }
 
   TEST(GpuDiffusePathStep, OneBounceMissMatchesReferenceRecordsAndContribution) {

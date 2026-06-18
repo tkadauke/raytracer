@@ -1,9 +1,11 @@
 #pragma once
 
+#include "core/math/Rect.h"
 #include "render/GpuTracingScene.h"
 #include "render/TracingAccumulationLayout.h"
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -11,6 +13,7 @@ template<class T>
 class Buffer;
 
 namespace render {
+  class Camera;
   class Tonemap;
 
   struct GpuDiffusePathStepMetrics {
@@ -59,6 +62,22 @@ namespace render {
     std::uint64_t initialPathCount{0};
     std::uint64_t depthCount{0};
     std::uint64_t maxDepthTerminatedPaths{0};
+  };
+
+  struct GpuDiffusePrimaryPathStateGeneration {
+    std::vector<GpuDiffusePathStateRecord> pathStates;
+    Recti requestedRect;
+    Recti actualRect;
+    std::uint64_t generatedPrimarySamples{0};
+    std::uint64_t skippedPrimarySamples{0};
+  };
+
+  class GpuDiffusePrimaryPathStateGenerator {
+  public:
+    [[nodiscard]] GpuDiffusePrimaryPathStateGeneration
+    generate(const Camera& camera, const Recti& rect,
+             std::optional<std::uint64_t> tileSeed = std::nullopt,
+             std::uint32_t sampleSeed = 0) const;
   };
 
   class GpuDiffusePathStep {

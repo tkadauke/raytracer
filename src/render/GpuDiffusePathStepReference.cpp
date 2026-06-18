@@ -6,10 +6,14 @@
 #include "render/MIS.h"
 #include "render/PathTermination.h"
 #include "render/TracingAccumulationReference.h"
+#include "render/cameras/Camera.h"
 #include "render/samplers/GpuSampleStream.h"
+#include "render/samplers/Sampler.h"
+#include "render/viewplanes/ViewPlane.h"
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <limits>
 #include <map>
 #include <optional>
@@ -281,6 +285,78 @@ namespace {
 
     return diagnostics;
   }
+}
+
+GpuDiffusePrimaryPathStateGeneration
+GpuDiffusePrimaryPathStateGenerator::generate(const Camera& camera, const Recti& rect,
+                                              std::optional<std::uint64_t> tileSeed,
+                                              std::uint32_t sampleSeed) const {
+  GpuDiffusePrimaryPathStateGeneration result;
+  result.requestedRect = rect;
+  result.actualRect = camera.renderableRect(rect);
+  if (result.actualRect.width() <= 0 || result.actualRect.height() <= 0) {
+    return result;
+  }
+
+  auto plane = camera.viewPlane();
+  if (!plane) {
+    return result;
+  }
+
+  const auto sampler = plane->sampler();
+  if (!sampler || sampler->numSamples() <= 0) {
+    return result;
+  }
+
+  const std::size_t pixelCount = static_cast<std::size_t>(result.actualRect.width()) *
+                                 static_cast<std::size_t>(result.actualRect.height());
+  const std::size_t estimatedPathCount =
+    pixelCount * static_cast<std::size_t>(sampler->numSamples());
+  if (pixelCount != 0 &&
+      estimatedPathCount / pixelCount != static_cast<std::size_t>(sampler->numSamples())) {
+    throw std::overflow_error("gpu diffuse primary path-state count overflows");
+  }
+  if (estimatedPathCount > std::numeric_limits<std::uint32_t>::max()) {
+    throw std::overflow_error("gpu diffuse primary path-state count exceeds GPU ray index range");
+  }
+
+  result.pathStates.reserve(estimatedPathCount);
+  SampleStreamStorage sampleStreams;
+  sampleStreams.reserve(estimatedPathCount);
+  const auto primaryRayGenerator = camera.primaryRayGenerator();
+  const GpuIntersectionScenePacker packer;
+
+  for (ViewPlane::Iterator pixel = plane->pixelBegin(result.actualRect),
+                           end = plane->end(result.actualRect);
+       pixel != end; ++pixel) {
+    const std::uint64_t pixelHash = camera.primaryRayPixelHash(pixel, tileSeed);
+    const std::uint32_t pixelIndex =
+      static_cast<std::uint32_t>(static_cast<std::uint64_t>(pixel.row() - rect.top()) *
+                                   static_cast<std::uint64_t>(rect.width()) +
+                                 static_cast<std::uint64_t>(pixel.column() - rect.left()));
+
+    for (int sampleIndex = 0; sampleIndex != sampler->numSamples(); ++sampleIndex) {
+      SampleStream* stream = sampler->appendStream(sampleStreams, sampleIndex, pixelHash);
+      const std::optional<Camera::PrimaryRay> primarySample =
+        primaryRayGenerator->sample(pixel, *stream);
+      if (!primarySample) {
+        ++result.skippedPrimarySamples;
+        continue;
+      }
+
+      GpuDiffusePathStateRecord pathState = makeActiveGpuDiffusePathState();
+      pathState.ray = packer.packRay(
+        primarySample->ray, static_cast<std::uint32_t>(result.pathStates.size()),
+        /*minDistance=*/0.0, std::numeric_limits<double>::infinity(), primarySample->timeSample);
+      pathState.pixelIndex = pixelIndex;
+      pathState.primarySampleIndex = static_cast<std::uint32_t>(sampleIndex);
+      pathState.sampleSeed = sampleSeed;
+      result.pathStates.push_back(pathState);
+      ++result.generatedPrimarySamples;
+    }
+  }
+
+  return result;
 }
 
 void GpuDiffusePathStepMetrics::merge(const GpuDiffusePathStepMetrics& source) {
