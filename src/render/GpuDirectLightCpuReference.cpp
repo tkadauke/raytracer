@@ -3,6 +3,7 @@
 #include "core/math/Constants.h"
 #include "core/math/Ray.h"
 #include "render/GpuCompiledLightSampler.h"
+#include "render/GpuFloat4.h"
 #include "render/IntersectionService.h"
 #include "render/MIS.h"
 #include "render/State.h"
@@ -18,32 +19,6 @@ namespace render {
     static_assert(std::is_standard_layout_v<GpuDirectLightContributionRecord>);
     static_assert(alignof(GpuDirectLightContributionRecord) == 16);
     static_assert(sizeof(GpuDirectLightContributionRecord) % 16 == 0);
-
-    Vector3d vector3(const std::array<float, 4>& value) {
-      return Vector3d(value);
-    }
-
-    Vector4d point4(const std::array<float, 4>& value) {
-      return Vector4d(value[0], value[1], value[2], value[3]);
-    }
-
-    Colord color(const std::array<float, 4>& value) {
-      return Colord(value[0], value[1], value[2]);
-    }
-
-    std::array<float, 4> vector4(const Vector3d& value, float w) {
-      return {static_cast<float>(value.x()), static_cast<float>(value.y()),
-              static_cast<float>(value.z()), w};
-    }
-
-    std::array<float, 4> color4(const Colord& value) {
-      return {static_cast<float>(value.r()), static_cast<float>(value.g()),
-              static_cast<float>(value.b()), 1.0f};
-    }
-
-    std::array<float, 4> zero4() {
-      return {0.0f, 0.0f, 0.0f, 0.0f};
-    }
 
     Vector2d gpuSample2D(const GpuDirectLightSampleStateRecord& sample, std::uint32_t dimension) {
       return GpuSampleStream::sample2D(sample.seed, sample.pixelIndex, sample.primarySampleIndex,
@@ -61,8 +36,8 @@ namespace render {
       GpuDirectLightVisibilityRecord visibility;
       visibility.workIndex = workIndex;
       visibility.lightIndex = lightIndex;
-      visibility.lightRadiance = zero4();
-      visibility.lightSample = zero4();
+      visibility.lightRadiance = gpuFloat4Zero();
+      visibility.lightSample = gpuFloat4Zero();
       return visibility;
     }
 
@@ -71,8 +46,8 @@ namespace render {
                                                           std::uint32_t lightIndex,
                                                           double selectionPdf,
                                                           const GpuTracingLightRecord& light) {
-      const Vector3d point = vector3(work.surface.point);
-      const Vector3d normal = vector3(work.surface.normal).normalizedOrZero(tolerance);
+      const Vector3d point = gpuFloat4ToVector3(work.surface.point);
+      const Vector3d normal = gpuFloat4ToVector3(work.surface.normal).normalizedOrZero(tolerance);
       Vector2d lightSample(0.5, 0.5);
 
       if (static_cast<GpuTracingLightKind>(light.kind) == GpuTracingLightKind::RectangularArea) {
@@ -92,7 +67,7 @@ namespace render {
         return invalidVisibility(workIndex, lightIndex);
       }
 
-      const Rayd shadowRay(point4(work.surface.point), sample.direction);
+      const Rayd shadowRay(gpuFloat4ToPoint4(work.surface.point), sample.direction);
       const Rayd shifted = shadowRay.epsilonShifted();
 
       GpuDirectLightVisibilityRecord visibility;
@@ -100,9 +75,9 @@ namespace render {
       visibility.lightIndex = lightIndex;
       visibility.flags =
         gpuDirectLightVisibilityValid | (sample.delta ? gpuDirectLightVisibilityDeltaLight : 0u);
-      visibility.rayOrigin = vector4(Vector3d(shifted.origin()), 1.0f);
-      visibility.rayDirection = vector4(shifted.direction(), 0.0f);
-      visibility.lightRadiance = color4(sample.radiance);
+      visibility.rayOrigin = gpuFloat4(Vector3d(shifted.origin()), 1.0f);
+      visibility.rayDirection = gpuFloat4(shifted.direction(), 0.0f);
+      visibility.lightRadiance = gpuColor4(sample.radiance);
       visibility.lightSample = {static_cast<float>(sample.surfaceSample.x()),
                                 static_cast<float>(sample.surfaceSample.y()), 0.0f, 0.0f};
       visibility.minDistance = static_cast<float>(Rayd::epsilon);
@@ -121,13 +96,13 @@ namespace render {
           GpuTracingTextureKind::ConstantColor) {
         return Colord::black();
       }
-      return color(texture.parameters);
+      return gpuFloat4ToColor(texture.parameters);
     }
 
     Rayd visibilityRay(const GpuDirectLightVisibilityRecord& visibility) {
       return Rayd(Vector4d(visibility.rayOrigin[0], visibility.rayOrigin[1],
                            visibility.rayOrigin[2], visibility.rayOrigin[3]),
-                  vector3(visibility.rayDirection));
+                  gpuFloat4ToVector3(visibility.rayDirection));
     }
 
   }
@@ -227,9 +202,10 @@ namespace render {
       return result;
     }
 
-    const Vector3d wi = vector3(work.surface.incomingDirection).normalizedOrZero(tolerance);
-    const Vector3d wo = vector3(visibility.rayDirection).normalizedOrZero(tolerance);
-    const Vector3d normal = vector3(work.surface.normal).normalizedOrZero(tolerance);
+    const Vector3d wi =
+      gpuFloat4ToVector3(work.surface.incomingDirection).normalizedOrZero(tolerance);
+    const Vector3d wo = gpuFloat4ToVector3(visibility.rayDirection).normalizedOrZero(tolerance);
+    const Vector3d normal = gpuFloat4ToVector3(work.surface.normal).normalizedOrZero(tolerance);
     const double normalDotOut = normal * wo;
     double bsdfPdf = 0.0;
     if (normal * wi >= 0.0 && normalDotOut > 0.0) {
@@ -239,18 +215,18 @@ namespace render {
     const bool deltaLight = (visibility.flags & gpuDirectLightVisibilityDeltaLight) != 0u;
     const double otherPdf = deltaLight ? 0.0 : bsdfPdf;
     Colord contribution = mis::estimateDirectLightingFromLightSample(
-      bsdfValue, color(visibility.lightRadiance), normalDotOut, visibility.lightPdf, otherPdf,
-      deltaLight);
+      bsdfValue, gpuFloat4ToColor(visibility.lightRadiance), normalDotOut, visibility.lightPdf,
+      otherPdf, deltaLight);
     if (visibility.selectionPdf > 0.0) {
       contribution = contribution / visibility.selectionPdf;
     } else {
       contribution = Colord::black();
     }
-    contribution = contribution * color(work.surface.throughput);
+    contribution = contribution * gpuFloat4ToColor(work.surface.throughput);
 
     if (contribution != Colord::black()) {
       result.flags |= gpuDirectLightContributionContributing;
-      result.contribution = color4(contribution);
+      result.contribution = gpuColor4(contribution);
     }
     return result;
   }
