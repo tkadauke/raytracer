@@ -388,7 +388,7 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_DOUBLE_EQ(2.0 / 5.0, compaction.removedPathFraction());
     EXPECT_EQ(2u, compaction.movedPathCount());
     EXPECT_DOUBLE_EQ(2.0 / 3.0, compaction.movedRetainedPathFraction());
-    EXPECT_EQ((std::vector<std::size_t>{0u, 2u, 4u}), compaction.retainedPathIndices());
+    EXPECT_EQ((std::vector<std::uint32_t>{0u, 2u, 4u}), compaction.retainedPathIndices());
     EXPECT_EQ(64u, compaction.pathStateBytesPerPath());
     EXPECT_EQ(5u * 64u, compaction.inputPathStateBytes());
     EXPECT_EQ(3u * 64u, compaction.retainedPathStateBytes());
@@ -435,6 +435,16 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_THROW(
       (void)WavefrontFrontierCompactionResult::fromRetainedPathIndices(2, {0u, 2u}, "host"),
       std::out_of_range);
+  }
+
+  TEST(WavefrontFrontierCompaction, RejectsRetainedPathIndicesOutsideGpuIndexRange) {
+    if constexpr (sizeof(std::size_t) > sizeof(std::uint32_t)) {
+      const std::size_t tooLarge =
+        static_cast<std::size_t>(std::numeric_limits<std::uint32_t>::max()) + 1u;
+      WavefrontFrontierCompactionRequest request(tooLarge + 1u);
+
+      EXPECT_THROW(request.retain(tooLarge), std::overflow_error);
+    }
   }
 
   TEST(WavefrontFrontierCompaction, RejectsUnsortedRetainedPaths) {

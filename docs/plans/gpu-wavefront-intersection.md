@@ -1110,6 +1110,11 @@ Progress:
   by the current Metal/Vulkan prepared ray-batch compaction kernels, making the
   future retained-index transfer or residency cost visible beside input,
   retained, removed, moved, and execution-path counters.
+- Frontier compaction request/result retained-index storage now uses that same
+  32-bit GPU ABI shape directly instead of host-sized indices. Host path counts
+  remain `std::size_t`, but retained indices are validated before entering the
+  backend compaction contract so future Metal/Vulkan compaction code can consume
+  the public contract without another narrowing pass.
 - Wavefront metrics now split estimated ray upload bytes by closest-hit and
   any-hit query family, so resident-frontier planning can tell whether path
   frontier intersections or direct-light visibility batches are driving the

@@ -22,6 +22,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstdint>
 #include <cmath>
 #include <list>
 #include <map>
@@ -192,7 +193,7 @@ namespace render {
 
     void applyCompaction(const WavefrontFrontierCompactionResult& compaction) {
       assert(m_paths.size() == compaction.inputPathCount());
-      const std::vector<std::size_t>& retainedPathIndices = compaction.retainedPathIndices();
+      const std::vector<std::uint32_t>& retainedPathIndices = compaction.retainedPathIndices();
       for (std::size_t outputIndex = 0; outputIndex != retainedPathIndices.size(); ++outputIndex) {
         const std::size_t inputIndex = retainedPathIndices[outputIndex];
         assert(inputIndex < m_paths.size());

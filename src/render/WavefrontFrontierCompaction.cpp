@@ -2,6 +2,7 @@
 
 #include "render/Integrator.h"
 
+#include <cstdint>
 #include <limits>
 #include <stdexcept>
 #include <utility>
@@ -33,18 +34,23 @@ namespace render {
     if (pathIndex >= m_inputPathCount) {
       throw std::out_of_range("frontier compaction retained path index is out of range");
     }
+    if (pathIndex > std::numeric_limits<std::uint32_t>::max()) {
+      throw std::overflow_error(
+        "frontier compaction retained path index exceeds GPU retained-index range");
+    }
     if (!m_retainedPathIndices.empty() && pathIndex <= m_retainedPathIndices.back()) {
       throw std::invalid_argument(
         "frontier compaction retained path indices must be strictly increasing");
     }
-    m_retainedPathIndices.push_back(pathIndex);
+    m_retainedPathIndices.push_back(static_cast<std::uint32_t>(pathIndex));
   }
 
   std::size_t WavefrontFrontierCompactionRequest::inputPathCount() const {
     return m_inputPathCount;
   }
 
-  const std::vector<std::size_t>& WavefrontFrontierCompactionRequest::retainedPathIndices() const {
+  const std::vector<std::uint32_t>&
+  WavefrontFrontierCompactionRequest::retainedPathIndices() const {
     return m_retainedPathIndices;
   }
 
@@ -78,7 +84,7 @@ namespace render {
   }
 
   WavefrontFrontierCompactionResult WavefrontFrontierCompactionResult::fromRetainedPathIndices(
-    std::size_t inputPathCount, std::vector<std::size_t> retainedPathIndices,
+    std::size_t inputPathCount, std::vector<std::uint32_t> retainedPathIndices,
     std::string executionPath, std::uint64_t pathStateBytesPerPath) {
     validateRetainedPathIndices(inputPathCount, retainedPathIndices);
     const std::size_t movedPathCount = movedPathCountFor(retainedPathIndices);
@@ -118,7 +124,7 @@ namespace render {
     return static_cast<double>(m_movedPathCount) / static_cast<double>(retained);
   }
 
-  const std::vector<std::size_t>& WavefrontFrontierCompactionResult::retainedPathIndices() const {
+  const std::vector<std::uint32_t>& WavefrontFrontierCompactionResult::retainedPathIndices() const {
     return m_retainedPathIndices;
   }
 
@@ -157,7 +163,7 @@ namespace render {
   }
 
   WavefrontFrontierCompactionResult::WavefrontFrontierCompactionResult(
-    std::size_t inputPathCount, std::vector<std::size_t> retainedPathIndices,
+    std::size_t inputPathCount, std::vector<std::uint32_t> retainedPathIndices,
     std::size_t movedPathCount, std::string executionPath, std::uint64_t pathStateBytesPerPath)
       : m_inputPathCount(inputPathCount),
         m_pathStateBytesPerPath(pathStateBytesPerPath),
@@ -167,10 +173,10 @@ namespace render {
   }
 
   void WavefrontFrontierCompactionResult::validateRetainedPathIndices(
-    std::size_t inputPathCount, const std::vector<std::size_t>& retainedPathIndices) {
-    std::size_t previous = 0;
+    std::size_t inputPathCount, const std::vector<std::uint32_t>& retainedPathIndices) {
+    std::uint32_t previous = 0;
     bool hasPrevious = false;
-    for (const std::size_t pathIndex : retainedPathIndices) {
+    for (const std::uint32_t pathIndex : retainedPathIndices) {
       if (pathIndex >= inputPathCount) {
         throw std::out_of_range("frontier compaction retained path index is out of range");
       }
@@ -184,10 +190,10 @@ namespace render {
   }
 
   std::size_t WavefrontFrontierCompactionResult::movedPathCountFor(
-    const std::vector<std::size_t>& retainedPathIndices) {
+    const std::vector<std::uint32_t>& retainedPathIndices) {
     std::size_t movedPathCount = 0;
     for (std::size_t outputIndex = 0; outputIndex != retainedPathIndices.size(); ++outputIndex) {
-      if (retainedPathIndices[outputIndex] != outputIndex) {
+      if (static_cast<std::size_t>(retainedPathIndices[outputIndex]) != outputIndex) {
         ++movedPathCount;
       }
     }
