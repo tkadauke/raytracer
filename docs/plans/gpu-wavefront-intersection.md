@@ -1297,6 +1297,11 @@ Progress:
 - Direct-light contribution batches now record their own host-byte footprint
   when created, keeping resolved lighting payload accounting with the object
   that owns that payload.
+- Direct-light visibility batches now materialize their own contribution batch
+  after visibility resolution. The scheduler no longer creates contribution
+  storage, records its host bytes, maps selections into it, or averages it;
+  those steps are owned by the visibility boundary that a future resident
+  direct-light backend will replace.
 - Direct-light visibility resolution now validates that backend any-hit
   frontiers return exactly one occlusion flag per light-selection record. That
   makes malformed resident-backend results fail loudly instead of silently

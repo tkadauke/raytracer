@@ -416,7 +416,7 @@ namespace render {
     }
 
     [[nodiscard]] bool empty() const {
-      return m_shadowQueries.empty();
+      return m_selections.empty();
     }
 
     [[nodiscard]] std::size_t size() const {
@@ -440,11 +440,11 @@ namespace render {
       return contribution / static_cast<double>(std::max(1, directLightSamples));
     }
 
-    void accumulateResolvedContributions(const PathTracingIntegrator& integrator,
-                                         const ActivePathHits& activeHits,
-                                         HostBatchPathFrontier& paths,
-                                         DirectLightContributionBatch& contributions,
-                                         IntegratorBatchMetrics* metrics) const;
+    [[nodiscard]] DirectLightContributionBatch
+    materializeContributions(const PathTracingIntegrator& integrator,
+                             const ActivePathHits& activeHits, HostBatchPathFrontier& paths,
+                             int bounce, int directLightSamples,
+                             IntegratorBatchMetrics* metrics) const;
 
     void recordEmptyVisibility(int bounce, IntegratorBatchMetrics* metrics) const {
       if (!empty()) {
@@ -503,6 +503,12 @@ namespace render {
     }
 
   private:
+    void accumulateResolvedContributions(const PathTracingIntegrator& integrator,
+                                         const ActivePathHits& activeHits,
+                                         HostBatchPathFrontier& paths,
+                                         DirectLightContributionBatch& contributions,
+                                         IntegratorBatchMetrics* metrics) const;
+
     DirectLightingSample resolveSample(std::size_t index, const PathTracingIntegrator& integrator,
                                        const PathMaterialTransport& material,
                                        const HitPoint& hitPoint, const Vector3d& wi,
@@ -622,6 +628,22 @@ namespace render {
   private:
     std::vector<Colord> m_contributions;
   };
+
+  PathTracingIntegrator::DirectLightContributionBatch
+  PathTracingIntegrator::DirectLightVisibilityBatch::materializeContributions(
+    const PathTracingIntegrator& integrator, const ActivePathHits& activeHits,
+    HostBatchPathFrontier& paths, int bounce, int directLightSamples,
+    IntegratorBatchMetrics* metrics) const {
+    DirectLightContributionBatch contributions(activeHits.size());
+    contributions.recordHostBytes(bounce, metrics);
+    if (empty()) {
+      return contributions;
+    }
+
+    accumulateResolvedContributions(integrator, activeHits, paths, contributions, metrics);
+    contributions.average(directLightSamples);
+    return contributions;
+  }
 
   void PathTracingIntegrator::DirectLightVisibilityBatch::accumulateResolvedContributions(
     const PathTracingIntegrator& integrator, const ActivePathHits& activeHits,
@@ -929,14 +951,13 @@ namespace render {
     const WavefrontIntersectionBackend& intersectionBackend,
     IntegratorBatchMetrics* metrics) const {
     recordDirectLightContributionExecution(intersectionBackend, metrics);
-    DirectLightContributionBatch contributions(activeHits.size());
-    contributions.recordHostBytes(bounce, metrics);
 
     DirectLightVisibilityBatch visibilityBatch(activeHits.size() *
                                                static_cast<std::size_t>(m_directLightSamples));
     if (activeHits.empty()) {
       visibilityBatch.recordEmptyVisibility(bounce, metrics);
-      return contributions;
+      return visibilityBatch.materializeContributions(*this, activeHits, paths, bounce,
+                                                      m_directLightSamples, metrics);
     }
 
     visibilityBatch.collectActiveHitSelections(*this, lightSampler, activeHits, paths, bounce,
@@ -944,7 +965,8 @@ namespace render {
 
     if (visibilityBatch.empty()) {
       visibilityBatch.recordEmptyVisibility(bounce, metrics);
-      return contributions;
+      return visibilityBatch.materializeContributions(*this, activeHits, paths, bounce,
+                                                      m_directLightSamples, metrics);
     }
 
     {
@@ -952,10 +974,8 @@ namespace render {
       visibilityBatch.resolveOcclusion(scene, intersectionBackend, bounce, metrics);
     }
 
-    visibilityBatch.accumulateResolvedContributions(*this, activeHits, paths, contributions,
-                                                    metrics);
-    contributions.average(m_directLightSamples);
-    return contributions;
+    return visibilityBatch.materializeContributions(*this, activeHits, paths, bounce,
+                                                    m_directLightSamples, metrics);
   }
 
   bool PathTracingIntegrator::canContinueWithSample(const MaterialBsdfSample& sample,
