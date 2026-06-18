@@ -1416,6 +1416,10 @@ Progress:
   but retained-index construction and spawned-continuation append bookkeeping
   now live with the frontier owners that a resident path-state implementation
   will replace.
+- The path-tracing host frontier now also records the final retained host
+  path-state byte row inside its compact-and-append finalization step. The
+  depth scheduler consumes the resulting active count, but the byte accounting
+  stays with the frontier object that owns the post-compaction path state.
 
 ---
 

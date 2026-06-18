@@ -223,6 +223,7 @@ namespace render {
       spawnedPaths.recordSpawnedContinuations(metrics);
       compactWith(backend, compaction, metrics);
       appendAll(spawnedPaths);
+      recordRetainedHostPathStateBytes(metrics);
       return size();
     }
 
@@ -1723,7 +1724,6 @@ namespace render {
 
       if (metrics) {
         depthMetrics.recordDepthOutcome(retainedPathCount);
-        paths.recordRetainedHostPathStateBytes(metrics);
       }
 
       IntegratorBatchFeedback feedback;
