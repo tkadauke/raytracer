@@ -1307,6 +1307,10 @@ Progress:
   visibility, validate results, and materialize averaged contributions. The
   depth scheduler no longer special-cases empty direct-light batches or owns the
   visibility-to-contribution transition.
+- Scalar path tracing now routes its direct-light lifecycle through the same
+  visibility batch owner. That keeps scalar and batched next-event estimation on
+  the same collect, resolve, validate, and contribution-materialization
+  boundary before resident direct-light execution replaces the host object.
 - Direct-light visibility resolution now validates that backend any-hit
   frontiers return exactly one occlusion flag per light-selection record. That
   makes malformed resident-backend results fail loudly instead of silently

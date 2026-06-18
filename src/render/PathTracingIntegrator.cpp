@@ -440,6 +440,27 @@ namespace render {
       return contribution / static_cast<double>(std::max(1, directLightSamples));
     }
 
+    [[nodiscard]] Colord materializeScalarContribution(
+      const PathTracingIntegrator& integrator, const Scene& scene, const LightSampler& lightSampler,
+      const PathMaterialTransport& material, const HitPoint& hitPoint, const Vector3d& wi,
+      State& state, int bounce, int directLightSamples,
+      const WavefrontIntersectionBackend& intersectionBackend, IntegratorBatchMetrics* metrics) {
+      collectScalarSelections(integrator, lightSampler, hitPoint, state, bounce, directLightSamples,
+                              metrics);
+      if (empty()) {
+        recordEmptyVisibility(bounce, metrics);
+        return Colord::black();
+      }
+
+      {
+        core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
+        resolveOcclusion(scene, intersectionBackend, bounce, metrics);
+      }
+
+      return resolveScalarContribution(integrator, material, hitPoint, wi, state,
+                                       directLightSamples, metrics);
+    }
+
     [[nodiscard]] DirectLightContributionBatch
     materializeContributions(const PathTracingIntegrator& integrator,
                              const ActivePathHits& activeHits, HostBatchPathFrontier& paths,
@@ -956,21 +977,9 @@ namespace render {
     recordDirectLightContributionExecution(resolvedIntersectionBackend, metrics);
     DirectLightVisibilityBatch visibilityBatch(static_cast<std::size_t>(m_directLightSamples));
 
-    visibilityBatch.collectScalarSelections(*this, lightSampler, hitPoint, state, bounce,
-                                            m_directLightSamples, metrics);
-
-    if (visibilityBatch.empty()) {
-      visibilityBatch.recordEmptyVisibility(bounce, metrics);
-      return Colord::black();
-    }
-
-    {
-      core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
-      visibilityBatch.resolveOcclusion(scene, resolvedIntersectionBackend, bounce, metrics);
-    }
-
-    return visibilityBatch.resolveScalarContribution(*this, material, hitPoint, wi, state,
-                                                     m_directLightSamples, metrics);
+    return visibilityBatch.materializeScalarContribution(
+      *this, scene, lightSampler, material, hitPoint, wi, state, bounce, m_directLightSamples,
+      resolvedIntersectionBackend, metrics);
   }
 
   PathTracingIntegrator::DirectLightContributionBatch
