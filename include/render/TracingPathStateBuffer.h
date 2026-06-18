@@ -167,6 +167,7 @@ namespace render {
 
   struct ResidentPathLoopDiagnostics {
     std::vector<ResidentPathLoopDepthDiagnostics> depths;
+    std::vector<GpuPathStateRecord> resolvedRecords;
     std::uint64_t finalActiveCount{0};
     TracingPathStateDiagnostics buffers;
   };
@@ -181,6 +182,10 @@ namespace render {
 
   [[nodiscard]] TracingAccumulationDiagnostics
   resolveResidentPathLoopImage(const std::vector<GpuPathStateRecord>& records,
+                               const TracingAccumulationLayout& layout,
+                               Buffer<unsigned int>& target, const Tonemap* tonemap = nullptr);
+  [[nodiscard]] TracingAccumulationDiagnostics
+  resolveResidentPathLoopImage(const ResidentPathLoopDiagnostics& diagnostics,
                                const TracingAccumulationLayout& layout,
                                Buffer<unsigned int>& target, const Tonemap* tonemap = nullptr);
 

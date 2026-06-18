@@ -1424,6 +1424,11 @@ Progress:
   path-state byte row inside its compact-and-append finalization step. The
   depth scheduler consumes the resulting active count, but the byte accounting
   stays with the frontier object that owns the post-compaction path state.
+- The CPU-reference resident path loop now carries terminal resolved path
+  records out of `loopResidentDiffusePaths`, and the accumulation resolve helper
+  can consume the loop diagnostics directly. That closes the data handoff
+  between resident path-state execution and image resolve for the first
+  supported subset before a live GPU path-loop backend owns it.
 
 ---
 

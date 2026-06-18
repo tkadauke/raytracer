@@ -207,6 +207,8 @@ namespace TracingPathStateBufferTest {
     EXPECT_EQ(1u, diagnostics.depths[1].compaction.retainedPathCount());
     EXPECT_EQ(0u, diagnostics.depths[2].compaction.retainedPathCount());
     EXPECT_EQ(1u, diagnostics.depths[2].compaction.removedPathCount());
+    ASSERT_EQ(1u, diagnostics.resolvedRecords.size());
+    EXPECT_EQ(3u, diagnostics.resolvedRecords[0].depth);
     EXPECT_EQ(0u, diagnostics.finalActiveCount);
     EXPECT_EQ(3u, diagnostics.buffers.swapOperations);
   }
@@ -235,7 +237,48 @@ namespace TracingPathStateBufferTest {
     ASSERT_EQ(2u, diagnostics.depths.size());
     EXPECT_EQ(1u, diagnostics.depths[0].compaction.retainedPathCount());
     EXPECT_EQ(0u, diagnostics.depths[1].compaction.retainedPathCount());
+    ASSERT_EQ(1u, diagnostics.resolvedRecords.size());
+    EXPECT_EQ(2u, diagnostics.resolvedRecords[0].depth);
     EXPECT_TRUE(buffers.active().empty());
+  }
+
+  TEST(ResidentDiffusePathLoop, CarriesTerminalRecordsIntoImageResolve) {
+    TracingPathStateBuffers buffers(2);
+    const Rayd ray(Vector4d(0.0, 0.0, 0.0, 1.0), Vector3d(0.0, 0.0, 1.0));
+    buffers.appendActive(makeGpuPathStateRecord(ray, Colord::white(), Colord(0.25, 0.0, 0.0),
+                                                /*pixelIndex=*/0, /*sampleIndex=*/0,
+                                                /*depth=*/0));
+    buffers.appendActive(makeGpuPathStateRecord(ray, Colord::white(), Colord(0.0, 0.25, 0.0),
+                                                /*pixelIndex=*/1, /*sampleIndex=*/0,
+                                                /*depth=*/0));
+
+    ResidentPathLoopSettings settings;
+    settings.maxDepth = 2;
+    settings.russianRouletteDepth = 10;
+    const ResidentPathLoopDiagnostics diagnostics = loopResidentDiffusePaths(
+      buffers, settings, [](const GpuPathStateRecord& record, std::uint32_t) {
+        if (record.pixelIndex == 1) {
+          return std::optional<GpuPathStateRecord>();
+        }
+        GpuPathStateRecord next = record;
+        next.accumulatedRadiance[0] += 0.5f;
+        next.accumulatedRadiance[1] += 0.25f;
+        return std::optional<GpuPathStateRecord>(next);
+      });
+
+    ASSERT_EQ(2u, diagnostics.resolvedRecords.size());
+    EXPECT_EQ(1u, diagnostics.resolvedRecords[0].pixelIndex);
+    EXPECT_EQ(0u, diagnostics.resolvedRecords[1].pixelIndex);
+    EXPECT_TRUE(buffers.active().empty());
+
+    Buffer<unsigned int> resolved(2, 1);
+    const TracingAccumulationDiagnostics accumulation =
+      resolveResidentPathLoopImage(diagnostics, TracingAccumulationLayout::image(2, 1), resolved);
+
+    EXPECT_EQ(Colord(1.0, 0.5, 0.0).rgb(), resolved[0][0]);
+    EXPECT_EQ(Colord(0.0, 0.25, 0.0).rgb(), resolved[0][1]);
+    EXPECT_EQ(2u, accumulation.addedSamples);
+    EXPECT_EQ(1u, accumulation.resolveOperations);
   }
 
   TEST(ResidentDiffusePathLoop, CpuReferenceAndBackendRecordsAgreeForFixedSeed) {
