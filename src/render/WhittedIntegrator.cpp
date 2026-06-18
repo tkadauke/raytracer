@@ -321,20 +321,26 @@ namespace render {
       Colord contribution{Colord::black()};
     };
 
-    explicit DirectLightVisibilityBatch(std::size_t reserveCount) {
+    DirectLightVisibilityBatch(std::size_t activeHitCount, std::size_t reserveCount)
+        : m_locallyShaded(activeHitCount, 0) {
       m_selections.reserve(reserveCount);
       m_shadowQueries.reserve(reserveCount);
     }
 
-    void add(std::size_t hitIndex, const LightSample& sample, const Colord& contribution,
-             const HitPoint& hitPoint, State& state) {
-      m_selections.push_back(Selection{hitIndex, sample, contribution});
-      m_shadowQueries.push_back(WavefrontAnyHitQuery{
-        Rayd(hitPoint.point(), sample.direction).epsilonShifted(), sample.distance, &state});
-    }
+    void collectLocalDirectLighting(const WhittedIntegrator& integrator, const Scene& scene,
+                                    const ActiveQueuedHits& activeHits, QueuedRayFrontier& current,
+                                    std::vector<Colord>& result, IntegratorBatchMetrics* metrics);
 
     [[nodiscard]] bool empty() const {
       return m_selections.empty();
+    }
+
+    [[nodiscard]] bool locallyShaded(std::size_t hitIndex) const {
+      if (hitIndex >= m_locallyShaded.size()) {
+        throw std::logic_error("Whitted direct-light visibility batch queried an invalid active "
+                               "hit index");
+      }
+      return m_locallyShaded[hitIndex] != 0U;
     }
 
     void recordEmptyVisibility(int depth, IntegratorBatchMetrics* metrics) const {
@@ -438,6 +444,21 @@ namespace render {
     }
 
   private:
+    void add(std::size_t hitIndex, const LightSample& sample, const Colord& contribution,
+             const HitPoint& hitPoint, State& state) {
+      m_selections.push_back(Selection{hitIndex, sample, contribution});
+      m_shadowQueries.push_back(WavefrontAnyHitQuery{
+        Rayd(hitPoint.point(), sample.direction).epsilonShifted(), sample.distance, &state});
+    }
+
+    void markLocallyShaded(std::size_t hitIndex) {
+      if (hitIndex >= m_locallyShaded.size()) {
+        throw std::logic_error("Whitted direct-light visibility batch marked an invalid active "
+                               "hit index");
+      }
+      m_locallyShaded[hitIndex] = 1;
+    }
+
     [[nodiscard]] bool occluded(std::size_t index) const {
       validateResolvedOcclusionCount();
       return index < m_occluded.size() && m_occluded[index] != 0U;
@@ -485,6 +506,7 @@ namespace render {
       }
     }
 
+    std::vector<unsigned char> m_locallyShaded;
     std::vector<Selection> m_selections;
     std::vector<WavefrontAnyHitQuery> m_shadowQueries;
     std::unique_ptr<WavefrontAnyHitFrontier> m_frontier;
@@ -1127,6 +1149,42 @@ namespace render {
            material.deltaBsdfSamples(hitPoint, out).empty();
   }
 
+  void WhittedIntegrator::DirectLightVisibilityBatch::collectLocalDirectLighting(
+    const WhittedIntegrator& integrator, const Scene& scene, const ActiveQueuedHits& activeHits,
+    QueuedRayFrontier& current, std::vector<Colord>& result, IntegratorBatchMetrics* metrics) {
+    core::util::ScopedTimer timer(metrics ? &metrics->shadingWorkerSeconds : nullptr);
+    for (std::size_t hitIndex = 0; hitIndex != activeHits.size(); ++hitIndex) {
+      const QueuedHit& hit = activeHits[hitIndex];
+      QueuedRay& queued = current[hit.queuedIndex];
+      if (queued.state.recursionDepth == 1) {
+        queued.state.hitPoint = hit.hitPoint;
+      }
+
+      const auto material = hit.material ? hit.material : hit.primitive->material();
+      if (!material || !integrator.canUseBatchedLocalWhittedDirectLighting(*material, queued.ray,
+                                                                           hit.hitPoint)) {
+        continue;
+      }
+
+      markLocallyShaded(hitIndex);
+      queued.state.recordEvent(nullptr, "Raytracer: shading material");
+      result[queued.sampleIndex] +=
+        queued.weight * material->ambientRadiance(scene, queued.ray, hit.hitPoint);
+
+      const Vector3d out = -queued.ray.direction();
+      for (const auto& light : scene.lights()) {
+        const LightSample sample = light->sample(hit.hitPoint.point());
+        const Vector3d in = sample.direction;
+        const double normalDotIn = hit.hitPoint.normal() * in;
+        Colord contribution = Colord::black();
+        if (normalDotIn > 0.0) {
+          contribution = material->evalBsdf(hit.hitPoint, out, in) * sample.radiance * normalDotIn;
+        }
+        add(hitIndex, sample, contribution, hit.hitPoint, queued.state);
+      }
+    }
+  }
+
   void WhittedIntegrator::shadeActiveHits(
     const Scene& scene, const WavefrontIntersectionBackend& intersectionBackend,
     const RayCaster& recursiveRayCaster, int depth, const ActiveQueuedHits& activeHits,
@@ -1134,47 +1192,14 @@ namespace render {
     std::vector<unsigned char>& nextActiveSamples, bool countNextActiveSamples,
     std::vector<std::size_t>& nextActiveSampleIndices, IntegratorBatchMetrics* metrics) const {
     if (activeHits.empty()) {
-      DirectLightVisibilityBatch emptyBatch(0);
+      DirectLightVisibilityBatch emptyBatch(0, 0);
       emptyBatch.recordEmptyVisibility(depth, metrics);
       return;
     }
 
-    std::vector<unsigned char> locallyShaded(activeHits.size(), 0);
-    DirectLightVisibilityBatch visibility(activeHits.size() * scene.lights().size());
-    {
-      core::util::ScopedTimer timer(metrics ? &metrics->shadingWorkerSeconds : nullptr);
-      for (std::size_t hitIndex = 0; hitIndex != activeHits.size(); ++hitIndex) {
-        const QueuedHit& hit = activeHits[hitIndex];
-        QueuedRay& queued = current[hit.queuedIndex];
-        if (queued.state.recursionDepth == 1) {
-          queued.state.hitPoint = hit.hitPoint;
-        }
-
-        const auto material = hit.material ? hit.material : hit.primitive->material();
-        if (!material ||
-            !canUseBatchedLocalWhittedDirectLighting(*material, queued.ray, hit.hitPoint)) {
-          continue;
-        }
-
-        locallyShaded[hitIndex] = 1;
-        queued.state.recordEvent(nullptr, "Raytracer: shading material");
-        result[queued.sampleIndex] +=
-          queued.weight * material->ambientRadiance(scene, queued.ray, hit.hitPoint);
-
-        const Vector3d out = -queued.ray.direction();
-        for (const auto& light : scene.lights()) {
-          const LightSample sample = light->sample(hit.hitPoint.point());
-          const Vector3d in = sample.direction;
-          const double normalDotIn = hit.hitPoint.normal() * in;
-          Colord contribution = Colord::black();
-          if (normalDotIn > 0.0) {
-            contribution =
-              material->evalBsdf(hit.hitPoint, out, in) * sample.radiance * normalDotIn;
-          }
-          visibility.add(hitIndex, sample, contribution, hit.hitPoint, queued.state);
-        }
-      }
-    }
+    DirectLightVisibilityBatch visibility(activeHits.size(),
+                                          activeHits.size() * scene.lights().size());
+    visibility.collectLocalDirectLighting(*this, scene, activeHits, current, result, metrics);
 
     if (visibility.empty()) {
       visibility.recordEmptyVisibility(depth, metrics);
@@ -1187,7 +1212,7 @@ namespace render {
 
     for (std::size_t hitIndex = 0; hitIndex != activeHits.size(); ++hitIndex) {
       const QueuedHit& hit = activeHits[hitIndex];
-      if (locallyShaded[hitIndex]) {
+      if (visibility.locallyShaded(hitIndex)) {
         current[hit.queuedIndex].state.recurseOut();
         continue;
       }

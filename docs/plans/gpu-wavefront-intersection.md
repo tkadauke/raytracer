@@ -1355,6 +1355,11 @@ Progress:
   execution-path metadata. The scheduler still shades on the host, but it no
   longer iterates raw visibility selections and occlusion flags after the batch
   resolves them.
+- Whitted direct-light visibility batches now also own local direct-light
+  eligibility, light selection, shadow-query construction, and the
+  locally-shaded hit mask. The depth scheduler asks the batch to collect,
+  resolve, and apply local direct lighting instead of maintaining a parallel
+  host-side shading flag vector.
 - Whitted wavefront metrics now report spawned recursive continuation counts
   and host path-state bytes per depth. That makes Whitted queue growth visible
   in the same diagnostics already used for path-tracing exact-delta branches.
