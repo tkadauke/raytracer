@@ -1370,6 +1370,10 @@ Progress:
   centralizes path-state reservation, enqueueing, swapping, iteration, and
   host-byte sizing. That matches the path tracer's host-frontier direction and
   leaves fewer ad hoc vector operations in the Whitted depth loop.
+- Whitted primary ray staging now also lives on `QueuedRayFrontier`; the batch
+  scheduler sizes the sample-color and tracker surfaces, then asks the frontier
+  to materialize its initial queued path state from primary samples instead of
+  open-coding the queued-ray construction loop.
 - The Whitted queued-ray frontier now records its own active, retained, and
   spawned host path-state byte metrics, matching the path tracer's frontier
   metric ownership.

@@ -110,6 +110,18 @@ namespace render {
       }
     }
 
+    void stagePrimarySamples(const std::vector<IntegratorRaySample>& samples) {
+      prepareForNextDepth(samples.size());
+      for (std::size_t index = 0; index != samples.size(); ++index) {
+        State state;
+        state.timeSample = samples[index].timeSample;
+        state.animationFrame = samples[index].animationFrame;
+        state.animationTime = samples[index].animationTime;
+        state.sampleStream = samples[index].sampleStream();
+        push(QueuedRay{index, samples[index].ray, Colord::white(), std::move(state)});
+      }
+    }
+
     [[nodiscard]] bool empty() const {
       return m_rays.empty();
     }
@@ -1354,17 +1366,9 @@ namespace render {
       result.resize(samples.size());
       activeSamples.reset(samples.size(), countCurrentActiveSamples);
       nextActiveSamples.reset(samples.size(), countNextActiveSamples);
-      current.reserve(samples.size());
       next.reserve(samples.size());
       activeHits.reserve(samples.size());
-      for (std::size_t index = 0; index != samples.size(); ++index) {
-        State state;
-        state.timeSample = samples[index].timeSample;
-        state.animationFrame = samples[index].animationFrame;
-        state.animationTime = samples[index].animationTime;
-        state.sampleStream = samples[index].sampleStream();
-        current.push(QueuedRay{index, samples[index].ray, Colord::white(), std::move(state)});
-      }
+      current.stagePrimarySamples(samples);
     }
 
     for (int depth = 0; depth != m_maximumRecursionDepth && !current.empty(); ++depth) {
