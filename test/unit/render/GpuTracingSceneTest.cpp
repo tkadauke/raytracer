@@ -488,6 +488,8 @@ namespace GpuTracingSceneTest {
     EXPECT_EQ(1u, diagnostics.unsupportedMaterials);
     EXPECT_EQ(1u, diagnostics.unsupportedTextures);
     EXPECT_EQ(1u, diagnostics.unsupportedLights);
+    EXPECT_EQ(0u, diagnostics.unsupportedPrimitives);
+    EXPECT_TRUE(diagnostics.unsupportedPrimitiveReasons.empty());
     EXPECT_EQ(1u, diagnostics.unsupportedMaterialReasons.at(
                     "material type is not supported by GPU tracing scene compiler"));
     EXPECT_EQ(1u, diagnostics.unsupportedTextureReasons.at(
@@ -495,6 +497,48 @@ namespace GpuTracingSceneTest {
     EXPECT_EQ(1u, diagnostics.unsupportedLightReasons.at(
                     "light type is not supported by GPU tracing scene compiler"));
     EXPECT_GT(diagnostics.uploadBytes, 0u);
+  }
+
+  TEST(GpuTracingScene, CompilesSectionsAndDiagnosticsTogether) {
+    auto matte = std::make_shared<MatteMaterial>(
+      std::make_shared<ConstantColorTexture>(Colord(0.25, 0.5, 0.75)));
+    auto sphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    sphere->setMaterial(matte);
+    Scene scene;
+    scene.setEnvironmentRadiance(Colord(0.1, 0.2, 0.3));
+    scene.add(sphere);
+    scene.addLight(std::make_shared<PointLight>(Vector3d(1.0, 2.0, 3.0), Colord::white()));
+
+    const CompiledIntersectionScene intersection = IntersectionSceneCompiler().compile(scene);
+    const GpuTracingSceneCompilation compilation = compileGpuTracingScene(intersection, scene);
+
+    EXPECT_TRUE(compilation.supported());
+    EXPECT_TRUE(compilation.diagnostics.compiled);
+    EXPECT_EQ(intersection.primitives().size(), compilation.sections.geometry.primitives.size());
+    EXPECT_EQ(intersection.spheres().size(), compilation.sections.geometry.spheres.size());
+    EXPECT_EQ(intersection.materials().size(), compilation.sections.materials.size());
+    EXPECT_EQ(1u, compilation.sections.lights.size());
+    EXPECT_EQ(1u, compilation.sections.environment.size());
+    EXPECT_EQ(compilation.sections.materials.size(), compilation.diagnostics.materials);
+    EXPECT_EQ(compilation.sections.textures.size(), compilation.diagnostics.textures);
+    EXPECT_EQ(compilation.sections.lights.size(), compilation.diagnostics.lights);
+    EXPECT_EQ(compilation.sections.environment.size(), compilation.diagnostics.environment);
+    EXPECT_EQ(compilation.sections.uploadByteCount(), compilation.diagnostics.uploadBytes);
+  }
+
+  TEST(GpuTracingScene, CombinedCompilationReportsUnsupportedPrimitives) {
+    auto sphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    sphere->setMaterial(std::make_shared<TransparentMaterial>());
+    Scene scene;
+    scene.add(sphere);
+
+    const GpuTracingSceneCompilation compilation = compileGpuTracingScene(scene);
+
+    EXPECT_FALSE(compilation.supported());
+    EXPECT_EQ(1u, compilation.diagnostics.unsupportedPrimitives);
+    EXPECT_EQ(1u, compilation.diagnostics.unsupportedPrimitiveReasons.at(
+                    "transparent material requires runtime intersection for Whitted continuation "
+                    "precision"));
   }
 
   TEST(GpuTracingScene, PointLightPacksPositionAndColor) {
