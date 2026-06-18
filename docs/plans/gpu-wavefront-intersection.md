@@ -1493,6 +1493,12 @@ Progress:
   longer bypassing the compiled loop, but platform Metal/Vulkan path-loop
   kernels and scheduler-owned GPU path state still belong to the parent tracing
   execution backend plan.
+- Batch progress publication and convergence-stop accounting now live on
+  `IntegratorBatchSettings` instead of duplicated Whitted/path-tracing scheduler
+  blocks. Progress snapshots, observer-provided convergence RMS overrides,
+  stopped-depth metadata, and timing buckets therefore share one lifecycle
+  before resident path-state and frontier execution start replacing the current
+  host loops.
 
 ---
 

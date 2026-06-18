@@ -313,6 +313,15 @@ namespace render {
     std::optional<double> convergenceRadianceDeltaRms;
   };
 
+  struct IntegratorBatchDepthProgress {
+    std::uint64_t completedDepth{0};
+    const std::vector<Colord>* sampleColors{nullptr};
+    std::uint64_t retainedActiveSamples{0};
+    std::uint64_t totalSamples{0};
+    std::uint64_t activeSamplesAtDepth{0};
+    double radianceDeltaSquaredSum{0.0};
+  };
+
   class IntegratorBatchObserver {
   public:
     virtual ~IntegratorBatchObserver() = default;
@@ -329,6 +338,8 @@ namespace render {
     const WavefrontIntersectionBackend* intersectionBackend{nullptr};
 
     const WavefrontIntersectionBackend& resolvedIntersectionBackend() const;
+    bool publishDepthProgressAndCheckConvergence(const IntegratorBatchDepthProgress& progress,
+                                                 IntegratorBatchMetrics* metrics) const;
   };
 
   /**

@@ -6,6 +6,8 @@
 #include "render/WavefrontIntersectionBackend.h"
 #include "render/State.h"
 
+#include "core/util/ScopedTimer.h"
+
 #include <algorithm>
 #include <cmath>
 
@@ -1235,6 +1237,43 @@ namespace render {
 
   const WavefrontIntersectionBackend& IntegratorBatchSettings::resolvedIntersectionBackend() const {
     return intersectionBackend ? *intersectionBackend : CpuWavefrontIntersectionBackend::instance();
+  }
+
+  bool IntegratorBatchSettings::publishDepthProgressAndCheckConvergence(
+    const IntegratorBatchDepthProgress& progress, IntegratorBatchMetrics* metrics) const {
+    IntegratorBatchFeedback feedback;
+    if (progressObserver && progress.sampleColors) {
+      core::util::ScopedTimer timer(metrics ? &metrics->progressSnapshotWorkerSeconds : nullptr);
+      feedback = progressObserver->depthCompleted(progress.completedDepth, *progress.sampleColors,
+                                                  progress.retainedActiveSamples);
+    }
+
+    if (!convergenceEnabled || progress.totalSamples == 0) {
+      return false;
+    }
+
+    core::util::ScopedTimer timer(metrics ? &metrics->convergenceTestWorkerSeconds : nullptr);
+    const double activeFraction = static_cast<double>(progress.retainedActiveSamples) /
+                                  static_cast<double>(progress.totalSamples);
+    const double rawRadianceDeltaRms =
+      progress.activeSamplesAtDepth == 0
+        ? 0.0
+        : std::sqrt(progress.radianceDeltaSquaredSum /
+                    static_cast<double>(progress.activeSamplesAtDepth));
+    const double radianceDeltaRms =
+      feedback.convergenceRadianceDeltaRms.value_or(rawRadianceDeltaRms);
+    if (metrics && feedback.convergenceRadianceDeltaRms) {
+      ++metrics->observerConvergenceFeedbackDepths;
+    }
+    if (activeFraction <= activeSampleFractionThreshold &&
+        radianceDeltaRms <= radianceDeltaRmsThreshold) {
+      if (metrics) {
+        metrics->stoppedByConvergence = true;
+        metrics->stoppedAfterDepth = metrics->activeSamplesPerDepth.size();
+      }
+      return true;
+    }
+    return false;
   }
 
   std::vector<Colord> Integrator::radianceBatch(const Scene& scene,

@@ -1429,34 +1429,13 @@ namespace render {
       const std::uint64_t nextActiveSampleCount =
         nextActiveSamples.countOr(static_cast<std::uint64_t>(next.size()));
       next.recordCompletedDepth(nextActiveSampleCount, metrics);
-      IntegratorBatchFeedback feedback;
-      if (settings.progressObserver) {
-        core::util::ScopedTimer timer(metrics ? &metrics->progressSnapshotWorkerSeconds : nullptr);
-        feedback = settings.progressObserver->depthCompleted(
-          static_cast<std::uint64_t>(depth + 1), result.colors(), nextActiveSampleCount);
-      }
-
-      if (settings.convergenceEnabled && !samples.empty()) {
-        core::util::ScopedTimer timer(metrics ? &metrics->convergenceTestWorkerSeconds : nullptr);
-        const double activeFraction =
-          static_cast<double>(nextActiveSampleCount) / static_cast<double>(samples.size());
-        const double rawRadianceDeltaRms = currentActiveSamples == 0
-                                             ? 0.0
-                                             : std::sqrt(depthMetrics.depthDeltaSquaredSum /
-                                                         static_cast<double>(currentActiveSamples));
-        const double radianceDeltaRms =
-          feedback.convergenceRadianceDeltaRms.value_or(rawRadianceDeltaRms);
-        if (metrics && feedback.convergenceRadianceDeltaRms) {
-          ++metrics->observerConvergenceFeedbackDepths;
-        }
-        if (activeFraction <= settings.activeSampleFractionThreshold &&
-            radianceDeltaRms <= settings.radianceDeltaRmsThreshold) {
-          if (metrics) {
-            metrics->stoppedByConvergence = true;
-            metrics->stoppedAfterDepth = metrics->activeSamplesPerDepth.size();
-          }
-          break;
-        }
+      if (settings.publishDepthProgressAndCheckConvergence(
+            IntegratorBatchDepthProgress{static_cast<std::uint64_t>(depth + 1), &result.colors(),
+                                         nextActiveSampleCount,
+                                         static_cast<std::uint64_t>(samples.size()),
+                                         currentActiveSamples, depthMetrics.depthDeltaSquaredSum},
+            metrics)) {
+        break;
       }
 
       current.advanceTo(next);

@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <optional>
+
 #include "render/Integrator.h"
 #include "render/GpuIntersectionScene.h"
 #include "render/RayCaster.h"
@@ -55,6 +57,27 @@ namespace IntegratorTest {
       Colord radiance(const Scene&, const Rayd&, State&, const RayCaster&) const override {
         return Colord::black();
       }
+    };
+
+    class RecordingDepthObserver final : public IntegratorBatchObserver {
+    public:
+      IntegratorBatchFeedback depthCompleted(std::uint64_t completedDepth,
+                                             const std::vector<Colord>& sampleColors,
+                                             std::uint64_t activeSamples) override {
+        ++calls;
+        lastCompletedDepth = completedDepth;
+        lastSampleCount = sampleColors.size();
+        lastActiveSamples = activeSamples;
+        IntegratorBatchFeedback feedback;
+        feedback.convergenceRadianceDeltaRms = convergenceRadianceDeltaRms;
+        return feedback;
+      }
+
+      std::uint64_t calls{0};
+      std::uint64_t lastCompletedDepth{0};
+      std::size_t lastSampleCount{0};
+      std::uint64_t lastActiveSamples{0};
+      std::optional<double> convergenceRadianceDeltaRms;
     };
   }
 
@@ -127,6 +150,66 @@ namespace IntegratorTest {
     EXPECT_EQ(0u, metrics.intersectionBackendAnyHitFrontierStateHandleBytes);
     EXPECT_EQ(2u, metrics.activeSampleDepthsProcessed);
     EXPECT_DOUBLE_EQ(0.0, metrics.frontierPartitionWorkerSeconds);
+  }
+
+  TEST(IntegratorBatchSettings, DepthProgressUsesObserverConvergenceFeedback) {
+    std::vector<Colord> colors{Colord(0.25, 0.5, 0.75), Colord(0.0, 0.0, 0.0)};
+    RecordingDepthObserver observer;
+    observer.convergenceRadianceDeltaRms = 0.01;
+    IntegratorBatchSettings settings;
+    settings.progressObserver = &observer;
+    settings.convergenceEnabled = true;
+    settings.activeSampleFractionThreshold = 0.5;
+    settings.radianceDeltaRmsThreshold = 0.05;
+    IntegratorBatchMetrics metrics;
+    metrics.reset(/*scalarFallback=*/false);
+    metrics.recordActiveDepth(4);
+
+    const bool stopped = settings.publishDepthProgressAndCheckConvergence(
+      IntegratorBatchDepthProgress{/*completedDepth=*/3,
+                                   /*sampleColors=*/&colors,
+                                   /*retainedActiveSamples=*/2,
+                                   /*totalSamples=*/4,
+                                   /*activeSamplesAtDepth=*/4,
+                                   /*radianceDeltaSquaredSum=*/100.0},
+      &metrics);
+
+    EXPECT_TRUE(stopped);
+    EXPECT_EQ(1u, observer.calls);
+    EXPECT_EQ(3u, observer.lastCompletedDepth);
+    EXPECT_EQ(2u, observer.lastSampleCount);
+    EXPECT_EQ(2u, observer.lastActiveSamples);
+    EXPECT_TRUE(metrics.stoppedByConvergence);
+    EXPECT_EQ(1u, metrics.stoppedAfterDepth);
+    EXPECT_EQ(1u, metrics.observerConvergenceFeedbackDepths);
+  }
+
+  TEST(IntegratorBatchSettings, DepthProgressUsesRawRadianceDeltaWhenObserverHasNoFeedback) {
+    std::vector<Colord> colors{Colord(0.25, 0.5, 0.75)};
+    RecordingDepthObserver observer;
+    IntegratorBatchSettings settings;
+    settings.progressObserver = &observer;
+    settings.convergenceEnabled = true;
+    settings.activeSampleFractionThreshold = 0.5;
+    settings.radianceDeltaRmsThreshold = 0.5;
+    IntegratorBatchMetrics metrics;
+    metrics.reset(/*scalarFallback=*/false);
+    metrics.recordActiveDepth(4);
+
+    const bool stopped = settings.publishDepthProgressAndCheckConvergence(
+      IntegratorBatchDepthProgress{/*completedDepth=*/1,
+                                   /*sampleColors=*/&colors,
+                                   /*retainedActiveSamples=*/1,
+                                   /*totalSamples=*/4,
+                                   /*activeSamplesAtDepth=*/4,
+                                   /*radianceDeltaSquaredSum=*/4.0},
+      &metrics);
+
+    EXPECT_FALSE(stopped);
+    EXPECT_EQ(1u, observer.calls);
+    EXPECT_FALSE(metrics.stoppedByConvergence);
+    EXPECT_EQ(0u, metrics.stoppedAfterDepth);
+    EXPECT_EQ(0u, metrics.observerConvergenceFeedbackDepths);
   }
 
   TEST(IntegratorBatchMetrics, MergeFromAccumulatesHostByteDiagnostics) {
@@ -498,8 +581,7 @@ namespace IntegratorTest {
     EXPECT_EQ(0u, target.residentPathLoopMovedPaths);
     EXPECT_EQ(2u * sizeof(std::uint32_t), target.residentPathLoopRetainedIndexBytes);
     EXPECT_EQ(diagnostics.buffers.residentBytes, target.residentPathLoopResidentPathStateBytes);
-    EXPECT_EQ(4u * sizeof(GpuPathStateRecord),
-              target.residentPathLoopInputResidentPathStateBytes);
+    EXPECT_EQ(4u * sizeof(GpuPathStateRecord), target.residentPathLoopInputResidentPathStateBytes);
     EXPECT_EQ(2u * sizeof(GpuPathStateRecord),
               target.residentPathLoopRetainedResidentPathStateBytes);
     EXPECT_EQ(2u * sizeof(GpuPathStateRecord),

@@ -1727,34 +1727,12 @@ namespace render {
         depthMetrics.recordDepthOutcome(retainedPathCount);
       }
 
-      IntegratorBatchFeedback feedback;
-      if (settings.progressObserver) {
-        core::util::ScopedTimer timer(metrics ? &metrics->progressSnapshotWorkerSeconds : nullptr);
-        feedback = settings.progressObserver->depthCompleted(
-          static_cast<std::uint64_t>(bounce + 1), sampleColors.colors(), retainedPathCount);
-      }
-
-      if (settings.convergenceEnabled && totalSampleCount != 0) {
-        core::util::ScopedTimer timer(metrics ? &metrics->convergenceTestWorkerSeconds : nullptr);
-        const double activeFraction =
-          static_cast<double>(retainedPathCount) / static_cast<double>(totalSampleCount);
-        const double rawRadianceDeltaRms =
-          activeCount == 0
-            ? 0.0
-            : std::sqrt(depthMetrics.depthDeltaSquaredSum / static_cast<double>(activeCount));
-        const double radianceDeltaRms =
-          feedback.convergenceRadianceDeltaRms.value_or(rawRadianceDeltaRms);
-        if (metrics && feedback.convergenceRadianceDeltaRms) {
-          ++metrics->observerConvergenceFeedbackDepths;
-        }
-        if (activeFraction <= settings.activeSampleFractionThreshold &&
-            radianceDeltaRms <= settings.radianceDeltaRmsThreshold) {
-          if (metrics) {
-            metrics->stoppedByConvergence = true;
-            metrics->stoppedAfterDepth = metrics->activeSamplesPerDepth.size();
-          }
-          break;
-        }
+      if (settings.publishDepthProgressAndCheckConvergence(
+            IntegratorBatchDepthProgress{
+              static_cast<std::uint64_t>(bounce + 1), &sampleColors.colors(), retainedPathCount,
+              totalSampleCount, activeCount, depthMetrics.depthDeltaSquaredSum},
+            metrics)) {
+        break;
       }
     }
 
