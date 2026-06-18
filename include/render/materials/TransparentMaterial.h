@@ -169,6 +169,14 @@ namespace render {
     Colord shade(const render::RayCaster* raycaster, const render::Scene& scene, const Rayd& ray,
                  const HitPoint& hitPoint, render::State& state) const override;
 
+    const char* typeName() const noexcept override {
+      return "TransparentMaterial";
+    }
+
+    void accept(MaterialVisitor& visitor) const override {
+      visitor.visit(*this);
+    }
+
     WhittedShadeResult shadeWhitted(const render::RayCaster* raycaster, const render::Scene& scene,
                                     const Rayd& ray, const HitPoint& hitPoint,
                                     render::State& state) const override;

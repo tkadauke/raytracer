@@ -331,8 +331,11 @@ namespace TracingPathStateBufferTest {
                              /*pixelIndex=*/4, /*sampleIndex=*/0, /*depth=*/0)};
 
     Buffer<unsigned int> resolved(2, 2);
-    EXPECT_THROW(
-      resolveResidentPathLoopImage(records, TracingAccumulationLayout::image(2, 2), resolved),
-      std::out_of_range);
+    const auto resolve = [&]() {
+      const TracingAccumulationDiagnostics diagnostics =
+        resolveResidentPathLoopImage(records, TracingAccumulationLayout::image(2, 2), resolved);
+      (void)diagnostics;
+    };
+    EXPECT_THROW(resolve(), std::out_of_range);
   }
 }

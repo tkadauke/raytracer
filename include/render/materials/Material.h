@@ -14,9 +14,37 @@
 class HitPoint;
 
 namespace render {
+  class EmissiveMaterial;
+  class MatteMaterial;
+  class PhongMaterial;
+  class PortalMaterial;
   class RayCaster;
+  class ReflectiveMaterial;
   class Scene;
   class State;
+  class TransparentMaterial;
+
+  class Material;
+
+  /**
+    * Double-dispatch hook for code that needs material-family behavior without
+    * RTTI switches. Default overloads follow the material inheritance tree, so
+    * a visitor that only cares about `MatteMaterial` also sees Phong,
+    * reflective, and transparent materials unless it overrides those more
+    * specific overloads.
+    */
+  class MaterialVisitor {
+  public:
+    virtual ~MaterialVisitor() = default;
+
+    virtual void visit(const Material& material);
+    virtual void visit(const MatteMaterial& material);
+    virtual void visit(const PhongMaterial& material);
+    virtual void visit(const ReflectiveMaterial& material);
+    virtual void visit(const TransparentMaterial& material);
+    virtual void visit(const EmissiveMaterial& material);
+    virtual void visit(const PortalMaterial& material);
+  };
 
   /**
     * Result of `Material::sampleBsdf`: the importance-sampled outgoing
@@ -211,6 +239,10 @@ namespace render {
 
     virtual ~Material() {
     }
+
+    virtual const char* typeName() const noexcept;
+
+    virtual void accept(MaterialVisitor& visitor) const;
 
     inline Sidedness sidedness() const {
       return m_sidedness;

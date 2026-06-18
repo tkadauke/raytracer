@@ -16,10 +16,13 @@
 #include "render/textures/Texture.h"
 
 #include <algorithm>
+#include <functional>
 #include <limits>
 #include <map>
+#include <memory>
+#include <optional>
 #include <type_traits>
-#include <typeinfo>
+#include <utility>
 
 using namespace render;
 
@@ -100,25 +103,6 @@ namespace {
     }
   }
 
-  const char* materialTypeName(const Material& material) {
-    if (typeid(material) == typeid(TransparentMaterial)) {
-      return "TransparentMaterial";
-    }
-    if (typeid(material) == typeid(ReflectiveMaterial)) {
-      return "ReflectiveMaterial";
-    }
-    if (typeid(material) == typeid(PhongMaterial)) {
-      return "PhongMaterial";
-    }
-    if (typeid(material) == typeid(MatteMaterial)) {
-      return "MatteMaterial";
-    }
-    if (typeid(material) == typeid(EmissiveMaterial)) {
-      return "EmissiveMaterial";
-    }
-    return "Material";
-  }
-
   bool rejectNormalTexture(const MatteMaterial& material, std::string* unsupportedReason) {
     if (material.normalTexture()) {
       setUnsupportedReason(unsupportedReason,
@@ -128,8 +112,7 @@ namespace {
     return false;
   }
 
-  void packLocalPhongParameters(const PhongMaterial& material,
-                                GpuTracingMaterialRecord& record) {
+  void packLocalPhongParameters(const PhongMaterial& material, GpuTracingMaterialRecord& record) {
     record.parameters = {static_cast<float>(material.ambientCoefficient()),
                          static_cast<float>(material.diffuseCoefficient()),
                          static_cast<float>(material.specularCoefficient()),
@@ -138,11 +121,10 @@ namespace {
 
   void packMirrorContinuationParameters(const ReflectiveMaterial& material,
                                         GpuTracingMaterialRecord& record) {
-    record.continuationParameters = {
-      static_cast<float>(material.reflectionColor().r()),
-      static_cast<float>(material.reflectionColor().g()),
-      static_cast<float>(material.reflectionColor().b()),
-      static_cast<float>(material.reflectionCoefficient())};
+    record.continuationParameters = {static_cast<float>(material.reflectionColor().r()),
+                                     static_cast<float>(material.reflectionColor().g()),
+                                     static_cast<float>(material.reflectionColor().b()),
+                                     static_cast<float>(material.reflectionCoefficient())};
   }
 
   const char* textureTypeName(const Texturec& texture) {
@@ -150,6 +132,220 @@ namespace {
       return "ConstantColorTexture";
     }
     return "Texture";
+  }
+
+  class GpuTracingMaterialResourceContext {
+  public:
+    virtual ~GpuTracingMaterialResourceContext() = default;
+
+    virtual std::uint32_t textureIdFor(const std::shared_ptr<Texturec>& texture) = 0;
+    virtual std::uint32_t constantColorTexture(const Colord& color) = 0;
+  };
+
+  class FixedGpuTracingMaterialResourceContext final : public GpuTracingMaterialResourceContext {
+  public:
+    FixedGpuTracingMaterialResourceContext(std::uint32_t albedoTexture,
+                                           std::uint32_t emissionTexture)
+        : m_albedoTexture(albedoTexture),
+          m_emissionTexture(emissionTexture) {
+    }
+
+    std::uint32_t textureIdFor(const std::shared_ptr<Texturec>&) override {
+      return m_albedoTexture;
+    }
+
+    std::uint32_t constantColorTexture(const Colord&) override {
+      return m_emissionTexture;
+    }
+
+  private:
+    std::uint32_t m_albedoTexture;
+    std::uint32_t m_emissionTexture;
+  };
+
+  class FunctionGpuTracingMaterialResourceContext final : public GpuTracingMaterialResourceContext {
+  public:
+    using TextureIdFor = std::function<std::uint32_t(const std::shared_ptr<Texturec>& texture)>;
+    using AppendConstantColorTexture = std::function<std::uint32_t(const Colord& color)>;
+
+    FunctionGpuTracingMaterialResourceContext(TextureIdFor textureIdFor,
+                                              AppendConstantColorTexture appendConstantColorTexture)
+        : m_textureIdFor(std::move(textureIdFor)),
+          m_appendConstantColorTexture(std::move(appendConstantColorTexture)) {
+    }
+
+    std::uint32_t textureIdFor(const std::shared_ptr<Texturec>& texture) override {
+      return m_textureIdFor(texture);
+    }
+
+    std::uint32_t constantColorTexture(const Colord& color) override {
+      return m_appendConstantColorTexture(color);
+    }
+
+  private:
+    TextureIdFor m_textureIdFor;
+    AppendConstantColorTexture m_appendConstantColorTexture;
+  };
+
+  class GpuTracingMaterialModel {
+  public:
+    virtual ~GpuTracingMaterialModel() = default;
+
+    virtual std::optional<GpuTracingMaterialRecord>
+    record(GpuTracingMaterialResourceContext& resources, std::string* unsupportedReason) const = 0;
+  };
+
+  class GpuTracingMatteMaterialModel final : public GpuTracingMaterialModel {
+  public:
+    explicit GpuTracingMatteMaterialModel(const MatteMaterial& material)
+        : m_material(material) {
+    }
+
+    std::optional<GpuTracingMaterialRecord> record(GpuTracingMaterialResourceContext& resources,
+                                                   std::string* unsupportedReason) const override {
+      if (rejectNormalTexture(m_material, unsupportedReason)) {
+        return std::nullopt;
+      }
+
+      GpuTracingMaterialRecord record;
+      record.kind = static_cast<std::uint32_t>(GpuTracingMaterialKind::Matte);
+      record.albedoTexture = resources.textureIdFor(m_material.diffuseTexture());
+      record.parameters = {static_cast<float>(m_material.ambientCoefficient()),
+                           static_cast<float>(m_material.diffuseCoefficient()), 0.0f, 0.0f};
+      return record;
+    }
+
+  private:
+    const MatteMaterial& m_material;
+  };
+
+  class GpuTracingPhongMaterialModel final : public GpuTracingMaterialModel {
+  public:
+    explicit GpuTracingPhongMaterialModel(const PhongMaterial& material)
+        : m_material(material) {
+    }
+
+    std::optional<GpuTracingMaterialRecord> record(GpuTracingMaterialResourceContext& resources,
+                                                   std::string* unsupportedReason) const override {
+      if (rejectNormalTexture(m_material, unsupportedReason)) {
+        return std::nullopt;
+      }
+
+      GpuTracingMaterialRecord record;
+      record.kind = static_cast<std::uint32_t>(GpuTracingMaterialKind::Phong);
+      record.albedoTexture = resources.textureIdFor(m_material.diffuseTexture());
+      packLocalPhongParameters(m_material, record);
+      return record;
+    }
+
+  private:
+    const PhongMaterial& m_material;
+  };
+
+  class GpuTracingReflectiveMaterialModel final : public GpuTracingMaterialModel {
+  public:
+    explicit GpuTracingReflectiveMaterialModel(const ReflectiveMaterial& material)
+        : m_material(material) {
+    }
+
+    std::optional<GpuTracingMaterialRecord> record(GpuTracingMaterialResourceContext& resources,
+                                                   std::string* unsupportedReason) const override {
+      if (rejectNormalTexture(m_material, unsupportedReason)) {
+        return std::nullopt;
+      }
+
+      GpuTracingMaterialRecord record;
+      record.kind = static_cast<std::uint32_t>(GpuTracingMaterialKind::Reflective);
+      record.albedoTexture = resources.textureIdFor(m_material.diffuseTexture());
+      packLocalPhongParameters(m_material, record);
+      packMirrorContinuationParameters(m_material, record);
+      return record;
+    }
+
+  private:
+    const ReflectiveMaterial& m_material;
+  };
+
+  class GpuTracingEmissiveMaterialModel final : public GpuTracingMaterialModel {
+  public:
+    explicit GpuTracingEmissiveMaterialModel(const EmissiveMaterial& material)
+        : m_material(material) {
+    }
+
+    std::optional<GpuTracingMaterialRecord> record(GpuTracingMaterialResourceContext& resources,
+                                                   std::string*) const override {
+      GpuTracingMaterialRecord record;
+      record.kind = static_cast<std::uint32_t>(GpuTracingMaterialKind::Emissive);
+      record.emissionTexture = resources.constantColorTexture(m_material.radiance());
+      return record;
+    }
+
+  private:
+    const EmissiveMaterial& m_material;
+  };
+
+  class GpuTracingMaterialLoweringVisitor final : public MaterialVisitor {
+  public:
+    void visit(const Material&) override {
+      m_unsupportedReason = "material type is not supported by GPU tracing scene compiler";
+      m_model.reset();
+    }
+
+    void visit(const MatteMaterial& material) override {
+      m_model = std::make_unique<GpuTracingMatteMaterialModel>(material);
+    }
+
+    void visit(const PhongMaterial& material) override {
+      m_model = std::make_unique<GpuTracingPhongMaterialModel>(material);
+    }
+
+    void visit(const ReflectiveMaterial& material) override {
+      m_model = std::make_unique<GpuTracingReflectiveMaterialModel>(material);
+    }
+
+    void visit(const TransparentMaterial&) override {
+      m_unsupportedReason = "transparent/refraction materials are not supported by GPU Whitted v1";
+      m_model.reset();
+    }
+
+    void visit(const EmissiveMaterial& material) override {
+      m_model = std::make_unique<GpuTracingEmissiveMaterialModel>(material);
+    }
+
+    std::unique_ptr<GpuTracingMaterialModel> takeModel() {
+      return std::move(m_model);
+    }
+
+    const char* unsupportedReason() const {
+      return m_unsupportedReason;
+    }
+
+  private:
+    const char* m_unsupportedReason{"material type is not supported by GPU tracing scene compiler"};
+    std::unique_ptr<GpuTracingMaterialModel> m_model;
+  };
+
+  std::unique_ptr<GpuTracingMaterialModel>
+  lowerGpuTracingMaterialModel(const Material& material, std::string* unsupportedReason) {
+    GpuTracingMaterialLoweringVisitor lowering;
+    material.accept(lowering);
+    std::unique_ptr<GpuTracingMaterialModel> model = lowering.takeModel();
+    if (!model) {
+      setUnsupportedReason(unsupportedReason, lowering.unsupportedReason());
+    }
+    return model;
+  }
+
+  std::optional<GpuTracingMaterialRecord>
+  makeGpuTracingMaterialRecordWithResources(const Material& material,
+                                            GpuTracingMaterialResourceContext& resources,
+                                            std::string* unsupportedReason) {
+    std::unique_ptr<GpuTracingMaterialModel> model =
+      lowerGpuTracingMaterialModel(material, unsupportedReason);
+    if (!model) {
+      return std::nullopt;
+    }
+    return model->record(resources, unsupportedReason);
   }
 }
 
@@ -249,63 +445,8 @@ std::optional<GpuTracingMaterialRecord>
 render::makeGpuTracingMaterialRecord(const Material& material, std::uint32_t albedoTexture,
                                      std::uint32_t emissionTexture,
                                      std::string* unsupportedReason) {
-  if (typeid(material) == typeid(TransparentMaterial)) {
-    setUnsupportedReason(unsupportedReason,
-                         "transparent/refraction materials are not supported by GPU Whitted v1");
-    return std::nullopt;
-  }
-
-  if (typeid(material) == typeid(ReflectiveMaterial)) {
-    const auto& reflective = static_cast<const ReflectiveMaterial&>(material);
-    if (rejectNormalTexture(reflective, unsupportedReason)) {
-      return std::nullopt;
-    }
-
-    GpuTracingMaterialRecord record;
-    record.kind = static_cast<std::uint32_t>(GpuTracingMaterialKind::Reflective);
-    record.albedoTexture = albedoTexture;
-    packLocalPhongParameters(reflective, record);
-    packMirrorContinuationParameters(reflective, record);
-    return record;
-  }
-
-  if (typeid(material) == typeid(PhongMaterial)) {
-    const auto& phong = static_cast<const PhongMaterial&>(material);
-    if (rejectNormalTexture(phong, unsupportedReason)) {
-      return std::nullopt;
-    }
-
-    GpuTracingMaterialRecord record;
-    record.kind = static_cast<std::uint32_t>(GpuTracingMaterialKind::Phong);
-    record.albedoTexture = albedoTexture;
-    packLocalPhongParameters(phong, record);
-    return record;
-  }
-
-  if (typeid(material) == typeid(MatteMaterial)) {
-    const auto& matte = static_cast<const MatteMaterial&>(material);
-    if (rejectNormalTexture(matte, unsupportedReason)) {
-      return std::nullopt;
-    }
-
-    GpuTracingMaterialRecord record;
-    record.kind = static_cast<std::uint32_t>(GpuTracingMaterialKind::Matte);
-    record.albedoTexture = albedoTexture;
-    record.parameters = {static_cast<float>(matte.ambientCoefficient()),
-                         static_cast<float>(matte.diffuseCoefficient()), 0.0f, 0.0f};
-    return record;
-  }
-
-  if (typeid(material) == typeid(EmissiveMaterial)) {
-    GpuTracingMaterialRecord record;
-    record.kind = static_cast<std::uint32_t>(GpuTracingMaterialKind::Emissive);
-    record.emissionTexture = emissionTexture;
-    return record;
-  }
-
-  setUnsupportedReason(unsupportedReason,
-                       "material type is not supported by GPU tracing scene compiler");
-  return std::nullopt;
+  FixedGpuTracingMaterialResourceContext resources(albedoTexture, emissionTexture);
+  return makeGpuTracingMaterialRecordWithResources(material, resources, unsupportedReason);
 }
 
 GpuTracingMaterialCompilation
@@ -347,33 +488,23 @@ render::compileGpuTracingMaterials(const CompiledIntersectionScene& scene) {
     textureIds.emplace(texture.get(), id);
     return id;
   };
+  FunctionGpuTracingMaterialResourceContext resources(textureIdFor, appendConstantColorTexture);
 
   for (std::uint32_t materialId = 1; materialId < scene.materials().size(); ++materialId) {
     const std::shared_ptr<Material>& material = scene.materials()[materialId];
     if (!material) {
       continue;
     }
-
-    std::uint32_t albedoTexture = 0;
-    std::uint32_t emissionTexture = 0;
-    if (typeid(*material) == typeid(MatteMaterial) || typeid(*material) == typeid(PhongMaterial) ||
-        typeid(*material) == typeid(ReflectiveMaterial) ||
-        typeid(*material) == typeid(TransparentMaterial)) {
-      const auto& matte = static_cast<const MatteMaterial&>(*material);
-      albedoTexture = textureIdFor(matte.diffuseTexture());
-    } else if (typeid(*material) == typeid(EmissiveMaterial)) {
-      const auto& emissive = static_cast<const EmissiveMaterial&>(*material);
-      emissionTexture = appendConstantColorTexture(emissive.radiance());
-    }
+    const Material& materialRef = *material;
 
     std::string reason;
     if (const std::optional<GpuTracingMaterialRecord> record =
-          makeGpuTracingMaterialRecord(*material, albedoTexture, emissionTexture, &reason)) {
+          makeGpuTracingMaterialRecordWithResources(materialRef, resources, &reason)) {
       compilation.records[materialId] = *record;
     } else {
       compilation.records[materialId] = GpuTracingMaterialRecord{};
       compilation.unsupportedMaterials.push_back(
-        UnsupportedGpuTracingMaterial{materialId, materialTypeName(*material), reason});
+        UnsupportedGpuTracingMaterial{materialId, materialRef.typeName(), reason});
     }
   }
 
