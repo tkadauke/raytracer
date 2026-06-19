@@ -589,6 +589,11 @@ namespace render {
         : m_contributions(count, Colord::black()) {
     }
 
+    DirectLightContributionBatch(std::size_t count, int bounce, IntegratorBatchMetrics* metrics)
+        : DirectLightContributionBatch(count) {
+      recordHostBytes(bounce, metrics);
+    }
+
     [[nodiscard]] std::size_t size() const {
       return m_contributions.size();
     }
@@ -636,8 +641,7 @@ namespace render {
     const PathTracingIntegrator& integrator, const ActivePathHits& activeHits,
     HostBatchPathFrontier& paths, int bounce, int directLightSamples,
     IntegratorBatchMetrics* metrics) const {
-    DirectLightContributionBatch contributions(activeHits.size());
-    contributions.recordHostBytes(bounce, metrics);
+    DirectLightContributionBatch contributions(activeHits.size(), bounce, metrics);
     if (empty()) {
       return contributions;
     }

@@ -1526,6 +1526,11 @@ Progress:
   together. The scalar visibility fallback still reports per-query CPU work,
   while Whitted and path-tracing resident-frontier candidates no longer need to
   keep those rows paired by hand.
+- Path-tracing direct-light contribution host-byte accounting now happens from
+  the contribution batch constructor and is pinned as one resolved color payload
+  per active hit, independent of the number of light-selection samples. That
+  keeps the host contribution payload contract explicit for future resident
+  direct-light contribution storage.
 
 ---
 
