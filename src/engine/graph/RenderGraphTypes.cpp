@@ -293,15 +293,11 @@ namespace engine::graph {
     }
 
     Vector3d vectorFromJson(const QJsonValue& value, const std::string& path) {
-      if (!value.isArray())
-        jsonError(path, "expected array");
-      const auto array = value.toArray();
-      if (array.size() != 3)
-        jsonError(path, "expected 3 numbers");
-      for (int i = 0; i != 3; ++i) {
-        if (!array.at(i).isDouble())
-          jsonError(path + "[" + std::to_string(i) + "]", "expected number");
-      }
+      const auto array = core::json::requireNumberArray(
+        value, 3, "expected array", "expected 3 numbers", "expected number",
+        [&](std::optional<int> index, const char* message) {
+          jsonError(index ? path + "[" + std::to_string(*index) + "]" : path, message);
+        });
       return core::json::vector3FromJsonArray(array);
     }
 

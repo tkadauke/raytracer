@@ -2,6 +2,8 @@
 
 #include "core/json/JsonValue.h"
 
+#include <stdexcept>
+
 TEST(JsonValueTest, ConvertsVector3ToAndFromJsonArray) {
   const Vector3d vector(1.5, -2.0, 3.25);
 
@@ -24,4 +26,33 @@ TEST(JsonValueTest, ConvertsColorToAndFromJsonArray) {
   EXPECT_DOUBLE_EQ(0.5, json[1].toDouble());
   EXPECT_DOUBLE_EQ(0.75, json[2].toDouble());
   EXPECT_EQ(color, core::json::colorFromJsonArray(json));
+}
+
+TEST(JsonValueTest, RequiresNumberArrayWithExpectedSize) {
+  const QJsonValue value(QJsonArray{1.0, 2.0, 3.0});
+
+  const QJsonArray result = core::json::requireNumberArray(
+    value, 3, "not-array", "wrong-size", "not-number",
+    [](std::optional<int>, const char*) { throw std::runtime_error("unexpected error"); });
+
+  ASSERT_EQ(3, result.size());
+  EXPECT_DOUBLE_EQ(1.0, result[0].toDouble());
+  EXPECT_DOUBLE_EQ(2.0, result[1].toDouble());
+  EXPECT_DOUBLE_EQ(3.0, result[2].toDouble());
+}
+
+TEST(JsonValueTest, ReportsNonNumericArrayIndex) {
+  const QJsonValue value(QJsonArray{1.0, "two", 3.0});
+  std::optional<int> failedIndex;
+  const char* failedMessage = nullptr;
+
+  core::json::requireNumberArray(value, 3, "not-array", "wrong-size", "not-number",
+                                 [&](std::optional<int> index, const char* message) {
+                                   failedIndex = index;
+                                   failedMessage = message;
+                                 });
+
+  ASSERT_TRUE(failedIndex.has_value());
+  EXPECT_EQ(1, *failedIndex);
+  EXPECT_STREQ("not-number", failedMessage);
 }

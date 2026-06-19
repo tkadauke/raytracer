@@ -147,21 +147,11 @@ namespace {
 
   QJsonArray requireTriple(const world::AnimationTrack& track, const QJsonValue& value,
                            const QString& typeName) {
-    if (!value.isArray())
-      throw evaluationError(track, QString("%1 key values must be arrays").arg(typeName));
-
-    const auto array = value.toArray();
-    if (array.size() != 3)
-      throw evaluationError(
-        track, QString("%1 key values must have exactly three elements").arg(typeName));
-
-    for (const auto& component : array) {
-      if (!component.isDouble())
-        throw evaluationError(track,
-                              QString("%1 key values must contain only numbers").arg(typeName));
-    }
-
-    return array;
+    return core::json::requireNumberArray(
+      value, 3, QString("%1 key values must be arrays").arg(typeName),
+      QString("%1 key values must have exactly three elements").arg(typeName),
+      QString("%1 key values must contain only numbers").arg(typeName),
+      [&](std::optional<int>, const QString& message) { throw evaluationError(track, message); });
   }
 
   double doubleFromJson(const world::AnimationTrack& track, const QJsonValue& value) {
