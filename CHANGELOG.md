@@ -25,6 +25,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Added convertible C-array constructors for `Color`, SSE color
   specializations, and vector types so array-backed helpers can delegate to the
   math primitives directly. — GPT-5 Codex
+- Report compiled diffuse path-loop execution, residency, path-state, and
+  compaction counters in Modeler render graph selected-pass details.
+  — GPT-5 Codex
 - Show direct-light contribution execution path and fallback reason in Modeler
   render graph selected-pass details. — GPT-5 Codex
 - Show hybrid ray-traced shadow primary query and hit counts in Modeler render
@@ -149,6 +152,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- Humanized resident path-loop execution and residency labels in Modeler render
+  graph selected-pass details. — GPT-5 Codex
 - Routed Whitted and path-tracing direct-light visibility through backend-owned
   any-hit frontiers for CPU fallback too, so metrics count one host frontier
   submission per visibility batch instead of one scalar trip per shadow ray.

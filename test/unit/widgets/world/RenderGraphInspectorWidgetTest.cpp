@@ -12,6 +12,7 @@
 #include "render/lights/PointLight.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/primitives/Curve.h"
+#include "render/primitives/Rectangle.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
 #include "render/textures/ConstantColorTexture.h"
@@ -349,6 +350,20 @@ namespace RenderGraphInspectorWidgetTest {
     return scene;
   }
 
+  std::shared_ptr<render::Scene> diffusePathLoopScene() {
+    const Colord background(0.125, 0.25, 0.5);
+    auto scene = std::make_shared<render::Scene>();
+    scene->setBackground(background);
+    scene->setEnvironmentRadiance(background);
+
+    auto receiver = std::make_shared<render::Rectangle>(
+      Vector3d(-20.0, -20.0, 0.0), Vector3d(40.0, 0.0, 0.0), Vector3d(0.0, 40.0, 0.0));
+    receiver->setMaterial(std::make_shared<render::MatteMaterial>(
+      std::make_shared<render::ConstantColorTexture>(Colord(0.8, 0.8, 0.8))));
+    scene->add(receiver);
+    return scene;
+  }
+
   std::shared_ptr<render::Scene> unsupportedExactScene() {
     auto scene = std::make_shared<render::Scene>();
     auto curve =
@@ -420,6 +435,30 @@ namespace RenderGraphInspectorWidgetTest {
     engine.setPlan(compiler.compile({24, 24, 1}, intent));
 
     Buffer<unsigned int> buffer(24, 24);
+    engine.render(buffer);
+    return engine.lastExecutionTrace();
+  }
+
+  std::shared_ptr<const RenderGraphExecutionTrace> residentPathLoopTrace() {
+    auto scene = diffusePathLoopScene();
+
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Wavefront;
+    intent.engineOptions.raytracer().setIntegrator("pathtracer");
+    intent.engineOptions.raytracer().setTracingExecution(TracingExecutionPreference::GPU);
+    intent.engineOptions.raytracer().setSamplesPerPixel(1);
+    intent.engineOptions.raytracer().setMaximumRecursionDepth(2);
+    intent.engineOptions.raytracer().setSampleStreamMode("gpu_sample_stream");
+
+    RenderSceneAnalysis analysis;
+    analysis.setFullGpuTracingSupportFromScene(*scene);
+
+    RenderGraphCompiler compiler;
+    GraphRenderEngine engine(camera(), scene);
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(compiler.compile({8, 8, 1}, intent, analysis));
+
+    Buffer<unsigned int> buffer(8, 8);
     engine.render(buffer);
     return engine.lastExecutionTrace();
   }
@@ -1361,6 +1400,54 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("host path-state bytes")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("largest compaction candidate")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("inactive")));
+  }
+
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldExposeResidentPathLoopRowsForSelectedWavefrontPass) {
+    auto trace = residentPathLoopTrace();
+    ASSERT_TRUE(trace);
+
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(trace->plan());
+    widget.setExecutionTrace(trace);
+
+    const auto rows = widget.passDetailRows(QStringLiteral("wavefront_beauty"));
+
+    EXPECT_EQ(QStringLiteral("Compiled CPU Reference"),
+              rowValue(rows, QStringLiteral("Resident path-loop execution")));
+    EXPECT_EQ(QStringLiteral("CPU Host"),
+              rowValue(rows, QStringLiteral("Resident path-loop residency")));
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Resident path-loop depths")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Resident path-loop input paths")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Resident path-loop retained paths")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Resident path-loop removed paths")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Resident path-loop moved paths")).isEmpty());
+    EXPECT_FALSE(
+      rowValue(rows, QStringLiteral("Resident path-loop retained-index bytes")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Resident path-loop path-state bytes")).isEmpty());
+    EXPECT_FALSE(
+      rowValue(rows, QStringLiteral("Resident path-loop input path-state bytes")).isEmpty());
+    EXPECT_FALSE(
+      rowValue(rows, QStringLiteral("Resident path-loop retained path-state bytes")).isEmpty());
+    EXPECT_FALSE(
+      rowValue(rows, QStringLiteral("Resident path-loop removed path-state bytes")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Resident path-loop compaction passes")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Resident path-loop round trips")).isEmpty());
+    EXPECT_FALSE(
+      rowValue(rows, QStringLiteral("Resident path-loop saved host readbacks")).isEmpty());
+    EXPECT_FALSE(
+      rowValue(rows, QStringLiteral("Resident path-loop saved host readback bytes")).isEmpty());
+
+    const RenderPassTrace* passTrace = trace->findPass("wavefront_beauty");
+    ASSERT_NE(nullptr, passTrace);
+    const QJsonObject batching = passTrace->metadata().value(QStringLiteral("batching")).toObject();
+    EXPECT_EQ(QStringLiteral("compiled_cpu_reference"),
+              batching.value(QStringLiteral("residentPathLoopExecutionPath")).toString());
+    EXPECT_GT(batching.value(QStringLiteral("residentPathLoopCompactionPasses")).toDouble(), 0.0);
+    EXPECT_EQ(0.0, batching.value(QStringLiteral("residentPathLoopSavedHostReadbacks")).toDouble());
+    EXPECT_EQ(QStringLiteral("0"),
+              rowValue(rows, QStringLiteral("Resident path-loop saved host readbacks")));
+    EXPECT_EQ(QStringLiteral("0"),
+              rowValue(rows, QStringLiteral("Resident path-loop saved host readback bytes")));
   }
 
   TEST_F(RenderGraphInspectorWidgetTest,

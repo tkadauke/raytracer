@@ -41,6 +41,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <limits>
 #include <map>
 #include <optional>
@@ -703,6 +704,30 @@ namespace engine::graph {
         static_cast<double>(loop.metrics.directLightOccludedSamples);
       batching["spawnedContinuations"] = static_cast<double>(loop.metrics.spawnedContinuations);
       batching["terminatedPaths"] = static_cast<double>(loop.metrics.terminatedPaths);
+      const std::uint64_t pathStateBytes = sizeof(render::GpuDiffusePathStateRecord);
+      batching["residentPathLoopExecutionPath"] = QStringLiteral("compiled_cpu_reference");
+      batching["residentPathLoopResidency"] = QStringLiteral("cpu_host");
+      batching["residentPathLoopDepths"] = static_cast<double>(loop.depthCount);
+      batching["residentPathLoopInputPaths"] = static_cast<double>(loop.metrics.activePaths);
+      batching["residentPathLoopRetainedPaths"] =
+        static_cast<double>(loop.metrics.spawnedContinuations);
+      batching["residentPathLoopRemovedPaths"] =
+        static_cast<double>(loop.resolvedPathStates.size());
+      batching["residentPathLoopMovedPaths"] =
+        static_cast<double>(loop.metrics.spawnedContinuations);
+      batching["residentPathLoopRetainedIndexBytes"] = 0.0;
+      batching["residentPathLoopResidentPathStateBytes"] =
+        static_cast<double>(loop.initialPathCount * pathStateBytes);
+      batching["residentPathLoopInputResidentPathStateBytes"] =
+        static_cast<double>(loop.metrics.activePaths * pathStateBytes);
+      batching["residentPathLoopRetainedResidentPathStateBytes"] =
+        static_cast<double>(loop.metrics.spawnedContinuations * pathStateBytes);
+      batching["residentPathLoopRemovedResidentPathStateBytes"] =
+        static_cast<double>(loop.resolvedPathStates.size() * pathStateBytes);
+      batching["residentPathLoopCompactionPasses"] = static_cast<double>(loop.depthCount);
+      batching["residentPathLoopRoundTrips"] = 1.0;
+      batching["residentPathLoopSavedHostReadbacks"] = 0.0;
+      batching["residentPathLoopSavedHostReadbackBytes"] = 0.0;
 
       QJsonObject compiledLoop;
       compiledLoop["backend"] = QStringLiteral("compiled_cpu_reference");

@@ -852,9 +852,9 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
   addDetailIntegerMetadataRow(rows, QStringLiteral("Resident frontier savings"), batching,
                               QStringLiteral("frontierResidentQueryRoundTripSavingsEstimate"));
   addDetailStringMetadataRow(rows, QStringLiteral("Resident path-loop execution"), batching,
-                             QStringLiteral("residentPathLoopExecutionPath"));
+                             QStringLiteral("residentPathLoopExecutionPath"), true);
   addDetailStringMetadataRow(rows, QStringLiteral("Resident path-loop residency"), batching,
-                             QStringLiteral("residentPathLoopResidency"));
+                             QStringLiteral("residentPathLoopResidency"), true);
   addDetailIntegerMetadataRow(rows, QStringLiteral("Resident path-loop depths"), batching,
                               QStringLiteral("residentPathLoopDepths"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Resident path-loop input paths"), batching,

@@ -2239,8 +2239,15 @@ namespace GraphRenderEngineTest {
               batching.value("executionMode").toString().toStdString());
     EXPECT_EQ("compiled_cpu_reference",
               batching.value("tracingBackendMode").toString().toStdString());
+    EXPECT_EQ("compiled_cpu_reference",
+              batching.value("residentPathLoopExecutionPath").toString().toStdString());
+    EXPECT_EQ("cpu_host", batching.value("residentPathLoopResidency").toString().toStdString());
     EXPECT_EQ(64.0, batching.value("initialPathCount").toDouble());
     EXPECT_GT(batching.value("hits").toDouble(), 0.0);
+    EXPECT_GT(batching.value("residentPathLoopDepths").toDouble(), 0.0);
+    EXPECT_GT(batching.value("residentPathLoopInputPaths").toDouble(), 0.0);
+    EXPECT_GT(batching.value("residentPathLoopCompactionPasses").toDouble(), 0.0);
+    EXPECT_EQ(0.0, batching.value("residentPathLoopSavedHostReadbacks").toDouble());
 
     const QJsonObject input = metadata.value("input").toObject();
     EXPECT_EQ("gpu_sample_stream", input.value("sampleStreamMode").toString().toStdString());
