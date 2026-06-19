@@ -1531,6 +1531,12 @@ Progress:
   per active hit, independent of the number of light-selection samples. That
   keeps the host contribution payload contract explicit for future resident
   direct-light contribution storage.
+- Whitted direct-light contribution storage now follows the same boundary:
+  resolved local-light contributions materialize into a private contribution
+  batch before being applied to the sample buffer, and tests pin one resolved
+  color payload per visibility selection. That keeps the deterministic Whitted
+  direct-light path aligned with the path-tracing payload contract without
+  claiming GPU contribution execution yet.
 
 ---
 

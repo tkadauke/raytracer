@@ -584,47 +584,15 @@ namespace render {
       }
     }
 
-    void recordContributionHostBytes(int depth, IntegratorBatchMetrics* metrics) const {
-      if (metrics) {
-        metrics->recordDirectLightContributionHostBytes(
-          static_cast<std::uint64_t>(std::max(0, depth)),
-          static_cast<std::uint64_t>(m_selections.size()) * sizeof(Colord));
-      }
-    }
-
     void applyResolvedContributions(const WavefrontIntersectionBackend& intersectionBackend,
                                     const ActiveQueuedHits& activeHits, QueuedRayFrontier& current,
                                     SampleColorBuffer& result, int depth,
-                                    IntegratorBatchMetrics* metrics) const {
-      validateResolvedOcclusionCount();
-      if (metrics) {
-        metrics->recordCpuDirectLightContributionExecution(
-          intersectionBackend, "GPU Whitted direct-light contribution kernel unavailable");
-      }
-      for (std::size_t selectionIndex = 0; selectionIndex != m_selections.size();
-           ++selectionIndex) {
-        const Selection& selection = m_selections[selectionIndex];
-        const QueuedHit& hit = activeHits[selection.hitIndex];
-        QueuedRay& queued = current[hit.queuedIndex];
-        const bool blocked = occluded(selectionIndex);
-        const bool contributing = !blocked && selection.contribution != Colord::black();
-        if (metrics) {
-          metrics->recordDirectLightSample(blocked, contributing);
-        }
-        if (!contributing) {
-          continue;
-        }
-        const Colord weightedContribution = queued.weight * selection.contribution;
-        result[queued.sampleIndex] += weightedContribution;
-        if (metrics) {
-          metrics->recordDirectLightRadiance(weightedContribution,
-                                             queued.state.recursionDepth <= 1);
-        }
-      }
-      recordContributionHostBytes(depth, metrics);
-    }
+                                    IntegratorBatchMetrics* metrics) const;
 
   private:
+    [[nodiscard]] DirectLightContributionBatch
+    materializeResolvedContributions(int depth, IntegratorBatchMetrics* metrics) const;
+
     void add(std::size_t hitIndex, const LightSample& sample, const Colord& contribution,
              const HitPoint& hitPoint, State& state) {
       m_selections.push_back(Selection{hitIndex, sample, contribution});
@@ -679,6 +647,87 @@ namespace render {
     std::unique_ptr<WavefrontAnyHitFrontier> m_frontier;
     WavefrontOcclusionFlags m_occluded;
   };
+
+  class WhittedIntegrator::DirectLightContributionBatch {
+  public:
+    DirectLightContributionBatch(std::size_t count, int depth, IntegratorBatchMetrics* metrics)
+        : m_contributions(count, Colord::black()) {
+      recordHostBytes(depth, metrics);
+    }
+
+    [[nodiscard]] Colord at(std::size_t index) const {
+      return index < m_contributions.size() ? m_contributions[index] : Colord::black();
+    }
+
+    void set(std::size_t index, const Colord& contribution) {
+      if (index >= m_contributions.size()) {
+        throw std::logic_error("Whitted direct-light contribution batch received an invalid "
+                               "selection index");
+      }
+      m_contributions[index] = contribution;
+    }
+
+  private:
+    [[nodiscard]] std::uint64_t hostBytes() const {
+      return static_cast<std::uint64_t>(m_contributions.size()) * sizeof(Colord);
+    }
+
+    void recordHostBytes(int depth, IntegratorBatchMetrics* metrics) const {
+      if (!metrics) {
+        return;
+      }
+      metrics->recordDirectLightContributionHostBytes(
+        static_cast<std::uint64_t>(std::max(0, depth)), hostBytes());
+    }
+
+    std::vector<Colord> m_contributions;
+  };
+
+  WhittedIntegrator::DirectLightContributionBatch
+  WhittedIntegrator::DirectLightVisibilityBatch::materializeResolvedContributions(
+    int depth, IntegratorBatchMetrics* metrics) const {
+    validateResolvedOcclusionCount();
+    DirectLightContributionBatch contributions(m_selections.size(), depth, metrics);
+    for (std::size_t selectionIndex = 0; selectionIndex != m_selections.size(); ++selectionIndex) {
+      const Selection& selection = m_selections[selectionIndex];
+      const bool blocked = occluded(selectionIndex);
+      const bool contributing = !blocked && selection.contribution != Colord::black();
+      if (metrics) {
+        metrics->recordDirectLightSample(blocked, contributing);
+      }
+      if (contributing) {
+        contributions.set(selectionIndex, selection.contribution);
+      }
+    }
+    return contributions;
+  }
+
+  void WhittedIntegrator::DirectLightVisibilityBatch::applyResolvedContributions(
+    const WavefrontIntersectionBackend& intersectionBackend, const ActiveQueuedHits& activeHits,
+    QueuedRayFrontier& current, SampleColorBuffer& result, int depth,
+    IntegratorBatchMetrics* metrics) const {
+    if (metrics) {
+      metrics->recordCpuDirectLightContributionExecution(
+        intersectionBackend, "GPU Whitted direct-light contribution kernel unavailable");
+    }
+    const DirectLightContributionBatch contributions =
+      materializeResolvedContributions(depth, metrics);
+    for (std::size_t selectionIndex = 0; selectionIndex != m_selections.size(); ++selectionIndex) {
+      const Selection& selection = m_selections[selectionIndex];
+      const QueuedHit& hit = activeHits[selection.hitIndex];
+      QueuedRay& queued = current[hit.queuedIndex];
+      const Colord contribution = contributions.at(selectionIndex);
+      const bool contributing = contribution != Colord::black();
+      if (!contributing) {
+        continue;
+      }
+      const Colord weightedContribution = queued.weight * contribution;
+      result[queued.sampleIndex] += weightedContribution;
+      if (metrics) {
+        metrics->recordDirectLightRadiance(weightedContribution, queued.state.recursionDepth <= 1);
+      }
+    }
+  }
 
   Colord WhittedIntegrator::radiance(const Scene& scene, const Rayd& ray, State& state,
                                      const RayCaster& recursiveRayCaster) const {

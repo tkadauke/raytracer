@@ -611,7 +611,7 @@ namespace WhittedIntegratorTest {
     EXPECT_EQ("host", metrics.intersectionBackendAnyHitFrontierResidency);
     EXPECT_GT(metrics.directLightSelectionHostBytes, 0u);
     EXPECT_GT(metrics.directLightOcclusionHostBytes, 0u);
-    EXPECT_GT(metrics.directLightContributionHostBytes, 0u);
+    EXPECT_EQ(2u * sizeof(Colord), metrics.directLightContributionHostBytes);
     EXPECT_EQ((std::vector<std::uint64_t>{metrics.directLightContributionHostBytes}),
               metrics.directLightContributionHostBytesPerDepth);
     EXPECT_EQ("cpu", metrics.directLightContributionExecutionPath);
@@ -654,7 +654,7 @@ namespace WhittedIntegratorTest {
     EXPECT_EQ(1u, metrics.directLightSamples);
     EXPECT_EQ(0u, metrics.directLightContributingSamples);
     EXPECT_EQ(1u, metrics.directLightOccludedSamples);
-    EXPECT_GT(metrics.directLightContributionHostBytes, 0u);
+    EXPECT_EQ(sizeof(Colord), metrics.directLightContributionHostBytes);
     EXPECT_EQ((std::vector<std::uint64_t>{metrics.directLightContributionHostBytes}),
               metrics.directLightContributionHostBytesPerDepth);
     EXPECT_EQ("cpu", metrics.directLightContributionExecutionPath);

@@ -53,6 +53,7 @@ namespace render {
     class ActiveQueuedHits;
     class ActiveSampleTracker;
     struct BatchDepthMetrics;
+    class DirectLightContributionBatch;
     class DirectLightVisibilityBatch;
     class ClosestHitQueuedRayFrontierBatch;
     struct QueuedHit;
