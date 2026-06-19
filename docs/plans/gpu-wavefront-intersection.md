@@ -1537,6 +1537,12 @@ Progress:
   color payload per visibility selection. That keeps the deterministic Whitted
   direct-light path aligned with the path-tracing payload contract without
   claiming GPU contribution execution yet.
+- `IntersectionService` now preserves observed closest-hit and any-hit
+  execution paths independently across successive queries and reports the
+  aggregate execution path as `mixed` when a hybrid consumer uses different
+  paths for the two query families. This keeps graph visibility and ray-traced
+  shadow diagnostics from hiding a closest-hit fallback behind a later any-hit
+  result, or vice versa.
 
 ---
 

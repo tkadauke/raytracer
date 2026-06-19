@@ -9,6 +9,17 @@ namespace render {
     std::string nonNullString(const char* value) {
       return value ? value : "";
     }
+
+    void mergeLabel(std::string& target, const std::string& label) {
+      if (label.empty()) {
+        return;
+      }
+      if (target.empty() || target == label) {
+        target = label;
+        return;
+      }
+      target = "mixed";
+    }
   }
 
   IntersectionService::IntersectionService(
@@ -90,30 +101,45 @@ namespace render {
     m_diagnostics.anyHitExecutionPath = nonNullString(m_backend->anyHitExecutionPath());
     m_diagnostics.fallbackReason = nonNullString(m_backend->fallbackReason());
     m_diagnostics.scene = m_backend->compiledSceneDiagnostics();
+    applyRecordedQueryDiagnostics();
+  }
+
+  void IntersectionService::applyRecordedQueryDiagnostics() {
+    const bool hasClosestTiming = !m_diagnostics.lastClosestHitTiming.executionPath.empty();
+    const bool hasAnyTiming = !m_diagnostics.lastAnyHitTiming.executionPath.empty();
+
+    if (hasClosestTiming) {
+      m_diagnostics.closestHitExecutionPath = m_diagnostics.lastClosestHitTiming.executionPath;
+    }
+    if (hasAnyTiming) {
+      m_diagnostics.anyHitExecutionPath = m_diagnostics.lastAnyHitTiming.executionPath;
+    }
+    if (hasClosestTiming || hasAnyTiming) {
+      std::string observedExecutionPath;
+      mergeLabel(observedExecutionPath, m_diagnostics.lastClosestHitTiming.executionPath);
+      mergeLabel(observedExecutionPath, m_diagnostics.lastAnyHitTiming.executionPath);
+      m_diagnostics.executionPath = observedExecutionPath;
+    }
+
+    std::string observedFallbackReason = m_diagnostics.fallbackReason;
+    mergeLabel(observedFallbackReason, m_diagnostics.lastClosestHitTiming.fallbackReason);
+    mergeLabel(observedFallbackReason, m_diagnostics.lastAnyHitTiming.fallbackReason);
+    m_diagnostics.fallbackReason = observedFallbackReason;
   }
 
   void IntersectionService::recordClosestHitTiming(const WavefrontIntersectionQueryTiming& timing) {
-    recordTiming(&IntersectionServiceDiagnostics::lastClosestHitTiming, timing,
-                 &IntersectionServiceDiagnostics::closestHitExecutionPath);
+    recordTiming(&IntersectionServiceDiagnostics::lastClosestHitTiming, timing);
   }
 
   void IntersectionService::recordAnyHitTiming(const WavefrontIntersectionQueryTiming& timing) {
-    recordTiming(&IntersectionServiceDiagnostics::lastAnyHitTiming, timing,
-                 &IntersectionServiceDiagnostics::anyHitExecutionPath);
+    recordTiming(&IntersectionServiceDiagnostics::lastAnyHitTiming, timing);
   }
 
   void IntersectionService::recordTiming(
-    WavefrontIntersectionQueryTiming IntersectionServiceDiagnostics::*member,
-    const WavefrontIntersectionQueryTiming& timing,
-    std::string IntersectionServiceDiagnostics::*executionPathMember) {
+    WavefrontIntersectionQueryTiming IntersectionServiceDiagnostics::* member,
+    const WavefrontIntersectionQueryTiming& timing) {
     refreshBackendDiagnostics();
     m_diagnostics.*member = timing;
-    if (!timing.executionPath.empty()) {
-      m_diagnostics.*executionPathMember = timing.executionPath;
-      m_diagnostics.executionPath = timing.executionPath;
-    }
-    if (m_diagnostics.fallbackReason.empty() && !timing.fallbackReason.empty()) {
-      m_diagnostics.fallbackReason = timing.fallbackReason;
-    }
+    applyRecordedQueryDiagnostics();
   }
 }

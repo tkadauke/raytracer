@@ -9,6 +9,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ## Unreleased
 
+### Fixed
+
+- Preserve mixed closest-hit and any-hit execution-path diagnostics in the
+  reusable intersection service. — GPT-5 Codex
+
 ### Added
 
 - Added convertible C-array constructors for `Color`, SSE color

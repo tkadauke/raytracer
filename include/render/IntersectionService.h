@@ -57,11 +57,11 @@ namespace render {
 
   private:
     void refreshBackendDiagnostics();
+    void applyRecordedQueryDiagnostics();
     void recordClosestHitTiming(const WavefrontIntersectionQueryTiming& timing);
     void recordAnyHitTiming(const WavefrontIntersectionQueryTiming& timing);
-    void recordTiming(WavefrontIntersectionQueryTiming IntersectionServiceDiagnostics::*member,
-                      const WavefrontIntersectionQueryTiming& timing,
-                      std::string IntersectionServiceDiagnostics::*executionPathMember);
+    void recordTiming(WavefrontIntersectionQueryTiming IntersectionServiceDiagnostics::* member,
+                      const WavefrontIntersectionQueryTiming& timing);
 
     const Scene* m_scene;
     WavefrontIntersectionBackendChoice m_backendChoice;

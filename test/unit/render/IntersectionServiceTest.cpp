@@ -22,6 +22,52 @@ namespace IntersectionServiceTest {
       scene.add(std::make_shared<Sphere>(Vector3d(0, 0, 3), 1.0));
       return scene;
     }
+
+    class MixedQueryPathBackend final : public WavefrontIntersectionBackend {
+    public:
+      const char* name() const override {
+        return "test";
+      }
+
+      const char* executionPath() const override {
+        return "platform_nominal";
+      }
+
+      const Primitive* intersectClosest(const Scene& scene, const Rayd& ray,
+                                        HitPointInterval& hitPoints, State& state,
+                                        WavefrontIntersectionQueryTiming* timing) const override {
+        if (timing) {
+          timing->recordExecutionPath("packed_cpu");
+          timing->recordFallbackReason("closest query fell back");
+        }
+        return CpuWavefrontIntersectionBackend::instance().intersectClosest(scene, ray, hitPoints,
+                                                                            state);
+      }
+
+      bool intersectAny(const Scene& scene, const Rayd& ray, double maxDistance, State& state,
+                        WavefrontIntersectionQueryTiming* timing) const override {
+        if (timing) {
+          timing->recordExecutionPath("metal");
+          timing->recordFallbackReason("any-hit query used platform path");
+        }
+        return CpuWavefrontIntersectionBackend::instance().intersectAny(scene, ray, maxDistance,
+                                                                        state);
+      }
+
+      PrimitivePacketHit4 intersectPacketClosest(const Scene& scene, const Ray4& rays,
+                                                 const PrimitivePacketState4& states,
+                                                 WavefrontIntersectionQueryTiming*) const override {
+        return CpuWavefrontIntersectionBackend::instance().intersectPacketClosest(scene, rays,
+                                                                                  states);
+      }
+
+      PrimitivePacketHit8 intersectPacketClosest(const Scene& scene, const Ray8& rays,
+                                                 const PrimitivePacketState8& states,
+                                                 WavefrontIntersectionQueryTiming*) const override {
+        return CpuWavefrontIntersectionBackend::instance().intersectPacketClosest(scene, rays,
+                                                                                  states);
+      }
+    };
   }
 
   TEST(IntersectionService, SubmitsClosestHitWorkThroughPreparedBackend) {
@@ -91,6 +137,29 @@ namespace IntersectionServiceTest {
     EXPECT_NE(0, occluded[0]);
     EXPECT_EQ(0, occluded[1]);
     EXPECT_EQ("runtime_scene", service.diagnostics().lastAnyHitTiming.executionPath);
+  }
+
+  TEST(IntersectionService, ReportsMixedObservedExecutionPathAcrossQueryFamilies) {
+    Scene scene = sphereScene();
+    const MixedQueryPathBackend backend;
+    IntersectionService service(scene, backend);
+
+    State closestState;
+    const WavefrontClosestHitResult hit =
+      service.closestHit(Rayd(Vector3d(0, 0, 0), Vector3d::forward()), closestState);
+    ASSERT_TRUE(hit.hit());
+    EXPECT_EQ("packed_cpu", service.diagnostics().executionPath);
+    EXPECT_EQ("packed_cpu", service.diagnostics().closestHitExecutionPath);
+    EXPECT_EQ("platform_nominal", service.diagnostics().anyHitExecutionPath);
+    EXPECT_EQ("closest query fell back", service.diagnostics().fallbackReason);
+
+    State anyState;
+    EXPECT_TRUE(service.anyHit(Rayd(Vector3d(0, 0, 0), Vector3d::forward()), 4.0, anyState));
+
+    EXPECT_EQ("mixed", service.diagnostics().executionPath);
+    EXPECT_EQ("packed_cpu", service.diagnostics().closestHitExecutionPath);
+    EXPECT_EQ("metal", service.diagnostics().anyHitExecutionPath);
+    EXPECT_EQ("mixed", service.diagnostics().fallbackReason);
   }
 
   TEST(IntersectionService, ReportsFallbackForUnsupportedGpuScene) {
