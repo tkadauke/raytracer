@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Preserve explicit wavefront intersection backend overrides when tracing
+  execution is left on auto, instead of upgrading supported scenes to the
+  compiled GPU path-loop shortcut. — GPT-5 Codex
 - Reject malformed packed closest-hit and any-hit record counts or ray-index
   mappings before resident-frontier or platform-kernel paths can reinterpret
   missing records as misses. — GPT-5 Codex
@@ -25,6 +28,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Added convertible C-array constructors for `Color`, SSE color
   specializations, and vector types so array-backed helpers can delegate to the
   math primitives directly. — GPT-5 Codex
+- Report resident direct-light batch support as a structured tracing capability
+  separate from direct-light visibility and contribution. — GPT-5 Codex
 - Report actual path-state residency labels in tracing execution capability
   records instead of collapsing them to a generic CPU path. — GPT-5 Codex
 - Report frontier compaction path-state residency in wavefront metrics,

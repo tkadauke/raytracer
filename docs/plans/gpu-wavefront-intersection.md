@@ -1566,6 +1566,12 @@ Progress:
   storage, while `state.frontier_compaction` continues to report the compaction
   operation path. That keeps structured rendercli/Modeler capability JSON
   aligned with the lower-level metrics.
+- Structured tracing capability records now expose
+  `lighting.resident_direct_light_batches` separately from direct-light
+  visibility and contribution. Current backends report it as unsupported with
+  the resident-direct-light unavailable reason, so graph consumers no longer
+  have to parse legacy intersection backend booleans to tell whether
+  next-event-estimation work can stay resident.
 
 ---
 

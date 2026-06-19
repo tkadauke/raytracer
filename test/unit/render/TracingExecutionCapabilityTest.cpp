@@ -15,14 +15,14 @@ namespace TracingExecutionCapabilityTest {
     EXPECT_FALSE(cpu.usesGpu());
     EXPECT_FALSE(cpu.fallsBack());
 
-    const auto hybrid = TracingCapabilityRecord::hybrid(
-      TracingExecutionDomain::PathState, "state.frontier_compaction", "mixed");
+    const auto hybrid = TracingCapabilityRecord::hybrid(TracingExecutionDomain::PathState,
+                                                        "state.frontier_compaction", "mixed");
     EXPECT_TRUE(hybrid.supported());
     EXPECT_TRUE(hybrid.usesCpu());
     EXPECT_TRUE(hybrid.usesGpu());
 
-    const auto gpu = TracingCapabilityRecord::gpu(
-      TracingExecutionDomain::Intersection, "geometry.closest_hit", "vulkan", "vulkan");
+    const auto gpu = TracingCapabilityRecord::gpu(TracingExecutionDomain::Intersection,
+                                                  "geometry.closest_hit", "vulkan", "vulkan");
     EXPECT_TRUE(gpu.supported());
     EXPECT_FALSE(gpu.usesCpu());
     EXPECT_TRUE(gpu.usesGpu());
@@ -49,15 +49,15 @@ namespace TracingExecutionCapabilityTest {
 
   TEST(TracingExecutionCapabilityRecords, FlattensAllCapabilityGroupsAndReportsFallbacks) {
     TracingExecutionCapabilityRecords records;
-    records.intersection.closestHit = TracingCapabilityRecord::cpu(
-      TracingExecutionDomain::Intersection, "geometry.closest_hit");
+    records.intersection.closestHit =
+      TracingCapabilityRecord::cpu(TracingExecutionDomain::Intersection, "geometry.closest_hit");
     records.intersection.anyHit = TracingCapabilityRecord::fallbackRecord(
       TracingExecutionDomain::Intersection, "geometry.any_hit", TracingExecutionDevice::GPU,
       TracingExecutionDevice::CPU, "packed_cpu", "scene unsupported");
 
     const auto flattened = records.flattened();
 
-    EXPECT_EQ(19u, flattened.size());
+    EXPECT_EQ(20u, flattened.size());
     EXPECT_TRUE(records.hasFallback());
     EXPECT_NE(flattened.end(),
               std::find_if(flattened.begin(), flattened.end(), [](const auto& record) {

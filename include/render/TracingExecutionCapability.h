@@ -15,19 +15,9 @@ namespace render {
     Accumulation
   };
 
-  enum class TracingExecutionDevice {
-    CPU,
-    Hybrid,
-    GPU,
-    Unsupported
-  };
+  enum class TracingExecutionDevice { CPU, Hybrid, GPU, Unsupported };
 
-  enum class TracingCapabilitySupport {
-    Supported,
-    Restricted,
-    Unsupported,
-    Fallback
-  };
+  enum class TracingCapabilitySupport { Supported, Restricted, Unsupported, Fallback };
 
   struct TracingFallbackStatus {
     bool active = false;
@@ -39,9 +29,9 @@ namespace render {
       return {};
     }
 
-    [[nodiscard]] static TracingFallbackStatus
-    fallback(TracingExecutionDevice requested, TracingExecutionDevice resolved,
-             std::string fallbackReason) {
+    [[nodiscard]] static TracingFallbackStatus fallback(TracingExecutionDevice requested,
+                                                        TracingExecutionDevice resolved,
+                                                        std::string fallbackReason) {
       TracingFallbackStatus status;
       status.active = true;
       status.requestedDevice = requested;
@@ -100,9 +90,9 @@ namespace render {
       return record;
     }
 
-    [[nodiscard]] static TracingCapabilityRecord
-    gpu(TracingExecutionDomain domain, std::string capabilityName, std::string platformName,
-        std::string path) {
+    [[nodiscard]] static TracingCapabilityRecord gpu(TracingExecutionDomain domain,
+                                                     std::string capabilityName,
+                                                     std::string platformName, std::string path) {
       TracingCapabilityRecord record;
       record.domain = domain;
       record.name = std::move(capabilityName);
@@ -128,9 +118,10 @@ namespace render {
       return record;
     }
 
-    [[nodiscard]] static TracingCapabilityRecord
-    restricted(TracingExecutionDomain domain, std::string capabilityName,
-               TracingExecutionDevice resolved, std::string path, std::string reason) {
+    [[nodiscard]] static TracingCapabilityRecord restricted(TracingExecutionDomain domain,
+                                                            std::string capabilityName,
+                                                            TracingExecutionDevice resolved,
+                                                            std::string path, std::string reason) {
       TracingCapabilityRecord record;
       record.domain = domain;
       record.name = std::move(capabilityName);
@@ -192,6 +183,7 @@ namespace render {
     TracingCapabilityRecord lightSampling;
     TracingCapabilityRecord visibility;
     TracingCapabilityRecord contribution;
+    TracingCapabilityRecord residentBatch;
   };
 
   struct TracingBsdfCapabilityRecords {
@@ -233,6 +225,7 @@ namespace render {
         directLighting.lightSampling,
         directLighting.visibility,
         directLighting.contribution,
+        directLighting.residentBatch,
         bsdf.eval,
         bsdf.sample,
         bsdf.deltaBranches,

@@ -76,7 +76,8 @@ namespace engine::wavefront {
     };
 
     render::TracingExecutionDevice executionDeviceForLabel(const std::string& label) {
-      if (label == "metal" || label == "vulkan" || label == "gpu") {
+      if (label == "metal" || label == "vulkan" || label == "gpu" || label == "gpu_resident" ||
+          label == "gpu_resident_path_loop" || label == "gpu_resident_direct_light_batch") {
         return render::TracingExecutionDevice::GPU;
       }
       if (label == "mixed" || label == "hybrid" || label == "metal_shared" ||
@@ -883,6 +884,24 @@ namespace engine::wavefront {
     } else {
       records.directLighting.contribution = render::TracingCapabilityRecord::cpu(
         Domain::DirectLighting, "lighting.direct_light_contribution", contributionPath);
+    }
+    if (intersectionBackendSupportsResidentDirectLightBatches) {
+      const std::string residentDirectLightPath =
+        !intersectionBackendAnyHitFrontierResidency.empty()
+          ? intersectionBackendAnyHitFrontierResidency
+          : (intersectionBackendAnyHitExecutionPath.empty()
+               ? "gpu_resident_direct_light_batch"
+               : intersectionBackendAnyHitExecutionPath);
+      records.directLighting.residentBatch = tracingRecordForResolvedExecutionPath(
+        Domain::DirectLighting, "lighting.resident_direct_light_batches",
+        executionDeviceForLabel(residentDirectLightPath), intersectionBackendPlatform,
+        residentDirectLightPath);
+    } else {
+      records.directLighting.residentBatch = render::TracingCapabilityRecord::unsupported(
+        Domain::DirectLighting, "lighting.resident_direct_light_batches",
+        intersectionBackendResidentDirectLightBatchesUnavailableReason.empty()
+          ? "resident direct-light batches are not implemented"
+          : intersectionBackendResidentDirectLightBatchesUnavailableReason);
     }
 
     records.bsdf.eval = render::TracingCapabilityRecord::cpu(Domain::BSDF, "shading.bsdf_eval");

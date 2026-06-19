@@ -383,7 +383,9 @@ shading.bsdf_eval
 shading.bsdf_sample
 shading.delta_branches
 lighting.direct_light_sample
+lighting.direct_light_visibility
 lighting.direct_light_contribution
+lighting.resident_direct_light_batches
 state.path_state_residency
 state.frontier_compaction
 state.spawned_continuations

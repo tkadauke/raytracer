@@ -688,6 +688,11 @@ need to eliminate or mirror. The any-hit frontier payload bytes are reported
 both as whole-render totals and per-depth arrays, split into packed rays, host
 queries, and state handles, so resident-direct-light captures can identify the
 specific bounce that moved the occlusion payload.
+The structured capability list exposes the same distinction as
+`lighting.resident_direct_light_batches`: it remains unsupported when the
+backend can answer platform any-hit visibility but the scheduler still creates
+light selections, visibility resolution, or direct-light contributions on the
+host.
 They also report the host bytes used by the resolved occlusion flags and by the
 direct-light contribution array that carries resolved lighting back to the
 per-hit shading pass. Selection and occlusion byte arrays include explicit zero

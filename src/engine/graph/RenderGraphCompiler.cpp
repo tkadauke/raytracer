@@ -189,14 +189,17 @@ namespace engine::graph {
         return decision;
       }
 
-      if (canUseFullGpuTracing(sceneAnalysis) && canUseHybridTracing(executor)) {
+      if (intersectionBackend) {
+        if (canUseHybridTracing(executor) &&
+            intersectionBackend->kind() == render::WavefrontIntersectionBackendChoice::Kind::GPU) {
+          decision.predicted = TracingExecutionPreference::Hybrid;
+        } else {
+          decision.predicted = TracingExecutionPreference::CPU;
+        }
+      } else if (canUseFullGpuTracing(sceneAnalysis) && canUseHybridTracing(executor)) {
         decision.predicted = TracingExecutionPreference::GPU;
         decision.intersectionBackend = render::WavefrontIntersectionBackendChoice::gpu();
-        decision.overrideIntersectionBackend = !intersectionBackend.has_value();
-      } else if (canUseHybridTracing(executor) && intersectionBackend &&
-                 intersectionBackend->kind() ==
-                   render::WavefrontIntersectionBackendChoice::Kind::GPU) {
-        decision.predicted = TracingExecutionPreference::Hybrid;
+        decision.overrideIntersectionBackend = true;
       } else {
         decision.predicted = TracingExecutionPreference::CPU;
       }
