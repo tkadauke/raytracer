@@ -23,6 +23,10 @@ namespace render {
     return m_tint;
   }
 
+  const char* TintedTexture::typeName() const noexcept {
+    return "TintedTexture";
+  }
+
   Colord TintedTexture::evaluate(const Rayd& ray, const HitPoint& hitPoint) const {
     return m_texture->evaluate(ray, hitPoint) * m_tint;
   }

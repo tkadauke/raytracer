@@ -14,6 +14,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Added convertible C-array constructors for `Color`, SSE color
   specializations, and vector types so array-backed helpers can delegate to the
   math primitives directly. — GPT-5 Codex
+- Report concrete runtime texture type names in GPU tracing unsupported-texture
+  diagnostics instead of a generic texture label. — GPT-5 Codex
 - Added mixed-depth closest-hit/any-hit readback-byte diagnostics to wavefront
   metrics, rendercli summaries, and Modeler graph tooltips, sizing the
   host/device payload targeted by future resident-frontier scheduling.

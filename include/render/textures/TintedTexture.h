@@ -12,6 +12,7 @@ namespace render {
 
     const std::shared_ptr<Texturec>& texture() const;
     const Colord& tint() const;
+    const char* typeName() const noexcept override;
     Colord evaluate(const Rayd& ray, const HitPoint& hitPoint) const override;
 
   private:

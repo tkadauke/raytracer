@@ -15,8 +15,10 @@
 #include "render/materials/TransparentMaterial.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
+#include "render/textures/CheckerBoardTexture.h"
 #include "render/textures/ConstantColorTexture.h"
 #include "render/textures/Texture.h"
+#include "render/textures/mappings/PlanarMapping2D.h"
 
 #include <cstddef>
 #include <memory>
@@ -428,7 +430,9 @@ namespace GpuTracingSceneTest {
   }
 
   TEST(GpuTracingScene, RecordsFirstUnsupportedTextureReasonAndGroupedCounts) {
-    auto firstUnsupportedTexture = std::make_shared<UnsupportedTexture>();
+    auto firstUnsupportedTexture = std::make_shared<CheckerBoardTexture>(
+      new PlanarMapping2D, std::make_shared<ConstantColorTexture>(Colord::white()),
+      std::make_shared<ConstantColorTexture>(Colord::black()));
     auto secondUnsupportedTexture = std::make_shared<UnsupportedTexture>();
     auto firstMaterial = std::make_shared<MatteMaterial>(firstUnsupportedTexture);
     auto secondMaterial = std::make_shared<MatteMaterial>(secondUnsupportedTexture);
@@ -448,10 +452,11 @@ namespace GpuTracingSceneTest {
     EXPECT_FALSE(compilation.supported());
     ASSERT_EQ(2u, compilation.textures.unsupportedTextures.size());
     EXPECT_EQ(1u, compilation.textures.unsupportedTextures[0].textureId);
-    EXPECT_EQ("Texture", compilation.textures.unsupportedTextures[0].type);
+    EXPECT_EQ("CheckerBoardTexture", compilation.textures.unsupportedTextures[0].type);
     EXPECT_EQ("texture type is not supported by GPU tracing scene compiler",
               compilation.textures.unsupportedTextures[0].reason);
     EXPECT_EQ(2u, compilation.textures.unsupportedTextures[1].textureId);
+    EXPECT_EQ("Texture", compilation.textures.unsupportedTextures[1].type);
 
     const std::vector<GpuTracingUnsupportedReasonCount> reasonCounts =
       compilation.textures.unsupportedReasonCounts();

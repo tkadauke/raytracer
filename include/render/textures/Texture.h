@@ -14,6 +14,10 @@ namespace render {
     inline virtual ~Texture() {
     }
 
+    virtual const char* typeName() const noexcept {
+      return "Texture";
+    }
+
     virtual T evaluate(const Rayd& ray, const HitPoint& hitPoint) const = 0;
   };
 

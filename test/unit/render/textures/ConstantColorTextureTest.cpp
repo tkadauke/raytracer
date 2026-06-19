@@ -14,6 +14,12 @@ namespace ConstantColorTextureTest {
     ASSERT_EQ(Colord::black(), texture.color());
   }
 
+  TEST(ConstantColorTexture, ReportsRuntimeTypeName) {
+    ConstantColorTexture texture;
+
+    EXPECT_STREQ("ConstantColorTexture", texture.typeName());
+  }
+
   TEST(ConstantColorTexture, ShouldInitializeWithValues) {
     ConstantColorTexture texture(Colord(1, 0, 0));
     ASSERT_EQ(Colord(1, 0, 0), texture.color());

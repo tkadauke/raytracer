@@ -60,7 +60,8 @@ namespace render {
     Colord sampleLevel(double u, double v, double level) const;
     double mipLevelForDerivatives(const Vector2d& duvdx, const Vector2d& duvdy) const;
 
-    virtual Colord evaluate(const Rayd& ray, const HitPoint& hitPoint) const;
+    const char* typeName() const noexcept override;
+    Colord evaluate(const Rayd& ray, const HitPoint& hitPoint) const override;
 
     static ImageTextureFilter filterFromString(const std::string& value);
     static ImageTextureWrap wrapFromString(const std::string& value);

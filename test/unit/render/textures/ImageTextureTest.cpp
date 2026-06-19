@@ -24,6 +24,12 @@ namespace ImageTextureTest {
     EXPECT_EQ(Colord::white(), texture.sample(0.75, 0.75));
   }
 
+  TEST(ImageTexture, ReportsRuntimeTypeName) {
+    ImageTexture texture(new UVMapping2D, 2, 2, quadPixels(), ImageTextureFilter::Nearest);
+
+    EXPECT_STREQ("ImageTexture", texture.typeName());
+  }
+
   TEST(ImageTexture, BilinearSamplesPixelCentersExactlyAndBlendsBetweenThem) {
     ImageTexture texture(new UVMapping2D, 2, 2, quadPixels(), ImageTextureFilter::Bilinear);
 

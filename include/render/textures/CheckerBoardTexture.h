@@ -64,7 +64,11 @@ namespace render {
       return m_mapping;
     }
 
-    virtual Colord evaluate(const Rayd& ray, const HitPoint& hitPoint) const;
+    const char* typeName() const noexcept override {
+      return "CheckerBoardTexture";
+    }
+
+    Colord evaluate(const Rayd& ray, const HitPoint& hitPoint) const override;
 
   private:
     TextureMapping2D* m_mapping;

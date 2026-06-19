@@ -19,6 +19,14 @@ namespace CheckerBoardTextureTest {
     ASSERT_EQ(dark, texture.darkTexture());
   }
 
+  TEST(CheckerBoardTexture, ReportsRuntimeTypeName) {
+    CheckerBoardTexture texture(new PlanarMapping2D,
+                                std::make_shared<ConstantColorTexture>(Colord::white()),
+                                std::make_shared<ConstantColorTexture>(Colord::black()));
+
+    EXPECT_STREQ("CheckerBoardTexture", texture.typeName());
+  }
+
   TEST(CheckerBoardTexture, ShouldChooseSubtextureBasedOnPosition) {
     CheckerBoardTexture texture(new PlanarMapping2D,
                                 std::make_shared<ConstantColorTexture>(Colord::white()),

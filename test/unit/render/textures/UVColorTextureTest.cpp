@@ -12,4 +12,10 @@ namespace UVColorTextureTest {
 
     EXPECT_EQ(Colord(0.25, 0.75, 0.0), texture.evaluate(Rayd::undefined, hitPoint));
   }
+
+  TEST(UVColorTexture, ReportsRuntimeTypeName) {
+    UVColorTexture texture;
+
+    EXPECT_STREQ("UVColorTexture", texture.typeName());
+  }
 }

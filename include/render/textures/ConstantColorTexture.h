@@ -21,7 +21,11 @@ namespace render {
       m_color = color;
     }
 
-    virtual Colord evaluate(const Rayd& ray, const HitPoint& hitPoint) const;
+    const char* typeName() const noexcept override {
+      return "ConstantColorTexture";
+    }
+
+    Colord evaluate(const Rayd& ray, const HitPoint& hitPoint) const override;
 
   private:
     Colord m_color;

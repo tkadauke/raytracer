@@ -117,13 +117,6 @@ namespace {
                                      static_cast<float>(material.reflectionCoefficient())};
   }
 
-  const char* textureTypeName(const Texturec& texture) {
-    if (dynamic_cast<const ConstantColorTexture*>(&texture)) {
-      return "ConstantColorTexture";
-    }
-    return "Texture";
-  }
-
   class GpuTracingMaterialResourceContext {
   public:
     virtual ~GpuTracingMaterialResourceContext() = default;
@@ -473,7 +466,7 @@ render::compileGpuTracingMaterials(const CompiledIntersectionScene& scene) {
     } else {
       compilation.textures.records.push_back(GpuTracingTextureRecord{});
       compilation.textures.unsupportedTextures.push_back(
-        UnsupportedGpuTracingTexture{id, textureTypeName(*texture), reason});
+        UnsupportedGpuTracingTexture{id, texture->typeName(), reason});
     }
     textureIds.emplace(texture.get(), id);
     return id;

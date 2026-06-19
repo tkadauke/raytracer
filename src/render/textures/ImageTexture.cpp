@@ -37,6 +37,10 @@ ImageTexture::ImageTexture(TextureMapping2D* mapping, int width, int height,
 
 ImageTexture::~ImageTexture() = default;
 
+const char* ImageTexture::typeName() const noexcept {
+  return "ImageTexture";
+}
+
 std::shared_ptr<ImageTexture> ImageTexture::fromFile(TextureMapping2D* mapping,
                                                      const std::string& path,
                                                      ImageTextureFilter filter,
