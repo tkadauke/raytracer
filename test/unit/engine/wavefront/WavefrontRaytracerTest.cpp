@@ -1496,8 +1496,11 @@ namespace WavefrontRaytracerTest {
               capabilities.directLighting.contribution.resolvedDevice);
     EXPECT_EQ("GPU diffuse direct-light contribution kernel unavailable",
               capabilities.directLighting.contribution.fallback.reason);
+    EXPECT_EQ(render::TracingExecutionDevice::CPU, capabilities.pathState.residency.resolvedDevice);
+    EXPECT_EQ("host", capabilities.pathState.residency.executionPath);
     EXPECT_EQ(render::TracingExecutionDevice::CPU,
               capabilities.pathState.frontierCompaction.resolvedDevice);
+    EXPECT_EQ("host", capabilities.pathState.frontierCompaction.executionPath);
     EXPECT_EQ(render::TracingCapabilitySupport::Unsupported, capabilities.sampling.gpuRng.support);
     EXPECT_EQ(render::TracingCapabilitySupport::Supported, capabilities.bsdf.eval.support);
     EXPECT_EQ(render::TracingCapabilitySupport::Supported,
@@ -1525,6 +1528,17 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(
       "GPU backend unavailable",
       closestHitCapability.value("fallback").toObject().value("reason").toString().toStdString());
+    const QJsonObject pathStateResidencyCapability = tracingCapabilities.at(14).toObject();
+    EXPECT_EQ("path_state", pathStateResidencyCapability.value("domain").toString().toStdString());
+    EXPECT_EQ("state.path_state_residency",
+              pathStateResidencyCapability.value("name").toString().toStdString());
+    EXPECT_EQ("supported", pathStateResidencyCapability.value("support").toString().toStdString());
+    EXPECT_EQ("cpu", pathStateResidencyCapability.value("resolvedDevice").toString().toStdString());
+    EXPECT_EQ("host", pathStateResidencyCapability.value("executionPath").toString().toStdString());
+    const QJsonObject frontierCompactionCapability = tracingCapabilities.at(15).toObject();
+    EXPECT_EQ("state.frontier_compaction",
+              frontierCompactionCapability.value("name").toString().toStdString());
+    EXPECT_EQ("host", frontierCompactionCapability.value("executionPath").toString().toStdString());
     EXPECT_EQ("cpu",
               batching.value("directLightContributionExecutionPath").toString().toStdString());
     EXPECT_EQ("GPU diffuse direct-light contribution kernel unavailable",
@@ -1609,6 +1623,10 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ("cpu", closestHitCapability.value("resolvedDevice").toString().toStdString());
     EXPECT_EQ("runtime_scene",
               closestHitCapability.value("executionPath").toString().toStdString());
+    const QJsonObject pathStateResidencyCapability = tracingCapabilities.at(14).toObject();
+    EXPECT_EQ("state.path_state_residency",
+              pathStateResidencyCapability.value("name").toString().toStdString());
+    EXPECT_EQ("host", pathStateResidencyCapability.value("executionPath").toString().toStdString());
 
     const QJsonObject tracingFallback = batching.value("tracingBackendFallback").toObject();
     EXPECT_FALSE(tracingFallback.value("active").toBool());
@@ -2489,6 +2507,27 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(2.0, batching.value("residentPathLoopSavedHostReadbacks").toDouble());
     EXPECT_EQ(3.0 * static_cast<double>(sizeof(render::GpuPathStateRecord)),
               batching.value("residentPathLoopSavedHostReadbackBytes").toDouble());
+
+    const auto capabilities = metrics.batching.tracingExecutionCapabilities();
+    EXPECT_EQ("cpu_host", capabilities.pathState.residency.executionPath);
+    EXPECT_EQ(render::TracingExecutionDevice::CPU, capabilities.pathState.residency.resolvedDevice);
+    EXPECT_EQ("gpu_resident_path_loop", capabilities.pathState.frontierCompaction.executionPath);
+    EXPECT_EQ(render::TracingExecutionDevice::CPU,
+              capabilities.pathState.frontierCompaction.resolvedDevice);
+
+    const QJsonArray tracingCapabilities = batching.value("tracingBackendCapabilities").toArray();
+    ASSERT_EQ(19, tracingCapabilities.size());
+    const QJsonObject pathStateResidencyCapability = tracingCapabilities.at(14).toObject();
+    EXPECT_EQ("state.path_state_residency",
+              pathStateResidencyCapability.value("name").toString().toStdString());
+    EXPECT_EQ("cpu_host",
+              pathStateResidencyCapability.value("executionPath").toString().toStdString());
+    const QJsonObject frontierCompactionCapability = tracingCapabilities.at(15).toObject();
+    EXPECT_EQ("state.frontier_compaction",
+              frontierCompactionCapability.value("name").toString().toStdString());
+    EXPECT_EQ("gpu_resident_path_loop",
+              frontierCompactionCapability.value("executionPath").toString().toStdString());
+    EXPECT_EQ("cpu", frontierCompactionCapability.value("resolvedDevice").toString().toStdString());
   }
 
   TEST(WavefrontRaytracer, MetricsRecordPerPixelSampleRadianceVariance) {

@@ -867,7 +867,10 @@ dock shows whether the hybrid pass used a platform backend, packed CPU parity
 traversal, or runtime CPU fallback. The pass details report the visibility
 query execution path and fallback reason; they should not be read as full GPU
 path-tracing capability unless shading, sampling, path-state, and accumulation
-capability records also move to GPU-owned paths.
+capability records also move to GPU-owned paths. In those capability records,
+`state.path_state_residency` names where active path records live, while
+`state.frontier_compaction` names the compaction operation path; current
+wavefront renders still report host-resident scheduler path state.
 The final render dialog intentionally keeps its engine list user-facing:
 Raytracer, Path Tracer, Rasterizer, and Wireframe. Wavefront path tracing is
 selected as the Path Tracer schedule rather than as a second top-level engine,

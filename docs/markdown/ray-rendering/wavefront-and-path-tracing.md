@@ -438,6 +438,9 @@ compaction primitive.
 Today that execution path is `host` whenever a compaction pass runs. That makes
 the current CPU compaction contract explicit before any future kernel keeps the
 frontier resident on the GPU.
+The tracing capability records expose the same distinction: `state.frontier_compaction`
+names the operation path, while `state.path_state_residency` names where the
+active path records live.
 The resident path-state layer mirrors the same contract with `uint32_t`
 retained indices, retained/removed/moved path counts, resident path-state byte
 totals, and an explicit execution-path label for future Metal/Vulkan kernels.

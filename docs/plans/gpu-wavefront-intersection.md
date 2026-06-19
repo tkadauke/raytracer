@@ -1561,6 +1561,11 @@ Progress:
   wavefront renders report host path-state residency even when backend-mediated
   compaction hooks are used, keeping the remaining scheduler-owned active path
   state boundary explicit before true GPU frontier compaction is enabled.
+- Tracing execution capability records now use those same actual residency
+  labels: `state.path_state_residency` reports host or resident path-state
+  storage, while `state.frontier_compaction` continues to report the compaction
+  operation path. That keeps structured rendercli/Modeler capability JSON
+  aligned with the lower-level metrics.
 
 ---
 

@@ -79,11 +79,13 @@ namespace engine::wavefront {
       if (label == "metal" || label == "vulkan" || label == "gpu") {
         return render::TracingExecutionDevice::GPU;
       }
-      if (label == "mixed" || label == "hybrid") {
+      if (label == "mixed" || label == "hybrid" || label == "metal_shared" ||
+          label == "vulkan_host_coherent") {
         return render::TracingExecutionDevice::Hybrid;
       }
       if (label == "cpu" || label == "runtime_scene" || label == "compiled_cpu" ||
-          label == "packed_cpu" || label == "host" || label == "host_cpu") {
+          label == "compiled_cpu_reference" || label == "packed_cpu" || label == "packed_host" ||
+          label == "host" || label == "host_cpu" || label == "cpu_host") {
         return render::TracingExecutionDevice::CPU;
       }
       return render::TracingExecutionDevice::Unsupported;
@@ -128,6 +130,25 @@ namespace engine::wavefront {
         return render::TracingCapabilityRecord::hybrid(domain, std::move(name), executionPath);
       }
       return render::TracingCapabilityRecord::cpu(domain, std::move(name), executionPath);
+    }
+
+    render::TracingCapabilityRecord
+    tracingRecordForResolvedExecutionPath(render::TracingExecutionDomain domain, std::string name,
+                                          render::TracingExecutionDevice resolved,
+                                          const std::string& platform,
+                                          const std::string& executionPath) {
+      if (resolved == render::TracingExecutionDevice::GPU) {
+        return render::TracingCapabilityRecord::gpu(domain, std::move(name), platform,
+                                                    executionPath);
+      }
+      if (resolved == render::TracingExecutionDevice::Hybrid) {
+        return render::TracingCapabilityRecord::hybrid(domain, std::move(name), executionPath);
+      }
+      if (resolved == render::TracingExecutionDevice::CPU) {
+        return render::TracingCapabilityRecord::cpu(domain, std::move(name), executionPath);
+      }
+      return render::TracingCapabilityRecord::unsupported(domain, std::move(name),
+                                                          "no execution path was reported");
     }
 
     QString tracingDomainLabel(render::TracingExecutionDomain domain) {
@@ -869,22 +890,28 @@ namespace engine::wavefront {
     records.bsdf.deltaBranches =
       render::TracingCapabilityRecord::cpu(Domain::BSDF, "shading.delta_branches");
 
-    records.pathState.residency =
-      render::TracingCapabilityRecord::cpu(Domain::PathState, "state.path_state_residency");
+    const std::string pathStateResidency =
+      !residentPathLoopResidency.empty()
+        ? residentPathLoopResidency
+        : (frontierCompactionPathStateResidency.empty() ? "host"
+                                                        : frontierCompactionPathStateResidency);
+    records.pathState.residency = tracingRecordForResolvedExecutionPath(
+      Domain::PathState, "state.path_state_residency", executionDeviceForLabel(pathStateResidency),
+      intersectionBackendPlatform, pathStateResidency);
+
+    const bool residentLoopCompactionReported =
+      frontierCompactionExecutionPath.empty() && residentPathLoopCompactionPasses != 0;
     const std::string compactionPath =
-      frontierCompactionExecutionPath.empty() ? "host" : frontierCompactionExecutionPath;
-    const Device compactionDevice = executionDeviceForLabel(compactionPath);
-    if (compactionDevice == Device::GPU) {
-      records.pathState.frontierCompaction =
-        render::TracingCapabilityRecord::gpu(Domain::PathState, "state.frontier_compaction",
-                                             intersectionBackendPlatform, compactionPath);
-    } else if (compactionDevice == Device::Hybrid) {
-      records.pathState.frontierCompaction = render::TracingCapabilityRecord::hybrid(
-        Domain::PathState, "state.frontier_compaction", compactionPath);
-    } else {
-      records.pathState.frontierCompaction = render::TracingCapabilityRecord::cpu(
-        Domain::PathState, "state.frontier_compaction", compactionPath);
-    }
+      residentLoopCompactionReported
+        ? (residentPathLoopExecutionPath.empty() ? "host" : residentPathLoopExecutionPath)
+        : (frontierCompactionExecutionPath.empty() ? "host" : frontierCompactionExecutionPath);
+    const Device compactionDevice =
+      residentLoopCompactionReported && !residentPathLoopResidency.empty()
+        ? executionDeviceForLabel(residentPathLoopResidency)
+        : executionDeviceForLabel(compactionPath);
+    records.pathState.frontierCompaction = tracingRecordForResolvedExecutionPath(
+      Domain::PathState, "state.frontier_compaction", compactionDevice, intersectionBackendPlatform,
+      compactionPath);
     records.pathState.spawnedContinuations =
       render::TracingCapabilityRecord::cpu(Domain::PathState, "state.spawned_continuations");
 
