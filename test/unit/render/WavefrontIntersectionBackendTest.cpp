@@ -165,6 +165,85 @@ namespace WavefrontIntersectionBackendTest {
       CompiledIntersectionScene m_compiledScene;
     };
 
+    class ShortPackedRecordBackend final : public WavefrontIntersectionBackend {
+    public:
+      explicit ShortPackedRecordBackend(const Scene& scene)
+          : m_compiledScene(IntersectionSceneCompiler().compile(scene)) {
+      }
+
+      using WavefrontIntersectionBackend::intersectPreparedAnyBatch;
+      using WavefrontIntersectionBackend::intersectPreparedClosestBatch;
+
+      const char* name() const override {
+        return "short_packed_record";
+      }
+
+      const CompiledIntersectionScene* compiledScene() const override {
+        return &m_compiledScene;
+      }
+
+      const Primitive*
+      intersectClosest(const Scene& /*scene*/, const Rayd& /*ray*/, HitPointInterval& /*hitPoints*/,
+                       State& /*state*/,
+                       WavefrontIntersectionQueryTiming* /*timing*/ = nullptr) const override {
+        return nullptr;
+      }
+
+      bool intersectAny(const Scene& /*scene*/, const Rayd& /*ray*/, double /*maxDistance*/,
+                        State& /*state*/,
+                        WavefrontIntersectionQueryTiming* /*timing*/ = nullptr) const override {
+        return false;
+      }
+
+      PrimitivePacketHit4 intersectPacketClosest(
+        const Scene& /*scene*/, const Ray4& /*rays*/, const PrimitivePacketState4& /*states*/,
+        WavefrontIntersectionQueryTiming* /*timing*/ = nullptr) const override {
+        return {};
+      }
+
+      PrimitivePacketHit8 intersectPacketClosest(
+        const Scene& /*scene*/, const Ray8& /*rays*/, const PrimitivePacketState8& /*states*/,
+        WavefrontIntersectionQueryTiming* /*timing*/ = nullptr) const override {
+        return {};
+      }
+
+    protected:
+      bool preparedPackedClosestHitAvailable() const override {
+        return true;
+      }
+
+      std::vector<GpuIntersectionHitRecord> intersectPreparedPackedClosest(
+        const std::vector<GpuIntersectionRay>& rays,
+        WavefrontIntersectionQueryTiming* timing = nullptr) const override {
+        if (timing) {
+          timing->recordExecutionPath("short_packed_closest");
+        }
+        if (rays.empty()) {
+          return {};
+        }
+        return std::vector<GpuIntersectionHitRecord>(rays.size() - 1);
+      }
+
+      bool preparedPackedAnyHitAvailable() const override {
+        return true;
+      }
+
+      std::vector<GpuIntersectionOcclusionRecord> intersectPreparedPackedAny(
+        const std::vector<GpuIntersectionRay>& rays,
+        WavefrontIntersectionQueryTiming* timing = nullptr) const override {
+        if (timing) {
+          timing->recordExecutionPath("short_packed_any");
+        }
+        if (rays.empty()) {
+          return {};
+        }
+        return std::vector<GpuIntersectionOcclusionRecord>(rays.size() - 1);
+      }
+
+    private:
+      CompiledIntersectionScene m_compiledScene;
+    };
+
     class SyntheticPackedClosestHitFrontier final : public WavefrontClosestHitFrontier {
     public:
       SyntheticPackedClosestHitFrontier(std::vector<WavefrontClosestHitQuery> queries,
@@ -2767,6 +2846,48 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ("synthetic_closest_frontier", timing.executionPath);
   }
 
+  TEST(WavefrontIntersectionBackend, PreparedClosestHitFrontierRejectsMismatchedPackedRecords) {
+    Scene sourceScene;
+    sourceScene.add(std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0));
+    PreparedFrontierTestBackend backend(sourceScene);
+
+    State firstState;
+    State secondState;
+    std::vector<WavefrontClosestHitQuery> queries{
+      WavefrontClosestHitQuery{Rayd(Vector3d(0, 0, -4), Vector3d(0, 0, 1)), &firstState},
+      WavefrontClosestHitQuery{Rayd(Vector3d(0, 3, -4), Vector3d(0, 0, 1)), &secondState}};
+    std::vector<GpuIntersectionHitRecord> records(1);
+    const SyntheticPackedClosestHitFrontier frontier(std::move(queries), std::move(records));
+
+    EXPECT_THROW(
+      {
+        const std::vector<WavefrontClosestHitResult> hits =
+          backend.intersectPreparedClosestFrontier(frontier);
+        (void)hits;
+      },
+      std::logic_error);
+  }
+
+  TEST(WavefrontIntersectionBackend, PreparedClosestHitBatchRejectsMismatchedPackedRecords) {
+    Scene sourceScene;
+    sourceScene.add(std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0));
+    ShortPackedRecordBackend backend(sourceScene);
+
+    State firstState;
+    State secondState;
+    const std::vector<WavefrontClosestHitQuery> queries{
+      WavefrontClosestHitQuery{Rayd(Vector3d(0, 0, -4), Vector3d(0, 0, 1)), &firstState},
+      WavefrontClosestHitQuery{Rayd(Vector3d(0, 3, -4), Vector3d(0, 0, 1)), &secondState}};
+
+    EXPECT_THROW(
+      {
+        const std::vector<WavefrontClosestHitResult> hits =
+          backend.intersectPreparedClosestBatch(queries);
+        (void)hits;
+      },
+      std::logic_error);
+  }
+
   TEST(WavefrontIntersectionBackend, PreparedGpuClosestHitBatchPreservesInheritedMaterial) {
     auto material =
       std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::blue()));
@@ -3216,6 +3337,46 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ(0, missState.shadowIntersectionHits);
     EXPECT_EQ(1, missState.shadowIntersectionMisses);
     EXPECT_EQ("synthetic_any_frontier", timing.executionPath);
+  }
+
+  TEST(WavefrontIntersectionBackend, PreparedAnyHitFrontierRejectsMismatchedPackedRecords) {
+    Scene sourceScene;
+    sourceScene.add(std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0));
+    PreparedFrontierTestBackend backend(sourceScene);
+
+    State firstState;
+    State secondState;
+    std::vector<WavefrontAnyHitQuery> queries{
+      WavefrontAnyHitQuery{Rayd(Vector4d(0, 0, -3, 1), Vector3d(0, 0, 1)), 3.0, &firstState},
+      WavefrontAnyHitQuery{Rayd(Vector4d(0, 0, -3, 1), Vector3d(0, 0, 1)), 1.0, &secondState}};
+    std::vector<GpuIntersectionOcclusionRecord> records(1);
+    const SyntheticPackedAnyHitFrontier frontier(std::move(queries), std::move(records));
+
+    EXPECT_THROW(
+      {
+        const WavefrontOcclusionFlags occluded = backend.intersectPreparedAnyFrontier(frontier);
+        (void)occluded;
+      },
+      std::logic_error);
+  }
+
+  TEST(WavefrontIntersectionBackend, PreparedAnyHitBatchRejectsMismatchedPackedRecords) {
+    Scene sourceScene;
+    sourceScene.add(std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0));
+    ShortPackedRecordBackend backend(sourceScene);
+
+    State firstState;
+    State secondState;
+    const std::vector<WavefrontAnyHitQuery> queries{
+      WavefrontAnyHitQuery{Rayd(Vector4d(0, 0, -3, 1), Vector3d(0, 0, 1)), 3.0, &firstState},
+      WavefrontAnyHitQuery{Rayd(Vector4d(0, 0, -3, 1), Vector3d(0, 0, 1)), 1.0, &secondState}};
+
+    EXPECT_THROW(
+      {
+        const WavefrontOcclusionFlags occluded = backend.intersectPreparedAnyBatch(queries);
+        (void)occluded;
+      },
+      std::logic_error);
   }
 
   TEST(WavefrontIntersectionBackend, PreparedGpuFallbackPacketHitUsesRetainedPackedSphereScene) {

@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Reject malformed packed closest-hit and any-hit record counts before
+  resident-frontier or platform-kernel paths can reinterpret missing records as
+  misses. — GPT-5 Codex
 - Reject malformed intersection-service closest-hit and any-hit result counts
   before graph or hybrid-visibility consumers can interpret misaligned backend
   data. — GPT-5 Codex
