@@ -992,6 +992,22 @@ namespace render {
     intersectionBackendAnyHitFrontierStateHandleBytes += stateHandleBytes;
   }
 
+  void IntegratorBatchMetrics::recordClosestHitFrontierQuery(
+    const WavefrontIntersectionBackend& backend, const std::string& residency,
+    std::uint64_t submittedRays, std::uint64_t packedRayBytes, std::uint64_t hostQueryBytes,
+    std::uint64_t stateHandleBytes, const WavefrontIntersectionQueryTiming& timing) {
+    recordClosestHitFrontierResidency(residency, packedRayBytes, hostQueryBytes, stateHandleBytes);
+    recordClosestHitQuery(backend, submittedRays, timing);
+  }
+
+  void IntegratorBatchMetrics::recordAnyHitFrontierQuery(
+    const WavefrontIntersectionBackend& backend, const std::string& residency,
+    std::uint64_t submittedRays, std::uint64_t packedRayBytes, std::uint64_t hostQueryBytes,
+    std::uint64_t stateHandleBytes, const WavefrontIntersectionQueryTiming& timing) {
+    recordAnyHitFrontierResidency(residency, packedRayBytes, hostQueryBytes, stateHandleBytes);
+    recordAnyHitQuery(backend, submittedRays, timing);
+  }
+
   void
   IntegratorBatchMetrics::recordClosestHitQuery(const WavefrontIntersectionBackend& backend,
                                                 std::uint64_t submittedRays,

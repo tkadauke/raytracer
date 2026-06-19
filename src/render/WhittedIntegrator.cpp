@@ -456,11 +456,10 @@ namespace render {
         intersectionBackend.intersectClosestFrontier(scene, *m_frontier, &intersectionTiming);
       validateHitCount();
       if (metrics) {
-        metrics->recordClosestHitFrontierResidency(
-          m_frontier->residency(), m_frontier->packedRayBytes(), m_frontier->hostQueryBytes(),
-          m_frontier->stateHandleBytes());
-        metrics->recordClosestHitQuery(intersectionBackend, m_frontier->rayCount(),
-                                       intersectionTiming);
+        metrics->recordClosestHitFrontierQuery(intersectionBackend, m_frontier->residency(),
+                                               m_frontier->rayCount(), m_frontier->packedRayBytes(),
+                                               m_frontier->hostQueryBytes(),
+                                               m_frontier->stateHandleBytes(), intersectionTiming);
       }
     }
 
@@ -558,11 +557,10 @@ namespace render {
           recordVisibilityDepth(depth, /*batchChunks=*/1, m_frontier->rayCount(),
                                 m_frontier->packedRayBytes(), m_frontier->hostQueryBytes(),
                                 m_frontier->stateHandleBytes(), metrics);
-          metrics->recordAnyHitFrontierResidency(
-            m_frontier->residency(), m_frontier->packedRayBytes(), m_frontier->hostQueryBytes(),
-            m_frontier->stateHandleBytes());
-          metrics->recordAnyHitQuery(intersectionBackend, m_frontier->rayCount(),
-                                     intersectionTiming);
+          metrics->recordAnyHitFrontierQuery(intersectionBackend, m_frontier->residency(),
+                                             m_frontier->rayCount(), m_frontier->packedRayBytes(),
+                                             m_frontier->hostQueryBytes(),
+                                             m_frontier->stateHandleBytes(), intersectionTiming);
         }
         return;
       }

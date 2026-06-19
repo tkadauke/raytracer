@@ -297,6 +297,16 @@ namespace render {
                                        std::uint64_t packedRayBytes = 0,
                                        std::uint64_t hostQueryBytes = 0,
                                        std::uint64_t stateHandleBytes = 0);
+    void recordClosestHitFrontierQuery(const WavefrontIntersectionBackend& backend,
+                                       const std::string& residency, std::uint64_t submittedRays,
+                                       std::uint64_t packedRayBytes, std::uint64_t hostQueryBytes,
+                                       std::uint64_t stateHandleBytes,
+                                       const WavefrontIntersectionQueryTiming& timing = {});
+    void recordAnyHitFrontierQuery(const WavefrontIntersectionBackend& backend,
+                                   const std::string& residency, std::uint64_t submittedRays,
+                                   std::uint64_t packedRayBytes, std::uint64_t hostQueryBytes,
+                                   std::uint64_t stateHandleBytes,
+                                   const WavefrontIntersectionQueryTiming& timing = {});
     void recordClosestHitQuery(const WavefrontIntersectionBackend& backend,
                                std::uint64_t submittedRays,
                                const WavefrontIntersectionQueryTiming& timing = {});

@@ -1510,6 +1510,12 @@ Progress:
   and path-tracing visibility batches still own their distinct selection
   semantics, but the metrics row shape a resident direct-light backend must
   preserve is no longer duplicated at both call sites.
+- Backend-owned closest-hit and any-hit frontiers now publish residency payload
+  bytes and query execution metrics through one `IntegratorBatchMetrics` entry
+  point per query family. Whitted and path-tracing frontier batches no longer
+  pair those calls manually, which keeps the current host, packed-host, and
+  platform frontier metric contract aligned for future resident frontier
+  handles.
 
 ---
 

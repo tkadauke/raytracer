@@ -391,6 +391,39 @@ namespace IntegratorTest {
     EXPECT_EQ(8u, metrics.intersectionBackendAnyHitFrontierStateHandleBytes);
   }
 
+  TEST(Integrator, FrontierQueryMetricsRecordResidencyAndQuery) {
+    Scene scene;
+    const std::shared_ptr<const WavefrontIntersectionBackend> backend =
+      WavefrontIntersectionBackendChoice::cpu().createBackendForScene(scene);
+    WavefrontIntersectionQueryTiming closestTiming;
+    closestTiming.recordExecutionPath("runtime_cpu");
+    WavefrontIntersectionQueryTiming anyTiming;
+    anyTiming.recordExecutionPath("runtime_cpu");
+    IntegratorBatchMetrics metrics;
+    metrics.reset(/*scalarFallback=*/false);
+
+    metrics.recordClosestHitFrontierQuery(*backend, "host", /*submittedRays=*/5,
+                                          /*packedRayBytes=*/0,
+                                          /*hostQueryBytes=*/80,
+                                          /*stateHandleBytes=*/0, closestTiming);
+    metrics.recordAnyHitFrontierQuery(*backend, "packed_host", /*submittedRays=*/7,
+                                      /*packedRayBytes=*/112,
+                                      /*hostQueryBytes=*/0,
+                                      /*stateHandleBytes=*/56, anyTiming);
+
+    EXPECT_EQ("host", metrics.intersectionBackendClosestHitFrontierResidency);
+    EXPECT_EQ("packed_host", metrics.intersectionBackendAnyHitFrontierResidency);
+    EXPECT_EQ(80u, metrics.intersectionBackendClosestHitFrontierHostQueryBytes);
+    EXPECT_EQ(112u, metrics.intersectionBackendAnyHitFrontierPackedRayBytes);
+    EXPECT_EQ(56u, metrics.intersectionBackendAnyHitFrontierStateHandleBytes);
+    EXPECT_EQ(5u, metrics.closestHitRaysSubmitted);
+    EXPECT_EQ(7u, metrics.anyHitRaysSubmitted);
+    EXPECT_EQ(1u, metrics.closestHitQueries);
+    EXPECT_EQ(1u, metrics.anyHitQueries);
+    EXPECT_EQ("runtime_cpu", metrics.intersectionBackendClosestHitExecutionPath);
+    EXPECT_EQ("runtime_cpu", metrics.intersectionBackendAnyHitExecutionPath);
+  }
+
   TEST(Integrator, IntersectionBackendMetricsTrackQuerySpecificExecutionPaths) {
     auto triangle =
       std::make_shared<Triangle>(Vector3d(-1, -1, 0), Vector3d(1, -1, 0), Vector3d(0, 1, 0));

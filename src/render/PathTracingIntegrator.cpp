@@ -498,11 +498,10 @@ namespace render {
           recordVisibilityDepth(bounce, /*batchChunks=*/1, m_frontier->rayCount(),
                                 m_frontier->packedRayBytes(), m_frontier->hostQueryBytes(),
                                 m_frontier->stateHandleBytes(), metrics);
-          metrics->recordAnyHitFrontierResidency(
-            m_frontier->residency(), m_frontier->packedRayBytes(), m_frontier->hostQueryBytes(),
-            m_frontier->stateHandleBytes());
-          metrics->recordAnyHitQuery(intersectionService.backend(), m_frontier->rayCount(),
-                                     intersectionService.diagnostics().lastAnyHitTiming);
+          metrics->recordAnyHitFrontierQuery(
+            intersectionService.backend(), m_frontier->residency(), m_frontier->rayCount(),
+            m_frontier->packedRayBytes(), m_frontier->hostQueryBytes(),
+            m_frontier->stateHandleBytes(), intersectionService.diagnostics().lastAnyHitTiming);
         }
         return;
       }
@@ -821,11 +820,10 @@ namespace render {
         intersectionBackend.intersectClosestFrontier(scene, *m_frontier, &intersectionTiming);
       validateHitCount();
       if (metrics) {
-        metrics->recordClosestHitFrontierResidency(
-          m_frontier->residency(), m_frontier->packedRayBytes(), m_frontier->hostQueryBytes(),
-          m_frontier->stateHandleBytes());
-        metrics->recordClosestHitQuery(intersectionBackend, m_frontier->rayCount(),
-                                       intersectionTiming);
+        metrics->recordClosestHitFrontierQuery(intersectionBackend, m_frontier->residency(),
+                                               m_frontier->rayCount(), m_frontier->packedRayBytes(),
+                                               m_frontier->hostQueryBytes(),
+                                               m_frontier->stateHandleBytes(), intersectionTiming);
       }
     }
 
