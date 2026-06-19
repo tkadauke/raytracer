@@ -440,6 +440,23 @@ namespace RenderGraphInspectorWidgetTest {
     return engine.lastExecutionTrace();
   }
 
+  std::shared_ptr<const RenderGraphExecutionTrace> hybridRayTracedShadowTrace() {
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.enablePreviewShadows = true;
+    intent.engineOptions.rasterizer().setShadowMode(RenderRasterShadowMode::RayTraced);
+    intent.engineOptions.raytracer().setIntersectionBackend("cpu");
+
+    RenderGraphCompiler compiler;
+    GraphRenderEngine engine(camera(), litHighContrastScene());
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(compiler.compile({24, 24, 1}, intent));
+
+    Buffer<unsigned int> buffer(24, 24);
+    engine.render(buffer);
+    return engine.lastExecutionTrace();
+  }
+
   std::shared_ptr<const RenderGraphExecutionTrace> unsupportedWavefrontGpuTrace() {
     RenderIntent intent;
     intent.defaultExecutor = RenderExecutorPreference::Wavefront;
@@ -1412,6 +1429,32 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_EQ(QStringLiteral("cpu"), service.value(QStringLiteral("requestedBackend")).toString());
     EXPECT_GT(service.value(QStringLiteral("queryCount")).toDouble(), 0.0);
     EXPECT_GT(service.value(QStringLiteral("hitCount")).toDouble(), 0.0);
+  }
+
+  TEST_F(RenderGraphInspectorWidgetTest,
+         ShouldShowHybridShadowPrimaryServiceCountsForSelectedPass) {
+    auto trace = hybridRayTracedShadowTrace();
+    ASSERT_TRUE(trace);
+
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(trace->plan());
+    widget.setExecutionTrace(trace);
+
+    const auto rows = widget.passDetailRows(QStringLiteral("hybrid_ray_traced_shadows"));
+    EXPECT_EQ(QStringLiteral("Closest Hit + Any Hit"),
+              rowValue(rows, QStringLiteral("Intersection service query family")));
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection service primary queries")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection service primary hits")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection service shadow queries")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection service occluded queries")).isEmpty());
+
+    const RenderPassTrace* passTrace = trace->findPass("hybrid_ray_traced_shadows");
+    ASSERT_NE(nullptr, passTrace);
+    const QJsonObject service =
+      passTrace->metadata().value(QStringLiteral("intersectionService")).toObject();
+    EXPECT_GT(service.value(QStringLiteral("primaryQueryCount")).toDouble(), 0.0);
+    EXPECT_GT(service.value(QStringLiteral("primaryHitCount")).toDouble(), 0.0);
+    EXPECT_GT(service.value(QStringLiteral("shadowQueryCount")).toDouble(), 0.0);
   }
 
   TEST_F(RenderGraphInspectorWidgetTest,

@@ -397,6 +397,7 @@ QString RenderGraphInspectorWidget::Private::metadataIdentifierText(QString valu
   value = separated;
   value.replace(QLatin1Char('_'), QLatin1Char(' '));
   value.replace(QLatin1Char('-'), QLatin1Char(' '));
+  value.replace(QLatin1Char('+'), QStringLiteral(" + "));
   value = value.simplified();
 
   QStringList words = value.split(QLatin1Char(' '), Qt::SkipEmptyParts);
@@ -705,6 +706,10 @@ void RenderGraphInspectorWidget::Private::addIntersectionServiceDetailRows(
                               QStringLiteral("queryCount"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection service hits"), service,
                               QStringLiteral("hitCount"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection service primary queries"), service,
+                              QStringLiteral("primaryQueryCount"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection service primary hits"), service,
+                              QStringLiteral("primaryHitCount"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection service shadow queries"), service,
                               QStringLiteral("shadowQueryCount"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection service occluded queries"),
