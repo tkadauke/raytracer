@@ -320,6 +320,26 @@ namespace WhittedIntegratorTest {
       mutable std::vector<std::uint64_t> requestedRayCounts;
     };
 
+    class ShortAnyHitFrontierBackend final : public CountingIntersectionBackend {
+    public:
+      std::unique_ptr<WavefrontAnyHitFrontier>
+      createAnyHitFrontier(std::vector<WavefrontAnyHitQuery> queries) const override {
+        return WavefrontIntersectionBackend::createAnyHitFrontier(std::move(queries));
+      }
+
+      WavefrontOcclusionFlags
+      intersectAnyFrontier(const Scene&, const WavefrontAnyHitFrontier& frontier,
+                           WavefrontIntersectionQueryTiming* = nullptr) const override {
+        requestedRayCounts.push_back(frontier.rayCount());
+        if (frontier.rayCount() == 0) {
+          return {};
+        }
+        return WavefrontOcclusionFlags(static_cast<std::size_t>(frontier.rayCount() - 1));
+      }
+
+      mutable std::vector<std::uint64_t> requestedRayCounts;
+    };
+
     std::shared_ptr<NiceMock<MockPrimitive>> makeAlwaysHit(double distance = 1.0) {
       auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
       BoundingBoxd bbox(Vector3d(-100, -100, -100), Vector3d(100, 100, 100));
@@ -604,11 +624,22 @@ namespace WhittedIntegratorTest {
     EXPECT_EQ(2u, metrics.anyHitRaysSubmitted);
     EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.directLightAnyHitBatchChunksPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{2u}), metrics.directLightAnyHitBatchRaysPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}),
+              metrics.directLightAnyHitFrontierPackedRayBytesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{2u * sizeof(WavefrontAnyHitQuery)}),
+              metrics.directLightAnyHitFrontierHostQueryBytesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u}),
+              metrics.directLightAnyHitFrontierStateHandleBytesPerDepth);
+    EXPECT_EQ(1u, metrics.directLightAnyHitQueryRoundTrips());
+    EXPECT_EQ(0u, metrics.residentDirectLightBatchRoundTripsEstimate());
+    EXPECT_EQ(1u, metrics.residentDirectLightBatchRoundTripSavingsEstimate());
     EXPECT_EQ(2u, metrics.directLightSamples);
     EXPECT_EQ(2u, metrics.directLightContributingSamples);
     EXPECT_EQ(0u, metrics.directLightOccludedSamples);
     EXPECT_GT(metrics.directLightRadianceLuminanceSum, 0.0);
     EXPECT_EQ("host", metrics.intersectionBackendAnyHitFrontierResidency);
+    EXPECT_EQ(2u * sizeof(WavefrontAnyHitQuery),
+              metrics.intersectionBackendAnyHitFrontierHostQueryBytes);
     EXPECT_GT(metrics.directLightSelectionHostBytes, 0u);
     EXPECT_GT(metrics.directLightOcclusionHostBytes, 0u);
     EXPECT_EQ(2u * sizeof(Colord), metrics.directLightContributionHostBytes);
@@ -616,6 +647,45 @@ namespace WhittedIntegratorTest {
               metrics.directLightContributionHostBytesPerDepth);
     EXPECT_EQ("cpu", metrics.directLightContributionExecutionPath);
     EXPECT_TRUE(metrics.directLightContributionFallbackReason.empty());
+  }
+
+  TEST(WhittedIntegrator, BatchedRadianceUsesHostAnyHitFrontierWithoutBatchPreference) {
+    auto scene = std::make_unique<PacketCountingScene>();
+    scene->setAmbient(Colord::black());
+    scene->setBackground(Colord::black());
+    scene->addLight(std::make_shared<PointLight>(Vector3d(0, 0, 0), Colord::white()));
+    auto sphere = std::make_shared<Sphere>(Vector3d(0, 0, 3), 1.0);
+    sphere->setMaterial(
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::white())));
+    scene->add(sphere);
+    WhittedIntegrator integrator;
+    FixedRayCaster rayCaster;
+    CountingIntersectionBackend backend;
+    IntegratorBatchSettings settings;
+    settings.intersectionBackend = &backend;
+    IntegratorBatchMetrics metrics;
+    const Rayd primaryRay(Vector3d::null, Vector3d::forward());
+    std::vector<IntegratorRaySample> samples;
+    for (std::size_t sample = 0; sample != 2; ++sample) {
+      samples.push_back(IntegratorRaySample{primaryRay, 0.0, nullptr});
+    }
+
+    const std::vector<Colord> colors =
+      integrator.radianceBatch(*scene, samples, rayCaster, &metrics, settings);
+
+    ASSERT_EQ(2u, colors.size());
+    EXPECT_EQ(1, backend.anyHitFrontierQueries);
+    EXPECT_EQ((std::vector<std::uint64_t>{2u}), backend.anyHitFrontierSizes);
+    EXPECT_EQ(2, backend.anyQueries);
+    EXPECT_EQ(1u, metrics.anyHitQueries);
+    EXPECT_EQ(2u, metrics.anyHitRaysSubmitted);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.directLightAnyHitBatchChunksPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{2u}), metrics.directLightAnyHitBatchRaysPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{2u * sizeof(WavefrontAnyHitQuery)}),
+              metrics.directLightAnyHitFrontierHostQueryBytesPerDepth);
+    EXPECT_EQ(1u, metrics.directLightAnyHitQueryRoundTrips());
+    EXPECT_EQ(1u, metrics.residentDirectLightBatchRoundTripSavingsEstimate());
+    EXPECT_EQ("host", metrics.intersectionBackendAnyHitFrontierResidency);
   }
 
   TEST(WhittedIntegrator, BatchedRadianceMatchesScalarLocalDirectLightShadows) {
@@ -654,6 +724,10 @@ namespace WhittedIntegratorTest {
     EXPECT_EQ(1u, metrics.directLightSamples);
     EXPECT_EQ(0u, metrics.directLightContributingSamples);
     EXPECT_EQ(1u, metrics.directLightOccludedSamples);
+    EXPECT_EQ((std::vector<std::uint64_t>{sizeof(WavefrontAnyHitQuery)}),
+              metrics.directLightAnyHitFrontierHostQueryBytesPerDepth);
+    EXPECT_EQ(1u, metrics.directLightAnyHitQueryRoundTrips());
+    EXPECT_EQ(1u, metrics.residentDirectLightBatchRoundTripSavingsEstimate());
     EXPECT_EQ(sizeof(Colord), metrics.directLightContributionHostBytes);
     EXPECT_EQ((std::vector<std::uint64_t>{metrics.directLightContributionHostBytes}),
               metrics.directLightContributionHostBytesPerDepth);
@@ -661,6 +735,29 @@ namespace WhittedIntegratorTest {
     EXPECT_TRUE(metrics.directLightContributionFallbackReason.empty());
     EXPECT_EQ(1u, metrics.anyHitQueries);
     EXPECT_EQ(1u, metrics.anyHitRaysSubmitted);
+  }
+
+  TEST(WhittedIntegrator, BatchedRadianceRejectsMismatchedAnyHitResults) {
+    Scene scene;
+    scene.setAmbient(Colord::black());
+    scene.setBackground(Colord::black());
+    scene.addLight(std::make_shared<PointLight>(Vector3d(0, 0, 0), Colord::white()));
+    auto sphere = std::make_shared<Sphere>(Vector3d(0, 0, 3), 1.0);
+    sphere->setMaterial(
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::white())));
+    scene.add(sphere);
+    WhittedIntegrator integrator;
+    FixedRayCaster rayCaster;
+    ShortAnyHitFrontierBackend backend;
+    IntegratorBatchSettings settings;
+    settings.intersectionBackend = &backend;
+    IntegratorBatchMetrics metrics;
+    std::vector<IntegratorRaySample> samples{
+      IntegratorRaySample{Rayd(Vector3d::null, Vector3d::forward()), 0.0, nullptr}};
+
+    EXPECT_THROW(integrator.radianceBatch(scene, samples, rayCaster, &metrics, settings),
+                 std::logic_error);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u}), backend.requestedRayCounts);
   }
 
   TEST(WhittedIntegrator, BatchedRadianceRejectsMismatchedClosestHitResults) {
