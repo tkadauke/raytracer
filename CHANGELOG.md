@@ -25,6 +25,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Added convertible C-array constructors for `Color`, SSE color
   specializations, and vector types so array-backed helpers can delegate to the
   math primitives directly. — GPT-5 Codex
+- Show direct-light contribution execution path and fallback reason in Modeler
+  render graph selected-pass details. — GPT-5 Codex
 - Show hybrid ray-traced shadow primary query and hit counts in Modeler render
   graph selected-pass details. — GPT-5 Codex
 - Exposed intersection-service query family, backend path, counts, and transfer

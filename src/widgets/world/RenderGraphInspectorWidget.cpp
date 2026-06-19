@@ -1046,6 +1046,10 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                               QStringLiteral("directLightOcclusionHostBytes"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Direct-light contribution host bytes"),
                               batching, QStringLiteral("directLightContributionHostBytes"));
+  addDetailStringMetadataRow(rows, QStringLiteral("Direct-light contribution execution"), batching,
+                             QStringLiteral("directLightContributionExecutionPath"), true);
+  addDetailStringMetadataRow(rows, QStringLiteral("Direct-light contribution fallback"), batching,
+                             QStringLiteral("directLightContributionFallbackReason"));
   addDetailIntegerMetadataRow(rows,
                               QStringLiteral("Direct-light any-hit frontier packed ray bytes"),
                               batching, QStringLiteral("directLightAnyHitFrontierPackedRayBytes"));
