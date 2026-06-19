@@ -155,8 +155,15 @@ namespace {
   class WavefrontMetricsFormatter {
   public:
     bool isMetricsObject(const QJsonObject& metadata) const {
-      return metadata.contains("timings") && metadata.contains("batching") &&
-             metadata.contains("convergence") && metadata.contains("input");
+      if (!metadata.contains("batching") || !metadata.contains("input")) {
+        return false;
+      }
+      if (metadata.contains("timings") && metadata.contains("convergence")) {
+        return true;
+      }
+      const QJsonObject batching = metadata.value("batching").toObject();
+      return metadata.contains("compiledDiffusePathLoop") &&
+             batching.value("executionMode").toString() == "compiled_diffuse_path_loop";
     }
 
     void printSummary(int run, const QString& passId, const QJsonObject& metrics) const {

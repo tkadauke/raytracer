@@ -346,6 +346,57 @@ function(tracing_parity_render_supported category scene_file depth samples rms_t
   endif()
 endfunction()
 
+function(tracing_parity_render_compiled_gpu_execution category scene_file depth samples)
+  tracing_parity_slug(slug "${category}")
+  set(scene_path "${tracing_parity_fixture_dir}/${scene_file}")
+  set(gpu_execution_render "${TEST_OUTPUT_DIR}/${slug}-compiled-gpu-execution.png")
+  set(gpu_execution_metrics "${TEST_OUTPUT_DIR}/${slug}-compiled-gpu-execution-metrics.json")
+
+  rendercli_run(
+    NAME "rendercli tracing parity ${category} compiled GPU execution metrics"
+    OUTPUT_VARIABLE gpu_execution_stdout
+    STDOUT_MATCHES
+      "wavefront_metrics.*integrator=pathtracer.*execution=compiled_diffuse_path_loop.*tracing_backend_request=gpu.*tracing_backend=cpu.*tracing_backend_mode=compiled_cpu_reference.*tracing_scene_compiled=true.*tracing_scene_materials=[1-9][0-9]*.*resident_path_loop_execution=compiled_cpu_reference.*resident_path_loop_residency=cpu_host.*resident_path_loop_depths=[1-9][0-9]*.*samples=[1-9][0-9]*.*accumulation_backend=gpu_diffuse_path_loop"
+    COMMAND
+      "${RENDERCLI}" --engine pathtracer --tracing_execution gpu
+      --width 32 --height 24
+      --sampler Regular
+      --samples_per_pixel "${samples}"
+      --sampling_seed 1337
+      --pathtracer_direct_light_samples 1
+      --wavefront_denoiser none
+      --depth "${depth}"
+      --wavefront_metrics_out "${gpu_execution_metrics}"
+      --wavefront_metrics_summary
+      "${scene_path}" "${gpu_execution_render}"
+  )
+  rendercli_assert_image_dimensions(
+    "${gpu_execution_render}" 32 24
+    NAME "tracing parity ${category} compiled GPU execution dimensions")
+  rendercli_assert_image_nonempty(
+    "${gpu_execution_render}"
+    NAME "tracing parity ${category} compiled GPU execution pixels")
+
+  foreach(expectation
+          "\"compiledDiffusePathLoop\""
+          "\"backend\"[ \r\n]*:[ \r\n]*\"compiled_cpu_reference\""
+          "\"executionMode\"[ \r\n]*:[ \r\n]*\"compiled_diffuse_path_loop\""
+          "\"tracingBackendRequest\"[ \r\n]*:[ \r\n]*\"gpu\""
+          "\"tracingBackend\"[ \r\n]*:[ \r\n]*\"cpu\""
+          "\"tracingBackendMode\"[ \r\n]*:[ \r\n]*\"compiled_cpu_reference\""
+          "\"tracingSceneCompiled\"[ \r\n]*:[ \r\n]*true"
+          "\"residentPathLoopExecutionPath\"[ \r\n]*:[ \r\n]*\"compiled_cpu_reference\""
+          "\"residentPathLoopResidency\"[ \r\n]*:[ \r\n]*\"cpu_host\""
+          "\"requestedMode\"[ \r\n]*:[ \r\n]*\"gpu\""
+          "\"predictedMode\"[ \r\n]*:[ \r\n]*\"gpu\""
+          "\"actualMode\"[ \r\n]*:[ \r\n]*\"cpu\""
+          "\"actualFallbackReason\"[ \r\n]*:[ \r\n]*\"GPU tracing request executed by compiled CPU-reference diffuse path loop")
+    tracing_parity_assert_json_matches(
+      "tracing parity ${category} compiled GPU execution metrics ${expectation}"
+      "${gpu_execution_metrics}" "${expectation}")
+  endforeach()
+endfunction()
+
 function(tracing_parity_render_unsupported category scene_file depth samples)
   tracing_parity_slug(slug "${category}")
   set(scene_path "${tracing_parity_fixture_dir}/${scene_file}")
@@ -424,6 +475,8 @@ tracing_parity_render_supported(
 tracing_parity_render_supported(
   "indirect_bounce" "indirect_bounce.json" 3 4 0.02
   "secondary_direct_light_luminance=[1-9]")
+tracing_parity_render_compiled_gpu_execution(
+  "indirect_bounce" "indirect_bounce.json" 3 4)
 tracing_parity_render_supported(
   "environment_miss" "environment_miss.json" 2 1 0.001
   "tracing_scene_environment=1.*miss_luminance=[1-9]")

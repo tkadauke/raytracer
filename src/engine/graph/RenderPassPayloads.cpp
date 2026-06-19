@@ -643,6 +643,14 @@ namespace engine::graph {
       return result;
     }
 
+    QJsonObject integerObject(const std::map<std::string, std::uint64_t>& values) {
+      QJsonObject result;
+      for (const auto& [key, count] : values) {
+        result[QString::fromStdString(key)] = static_cast<double>(count);
+      }
+      return result;
+    }
+
     QJsonObject
     compiledDiffusePathLoopMetadata(const render::GpuTracingSceneCompilation& compilation,
                                     const render::GpuDiffusePrimaryPathStateGeneration& generation,
@@ -665,6 +673,8 @@ namespace engine::graph {
       batching["integrator"] = QStringLiteral("pathtracer");
       batching["executionMode"] = QStringLiteral("compiled_diffuse_path_loop");
       batching["tracingBackendMode"] = QStringLiteral("compiled_cpu_reference");
+      batching["tracingBackend"] = QStringLiteral("cpu");
+      batching["tracingBackendRequest"] = QStringLiteral("gpu");
       batching["closestHitExecutionPath"] =
         QString::fromStdString(loop.metrics.closestHitExecutionPath);
       batching["emissionExecutionPath"] =
@@ -728,6 +738,27 @@ namespace engine::graph {
       batching["residentPathLoopRoundTrips"] = 1.0;
       batching["residentPathLoopSavedHostReadbacks"] = 0.0;
       batching["residentPathLoopSavedHostReadbackBytes"] = 0.0;
+      batching["tracingSceneCompiled"] = compilation.diagnostics.compiled;
+      batching["tracingSceneMaterials"] = static_cast<double>(compilation.diagnostics.materials);
+      batching["tracingSceneTextures"] = static_cast<double>(compilation.diagnostics.textures);
+      batching["tracingSceneLights"] = static_cast<double>(compilation.diagnostics.lights);
+      batching["tracingSceneEnvironment"] =
+        static_cast<double>(compilation.diagnostics.environment);
+      batching["tracingSceneDebugIds"] = static_cast<double>(compilation.diagnostics.debugIds);
+      batching["tracingSceneUnsupportedMaterials"] =
+        static_cast<double>(compilation.diagnostics.unsupportedMaterials);
+      batching["tracingSceneUnsupportedTextures"] =
+        static_cast<double>(compilation.diagnostics.unsupportedTextures);
+      batching["tracingSceneUnsupportedLights"] =
+        static_cast<double>(compilation.diagnostics.unsupportedLights);
+      batching["tracingSceneUnsupportedMaterialReasons"] =
+        integerObject(compilation.diagnostics.unsupportedMaterialReasons);
+      batching["tracingSceneUnsupportedTextureReasons"] =
+        integerObject(compilation.diagnostics.unsupportedTextureReasons);
+      batching["tracingSceneUnsupportedLightReasons"] =
+        integerObject(compilation.diagnostics.unsupportedLightReasons);
+      batching["tracingSceneUploadBytes"] =
+        static_cast<double>(compilation.diagnostics.uploadBytes);
 
       QJsonObject compiledLoop;
       compiledLoop["backend"] = QStringLiteral("compiled_cpu_reference");

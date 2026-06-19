@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Treat compiled diffuse path-loop trace metadata as rendercli wavefront metrics
+  so `--tracing_execution gpu` renders can emit compact and JSON metrics for
+  the CPU-reference compiled path loop. — GPT-5 Codex
 - Preserve explicit wavefront intersection backend overrides when tracing
   execution is left on auto, instead of upgrading supported scenes to the
   compiled GPU path-loop shortcut. — GPT-5 Codex

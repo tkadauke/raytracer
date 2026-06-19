@@ -1572,6 +1572,10 @@ Progress:
   the resident-direct-light unavailable reason, so graph consumers no longer
   have to parse legacy intersection backend booleans to tell whether
   next-event-estimation work can stay resident.
+- rendercli now accepts compiled diffuse path-loop trace metadata as
+  wavefront metrics, so explicit `--tracing_execution gpu` graph renders emit
+  compact and JSON diagnostics for the current `compiled_cpu_reference` path
+  instead of reporting that no wavefront pass produced metrics.
 
 ---
 
