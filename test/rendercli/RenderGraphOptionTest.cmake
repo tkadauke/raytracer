@@ -5107,6 +5107,9 @@ foreach(expectation
         "\"queryFamily\"[ \r\n]*:[ \r\n]*\"closest_hit\""
         "\"queryTag\"[ \r\n]*:[ \r\n]*\"debug_aov\""
         "\"requestedBackend\"[ \r\n]*:[ \r\n]*\"cpu\""
+        "\"closestHitRayUploadBytesEstimate\"[ \r\n]*:[ \r\n]*0"
+        "\"closestHitReadbackBytesEstimate\"[ \r\n]*:[ \r\n]*0"
+        "\"queryTransferBytesEstimate\"[ \r\n]*:[ \r\n]*0"
         "\"queryCount\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
         "\"hitCount\"[ \r\n]*:[ \r\n]*[1-9][0-9]*")
   if(NOT graph_aov_hybrid_visibility_trace_json MATCHES "${expectation}")

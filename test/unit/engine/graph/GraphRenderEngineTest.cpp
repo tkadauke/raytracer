@@ -740,6 +740,10 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ("debug_aov", service.value("queryTag").toString().toStdString());
     EXPECT_EQ("cpu", service.value("requestedBackend").toString().toStdString());
     EXPECT_EQ("runtime_scene", service.value("closestHitExecutionPath").toString().toStdString());
+    EXPECT_TRUE(service.contains("closestHitRayUploadBytesEstimate"));
+    EXPECT_TRUE(service.contains("closestHitReadbackBytesEstimate"));
+    EXPECT_TRUE(service.contains("queryTransferBytesEstimate"));
+    EXPECT_EQ(0.0, service.value("queryTransferBytesEstimate").toDouble());
     EXPECT_GT(service.value("queryCount").toDouble(), 0.0);
     EXPECT_GT(service.value("hitCount").toDouble(), 0.0);
 
@@ -3461,6 +3465,11 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ("closest_hit+any_hit", service.value("queryFamily").toString().toStdString());
     EXPECT_EQ("hybrid_shadows", service.value("queryTag").toString().toStdString());
     EXPECT_EQ("cpu", service.value("requestedBackend").toString().toStdString());
+    EXPECT_TRUE(service.contains("closestHitRayUploadBytesEstimate"));
+    EXPECT_TRUE(service.contains("closestHitReadbackBytesEstimate"));
+    EXPECT_TRUE(service.contains("anyHitRayUploadBytesEstimate"));
+    EXPECT_TRUE(service.contains("anyHitReadbackBytesEstimate"));
+    EXPECT_EQ(0.0, service.value("queryTransferBytesEstimate").toDouble());
     EXPECT_GT(service.value("shadowQueryCount").toDouble(), 0.0);
     EXPECT_GT(service.value("occludedCount").toDouble(), 0.0);
 

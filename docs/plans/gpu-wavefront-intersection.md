@@ -1543,6 +1543,11 @@ Progress:
   paths for the two query families. This keeps graph visibility and ray-traced
   shadow diagnostics from hiding a closest-hit fallback behind a later any-hit
   result, or vice versa.
+- Hybrid visibility and ray-traced shadow graph passes now record
+  closest-hit, any-hit, and total query-transfer byte estimates in their
+  `intersectionService` trace metadata. CPU fallback reports zero estimates,
+  while prepared packed/platform backends can expose the upload/readback
+  payload a hybrid visibility pass is expected to cross.
 
 ---
 
