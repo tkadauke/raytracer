@@ -10,6 +10,7 @@
 #include "core/math/HitPoint.h"
 
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -66,6 +67,69 @@ namespace IntersectionServiceTest {
                                                  WavefrontIntersectionQueryTiming*) const override {
         return CpuWavefrontIntersectionBackend::instance().intersectPacketClosest(scene, rays,
                                                                                   states);
+      }
+    };
+
+    class ShortResultBackend final : public WavefrontIntersectionBackend {
+    public:
+      const char* name() const override {
+        return "short_result";
+      }
+
+      const Primitive* intersectClosest(const Scene& scene, const Rayd& ray,
+                                        HitPointInterval& hitPoints, State& state,
+                                        WavefrontIntersectionQueryTiming* timing) const override {
+        return CpuWavefrontIntersectionBackend::instance().intersectClosest(scene, ray, hitPoints,
+                                                                            state, timing);
+      }
+
+      std::vector<WavefrontClosestHitResult>
+      intersectClosestBatch(const Scene&, const std::vector<WavefrontClosestHitQuery>& queries,
+                            WavefrontIntersectionQueryTiming*) const override {
+        if (queries.empty()) {
+          return {};
+        }
+        return std::vector<WavefrontClosestHitResult>(queries.size() - 1);
+      }
+
+      bool intersectAny(const Scene& scene, const Rayd& ray, double maxDistance, State& state,
+                        WavefrontIntersectionQueryTiming* timing) const override {
+        return CpuWavefrontIntersectionBackend::instance().intersectAny(scene, ray, maxDistance,
+                                                                        state, timing);
+      }
+
+      WavefrontOcclusionFlags intersectAnyBatch(const Scene&,
+                                                const std::vector<WavefrontAnyHitQuery>& queries,
+                                                WavefrontIntersectionQueryTiming*) const override {
+        if (queries.empty()) {
+          return {};
+        }
+        return WavefrontOcclusionFlags(queries.size() - 1);
+      }
+
+      WavefrontOcclusionFlags
+      intersectAnyFrontier(const Scene&, const WavefrontAnyHitFrontier& frontier,
+                           WavefrontIntersectionQueryTiming*) const override {
+        if (frontier.rayCount() == 0) {
+          return {};
+        }
+        return WavefrontOcclusionFlags(static_cast<std::size_t>(frontier.rayCount() - 1));
+      }
+
+      PrimitivePacketHit4
+      intersectPacketClosest(const Scene& scene, const Ray4& rays,
+                             const PrimitivePacketState4& states,
+                             WavefrontIntersectionQueryTiming* timing) const override {
+        return CpuWavefrontIntersectionBackend::instance().intersectPacketClosest(scene, rays,
+                                                                                  states, timing);
+      }
+
+      PrimitivePacketHit8
+      intersectPacketClosest(const Scene& scene, const Ray8& rays,
+                             const PrimitivePacketState8& states,
+                             WavefrontIntersectionQueryTiming* timing) const override {
+        return CpuWavefrontIntersectionBackend::instance().intersectPacketClosest(scene, rays,
+                                                                                  states, timing);
       }
     };
   }
@@ -137,6 +201,65 @@ namespace IntersectionServiceTest {
     EXPECT_NE(0, occluded[0]);
     EXPECT_EQ(0, occluded[1]);
     EXPECT_EQ("runtime_scene", service.diagnostics().lastAnyHitTiming.executionPath);
+  }
+
+  TEST(IntersectionService, RejectsMismatchedClosestHitBatchResults) {
+    Scene scene = sphereScene();
+    const ShortResultBackend backend;
+    IntersectionService service(scene, backend);
+    State firstState;
+    State secondState;
+    const std::vector<WavefrontClosestHitQuery> queries{
+      {Rayd(Vector3d(0, 0, 0), Vector3d::forward()), &firstState},
+      {Rayd(Vector3d(4, 0, 0), Vector3d::forward()), &secondState},
+    };
+
+    EXPECT_THROW(
+      {
+        const std::vector<WavefrontClosestHitResult> hits = service.closestHits(queries);
+        (void)hits;
+      },
+      std::logic_error);
+  }
+
+  TEST(IntersectionService, RejectsMismatchedAnyHitBatchResults) {
+    Scene scene = sphereScene();
+    const ShortResultBackend backend;
+    IntersectionService service(scene, backend);
+    State firstState;
+    State secondState;
+    const std::vector<WavefrontAnyHitQuery> queries{
+      {Rayd(Vector3d(0, 0, 0), Vector3d::forward()), 4.0, &firstState},
+      {Rayd(Vector3d(0, 0, 0), Vector3d::forward()), 1.0, &secondState},
+    };
+
+    EXPECT_THROW(
+      {
+        const WavefrontOcclusionFlags occluded = service.anyHits(queries);
+        (void)occluded;
+      },
+      std::logic_error);
+  }
+
+  TEST(IntersectionService, RejectsMismatchedAnyHitFrontierResults) {
+    Scene scene = sphereScene();
+    const ShortResultBackend backend;
+    IntersectionService service(scene, backend);
+    State firstState;
+    State secondState;
+    std::vector<WavefrontAnyHitQuery> queries{
+      {Rayd(Vector3d(0, 0, 0), Vector3d::forward()), 4.0, &firstState},
+      {Rayd(Vector3d(0, 0, 0), Vector3d::forward()), 1.0, &secondState},
+    };
+    std::unique_ptr<WavefrontAnyHitFrontier> frontier =
+      service.backend().createAnyHitFrontier(std::move(queries));
+
+    EXPECT_THROW(
+      {
+        const WavefrontOcclusionFlags occluded = service.anyHits(*frontier);
+        (void)occluded;
+      },
+      std::logic_error);
   }
 
   TEST(IntersectionService, ReportsMixedObservedExecutionPathAcrossQueryFamilies) {

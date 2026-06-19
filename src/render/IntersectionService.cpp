@@ -2,6 +2,7 @@
 
 #include "render/primitives/Scene.h"
 
+#include <stdexcept>
 #include <utility>
 
 namespace render {
@@ -19,6 +20,12 @@ namespace render {
         return;
       }
       target = "mixed";
+    }
+
+    void validateResultCount(std::size_t actual, std::uint64_t expected, const char* message) {
+      if (static_cast<std::uint64_t>(actual) != expected) {
+        throw std::logic_error(message);
+      }
     }
   }
 
@@ -65,6 +72,9 @@ namespace render {
     WavefrontIntersectionQueryTiming timing;
     std::vector<WavefrontClosestHitResult> results =
       m_backend->intersectClosestBatch(*m_scene, queries, &timing);
+    validateResultCount(results.size(), static_cast<std::uint64_t>(queries.size()),
+                        "IntersectionService closest-hit batch returned a result count that does "
+                        "not match its query count");
     recordClosestHitTiming(timing);
     return results;
   }
@@ -80,6 +90,9 @@ namespace render {
   IntersectionService::anyHits(const std::vector<WavefrontAnyHitQuery>& queries) {
     WavefrontIntersectionQueryTiming timing;
     WavefrontOcclusionFlags results = m_backend->intersectAnyBatch(*m_scene, queries, &timing);
+    validateResultCount(results.size(), static_cast<std::uint64_t>(queries.size()),
+                        "IntersectionService any-hit batch returned an occlusion count that does "
+                        "not match its query count");
     recordAnyHitTiming(timing);
     return results;
   }
@@ -87,6 +100,9 @@ namespace render {
   WavefrontOcclusionFlags IntersectionService::anyHits(const WavefrontAnyHitFrontier& frontier) {
     WavefrontIntersectionQueryTiming timing;
     WavefrontOcclusionFlags results = m_backend->intersectAnyFrontier(*m_scene, frontier, &timing);
+    validateResultCount(results.size(), frontier.rayCount(),
+                        "IntersectionService any-hit frontier returned an occlusion count that "
+                        "does not match its ray count");
     recordAnyHitTiming(timing);
     return results;
   }

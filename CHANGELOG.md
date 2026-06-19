@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Reject malformed intersection-service closest-hit and any-hit result counts
+  before graph or hybrid-visibility consumers can interpret misaligned backend
+  data. — GPT-5 Codex
 - Preserve mixed closest-hit and any-hit execution-path diagnostics in the
   reusable intersection service. — GPT-5 Codex
 
