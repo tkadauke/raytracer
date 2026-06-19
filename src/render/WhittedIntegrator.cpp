@@ -548,39 +548,16 @@ namespace render {
       WavefrontIntersectionQueryTiming intersectionTiming;
       m_occluded.clear();
       m_frontier.reset();
-      if (intersectionBackend.prefersAnyHitBatch(m_shadowQueries.size())) {
-        m_frontier = intersectionBackend.createAnyHitFrontier(std::move(m_shadowQueries));
-        m_occluded = intersectionBackend.intersectAnyFrontier(
-          scene, *m_frontier, metrics ? &intersectionTiming : nullptr);
-        validateResolvedOcclusionCount();
-        if (metrics) {
-          metrics->recordDirectLightAnyHitFrontierQuery(
-            static_cast<std::uint64_t>(std::max(0, depth)), hostSelectionBytes(),
-            hostOcclusionBytes(), intersectionBackend, m_frontier->residency(),
-            m_frontier->rayCount(), m_frontier->packedRayBytes(), m_frontier->hostQueryBytes(),
-            m_frontier->stateHandleBytes(), intersectionTiming);
-        }
-        return;
-      }
-
-      m_occluded.reserve(m_shadowQueries.size());
-      for (const WavefrontAnyHitQuery& query : m_shadowQueries) {
-        WavefrontIntersectionQueryTiming queryTiming;
-        State scratchState;
-        State& queryState = query.state ? *query.state : scratchState;
-        const bool blocked = intersectionBackend.intersectAny(
-          scene, query.ray, query.maxDistance, queryState, metrics ? &queryTiming : nullptr);
-        m_occluded.push_back(blocked ? 1U : 0U);
-        if (metrics) {
-          metrics->recordAnyHitQuery(intersectionBackend, 1, queryTiming);
-        }
-      }
+      m_frontier = intersectionBackend.createAnyHitFrontier(std::move(m_shadowQueries));
+      m_occluded = intersectionBackend.intersectAnyFrontier(
+        scene, *m_frontier, metrics ? &intersectionTiming : nullptr);
       validateResolvedOcclusionCount();
       if (metrics) {
-        const std::uint64_t queryCount = static_cast<std::uint64_t>(m_shadowQueries.size());
-        recordVisibilityDepth(depth, queryCount, queryCount, /*packedRayBytes=*/0,
-                              queryCount * sizeof(WavefrontAnyHitQuery),
-                              /*stateHandleBytes=*/0, metrics);
+        metrics->recordDirectLightAnyHitFrontierQuery(
+          static_cast<std::uint64_t>(std::max(0, depth)), hostSelectionBytes(),
+          hostOcclusionBytes(), intersectionBackend, m_frontier->residency(),
+          m_frontier->rayCount(), m_frontier->packedRayBytes(), m_frontier->hostQueryBytes(),
+          m_frontier->stateHandleBytes(), intersectionTiming);
       }
     }
 

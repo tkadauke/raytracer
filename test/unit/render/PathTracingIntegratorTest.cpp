@@ -1084,7 +1084,7 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ(2u, metrics.directLightSamples);
     EXPECT_EQ(2u, metrics.directLightContributingSamples);
     EXPECT_EQ(0u, metrics.directLightOccludedSamples);
-    EXPECT_EQ((std::vector<std::uint64_t>{2u}), metrics.directLightAnyHitBatchChunksPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{1u}), metrics.directLightAnyHitBatchChunksPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{2u}), metrics.directLightAnyHitBatchRaysPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{0u}),
               metrics.directLightAnyHitFrontierPackedRayBytesPerDepth);
@@ -1092,9 +1092,9 @@ namespace PathTracingIntegratorTest {
               metrics.directLightAnyHitFrontierHostQueryBytesPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{0u}),
               metrics.directLightAnyHitFrontierStateHandleBytesPerDepth);
-    EXPECT_EQ(2u, metrics.directLightAnyHitQueryRoundTrips());
+    EXPECT_EQ(1u, metrics.directLightAnyHitQueryRoundTrips());
     EXPECT_EQ(0u, metrics.residentDirectLightBatchRoundTripsEstimate());
-    EXPECT_EQ(2u, metrics.residentDirectLightBatchRoundTripSavingsEstimate());
+    EXPECT_EQ(1u, metrics.residentDirectLightBatchRoundTripSavingsEstimate());
     EXPECT_GT(metrics.directLightSelectionHostBytes, 0u);
     EXPECT_EQ((std::vector<std::uint64_t>{metrics.directLightSelectionHostBytes}),
               metrics.directLightSelectionHostBytesPerDepth);
@@ -1605,15 +1605,15 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ(1, backend.packet4Queries);
     EXPECT_EQ(0, backend.packet8Queries);
     EXPECT_EQ(2, backend.anyQueries);
-    EXPECT_EQ(0, backend.anyBatchQueries);
-    EXPECT_TRUE(backend.anyBatchSizes.empty());
+    EXPECT_EQ(1, backend.anyBatchQueries);
+    EXPECT_EQ((std::vector<std::size_t>{2u}), backend.anyBatchSizes);
     EXPECT_EQ("counting_cpu", metrics.intersectionBackendRequest);
     EXPECT_EQ("counting_cpu", metrics.intersectionBackend);
     EXPECT_EQ("available", metrics.intersectionBackendAvailability);
     EXPECT_TRUE(metrics.intersectionBackendFallbackReason.empty());
     EXPECT_EQ(4u, metrics.intersectionRaysSubmitted);
     EXPECT_EQ(1u, metrics.closestHitQueries);
-    EXPECT_EQ(2u, metrics.anyHitQueries);
+    EXPECT_EQ(1u, metrics.anyHitQueries);
     EXPECT_EQ(2u, metrics.closestHitRaysSubmitted);
     EXPECT_EQ(2u, metrics.anyHitRaysSubmitted);
   }

@@ -139,6 +139,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- Routed Whitted and path-tracing direct-light visibility through backend-owned
+  any-hit frontiers for CPU fallback too, so metrics count one host frontier
+  submission per visibility batch instead of one scalar trip per shadow ray.
+  — GPT-5 Codex
 - Documented measured tracing backend `auto` threshold evidence, including the
   65,536-ray fixed floor, the 64 rays-per-scene-upload-KiB amortization gate,
   captured CPU-resolved benchmark rows, and the caveat that they do not prove a

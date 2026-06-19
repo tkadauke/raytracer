@@ -490,37 +490,15 @@ namespace render {
       IntersectionService intersectionService(scene, intersectionBackend);
       m_occluded.clear();
       m_frontier.reset();
-      if (intersectionBackend.prefersAnyHitBatch(m_shadowQueries.size())) {
-        m_frontier = intersectionBackend.createAnyHitFrontier(std::move(m_shadowQueries));
-        m_occluded = intersectionService.anyHits(*m_frontier);
-        validateResolvedOcclusionCount();
-        if (metrics) {
-          metrics->recordDirectLightAnyHitFrontierQuery(
-            depthIndex(bounce), hostSelectionBytes(), hostOcclusionBytes(),
-            intersectionService.backend(), m_frontier->residency(), m_frontier->rayCount(),
-            m_frontier->packedRayBytes(), m_frontier->hostQueryBytes(),
-            m_frontier->stateHandleBytes(), intersectionService.diagnostics().lastAnyHitTiming);
-        }
-        return;
-      }
-
-      m_occluded.reserve(m_shadowQueries.size());
-      for (const WavefrontAnyHitQuery& query : m_shadowQueries) {
-        State scratchState;
-        State& queryState = query.state ? *query.state : scratchState;
-        const bool occluded = intersectionService.anyHit(query.ray, query.maxDistance, queryState);
-        m_occluded.push_back(occluded ? 1U : 0U);
-        if (metrics) {
-          metrics->recordAnyHitQuery(intersectionService.backend(), 1,
-                                     intersectionService.diagnostics().lastAnyHitTiming);
-        }
-      }
+      m_frontier = intersectionBackend.createAnyHitFrontier(std::move(m_shadowQueries));
+      m_occluded = intersectionService.anyHits(*m_frontier);
       validateResolvedOcclusionCount();
       if (metrics) {
-        const std::uint64_t queryCount = static_cast<std::uint64_t>(m_shadowQueries.size());
-        recordVisibilityDepth(bounce, queryCount, queryCount, /*packedRayBytes=*/0,
-                              queryCount * sizeof(WavefrontAnyHitQuery),
-                              /*stateHandleBytes=*/0, metrics);
+        metrics->recordDirectLightAnyHitFrontierQuery(
+          depthIndex(bounce), hostSelectionBytes(), hostOcclusionBytes(),
+          intersectionService.backend(), m_frontier->residency(), m_frontier->rayCount(),
+          m_frontier->packedRayBytes(), m_frontier->hostQueryBytes(),
+          m_frontier->stateHandleBytes(), intersectionService.diagnostics().lastAnyHitTiming);
       }
     }
 
