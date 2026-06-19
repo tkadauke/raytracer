@@ -75,6 +75,26 @@ namespace RenderGraphTypesTest {
     EXPECT_EQ("active-camera", *decoded.derived->baseSceneCameraId);
   }
 
+  TEST(RenderCameraRef, RejectsMalformedDerivedMirrorVectorWithIndexedPath) {
+    const QJsonObject json{
+      {"derived",
+       QJsonObject{
+         {"kind", "planar_mirror"},
+         {"mirrorPlanePoint", QJsonArray{0.0, "bad", 0.0}},
+         {"mirrorPlaneNormal", QJsonArray{0.0, 1.0, 0.0}},
+       }},
+    };
+
+    try {
+      static_cast<void>(RenderCameraRef::fromJson(json));
+      FAIL() << "Expected malformed mirror vector rejection";
+    } catch (const std::runtime_error& error) {
+      const std::string message = error.what();
+      EXPECT_NE(std::string::npos, message.find("camera.derived.mirrorPlanePoint[1]"));
+      EXPECT_NE(std::string::npos, message.find("expected number"));
+    }
+  }
+
   TEST(RenderExecutor, SerializesWavefrontPreferenceAndKind) {
     EXPECT_EQ(std::string("wavefront"), toString(RenderExecutorPreference::Wavefront));
     EXPECT_EQ(std::string("wavefront"), toString(RenderExecutorKind::Wavefront));
