@@ -165,17 +165,20 @@ namespace WavefrontIntersectionBackendTest {
       CompiledIntersectionScene m_compiledScene;
     };
 
-    class ShortPackedRecordBackend final : public WavefrontIntersectionBackend {
+    enum class PackedRecordFailure { Short, DuplicateRayIndex };
+
+    class MalformedPackedRecordBackend final : public WavefrontIntersectionBackend {
     public:
-      explicit ShortPackedRecordBackend(const Scene& scene)
-          : m_compiledScene(IntersectionSceneCompiler().compile(scene)) {
+      MalformedPackedRecordBackend(const Scene& scene, PackedRecordFailure failure)
+          : m_compiledScene(IntersectionSceneCompiler().compile(scene)),
+            m_failure(failure) {
       }
 
       using WavefrontIntersectionBackend::intersectPreparedAnyBatch;
       using WavefrontIntersectionBackend::intersectPreparedClosestBatch;
 
       const char* name() const override {
-        return "short_packed_record";
+        return "malformed_packed_record";
       }
 
       const CompiledIntersectionScene* compiledScene() const override {
@@ -221,7 +224,10 @@ namespace WavefrontIntersectionBackendTest {
         if (rays.empty()) {
           return {};
         }
-        return std::vector<GpuIntersectionHitRecord>(rays.size() - 1);
+        if (m_failure == PackedRecordFailure::Short) {
+          return std::vector<GpuIntersectionHitRecord>(rays.size() - 1);
+        }
+        return std::vector<GpuIntersectionHitRecord>(rays.size());
       }
 
       bool preparedPackedAnyHitAvailable() const override {
@@ -237,11 +243,15 @@ namespace WavefrontIntersectionBackendTest {
         if (rays.empty()) {
           return {};
         }
-        return std::vector<GpuIntersectionOcclusionRecord>(rays.size() - 1);
+        if (m_failure == PackedRecordFailure::Short) {
+          return std::vector<GpuIntersectionOcclusionRecord>(rays.size() - 1);
+        }
+        return std::vector<GpuIntersectionOcclusionRecord>(rays.size());
       }
 
     private:
       CompiledIntersectionScene m_compiledScene;
+      PackedRecordFailure m_failure;
     };
 
     class SyntheticPackedClosestHitFrontier final : public WavefrontClosestHitFrontier {
@@ -2871,7 +2881,51 @@ namespace WavefrontIntersectionBackendTest {
   TEST(WavefrontIntersectionBackend, PreparedClosestHitBatchRejectsMismatchedPackedRecords) {
     Scene sourceScene;
     sourceScene.add(std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0));
-    ShortPackedRecordBackend backend(sourceScene);
+    MalformedPackedRecordBackend backend(sourceScene, PackedRecordFailure::Short);
+
+    State firstState;
+    State secondState;
+    const std::vector<WavefrontClosestHitQuery> queries{
+      WavefrontClosestHitQuery{Rayd(Vector3d(0, 0, -4), Vector3d(0, 0, 1)), &firstState},
+      WavefrontClosestHitQuery{Rayd(Vector3d(0, 3, -4), Vector3d(0, 0, 1)), &secondState}};
+
+    EXPECT_THROW(
+      {
+        const std::vector<WavefrontClosestHitResult> hits =
+          backend.intersectPreparedClosestBatch(queries);
+        (void)hits;
+      },
+      std::logic_error);
+  }
+
+  TEST(WavefrontIntersectionBackend, PreparedClosestHitFrontierRejectsDuplicatePackedRayIndices) {
+    Scene sourceScene;
+    sourceScene.add(std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0));
+    PreparedFrontierTestBackend backend(sourceScene);
+
+    State firstState;
+    State secondState;
+    std::vector<WavefrontClosestHitQuery> queries{
+      WavefrontClosestHitQuery{Rayd(Vector3d(0, 0, -4), Vector3d(0, 0, 1)), &firstState},
+      WavefrontClosestHitQuery{Rayd(Vector3d(0, 3, -4), Vector3d(0, 0, 1)), &secondState}};
+    std::vector<GpuIntersectionHitRecord> records(2);
+    records[0].rayIndex = 0;
+    records[1].rayIndex = 0;
+    const SyntheticPackedClosestHitFrontier frontier(std::move(queries), std::move(records));
+
+    EXPECT_THROW(
+      {
+        const std::vector<WavefrontClosestHitResult> hits =
+          backend.intersectPreparedClosestFrontier(frontier);
+        (void)hits;
+      },
+      std::logic_error);
+  }
+
+  TEST(WavefrontIntersectionBackend, PreparedClosestHitBatchRejectsDuplicatePackedRayIndices) {
+    Scene sourceScene;
+    sourceScene.add(std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0));
+    MalformedPackedRecordBackend backend(sourceScene, PackedRecordFailure::DuplicateRayIndex);
 
     State firstState;
     State secondState;
@@ -3363,7 +3417,49 @@ namespace WavefrontIntersectionBackendTest {
   TEST(WavefrontIntersectionBackend, PreparedAnyHitBatchRejectsMismatchedPackedRecords) {
     Scene sourceScene;
     sourceScene.add(std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0));
-    ShortPackedRecordBackend backend(sourceScene);
+    MalformedPackedRecordBackend backend(sourceScene, PackedRecordFailure::Short);
+
+    State firstState;
+    State secondState;
+    const std::vector<WavefrontAnyHitQuery> queries{
+      WavefrontAnyHitQuery{Rayd(Vector4d(0, 0, -3, 1), Vector3d(0, 0, 1)), 3.0, &firstState},
+      WavefrontAnyHitQuery{Rayd(Vector4d(0, 0, -3, 1), Vector3d(0, 0, 1)), 1.0, &secondState}};
+
+    EXPECT_THROW(
+      {
+        const WavefrontOcclusionFlags occluded = backend.intersectPreparedAnyBatch(queries);
+        (void)occluded;
+      },
+      std::logic_error);
+  }
+
+  TEST(WavefrontIntersectionBackend, PreparedAnyHitFrontierRejectsDuplicatePackedRayIndices) {
+    Scene sourceScene;
+    sourceScene.add(std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0));
+    PreparedFrontierTestBackend backend(sourceScene);
+
+    State firstState;
+    State secondState;
+    std::vector<WavefrontAnyHitQuery> queries{
+      WavefrontAnyHitQuery{Rayd(Vector4d(0, 0, -3, 1), Vector3d(0, 0, 1)), 3.0, &firstState},
+      WavefrontAnyHitQuery{Rayd(Vector4d(0, 0, -3, 1), Vector3d(0, 0, 1)), 1.0, &secondState}};
+    std::vector<GpuIntersectionOcclusionRecord> records(2);
+    records[0].rayIndex = 0;
+    records[1].rayIndex = 0;
+    const SyntheticPackedAnyHitFrontier frontier(std::move(queries), std::move(records));
+
+    EXPECT_THROW(
+      {
+        const WavefrontOcclusionFlags occluded = backend.intersectPreparedAnyFrontier(frontier);
+        (void)occluded;
+      },
+      std::logic_error);
+  }
+
+  TEST(WavefrontIntersectionBackend, PreparedAnyHitBatchRejectsDuplicatePackedRayIndices) {
+    Scene sourceScene;
+    sourceScene.add(std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0));
+    MalformedPackedRecordBackend backend(sourceScene, PackedRecordFailure::DuplicateRayIndex);
 
     State firstState;
     State secondState;

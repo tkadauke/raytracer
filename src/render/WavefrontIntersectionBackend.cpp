@@ -71,6 +71,21 @@ namespace render {
       }
     }
 
+    template<typename Record>
+    void validatePackedRecords(const std::vector<Record>& records, std::uint64_t expected,
+                               const char* countMessage, const char* indexMessage) {
+      validatePackedResultCount(records.size(), expected, countMessage);
+
+      std::vector<unsigned char> seen(records.size(), 0U);
+      for (const Record& record : records) {
+        if (static_cast<std::uint64_t>(record.rayIndex) >= expected ||
+            seen[static_cast<std::size_t>(record.rayIndex)]) {
+          throw std::logic_error(indexMessage);
+        }
+        seen[static_cast<std::size_t>(record.rayIndex)] = 1U;
+      }
+    }
+
     class PreparedPackedWavefrontClosestHitFrontier final : public WavefrontClosestHitFrontier {
     public:
       explicit PreparedPackedWavefrontClosestHitFrontier(
@@ -1637,9 +1652,10 @@ namespace render {
       const GpuIntersectionRay packedRay = GpuIntersectionScenePacker().packRay(ray, 0);
       const std::vector<GpuIntersectionHitRecord> hits =
         intersectPreparedPackedClosest({packedRay}, timing);
-      validatePackedResultCount(
-        hits.size(), 1,
-        "packed closest-hit kernel returned a record count that does not match its ray count");
+      validatePackedRecords(
+        hits, 1,
+        "packed closest-hit kernel returned a record count that does not match its ray count",
+        "packed closest-hit kernel returned duplicate or out-of-range ray indices");
       return closestHitResultFromPackedRecord(*scene, hits.front(), &state,
                                               "Packed GPU intersection scene");
     }
@@ -1690,9 +1706,10 @@ namespace render {
       const std::vector<GpuIntersectionRay> packedRays = packClosestHitQueries(queries);
       const std::vector<GpuIntersectionHitRecord> hits =
         intersectPreparedPackedClosest(packedRays, timing);
-      validatePackedResultCount(
-        hits.size(), static_cast<std::uint64_t>(packedRays.size()),
-        "packed closest-hit kernel returned a record count that does not match its ray count");
+      validatePackedRecords(
+        hits, static_cast<std::uint64_t>(packedRays.size()),
+        "packed closest-hit kernel returned a record count that does not match its ray count",
+        "packed closest-hit kernel returned duplicate or out-of-range ray indices");
       for (const GpuIntersectionHitRecord& hit : hits) {
         if (hit.rayIndex < results.size()) {
           results[hit.rayIndex] = closestHitResultFromPackedRecord(
@@ -1737,9 +1754,10 @@ namespace render {
 
       const std::vector<GpuIntersectionHitRecord> hits =
         frontier.intersectPackedClosest(*this, timing);
-      validatePackedResultCount(
-        hits.size(), frontier.rayCount(),
-        "packed closest-hit frontier returned a record count that does not match its ray count");
+      validatePackedRecords(
+        hits, frontier.rayCount(),
+        "packed closest-hit frontier returned a record count that does not match its ray count",
+        "packed closest-hit frontier returned duplicate or out-of-range ray indices");
       for (const GpuIntersectionHitRecord& hit : hits) {
         if (hit.rayIndex < results.size()) {
           results[hit.rayIndex] = closestHitResultFromPackedRecord(
@@ -1772,9 +1790,10 @@ namespace render {
         GpuIntersectionScenePacker().packRay(ray, 0, Ray<float>::epsilon, maxDistance);
       const std::vector<GpuIntersectionOcclusionRecord> records =
         intersectPreparedPackedAny({packedRay}, timing);
-      validatePackedResultCount(
-        records.size(), 1,
-        "packed any-hit kernel returned an occlusion count that does not match its ray count");
+      validatePackedRecords(
+        records, 1,
+        "packed any-hit kernel returned an occlusion count that does not match its ray count",
+        "packed any-hit kernel returned duplicate or out-of-range ray indices");
       hit = !records.empty() && records.front().occluded != 0;
       reason = "Packed GPU intersection scene";
     } else {
@@ -1811,9 +1830,10 @@ namespace render {
       const std::vector<GpuIntersectionRay> packedRays = packAnyHitQueries(queries);
       const std::vector<GpuIntersectionOcclusionRecord> records =
         intersectPreparedPackedAny(packedRays, timing);
-      validatePackedResultCount(
-        records.size(), static_cast<std::uint64_t>(packedRays.size()),
-        "packed any-hit kernel returned an occlusion count that does not match its ray count");
+      validatePackedRecords(
+        records, static_cast<std::uint64_t>(packedRays.size()),
+        "packed any-hit kernel returned an occlusion count that does not match its ray count",
+        "packed any-hit kernel returned duplicate or out-of-range ray indices");
       for (const GpuIntersectionOcclusionRecord& record : records) {
         if (record.rayIndex < results.size()) {
           results[record.rayIndex] = record.occluded != 0 ? 1U : 0U;
@@ -1870,9 +1890,10 @@ namespace render {
 
       const std::vector<GpuIntersectionOcclusionRecord> records =
         frontier.intersectPackedAny(*this, timing);
-      validatePackedResultCount(
-        records.size(), frontier.rayCount(),
-        "packed any-hit frontier returned an occlusion count that does not match its ray count");
+      validatePackedRecords(
+        records, frontier.rayCount(),
+        "packed any-hit frontier returned an occlusion count that does not match its ray count",
+        "packed any-hit frontier returned duplicate or out-of-range ray indices");
       for (const GpuIntersectionOcclusionRecord& record : records) {
         if (record.rayIndex < results.size()) {
           results[record.rayIndex] = record.occluded != 0 ? 1U : 0U;
@@ -1914,9 +1935,10 @@ namespace render {
 
       const std::vector<GpuIntersectionHitRecord> hits =
         intersectPreparedPackedClosest(packedRays, timing);
-      validatePackedResultCount(
-        hits.size(), static_cast<std::uint64_t>(packedRays.size()),
-        "packed closest-hit packet returned a record count that does not match its ray count");
+      validatePackedRecords(
+        hits, static_cast<std::uint64_t>(packedRays.size()),
+        "packed closest-hit packet returned a record count that does not match its ray count",
+        "packed closest-hit packet returned duplicate or out-of-range ray indices");
 
       PrimitivePacketHit4 result;
       for (const GpuIntersectionHitRecord& hit : hits) {
@@ -1975,9 +1997,10 @@ namespace render {
 
       const std::vector<GpuIntersectionHitRecord> hits =
         intersectPreparedPackedClosest(packedRays, timing);
-      validatePackedResultCount(
-        hits.size(), static_cast<std::uint64_t>(packedRays.size()),
-        "packed closest-hit packet returned a record count that does not match its ray count");
+      validatePackedRecords(
+        hits, static_cast<std::uint64_t>(packedRays.size()),
+        "packed closest-hit packet returned a record count that does not match its ray count",
+        "packed closest-hit packet returned duplicate or out-of-range ray indices");
 
       PrimitivePacketHit8 result;
       for (const GpuIntersectionHitRecord& hit : hits) {
