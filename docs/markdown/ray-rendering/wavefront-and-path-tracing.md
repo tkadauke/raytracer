@@ -372,16 +372,16 @@ time through the same preparation/upload timing counters that Metal and Vulkan
 prepared frontiers use for ray-buffer upload, so frontier creation work is not
 lost just because it happens before the intersection dispatch. Whitted
 closest-hit batches use the same frontier handle path, so their diagnostics
-line up with path-tracing closest-hit batches. Batched path-tracing
-direct-light visibility goes through the same backend seam via
-`intersectAny(...)`, so the graph and metrics can separate closest-hit and
-any-hit ray counts for CPU and GPU-resident query families. When the selected
-backend prefers batched visibility, the path tracer groups all valid
-direct-light shadow rays for the active depth frontier into one any-hit backend
-query instead of submitting one visibility batch per shaded hit. Metrics also
-keep per-depth direct-light any-hit chunk counters, so one grouped visibility
-frontier with many shadow rays is distinguishable from many scalar shadow
-queries.
+line up with path-tracing closest-hit batches. Whitted and path-tracing
+direct-light visibility also go through backend-owned any-hit frontiers, even
+when the selected backend resolves those frontiers with the CPU host fallback.
+That keeps closest-hit and any-hit ray counts separated for CPU, packed-host,
+and GPU-resident query families. The path tracer can still group all valid
+direct-light shadow rays for an active depth frontier into one any-hit backend
+frontier, while smaller scalar shading paths use host-resident frontiers with
+the same submission shape. Metrics keep per-depth direct-light any-hit chunk
+counters, so one visibility frontier with many shadow rays is distinguished
+from many visibility frontiers with one or a few shadow rays each.
 They also mark depths where closest-hit frontier batches and direct-light
 any-hit batches both happened. Those mixed query depths are the baseline for
 later GPU-resident frontier scheduling: they show where the current hybrid path
@@ -510,10 +510,10 @@ runtime primitive supplies one, and barycentric coordinates for triangles. For
 any-hit visibility, it short-circuits on the first supported payload hit inside
 the same finite light-distance bound used by `Scene::occludes(...)`. When path
 tracing shades a depth frontier, all valid direct-light shadow rays in that
-frontier are submitted through one batched any-hit backend call when the backend
-asks for grouped visibility. Prepared Metal/Vulkan backends can then treat
-direct-light visibility as a frontier query family instead of unrelated scalar
-queries. The
+frontier are submitted through a backend-owned any-hit frontier. CPU fallback
+frontiers keep the canonical host behavior, while prepared Metal/Vulkan
+frontiers can treat direct-light visibility as the same query family without
+changing the integrator's visibility boundary. The
 harness currently covers triangles, mesh triangles, box tessellations, sphere,
 plane, rectangle, disk, OpenCylinder, Torus, and static instance transforms by
 tracing in payload-local space and transforming hit data back to world space.
