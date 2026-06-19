@@ -3888,7 +3888,7 @@ endif()
 rendercli_run(
   NAME "rendercli renders CPU wavefront direct-light backend parity baseline"
   COMMAND
-    "${RENDERCLI}" --engine wavefront --integrator pathtracer --width 12 --height 8
+    "${RENDERCLI}" --engine wavefront --integrator pathtracer --width 16 --height 12
     --pathtracer_direct_light_samples 1 --wavefront_denoiser none
     --wavefront_intersection_backend cpu --samples_per_pixel 1 --sampling_seed 1337
     --depth 1 "${wavefront_direct_light_backend_scene}"
@@ -3901,7 +3901,7 @@ if(wavefront_platform_backend_available)
   rendercli_run(
     NAME "rendercli renders GPU wavefront direct-light backend parity candidate"
     COMMAND
-      "${RENDERCLI}" --engine wavefront --integrator pathtracer --width 12 --height 8
+      "${RENDERCLI}" --engine wavefront --integrator pathtracer --width 16 --height 12
       --pathtracer_direct_light_samples 1 --wavefront_denoiser none
       --wavefront_intersection_backend gpu --samples_per_pixel 1 --sampling_seed 1337
       --depth 1 "${wavefront_direct_light_backend_scene}"
