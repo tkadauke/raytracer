@@ -1548,6 +1548,12 @@ Progress:
   `intersectionService` trace metadata. CPU fallback reports zero estimates,
   while prepared packed/platform backends can expose the upload/readback
   payload a hybrid visibility pass is expected to cross.
+- Modeler selected-pass graph details now expand nested `intersectionService`
+  metadata for hybrid visibility and ray-traced shadow passes, including query
+  family/tag, requested and selected backend, per-family execution paths,
+  query/hit/occlusion counts, and transfer-byte estimates. That keeps the UI
+  inspection surface aligned with rendercli trace JSON for intersection-service
+  consumers outside the wavefront beauty pass.
 
 ---
 

@@ -144,6 +144,7 @@ struct RenderGraphInspectorWidget::Private {
                                         const QJsonObject& metadata, const QString& key) const;
   void addPredictedTracingExecutionRows(DetailRows& rows, const RenderPassNode& pass) const;
   void addActualTracingExecutionRows(DetailRows& rows, const QJsonObject& metadata) const;
+  void addIntersectionServiceDetailRows(DetailRows& rows, const QJsonObject& metadata) const;
   void addIntersectionBackendDetailRows(DetailRows& rows, const QJsonObject& batching) const;
   DetailRows passDetailRows(const RenderPlan& plan, const RenderPassId& passId) const;
   QString passTraceLine(const RenderPassNode& pass) const;
@@ -678,6 +679,48 @@ void RenderGraphInspectorWidget::Private::addActualTracingExecutionRows(
   addDetailRow(rows, QStringLiteral("Actual tracing fallback"), actualFallback);
 }
 
+void RenderGraphInspectorWidget::Private::addIntersectionServiceDetailRows(
+  DetailRows& rows, const QJsonObject& metadata) const {
+  const QJsonObject service = metadata.value(QStringLiteral("intersectionService")).toObject();
+  if (service.isEmpty())
+    return;
+
+  addDetailStringMetadataRow(rows, QStringLiteral("Intersection service query family"), service,
+                             QStringLiteral("queryFamily"), true);
+  addDetailStringMetadataRow(rows, QStringLiteral("Intersection service tag"), service,
+                             QStringLiteral("queryTag"), true);
+  addDetailStringMetadataRow(rows, QStringLiteral("Intersection service backend"), service,
+                             QStringLiteral("selectedBackend"), true);
+  addDetailStringMetadataRow(rows, QStringLiteral("Intersection service requested backend"),
+                             service, QStringLiteral("requestedBackend"), true);
+  addDetailStringMetadataRow(rows, QStringLiteral("Intersection service execution path"), service,
+                             QStringLiteral("executionPath"), true);
+  addDetailStringMetadataRow(rows, QStringLiteral("Intersection service closest-hit path"), service,
+                             QStringLiteral("closestHitExecutionPath"), true);
+  addDetailStringMetadataRow(rows, QStringLiteral("Intersection service any-hit path"), service,
+                             QStringLiteral("anyHitExecutionPath"), true);
+  addDetailStringMetadataRow(rows, QStringLiteral("Intersection service fallback"), service,
+                             QStringLiteral("fallbackReason"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection service queries"), service,
+                              QStringLiteral("queryCount"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection service hits"), service,
+                              QStringLiteral("hitCount"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection service shadow queries"), service,
+                              QStringLiteral("shadowQueryCount"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection service occluded queries"),
+                              service, QStringLiteral("occludedCount"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Service closest-hit upload bytes"), service,
+                              QStringLiteral("closestHitRayUploadBytesEstimate"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Service closest-hit readback bytes"), service,
+                              QStringLiteral("closestHitReadbackBytesEstimate"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Service any-hit upload bytes"), service,
+                              QStringLiteral("anyHitRayUploadBytesEstimate"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Service any-hit readback bytes"), service,
+                              QStringLiteral("anyHitReadbackBytesEstimate"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Service query transfer bytes"), service,
+                              QStringLiteral("queryTransferBytesEstimate"));
+}
+
 void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
   DetailRows& rows, const QJsonObject& batching) const {
   if (batching.isEmpty())
@@ -1120,6 +1163,7 @@ RenderGraphInspectorWidget::Private::passDetailRows(const RenderPlan& plan,
   addDetailRow(rows, QStringLiteral("Trace outputs"), outputs.join(QStringLiteral(", ")));
 
   addActualTracingExecutionRows(rows, passTrace->metadata());
+  addIntersectionServiceDetailRows(rows, passTrace->metadata());
   addIntersectionBackendDetailRows(
     rows, passTrace->metadata().value(QStringLiteral("batching")).toObject());
   return rows;

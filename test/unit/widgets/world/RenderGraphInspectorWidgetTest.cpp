@@ -1388,6 +1388,19 @@ namespace RenderGraphInspectorWidgetTest {
     const auto rows = widget.passDetailRows(QStringLiteral("hybrid_visibility_aov"));
     EXPECT_THAT(rowValue(rows, QStringLiteral("Trace message")).toStdString(),
                 ::testing::HasSubstr("intersection service"));
+    EXPECT_EQ(QStringLiteral("Closest Hit"),
+              rowValue(rows, QStringLiteral("Intersection service query family")));
+    EXPECT_EQ(QStringLiteral("Debug AOV"),
+              rowValue(rows, QStringLiteral("Intersection service tag")));
+    EXPECT_EQ(QStringLiteral("CPU"),
+              rowValue(rows, QStringLiteral("Intersection service backend")));
+    EXPECT_EQ(QStringLiteral("Runtime Scene"),
+              rowValue(rows, QStringLiteral("Intersection service closest-hit path")));
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection service queries")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection service hits")).isEmpty());
+    EXPECT_EQ(QStringLiteral("0"),
+              rowValue(rows, QStringLiteral("Service closest-hit upload bytes")));
+    EXPECT_EQ(QStringLiteral("0"), rowValue(rows, QStringLiteral("Service query transfer bytes")));
 
     const RenderPassTrace* passTrace = trace->findPass("hybrid_visibility_aov");
     ASSERT_NE(nullptr, passTrace);
