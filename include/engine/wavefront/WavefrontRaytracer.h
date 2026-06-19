@@ -240,6 +240,7 @@ namespace engine::wavefront {
       std::uint64_t frontierCompactionRetainedHostPathStateBytes = 0;
       std::uint64_t frontierCompactionRemovedHostPathStateBytes = 0;
       std::string frontierCompactionExecutionPath;
+      std::string frontierCompactionPathStateResidency;
       std::optional<render::TracingAccumulationDiagnostics> residentPathLoopAccumulation;
 
       void addIntegratorMetrics(const render::IntegratorBatchMetrics& metrics);

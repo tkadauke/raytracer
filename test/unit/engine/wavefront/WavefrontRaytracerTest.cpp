@@ -1472,6 +1472,7 @@ namespace WavefrontRaytracerTest {
     metrics.batching.frontierCompactionRemovedSamples = 3;
     metrics.batching.frontierCompactionMovedSamples = 2;
     metrics.batching.frontierCompactionExecutionPath = "host";
+    metrics.batching.frontierCompactionPathStateResidency = "host";
 
     const auto capabilities = metrics.batching.tracingExecutionCapabilities();
 
@@ -1542,6 +1543,8 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(3.0, batching.value("frontierCompactionRemovedSamples").toDouble());
     EXPECT_EQ(2.0, batching.value("frontierHostCompactionMovedSamples").toDouble());
     EXPECT_EQ(2.0, batching.value("frontierCompactionMovedSamples").toDouble());
+    EXPECT_EQ("host",
+              batching.value("frontierCompactionPathStateResidency").toString().toStdString());
   }
 
   TEST(WavefrontRenderMetrics, DirectLightCapabilitiesDistinguishVisibilityGpuFromContributionCpu) {
@@ -2302,6 +2305,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(5u * 64u, metrics.batching.frontierCompactionRetainedHostPathStateBytes);
     EXPECT_EQ(3u * 64u, metrics.batching.frontierCompactionRemovedHostPathStateBytes);
     EXPECT_EQ("host", metrics.batching.frontierCompactionExecutionPath);
+    EXPECT_EQ("host", metrics.batching.frontierCompactionPathStateResidency);
     EXPECT_DOUBLE_EQ(3.0 / 8.0, metrics.batching.frontierCompactionRemovedSampleFraction());
     EXPECT_DOUBLE_EQ(2.0 / 5.0, metrics.batching.frontierCompactionMovedRetainedSampleFraction());
     EXPECT_EQ(3u, metrics.batching.spawnedContinuationSamples);
@@ -2379,6 +2383,8 @@ namespace WavefrontRaytracerTest {
               batching.value("frontierCompactionRetainedHostPathStateBytes").toDouble());
     EXPECT_EQ(3.0 * 64.0, batching.value("frontierCompactionRemovedHostPathStateBytes").toDouble());
     EXPECT_EQ("host", batching.value("frontierCompactionExecutionPath").toString().toStdString());
+    EXPECT_EQ("host",
+              batching.value("frontierCompactionPathStateResidency").toString().toStdString());
     EXPECT_DOUBLE_EQ(3.0 / 8.0,
                      batching.value("frontierHostCompactionRemovedSampleFraction").toDouble());
     EXPECT_DOUBLE_EQ(3.0 / 8.0,

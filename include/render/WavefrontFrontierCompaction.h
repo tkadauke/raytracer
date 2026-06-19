@@ -13,11 +13,13 @@ namespace render {
     explicit WavefrontFrontierCompactionRequest(std::size_t inputPathCount = 0);
 
     void setPathStateBytesPerPath(std::uint64_t bytes);
+    void setPathStateResidency(std::string residency);
     void retain(std::size_t pathIndex);
 
     [[nodiscard]] std::size_t inputPathCount() const;
     [[nodiscard]] const std::vector<std::uint32_t>& retainedPathIndices() const;
     [[nodiscard]] std::uint64_t pathStateBytesPerPath() const;
+    [[nodiscard]] const std::string& pathStateResidency() const;
     [[nodiscard]] std::uint64_t inputPathStateBytes() const;
     [[nodiscard]] std::uint64_t retainedPathStateBytes() const;
     [[nodiscard]] std::uint64_t removedPathStateBytes() const;
@@ -33,6 +35,7 @@ namespace render {
   private:
     std::size_t m_inputPathCount{0};
     std::uint64_t m_pathStateBytesPerPath{0};
+    std::string m_pathStateResidency{"host"};
     std::vector<std::uint32_t> m_retainedPathIndices;
   };
 
@@ -43,7 +46,8 @@ namespace render {
     static WavefrontFrontierCompactionResult
     fromRetainedPathIndices(std::size_t inputPathCount,
                             std::vector<std::uint32_t> retainedPathIndices,
-                            std::string executionPath, std::uint64_t pathStateBytesPerPath = 0);
+                            std::string executionPath, std::uint64_t pathStateBytesPerPath = 0,
+                            std::string pathStateResidency = "host");
 
     [[nodiscard]] std::size_t inputPathCount() const;
     [[nodiscard]] std::size_t retainedPathCount() const;
@@ -53,6 +57,7 @@ namespace render {
     [[nodiscard]] double movedRetainedPathFraction() const;
     [[nodiscard]] const std::vector<std::uint32_t>& retainedPathIndices() const;
     [[nodiscard]] std::uint64_t pathStateBytesPerPath() const;
+    [[nodiscard]] const std::string& pathStateResidency() const;
     [[nodiscard]] std::uint64_t inputPathStateBytes() const;
     [[nodiscard]] std::uint64_t retainedPathStateBytes() const;
     [[nodiscard]] std::uint64_t removedPathStateBytes() const;
@@ -65,7 +70,8 @@ namespace render {
     WavefrontFrontierCompactionResult(std::size_t inputPathCount,
                                       std::vector<std::uint32_t> retainedPathIndices,
                                       std::size_t movedPathCount, std::string executionPath,
-                                      std::uint64_t pathStateBytesPerPath);
+                                      std::uint64_t pathStateBytesPerPath,
+                                      std::string pathStateResidency);
 
     static void validateRetainedPathIndices(std::size_t inputPathCount,
                                             const std::vector<std::uint32_t>& retainedPathIndices);
@@ -76,5 +82,6 @@ namespace render {
     std::vector<std::uint32_t> m_retainedPathIndices;
     std::size_t m_movedPathCount{0};
     std::string m_executionPath;
+    std::string m_pathStateResidency{"host"};
   };
 }

@@ -25,6 +25,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Added convertible C-array constructors for `Color`, SSE color
   specializations, and vector types so array-backed helpers can delegate to the
   math primitives directly. — GPT-5 Codex
+- Report frontier compaction path-state residency in wavefront metrics,
+  rendercli summaries, and Modeler render graph details. — GPT-5 Codex
 - Report compiled diffuse path-loop execution, residency, path-state, and
   compaction counters in Modeler render graph selected-pass details.
   — GPT-5 Codex

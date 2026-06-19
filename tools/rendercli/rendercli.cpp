@@ -540,6 +540,8 @@ namespace {
         << unsignedValue(batching, "spawnedContinuationHostPathStateBytes")
         << " frontier_compaction_execution="
         << compactTextValue(batching.value("frontierCompactionExecutionPath"), "none")
+        << " frontier_compaction_path_state_residency="
+        << compactTextValue(batching.value("frontierCompactionPathStateResidency"), "none")
         << " frontier_compaction_passes=" << unsignedValue(batching, "frontierCompactionPasses")
         << " frontier_compaction_input_samples="
         << unsignedValue(batching, "frontierCompactionInputSamples")

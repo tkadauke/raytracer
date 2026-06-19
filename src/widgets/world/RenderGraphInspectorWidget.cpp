@@ -943,6 +943,8 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                               batching, QStringLiteral("spawnedContinuationHostPathStateBytes"));
   addDetailStringMetadataRow(rows, QStringLiteral("Compaction execution"), batching,
                              QStringLiteral("frontierCompactionExecutionPath"));
+  addDetailStringMetadataRow(rows, QStringLiteral("Compaction path-state residency"), batching,
+                             QStringLiteral("frontierCompactionPathStateResidency"), true);
   addDetailIntegerMetadataRow(rows, QStringLiteral("Frontier compaction passes"), batching,
                               QStringLiteral("frontierCompactionPasses"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Frontier compaction input samples"), batching,
@@ -1484,16 +1486,21 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
             batching.value(QStringLiteral("frontierCompactionExecutionPath")).toString();
           const QString compactionExecution =
             compactionExecutionPath.isEmpty() ? QStringLiteral("host") : compactionExecutionPath;
+          const QString compactionResidencyPath =
+            batching.value(QStringLiteral("frontierCompactionPathStateResidency")).toString();
+          const QString compactionResidency =
+            compactionResidencyPath.isEmpty() ? QStringLiteral("host") : compactionResidencyPath;
           const qulonglong retainedIndexBytes =
             jsonIntegerValue(batching, QStringLiteral("frontierCompactionRetainedIndexBytes"));
           const qulonglong removedHostPathStateBytes = jsonIntegerValue(
             batching, QStringLiteral("frontierCompactionRemovedHostPathStateBytes"));
           line +=
             QStringLiteral(
-              ", %1 compaction removed %2 samples/%3 retained-index bytes/%4 removed host "
-              "path-state bytes")
-              .arg(compactionExecution, QString::number(compactionRemovedSamples),
-                   QString::number(retainedIndexBytes), QString::number(removedHostPathStateBytes));
+              ", %1 compaction on %2 path state removed %3 samples/%4 retained-index bytes/%5 "
+              "removed host path-state bytes")
+              .arg(compactionExecution, compactionResidency,
+                   QString::number(compactionRemovedSamples), QString::number(retainedIndexBytes),
+                   QString::number(removedHostPathStateBytes));
         }
         if (compactionCandidateSamples > 0) {
           const qulonglong compactionCandidatePackedBytes =

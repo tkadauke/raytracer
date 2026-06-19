@@ -458,11 +458,13 @@ namespace WavefrontIntersectionBackendTest {
   TEST(WavefrontFrontierCompaction, HostCompactionReportsRetainedMovedAndRemovedPaths) {
     WavefrontFrontierCompactionRequest request(5);
     request.setPathStateBytesPerPath(64);
+    request.setPathStateResidency("host");
     request.retain(0);
     request.retain(2);
     request.retain(4);
 
     EXPECT_EQ(64u, request.pathStateBytesPerPath());
+    EXPECT_EQ("host", request.pathStateResidency());
     EXPECT_EQ(5u * 64u, request.inputPathStateBytes());
     EXPECT_EQ(3u * 64u, request.retainedPathStateBytes());
     EXPECT_EQ(2u * 64u, request.removedPathStateBytes());
@@ -484,6 +486,20 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ(2u * 64u, compaction.removedPathStateBytes());
     EXPECT_EQ(3u * sizeof(std::uint32_t), compaction.retainedIndexBytes());
     EXPECT_EQ("host", compaction.executionPath());
+    EXPECT_EQ("host", compaction.pathStateResidency());
+  }
+
+  TEST(WavefrontFrontierCompaction, CarriesPathStateResidencyThroughResult) {
+    WavefrontFrontierCompactionRequest request(3);
+    request.setPathStateResidency("device_test");
+    request.retain(0);
+    request.retain(2);
+
+    const WavefrontFrontierCompactionResult compaction =
+      WavefrontFrontierCompactionResult::hostCompaction(request);
+
+    EXPECT_EQ("host", compaction.executionPath());
+    EXPECT_EQ("device_test", compaction.pathStateResidency());
   }
 
   TEST(WavefrontFrontierCompaction, PathStateByteEstimatesSaturate) {

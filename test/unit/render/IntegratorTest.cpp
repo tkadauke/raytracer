@@ -683,6 +683,7 @@ namespace IntegratorTest {
     EXPECT_EQ(200u, metrics.frontierCompactionRetainedHostPathStateBytes);
     EXPECT_EQ(100u, metrics.frontierCompactionRemovedHostPathStateBytes);
     EXPECT_EQ("mixed", metrics.frontierCompactionExecutionPath);
+    EXPECT_EQ("host", metrics.frontierCompactionPathStateResidency);
     EXPECT_DOUBLE_EQ(5.0 / 17.0, metrics.frontierCompactionRemovedSampleFraction());
     EXPECT_DOUBLE_EQ(5.0 / 12.0, metrics.frontierCompactionMovedRetainedSampleFraction());
   }

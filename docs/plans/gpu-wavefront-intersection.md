@@ -1556,6 +1556,11 @@ Progress:
   query/hit/occlusion counts, and transfer-byte estimates. That keeps the UI
   inspection surface aligned with rendercli trace JSON for intersection-service
   consumers outside the wavefront beauty pass.
+- Frontier compaction diagnostics now report the path-state storage residency
+  being compacted separately from the retained-index execution path. Current
+  wavefront renders report host path-state residency even when backend-mediated
+  compaction hooks are used, keeping the remaining scheduler-owned active path
+  state boundary explicit before true GPU frontier compaction is enabled.
 
 ---
 

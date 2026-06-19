@@ -1335,6 +1335,8 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_FALSE(
       rowValue(rows, QStringLiteral("Spawned continuation host path-state bytes")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Frontier compaction passes")).isEmpty());
+    EXPECT_EQ(QStringLiteral("Host"),
+              rowValue(rows, QStringLiteral("Compaction path-state residency")));
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Frontier compaction input samples")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Frontier compaction retained samples")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Frontier compaction removed samples")).isEmpty());
@@ -1393,7 +1395,8 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("resident savings")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("contribution bytes")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("state-handle bytes")));
-    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("host compaction removed")));
+    EXPECT_TRUE(
+      nodeLineTooltipContains(pass, QStringLiteral("host compaction on host path state removed")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("retained-index bytes")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("removed host path-state bytes")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("compaction candidate samples")));

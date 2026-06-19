@@ -258,6 +258,7 @@ namespace render {
     frontierCompactionRetainedHostPathStateBytes = 0;
     frontierCompactionRemovedHostPathStateBytes = 0;
     frontierCompactionExecutionPath.clear();
+    frontierCompactionPathStateResidency.clear();
     residentPathLoopAccumulation.reset();
   }
 
@@ -364,6 +365,7 @@ namespace render {
     frontierCompactionRemovedHostPathStateBytes +=
       source.frontierCompactionRemovedHostPathStateBytes;
     mergeLabel(frontierCompactionExecutionPath, source.frontierCompactionExecutionPath);
+    mergeLabel(frontierCompactionPathStateResidency, source.frontierCompactionPathStateResidency);
     mergeLabel(residentPathLoopExecutionPath, source.residentPathLoopExecutionPath);
     mergeLabel(residentPathLoopResidency, source.residentPathLoopResidency);
     residentPathLoopDepths += source.residentPathLoopDepths;
@@ -446,9 +448,11 @@ namespace render {
     std::uint64_t inputSamples, std::uint64_t retainedSamples, std::uint64_t movedSamples,
     const std::string& executionPath, std::uint64_t retainedIndexBytes,
     std::uint64_t inputHostPathStateBytes, std::uint64_t retainedHostPathStateBytes,
-    std::uint64_t removedHostPathStateBytes) {
+    std::uint64_t removedHostPathStateBytes, std::string pathStateResidency) {
     ++frontierCompactionPasses;
     mergeLabel(frontierCompactionExecutionPath, executionPath.empty() ? "unknown" : executionPath);
+    mergeLabel(frontierCompactionPathStateResidency,
+               pathStateResidency.empty() ? "unknown" : pathStateResidency);
     frontierCompactionInputSamples += inputSamples;
     frontierCompactionRetainedSamples += retainedSamples;
     frontierCompactionRemovedSamples +=
@@ -464,7 +468,7 @@ namespace render {
                                                             std::uint64_t retainedSamples,
                                                             std::uint64_t movedSamples) {
     recordFrontierCompaction(inputSamples, retainedSamples, movedSamples, "host",
-                             retainedSamples * sizeof(std::uint32_t));
+                             retainedSamples * sizeof(std::uint32_t), 0, 0, 0, "host");
   }
 
   void IntegratorBatchMetrics::recordResidentPathLoopExecution(

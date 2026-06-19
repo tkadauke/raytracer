@@ -209,6 +209,7 @@ namespace render {
     std::uint64_t frontierCompactionRetainedHostPathStateBytes{0};
     std::uint64_t frontierCompactionRemovedHostPathStateBytes{0};
     std::string frontierCompactionExecutionPath;
+    std::string frontierCompactionPathStateResidency;
     std::optional<TracingAccumulationDiagnostics> residentPathLoopAccumulation;
 
     void reset(bool scalarFallback);
@@ -224,7 +225,8 @@ namespace render {
                                   std::uint64_t retainedIndexBytes = 0,
                                   std::uint64_t inputHostPathStateBytes = 0,
                                   std::uint64_t retainedHostPathStateBytes = 0,
-                                  std::uint64_t removedHostPathStateBytes = 0);
+                                  std::uint64_t removedHostPathStateBytes = 0,
+                                  std::string pathStateResidency = "host");
     void recordHostFrontierCompaction(std::uint64_t inputSamples, std::uint64_t retainedSamples,
                                       std::uint64_t movedSamples);
     void recordResidentPathLoopExecution(const ResidentPathLoopDiagnostics& diagnostics,

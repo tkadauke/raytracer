@@ -2832,6 +2832,7 @@ foreach(spawned_field
 endforeach()
 foreach(compaction_field
         frontierCompactionExecutionPath
+        frontierCompactionPathStateResidency
         frontierCompactionPasses
         frontierCompactionInputSamples
         frontierCompactionRetainedSamples
@@ -2917,6 +2918,11 @@ endif()
 if(NOT wavefront_metrics_stdout MATCHES "frontier_compaction_passes=")
   _rendercli_fail("rendercli wavefront metrics frontier compaction pass summary"
                   "wavefront metrics summary did not contain frontier compaction passes"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES "frontier_compaction_path_state_residency=")
+  _rendercli_fail("rendercli wavefront metrics frontier compaction path-state residency summary"
+                  "wavefront metrics summary did not contain frontier compaction path-state residency"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
 if(NOT wavefront_metrics_stdout MATCHES "frontier_compaction_removed_fraction=")

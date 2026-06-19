@@ -417,6 +417,7 @@ namespace engine::wavefront {
     frontierCompactionRemovedHostPathStateBytes +=
       metrics.frontierCompactionRemovedHostPathStateBytes;
     mergeLabel(frontierCompactionExecutionPath, metrics.frontierCompactionExecutionPath);
+    mergeLabel(frontierCompactionPathStateResidency, metrics.frontierCompactionPathStateResidency);
     if (metrics.residentPathLoopAccumulation) {
       if (!residentPathLoopAccumulation) {
         residentPathLoopAccumulation = *metrics.residentPathLoopAccumulation;
@@ -1305,6 +1306,8 @@ namespace engine::wavefront {
       batching.frontierCompactionMovedRetainedSampleFraction();
     batchingJson["frontierCompactionExecutionPath"] =
       QString::fromStdString(batching.frontierCompactionExecutionPath);
+    batchingJson["frontierCompactionPathStateResidency"] =
+      QString::fromStdString(batching.frontierCompactionPathStateResidency);
     batchingJson["compatibilityShadeSamples"] =
       static_cast<double>(batching.compatibilityShadeSamples);
     batchingJson["unsupportedPathMaterialSamples"] =

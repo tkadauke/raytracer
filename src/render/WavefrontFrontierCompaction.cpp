@@ -30,6 +30,10 @@ namespace render {
     m_pathStateBytesPerPath = bytes;
   }
 
+  void WavefrontFrontierCompactionRequest::setPathStateResidency(std::string residency) {
+    m_pathStateResidency = residency.empty() ? "unknown" : std::move(residency);
+  }
+
   void WavefrontFrontierCompactionRequest::retain(std::size_t pathIndex) {
     if (pathIndex >= m_inputPathCount) {
       throw std::out_of_range("frontier compaction retained path index is out of range");
@@ -58,6 +62,10 @@ namespace render {
     return m_pathStateBytesPerPath;
   }
 
+  const std::string& WavefrontFrontierCompactionRequest::pathStateResidency() const {
+    return m_pathStateResidency;
+  }
+
   std::uint64_t WavefrontFrontierCompactionRequest::inputPathStateBytes() const {
     return saturatedByteProduct(m_inputPathCount, m_pathStateBytesPerPath);
   }
@@ -80,17 +88,19 @@ namespace render {
   WavefrontFrontierCompactionResult WavefrontFrontierCompactionResult::hostCompaction(
     const WavefrontFrontierCompactionRequest& request) {
     return fromRetainedPathIndices(request.inputPathCount(), request.retainedPathIndices(), "host",
-                                   request.pathStateBytesPerPath());
+                                   request.pathStateBytesPerPath(), request.pathStateResidency());
   }
 
   WavefrontFrontierCompactionResult WavefrontFrontierCompactionResult::fromRetainedPathIndices(
     std::size_t inputPathCount, std::vector<std::uint32_t> retainedPathIndices,
-    std::string executionPath, std::uint64_t pathStateBytesPerPath) {
+    std::string executionPath, std::uint64_t pathStateBytesPerPath,
+    std::string pathStateResidency) {
     validateRetainedPathIndices(inputPathCount, retainedPathIndices);
     const std::size_t movedPathCount = movedPathCountFor(retainedPathIndices);
-    return WavefrontFrontierCompactionResult(inputPathCount, std::move(retainedPathIndices),
-                                             movedPathCount, std::move(executionPath),
-                                             pathStateBytesPerPath);
+    return WavefrontFrontierCompactionResult(
+      inputPathCount, std::move(retainedPathIndices), movedPathCount, std::move(executionPath),
+      pathStateBytesPerPath,
+      pathStateResidency.empty() ? "unknown" : std::move(pathStateResidency));
   }
 
   std::size_t WavefrontFrontierCompactionResult::inputPathCount() const {
@@ -132,6 +142,10 @@ namespace render {
     return m_pathStateBytesPerPath;
   }
 
+  const std::string& WavefrontFrontierCompactionResult::pathStateResidency() const {
+    return m_pathStateResidency;
+  }
+
   std::uint64_t WavefrontFrontierCompactionResult::inputPathStateBytes() const {
     return saturatedByteProduct(m_inputPathCount, m_pathStateBytesPerPath);
   }
@@ -159,17 +173,20 @@ namespace render {
     metrics->recordFrontierCompaction(
       static_cast<std::uint64_t>(m_inputPathCount), static_cast<std::uint64_t>(retainedPathCount()),
       static_cast<std::uint64_t>(m_movedPathCount), m_executionPath, retainedIndexBytes(),
-      inputPathStateBytes(), retainedPathStateBytes(), removedPathStateBytes());
+      inputPathStateBytes(), retainedPathStateBytes(), removedPathStateBytes(),
+      m_pathStateResidency);
   }
 
   WavefrontFrontierCompactionResult::WavefrontFrontierCompactionResult(
     std::size_t inputPathCount, std::vector<std::uint32_t> retainedPathIndices,
-    std::size_t movedPathCount, std::string executionPath, std::uint64_t pathStateBytesPerPath)
+    std::size_t movedPathCount, std::string executionPath, std::uint64_t pathStateBytesPerPath,
+    std::string pathStateResidency)
       : m_inputPathCount(inputPathCount),
         m_pathStateBytesPerPath(pathStateBytesPerPath),
         m_retainedPathIndices(std::move(retainedPathIndices)),
         m_movedPathCount(movedPathCount),
-        m_executionPath(std::move(executionPath)) {
+        m_executionPath(std::move(executionPath)),
+        m_pathStateResidency(std::move(pathStateResidency)) {
   }
 
   void WavefrontFrontierCompactionResult::validateRetainedPathIndices(
