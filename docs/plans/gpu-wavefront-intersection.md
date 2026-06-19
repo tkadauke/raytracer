@@ -1504,6 +1504,12 @@ Progress:
   point. Whitted and path-tracing cancellation paths no longer duplicate the
   frontier, direct-light, continuation, retained-state, and radiance-delta
   field list that resident-frontier diagnostics rely on.
+- Direct-light visibility depth rows now publish through one
+  `IntegratorBatchMetrics` entry point for selection bytes, any-hit batch
+  counters, any-hit frontier payload bytes, and occlusion-result bytes. Whitted
+  and path-tracing visibility batches still own their distinct selection
+  semantics, but the metrics row shape a resident direct-light backend must
+  preserve is no longer duplicated at both call sites.
 
 ---
 

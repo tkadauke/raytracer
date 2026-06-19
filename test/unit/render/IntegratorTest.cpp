@@ -307,6 +307,37 @@ namespace IntegratorTest {
     EXPECT_EQ((std::vector<double>{2.0}), target.maxRadianceDeltaPerDepth);
   }
 
+  TEST(IntegratorBatchMetrics, DirectLightVisibilityDepthRecordsOneDepthRow) {
+    IntegratorBatchMetrics metrics;
+    metrics.reset(/*scalarFallback=*/false);
+
+    metrics.recordDirectLightVisibilityDepth(/*depth=*/2,
+                                             /*selectionHostBytes=*/12,
+                                             /*occlusionHostBytes=*/4,
+                                             /*batchChunks=*/3,
+                                             /*batchRays=*/9,
+                                             /*packedRayBytes=*/90,
+                                             /*hostQueryBytes=*/45,
+                                             /*stateHandleBytes=*/27);
+
+    ASSERT_EQ(3u, metrics.directLightSelectionHostBytesPerDepth.size());
+    ASSERT_EQ(3u, metrics.directLightAnyHitBatchChunksPerDepth.size());
+    ASSERT_EQ(3u, metrics.directLightAnyHitBatchRaysPerDepth.size());
+    ASSERT_EQ(3u, metrics.directLightOcclusionHostBytesPerDepth.size());
+    EXPECT_EQ(12u, metrics.directLightSelectionHostBytesPerDepth[2]);
+    EXPECT_EQ(3u, metrics.directLightAnyHitBatchChunksPerDepth[2]);
+    EXPECT_EQ(9u, metrics.directLightAnyHitBatchRaysPerDepth[2]);
+    EXPECT_EQ(90u, metrics.directLightAnyHitFrontierPackedRayBytesPerDepth[2]);
+    EXPECT_EQ(45u, metrics.directLightAnyHitFrontierHostQueryBytesPerDepth[2]);
+    EXPECT_EQ(27u, metrics.directLightAnyHitFrontierStateHandleBytesPerDepth[2]);
+    EXPECT_EQ(4u, metrics.directLightOcclusionHostBytesPerDepth[2]);
+    EXPECT_EQ(12u, metrics.directLightSelectionHostBytes);
+    EXPECT_EQ(4u, metrics.directLightOcclusionHostBytes);
+    EXPECT_EQ(90u, metrics.directLightAnyHitFrontierPackedRayBytes);
+    EXPECT_EQ(45u, metrics.directLightAnyHitFrontierHostQueryBytes);
+    EXPECT_EQ(27u, metrics.directLightAnyHitFrontierStateHandleBytes);
+  }
+
   TEST(IntegratorBatchMetrics, SkippedDepthDiagnosticsPublishesZeroRows) {
     IntegratorBatchMetrics metrics;
     metrics.reset(/*scalarFallback=*/false);

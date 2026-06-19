@@ -261,6 +261,12 @@ namespace render {
                                       std::uint64_t batchRays, std::uint64_t packedRayBytes = 0,
                                       std::uint64_t hostQueryBytes = 0,
                                       std::uint64_t stateHandleBytes = 0);
+    void recordDirectLightVisibilityDepth(std::uint64_t depth, std::uint64_t selectionHostBytes,
+                                          std::uint64_t occlusionHostBytes,
+                                          std::uint64_t batchChunks, std::uint64_t batchRays,
+                                          std::uint64_t packedRayBytes = 0,
+                                          std::uint64_t hostQueryBytes = 0,
+                                          std::uint64_t stateHandleBytes = 0);
     [[nodiscard]] bool hasMixedQueryDepth(std::size_t depth) const;
     [[nodiscard]] std::uint64_t frontierQueryRoundTrips() const;
     [[nodiscard]] std::uint64_t residentFrontierQueryRoundTripsEstimate() const;

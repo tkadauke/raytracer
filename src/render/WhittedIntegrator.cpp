@@ -539,9 +539,8 @@ namespace render {
         throw std::logic_error("Whitted direct-light visibility batch recorded as empty while it "
                                "still contains shadow queries");
       }
-      recordSelectionHostBytes(depth, metrics);
-      recordDirectLightChunks(depth, 0, 0, 0, 0, 0, metrics);
-      recordOcclusionHostBytes(depth, metrics);
+      recordVisibilityDepth(depth, /*batchChunks=*/0, /*batchRays=*/0, /*packedRayBytes=*/0,
+                            /*hostQueryBytes=*/0, /*stateHandleBytes=*/0, metrics);
     }
 
     void resolveOcclusion(const Scene& scene,
@@ -550,32 +549,25 @@ namespace render {
       WavefrontIntersectionQueryTiming intersectionTiming;
       m_occluded.clear();
       m_frontier.reset();
-      recordSelectionHostBytes(depth, metrics);
       if (intersectionBackend.prefersAnyHitBatch(m_shadowQueries.size())) {
         m_frontier = intersectionBackend.createAnyHitFrontier(std::move(m_shadowQueries));
         m_occluded = intersectionBackend.intersectAnyFrontier(
           scene, *m_frontier, metrics ? &intersectionTiming : nullptr);
         validateResolvedOcclusionCount();
         if (metrics) {
-          recordDirectLightChunks(depth, 1, m_frontier->rayCount(), m_frontier->packedRayBytes(),
-                                  m_frontier->hostQueryBytes(), m_frontier->stateHandleBytes(),
-                                  metrics);
+          recordVisibilityDepth(depth, /*batchChunks=*/1, m_frontier->rayCount(),
+                                m_frontier->packedRayBytes(), m_frontier->hostQueryBytes(),
+                                m_frontier->stateHandleBytes(), metrics);
           metrics->recordAnyHitFrontierResidency(
             m_frontier->residency(), m_frontier->packedRayBytes(), m_frontier->hostQueryBytes(),
             m_frontier->stateHandleBytes());
           metrics->recordAnyHitQuery(intersectionBackend, m_frontier->rayCount(),
                                      intersectionTiming);
-          recordOcclusionHostBytes(depth, metrics);
         }
         return;
       }
 
       m_occluded.reserve(m_shadowQueries.size());
-      if (metrics) {
-        const std::uint64_t queryCount = static_cast<std::uint64_t>(m_shadowQueries.size());
-        recordDirectLightChunks(depth, queryCount, queryCount, 0,
-                                queryCount * sizeof(WavefrontAnyHitQuery), 0, metrics);
-      }
       for (const WavefrontAnyHitQuery& query : m_shadowQueries) {
         WavefrontIntersectionQueryTiming queryTiming;
         State scratchState;
@@ -588,7 +580,12 @@ namespace render {
         }
       }
       validateResolvedOcclusionCount();
-      recordOcclusionHostBytes(depth, metrics);
+      if (metrics) {
+        const std::uint64_t queryCount = static_cast<std::uint64_t>(m_shadowQueries.size());
+        recordVisibilityDepth(depth, queryCount, queryCount, /*packedRayBytes=*/0,
+                              queryCount * sizeof(WavefrontAnyHitQuery),
+                              /*stateHandleBytes=*/0, metrics);
+      }
     }
 
     void recordContributionHostBytes(int depth, IntegratorBatchMetrics* metrics) const {
@@ -664,29 +661,15 @@ namespace render {
              sizeof(WavefrontOcclusionFlags::value_type);
     }
 
-    void recordSelectionHostBytes(int depth, IntegratorBatchMetrics* metrics) const {
+    void recordVisibilityDepth(int depth, std::uint64_t batchChunks, std::uint64_t batchRays,
+                               std::uint64_t packedRayBytes, std::uint64_t hostQueryBytes,
+                               std::uint64_t stateHandleBytes,
+                               IntegratorBatchMetrics* metrics) const {
       if (metrics) {
-        metrics->recordDirectLightSelectionHostBytes(static_cast<std::uint64_t>(std::max(0, depth)),
-                                                     hostSelectionBytes());
-      }
-    }
-
-    void recordOcclusionHostBytes(int depth, IntegratorBatchMetrics* metrics) const {
-      if (metrics) {
-        metrics->recordDirectLightOcclusionHostBytes(static_cast<std::uint64_t>(std::max(0, depth)),
-                                                     hostOcclusionBytes());
-      }
-    }
-
-    static void recordDirectLightChunks(int depth, std::uint64_t batchChunks,
-                                        std::uint64_t batchRays, std::uint64_t packedRayBytes,
-                                        std::uint64_t hostQueryBytes,
-                                        std::uint64_t stateHandleBytes,
-                                        IntegratorBatchMetrics* metrics) {
-      if (metrics) {
-        metrics->recordDirectLightAnyHitBatch(static_cast<std::uint64_t>(std::max(0, depth)),
-                                              batchChunks, batchRays, packedRayBytes,
-                                              hostQueryBytes, stateHandleBytes);
+        metrics->recordDirectLightVisibilityDepth(static_cast<std::uint64_t>(std::max(0, depth)),
+                                                  hostSelectionBytes(), hostOcclusionBytes(),
+                                                  batchChunks, batchRays, packedRayBytes,
+                                                  hostQueryBytes, stateHandleBytes);
       }
     }
 
