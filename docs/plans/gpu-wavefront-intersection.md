@@ -1516,6 +1516,11 @@ Progress:
   pair those calls manually, which keeps the current host, packed-host, and
   platform frontier metric contract aligned for future resident frontier
   handles.
+- Direct-light contribution execution metadata now has one CPU/fallback
+  recording entry point on `IntegratorBatchMetrics`. Whitted and path-tracing
+  direct-light contribution paths still supply their distinct unavailable
+  labels, but the "GPU requested, CPU contribution kernel used" row shape is no
+  longer reimplemented at both call sites.
 
 ---
 

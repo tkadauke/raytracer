@@ -257,6 +257,8 @@ namespace render {
     void recordDirectLightContributionHostBytes(std::uint64_t depth, std::uint64_t bytes);
     void recordDirectLightContributionExecution(std::string executionPath,
                                                 std::string fallbackReason = {});
+    void recordCpuDirectLightContributionExecution(const WavefrontIntersectionBackend& backend,
+                                                   std::string gpuUnavailableReason);
     void recordDirectLightAnyHitBatch(std::uint64_t depth, std::uint64_t batchChunks,
                                       std::uint64_t batchRays, std::uint64_t packedRayBytes = 0,
                                       std::uint64_t hostQueryBytes = 0,

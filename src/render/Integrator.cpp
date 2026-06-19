@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 namespace render {
   namespace {
@@ -681,6 +682,13 @@ namespace render {
     mergeLabel(directLightContributionExecutionPath,
                executionPath.empty() ? std::string("unknown") : executionPath);
     mergeLabel(directLightContributionFallbackReason, fallbackReason);
+  }
+
+  void IntegratorBatchMetrics::recordCpuDirectLightContributionExecution(
+    const WavefrontIntersectionBackend& backend, std::string gpuUnavailableReason) {
+    const std::string request = backend.requestedName() ? backend.requestedName() : "";
+    recordDirectLightContributionExecution("cpu", request == "gpu" ? std::move(gpuUnavailableReason)
+                                                                   : std::string());
   }
 
   void IntegratorBatchMetrics::recordDirectLightOcclusionHostBytes(std::uint64_t depth,

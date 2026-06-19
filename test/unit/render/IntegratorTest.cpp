@@ -338,6 +338,27 @@ namespace IntegratorTest {
     EXPECT_EQ(27u, metrics.directLightAnyHitFrontierStateHandleBytes);
   }
 
+  TEST(IntegratorBatchMetrics, CpuDirectLightContributionExecutionReportsGpuRequestFallback) {
+    Scene scene;
+    const std::shared_ptr<const WavefrontIntersectionBackend> cpuBackend =
+      WavefrontIntersectionBackendChoice::cpu().createBackendForScene(scene);
+    const std::shared_ptr<const WavefrontIntersectionBackend> gpuRequestedBackend =
+      WavefrontIntersectionBackendChoice::gpu().createBackendForScene(scene);
+    IntegratorBatchMetrics metrics;
+    metrics.reset(/*scalarFallback=*/false);
+
+    metrics.recordCpuDirectLightContributionExecution(*cpuBackend, "GPU contribution unavailable");
+
+    EXPECT_EQ("cpu", metrics.directLightContributionExecutionPath);
+    EXPECT_TRUE(metrics.directLightContributionFallbackReason.empty());
+
+    metrics.recordCpuDirectLightContributionExecution(*gpuRequestedBackend,
+                                                      "GPU contribution unavailable");
+
+    EXPECT_EQ("cpu", metrics.directLightContributionExecutionPath);
+    EXPECT_EQ("GPU contribution unavailable", metrics.directLightContributionFallbackReason);
+  }
+
   TEST(IntegratorBatchMetrics, SkippedDepthDiagnosticsPublishesZeroRows) {
     IntegratorBatchMetrics metrics;
     metrics.reset(/*scalarFallback=*/false);

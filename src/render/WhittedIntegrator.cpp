@@ -600,11 +600,8 @@ namespace render {
                                     IntegratorBatchMetrics* metrics) const {
       validateResolvedOcclusionCount();
       if (metrics) {
-        const std::string request =
-          intersectionBackend.requestedName() ? intersectionBackend.requestedName() : "";
-        metrics->recordDirectLightContributionExecution(
-          "cpu", request == "gpu" ? "GPU Whitted direct-light contribution kernel unavailable"
-                                  : std::string());
+        metrics->recordCpuDirectLightContributionExecution(
+          intersectionBackend, "GPU Whitted direct-light contribution kernel unavailable");
       }
       for (std::size_t selectionIndex = 0; selectionIndex != m_selections.size();
            ++selectionIndex) {

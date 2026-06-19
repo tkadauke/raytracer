@@ -924,10 +924,8 @@ namespace render {
       return;
     }
 
-    const std::string request = backend.requestedName() ? backend.requestedName() : "";
-    metrics->recordDirectLightContributionExecution(
-      "cpu", request == "gpu" ? "GPU diffuse direct-light contribution kernel unavailable"
-                              : std::string());
+    metrics->recordCpuDirectLightContributionExecution(
+      backend, "GPU diffuse direct-light contribution kernel unavailable");
   }
 
   Colord PathTracingIntegrator::missRadiance(const Scene& scene, bool backgroundVisible) const {
