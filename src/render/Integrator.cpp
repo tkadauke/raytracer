@@ -738,6 +738,18 @@ namespace render {
     recordDirectLightOcclusionHostBytes(depth, occlusionHostBytes);
   }
 
+  void IntegratorBatchMetrics::recordDirectLightAnyHitFrontierQuery(
+    std::uint64_t depth, std::uint64_t selectionHostBytes, std::uint64_t occlusionHostBytes,
+    const WavefrontIntersectionBackend& backend, const std::string& residency,
+    std::uint64_t submittedRays, std::uint64_t packedRayBytes, std::uint64_t hostQueryBytes,
+    std::uint64_t stateHandleBytes, const WavefrontIntersectionQueryTiming& timing) {
+    recordDirectLightVisibilityDepth(depth, selectionHostBytes, occlusionHostBytes,
+                                     /*batchChunks=*/1, submittedRays, packedRayBytes,
+                                     hostQueryBytes, stateHandleBytes);
+    recordAnyHitFrontierQuery(backend, residency, submittedRays, packedRayBytes, hostQueryBytes,
+                              stateHandleBytes, timing);
+  }
+
   bool IntegratorBatchMetrics::hasMixedQueryDepth(std::size_t depth) const {
     const std::uint64_t closestHitChunks = depth < frontierClosestHitBatchChunksPerDepth.size()
                                              ? frontierClosestHitBatchChunksPerDepth[depth]

@@ -495,10 +495,8 @@ namespace render {
         m_occluded = intersectionService.anyHits(*m_frontier);
         validateResolvedOcclusionCount();
         if (metrics) {
-          recordVisibilityDepth(bounce, /*batchChunks=*/1, m_frontier->rayCount(),
-                                m_frontier->packedRayBytes(), m_frontier->hostQueryBytes(),
-                                m_frontier->stateHandleBytes(), metrics);
-          metrics->recordAnyHitFrontierQuery(
+          metrics->recordDirectLightAnyHitFrontierQuery(
+            depthIndex(bounce), hostSelectionBytes(), hostOcclusionBytes(),
             intersectionService.backend(), m_frontier->residency(), m_frontier->rayCount(),
             m_frontier->packedRayBytes(), m_frontier->hostQueryBytes(),
             m_frontier->stateHandleBytes(), intersectionService.diagnostics().lastAnyHitTiming);

@@ -1521,6 +1521,11 @@ Progress:
   direct-light contribution paths still supply their distinct unavailable
   labels, but the "GPU requested, CPU contribution kernel used" row shape is no
   longer reimplemented at both call sites.
+- Backend-owned direct-light any-hit frontiers now also have one metrics entry
+  point that records the visibility depth row and the backend any-hit query row
+  together. The scalar visibility fallback still reports per-query CPU work,
+  while Whitted and path-tracing resident-frontier candidates no longer need to
+  keep those rows paired by hand.
 
 ---
 

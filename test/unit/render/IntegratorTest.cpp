@@ -359,6 +359,39 @@ namespace IntegratorTest {
     EXPECT_EQ("GPU contribution unavailable", metrics.directLightContributionFallbackReason);
   }
 
+  TEST(IntegratorBatchMetrics, DirectLightAnyHitFrontierQueryRecordsVisibilityAndQuery) {
+    Scene scene;
+    const std::shared_ptr<const WavefrontIntersectionBackend> backend =
+      WavefrontIntersectionBackendChoice::cpu().createBackendForScene(scene);
+    WavefrontIntersectionQueryTiming timing;
+    timing.recordExecutionPath("runtime_cpu");
+    IntegratorBatchMetrics metrics;
+    metrics.reset(/*scalarFallback=*/false);
+
+    metrics.recordDirectLightAnyHitFrontierQuery(
+      /*depth=*/3, /*selectionHostBytes=*/24, /*occlusionHostBytes=*/6, *backend, "host",
+      /*submittedRays=*/4, /*packedRayBytes=*/0, /*hostQueryBytes=*/128,
+      /*stateHandleBytes=*/0, timing);
+
+    ASSERT_EQ(4u, metrics.directLightSelectionHostBytesPerDepth.size());
+    ASSERT_EQ(4u, metrics.directLightAnyHitBatchChunksPerDepth.size());
+    ASSERT_EQ(4u, metrics.directLightAnyHitBatchRaysPerDepth.size());
+    ASSERT_EQ(4u, metrics.directLightOcclusionHostBytesPerDepth.size());
+    EXPECT_EQ(24u, metrics.directLightSelectionHostBytesPerDepth[3]);
+    EXPECT_EQ(1u, metrics.directLightAnyHitBatchChunksPerDepth[3]);
+    EXPECT_EQ(4u, metrics.directLightAnyHitBatchRaysPerDepth[3]);
+    EXPECT_EQ(128u, metrics.directLightAnyHitFrontierHostQueryBytesPerDepth[3]);
+    EXPECT_EQ(6u, metrics.directLightOcclusionHostBytesPerDepth[3]);
+    EXPECT_EQ(24u, metrics.directLightSelectionHostBytes);
+    EXPECT_EQ(6u, metrics.directLightOcclusionHostBytes);
+    EXPECT_EQ(128u, metrics.directLightAnyHitFrontierHostQueryBytes);
+    EXPECT_EQ("host", metrics.intersectionBackendAnyHitFrontierResidency);
+    EXPECT_EQ(128u, metrics.intersectionBackendAnyHitFrontierHostQueryBytes);
+    EXPECT_EQ(4u, metrics.anyHitRaysSubmitted);
+    EXPECT_EQ(1u, metrics.anyHitQueries);
+    EXPECT_EQ("runtime_cpu", metrics.intersectionBackendAnyHitExecutionPath);
+  }
+
   TEST(IntegratorBatchMetrics, SkippedDepthDiagnosticsPublishesZeroRows) {
     IntegratorBatchMetrics metrics;
     metrics.reset(/*scalarFallback=*/false);

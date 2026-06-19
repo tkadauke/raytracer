@@ -269,6 +269,11 @@ namespace render {
                                           std::uint64_t packedRayBytes = 0,
                                           std::uint64_t hostQueryBytes = 0,
                                           std::uint64_t stateHandleBytes = 0);
+    void recordDirectLightAnyHitFrontierQuery(
+      std::uint64_t depth, std::uint64_t selectionHostBytes, std::uint64_t occlusionHostBytes,
+      const WavefrontIntersectionBackend& backend, const std::string& residency,
+      std::uint64_t submittedRays, std::uint64_t packedRayBytes, std::uint64_t hostQueryBytes,
+      std::uint64_t stateHandleBytes, const WavefrontIntersectionQueryTiming& timing = {});
     [[nodiscard]] bool hasMixedQueryDepth(std::size_t depth) const;
     [[nodiscard]] std::uint64_t frontierQueryRoundTrips() const;
     [[nodiscard]] std::uint64_t residentFrontierQueryRoundTripsEstimate() const;

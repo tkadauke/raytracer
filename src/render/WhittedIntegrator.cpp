@@ -554,13 +554,11 @@ namespace render {
           scene, *m_frontier, metrics ? &intersectionTiming : nullptr);
         validateResolvedOcclusionCount();
         if (metrics) {
-          recordVisibilityDepth(depth, /*batchChunks=*/1, m_frontier->rayCount(),
-                                m_frontier->packedRayBytes(), m_frontier->hostQueryBytes(),
-                                m_frontier->stateHandleBytes(), metrics);
-          metrics->recordAnyHitFrontierQuery(intersectionBackend, m_frontier->residency(),
-                                             m_frontier->rayCount(), m_frontier->packedRayBytes(),
-                                             m_frontier->hostQueryBytes(),
-                                             m_frontier->stateHandleBytes(), intersectionTiming);
+          metrics->recordDirectLightAnyHitFrontierQuery(
+            static_cast<std::uint64_t>(std::max(0, depth)), hostSelectionBytes(),
+            hostOcclusionBytes(), intersectionBackend, m_frontier->residency(),
+            m_frontier->rayCount(), m_frontier->packedRayBytes(), m_frontier->hostQueryBytes(),
+            m_frontier->stateHandleBytes(), intersectionTiming);
         }
         return;
       }
