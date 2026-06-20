@@ -77,6 +77,14 @@ namespace VectorTest {
     ASSERT_EQ(3, vector[2]);
   }
 
+  TYPED_TEST(VectorTest, ShouldInitializeVectorFromConvertibleCArray) {
+    const float values[4] = {1.5f, 2.5f, 3.5f, 4.5f};
+    Vector<3, TypeParam> vector(values);
+    ASSERT_EQ(1.5, vector[0]);
+    ASSERT_EQ(2.5, vector[1]);
+    ASSERT_EQ(3.5, vector[2]);
+  }
+
   TYPED_TEST(VectorTest, ShouldInitializeVectorFromStdArray) {
     const std::array<int, 4> values{1, 2, 3, 4};
     Vector<3, TypeParam> vector(values);
@@ -801,6 +809,14 @@ namespace Vector3Test {
 
   TEST(Vector3Test, ShouldInitializeGenericVector3FromStdArray) {
     const std::array<float, 4> values{1.5f, 2.5f, 3.5f, 4.5f};
+    Vector3d vector(values);
+    ASSERT_EQ(1.5, vector.x());
+    ASSERT_EQ(2.5, vector.y());
+    ASSERT_EQ(3.5, vector.z());
+  }
+
+  TEST(Vector3Test, ShouldInitializeGenericVector3FromCArray) {
+    const float values[4] = {1.5f, 2.5f, 3.5f, 4.5f};
     Vector3d vector(values);
     ASSERT_EQ(1.5, vector.x());
     ASSERT_EQ(2.5, vector.y());

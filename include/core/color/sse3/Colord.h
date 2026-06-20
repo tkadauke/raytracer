@@ -36,6 +36,13 @@ public:
 
   template<class Source, std::size_t Size,
            typename = std::enable_if_t<(Size >= 3u) && std::is_convertible_v<Source, double>>>
+  inline explicit Color(const Source (&cells)[Size]) {
+    m_vector[0] = _mm_set_pd(static_cast<double>(cells[1]), static_cast<double>(cells[0]));
+    m_vector[1] = _mm_set_sd(static_cast<double>(cells[2]));
+  }
+
+  template<class Source, std::size_t Size,
+           typename = std::enable_if_t<(Size >= 3u) && std::is_convertible_v<Source, double>>>
   inline explicit Color(const std::array<Source, Size>& cells) {
     m_vector[0] = _mm_set_pd(static_cast<double>(cells[1]), static_cast<double>(cells[0]));
     m_vector[1] = _mm_set_sd(static_cast<double>(cells[2]));

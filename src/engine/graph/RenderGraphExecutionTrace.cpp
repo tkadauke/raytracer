@@ -154,8 +154,8 @@ namespace engine::graph {
         }
       }
 
-      *minimum = Colord(minValues[0], minValues[1], minValues[2]);
-      *maximum = Colord(maxValues[0], maxValues[1], maxValues[2]);
+      *minimum = Colord(minValues);
+      *maximum = Colord(maxValues);
       return std::isfinite(minValues[0]) && std::isfinite(minValues[1]) &&
              std::isfinite(minValues[2]) && std::isfinite(maxValues[0]) &&
              std::isfinite(maxValues[1]) && std::isfinite(maxValues[2]);

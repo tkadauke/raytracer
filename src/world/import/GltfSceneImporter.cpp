@@ -284,8 +284,7 @@ namespace world {
 
     std::shared_ptr<render::Texturec> baseColorTextureFor(const core::gltf::Asset& asset,
                                                           const core::gltf::Material& source) {
-      const Colord baseColor(source.baseColorFactor[0], source.baseColorFactor[1],
-                             source.baseColorFactor[2]);
+      const Colord baseColor(source.baseColorFactor);
       if (!source.baseColorTexture)
         return std::make_shared<render::ConstantColorTexture>(baseColor);
 
@@ -756,7 +755,7 @@ namespace world {
 
         worldLight->setId(id);
         worldLight->setName(name);
-        worldLight->setColor(Colord(light.color[0], light.color[1], light.color[2]));
+        worldLight->setColor(Colord(light.color));
         worldLight->setIntensity(light.intensity);
         worldLight->setMetadata(
           baseMetadata(m_sourcePath, id, "light", static_cast<int>(lightIndex)));

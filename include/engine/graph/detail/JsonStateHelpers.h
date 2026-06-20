@@ -58,7 +58,7 @@ namespace engine::graph::detail {
       if (!std::isfinite(values[i]) || values[i] < 0.0 || values[i] > 1.0)
         error(path + "." + key + "[" + std::to_string(i) + "]", "expected number from 0 to 1");
     }
-    return Colord(values[0], values[1], values[2]);
+    return Colord(values);
   }
 
   [[nodiscard]] inline QJsonArray colorToJson(const Colord& color) {
