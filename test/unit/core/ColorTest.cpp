@@ -3,6 +3,7 @@
 #include "core/Color.h"
 #include "test/helpers/ColorTestHelper.h"
 
+#include <array>
 #include <sstream>
 #include <type_traits>
 
@@ -108,6 +109,22 @@ namespace ColorTest {
     ASSERT_EQ(0.5, color[0]);
     ASSERT_EQ(1, color[1]);
     ASSERT_EQ(1, color[2]);
+  }
+
+  TYPED_TEST(ColorTest, ShouldInitializeColorFromConvertibleCArray) {
+    const float values[4] = {0.25f, 0.5f, 0.75f, 1.0f};
+    Color<TypeParam> color(values);
+    ASSERT_EQ(0.25, color[0]);
+    ASSERT_EQ(0.5, color[1]);
+    ASSERT_EQ(0.75, color[2]);
+  }
+
+  TYPED_TEST(ColorTest, ShouldInitializeColorFromStdArray) {
+    const std::array<float, 4> values{0.25f, 0.5f, 0.75f, 1.0f};
+    Color<TypeParam> color(values);
+    ASSERT_EQ(0.25, color[0]);
+    ASSERT_EQ(0.5, color[1]);
+    ASSERT_EQ(0.75, color[2]);
   }
 
   TYPED_TEST(ColorTest, ShouldCreateColorFromRGBValues) {

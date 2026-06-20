@@ -35,7 +35,7 @@ namespace GpuDiffusePathStepReferenceTest {
     };
 
     Colord colorFrom4(const std::array<float, 4>& value) {
-      return Colord(value[0], value[1], value[2]);
+      return Colord(value);
     }
 
     Vector3d vectorFrom4(const std::array<float, 4>& value) {

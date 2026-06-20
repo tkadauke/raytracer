@@ -104,6 +104,20 @@ public:
 
   /**
     * Constructs a vector component wise from the first Dimensions values in
+    * the given C array.
+    */
+  template<class Source, std::size_t Size,
+           typename = std::enable_if_t<(Size >= static_cast<std::size_t>(Dimensions)) &&
+                                       std::is_convertible_v<Source, T>>>
+  inline constexpr explicit Vector(const Source (&cells)[Size])
+      : m_coordinates{} {
+    for (int i = 0; i != Dimensions; ++i) {
+      m_coordinates[i] = static_cast<T>(cells[static_cast<std::size_t>(i)]);
+    }
+  }
+
+  /**
+    * Constructs a vector component wise from the first Dimensions values in
     * the given array.
     */
   template<class Source, std::size_t Size,
@@ -716,6 +730,15 @@ public:
   }
 
   /**
+    * Constructs a Vector2<T> from the first two values in the given C array.
+    */
+  template<class Source, std::size_t Size,
+           typename = std::enable_if_t<(Size >= 2u) && std::is_convertible_v<Source, T>>>
+  inline constexpr explicit Vector2(const Source (&cells)[Size])
+      : Base(cells) {
+  }
+
+  /**
     * Constructs a Vector2<T> from an arbitrary-dimensioned and arbitrary-
     * typed source Vector.
     */
@@ -868,6 +891,15 @@ public:
   template<class Source, std::size_t Size,
            typename = std::enable_if_t<(Size >= 3u) && std::is_convertible_v<Source, T>>>
   inline constexpr explicit Vector3(const std::array<Source, Size>& cells)
+      : Base(cells) {
+  }
+
+  /**
+    * Constructs a Vector3<T> from the first three values in the given C array.
+    */
+  template<class Source, std::size_t Size,
+           typename = std::enable_if_t<(Size >= 3u) && std::is_convertible_v<Source, T>>>
+  inline constexpr explicit Vector3(const Source (&cells)[Size])
       : Base(cells) {
   }
 
@@ -1037,6 +1069,15 @@ public:
   template<class Source, std::size_t Size,
            typename = std::enable_if_t<(Size >= 4u) && std::is_convertible_v<Source, T>>>
   inline constexpr explicit Vector4(const std::array<Source, Size>& cells)
+      : Base(cells) {
+  }
+
+  /**
+    * Constructs a Vector4<T> from the first four values in the given C array.
+    */
+  template<class Source, std::size_t Size,
+           typename = std::enable_if_t<(Size >= 4u) && std::is_convertible_v<Source, T>>>
+  inline constexpr explicit Vector4(const Source (&cells)[Size])
       : Base(cells) {
   }
 

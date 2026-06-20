@@ -471,16 +471,14 @@ namespace render {
   }
 
   Rayd rayFromGpuPathStateRecord(const GpuPathStateRecord& record) {
-    return Rayd(Vector4d(record.origin[0], record.origin[1], record.origin[2], record.origin[3]),
-                Vector3d(record.direction[0], record.direction[1], record.direction[2]));
+    return Rayd(Vector4d(record.origin), Vector3d(record.direction));
   }
 
   Colord throughputFromGpuPathStateRecord(const GpuPathStateRecord& record) {
-    return Colord(record.throughput[0], record.throughput[1], record.throughput[2]);
+    return Colord(record.throughput);
   }
 
   Colord accumulatedRadianceFromGpuPathStateRecord(const GpuPathStateRecord& record) {
-    return Colord(record.accumulatedRadiance[0], record.accumulatedRadiance[1],
-                  record.accumulatedRadiance[2]);
+    return Colord(record.accumulatedRadiance);
   }
 }

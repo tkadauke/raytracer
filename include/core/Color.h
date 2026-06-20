@@ -68,6 +68,17 @@ public:
   }
 
   /**
+    * Constructs a color from the first three values in the given C array.
+    */
+  template<class Source, std::size_t Size,
+           typename = std::enable_if_t<(Size >= 3u) && std::is_convertible_v<Source, T>>>
+  inline explicit Color(const Source (&cells)[Size]) {
+    for (int i = 0; i != 3; ++i) {
+      m_components[i] = static_cast<T>(cells[static_cast<std::size_t>(i)]);
+    }
+  }
+
+  /**
     * Constructs a color from the first three values in the given array.
     */
   template<class Source, std::size_t Size,
