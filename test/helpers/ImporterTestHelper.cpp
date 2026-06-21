@@ -50,11 +50,7 @@ namespace test::importers {
         << qPrintable(actual.name()) << " metadata key " << qPrintable(it.key());
     }
 
-    std::vector<Group*> groupChildren;
-    for (Element* child : actual.childElements()) {
-      if (auto* group = qobject_cast<Group*>(child))
-        groupChildren.push_back(group);
-    }
+    const auto groupChildren = actual.childElementsOfType<Group>();
 
     ASSERT_EQ(expected.children.size(), groupChildren.size()) << qPrintable(actual.name());
     for (std::size_t i = 0; i < expected.children.size(); ++i)

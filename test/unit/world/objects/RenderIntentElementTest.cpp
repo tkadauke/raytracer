@@ -8,11 +8,8 @@
 
 namespace RenderIntentElementTest {
   RenderIntentElement* renderIntentElement(Scene& scene) {
-    for (Element* child : scene.childElements()) {
-      if (auto* intent = qobject_cast<RenderIntentElement*>(child))
-        return intent;
-    }
-    return nullptr;
+    const auto intents = scene.childElementsOfType<RenderIntentElement>();
+    return intents.empty() ? nullptr : intents.front();
   }
 
   TEST(RenderIntentElement, SceneOwnsGeneratedVisibleIntentEditor) {

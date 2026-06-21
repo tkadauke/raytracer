@@ -147,6 +147,24 @@ namespace ElementTest {
     EXPECT_EQ(c, parent.childElements()[2]);
   }
 
+  TEST(Element, ShouldReturnDirectChildElementsOfRequestedType) {
+    TestElement parent;
+    auto* first = new TestElement;
+    auto* plain = new Element;
+    auto* second = new TestElement;
+    auto* nested = new TestElement;
+    parent.addChild(first);
+    parent.addChild(plain);
+    parent.addChild(second);
+    first->addChild(nested);
+
+    const auto typedChildren = parent.childElementsOfType<TestElement>();
+
+    ASSERT_EQ(2u, typedChildren.size());
+    EXPECT_EQ(first, typedChildren[0]);
+    EXPECT_EQ(second, typedChildren[1]);
+  }
+
   TEST(Element, ShouldRemoveChildByIndex) {
     TestElement parent;
     auto* a = new Element;

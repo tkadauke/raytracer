@@ -181,6 +181,17 @@ public:
     return m_childElements;
   }
 
+  template<class T>
+  inline std::vector<T*> childElementsOfType() const {
+    std::vector<T*> result;
+    for (Element* child : m_childElements) {
+      if (auto* typedChild = qobject_cast<T*>(child)) {
+        result.push_back(typedChild);
+      }
+    }
+    return result;
+  }
+
   virtual bool canHaveChild(Element* child) const;
 
   /**

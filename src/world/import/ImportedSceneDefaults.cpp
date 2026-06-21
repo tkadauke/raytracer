@@ -131,11 +131,7 @@ namespace world {
   }
 
   bool ImportedSceneDefaults::sceneHasLight(const Scene& scene) const {
-    for (Element* child : scene.childElements()) {
-      if (qobject_cast<Light*>(child))
-        return true;
-    }
-    return false;
+    return !scene.childElementsOfType<Light>().empty();
   }
 
 }

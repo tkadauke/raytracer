@@ -11,33 +11,6 @@
 
 namespace MoleculeSceneBuilderTest {
 
-  std::vector<Group*> childGroups(const Group& group) {
-    std::vector<Group*> groups;
-    for (Element* child : group.childElements()) {
-      if (auto* childGroup = qobject_cast<Group*>(child))
-        groups.push_back(childGroup);
-    }
-    return groups;
-  }
-
-  std::vector<Sphere*> childSpheres(const Group& group) {
-    std::vector<Sphere*> spheres;
-    for (Element* child : group.childElements()) {
-      if (auto* sphere = qobject_cast<Sphere*>(child))
-        spheres.push_back(sphere);
-    }
-    return spheres;
-  }
-
-  std::vector<Cylinder*> childCylinders(const Group& group) {
-    std::vector<Cylinder*> cylinders;
-    for (Element* child : group.childElements()) {
-      if (auto* cylinder = qobject_cast<Cylinder*>(child))
-        cylinders.push_back(cylinder);
-    }
-    return cylinders;
-  }
-
   TEST(MoleculeSceneBuilder, ShouldBuildAtomsBondsAndHierarchyFromTinyPdbFixture) {
     std::ifstream input("test/fixtures/molecules/small.pdb");
     ASSERT_TRUE(input.is_open());
@@ -46,32 +19,32 @@ namespace MoleculeSceneBuilderTest {
     const auto root = world::buildBallAndStickMolecule(parsed.molecule());
 
     ASSERT_EQ(QStringLiteral("SMALL PROTEIN AND LIGAND STYLE MOLECULE"), root->name());
-    const auto models = childGroups(*root);
+    const auto models = root->childElementsOfType<Group>();
     ASSERT_EQ(1u, models.size());
     EXPECT_EQ(QStringLiteral("Model 7"), models[0]->name());
 
-    const auto modelChildren = childGroups(*models[0]);
+    const auto modelChildren = models[0]->childElementsOfType<Group>();
     ASSERT_EQ(3u, modelChildren.size());
     EXPECT_EQ(QStringLiteral("Chain A"), modelChildren[0]->name());
     EXPECT_EQ(QStringLiteral("Chain B"), modelChildren[1]->name());
     EXPECT_EQ(QStringLiteral("Bonds"), modelChildren[2]->name());
 
-    const auto chainAResidues = childGroups(*modelChildren[0]);
+    const auto chainAResidues = modelChildren[0]->childElementsOfType<Group>();
     ASSERT_EQ(1u, chainAResidues.size());
     EXPECT_EQ(QStringLiteral("GLY 1"), chainAResidues[0]->name());
-    const auto glyAtoms = childSpheres(*chainAResidues[0]);
+    const auto glyAtoms = chainAResidues[0]->childElementsOfType<Sphere>();
     ASSERT_EQ(2u, glyAtoms.size());
     EXPECT_EQ(QStringLiteral("N"), glyAtoms[0]->name());
     EXPECT_DOUBLE_EQ(11.104, glyAtoms[0]->position().x());
     EXPECT_GT(glyAtoms[0]->radius(), 0.0);
     ASSERT_NE(nullptr, glyAtoms[0]->material());
 
-    const auto chainBResidues = childGroups(*modelChildren[1]);
+    const auto chainBResidues = modelChildren[1]->childElementsOfType<Group>();
     ASSERT_EQ(1u, chainBResidues.size());
-    const auto ligandAtoms = childSpheres(*chainBResidues[0]);
+    const auto ligandAtoms = chainBResidues[0]->childElementsOfType<Sphere>();
     ASSERT_EQ(1u, ligandAtoms.size());
 
-    const auto bonds = childCylinders(*modelChildren[2]);
+    const auto bonds = modelChildren[2]->childElementsOfType<Cylinder>();
     ASSERT_EQ(1u, bonds.size());
     EXPECT_DOUBLE_EQ(
       parsed.molecule().atoms()[0].position.distanceTo(parsed.molecule().atoms()[1].position),
