@@ -68,11 +68,8 @@ namespace PropertyEditorWidgetTest {
   }
 
   RenderIntentElement* renderSettingsElement(Scene& scene) {
-    for (Element* child : scene.childElements()) {
-      if (auto* settings = qobject_cast<RenderIntentElement*>(child))
-        return settings;
-    }
-    return nullptr;
+    const auto settings = scene.childElementsOfType<RenderIntentElement>();
+    return settings.empty() ? nullptr : settings.front();
   }
 
   TEST_F(PropertyEditorWidgetTest, ShouldInitializeWithRoot) {

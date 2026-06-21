@@ -364,13 +364,8 @@ std::unique_ptr<Scene> Scene::evaluatedAtFrame(int frame) const {
 }
 
 Camera* Scene::activeCamera() const {
-  Camera* camera = nullptr;
-  for (const auto& child : childElements()) {
-    if (qobject_cast<Camera*>(child)) {
-      camera = static_cast<Camera*>(child);
-    }
-  }
-  return camera;
+  const auto cameras = childElementsOfType<Camera>();
+  return cameras.empty() ? nullptr : cameras.back();
 }
 
 std::vector<const Camera*> Scene::cameras() const {
