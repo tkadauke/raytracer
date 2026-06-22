@@ -1659,6 +1659,11 @@ Progress:
   family. Standalone service consumers therefore keep residency, payload bytes,
   counts, transfer estimates, and observed execution paths paired at the same
   boundary future resident frontiers will override.
+- Wavefront integrator metrics now accept backend-owned closest-hit and any-hit
+  frontier handles directly when recording frontier-query diagnostics. Whitted
+  and path-tracing batches no longer unpack residency and payload byte fields
+  at the scheduler call sites, keeping those details owned by the metrics
+  boundary future resident frontiers will update.
 
 ---
 

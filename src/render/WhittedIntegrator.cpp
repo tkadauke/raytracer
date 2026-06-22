@@ -456,10 +456,8 @@ namespace render {
         intersectionBackend.intersectClosestFrontier(scene, *m_frontier, &intersectionTiming);
       validateHitCount();
       if (metrics) {
-        metrics->recordClosestHitFrontierQuery(intersectionBackend, m_frontier->residency(),
-                                               m_frontier->rayCount(), m_frontier->packedRayBytes(),
-                                               m_frontier->hostQueryBytes(),
-                                               m_frontier->stateHandleBytes(), intersectionTiming);
+        metrics->recordClosestHitFrontierQuery(intersectionBackend, *m_frontier,
+                                               intersectionTiming);
       }
     }
 
@@ -559,9 +557,7 @@ namespace render {
       if (metrics) {
         metrics->recordDirectLightAnyHitFrontierQuery(
           static_cast<std::uint64_t>(std::max(0, depth)), hostSelectionBytes(),
-          hostOcclusionBytes(), intersectionBackend, m_frontier->residency(),
-          m_frontier->rayCount(), m_frontier->packedRayBytes(), m_frontier->hostQueryBytes(),
-          m_frontier->stateHandleBytes(), result.timing);
+          hostOcclusionBytes(), intersectionBackend, *m_frontier, result.timing);
       }
     }
 

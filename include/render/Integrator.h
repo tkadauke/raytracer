@@ -19,6 +19,8 @@ namespace render {
   class SampleStream;
   class Scene;
   class State;
+  class WavefrontAnyHitFrontier;
+  class WavefrontClosestHitFrontier;
   class WavefrontIntersectionBackend;
   struct ResidentPathLoopDiagnostics;
 
@@ -276,6 +278,11 @@ namespace render {
       const WavefrontIntersectionBackend& backend, const std::string& residency,
       std::uint64_t submittedRays, std::uint64_t packedRayBytes, std::uint64_t hostQueryBytes,
       std::uint64_t stateHandleBytes, const WavefrontIntersectionQueryTiming& timing = {});
+    void recordDirectLightAnyHitFrontierQuery(std::uint64_t depth, std::uint64_t selectionHostBytes,
+                                              std::uint64_t occlusionHostBytes,
+                                              const WavefrontIntersectionBackend& backend,
+                                              const WavefrontAnyHitFrontier& frontier,
+                                              const WavefrontIntersectionQueryTiming& timing = {});
     [[nodiscard]] bool hasMixedQueryDepth(std::size_t depth) const;
     [[nodiscard]] std::uint64_t frontierQueryRoundTrips() const;
     [[nodiscard]] std::uint64_t residentFrontierQueryRoundTripsEstimate() const;
@@ -311,10 +318,16 @@ namespace render {
                                        std::uint64_t packedRayBytes, std::uint64_t hostQueryBytes,
                                        std::uint64_t stateHandleBytes,
                                        const WavefrontIntersectionQueryTiming& timing = {});
+    void recordClosestHitFrontierQuery(const WavefrontIntersectionBackend& backend,
+                                       const WavefrontClosestHitFrontier& frontier,
+                                       const WavefrontIntersectionQueryTiming& timing = {});
     void recordAnyHitFrontierQuery(const WavefrontIntersectionBackend& backend,
                                    const std::string& residency, std::uint64_t submittedRays,
                                    std::uint64_t packedRayBytes, std::uint64_t hostQueryBytes,
                                    std::uint64_t stateHandleBytes,
+                                   const WavefrontIntersectionQueryTiming& timing = {});
+    void recordAnyHitFrontierQuery(const WavefrontIntersectionBackend& backend,
+                                   const WavefrontAnyHitFrontier& frontier,
                                    const WavefrontIntersectionQueryTiming& timing = {});
     void recordClosestHitQuery(const WavefrontIntersectionBackend& backend,
                                std::uint64_t submittedRays,

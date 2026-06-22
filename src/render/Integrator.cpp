@@ -754,6 +754,16 @@ namespace render {
                               stateHandleBytes, timing);
   }
 
+  void IntegratorBatchMetrics::recordDirectLightAnyHitFrontierQuery(
+    std::uint64_t depth, std::uint64_t selectionHostBytes, std::uint64_t occlusionHostBytes,
+    const WavefrontIntersectionBackend& backend, const WavefrontAnyHitFrontier& frontier,
+    const WavefrontIntersectionQueryTiming& timing) {
+    recordDirectLightAnyHitFrontierQuery(depth, selectionHostBytes, occlusionHostBytes, backend,
+                                         frontier.residency(), frontier.rayCount(),
+                                         frontier.packedRayBytes(), frontier.hostQueryBytes(),
+                                         frontier.stateHandleBytes(), timing);
+  }
+
   bool IntegratorBatchMetrics::hasMixedQueryDepth(std::size_t depth) const {
     const std::uint64_t closestHitChunks = depth < frontierClosestHitBatchChunksPerDepth.size()
                                              ? frontierClosestHitBatchChunksPerDepth[depth]
@@ -1024,12 +1034,28 @@ namespace render {
     recordClosestHitQuery(backend, submittedRays, timing);
   }
 
+  void IntegratorBatchMetrics::recordClosestHitFrontierQuery(
+    const WavefrontIntersectionBackend& backend, const WavefrontClosestHitFrontier& frontier,
+    const WavefrontIntersectionQueryTiming& timing) {
+    recordClosestHitFrontierQuery(backend, frontier.residency(), frontier.rayCount(),
+                                  frontier.packedRayBytes(), frontier.hostQueryBytes(),
+                                  frontier.stateHandleBytes(), timing);
+  }
+
   void IntegratorBatchMetrics::recordAnyHitFrontierQuery(
     const WavefrontIntersectionBackend& backend, const std::string& residency,
     std::uint64_t submittedRays, std::uint64_t packedRayBytes, std::uint64_t hostQueryBytes,
     std::uint64_t stateHandleBytes, const WavefrontIntersectionQueryTiming& timing) {
     recordAnyHitFrontierResidency(residency, packedRayBytes, hostQueryBytes, stateHandleBytes);
     recordAnyHitQuery(backend, submittedRays, timing);
+  }
+
+  void IntegratorBatchMetrics::recordAnyHitFrontierQuery(
+    const WavefrontIntersectionBackend& backend, const WavefrontAnyHitFrontier& frontier,
+    const WavefrontIntersectionQueryTiming& timing) {
+    recordAnyHitFrontierQuery(backend, frontier.residency(), frontier.rayCount(),
+                              frontier.packedRayBytes(), frontier.hostQueryBytes(),
+                              frontier.stateHandleBytes(), timing);
   }
 
   void

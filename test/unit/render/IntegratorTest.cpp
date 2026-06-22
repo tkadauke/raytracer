@@ -392,6 +392,53 @@ namespace IntegratorTest {
     EXPECT_EQ("runtime_cpu", metrics.intersectionBackendAnyHitExecutionPath);
   }
 
+  TEST(IntegratorBatchMetrics, FrontierQueryOverloadsReadPayloadFromFrontiers) {
+    Scene scene;
+    const std::shared_ptr<const WavefrontIntersectionBackend> backend =
+      WavefrontIntersectionBackendChoice::cpu().createBackendForScene(scene);
+    State closestStateA;
+    State closestStateB;
+    State anyStateA;
+    State anyStateB;
+    State anyStateC;
+    HostWavefrontClosestHitFrontier closestFrontier(std::vector<WavefrontClosestHitQuery>{
+      {Rayd(Vector3d(0.0, 0.0, -1.0), Vector3d(0.0, 0.0, 1.0)), &closestStateA},
+      {Rayd(Vector3d(1.0, 0.0, -1.0), Vector3d(0.0, 0.0, 1.0)), &closestStateB}});
+    HostWavefrontAnyHitFrontier anyFrontier(std::vector<WavefrontAnyHitQuery>{
+      {Rayd(Vector3d(0.0, 1.0, -1.0), Vector3d(0.0, 0.0, 1.0)), 2.0, &anyStateA},
+      {Rayd(Vector3d(1.0, 1.0, -1.0), Vector3d(0.0, 0.0, 1.0)), 3.0, &anyStateB},
+      {Rayd(Vector3d(2.0, 1.0, -1.0), Vector3d(0.0, 0.0, 1.0)), 4.0, &anyStateC}});
+    WavefrontIntersectionQueryTiming closestTiming;
+    closestTiming.recordExecutionPath("closest_path");
+    WavefrontIntersectionQueryTiming anyTiming;
+    anyTiming.recordExecutionPath("any_path");
+    IntegratorBatchMetrics metrics;
+    metrics.reset(/*scalarFallback=*/false);
+
+    metrics.recordClosestHitFrontierQuery(*backend, closestFrontier, closestTiming);
+    metrics.recordDirectLightAnyHitFrontierQuery(
+      /*depth=*/1, /*selectionHostBytes=*/20, /*occlusionHostBytes=*/3, *backend, anyFrontier,
+      anyTiming);
+
+    EXPECT_EQ("host", metrics.intersectionBackendClosestHitFrontierResidency);
+    EXPECT_EQ(2u * sizeof(WavefrontClosestHitQuery),
+              metrics.intersectionBackendClosestHitFrontierHostQueryBytes);
+    EXPECT_EQ(2u, metrics.closestHitRaysSubmitted);
+    EXPECT_EQ(1u, metrics.closestHitQueries);
+    EXPECT_EQ("closest_path", metrics.intersectionBackendClosestHitExecutionPath);
+
+    EXPECT_EQ((std::vector<std::uint64_t>{0u, 1u}), metrics.directLightAnyHitBatchChunksPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{0u, 3u}), metrics.directLightAnyHitBatchRaysPerDepth);
+    EXPECT_EQ(3u * sizeof(WavefrontAnyHitQuery),
+              metrics.directLightAnyHitFrontierHostQueryBytesPerDepth[1]);
+    EXPECT_EQ("host", metrics.intersectionBackendAnyHitFrontierResidency);
+    EXPECT_EQ(3u * sizeof(WavefrontAnyHitQuery),
+              metrics.intersectionBackendAnyHitFrontierHostQueryBytes);
+    EXPECT_EQ(3u, metrics.anyHitRaysSubmitted);
+    EXPECT_EQ(1u, metrics.anyHitQueries);
+    EXPECT_EQ("any_path", metrics.intersectionBackendAnyHitExecutionPath);
+  }
+
   TEST(IntegratorBatchMetrics, SkippedDepthDiagnosticsPublishesZeroRows) {
     IntegratorBatchMetrics metrics;
     metrics.reset(/*scalarFallback=*/false);
