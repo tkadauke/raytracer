@@ -232,18 +232,21 @@ GPU v1 should support:
 
 1. **Triangle and mesh leaves.** This covers glTF, STL, 3MF, OpenSCAD, LDraw,
    and most imported model workflows after tessellation/import.
-2. **Common exact primitives.** Sphere, plane, triangle, rectangle, disk, and OpenCylinder are
-   useful early because many educational scenes use them and they avoid
-   raster-style tessellation drift.
-3. **Static instances.** Static object transforms are important for imported
-   assets. Moving instances and shutter-time transforms can wait until the
-   ray/time contract is explicit in GPU payloads.
+2. **Common exact primitives and canonical primitive tessellation.** Sphere,
+   plane, triangle, rectangle, disk, OpenCylinder, and Torus are in the compiled
+   GPU-style payload set, and Box uses the canonical triangle payload path.
+   These cover many educational scenes while avoiding raster-style tessellation
+   drift for the exact primitives that already have packed/platform kernels.
+3. **Static instances.** Static object transforms are captured by compiled
+   transformed leaves and consumed by the packed/platform traversal paths.
+   Moving instances and shutter-time transforms can wait until the ray/time
+   contract is explicit in GPU payloads.
 
 GPU v1 platform kernels should reject:
 
 - CSG/boolean composites;
-- curve, convex operation, and other exact primitives not yet ported to
-  Metal/Vulkan shaders;
+- curve, convex operation, and other exact primitives that have not been given
+  packed/platform traversal kernels;
 - moving instances;
 - scenes with primitive/material references that cannot be represented by
   stable ids.
