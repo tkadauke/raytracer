@@ -1716,6 +1716,10 @@ Progress:
   retained live frontier state for future scheduler-owned GPU path-loop
   backends, the resolve helper rejects active records at its boundary, and the
   active frontier rejects inactive records instead of silently dropping them.
+- Resident path-state diagnostics and resident compaction contracts now
+  normalize empty backend, residency, and execution-path labels to `unknown`.
+  Future platform path-loop backends therefore cannot publish blank resident
+  path-state labels that disappear during metrics merging.
 
 ---
 

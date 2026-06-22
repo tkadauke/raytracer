@@ -48,6 +48,14 @@ namespace render {
       return a + b;
     }
 
+    std::string nonEmptyLabel(const char* label) {
+      return label && *label ? label : "unknown";
+    }
+
+    std::string nonEmptyLabel(std::string label) {
+      return label.empty() ? "unknown" : std::move(label);
+    }
+
     GpuPathStateRecord resolvedPathState(GpuPathStateRecord record) {
       record.flags &= ~flagValue(GpuPathStateFlags::Active);
       return record;
@@ -98,8 +106,8 @@ namespace render {
                                          const char* residency) {
     const TracingPathStateLayout validated = validatedLayout(layout);
     TracingPathStateDiagnostics diagnostics;
-    diagnostics.backend = backend ? backend : "";
-    diagnostics.residency = residency ? residency : "";
+    diagnostics.backend = nonEmptyLabel(backend);
+    diagnostics.residency = nonEmptyLabel(residency);
     diagnostics.layout = validated;
     diagnostics.residentBytes = validated.totalBytes();
     return diagnostics;
@@ -135,7 +143,7 @@ namespace render {
     validateRetainedPathIndices(inputPathCount, retainedPathIndices);
     const std::uint64_t movedPathCount = movedPathCountFor(retainedPathIndices);
     return ResidentPathCompactionContract(inputPathCount, std::move(retainedPathIndices),
-                                          movedPathCount, std::move(executionPath),
+                                          movedPathCount, nonEmptyLabel(std::move(executionPath)),
                                           pathStateBytesPerPath);
   }
 

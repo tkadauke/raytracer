@@ -114,6 +114,17 @@ namespace TracingPathStateBufferTest {
     EXPECT_EQ(2u * 3u * sizeof(GpuPathStateRecord), buffers.diagnostics().residentBytes);
   }
 
+  TEST(TracingPathStateDiagnostics, NormalizesEmptyBackendAndResidencyLabels) {
+    const TracingPathStateLayout layout = TracingPathStateLayout::pathCapacity(2);
+
+    const TracingPathStateDiagnostics diagnostics =
+      TracingPathStateDiagnostics::forLayout(layout, "", nullptr);
+
+    EXPECT_EQ("unknown", diagnostics.backend);
+    EXPECT_EQ("unknown", diagnostics.residency);
+    EXPECT_EQ(layout.totalBytes(), diagnostics.residentBytes);
+  }
+
   TEST(TracingPathStateBuffers, RejectsAppendingPastCapacity) {
     TracingPathStateBuffers buffers(1);
     const Rayd ray(Vector4d(0.0, 0.0, 0.0, 1.0), Vector3d(0.0, 0.0, 1.0));
@@ -180,6 +191,16 @@ namespace TracingPathStateBufferTest {
     EXPECT_EQ(96u, contract.inputResidentPathStateBytes());
     EXPECT_EQ(0u, contract.retainedResidentPathStateBytes());
     EXPECT_EQ(96u, contract.removedResidentPathStateBytes());
+  }
+
+  TEST(ResidentPathCompactionContract, NormalizesEmptyExecutionPath) {
+    const ResidentPathCompactionContract contract =
+      ResidentPathCompactionContract::fromRetainedIndices(
+        /*inputPathCount=*/2, {1u}, "", /*pathStateBytesPerPath=*/32u);
+
+    EXPECT_EQ("unknown", contract.executionPath());
+    EXPECT_EQ(1u, contract.retainedPathCount());
+    EXPECT_EQ(1u, contract.movedPathCount());
   }
 
   TEST(ResidentPathCompactionContract, RejectsInvalidRetainedIndices) {

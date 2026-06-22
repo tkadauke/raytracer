@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Normalize empty resident path-state backend, residency, and compaction
+  execution-path labels to `unknown`, keeping malformed future resident
+  path-loop diagnostics visible in metrics. — GPT-5 Codex
 - Normalize empty backend frontier-compaction execution-path labels to
   `unknown`, keeping malformed future resident compaction results visible in
   metrics instead of letting an empty path leak through. — GPT-5 Codex
