@@ -760,6 +760,10 @@ void RenderGraphInspectorWidget::Private::addIntersectionServiceDetailRows(
                              QStringLiteral("selectedBackend"), true);
   addDetailStringMetadataRow(rows, QStringLiteral("Intersection service requested backend"),
                              service, QStringLiteral("requestedBackend"), true);
+  addDetailStringMetadataRow(rows, QStringLiteral("Intersection service availability"), service,
+                             QStringLiteral("availability"), true);
+  addDetailStringMetadataRow(rows, QStringLiteral("Intersection service platform"), service,
+                             QStringLiteral("platformName"), true);
   addDetailStringMetadataRow(rows, QStringLiteral("Intersection service execution path"), service,
                              QStringLiteral("executionPath"), true);
   addDetailStringMetadataRow(rows, QStringLiteral("Intersection service closest-hit path"), service,

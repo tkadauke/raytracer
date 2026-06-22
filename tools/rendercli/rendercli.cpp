@@ -188,6 +188,7 @@ namespace {
       << " requested_backend=" << compactSummaryText(service.value("requestedBackend"), "unknown")
       << " selected_backend=" << compactSummaryText(service.value("selectedBackend"), "unknown")
       << " availability=" << compactSummaryText(service.value("availability"), "unknown")
+      << " platform=" << compactSummaryText(service.value("platformName"), "none")
       << " fallback=" << compactSummaryText(service.value("fallbackReason"), "none")
       << " execution_path=" << compactSummaryText(service.value("executionPath"), "none")
       << " closest_hit_execution="

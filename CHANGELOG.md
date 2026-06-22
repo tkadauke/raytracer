@@ -43,6 +43,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   math primitives directly. — GPT-5 Codex
 - Show total intersection ray-upload bytes and closest-hit/any-hit readback
   byte estimates in Modeler render graph selected-pass details. — GPT-5 Codex
+- Show intersection-service backend availability and platform in rendercli
+  compact summaries and Modeler render graph selected-pass details. — GPT-5 Codex
 - Show structured tracing restricted capability summaries in Modeler render
   graph selected-pass details, matching the rendercli fallback/restricted split.
   — GPT-5 Codex

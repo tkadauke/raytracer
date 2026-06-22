@@ -81,7 +81,7 @@ foreach(expectation IN ITEMS
   endif()
 endforeach()
 if(NOT ray_traced_shadow_stdout MATCHES
-       "intersection_service.*pass=hybrid_ray_traced_shadows.*query_family=closest_hit\\+any_hit.*query_tag=hybrid_shadows.*requested_backend=cpu.*selected_backend=cpu.*closest_hit_execution=runtime_scene.*any_hit_execution=runtime_scene.*shadow_queries=[1-9][0-9]*.*occluded=[1-9][0-9]*.*query_transfer_bytes=0.*closest_hit_frontier_residency=host.*any_hit_frontier_residency=host.*closest_hit_frontier_host_query_bytes=[1-9][0-9]*.*any_hit_frontier_host_query_bytes=[1-9][0-9]*")
+       "intersection_service.*pass=hybrid_ray_traced_shadows.*query_family=closest_hit\\+any_hit.*query_tag=hybrid_shadows.*requested_backend=cpu.*selected_backend=cpu.*availability=available.*platform=none.*closest_hit_execution=runtime_scene.*any_hit_execution=runtime_scene.*shadow_queries=[1-9][0-9]*.*occluded=[1-9][0-9]*.*query_transfer_bytes=0.*closest_hit_frontier_residency=host.*any_hit_frontier_residency=host.*closest_hit_frontier_host_query_bytes=[1-9][0-9]*.*any_hit_frontier_host_query_bytes=[1-9][0-9]*")
   message(
     FATAL_ERROR
       "rendercli --shadow_mode ray_traced summary did not expose intersection service diagnostics: ${ray_traced_shadow_stdout}"

@@ -1523,6 +1523,9 @@ namespace RenderGraphInspectorWidgetTest {
               rowValue(rows, QStringLiteral("Intersection service tag")));
     EXPECT_EQ(QStringLiteral("CPU"),
               rowValue(rows, QStringLiteral("Intersection service backend")));
+    EXPECT_EQ(QStringLiteral("Available"),
+              rowValue(rows, QStringLiteral("Intersection service availability")));
+    EXPECT_EQ(QStringLiteral("-"), rowValue(rows, QStringLiteral("Intersection service platform")));
     EXPECT_EQ(QStringLiteral("Runtime Scene"),
               rowValue(rows, QStringLiteral("Intersection service closest-hit path")));
     EXPECT_EQ(QStringLiteral("Host"),
@@ -1566,6 +1569,9 @@ namespace RenderGraphInspectorWidgetTest {
     const auto rows = widget.passDetailRows(QStringLiteral("hybrid_ray_traced_shadows"));
     EXPECT_EQ(QStringLiteral("Closest Hit + Any Hit"),
               rowValue(rows, QStringLiteral("Intersection service query family")));
+    EXPECT_EQ(QStringLiteral("Available"),
+              rowValue(rows, QStringLiteral("Intersection service availability")));
+    EXPECT_EQ(QStringLiteral("-"), rowValue(rows, QStringLiteral("Intersection service platform")));
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection service primary queries")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection service primary hits")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection service shadow queries")).isEmpty());
