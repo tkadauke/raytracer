@@ -89,6 +89,12 @@ namespace render {
                           const WavefrontIntersectionQueryTiming& timing);
     void recordClosestHitFrontier(const WavefrontClosestHitFrontier& frontier);
     void recordAnyHitFrontier(const WavefrontAnyHitFrontier& frontier);
+    void recordClosestHitFrontierQuery(const WavefrontClosestHitFrontier& frontier,
+                                       std::uint64_t hitCount,
+                                       const WavefrontIntersectionQueryTiming& timing);
+    void recordAnyHitFrontierQuery(const WavefrontAnyHitFrontier& frontier,
+                                   std::uint64_t occludedCount,
+                                   const WavefrontIntersectionQueryTiming& timing);
     void recordTiming(WavefrontIntersectionQueryTiming IntersectionServiceDiagnostics::* member,
                       const WavefrontIntersectionQueryTiming& timing);
 

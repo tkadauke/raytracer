@@ -1654,6 +1654,11 @@ Progress:
   reason labels. Unsupported GPU requests on hybrid visibility/shadow service
   consumers can therefore explain why they fell back to runtime CPU traversal
   without opening lower-level backend metrics.
+- `IntersectionService` now records frontier payload and query execution
+  diagnostics through one closest-hit or any-hit frontier-query helper per
+  family. Standalone service consumers therefore keep residency, payload bytes,
+  counts, transfer estimates, and observed execution paths paired at the same
+  boundary future resident frontiers will override.
 
 ---
 

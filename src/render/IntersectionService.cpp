@@ -109,8 +109,7 @@ namespace render {
     validateResultCount(results.size(), frontier.rayCount(),
                         "IntersectionService closest-hit frontier returned a result count that "
                         "does not match its ray count");
-    recordClosestHitFrontier(frontier);
-    recordClosestHitWork(frontier.rayCount(), countClosestHits(results), timing);
+    recordClosestHitFrontierQuery(frontier, countClosestHits(results), timing);
     return results;
   }
 
@@ -132,8 +131,7 @@ namespace render {
     validateResultCount(results.size(), frontier.rayCount(),
                         "IntersectionService any-hit frontier returned an occlusion count that "
                         "does not match its ray count");
-    recordAnyHitFrontier(frontier);
-    recordAnyHitWork(frontier.rayCount(), countOccludedResults(results), timing);
+    recordAnyHitFrontierQuery(frontier, countOccludedResults(results), timing);
     return results;
   }
 
@@ -148,9 +146,8 @@ namespace render {
     validateResultCount(result.occluded.size(), result.frontier->rayCount(),
                         "IntersectionService direct-light visibility batch returned an occlusion "
                         "count that does not match its ray count");
-    recordAnyHitFrontier(*result.frontier);
-    recordAnyHitWork(result.frontier->rayCount(), countOccludedResults(result.occluded),
-                     result.timing);
+    recordAnyHitFrontierQuery(*result.frontier, countOccludedResults(result.occluded),
+                              result.timing);
     return result.occluded;
   }
 
@@ -248,6 +245,21 @@ namespace render {
       saturatedAdd(m_diagnostics.anyHitFrontierHostQueryBytes, frontier.hostQueryBytes());
     m_diagnostics.anyHitFrontierStateHandleBytes =
       saturatedAdd(m_diagnostics.anyHitFrontierStateHandleBytes, frontier.stateHandleBytes());
+  }
+
+  void IntersectionService::recordClosestHitFrontierQuery(
+    const WavefrontClosestHitFrontier& frontier, std::uint64_t hitCount,
+    const WavefrontIntersectionQueryTiming& timing) {
+    recordClosestHitFrontier(frontier);
+    recordClosestHitWork(frontier.rayCount(), hitCount, timing);
+  }
+
+  void
+  IntersectionService::recordAnyHitFrontierQuery(const WavefrontAnyHitFrontier& frontier,
+                                                 std::uint64_t occludedCount,
+                                                 const WavefrontIntersectionQueryTiming& timing) {
+    recordAnyHitFrontier(frontier);
+    recordAnyHitWork(frontier.rayCount(), occludedCount, timing);
   }
 
   void IntersectionService::recordTiming(
