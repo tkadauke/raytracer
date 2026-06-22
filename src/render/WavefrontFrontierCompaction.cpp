@@ -98,8 +98,8 @@ namespace render {
     validateRetainedPathIndices(inputPathCount, retainedPathIndices);
     const std::size_t movedPathCount = movedPathCountFor(retainedPathIndices);
     return WavefrontFrontierCompactionResult(
-      inputPathCount, std::move(retainedPathIndices), movedPathCount, std::move(executionPath),
-      pathStateBytesPerPath,
+      inputPathCount, std::move(retainedPathIndices), movedPathCount,
+      executionPath.empty() ? "unknown" : std::move(executionPath), pathStateBytesPerPath,
       pathStateResidency.empty() ? "unknown" : std::move(pathStateResidency));
   }
 

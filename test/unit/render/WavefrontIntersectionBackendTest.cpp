@@ -593,6 +593,15 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ("device_test", compaction.pathStateResidency());
   }
 
+  TEST(WavefrontFrontierCompaction, NormalizesEmptyResultLabels) {
+    const WavefrontFrontierCompactionResult compaction =
+      WavefrontFrontierCompactionResult::fromRetainedPathIndices(2, {0u}, "",
+                                                                 /*pathStateBytesPerPath=*/32u, "");
+
+    EXPECT_EQ("unknown", compaction.executionPath());
+    EXPECT_EQ("unknown", compaction.pathStateResidency());
+  }
+
   TEST(WavefrontFrontierCompaction, PathStateByteEstimatesSaturate) {
     WavefrontFrontierCompactionRequest request(2);
     request.setPathStateBytesPerPath(std::numeric_limits<std::uint64_t>::max());

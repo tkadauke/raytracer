@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Normalize empty backend frontier-compaction execution-path labels to
+  `unknown`, keeping malformed future resident compaction results visible in
+  metrics instead of letting an empty path leak through. — GPT-5 Codex
 - Reject backend frontier-compaction results whose declared input path count
   does not match the active path frontier, so future resident compaction
   backends cannot silently corrupt host path-state updates. — GPT-5 Codex

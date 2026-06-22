@@ -1125,6 +1125,9 @@ Progress:
   whose declared input path count does not match the active frontier. That keeps
   future resident compaction kernels from silently applying retained indices to
   the wrong host path-state generation.
+- Frontier compaction results now normalize empty backend execution-path labels
+  to `unknown`, matching the path-state residency fallback and keeping malformed
+  resident compaction diagnostics explicit.
 - Wavefront metrics now split estimated ray upload bytes by closest-hit and
   any-hit query family, so resident-frontier planning can tell whether path
   frontier intersections or direct-light visibility batches are driving the
