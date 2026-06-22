@@ -64,8 +64,7 @@ namespace render {
       return std::chrono::duration<double>(end - start).count();
     }
 
-    void validatePackedResultCount(std::size_t actual, std::uint64_t expected,
-                                   const char* message) {
+    void validateResultCount(std::size_t actual, std::uint64_t expected, const char* message) {
       if (static_cast<std::uint64_t>(actual) != expected) {
         throw std::logic_error(message);
       }
@@ -74,7 +73,7 @@ namespace render {
     template<typename Record>
     void validatePackedRecords(const std::vector<Record>& records, std::uint64_t expected,
                                const char* countMessage, const char* indexMessage) {
-      validatePackedResultCount(records.size(), expected, countMessage);
+      validateResultCount(records.size(), expected, countMessage);
 
       std::vector<unsigned char> seen(records.size(), 0U);
       for (const Record& record : records) {
@@ -1474,6 +1473,9 @@ namespace render {
       throw std::logic_error("direct-light visibility batch did not create an any-hit frontier");
     }
     result.occluded = intersectAnyFrontier(scene, *result.frontier, &result.timing);
+    validateResultCount(result.occluded.size(), result.frontier->rayCount(),
+                        "direct-light visibility batch returned an occlusion count that does not "
+                        "match its any-hit frontier ray count");
     return result;
   }
 

@@ -165,6 +165,47 @@ namespace WavefrontIntersectionBackendTest {
       CompiledIntersectionScene m_compiledScene;
     };
 
+    class ShortDirectLightVisibilityBackend final : public WavefrontIntersectionBackend {
+    public:
+      const char* name() const override {
+        return "short_direct_light_visibility";
+      }
+
+      const Primitive*
+      intersectClosest(const Scene& /*scene*/, const Rayd& /*ray*/, HitPointInterval& /*hitPoints*/,
+                       State& /*state*/,
+                       WavefrontIntersectionQueryTiming* /*timing*/ = nullptr) const override {
+        return nullptr;
+      }
+
+      bool intersectAny(const Scene& /*scene*/, const Rayd& /*ray*/, double /*maxDistance*/,
+                        State& /*state*/,
+                        WavefrontIntersectionQueryTiming* /*timing*/ = nullptr) const override {
+        return false;
+      }
+
+      WavefrontOcclusionFlags
+      intersectAnyFrontier(const Scene&, const WavefrontAnyHitFrontier& frontier,
+                           WavefrontIntersectionQueryTiming*) const override {
+        if (frontier.rayCount() == 0) {
+          return {};
+        }
+        return WavefrontOcclusionFlags(static_cast<std::size_t>(frontier.rayCount() - 1U), 0U);
+      }
+
+      PrimitivePacketHit4 intersectPacketClosest(
+        const Scene& /*scene*/, const Ray4& /*rays*/, const PrimitivePacketState4& /*states*/,
+        WavefrontIntersectionQueryTiming* /*timing*/ = nullptr) const override {
+        return {};
+      }
+
+      PrimitivePacketHit8 intersectPacketClosest(
+        const Scene& /*scene*/, const Ray8& /*rays*/, const PrimitivePacketState8& /*states*/,
+        WavefrontIntersectionQueryTiming* /*timing*/ = nullptr) const override {
+        return {};
+      }
+    };
+
     enum class PackedRecordFailure { Short, DuplicateRayIndex };
 
     class MalformedPackedRecordBackend final : public WavefrontIntersectionBackend {
@@ -630,6 +671,19 @@ namespace WavefrontIntersectionBackendTest {
     ASSERT_EQ(1u, occluded.size());
     EXPECT_TRUE(occluded.front());
     EXPECT_EQ("runtime_scene", timing.executionPath);
+  }
+
+  TEST(WavefrontIntersectionBackend, DirectLightVisibilityBatchRejectsMismatchedFrontierResults) {
+    Scene scene;
+    ShortDirectLightVisibilityBackend backend;
+    State firstState;
+    State secondState;
+    std::vector<WavefrontAnyHitQuery> queries{
+      WavefrontAnyHitQuery{Rayd(Vector4d(0, 0, -3, 1), Vector3d(0, 0, 1)), 4.0, &firstState},
+      WavefrontAnyHitQuery{Rayd(Vector4d(0, 0, -3, 1), Vector3d(0, 0, 1)), 1.0, &secondState}};
+
+    EXPECT_THROW((void)backend.resolveDirectLightVisibilityBatch(scene, std::move(queries)),
+                 std::logic_error);
   }
 
   TEST(WavefrontIntersectionBackend, CpuQueriesReportRuntimeSceneTimingPath) {

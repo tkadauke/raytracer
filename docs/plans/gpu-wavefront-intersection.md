@@ -1691,6 +1691,10 @@ Progress:
   even if the backend also returns a matching shorter occlusion payload. That
   keeps standalone service consumers on the same submitted-work contract as the
   render integrators.
+- The default wavefront backend direct-light visibility hook now validates that
+  any-hit frontier execution returns one occlusion flag per frontier ray. That
+  pins the resident-direct-light hook's own malformed-result contract instead
+  of relying only on service and integrator callers to catch it.
 
 ---
 
