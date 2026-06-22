@@ -891,6 +891,9 @@ void RenderGraphInspectorWidget::Private::addIntersectionServiceDetailRows(
                               QStringLiteral("queryTransferBytesEstimate"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Service closest-hit frontier packed ray bytes"),
                               service, QStringLiteral("closestHitFrontierPackedRayBytes"));
+  addDetailIntegerMetadataRow(rows,
+                              QStringLiteral("Service closest-hit frontier host packed ray bytes"),
+                              service, QStringLiteral("closestHitFrontierHostPackedRayBytes"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Service closest-hit frontier host query bytes"),
                               service, QStringLiteral("closestHitFrontierHostQueryBytes"));
   addDetailIntegerMetadataRow(rows,
@@ -898,6 +901,9 @@ void RenderGraphInspectorWidget::Private::addIntersectionServiceDetailRows(
                               service, QStringLiteral("closestHitFrontierStateHandleBytes"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Service any-hit frontier packed ray bytes"),
                               service, QStringLiteral("anyHitFrontierPackedRayBytes"));
+  addDetailIntegerMetadataRow(rows,
+                              QStringLiteral("Service any-hit frontier host packed ray bytes"),
+                              service, QStringLiteral("anyHitFrontierHostPackedRayBytes"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Service any-hit frontier host query bytes"),
                               service, QStringLiteral("anyHitFrontierHostQueryBytes"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Service any-hit frontier state-handle bytes"),
@@ -952,6 +958,9 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
     rows, QStringLiteral("Closest-hit frontier packed ray bytes"), batching,
     QStringLiteral("intersectionBackendClosestHitFrontierPackedRayBytes"));
   addDetailIntegerMetadataRow(
+    rows, QStringLiteral("Closest-hit frontier host packed ray bytes"), batching,
+    QStringLiteral("intersectionBackendClosestHitFrontierHostPackedRayBytes"));
+  addDetailIntegerMetadataRow(
     rows, QStringLiteral("Closest-hit frontier host query bytes"), batching,
     QStringLiteral("intersectionBackendClosestHitFrontierHostQueryBytes"));
   addDetailStringMetadataRow(rows, QStringLiteral("Any-hit execution path"), batching,
@@ -960,6 +969,9 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                              QStringLiteral("intersectionBackendAnyHitFrontierResidency"), true);
   addDetailIntegerMetadataRow(rows, QStringLiteral("Any-hit frontier packed ray bytes"), batching,
                               QStringLiteral("intersectionBackendAnyHitFrontierPackedRayBytes"));
+  addDetailIntegerMetadataRow(
+    rows, QStringLiteral("Any-hit frontier host packed ray bytes"), batching,
+    QStringLiteral("intersectionBackendAnyHitFrontierHostPackedRayBytes"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Any-hit frontier host query bytes"), batching,
                               QStringLiteral("intersectionBackendAnyHitFrontierHostQueryBytes"));
   addDetailStringMetadataRow(rows, QStringLiteral("Intersection backend fallback"), batching,
@@ -1259,6 +1271,9 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
   addDetailIntegerMetadataRow(rows,
                               QStringLiteral("Direct-light any-hit frontier packed ray bytes"),
                               batching, QStringLiteral("directLightAnyHitFrontierPackedRayBytes"));
+  addDetailIntegerMetadataRow(
+    rows, QStringLiteral("Direct-light any-hit frontier host packed ray bytes"), batching,
+    QStringLiteral("directLightAnyHitFrontierHostPackedRayBytes"));
   addDetailIntegerMetadataRow(rows,
                               QStringLiteral("Direct-light any-hit frontier host query bytes"),
                               batching, QStringLiteral("directLightAnyHitFrontierHostQueryBytes"));
@@ -1269,6 +1284,11 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                QString::number(jsonIntegerArrayBack(
                  batching.value(QStringLiteral("directLightAnyHitFrontierPackedRayBytesPerDepth"))
                    .toArray())));
+  addDetailRow(
+    rows, QStringLiteral("Last direct-light any-hit frontier host packed ray bytes"),
+    QString::number(jsonIntegerArrayBack(
+      batching.value(QStringLiteral("directLightAnyHitFrontierHostPackedRayBytesPerDepth"))
+        .toArray())));
   addDetailRow(rows, QStringLiteral("Last direct-light any-hit frontier host query bytes"),
                QString::number(jsonIntegerArrayBack(
                  batching.value(QStringLiteral("directLightAnyHitFrontierHostQueryBytesPerDepth"))
@@ -1612,17 +1632,25 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
           batching, QStringLiteral("intersectionBackendClosestHitFrontierPackedRayBytes"));
         const qulonglong anyHitPackedBytes = jsonIntegerValue(
           batching, QStringLiteral("intersectionBackendAnyHitFrontierPackedRayBytes"));
+        const qulonglong closestHitHostPackedBytes = jsonIntegerValue(
+          batching, QStringLiteral("intersectionBackendClosestHitFrontierHostPackedRayBytes"));
+        const qulonglong anyHitHostPackedBytes = jsonIntegerValue(
+          batching, QStringLiteral("intersectionBackendAnyHitFrontierHostPackedRayBytes"));
         const qulonglong closestHitHostQueryBytes = jsonIntegerValue(
           batching, QStringLiteral("intersectionBackendClosestHitFrontierHostQueryBytes"));
         const qulonglong anyHitHostQueryBytes = jsonIntegerValue(
           batching, QStringLiteral("intersectionBackendAnyHitFrontierHostQueryBytes"));
-        if (closestHitPackedBytes > 0 || anyHitPackedBytes > 0 || closestHitHostQueryBytes > 0 ||
-            anyHitHostQueryBytes > 0) {
-          line += QStringLiteral(", frontier payload %1/%2 packed bytes, %3/%4 host-query bytes")
-                    .arg(closestHitPackedBytes)
-                    .arg(anyHitPackedBytes)
-                    .arg(closestHitHostQueryBytes)
-                    .arg(anyHitHostQueryBytes);
+        if (closestHitPackedBytes > 0 || anyHitPackedBytes > 0 || closestHitHostPackedBytes > 0 ||
+            anyHitHostPackedBytes > 0 || closestHitHostQueryBytes > 0 || anyHitHostQueryBytes > 0) {
+          line +=
+            QStringLiteral(", frontier payload %1/%2 packed bytes, %3/%4 host-packed bytes, %5/%6 "
+                           "host-query bytes")
+              .arg(closestHitPackedBytes)
+              .arg(anyHitPackedBytes)
+              .arg(closestHitHostPackedBytes)
+              .arg(anyHitHostPackedBytes)
+              .arg(closestHitHostQueryBytes)
+              .arg(anyHitHostQueryBytes);
         }
         const qulonglong frontierRoundTrips =
           jsonIntegerValue(batching, QStringLiteral("frontierQueryRoundTrips"));
@@ -1898,6 +1926,8 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
         jsonIntegerValue(batching, QStringLiteral("directLightContributionHostBytes"));
       const qulonglong directLightAnyHitPackedRayBytes =
         jsonIntegerValue(batching, QStringLiteral("directLightAnyHitFrontierPackedRayBytes"));
+      const qulonglong directLightAnyHitHostPackedRayBytes =
+        jsonIntegerValue(batching, QStringLiteral("directLightAnyHitFrontierHostPackedRayBytes"));
       const qulonglong directLightAnyHitHostQueryBytes =
         jsonIntegerValue(batching, QStringLiteral("directLightAnyHitFrontierHostQueryBytes"));
       const qulonglong directLightAnyHitStateHandleBytes =
@@ -1915,8 +1945,8 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
       line += QStringLiteral(
                 ", direct-light any-hit chunks %1 rays/%2 chunks, avg %3 (%4 round trips, "
                 "%5 resident savings, largest candidate depth %6 with %7 rays/%8 host bytes, "
-                "%9 occlusion bytes/%10 contribution bytes, %11 packed-ray bytes/%12 host-query "
-                "bytes/%13 state-handle bytes)")
+                "%9 occlusion bytes/%10 contribution bytes, %11 packed-ray bytes/%12 "
+                "host-packed-ray bytes/%13 host-query bytes/%14 state-handle bytes)")
                 .arg(directLightAnyHitBatchRays)
                 .arg(directLightAnyHitBatchChunks)
                 .arg(average(directLightAnyHitBatchRays, directLightAnyHitBatchChunks))
@@ -1928,6 +1958,7 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
                 .arg(directLightOcclusionHostBytes)
                 .arg(directLightContributionHostBytes)
                 .arg(directLightAnyHitPackedRayBytes)
+                .arg(directLightAnyHitHostPackedRayBytes)
                 .arg(directLightAnyHitHostQueryBytes)
                 .arg(directLightAnyHitStateHandleBytes);
     }

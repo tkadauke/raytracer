@@ -79,6 +79,8 @@ namespace engine::wavefront {
       std::string intersectionBackendAnyHitFrontierResidency;
       std::uint64_t intersectionBackendClosestHitFrontierPackedRayBytes = 0;
       std::uint64_t intersectionBackendAnyHitFrontierPackedRayBytes = 0;
+      std::uint64_t intersectionBackendClosestHitFrontierHostPackedRayBytes = 0;
+      std::uint64_t intersectionBackendAnyHitFrontierHostPackedRayBytes = 0;
       std::uint64_t intersectionBackendClosestHitFrontierHostQueryBytes = 0;
       std::uint64_t intersectionBackendAnyHitFrontierHostQueryBytes = 0;
       std::uint64_t intersectionBackendClosestHitFrontierStateHandleBytes = 0;
@@ -214,9 +216,11 @@ namespace engine::wavefront {
       std::string directLightContributionExecutionPath;
       std::string directLightContributionFallbackReason;
       std::uint64_t directLightAnyHitFrontierPackedRayBytes = 0;
+      std::uint64_t directLightAnyHitFrontierHostPackedRayBytes = 0;
       std::uint64_t directLightAnyHitFrontierHostQueryBytes = 0;
       std::uint64_t directLightAnyHitFrontierStateHandleBytes = 0;
       std::vector<std::uint64_t> directLightAnyHitFrontierPackedRayBytesPerDepth;
+      std::vector<std::uint64_t> directLightAnyHitFrontierHostPackedRayBytesPerDepth;
       std::vector<std::uint64_t> directLightAnyHitFrontierHostQueryBytesPerDepth;
       std::vector<std::uint64_t> directLightAnyHitFrontierStateHandleBytesPerDepth;
       std::vector<std::uint64_t> frontierRay4PacketChunksPerDepth;

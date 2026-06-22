@@ -1569,6 +1569,8 @@ namespace RenderGraphInspectorWidgetTest {
               rowValue(rows, QStringLiteral("Service closest-hit frontier residency")));
     EXPECT_EQ(QStringLiteral("0"),
               rowValue(rows, QStringLiteral("Service closest-hit frontier packed ray bytes")));
+    EXPECT_EQ(QStringLiteral("0"),
+              rowValue(rows, QStringLiteral("Service closest-hit frontier host packed ray bytes")));
     EXPECT_NE(QStringLiteral("0"),
               rowValue(rows, QStringLiteral("Service closest-hit frontier host query bytes")));
     EXPECT_EQ(QStringLiteral("0"),
@@ -1598,6 +1600,9 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_EQ(rowValue(rows, QStringLiteral("Service closest-hit frontier host query bytes")),
               QString::number(static_cast<qulonglong>(
                 service.value(QStringLiteral("closestHitFrontierHostQueryBytes")).toDouble())));
+    EXPECT_EQ(rowValue(rows, QStringLiteral("Service closest-hit frontier host packed ray bytes")),
+              QString::number(static_cast<qulonglong>(
+                service.value(QStringLiteral("closestHitFrontierHostPackedRayBytes")).toDouble())));
 
     auto* graph = widget.findChild<QGraphicsView*>(QStringLiteral("renderGraphView"));
     ASSERT_NE(nullptr, graph);
@@ -1697,6 +1702,10 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_EQ(QStringLiteral("0"),
               rowValue(rows, QStringLiteral("Service any-hit frontier packed ray bytes")));
     EXPECT_EQ(QStringLiteral("0"),
+              rowValue(rows, QStringLiteral("Service closest-hit frontier host packed ray bytes")));
+    EXPECT_EQ(QStringLiteral("0"),
+              rowValue(rows, QStringLiteral("Service any-hit frontier host packed ray bytes")));
+    EXPECT_EQ(QStringLiteral("0"),
               rowValue(rows, QStringLiteral("Service closest-hit frontier state-handle bytes")));
     EXPECT_EQ(QStringLiteral("0"),
               rowValue(rows, QStringLiteral("Service any-hit frontier state-handle bytes")));
@@ -1717,6 +1726,9 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_EQ(rowValue(rows, QStringLiteral("Service any-hit frontier host query bytes")),
               QString::number(static_cast<qulonglong>(
                 service.value(QStringLiteral("anyHitFrontierHostQueryBytes")).toDouble())));
+    EXPECT_EQ(rowValue(rows, QStringLiteral("Service any-hit frontier host packed ray bytes")),
+              QString::number(static_cast<qulonglong>(
+                service.value(QStringLiteral("anyHitFrontierHostPackedRayBytes")).toDouble())));
 
     auto* graph = widget.findChild<QGraphicsView*>(QStringLiteral("renderGraphView"));
     ASSERT_NE(nullptr, graph);

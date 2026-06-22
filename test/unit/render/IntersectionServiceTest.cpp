@@ -310,6 +310,7 @@ namespace IntersectionServiceTest {
     EXPECT_EQ(1u, service.diagnostics().closestHitHitCount);
     EXPECT_EQ("host", service.diagnostics().closestHitFrontierResidency);
     EXPECT_EQ(0u, service.diagnostics().closestHitFrontierPackedRayBytes);
+    EXPECT_EQ(0u, service.diagnostics().closestHitFrontierHostPackedRayBytes);
     EXPECT_EQ(2u * sizeof(WavefrontClosestHitQuery),
               service.diagnostics().closestHitFrontierHostQueryBytes);
     EXPECT_EQ(0u, service.diagnostics().closestHitFrontierStateHandleBytes);
@@ -369,8 +370,11 @@ namespace IntersectionServiceTest {
     EXPECT_EQ(2u, service.diagnostics().anyHitQueryCount);
     EXPECT_EQ(1u, service.diagnostics().anyHitOccludedCount);
     EXPECT_EQ("host", service.diagnostics().anyHitFrontierResidency);
+    EXPECT_EQ(0u, service.diagnostics().anyHitFrontierPackedRayBytes);
+    EXPECT_EQ(0u, service.diagnostics().anyHitFrontierHostPackedRayBytes);
     EXPECT_EQ(2u * sizeof(WavefrontAnyHitQuery),
               service.diagnostics().anyHitFrontierHostQueryBytes);
+    EXPECT_EQ(0u, service.diagnostics().anyHitFrontierStateHandleBytes);
     EXPECT_EQ("runtime_scene", service.diagnostics().lastAnyHitTiming.executionPath);
   }
 
@@ -417,9 +421,11 @@ namespace IntersectionServiceTest {
     EXPECT_EQ("packed_host", diagnostics.closestHitFrontierResidency);
     EXPECT_EQ("packed_host", diagnostics.anyHitFrontierResidency);
     EXPECT_EQ(2u * sizeof(GpuIntersectionRay), diagnostics.closestHitFrontierPackedRayBytes);
+    EXPECT_EQ(2u * sizeof(GpuIntersectionRay), diagnostics.closestHitFrontierHostPackedRayBytes);
     EXPECT_EQ(0u, diagnostics.closestHitFrontierHostQueryBytes);
     EXPECT_EQ(2u * sizeof(State*), diagnostics.closestHitFrontierStateHandleBytes);
     EXPECT_EQ(2u * sizeof(GpuIntersectionRay), diagnostics.anyHitFrontierPackedRayBytes);
+    EXPECT_EQ(2u * sizeof(GpuIntersectionRay), diagnostics.anyHitFrontierHostPackedRayBytes);
     EXPECT_EQ(0u, diagnostics.anyHitFrontierHostQueryBytes);
     EXPECT_EQ(2u * sizeof(State*), diagnostics.anyHitFrontierStateHandleBytes);
   }

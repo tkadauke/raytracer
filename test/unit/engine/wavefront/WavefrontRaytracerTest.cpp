@@ -2444,7 +2444,8 @@ namespace WavefrontRaytracerTest {
     batch.recordDirectLightOcclusionHostBytes(/*depth=*/0, /*bytes=*/7);
     batch.recordDirectLightContributionHostBytes(/*depth=*/0, /*bytes=*/128);
     batch.recordDirectLightAnyHitBatch(/*depth=*/0, /*batchChunks=*/2, /*batchRays=*/7,
-                                       /*packedRayBytes=*/700, /*hostQueryBytes=*/0,
+                                       /*packedRayBytes=*/700, /*hostPackedRayBytes=*/35,
+                                       /*hostQueryBytes=*/0,
                                        /*stateHandleBytes=*/70);
     batch.recordAmbientRadiance(Colord(1.0, 1.0, 0.0));
     batch.recordMissRadiance(Colord(0.0, 1.0, 1.0));
@@ -2476,12 +2477,12 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(2u, metrics.batching.residentDirectLightBatchRoundTripSavingsEstimate());
     EXPECT_EQ(1u, metrics.batching.residentDirectLightBatchCandidateDepthCount());
     EXPECT_GT(metrics.batching.residentDirectLightBatchCandidateRayCount(), 0u);
-    EXPECT_EQ(349u, metrics.batching.residentDirectLightBatchCandidateHostBytes());
+    EXPECT_EQ(384u, metrics.batching.residentDirectLightBatchCandidateHostBytes());
     EXPECT_EQ(0u, metrics.batching.largestResidentDirectLightBatchDepth());
     EXPECT_EQ(metrics.batching.residentDirectLightBatchCandidateRayCount(),
               metrics.batching.largestResidentDirectLightBatchRayCount());
     EXPECT_EQ(700u, metrics.batching.largestResidentDirectLightBatchPackedRayBytes());
-    EXPECT_EQ(349u, metrics.batching.largestResidentDirectLightBatchHostBytes());
+    EXPECT_EQ(384u, metrics.batching.largestResidentDirectLightBatchHostBytes());
     EXPECT_EQ(96u, metrics.batching.activeHitHostBytesProcessed);
     ASSERT_EQ(1u, metrics.batching.activeHitHostBytesPerDepth.size());
     EXPECT_EQ(96u, metrics.batching.activeHitHostBytesPerDepth[0]);
@@ -2495,10 +2496,13 @@ namespace WavefrontRaytracerTest {
     ASSERT_EQ(1u, metrics.batching.directLightContributionHostBytesPerDepth.size());
     EXPECT_EQ(128u, metrics.batching.directLightContributionHostBytesPerDepth[0]);
     EXPECT_EQ(700u, metrics.batching.directLightAnyHitFrontierPackedRayBytes);
+    EXPECT_EQ(35u, metrics.batching.directLightAnyHitFrontierHostPackedRayBytes);
     EXPECT_EQ(0u, metrics.batching.directLightAnyHitFrontierHostQueryBytes);
     EXPECT_EQ(70u, metrics.batching.directLightAnyHitFrontierStateHandleBytes);
     ASSERT_EQ(1u, metrics.batching.directLightAnyHitFrontierPackedRayBytesPerDepth.size());
     EXPECT_EQ(700u, metrics.batching.directLightAnyHitFrontierPackedRayBytesPerDepth[0]);
+    ASSERT_EQ(1u, metrics.batching.directLightAnyHitFrontierHostPackedRayBytesPerDepth.size());
+    EXPECT_EQ(35u, metrics.batching.directLightAnyHitFrontierHostPackedRayBytesPerDepth[0]);
     ASSERT_EQ(1u, metrics.batching.directLightAnyHitFrontierHostQueryBytesPerDepth.size());
     EXPECT_EQ(0u, metrics.batching.directLightAnyHitFrontierHostQueryBytesPerDepth[0]);
     ASSERT_EQ(1u, metrics.batching.directLightAnyHitFrontierStateHandleBytesPerDepth.size());
@@ -2546,12 +2550,12 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(1.0, batching.value("residentDirectLightBatchCandidateDepths").toDouble());
     EXPECT_EQ(static_cast<double>(metrics.batching.residentDirectLightBatchCandidateRayCount()),
               batching.value("residentDirectLightBatchCandidateRays").toDouble());
-    EXPECT_EQ(349.0, batching.value("residentDirectLightBatchCandidateHostBytes").toDouble());
+    EXPECT_EQ(384.0, batching.value("residentDirectLightBatchCandidateHostBytes").toDouble());
     EXPECT_EQ(0.0, batching.value("residentLargestDirectLightBatchDepth").toDouble());
     EXPECT_EQ(static_cast<double>(metrics.batching.largestResidentDirectLightBatchRayCount()),
               batching.value("residentLargestDirectLightBatchRays").toDouble());
     EXPECT_EQ(700.0, batching.value("residentLargestDirectLightBatchPackedRayBytes").toDouble());
-    EXPECT_EQ(349.0, batching.value("residentLargestDirectLightBatchHostBytes").toDouble());
+    EXPECT_EQ(384.0, batching.value("residentLargestDirectLightBatchHostBytes").toDouble());
     EXPECT_EQ(96.0, batching.value("activeHitHostBytesProcessed").toDouble());
     ASSERT_TRUE(batching.value("activeHitHostBytesPerDepth").isArray());
     EXPECT_EQ(96.0, batching.value("activeHitHostBytesPerDepth").toArray().at(0).toDouble());
@@ -2568,12 +2572,18 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(
       128.0, batching.value("directLightContributionHostBytesPerDepth").toArray().at(0).toDouble());
     EXPECT_EQ(700.0, batching.value("directLightAnyHitFrontierPackedRayBytes").toDouble());
+    EXPECT_EQ(35.0, batching.value("directLightAnyHitFrontierHostPackedRayBytes").toDouble());
     EXPECT_EQ(0.0, batching.value("directLightAnyHitFrontierHostQueryBytes").toDouble());
     EXPECT_EQ(70.0, batching.value("directLightAnyHitFrontierStateHandleBytes").toDouble());
     ASSERT_TRUE(batching.value("directLightAnyHitFrontierPackedRayBytesPerDepth").isArray());
     EXPECT_EQ(
       700.0,
       batching.value("directLightAnyHitFrontierPackedRayBytesPerDepth").toArray().at(0).toDouble());
+    ASSERT_TRUE(batching.value("directLightAnyHitFrontierHostPackedRayBytesPerDepth").isArray());
+    EXPECT_EQ(35.0, batching.value("directLightAnyHitFrontierHostPackedRayBytesPerDepth")
+                      .toArray()
+                      .at(0)
+                      .toDouble());
     ASSERT_TRUE(batching.value("directLightAnyHitFrontierHostQueryBytesPerDepth").isArray());
     EXPECT_EQ(
       0.0,

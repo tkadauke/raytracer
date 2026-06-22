@@ -2464,6 +2464,12 @@ if(NOT wavefront_metrics_stdout MATCHES "direct_light_any_hit_frontier_packed_ra
                   "wavefront metrics summary did not contain direct-light any-hit packed ray bytes"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
+if(NOT wavefront_metrics_stdout MATCHES "direct_light_any_hit_frontier_host_packed_ray_bytes=")
+  _rendercli_fail(
+    "rendercli wavefront metrics direct-light any-hit host packed bytes summary"
+    "wavefront metrics summary did not contain direct-light any-hit host packed ray bytes"
+    "${wavefront_metrics_stdout}" "" "" "")
+endif()
 if(NOT wavefront_metrics_stdout MATCHES "direct_light_any_hit_frontier_host_query_bytes=")
   _rendercli_fail("rendercli wavefront metrics direct-light any-hit host query bytes summary"
                   "wavefront metrics summary did not contain direct-light any-hit host query bytes"
@@ -2478,6 +2484,13 @@ if(NOT wavefront_metrics_stdout MATCHES "last_direct_light_any_hit_frontier_pack
   _rendercli_fail("rendercli wavefront metrics last direct-light any-hit packed bytes summary"
                   "wavefront metrics summary did not contain last direct-light any-hit packed ray bytes"
                   "${wavefront_metrics_stdout}" "" "" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES
+       "last_direct_light_any_hit_frontier_host_packed_ray_bytes=")
+  _rendercli_fail(
+    "rendercli wavefront metrics last direct-light any-hit host packed bytes summary"
+    "wavefront metrics summary did not contain last direct-light any-hit host packed ray bytes"
+    "${wavefront_metrics_stdout}" "" "" "")
 endif()
 if(NOT wavefront_metrics_stdout MATCHES "last_direct_light_any_hit_frontier_host_query_bytes=")
   _rendercli_fail("rendercli wavefront metrics last direct-light any-hit host query bytes summary"
@@ -3019,9 +3032,13 @@ if(NOT wavefront_metrics_stdout MATCHES "frontier_query_round_trips=")
 endif()
 foreach(frontier_residency_summary
         closest_hit_frontier_residency=
+        closest_hit_frontier_packed_ray_bytes=
+        closest_hit_frontier_host_packed_ray_bytes=
         closest_hit_frontier_host_query_bytes=
         closest_hit_frontier_state_handle_bytes=
         any_hit_frontier_residency=
+        any_hit_frontier_packed_ray_bytes=
+        any_hit_frontier_host_packed_ray_bytes=
         any_hit_frontier_host_query_bytes=
         any_hit_frontier_state_handle_bytes=)
   if(NOT wavefront_metrics_stdout MATCHES "${frontier_residency_summary}")
@@ -3133,6 +3150,8 @@ foreach(direct_light_any_hit_field
         directLightContributionHostBytesPerDepth
         directLightAnyHitFrontierPackedRayBytes
         directLightAnyHitFrontierPackedRayBytesPerDepth
+        directLightAnyHitFrontierHostPackedRayBytes
+        directLightAnyHitFrontierHostPackedRayBytesPerDepth
         directLightAnyHitFrontierHostQueryBytes
         directLightAnyHitFrontierHostQueryBytesPerDepth
         directLightAnyHitFrontierStateHandleBytes
@@ -3163,6 +3182,8 @@ foreach(frontier_metric_field
         intersectionBackendAnyHitFrontierResidency
         intersectionBackendClosestHitFrontierPackedRayBytes
         intersectionBackendAnyHitFrontierPackedRayBytes
+        intersectionBackendClosestHitFrontierHostPackedRayBytes
+        intersectionBackendAnyHitFrontierHostPackedRayBytes
         intersectionBackendClosestHitFrontierHostQueryBytes
         intersectionBackendAnyHitFrontierHostQueryBytes)
   if(NOT wavefront_metrics_json MATCHES "\"${frontier_metric_field}\"")
@@ -3934,7 +3955,7 @@ rendercli_run(
   NAME "rendercli reports batched wavefront any-hit visibility metrics"
   OUTPUT_VARIABLE wavefront_batched_visibility_stdout
   STDOUT_MATCHES
-    "wavefront_metrics.*integrator=pathtracer.*execution=depth_major_paths.*intersection_backend_platform=(metal|vulkan).*intersection_backend_gpu_device=(true|false).*intersection_backend_gpu_render_path=(true|false).*any_hit_rays=[1-9][0-9]*.*any_hit_queries=[1-9][0-9]*.*frontier_mixed_query_depths=[1-9][0-9]*.*frontier_mixed_query_closest_hit_rays=[1-9][0-9]*.*frontier_mixed_query_any_hit_rays=[1-9][0-9]*.*closest_hit_batch_preferred=true.*any_hit_batch_preferred=true.*direct_light_any_hit_batch_chunks=[1-9][0-9]*.*direct_light_any_hit_batch_rays=[1-9][0-9]*.*direct_light_any_hit_batch_avg=[1-9][0-9]*\\.[0-9][0-9][0-9].*direct_light_any_hit_round_trips=[1-9][0-9]*.*resident_direct_light_round_trip_savings_estimate=[1-9][0-9]*.*direct_light_any_hit_frontier_packed_ray_bytes=[1-9][0-9]*.*direct_light_any_hit_frontier_state_handle_bytes=[1-9][0-9]*.*last_direct_light_any_hit_frontier_packed_ray_bytes=[1-9][0-9]*.*last_direct_light_any_hit_frontier_state_handle_bytes=[1-9][0-9]*.*direct_light_samples=[1-9][0-9]*"
+    "wavefront_metrics.*integrator=pathtracer.*execution=depth_major_paths.*intersection_backend_platform=(metal|vulkan).*intersection_backend_gpu_device=(true|false).*intersection_backend_gpu_render_path=(true|false).*any_hit_rays=[1-9][0-9]*.*any_hit_queries=[1-9][0-9]*.*frontier_mixed_query_depths=[1-9][0-9]*.*frontier_mixed_query_closest_hit_rays=[1-9][0-9]*.*frontier_mixed_query_any_hit_rays=[1-9][0-9]*.*closest_hit_batch_preferred=true.*any_hit_batch_preferred=true.*direct_light_any_hit_batch_chunks=[1-9][0-9]*.*direct_light_any_hit_batch_rays=[1-9][0-9]*.*direct_light_any_hit_batch_avg=[1-9][0-9]*\\.[0-9][0-9][0-9].*direct_light_any_hit_round_trips=[1-9][0-9]*.*resident_direct_light_round_trip_savings_estimate=[1-9][0-9]*.*direct_light_any_hit_frontier_packed_ray_bytes=[1-9][0-9]*.*direct_light_any_hit_frontier_host_packed_ray_bytes=[1-9][0-9]*.*direct_light_any_hit_frontier_state_handle_bytes=[1-9][0-9]*.*last_direct_light_any_hit_frontier_packed_ray_bytes=[1-9][0-9]*.*last_direct_light_any_hit_frontier_host_packed_ray_bytes=[1-9][0-9]*.*last_direct_light_any_hit_frontier_state_handle_bytes=[1-9][0-9]*.*direct_light_samples=[1-9][0-9]*"
   COMMAND
     "${RENDERCLI}" --engine wavefront --integrator pathtracer --width 16 --height 16
     --pathtracer_direct_light_samples 3 --wavefront_denoiser none
@@ -5126,6 +5147,8 @@ foreach(expectation
         "\"queryTransferBytesEstimate\"[ \r\n]*:[ \r\n]*0"
         "\"closestHitFrontierResidency\"[ \r\n]*:[ \r\n]*\"host\""
         "\"anyHitFrontierResidency\"[ \r\n]*:[ \r\n]*\"\""
+        "\"closestHitFrontierHostPackedRayBytes\"[ \r\n]*:[ \r\n]*0"
+        "\"anyHitFrontierHostPackedRayBytes\"[ \r\n]*:[ \r\n]*0"
         "\"closestHitFrontierHostQueryBytes\"[ \r\n]*:[ \r\n]*[1-9][0-9]*(\\.[0-9]+)?"
         "\"anyHitFrontierHostQueryBytes\"[ \r\n]*:[ \r\n]*0"
         "\"queryCount\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
@@ -5137,13 +5160,37 @@ foreach(expectation
                     "" "" "${graph_aov_hybrid_visibility_trace_json}" "")
   endif()
 endforeach()
-if(NOT graph_aov_hybrid_visibility_stdout MATCHES
-       "intersection_service.*pass=hybrid_visibility_aov.*query_family=closest_hit.*query_tag=debug_aov.*requested_backend=cpu.*selected_backend=cpu.*availability=available.*platform=none.*closest_hit_execution=runtime_scene.*compiled_scene=false.*scene_primitives=0.*scene_supported_primitives=0.*scene_unsupported_primitives=0.*scene_unsupported_by_reason=none.*scene_upload_bytes=0.*queries=[1-9][0-9]*.*hits=[1-9][0-9]*.*query_transfer_bytes=0.*closest_hit_frontier_residency=host.*any_hit_frontier_residency=none.*closest_hit_frontier_host_query_bytes=[1-9][0-9]*.*any_hit_frontier_host_query_bytes=0")
-  _rendercli_fail(
-    "rendercli hybrid visibility AOV metrics summary"
-    "hybrid visibility AOV metrics summary did not expose intersection service diagnostics"
-    "" "" "${graph_aov_hybrid_visibility_stdout}" "")
-endif()
+foreach(expectation IN ITEMS
+        "intersection_service.*pass=hybrid_visibility_aov"
+        "intersection_service.*query_family=closest_hit"
+        "intersection_service.*query_tag=debug_aov"
+        "intersection_service.*requested_backend=cpu"
+        "intersection_service.*selected_backend=cpu"
+        "intersection_service.*availability=available"
+        "intersection_service.*platform=none"
+        "intersection_service.*closest_hit_execution=runtime_scene"
+        "intersection_service.*compiled_scene=false"
+        "intersection_service.*scene_primitives=0"
+        "intersection_service.*scene_supported_primitives=0"
+        "intersection_service.*scene_unsupported_primitives=0"
+        "intersection_service.*scene_unsupported_by_reason=none"
+        "intersection_service.*scene_upload_bytes=0"
+        "intersection_service.*queries=[1-9][0-9]*"
+        "intersection_service.*hits=[1-9][0-9]*"
+        "intersection_service.*query_transfer_bytes=0"
+        "intersection_service.*closest_hit_frontier_residency=host"
+        "intersection_service.*any_hit_frontier_residency=none"
+        "intersection_service.*closest_hit_frontier_host_packed_ray_bytes=0"
+        "intersection_service.*any_hit_frontier_host_packed_ray_bytes=0"
+        "intersection_service.*closest_hit_frontier_host_query_bytes=[1-9][0-9]*"
+        "intersection_service.*any_hit_frontier_host_query_bytes=0")
+  if(NOT graph_aov_hybrid_visibility_stdout MATCHES "${expectation}")
+    _rendercli_fail(
+      "rendercli hybrid visibility AOV metrics summary"
+      "hybrid visibility AOV metrics summary did not expose ${expectation}"
+      "" "" "${graph_aov_hybrid_visibility_stdout}" "")
+  endif()
+endforeach()
 
 rendercli_expect_failure(
   NAME "rendercli rejects invalid graph AOV output view"

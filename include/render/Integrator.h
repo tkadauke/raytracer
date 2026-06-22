@@ -57,9 +57,11 @@ namespace render {
     std::string directLightContributionExecutionPath;
     std::string directLightContributionFallbackReason;
     std::uint64_t directLightAnyHitFrontierPackedRayBytes{0};
+    std::uint64_t directLightAnyHitFrontierHostPackedRayBytes{0};
     std::uint64_t directLightAnyHitFrontierHostQueryBytes{0};
     std::uint64_t directLightAnyHitFrontierStateHandleBytes{0};
     std::vector<std::uint64_t> directLightAnyHitFrontierPackedRayBytesPerDepth;
+    std::vector<std::uint64_t> directLightAnyHitFrontierHostPackedRayBytesPerDepth;
     std::vector<std::uint64_t> directLightAnyHitFrontierHostQueryBytesPerDepth;
     std::vector<std::uint64_t> directLightAnyHitFrontierStateHandleBytesPerDepth;
     std::vector<std::uint64_t> frontierRay4PacketChunksPerDepth;
@@ -103,6 +105,8 @@ namespace render {
     std::string intersectionBackendAnyHitFrontierResidency;
     std::uint64_t intersectionBackendClosestHitFrontierPackedRayBytes{0};
     std::uint64_t intersectionBackendAnyHitFrontierPackedRayBytes{0};
+    std::uint64_t intersectionBackendClosestHitFrontierHostPackedRayBytes{0};
+    std::uint64_t intersectionBackendAnyHitFrontierHostPackedRayBytes{0};
     std::uint64_t intersectionBackendClosestHitFrontierHostQueryBytes{0};
     std::uint64_t intersectionBackendAnyHitFrontierHostQueryBytes{0};
     std::uint64_t intersectionBackendClosestHitFrontierStateHandleBytes{0};
@@ -265,19 +269,22 @@ namespace render {
                                                    std::string gpuUnavailableReason);
     void recordDirectLightAnyHitBatch(std::uint64_t depth, std::uint64_t batchChunks,
                                       std::uint64_t batchRays, std::uint64_t packedRayBytes = 0,
+                                      std::uint64_t hostPackedRayBytes = 0,
                                       std::uint64_t hostQueryBytes = 0,
                                       std::uint64_t stateHandleBytes = 0);
     void recordDirectLightVisibilityDepth(std::uint64_t depth, std::uint64_t selectionHostBytes,
                                           std::uint64_t occlusionHostBytes,
                                           std::uint64_t batchChunks, std::uint64_t batchRays,
                                           std::uint64_t packedRayBytes = 0,
+                                          std::uint64_t hostPackedRayBytes = 0,
                                           std::uint64_t hostQueryBytes = 0,
                                           std::uint64_t stateHandleBytes = 0);
     void recordDirectLightAnyHitFrontierQuery(
       std::uint64_t depth, std::uint64_t selectionHostBytes, std::uint64_t occlusionHostBytes,
       const WavefrontIntersectionBackend& backend, const std::string& residency,
-      std::uint64_t submittedRays, std::uint64_t packedRayBytes, std::uint64_t hostQueryBytes,
-      std::uint64_t stateHandleBytes, const WavefrontIntersectionQueryTiming& timing = {});
+      std::uint64_t submittedRays, std::uint64_t packedRayBytes, std::uint64_t hostPackedRayBytes,
+      std::uint64_t hostQueryBytes, std::uint64_t stateHandleBytes,
+      const WavefrontIntersectionQueryTiming& timing = {});
     void recordDirectLightAnyHitFrontierQuery(std::uint64_t depth, std::uint64_t selectionHostBytes,
                                               std::uint64_t occlusionHostBytes,
                                               const WavefrontIntersectionBackend& backend,
@@ -316,24 +323,27 @@ namespace render {
     bool recordIntersectionQueryTransfer(std::uint64_t rayUploadBytes, std::uint64_t readbackBytes);
     void recordClosestHitFrontierResidency(const std::string& residency,
                                            std::uint64_t packedRayBytes = 0,
+                                           std::uint64_t hostPackedRayBytes = 0,
                                            std::uint64_t hostQueryBytes = 0,
                                            std::uint64_t stateHandleBytes = 0);
     void recordAnyHitFrontierResidency(const std::string& residency,
                                        std::uint64_t packedRayBytes = 0,
+                                       std::uint64_t hostPackedRayBytes = 0,
                                        std::uint64_t hostQueryBytes = 0,
                                        std::uint64_t stateHandleBytes = 0);
     void recordClosestHitFrontierQuery(const WavefrontIntersectionBackend& backend,
                                        const std::string& residency, std::uint64_t submittedRays,
-                                       std::uint64_t packedRayBytes, std::uint64_t hostQueryBytes,
-                                       std::uint64_t stateHandleBytes,
+                                       std::uint64_t packedRayBytes,
+                                       std::uint64_t hostPackedRayBytes,
+                                       std::uint64_t hostQueryBytes, std::uint64_t stateHandleBytes,
                                        const WavefrontIntersectionQueryTiming& timing = {});
     void recordClosestHitFrontierQuery(const WavefrontIntersectionBackend& backend,
                                        const WavefrontClosestHitFrontier& frontier,
                                        const WavefrontIntersectionQueryTiming& timing = {});
     void recordAnyHitFrontierQuery(const WavefrontIntersectionBackend& backend,
                                    const std::string& residency, std::uint64_t submittedRays,
-                                   std::uint64_t packedRayBytes, std::uint64_t hostQueryBytes,
-                                   std::uint64_t stateHandleBytes,
+                                   std::uint64_t packedRayBytes, std::uint64_t hostPackedRayBytes,
+                                   std::uint64_t hostQueryBytes, std::uint64_t stateHandleBytes,
                                    const WavefrontIntersectionQueryTiming& timing = {});
     void recordAnyHitFrontierQuery(const WavefrontIntersectionBackend& backend,
                                    const WavefrontAnyHitFrontier& frontier,

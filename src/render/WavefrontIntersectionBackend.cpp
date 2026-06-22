@@ -109,6 +109,10 @@ namespace render {
         return static_cast<std::uint64_t>(m_packedRays.size()) * sizeof(GpuIntersectionRay);
       }
 
+      std::uint64_t hostPackedRayBytes() const override {
+        return static_cast<std::uint64_t>(m_packedRays.size()) * sizeof(GpuIntersectionRay);
+      }
+
       std::uint64_t stateHandleBytes() const override {
         return static_cast<std::uint64_t>(m_states.size()) * sizeof(State*);
       }
@@ -160,6 +164,10 @@ namespace render {
       }
 
       std::uint64_t packedRayBytes() const override {
+        return static_cast<std::uint64_t>(m_packedRays.size()) * sizeof(GpuIntersectionRay);
+      }
+
+      std::uint64_t hostPackedRayBytes() const override {
         return static_cast<std::uint64_t>(m_packedRays.size()) * sizeof(GpuIntersectionRay);
       }
 
@@ -225,6 +233,10 @@ namespace render {
         if (m_preparedRays) {
           return m_preparedRays->packedRayBytes();
         }
+        return static_cast<std::uint64_t>(m_packedRays.size()) * sizeof(GpuIntersectionRay);
+      }
+
+      std::uint64_t hostPackedRayBytes() const override {
         return static_cast<std::uint64_t>(m_packedRays.size()) * sizeof(GpuIntersectionRay);
       }
 
@@ -311,6 +323,10 @@ namespace render {
         if (m_preparedRays) {
           return m_preparedRays->packedRayBytes();
         }
+        return static_cast<std::uint64_t>(m_packedRays.size()) * sizeof(GpuIntersectionRay);
+      }
+
+      std::uint64_t hostPackedRayBytes() const override {
         return static_cast<std::uint64_t>(m_packedRays.size()) * sizeof(GpuIntersectionRay);
       }
 
@@ -403,6 +419,10 @@ namespace render {
         return static_cast<std::uint64_t>(m_packedRays.size()) * sizeof(GpuIntersectionRay);
       }
 
+      std::uint64_t hostPackedRayBytes() const override {
+        return static_cast<std::uint64_t>(m_packedRays.size()) * sizeof(GpuIntersectionRay);
+      }
+
       std::uint64_t stateHandleBytes() const override {
         return static_cast<std::uint64_t>(m_states.size()) * sizeof(State*);
       }
@@ -486,6 +506,10 @@ namespace render {
         if (m_preparedRays) {
           return m_preparedRays->packedRayBytes();
         }
+        return static_cast<std::uint64_t>(m_packedRays.size()) * sizeof(GpuIntersectionRay);
+      }
+
+      std::uint64_t hostPackedRayBytes() const override {
         return static_cast<std::uint64_t>(m_packedRays.size()) * sizeof(GpuIntersectionRay);
       }
 
@@ -810,6 +834,10 @@ namespace render {
     return 0;
   }
 
+  std::uint64_t WavefrontAnyHitFrontier::hostPackedRayBytes() const {
+    return 0;
+  }
+
   std::uint64_t WavefrontAnyHitFrontier::hostQueryBytes() const {
     return 0;
   }
@@ -871,6 +899,10 @@ namespace render {
   }
 
   std::uint64_t WavefrontClosestHitFrontier::packedRayBytes() const {
+    return 0;
+  }
+
+  std::uint64_t WavefrontClosestHitFrontier::hostPackedRayBytes() const {
     return 0;
   }
 

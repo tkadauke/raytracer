@@ -1073,6 +1073,11 @@ Progress:
   `packed_host` and platform resident frontiers report zero once they have
   discarded that vector. This makes the remaining host-side dependency visible
   separately from packed ray payload size.
+- Backend-owned prepared frontiers now also report retained host packed-ray
+  staging bytes. `packed_host`, `metal_shared`, and `vulkan_host_coherent`
+  frontiers can therefore distinguish the platform/prepared packed payload
+  from the CPU-side packed ray copy that still exists for fallback or
+  host-coherent staging.
 - `packed_host` prepared frontiers now retain only per-ray `State*` handles
   plus the packed ray payload after construction. That matches the platform
   frontier shape more closely and removes the last original-query-vector
@@ -1449,8 +1454,9 @@ Progress:
   same explicit zero rows for depths with no visibility work, keeping the
   direct-light resident-frontier diagnostics shape-compatible across empty and
   materialized visibility batches.
-- Direct-light any-hit frontier packed-ray, host-query, and state-handle byte
-  metrics now also have per-depth arrays in addition to whole-render totals.
+- Direct-light any-hit frontier packed-ray, host-packed-ray, host-query, and
+  state-handle byte metrics now also have per-depth arrays in addition to
+  whole-render totals.
   This lets resident-direct-light analysis identify which bounce moved the
   occlusion frontier payload.
 - The convergence capture helper now preserves the last recorded depth row for
@@ -1806,8 +1812,9 @@ performance evidence on at least one large supported scene.
   request, chosen backend, availability, platform, execution path, and fallback
   reason in Modeler graph details and tooltips. Hybrid visibility and
   ray-traced shadow passes also expose `IntersectionService` frontier
-  residency plus packed-ray, host-query, and state-handle payload bytes in the
-  selected-pass details, along with backend availability and platform. Wavefront
+  residency plus packed-ray, host-packed-ray, host-query, and state-handle
+  payload bytes in the selected-pass details, along with backend availability
+  and platform. Wavefront
   selected-pass details also show total ray-upload bytes plus closest-hit/any-hit
   readback bytes, matching the rendercli transfer-breakdown diagnostics used for
   Phase 7/8 backend analysis.

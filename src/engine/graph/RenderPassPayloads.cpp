@@ -1901,12 +1901,16 @@ namespace engine::graph {
           QString::fromStdString(diagnostics.anyHitFrontierResidency);
         service["closestHitFrontierPackedRayBytes"] =
           static_cast<double>(diagnostics.closestHitFrontierPackedRayBytes);
+        service["closestHitFrontierHostPackedRayBytes"] =
+          static_cast<double>(diagnostics.closestHitFrontierHostPackedRayBytes);
         service["closestHitFrontierHostQueryBytes"] =
           static_cast<double>(diagnostics.closestHitFrontierHostQueryBytes);
         service["closestHitFrontierStateHandleBytes"] =
           static_cast<double>(diagnostics.closestHitFrontierStateHandleBytes);
         service["anyHitFrontierPackedRayBytes"] =
           static_cast<double>(diagnostics.anyHitFrontierPackedRayBytes);
+        service["anyHitFrontierHostPackedRayBytes"] =
+          static_cast<double>(diagnostics.anyHitFrontierHostPackedRayBytes);
         service["anyHitFrontierHostQueryBytes"] =
           static_cast<double>(diagnostics.anyHitFrontierHostQueryBytes);
         service["anyHitFrontierStateHandleBytes"] =
@@ -2123,12 +2127,16 @@ namespace engine::graph {
           QString::fromStdString(diagnostics.anyHitFrontierResidency);
         service["closestHitFrontierPackedRayBytes"] =
           static_cast<double>(diagnostics.closestHitFrontierPackedRayBytes);
+        service["closestHitFrontierHostPackedRayBytes"] =
+          static_cast<double>(diagnostics.closestHitFrontierHostPackedRayBytes);
         service["closestHitFrontierHostQueryBytes"] =
           static_cast<double>(diagnostics.closestHitFrontierHostQueryBytes);
         service["closestHitFrontierStateHandleBytes"] =
           static_cast<double>(diagnostics.closestHitFrontierStateHandleBytes);
         service["anyHitFrontierPackedRayBytes"] =
           static_cast<double>(diagnostics.anyHitFrontierPackedRayBytes);
+        service["anyHitFrontierHostPackedRayBytes"] =
+          static_cast<double>(diagnostics.anyHitFrontierHostPackedRayBytes);
         service["anyHitFrontierHostQueryBytes"] =
           static_cast<double>(diagnostics.anyHitFrontierHostQueryBytes);
         service["anyHitFrontierStateHandleBytes"] =

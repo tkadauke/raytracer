@@ -209,12 +209,18 @@ namespace engine::wavefront {
     mergeLabel(directLightContributionFallbackReason,
                metrics.directLightContributionFallbackReason);
     directLightAnyHitFrontierPackedRayBytes += metrics.directLightAnyHitFrontierPackedRayBytes;
+    directLightAnyHitFrontierHostPackedRayBytes +=
+      metrics.directLightAnyHitFrontierHostPackedRayBytes;
     directLightAnyHitFrontierHostQueryBytes += metrics.directLightAnyHitFrontierHostQueryBytes;
     directLightAnyHitFrontierStateHandleBytes += metrics.directLightAnyHitFrontierStateHandleBytes;
     intersectionBackendClosestHitFrontierPackedRayBytes +=
       metrics.intersectionBackendClosestHitFrontierPackedRayBytes;
     intersectionBackendAnyHitFrontierPackedRayBytes +=
       metrics.intersectionBackendAnyHitFrontierPackedRayBytes;
+    intersectionBackendClosestHitFrontierHostPackedRayBytes +=
+      metrics.intersectionBackendClosestHitFrontierHostPackedRayBytes;
+    intersectionBackendAnyHitFrontierHostPackedRayBytes +=
+      metrics.intersectionBackendAnyHitFrontierHostPackedRayBytes;
     intersectionBackendClosestHitFrontierHostQueryBytes +=
       metrics.intersectionBackendClosestHitFrontierHostQueryBytes;
     intersectionBackendAnyHitFrontierHostQueryBytes +=
@@ -425,6 +431,8 @@ namespace engine::wavefront {
               metrics.directLightContributionHostBytesPerDepth);
     addCounts(directLightAnyHitFrontierPackedRayBytesPerDepth,
               metrics.directLightAnyHitFrontierPackedRayBytesPerDepth);
+    addCounts(directLightAnyHitFrontierHostPackedRayBytesPerDepth,
+              metrics.directLightAnyHitFrontierHostPackedRayBytesPerDepth);
     addCounts(directLightAnyHitFrontierHostQueryBytesPerDepth,
               metrics.directLightAnyHitFrontierHostQueryBytesPerDepth);
     addCounts(directLightAnyHitFrontierStateHandleBytesPerDepth,
@@ -685,6 +693,7 @@ namespace engine::wavefront {
     return valueAt(directLightSelectionHostBytesPerDepth, depth) +
            valueAt(directLightOcclusionHostBytesPerDepth, depth) +
            valueAt(directLightContributionHostBytesPerDepth, depth) +
+           valueAt(directLightAnyHitFrontierHostPackedRayBytesPerDepth, depth) +
            valueAt(directLightAnyHitFrontierHostQueryBytesPerDepth, depth) +
            valueAt(directLightAnyHitFrontierStateHandleBytesPerDepth, depth);
   }
@@ -694,6 +703,7 @@ namespace engine::wavefront {
     const std::size_t depthCount = std::max(
       {directLightSelectionHostBytesPerDepth.size(), directLightOcclusionHostBytesPerDepth.size(),
        directLightContributionHostBytesPerDepth.size(),
+       directLightAnyHitFrontierHostPackedRayBytesPerDepth.size(),
        directLightAnyHitFrontierHostQueryBytesPerDepth.size(),
        directLightAnyHitFrontierStateHandleBytesPerDepth.size()});
     std::uint64_t bytes = 0;
@@ -1090,6 +1100,8 @@ namespace engine::wavefront {
       integerArray(batching.directLightContributionHostBytesPerDepth);
     const QJsonArray directLightAnyHitFrontierPackedRayBytesPerDepth =
       integerArray(batching.directLightAnyHitFrontierPackedRayBytesPerDepth);
+    const QJsonArray directLightAnyHitFrontierHostPackedRayBytesPerDepth =
+      integerArray(batching.directLightAnyHitFrontierHostPackedRayBytesPerDepth);
     const QJsonArray directLightAnyHitFrontierHostQueryBytesPerDepth =
       integerArray(batching.directLightAnyHitFrontierHostQueryBytesPerDepth);
     const QJsonArray directLightAnyHitFrontierStateHandleBytesPerDepth =
@@ -1173,6 +1185,10 @@ namespace engine::wavefront {
       static_cast<double>(batching.intersectionBackendClosestHitFrontierPackedRayBytes);
     batchingJson["intersectionBackendAnyHitFrontierPackedRayBytes"] =
       static_cast<double>(batching.intersectionBackendAnyHitFrontierPackedRayBytes);
+    batchingJson["intersectionBackendClosestHitFrontierHostPackedRayBytes"] =
+      static_cast<double>(batching.intersectionBackendClosestHitFrontierHostPackedRayBytes);
+    batchingJson["intersectionBackendAnyHitFrontierHostPackedRayBytes"] =
+      static_cast<double>(batching.intersectionBackendAnyHitFrontierHostPackedRayBytes);
     batchingJson["intersectionBackendClosestHitFrontierHostQueryBytes"] =
       static_cast<double>(batching.intersectionBackendClosestHitFrontierHostQueryBytes);
     batchingJson["intersectionBackendAnyHitFrontierHostQueryBytes"] =
@@ -1458,6 +1474,10 @@ namespace engine::wavefront {
       static_cast<double>(batching.directLightAnyHitFrontierPackedRayBytes);
     batchingJson["directLightAnyHitFrontierPackedRayBytesPerDepth"] =
       directLightAnyHitFrontierPackedRayBytesPerDepth;
+    batchingJson["directLightAnyHitFrontierHostPackedRayBytes"] =
+      static_cast<double>(batching.directLightAnyHitFrontierHostPackedRayBytes);
+    batchingJson["directLightAnyHitFrontierHostPackedRayBytesPerDepth"] =
+      directLightAnyHitFrontierHostPackedRayBytesPerDepth;
     batchingJson["directLightAnyHitFrontierHostQueryBytes"] =
       static_cast<double>(batching.directLightAnyHitFrontierHostQueryBytes);
     batchingJson["directLightAnyHitFrontierHostQueryBytesPerDepth"] =

@@ -68,6 +68,8 @@ foreach(expectation IN ITEMS
     "\"queryTransferBytesEstimate\"[ \r\n]*:[ \r\n]*0"
     "\"closestHitFrontierResidency\"[ \r\n]*:[ \r\n]*\"host\""
     "\"anyHitFrontierResidency\"[ \r\n]*:[ \r\n]*\"host\""
+    "\"closestHitFrontierHostPackedRayBytes\"[ \r\n]*:[ \r\n]*0"
+    "\"anyHitFrontierHostPackedRayBytes\"[ \r\n]*:[ \r\n]*0"
     "\"closestHitFrontierHostQueryBytes\"[ \r\n]*:[ \r\n]*[1-9][0-9]*(\\.[0-9]+)?"
     "\"anyHitFrontierHostQueryBytes\"[ \r\n]*:[ \r\n]*[1-9][0-9]*(\\.[0-9]+)?"
     "\"shadowQueryCount\"[ \r\n]*:[ \r\n]*[1-9][0-9]*(\\.[0-9]+)?"
@@ -81,13 +83,38 @@ foreach(expectation IN ITEMS
     )
   endif()
 endforeach()
-if(NOT ray_traced_shadow_stdout MATCHES
-       "intersection_service.*pass=hybrid_ray_traced_shadows.*query_family=closest_hit\\+any_hit.*query_tag=hybrid_shadows.*requested_backend=cpu.*selected_backend=cpu.*availability=available.*platform=none.*closest_hit_execution=runtime_scene.*any_hit_execution=runtime_scene.*compiled_scene=false.*scene_primitives=0.*scene_supported_primitives=0.*scene_unsupported_primitives=0.*scene_unsupported_by_reason=none.*scene_upload_bytes=0.*shadow_queries=[1-9][0-9]*.*occluded=[1-9][0-9]*.*query_transfer_bytes=0.*closest_hit_frontier_residency=host.*any_hit_frontier_residency=host.*closest_hit_frontier_host_query_bytes=[1-9][0-9]*.*any_hit_frontier_host_query_bytes=[1-9][0-9]*")
-  message(
-    FATAL_ERROR
-      "rendercli --shadow_mode ray_traced summary did not expose intersection service diagnostics: ${ray_traced_shadow_stdout}"
-  )
-endif()
+foreach(expectation IN ITEMS
+        "intersection_service.*pass=hybrid_ray_traced_shadows"
+        "intersection_service.*query_family=closest_hit\\+any_hit"
+        "intersection_service.*query_tag=hybrid_shadows"
+        "intersection_service.*requested_backend=cpu"
+        "intersection_service.*selected_backend=cpu"
+        "intersection_service.*availability=available"
+        "intersection_service.*platform=none"
+        "intersection_service.*closest_hit_execution=runtime_scene"
+        "intersection_service.*any_hit_execution=runtime_scene"
+        "intersection_service.*compiled_scene=false"
+        "intersection_service.*scene_primitives=0"
+        "intersection_service.*scene_supported_primitives=0"
+        "intersection_service.*scene_unsupported_primitives=0"
+        "intersection_service.*scene_unsupported_by_reason=none"
+        "intersection_service.*scene_upload_bytes=0"
+        "intersection_service.*shadow_queries=[1-9][0-9]*"
+        "intersection_service.*occluded=[1-9][0-9]*"
+        "intersection_service.*query_transfer_bytes=0"
+        "intersection_service.*closest_hit_frontier_residency=host"
+        "intersection_service.*any_hit_frontier_residency=host"
+        "intersection_service.*closest_hit_frontier_host_packed_ray_bytes=0"
+        "intersection_service.*any_hit_frontier_host_packed_ray_bytes=0"
+        "intersection_service.*closest_hit_frontier_host_query_bytes=[1-9][0-9]*"
+        "intersection_service.*any_hit_frontier_host_query_bytes=[1-9][0-9]*")
+  if(NOT ray_traced_shadow_stdout MATCHES "${expectation}")
+    message(
+      FATAL_ERROR
+        "rendercli --shadow_mode ray_traced summary did not expose ${expectation}: ${ray_traced_shadow_stdout}"
+    )
+  endif()
+endforeach()
 
 foreach(cascade_count IN ITEMS 1 2 4)
   set(cascade_render "${TEST_OUTPUT_DIR}/raster-shadow-cascades-${cascade_count}.png")

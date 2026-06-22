@@ -89,6 +89,7 @@ namespace render {
     [[nodiscard]] virtual std::uint64_t rayCount() const = 0;
     [[nodiscard]] virtual const char* residency() const = 0;
     [[nodiscard]] virtual std::uint64_t packedRayBytes() const;
+    [[nodiscard]] virtual std::uint64_t hostPackedRayBytes() const;
     [[nodiscard]] virtual std::uint64_t hostQueryBytes() const;
     [[nodiscard]] virtual std::uint64_t stateHandleBytes() const;
 
@@ -137,6 +138,7 @@ namespace render {
     [[nodiscard]] virtual std::uint64_t rayCount() const = 0;
     [[nodiscard]] virtual const char* residency() const = 0;
     [[nodiscard]] virtual std::uint64_t packedRayBytes() const;
+    [[nodiscard]] virtual std::uint64_t hostPackedRayBytes() const;
     [[nodiscard]] virtual std::uint64_t hostQueryBytes() const;
     [[nodiscard]] virtual std::uint64_t stateHandleBytes() const;
 

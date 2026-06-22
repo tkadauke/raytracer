@@ -252,7 +252,8 @@ namespace IntegratorTest {
     target.recordDirectLightContributionHostBytes(/*depth=*/0, /*bytes=*/6);
     target.recordDirectLightContributionExecution("cpu");
     target.recordDirectLightAnyHitBatch(/*depth=*/0, /*batchChunks=*/1, /*batchRays=*/3,
-                                        /*packedRayBytes=*/30, /*hostQueryBytes=*/15,
+                                        /*packedRayBytes=*/30, /*hostPackedRayBytes=*/12,
+                                        /*hostQueryBytes=*/15,
                                         /*stateHandleBytes=*/9);
     target.recordRadianceDeltaDepth(/*squaredSum=*/4.0, /*maxDelta=*/2.0);
 
@@ -269,10 +270,12 @@ namespace IntegratorTest {
     source.recordDirectLightContributionExecution(
       "cpu", "GPU diffuse direct-light contribution kernel unavailable");
     source.recordDirectLightAnyHitBatch(/*depth=*/0, /*batchChunks=*/2, /*batchRays=*/5,
-                                        /*packedRayBytes=*/50, /*hostQueryBytes=*/25,
+                                        /*packedRayBytes=*/50, /*hostPackedRayBytes=*/20,
+                                        /*hostQueryBytes=*/25,
                                         /*stateHandleBytes=*/15);
     source.recordDirectLightAnyHitBatch(/*depth=*/1, /*batchChunks=*/3, /*batchRays=*/7,
-                                        /*packedRayBytes=*/70, /*hostQueryBytes=*/35,
+                                        /*packedRayBytes=*/70, /*hostPackedRayBytes=*/28,
+                                        /*hostQueryBytes=*/35,
                                         /*stateHandleBytes=*/21);
     source.recordRadianceDeltaDepth(/*squaredSum=*/9.0, /*maxDelta=*/1.0);
 
@@ -296,11 +299,14 @@ namespace IntegratorTest {
     EXPECT_EQ((std::vector<std::uint64_t>{8u, 7u}), target.directLightAnyHitBatchRaysPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{80u, 70u}),
               target.directLightAnyHitFrontierPackedRayBytesPerDepth);
+    EXPECT_EQ((std::vector<std::uint64_t>{32u, 28u}),
+              target.directLightAnyHitFrontierHostPackedRayBytesPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{40u, 35u}),
               target.directLightAnyHitFrontierHostQueryBytesPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{24u, 21u}),
               target.directLightAnyHitFrontierStateHandleBytesPerDepth);
     EXPECT_EQ(150u, target.directLightAnyHitFrontierPackedRayBytes);
+    EXPECT_EQ(60u, target.directLightAnyHitFrontierHostPackedRayBytes);
     EXPECT_EQ(75u, target.directLightAnyHitFrontierHostQueryBytes);
     EXPECT_EQ(45u, target.directLightAnyHitFrontierStateHandleBytes);
     EXPECT_EQ((std::vector<double>{13.0}), target.radianceDeltaSquaredSumPerDepth);
@@ -317,6 +323,7 @@ namespace IntegratorTest {
                                              /*batchChunks=*/3,
                                              /*batchRays=*/9,
                                              /*packedRayBytes=*/90,
+                                             /*hostPackedRayBytes=*/18,
                                              /*hostQueryBytes=*/45,
                                              /*stateHandleBytes=*/27);
 
@@ -328,12 +335,14 @@ namespace IntegratorTest {
     EXPECT_EQ(3u, metrics.directLightAnyHitBatchChunksPerDepth[2]);
     EXPECT_EQ(9u, metrics.directLightAnyHitBatchRaysPerDepth[2]);
     EXPECT_EQ(90u, metrics.directLightAnyHitFrontierPackedRayBytesPerDepth[2]);
+    EXPECT_EQ(18u, metrics.directLightAnyHitFrontierHostPackedRayBytesPerDepth[2]);
     EXPECT_EQ(45u, metrics.directLightAnyHitFrontierHostQueryBytesPerDepth[2]);
     EXPECT_EQ(27u, metrics.directLightAnyHitFrontierStateHandleBytesPerDepth[2]);
     EXPECT_EQ(4u, metrics.directLightOcclusionHostBytesPerDepth[2]);
     EXPECT_EQ(12u, metrics.directLightSelectionHostBytes);
     EXPECT_EQ(4u, metrics.directLightOcclusionHostBytes);
     EXPECT_EQ(90u, metrics.directLightAnyHitFrontierPackedRayBytes);
+    EXPECT_EQ(18u, metrics.directLightAnyHitFrontierHostPackedRayBytes);
     EXPECT_EQ(45u, metrics.directLightAnyHitFrontierHostQueryBytes);
     EXPECT_EQ(27u, metrics.directLightAnyHitFrontierStateHandleBytes);
   }
@@ -348,6 +357,7 @@ namespace IntegratorTest {
                                              /*batchChunks=*/1,
                                              /*batchRays=*/4,
                                              /*packedRayBytes=*/40,
+                                             /*hostPackedRayBytes=*/8,
                                              /*hostQueryBytes=*/20,
                                              /*stateHandleBytes=*/12);
     metrics.recordDirectLightContributionHostBytes(/*depth=*/1, /*bytes=*/7);
@@ -357,6 +367,7 @@ namespace IntegratorTest {
                                              /*batchChunks=*/2,
                                              /*batchRays=*/9,
                                              /*packedRayBytes=*/90,
+                                             /*hostPackedRayBytes=*/18,
                                              /*hostQueryBytes=*/45,
                                              /*stateHandleBytes=*/27);
     metrics.recordDirectLightContributionHostBytes(/*depth=*/3, /*bytes=*/11);
@@ -367,13 +378,13 @@ namespace IntegratorTest {
     EXPECT_TRUE(metrics.hasResidentDirectLightBatchCandidateDepth(3));
     EXPECT_EQ(2u, metrics.residentDirectLightBatchCandidateDepthCount());
     EXPECT_EQ(13u, metrics.residentDirectLightBatchCandidateRayCount());
-    EXPECT_EQ(46u, metrics.residentDirectLightBatchHostBytesAtDepth(1));
-    EXPECT_EQ(91u, metrics.residentDirectLightBatchHostBytesAtDepth(3));
-    EXPECT_EQ(137u, metrics.residentDirectLightBatchCandidateHostBytes());
+    EXPECT_EQ(54u, metrics.residentDirectLightBatchHostBytesAtDepth(1));
+    EXPECT_EQ(109u, metrics.residentDirectLightBatchHostBytesAtDepth(3));
+    EXPECT_EQ(163u, metrics.residentDirectLightBatchCandidateHostBytes());
     EXPECT_EQ(3u, metrics.largestResidentDirectLightBatchDepth());
     EXPECT_EQ(9u, metrics.largestResidentDirectLightBatchRayCount());
     EXPECT_EQ(90u, metrics.largestResidentDirectLightBatchPackedRayBytes());
-    EXPECT_EQ(91u, metrics.largestResidentDirectLightBatchHostBytes());
+    EXPECT_EQ(109u, metrics.largestResidentDirectLightBatchHostBytes());
   }
 
   TEST(IntegratorBatchMetrics, CpuDirectLightContributionExecutionReportsGpuRequestFallback) {
@@ -408,7 +419,8 @@ namespace IntegratorTest {
 
     metrics.recordDirectLightAnyHitFrontierQuery(
       /*depth=*/3, /*selectionHostBytes=*/24, /*occlusionHostBytes=*/6, *backend, "host",
-      /*submittedRays=*/4, /*packedRayBytes=*/0, /*hostQueryBytes=*/128,
+      /*submittedRays=*/4, /*packedRayBytes=*/0, /*hostPackedRayBytes=*/64,
+      /*hostQueryBytes=*/128,
       /*stateHandleBytes=*/0, timing);
 
     ASSERT_EQ(4u, metrics.directLightSelectionHostBytesPerDepth.size());
@@ -418,12 +430,15 @@ namespace IntegratorTest {
     EXPECT_EQ(24u, metrics.directLightSelectionHostBytesPerDepth[3]);
     EXPECT_EQ(1u, metrics.directLightAnyHitBatchChunksPerDepth[3]);
     EXPECT_EQ(4u, metrics.directLightAnyHitBatchRaysPerDepth[3]);
+    EXPECT_EQ(64u, metrics.directLightAnyHitFrontierHostPackedRayBytesPerDepth[3]);
     EXPECT_EQ(128u, metrics.directLightAnyHitFrontierHostQueryBytesPerDepth[3]);
     EXPECT_EQ(6u, metrics.directLightOcclusionHostBytesPerDepth[3]);
     EXPECT_EQ(24u, metrics.directLightSelectionHostBytes);
     EXPECT_EQ(6u, metrics.directLightOcclusionHostBytes);
+    EXPECT_EQ(64u, metrics.directLightAnyHitFrontierHostPackedRayBytes);
     EXPECT_EQ(128u, metrics.directLightAnyHitFrontierHostQueryBytes);
     EXPECT_EQ("host", metrics.intersectionBackendAnyHitFrontierResidency);
+    EXPECT_EQ(64u, metrics.intersectionBackendAnyHitFrontierHostPackedRayBytes);
     EXPECT_EQ(128u, metrics.intersectionBackendAnyHitFrontierHostQueryBytes);
     EXPECT_EQ(4u, metrics.anyHitRaysSubmitted);
     EXPECT_EQ(1u, metrics.anyHitQueries);
@@ -459,17 +474,21 @@ namespace IntegratorTest {
       anyTiming);
 
     EXPECT_EQ("host", metrics.intersectionBackendClosestHitFrontierResidency);
+    EXPECT_EQ(0u, metrics.intersectionBackendClosestHitFrontierHostPackedRayBytes);
     EXPECT_EQ(2u * sizeof(WavefrontClosestHitQuery),
               metrics.intersectionBackendClosestHitFrontierHostQueryBytes);
     EXPECT_EQ(2u, metrics.closestHitRaysSubmitted);
     EXPECT_EQ(1u, metrics.closestHitQueries);
     EXPECT_EQ("closest_path", metrics.intersectionBackendClosestHitExecutionPath);
+    EXPECT_EQ(0u, metrics.directLightAnyHitFrontierHostPackedRayBytes);
 
     EXPECT_EQ((std::vector<std::uint64_t>{0u, 1u}), metrics.directLightAnyHitBatchChunksPerDepth);
     EXPECT_EQ((std::vector<std::uint64_t>{0u, 3u}), metrics.directLightAnyHitBatchRaysPerDepth);
+    EXPECT_EQ(0u, metrics.directLightAnyHitFrontierHostPackedRayBytesPerDepth[1]);
     EXPECT_EQ(3u * sizeof(WavefrontAnyHitQuery),
               metrics.directLightAnyHitFrontierHostQueryBytesPerDepth[1]);
     EXPECT_EQ("host", metrics.intersectionBackendAnyHitFrontierResidency);
+    EXPECT_EQ(0u, metrics.intersectionBackendAnyHitFrontierHostPackedRayBytes);
     EXPECT_EQ(3u * sizeof(WavefrontAnyHitQuery),
               metrics.intersectionBackendAnyHitFrontierHostQueryBytes);
     EXPECT_EQ(3u, metrics.anyHitRaysSubmitted);
@@ -515,15 +534,17 @@ namespace IntegratorTest {
     IntegratorBatchMetrics metrics;
     metrics.reset(/*scalarFallback=*/false);
 
-    metrics.recordClosestHitFrontierResidency("packed_host", 64, 96, 8);
-    metrics.recordClosestHitFrontierResidency("packed_host", 128, 160, 16);
-    metrics.recordAnyHitFrontierResidency("host", 0, 48, 0);
-    metrics.recordAnyHitFrontierResidency("packed_host", 32, 64, 8);
+    metrics.recordClosestHitFrontierResidency("packed_host", 64, 32, 96, 8);
+    metrics.recordClosestHitFrontierResidency("packed_host", 128, 64, 160, 16);
+    metrics.recordAnyHitFrontierResidency("host", 0, 0, 48, 0);
+    metrics.recordAnyHitFrontierResidency("packed_host", 32, 16, 64, 8);
 
     EXPECT_EQ("packed_host", metrics.intersectionBackendClosestHitFrontierResidency);
     EXPECT_EQ("mixed", metrics.intersectionBackendAnyHitFrontierResidency);
     EXPECT_EQ(192u, metrics.intersectionBackendClosestHitFrontierPackedRayBytes);
     EXPECT_EQ(32u, metrics.intersectionBackendAnyHitFrontierPackedRayBytes);
+    EXPECT_EQ(96u, metrics.intersectionBackendClosestHitFrontierHostPackedRayBytes);
+    EXPECT_EQ(16u, metrics.intersectionBackendAnyHitFrontierHostPackedRayBytes);
     EXPECT_EQ(256u, metrics.intersectionBackendClosestHitFrontierHostQueryBytes);
     EXPECT_EQ(112u, metrics.intersectionBackendAnyHitFrontierHostQueryBytes);
     EXPECT_EQ(24u, metrics.intersectionBackendClosestHitFrontierStateHandleBytes);
@@ -543,17 +564,21 @@ namespace IntegratorTest {
 
     metrics.recordClosestHitFrontierQuery(*backend, "host", /*submittedRays=*/5,
                                           /*packedRayBytes=*/0,
+                                          /*hostPackedRayBytes=*/0,
                                           /*hostQueryBytes=*/80,
                                           /*stateHandleBytes=*/0, closestTiming);
     metrics.recordAnyHitFrontierQuery(*backend, "packed_host", /*submittedRays=*/7,
                                       /*packedRayBytes=*/112,
+                                      /*hostPackedRayBytes=*/112,
                                       /*hostQueryBytes=*/0,
                                       /*stateHandleBytes=*/56, anyTiming);
 
     EXPECT_EQ("host", metrics.intersectionBackendClosestHitFrontierResidency);
     EXPECT_EQ("packed_host", metrics.intersectionBackendAnyHitFrontierResidency);
+    EXPECT_EQ(0u, metrics.intersectionBackendClosestHitFrontierHostPackedRayBytes);
     EXPECT_EQ(80u, metrics.intersectionBackendClosestHitFrontierHostQueryBytes);
     EXPECT_EQ(112u, metrics.intersectionBackendAnyHitFrontierPackedRayBytes);
+    EXPECT_EQ(112u, metrics.intersectionBackendAnyHitFrontierHostPackedRayBytes);
     EXPECT_EQ(56u, metrics.intersectionBackendAnyHitFrontierStateHandleBytes);
     EXPECT_EQ(5u, metrics.closestHitRaysSubmitted);
     EXPECT_EQ(7u, metrics.anyHitRaysSubmitted);

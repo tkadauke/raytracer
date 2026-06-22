@@ -94,6 +94,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Report retained host packed-ray staging bytes separately from prepared
+  packed payload, host query, and state-handle bytes in wavefront and
+  intersection-service frontier diagnostics. — GPT-5 Codex
 - Added resident direct-light candidate and largest-depth diagnostics to
   wavefront metrics, rendercli summaries, and Modeler graph details. — GPT-5
   Codex

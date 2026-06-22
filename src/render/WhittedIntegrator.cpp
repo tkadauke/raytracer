@@ -544,7 +544,8 @@ namespace render {
                                "still contains shadow queries");
       }
       recordVisibilityDepth(depth, /*batchChunks=*/0, /*batchRays=*/0, /*packedRayBytes=*/0,
-                            /*hostQueryBytes=*/0, /*stateHandleBytes=*/0, metrics);
+                            /*hostPackedRayBytes=*/0, /*hostQueryBytes=*/0,
+                            /*stateHandleBytes=*/0, metrics);
     }
 
     void resolveOcclusion(const Scene& scene,
@@ -608,14 +609,14 @@ namespace render {
     }
 
     void recordVisibilityDepth(int depth, std::uint64_t batchChunks, std::uint64_t batchRays,
-                               std::uint64_t packedRayBytes, std::uint64_t hostQueryBytes,
-                               std::uint64_t stateHandleBytes,
+                               std::uint64_t packedRayBytes, std::uint64_t hostPackedRayBytes,
+                               std::uint64_t hostQueryBytes, std::uint64_t stateHandleBytes,
                                IntegratorBatchMetrics* metrics) const {
       if (metrics) {
-        metrics->recordDirectLightVisibilityDepth(static_cast<std::uint64_t>(std::max(0, depth)),
-                                                  hostSelectionBytes(), hostOcclusionBytes(),
-                                                  batchChunks, batchRays, packedRayBytes,
-                                                  hostQueryBytes, stateHandleBytes);
+        metrics->recordDirectLightVisibilityDepth(
+          static_cast<std::uint64_t>(std::max(0, depth)), hostSelectionBytes(),
+          hostOcclusionBytes(), batchChunks, batchRays, packedRayBytes, hostPackedRayBytes,
+          hostQueryBytes, stateHandleBytes);
       }
     }
 

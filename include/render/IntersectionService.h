@@ -38,9 +38,11 @@ namespace render {
     std::string closestHitFrontierResidency;
     std::string anyHitFrontierResidency;
     std::uint64_t closestHitFrontierPackedRayBytes{0};
+    std::uint64_t closestHitFrontierHostPackedRayBytes{0};
     std::uint64_t closestHitFrontierHostQueryBytes{0};
     std::uint64_t closestHitFrontierStateHandleBytes{0};
     std::uint64_t anyHitFrontierPackedRayBytes{0};
+    std::uint64_t anyHitFrontierHostPackedRayBytes{0};
     std::uint64_t anyHitFrontierHostQueryBytes{0};
     std::uint64_t anyHitFrontierStateHandleBytes{0};
   };

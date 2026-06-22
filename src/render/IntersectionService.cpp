@@ -243,6 +243,8 @@ namespace render {
     mergeLabel(m_diagnostics.closestHitFrontierResidency, nonNullString(frontier.residency()));
     m_diagnostics.closestHitFrontierPackedRayBytes =
       saturatedAdd(m_diagnostics.closestHitFrontierPackedRayBytes, frontier.packedRayBytes());
+    m_diagnostics.closestHitFrontierHostPackedRayBytes = saturatedAdd(
+      m_diagnostics.closestHitFrontierHostPackedRayBytes, frontier.hostPackedRayBytes());
     m_diagnostics.closestHitFrontierHostQueryBytes =
       saturatedAdd(m_diagnostics.closestHitFrontierHostQueryBytes, frontier.hostQueryBytes());
     m_diagnostics.closestHitFrontierStateHandleBytes =
@@ -253,6 +255,8 @@ namespace render {
     mergeLabel(m_diagnostics.anyHitFrontierResidency, nonNullString(frontier.residency()));
     m_diagnostics.anyHitFrontierPackedRayBytes =
       saturatedAdd(m_diagnostics.anyHitFrontierPackedRayBytes, frontier.packedRayBytes());
+    m_diagnostics.anyHitFrontierHostPackedRayBytes =
+      saturatedAdd(m_diagnostics.anyHitFrontierHostPackedRayBytes, frontier.hostPackedRayBytes());
     m_diagnostics.anyHitFrontierHostQueryBytes =
       saturatedAdd(m_diagnostics.anyHitFrontierHostQueryBytes, frontier.hostQueryBytes());
     m_diagnostics.anyHitFrontierStateHandleBytes =

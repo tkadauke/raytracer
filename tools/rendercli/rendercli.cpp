@@ -256,12 +256,16 @@ namespace {
       << compactSummaryText(service.value("anyHitFrontierResidency"), "none")
       << " closest_hit_frontier_packed_ray_bytes="
       << unsignedJsonValue(service, "closestHitFrontierPackedRayBytes")
+      << " closest_hit_frontier_host_packed_ray_bytes="
+      << unsignedJsonValue(service, "closestHitFrontierHostPackedRayBytes")
       << " closest_hit_frontier_host_query_bytes="
       << unsignedJsonValue(service, "closestHitFrontierHostQueryBytes")
       << " closest_hit_frontier_state_handle_bytes="
       << unsignedJsonValue(service, "closestHitFrontierStateHandleBytes")
       << " any_hit_frontier_packed_ray_bytes="
       << unsignedJsonValue(service, "anyHitFrontierPackedRayBytes")
+      << " any_hit_frontier_host_packed_ray_bytes="
+      << unsignedJsonValue(service, "anyHitFrontierHostPackedRayBytes")
       << " any_hit_frontier_host_query_bytes="
       << unsignedJsonValue(service, "anyHitFrontierHostQueryBytes")
       << " any_hit_frontier_state_handle_bytes="
@@ -323,6 +327,8 @@ namespace {
         batching.value("directLightContributionHostBytesPerDepth").toArray();
       const QJsonArray directLightAnyHitFrontierPackedRayBytes =
         batching.value("directLightAnyHitFrontierPackedRayBytesPerDepth").toArray();
+      const QJsonArray directLightAnyHitFrontierHostPackedRayBytes =
+        batching.value("directLightAnyHitFrontierHostPackedRayBytesPerDepth").toArray();
       const QJsonArray directLightAnyHitFrontierHostQueryBytes =
         batching.value("directLightAnyHitFrontierHostQueryBytesPerDepth").toArray();
       const QJsonArray directLightAnyHitFrontierStateHandleBytes =
@@ -440,6 +446,8 @@ namespace {
                             "none")
         << " closest_hit_frontier_packed_ray_bytes="
         << unsignedValue(batching, "intersectionBackendClosestHitFrontierPackedRayBytes")
+        << " closest_hit_frontier_host_packed_ray_bytes="
+        << unsignedValue(batching, "intersectionBackendClosestHitFrontierHostPackedRayBytes")
         << " closest_hit_frontier_host_query_bytes="
         << unsignedValue(batching, "intersectionBackendClosestHitFrontierHostQueryBytes")
         << " closest_hit_frontier_state_handle_bytes="
@@ -450,6 +458,8 @@ namespace {
         << compactTextValue(batching.value("intersectionBackendAnyHitFrontierResidency"), "none")
         << " any_hit_frontier_packed_ray_bytes="
         << unsignedValue(batching, "intersectionBackendAnyHitFrontierPackedRayBytes")
+        << " any_hit_frontier_host_packed_ray_bytes="
+        << unsignedValue(batching, "intersectionBackendAnyHitFrontierHostPackedRayBytes")
         << " any_hit_frontier_host_query_bytes="
         << unsignedValue(batching, "intersectionBackendAnyHitFrontierHostQueryBytes")
         << " any_hit_frontier_state_handle_bytes="
@@ -777,12 +787,16 @@ namespace {
         << compactTextValue(batching.value("directLightContributionFallbackReason"), "none")
         << " direct_light_any_hit_frontier_packed_ray_bytes="
         << unsignedValue(batching, "directLightAnyHitFrontierPackedRayBytes")
+        << " direct_light_any_hit_frontier_host_packed_ray_bytes="
+        << unsignedValue(batching, "directLightAnyHitFrontierHostPackedRayBytes")
         << " direct_light_any_hit_frontier_host_query_bytes="
         << unsignedValue(batching, "directLightAnyHitFrontierHostQueryBytes")
         << " direct_light_any_hit_frontier_state_handle_bytes="
         << unsignedValue(batching, "directLightAnyHitFrontierStateHandleBytes")
         << " last_direct_light_any_hit_frontier_packed_ray_bytes="
         << unsignedArrayBack(directLightAnyHitFrontierPackedRayBytes)
+        << " last_direct_light_any_hit_frontier_host_packed_ray_bytes="
+        << unsignedArrayBack(directLightAnyHitFrontierHostPackedRayBytes)
         << " last_direct_light_any_hit_frontier_host_query_bytes="
         << unsignedArrayBack(directLightAnyHitFrontierHostQueryBytes)
         << " last_direct_light_any_hit_frontier_state_handle_bytes="
