@@ -256,10 +256,36 @@ namespace {
   }
 
   std::map<std::uint32_t, GpuIntersectionHitRecord>
-  hitsByRayIndex(const std::vector<GpuIntersectionHitRecord>& closestHits) {
+  hitsByRayIndex(const std::vector<GpuIntersectionHitRecord>& closestHits,
+                 const std::vector<GpuDiffusePathStateRecord>& pathStates) {
+    std::map<std::uint32_t, bool> expectedRayIndices;
+    for (const GpuDiffusePathStateRecord& pathState : pathStates) {
+      if (!gpuDiffusePathStateIsActive(pathState)) {
+        continue;
+      }
+      const auto [_, inserted] = expectedRayIndices.emplace(pathState.ray.rayIndex, false);
+      if (!inserted) {
+        throw std::logic_error("gpu diffuse path step active ray indices must be unique");
+      }
+    }
+
+    if (closestHits.size() != expectedRayIndices.size()) {
+      throw std::logic_error(
+        "gpu diffuse path step closest-hit record count must match active path count");
+    }
+
     std::map<std::uint32_t, GpuIntersectionHitRecord> result;
     for (const GpuIntersectionHitRecord& hit : closestHits) {
-      result[hit.rayIndex] = hit;
+      const auto expected = expectedRayIndices.find(hit.rayIndex);
+      if (expected == expectedRayIndices.end()) {
+        throw std::logic_error(
+          "gpu diffuse path step closest-hit record ray index does not match an active path");
+      }
+
+      const auto [_, inserted] = result.emplace(hit.rayIndex, hit);
+      if (!inserted) {
+        throw std::logic_error("gpu diffuse path step closest-hit ray indices must be unique");
+      }
     }
     return result;
   }
@@ -415,7 +441,8 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
   result.pathStates.reserve(pathStates.size());
   result.terminatedPathStates.reserve(pathStates.size());
 
-  const std::map<std::uint32_t, GpuIntersectionHitRecord> hitRecords = hitsByRayIndex(closestHits);
+  const std::map<std::uint32_t, GpuIntersectionHitRecord> hitRecords =
+    hitsByRayIndex(closestHits, pathStates);
   GpuIntersectionIntersector intersector;
 
   for (std::size_t pathIndex = 0; pathIndex != pathStates.size(); ++pathIndex) {

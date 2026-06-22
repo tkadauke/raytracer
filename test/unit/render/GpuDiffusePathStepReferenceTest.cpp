@@ -594,6 +594,72 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(1u, result.metrics.terminatedPaths);
   }
 
+  TEST(GpuDiffusePathStepReference, RejectsClosestHitRecordCountMismatch) {
+    GpuTracingSceneSections sections;
+    const std::vector<GpuDiffusePathStateRecord> paths{activePath(7), activePath(8)};
+    const auto step = [&] {
+      return GpuDiffusePathStepReference().step(sections, paths,
+                                                {GpuIntersectionScenePacker().packMiss(7)});
+    };
+
+    EXPECT_THROW(
+      {
+        const GpuDiffusePathStepResult result = step();
+        (void)result;
+      },
+      std::logic_error);
+  }
+
+  TEST(GpuDiffusePathStepReference, RejectsDuplicateClosestHitRayIndices) {
+    GpuTracingSceneSections sections;
+    const std::vector<GpuDiffusePathStateRecord> paths{activePath(7), activePath(8)};
+    const auto step = [&] {
+      return GpuDiffusePathStepReference().step(
+        sections, paths,
+        {GpuIntersectionScenePacker().packMiss(7), GpuIntersectionScenePacker().packMiss(7)});
+    };
+
+    EXPECT_THROW(
+      {
+        const GpuDiffusePathStepResult result = step();
+        (void)result;
+      },
+      std::logic_error);
+  }
+
+  TEST(GpuDiffusePathStepReference, RejectsUnexpectedClosestHitRayIndex) {
+    GpuTracingSceneSections sections;
+    const std::vector<GpuDiffusePathStateRecord> paths{activePath(7)};
+    const auto step = [&] {
+      return GpuDiffusePathStepReference().step(sections, paths,
+                                                {GpuIntersectionScenePacker().packMiss(99)});
+    };
+
+    EXPECT_THROW(
+      {
+        const GpuDiffusePathStepResult result = step();
+        (void)result;
+      },
+      std::logic_error);
+  }
+
+  TEST(GpuDiffusePathStepReference, RejectsDuplicateActivePathRayIndices) {
+    GpuTracingSceneSections sections;
+    const std::vector<GpuDiffusePathStateRecord> paths{activePath(7), activePath(7)};
+    const auto step = [&] {
+      return GpuDiffusePathStepReference().step(
+        sections, paths,
+        {GpuIntersectionScenePacker().packMiss(7), GpuIntersectionScenePacker().packMiss(7)});
+    };
+
+    EXPECT_THROW(
+      {
+        const GpuDiffusePathStepResult result = step();
+        (void)result;
+      },
+      std::logic_error);
+  }
+
   TEST(GpuDiffusePathStepReference, EmissiveHitAddsEmissionAndTerminatesPath) {
     Scene scene;
     auto lightCard = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);

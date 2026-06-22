@@ -1700,6 +1700,10 @@ Progress:
   keeps future resident-frontier implementations from satisfying handle
   creation while returning a shortened host batch result at the common backend
   boundary.
+- The compiled diffuse path-step CPU-reference boundary now validates that
+  closest-hit records exactly match the active path ray-index frontier,
+  rejecting missing, duplicate, or unexpected records before resident
+  path-loop shading consumes them.
 
 ---
 
