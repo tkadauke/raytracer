@@ -407,6 +407,9 @@ namespace render {
 
     const std::uint64_t pixelCount = layout.pixelCount();
     for (const GpuPathStateRecord& record : records) {
+      if (hasFlag(record, GpuPathStateFlags::Active)) {
+        throw std::invalid_argument("resident path-loop resolve requires terminal path records");
+      }
       if (record.pixelIndex >= pixelCount) {
         throw std::out_of_range("resident path-loop resolve pixel index is out of range");
       }

@@ -2082,7 +2082,7 @@ diffuse path tracer for the first supported subset.
    Russian roulette, and fixed-seed retained-record parity diagnostics for
    issue #614. Resolved records now clear their active flag before image
    resolve so terminal CPU-reference path states are distinct from live
-   frontier state.
+   frontier state, and image resolve rejects active records at its boundary.
    - Depends on: jobs 1 and 2.
    - Output: ~~supported diffuse paths execute multiple bounces and terminate
      according to the same policy as CPU.~~

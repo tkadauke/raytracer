@@ -13,6 +13,15 @@
 namespace TracingPathStateBufferTest {
   using namespace render;
 
+  GpuPathStateRecord makeResolvedPathStateRecord(const Rayd& ray, const Colord& radiance,
+                                                 std::uint32_t pixelIndex,
+                                                 std::uint32_t sampleIndex, std::uint32_t depth) {
+    GpuPathStateRecord record =
+      makeGpuPathStateRecord(ray, Colord::white(), radiance, pixelIndex, sampleIndex, depth);
+    setFlag(record, GpuPathStateFlags::Active, false);
+    return record;
+  }
+
   TEST(TracingPathStateLayout, DefinesActiveAndNextGpuPathStateBuffers) {
     const TracingPathStateLayout layout = TracingPathStateLayout::pathCapacity(128);
 
@@ -341,15 +350,15 @@ namespace TracingPathStateBufferTest {
   TEST(ResidentDiffusePathLoop, ResolvesAccumulatedRadianceThroughAccumulationBuffer) {
     const Rayd ray(Vector4d(0.0, 0.0, 0.0, 1.0), Vector3d(0.0, 0.0, 1.0));
     std::vector<GpuPathStateRecord> records;
-    records.push_back(makeGpuPathStateRecord(ray, Colord::white(), Colord(0.25, 0.5, 0.75),
-                                             /*pixelIndex=*/0, /*sampleIndex=*/0,
-                                             /*depth=*/2));
-    records.push_back(makeGpuPathStateRecord(ray, Colord::white(), Colord(0.75, 0.25, 0.0),
-                                             /*pixelIndex=*/0, /*sampleIndex=*/1,
-                                             /*depth=*/2));
-    records.push_back(makeGpuPathStateRecord(ray, Colord::white(), Colord(0.25, 0.0, 0.5),
-                                             /*pixelIndex=*/2, /*sampleIndex=*/0,
-                                             /*depth=*/1));
+    records.push_back(makeResolvedPathStateRecord(ray, Colord(0.25, 0.5, 0.75),
+                                                  /*pixelIndex=*/0, /*sampleIndex=*/0,
+                                                  /*depth=*/2));
+    records.push_back(makeResolvedPathStateRecord(ray, Colord(0.75, 0.25, 0.0),
+                                                  /*pixelIndex=*/0, /*sampleIndex=*/1,
+                                                  /*depth=*/2));
+    records.push_back(makeResolvedPathStateRecord(ray, Colord(0.25, 0.0, 0.5),
+                                                  /*pixelIndex=*/2, /*sampleIndex=*/0,
+                                                  /*depth=*/1));
 
     Buffer<unsigned int> resolved(2, 2);
     const TracingAccumulationLayout layout = TracingAccumulationLayout::image(2, 2);
@@ -371,11 +380,26 @@ namespace TracingPathStateBufferTest {
     EXPECT_EQ(layout.resolveBytes(), diagnostics.readbackBytes);
   }
 
-  TEST(ResidentDiffusePathLoop, RejectsResolveRecordsOutsideImage) {
+  TEST(ResidentDiffusePathLoop, RejectsResolveRecordsThatAreStillActive) {
     const Rayd ray(Vector4d(0.0, 0.0, 0.0, 1.0), Vector3d(0.0, 0.0, 1.0));
     const std::vector<GpuPathStateRecord> records = {
       makeGpuPathStateRecord(ray, Colord::white(), Colord::white(),
-                             /*pixelIndex=*/4, /*sampleIndex=*/0, /*depth=*/0)};
+                             /*pixelIndex=*/0, /*sampleIndex=*/0, /*depth=*/0)};
+
+    Buffer<unsigned int> resolved(2, 2);
+    const auto resolve = [&]() {
+      const TracingAccumulationDiagnostics diagnostics =
+        resolveResidentPathLoopImage(records, TracingAccumulationLayout::image(2, 2), resolved);
+      (void)diagnostics;
+    };
+    EXPECT_THROW(resolve(), std::invalid_argument);
+  }
+
+  TEST(ResidentDiffusePathLoop, RejectsResolveRecordsOutsideImage) {
+    const Rayd ray(Vector4d(0.0, 0.0, 0.0, 1.0), Vector3d(0.0, 0.0, 1.0));
+    const std::vector<GpuPathStateRecord> records = {
+      makeResolvedPathStateRecord(ray, Colord::white(),
+                                  /*pixelIndex=*/4, /*sampleIndex=*/0, /*depth=*/0)};
 
     Buffer<unsigned int> resolved(2, 2);
     const auto resolve = [&]() {

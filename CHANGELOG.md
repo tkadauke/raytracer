@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Reject active resident path-loop records at image resolve so accumulation
+  cannot accidentally consume live frontier state as terminal radiance.
+  — GPT-5 Codex
 - Clear the active flag on resident diffuse path-loop resolved records so
   terminal CPU-reference path states cannot be mistaken for live frontier
   records. — GPT-5 Codex
