@@ -79,8 +79,8 @@ packet-fill and scalar-tail ratios, packet scalar-fallback reason breakdowns,
 packet-hit refinement material breakdowns, frontier residency labels,
 frontier packed-ray byte counts, resident-frontier capability and round-trip
 summaries, GPU frontier-compaction and resident direct-light unavailable
-reasons, spawned continuation summaries, and frontier compaction summaries
-under the output directory.
+reasons, resident path-loop active-depth summaries, spawned continuation
+summaries, and frontier compaction summaries under the output directory.
 Queue sweeps also write a
 compact queue_sweep.summary.txt per scene. Use it to tune Phase 4 wavefront
 convergence defaults and to baseline Phase 7 scheduler/intersection work before
@@ -284,6 +284,8 @@ def wavefront_metric_values(path)
     resident_path_loop_execution: [],
     resident_path_loop_residency: [],
     resident_path_loop_depths: [],
+    resident_path_loop_peak_active_paths: [],
+    resident_path_loop_last_active_paths: [],
     resident_path_loop_input_paths: [],
     resident_path_loop_retained_paths: [],
     resident_path_loop_removed_paths: [],
@@ -412,6 +414,8 @@ def wavefront_metric_values(path)
       resident_path_loop_execution: [],
       resident_path_loop_residency: [],
       resident_path_loop_depths: 0.0,
+      resident_path_loop_peak_active_paths: 0.0,
+      resident_path_loop_last_active_paths: 0.0,
       resident_path_loop_input_paths: 0.0,
       resident_path_loop_retained_paths: 0.0,
       resident_path_loop_removed_paths: 0.0,
@@ -597,6 +601,15 @@ def wavefront_metric_values(path)
       end
       run_values[:resident_path_loop_depths] +=
         batching.fetch("residentPathLoopDepths", 0).to_f
+      resident_path_loop_active_paths =
+        batching.fetch("activePathsPerDepth", []).map { |value| value.to_f }
+      unless resident_path_loop_active_paths.empty?
+        run_values[:resident_path_loop_peak_active_paths] =
+          [run_values[:resident_path_loop_peak_active_paths],
+           resident_path_loop_active_paths.max].max
+        run_values[:resident_path_loop_last_active_paths] +=
+          resident_path_loop_active_paths.last
+      end
       run_values[:resident_path_loop_input_paths] +=
         batching.fetch("residentPathLoopInputPaths", 0).to_f
       run_values[:resident_path_loop_retained_paths] +=
@@ -961,6 +974,8 @@ end
    spawned_continuations
    spawned_continuation_host_path_state_bytes
    resident_path_loop_depths
+   resident_path_loop_peak_active_paths
+   resident_path_loop_last_active_paths
    resident_path_loop_input_paths
    resident_path_loop_retained_paths
    resident_path_loop_removed_paths
@@ -1131,6 +1146,8 @@ def aggregate_run(run)
     resident_path_loop_executions: [],
     resident_path_loop_residencies: [],
     resident_path_loop_depths: 0.0,
+    resident_path_loop_peak_active_paths: 0.0,
+    resident_path_loop_last_active_paths: 0.0,
     resident_path_loop_input_paths: 0.0,
     resident_path_loop_retained_paths: 0.0,
     resident_path_loop_removed_paths: 0.0,
@@ -1260,6 +1277,15 @@ def aggregate_run(run)
     end
     values[:resident_path_loop_depths] +=
       batching.fetch("residentPathLoopDepths", 0).to_f
+    resident_path_loop_active_paths =
+      batching.fetch("activePathsPerDepth", []).map { |value| value.to_f }
+    unless resident_path_loop_active_paths.empty?
+      values[:resident_path_loop_peak_active_paths] =
+        [values[:resident_path_loop_peak_active_paths],
+         resident_path_loop_active_paths.max].max
+      values[:resident_path_loop_last_active_paths] +=
+        resident_path_loop_active_paths.last
+    end
     values[:resident_path_loop_input_paths] +=
       batching.fetch("residentPathLoopInputPaths", 0).to_f
     values[:resident_path_loop_retained_paths] +=
@@ -1501,6 +1527,8 @@ puts %w[
   resident_path_loop_execution
   resident_path_loop_residency
   resident_path_loop_depths
+  resident_path_loop_peak_active_paths
+  resident_path_loop_last_active_paths
   resident_path_loop_input_paths
   resident_path_loop_retained_paths
   resident_path_loop_removed_paths
@@ -1648,6 +1676,8 @@ queue_dirs.each do |queue_dir|
       resident_path_loop_execution,
       resident_path_loop_residency,
       format("%.0f", median_for.call(:resident_path_loop_depths)),
+      format("%.0f", median_for.call(:resident_path_loop_peak_active_paths)),
+      format("%.0f", median_for.call(:resident_path_loop_last_active_paths)),
       format("%.0f", median_for.call(:resident_path_loop_input_paths)),
       format("%.0f", median_for.call(:resident_path_loop_retained_paths)),
       format("%.0f", median_for.call(:resident_path_loop_removed_paths)),

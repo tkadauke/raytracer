@@ -16,6 +16,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   kernels a documented CPU-reference baseline. — GPT-5 Codex
 - Expose compiled diffuse path-loop active path counts by depth in rendercli
   compact metrics and Modeler graph pass details. — GPT-5 Codex
+- Preserve resident path-loop peak and final active path counts in convergence
+  work comparisons and queue-sweep summaries. — GPT-5 Codex
 
 ### Fixed
 

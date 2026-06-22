@@ -1794,6 +1794,10 @@ Progress:
   graph metadata already owned `activePathsPerDepth`; surfacing it keeps the
   resident path-loop frontier shape inspectable without opening the raw JSON
   trace.
+- The convergence capture helper now carries resident path-loop peak and final
+  active-path counts into pairwise work comparisons and queue-sweep summaries.
+  Captures can therefore compare the resident loop's depth-frontier shape
+  without expanding the raw `activePathsPerDepth` array.
 
 ---
 
