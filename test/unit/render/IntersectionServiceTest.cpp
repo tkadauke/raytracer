@@ -171,6 +171,28 @@ namespace IntersectionServiceTest {
     EXPECT_EQ("runtime_scene", service.diagnostics().lastClosestHitTiming.executionPath);
   }
 
+  TEST(IntersectionService, SubmitsClosestHitFrontierInSubmissionOrder) {
+    Scene scene = sphereScene();
+    IntersectionService service(scene, WavefrontIntersectionBackendChoice::cpu());
+    State firstState;
+    State secondState;
+    std::vector<WavefrontClosestHitQuery> queries{
+      {Rayd(Vector3d(0, 0, 0), Vector3d::forward()), &firstState},
+      {Rayd(Vector3d(4, 0, 0), Vector3d::forward()), &secondState},
+    };
+    std::unique_ptr<WavefrontClosestHitFrontier> frontier =
+      service.backend().createClosestHitFrontier(std::move(queries));
+
+    const std::vector<WavefrontClosestHitResult> hits = service.closestHits(*frontier);
+
+    ASSERT_EQ(2u, hits.size());
+    EXPECT_TRUE(hits[0].hit());
+    EXPECT_FALSE(hits[1].hit());
+    EXPECT_EQ(2u, service.diagnostics().closestHitQueryCount);
+    EXPECT_EQ(1u, service.diagnostics().closestHitHitCount);
+    EXPECT_EQ("runtime_scene", service.diagnostics().lastClosestHitTiming.executionPath);
+  }
+
   TEST(IntersectionService, SubmitsAnyHitWorkThroughPreparedBackend) {
     Scene scene = sphereScene();
     IntersectionService service(scene, WavefrontIntersectionBackendChoice::cpu());
@@ -259,6 +281,27 @@ namespace IntersectionServiceTest {
     EXPECT_THROW(
       {
         const std::vector<WavefrontClosestHitResult> hits = service.closestHits(queries);
+        (void)hits;
+      },
+      std::logic_error);
+  }
+
+  TEST(IntersectionService, RejectsMismatchedClosestHitFrontierResults) {
+    Scene scene = sphereScene();
+    const ShortResultBackend backend;
+    IntersectionService service(scene, backend);
+    State firstState;
+    State secondState;
+    std::vector<WavefrontClosestHitQuery> queries{
+      {Rayd(Vector3d(0, 0, 0), Vector3d::forward()), &firstState},
+      {Rayd(Vector3d(4, 0, 0), Vector3d::forward()), &secondState},
+    };
+    std::unique_ptr<WavefrontClosestHitFrontier> frontier =
+      service.backend().createClosestHitFrontier(std::move(queries));
+
+    EXPECT_THROW(
+      {
+        const std::vector<WavefrontClosestHitResult> hits = service.closestHits(*frontier);
         (void)hits;
       },
       std::logic_error);

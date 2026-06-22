@@ -38,6 +38,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Added convertible C-array constructors for `Color`, SSE color
   specializations, and vector types so array-backed helpers can delegate to the
   math primitives directly. — GPT-5 Codex
+- Route `IntersectionService` closest-hit and any-hit batch helpers through
+  backend-owned frontier handles, and expose a closest-hit frontier overload
+  for reusable service consumers. — GPT-5 Codex
 - Track intersection-service closest-hit and any-hit query counts, hit counts,
   occlusion counts, and transfer-byte estimates directly on the reusable
   service diagnostics so graph consumers share one backend-owned summary.

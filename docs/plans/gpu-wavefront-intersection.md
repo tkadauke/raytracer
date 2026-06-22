@@ -1595,6 +1595,11 @@ Progress:
   Hybrid visibility and ray-traced shadow graph passes read those
   service-owned diagnostics instead of recomputing backend estimates at each
   call site, keeping future service consumers on the same reporting contract.
+- `IntersectionService` closest-hit and any-hit batch helpers now create and
+  execute backend-owned frontier handles, and the service exposes a closest-hit
+  frontier overload to match its existing any-hit frontier path. Hybrid and
+  debug graph consumers therefore exercise the same resident-frontier-ready
+  contract as wavefront batches instead of bypassing it with raw query vectors.
 
 ---
 

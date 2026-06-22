@@ -97,14 +97,20 @@ namespace render {
 
   std::vector<WavefrontClosestHitResult>
   IntersectionService::closestHits(const std::vector<WavefrontClosestHitQuery>& queries) {
+    auto frontier = m_backend->createClosestHitFrontier(
+      std::vector<WavefrontClosestHitQuery>(queries.begin(), queries.end()));
+    return closestHits(*frontier);
+  }
+
+  std::vector<WavefrontClosestHitResult>
+  IntersectionService::closestHits(const WavefrontClosestHitFrontier& frontier) {
     WavefrontIntersectionQueryTiming timing;
     std::vector<WavefrontClosestHitResult> results =
-      m_backend->intersectClosestBatch(*m_scene, queries, &timing);
-    validateResultCount(results.size(), static_cast<std::uint64_t>(queries.size()),
-                        "IntersectionService closest-hit batch returned a result count that does "
-                        "not match its query count");
-    recordClosestHitWork(static_cast<std::uint64_t>(queries.size()), countClosestHits(results),
-                         timing);
+      m_backend->intersectClosestFrontier(*m_scene, frontier, &timing);
+    validateResultCount(results.size(), frontier.rayCount(),
+                        "IntersectionService closest-hit frontier returned a result count that "
+                        "does not match its ray count");
+    recordClosestHitWork(frontier.rayCount(), countClosestHits(results), timing);
     return results;
   }
 
@@ -117,14 +123,9 @@ namespace render {
 
   WavefrontOcclusionFlags
   IntersectionService::anyHits(const std::vector<WavefrontAnyHitQuery>& queries) {
-    WavefrontIntersectionQueryTiming timing;
-    WavefrontOcclusionFlags results = m_backend->intersectAnyBatch(*m_scene, queries, &timing);
-    validateResultCount(results.size(), static_cast<std::uint64_t>(queries.size()),
-                        "IntersectionService any-hit batch returned an occlusion count that does "
-                        "not match its query count");
-    recordAnyHitWork(static_cast<std::uint64_t>(queries.size()), countOccludedResults(results),
-                     timing);
-    return results;
+    auto frontier = m_backend->createAnyHitFrontier(
+      std::vector<WavefrontAnyHitQuery>(queries.begin(), queries.end()));
+    return anyHits(*frontier);
   }
 
   WavefrontOcclusionFlags IntersectionService::anyHits(const WavefrontAnyHitFrontier& frontier) {
