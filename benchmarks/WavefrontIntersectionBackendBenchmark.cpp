@@ -91,14 +91,10 @@ namespace {
         static_cast<double>(result.initialPathCount);
       state.counters["compiled_path_loop_depths"] = static_cast<double>(result.depthCount);
       state.counters["compiled_path_loop_active_paths"] = static_cast<double>(metrics.activePaths);
-      const std::uint64_t peakActivePaths =
-        result.activePathsPerDepth.empty()
-          ? 0u
-          : *std::max_element(result.activePathsPerDepth.begin(), result.activePathsPerDepth.end());
-      const std::uint64_t lastActivePaths =
-        result.activePathsPerDepth.empty() ? 0u : result.activePathsPerDepth.back();
-      state.counters["resident_path_loop_peak_active_paths"] = static_cast<double>(peakActivePaths);
-      state.counters["resident_path_loop_last_active_paths"] = static_cast<double>(lastActivePaths);
+      state.counters["resident_path_loop_peak_active_paths"] =
+        static_cast<double>(result.peakActivePathCount());
+      state.counters["resident_path_loop_last_active_paths"] =
+        static_cast<double>(result.lastActivePathCount());
       state.counters["compiled_path_loop_closest_hit_rays"] =
         static_cast<double>(metrics.closestHitRays);
       state.counters["compiled_path_loop_direct_light_visibility_rays"] =

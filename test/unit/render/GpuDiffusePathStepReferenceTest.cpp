@@ -951,6 +951,8 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(1u, result.depthCount);
     ASSERT_EQ(1u, result.activePathsPerDepth.size());
     EXPECT_EQ(1u, result.activePathsPerDepth[0]);
+    EXPECT_EQ(1u, result.peakActivePathCount());
+    EXPECT_EQ(1u, result.lastActivePathCount());
     ASSERT_EQ(1u, result.resolvedPathStates.size());
     EXPECT_TRUE(gpuDiffusePathStateIsTerminated(result.resolvedPathStates[0]));
     ASSERT_COLOR_NEAR(Colord(0.125, 0.125, 0.09375),
@@ -974,6 +976,21 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(1u, diagnostics.resolveOperations);
     EXPECT_EQ(1u, diagnostics.readbackOperations);
     EXPECT_EQ(layout.resolveBytes(), diagnostics.readbackBytes);
+  }
+
+  TEST(GpuDiffusePathLoopResult, ReportsEmptyActivePathShapeAsZero) {
+    const GpuDiffusePathLoopResult result;
+
+    EXPECT_EQ(0u, result.peakActivePathCount());
+    EXPECT_EQ(0u, result.lastActivePathCount());
+  }
+
+  TEST(GpuDiffusePathLoopResult, ReportsPeakAndLastActivePathCounts) {
+    GpuDiffusePathLoopResult result;
+    result.activePathsPerDepth = {4, 7, 2};
+
+    EXPECT_EQ(7u, result.peakActivePathCount());
+    EXPECT_EQ(2u, result.lastActivePathCount());
   }
 
   TEST(GpuDiffusePathLoop, ReportsCpuReferenceResidencyAndCompactionDiagnostics) {

@@ -510,6 +510,17 @@ std::uint64_t GpuDiffusePathLoopResult::movedPathCount() const {
   return metrics.spawnedContinuations;
 }
 
+std::uint64_t GpuDiffusePathLoopResult::peakActivePathCount() const {
+  if (activePathsPerDepth.empty()) {
+    return 0;
+  }
+  return *std::max_element(activePathsPerDepth.begin(), activePathsPerDepth.end());
+}
+
+std::uint64_t GpuDiffusePathLoopResult::lastActivePathCount() const {
+  return activePathsPerDepth.empty() ? 0 : activePathsPerDepth.back();
+}
+
 double GpuDiffusePathLoopResult::removedPathFraction() const {
   return fraction(static_cast<std::uint64_t>(resolvedPathStates.size()), metrics.activePaths);
 }
