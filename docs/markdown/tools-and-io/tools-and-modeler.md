@@ -285,13 +285,17 @@ $ rendercli --engine raster \
             --render_graph_aov_out hybrid_visibility=visibility.png \
             --wavefront_intersection_backend gpu \
             --render_graph_trace_out trace.json \
+            --wavefront_metrics_summary \
             test/fixtures/rendercli/raster_shadow_caster.json \
             raster.png
 ```
 
-After either command, inspect `trace.json` or the compact metrics summary for
-the requested backend, selected backend, closest-hit and any-hit execution
-paths, query counts, unsupported-scene counts, and fallback reason. Normal
+After either command, inspect `trace.json` or the compact metrics summary. The
+summary includes a `wavefront_metrics` row for wavefront beauty passes and an
+`intersection_service` row for hybrid visibility and ray-traced shadow graph
+passes. The service row reports the pass id, query family, requested and
+selected backend, closest-hit and any-hit execution paths, query counts,
+hit/occlusion counts, transfer-byte estimates, and fallback reason. Normal
 fallback reasons include CPU policy selection, missing platform device or
 render-path kernels, unsupported scene leaves, unsupported closest-hit or
 any-hit kernels, platform preparation or dispatch failure, malformed result

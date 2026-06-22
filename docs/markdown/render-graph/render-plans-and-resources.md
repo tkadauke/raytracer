@@ -957,7 +957,10 @@ selection, graph scheduling, tonemapping, and final image ownership remain
 outside the GPU intersection service. The trace records the requested backend,
 selected backend, any-hit execution path, query counts, unsupported-scene
 counts, and fallback reason so a CPU fallback is visible rather than implied by
-the final image.
+the final image. rendercli prints the same service boundary as an
+`intersection_service` metrics-summary row for graph passes that use
+`IntersectionService`, including hybrid visibility and ray-traced shadow
+passes.
 Raster visibility culling is also intent-derived. When
 `engineOptions.rasterizer.geometry.visibilityCulling` is `on` or `auto`, the
 compiler inserts a `raster_visibility` pass that writes a
