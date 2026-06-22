@@ -1681,6 +1681,11 @@ Progress:
   any-hit frontier handle. That keeps the missing-frontier contract covered
   across closest-hit, service any-hit, and next-event-estimation visibility
   callers.
+- Whitted and path-tracing direct-light batches now also reject visibility
+  results whose any-hit frontier ray count disagrees with the returned
+  occlusion payload. That keeps future resident direct-light backends from
+  publishing internally inconsistent frontier diagnostics even when the
+  light-selection count still happens to match the occlusion vector.
 
 ---
 

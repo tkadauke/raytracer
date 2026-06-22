@@ -496,6 +496,7 @@ namespace render {
         throw std::logic_error(
           "direct-light visibility batch resolved without an any-hit frontier");
       }
+      validateResolvedFrontierRayCount();
       validateResolvedOcclusionCount();
       if (metrics) {
         metrics->recordDirectLightAnyHitFrontierQuery(depthIndex(bounce), hostSelectionBytes(),
@@ -550,6 +551,13 @@ namespace render {
       if (m_occluded.size() != m_selections.size()) {
         throw std::logic_error("direct-light visibility batch resolved an occlusion count that "
                                "does not match its light-selection count");
+      }
+    }
+
+    void validateResolvedFrontierRayCount() const {
+      if (m_frontier && static_cast<std::uint64_t>(m_occluded.size()) != m_frontier->rayCount()) {
+        throw std::logic_error("direct-light visibility batch resolved an occlusion count that "
+                               "does not match its any-hit frontier ray count");
       }
     }
 
