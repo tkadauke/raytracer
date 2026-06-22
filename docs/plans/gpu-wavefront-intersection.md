@@ -1143,6 +1143,11 @@ Progress:
   beside the capability flag. That makes the current boundary explicit:
   prepared platform ray batches can be compacted, but scheduler-owned active
   path state is still host-resident.
+- Structured tracing capability records now also report explicit GPU requests
+  for frontier compaction as `state.frontier_compaction` fallbacks when the
+  scheduler still compacts host-owned path state. That keeps rendercli and
+  Modeler fallback summaries aligned with the lower-level unavailable-reason
+  metrics.
 - The convergence capture helper now preserves GPU frontier-compaction
   unavailable reasons in reference/candidate comparisons and queue-sweep
   summaries, keeping offline Phase 8 captures aligned with render metrics and

@@ -924,9 +924,22 @@ namespace engine::wavefront {
       residentLoopCompactionReported && !residentPathLoopResidency.empty()
         ? executionDeviceForLabel(residentPathLoopResidency)
         : executionDeviceForLabel(compactionPath);
-    records.pathState.frontierCompaction = tracingRecordForResolvedExecutionPath(
-      Domain::PathState, "state.frontier_compaction", compactionDevice, intersectionBackendPlatform,
-      compactionPath);
+    const bool gpuCompactionRequested =
+      requestedDeviceForLabel(intersectionBackendRequest) == Device::GPU;
+    if (gpuCompactionRequested && !intersectionBackendSupportsGpuFrontierCompaction &&
+        compactionDevice == Device::CPU) {
+      const std::string reason = intersectionBackendGpuFrontierCompactionUnavailableReason.empty()
+                                   ? "GPU frontier compaction is not available"
+                                   : intersectionBackendGpuFrontierCompactionUnavailableReason;
+      records.pathState.frontierCompaction = render::TracingCapabilityRecord::fallbackRecord(
+        Domain::PathState, "state.frontier_compaction", Device::GPU, Device::CPU, compactionPath,
+        reason);
+      records.pathState.frontierCompaction.platform = intersectionBackendPlatform;
+    } else {
+      records.pathState.frontierCompaction = tracingRecordForResolvedExecutionPath(
+        Domain::PathState, "state.frontier_compaction", compactionDevice,
+        intersectionBackendPlatform, compactionPath);
+    }
     records.pathState.spawnedContinuations =
       render::TracingCapabilityRecord::cpu(Domain::PathState, "state.spawned_continuations");
 

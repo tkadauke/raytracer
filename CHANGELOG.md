@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Report explicit GPU frontier-compaction requests as structured
+  `state.frontier_compaction` fallbacks when scheduler-owned path state still
+  compacts on the host. — GPT-5 Codex
 - Allow the compiled diffuse path-loop CPU-reference path to handle distinct
   visible background and environment radiance records, matching path-tracer
   miss semantics for primary and bounced rays. — GPT-5 Codex

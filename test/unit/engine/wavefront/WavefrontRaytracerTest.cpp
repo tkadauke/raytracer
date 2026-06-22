@@ -1473,6 +1473,8 @@ namespace WavefrontRaytracerTest {
     metrics.batching.frontierCompactionMovedSamples = 2;
     metrics.batching.frontierCompactionExecutionPath = "host";
     metrics.batching.frontierCompactionPathStateResidency = "host";
+    metrics.batching.intersectionBackendGpuFrontierCompactionUnavailableReason =
+      "scheduler active path state is host-owned";
 
     const auto capabilities = metrics.batching.tracingExecutionCapabilities();
 
@@ -1507,6 +1509,10 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(render::TracingExecutionDevice::CPU,
               capabilities.pathState.frontierCompaction.resolvedDevice);
     EXPECT_EQ("host", capabilities.pathState.frontierCompaction.executionPath);
+    EXPECT_EQ(render::TracingCapabilitySupport::Fallback,
+              capabilities.pathState.frontierCompaction.support);
+    EXPECT_EQ("scheduler active path state is host-owned",
+              capabilities.pathState.frontierCompaction.fallback.reason);
     EXPECT_EQ(render::TracingCapabilitySupport::Unsupported, capabilities.sampling.gpuRng.support);
     EXPECT_EQ("GPU sample stream was not requested",
               capabilities.sampling.gpuRng.unsupportedReason);
@@ -1556,7 +1562,17 @@ namespace WavefrontRaytracerTest {
     const QJsonObject frontierCompactionCapability = tracingCapabilities.at(16).toObject();
     EXPECT_EQ("state.frontier_compaction",
               frontierCompactionCapability.value("name").toString().toStdString());
+    EXPECT_EQ("fallback", frontierCompactionCapability.value("support").toString().toStdString());
+    EXPECT_EQ("gpu",
+              frontierCompactionCapability.value("requestedDevice").toString().toStdString());
+    EXPECT_EQ("cpu", frontierCompactionCapability.value("resolvedDevice").toString().toStdString());
     EXPECT_EQ("host", frontierCompactionCapability.value("executionPath").toString().toStdString());
+    EXPECT_EQ("scheduler active path state is host-owned",
+              frontierCompactionCapability.value("fallback")
+                .toObject()
+                .value("reason")
+                .toString()
+                .toStdString());
     EXPECT_EQ("cpu",
               batching.value("directLightContributionExecutionPath").toString().toStdString());
     EXPECT_EQ("GPU diffuse direct-light contribution kernel unavailable",
@@ -1677,6 +1693,45 @@ namespace WavefrontRaytracerTest {
               residentDirectLightCapability.value("resolvedDevice").toString().toStdString());
     EXPECT_EQ("gpu_resident",
               residentDirectLightCapability.value("executionPath").toString().toStdString());
+  }
+
+  TEST(WavefrontRenderMetrics, FrontierCompactionCapabilityReportsGpuRequestFallback) {
+    engine::wavefront::WavefrontRenderMetrics metrics;
+    metrics.batching.intersectionBackendRequest = "gpu";
+    metrics.batching.intersectionBackend = "metal";
+    metrics.batching.intersectionBackendPlatform = "metal";
+    metrics.batching.intersectionBackendAvailability = "available";
+    metrics.batching.intersectionBackendExecutionPath = "metal";
+    metrics.batching.intersectionBackendClosestHitExecutionPath = "metal";
+    metrics.batching.intersectionBackendAnyHitExecutionPath = "metal";
+    metrics.batching.frontierCompactionExecutionPath = "host";
+    metrics.batching.frontierCompactionPathStateResidency = "host";
+    metrics.batching.intersectionBackendSupportsResidentFrontiers = true;
+    metrics.batching.intersectionBackendSupportsPreparedRayBatchCompaction = true;
+    metrics.batching.intersectionBackendSupportsGpuFrontierCompaction = false;
+    metrics.batching.intersectionBackendGpuFrontierCompactionUnavailableReason =
+      "scheduler active path state is host-owned";
+
+    const auto capabilities = metrics.batching.tracingExecutionCapabilities();
+
+    EXPECT_TRUE(capabilities.hasFallback());
+    EXPECT_EQ(render::TracingCapabilitySupport::Fallback,
+              capabilities.pathState.frontierCompaction.support);
+    EXPECT_EQ(render::TracingExecutionDevice::GPU,
+              capabilities.pathState.frontierCompaction.requestedDevice);
+    EXPECT_EQ(render::TracingExecutionDevice::CPU,
+              capabilities.pathState.frontierCompaction.resolvedDevice);
+    EXPECT_EQ("host", capabilities.pathState.frontierCompaction.executionPath);
+    EXPECT_EQ("scheduler active path state is host-owned",
+              capabilities.pathState.frontierCompaction.fallback.reason);
+
+    const QJsonObject batching = metrics.toJson().value("batching").toObject();
+    const QJsonObject tracingFallback = batching.value("tracingBackendFallback").toObject();
+    EXPECT_TRUE(tracingFallback.value("active").toBool());
+    EXPECT_EQ("state.frontier_compaction",
+              tracingFallback.value("capability").toString().toStdString());
+    EXPECT_EQ("scheduler active path state is host-owned",
+              tracingFallback.value("reason").toString().toStdString());
   }
 
   TEST(WavefrontRaytracer, SerializesStableCpuTracingExecutionSummaryWithoutFallback) {
