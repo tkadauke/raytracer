@@ -1664,6 +1664,10 @@ Progress:
   and path-tracing batches no longer unpack residency and payload byte fields
   at the scheduler call sites, keeping those details owned by the metrics
   boundary future resident frontiers will update.
+- Whitted and path-tracing closest-hit frontier batches now reject a missing
+  backend frontier handle before dispatching intersection work. Future resident
+  closest-hit backends therefore share the same loud contract failure as
+  malformed hit-count results instead of risking a null-handle crash.
 
 ---
 

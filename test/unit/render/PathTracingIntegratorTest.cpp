@@ -598,6 +598,21 @@ namespace PathTracingIntegratorTest {
       mutable std::vector<std::uint64_t> requestedRayCounts;
     };
 
+    class NullClosestHitFrontierBackend final : public CountingIntersectionBackend {
+    public:
+      bool prefersClosestHitBatch(std::uint64_t submittedRays) const override {
+        return submittedRays > 1;
+      }
+
+      std::unique_ptr<WavefrontClosestHitFrontier>
+      createClosestHitFrontier(std::vector<WavefrontClosestHitQuery> queries) const override {
+        requestedRayCounts.push_back(queries.size());
+        return nullptr;
+      }
+
+      mutable std::vector<std::size_t> requestedRayCounts;
+    };
+
     class AnyHitBatchPreferringCountingIntersectionBackend final
         : public CountingIntersectionBackend {
     public:
@@ -1692,6 +1707,29 @@ namespace PathTracingIntegratorTest {
     EXPECT_THROW(integrator.radianceBatch(*scene, samples, caster, &metrics, settings),
                  std::logic_error);
     EXPECT_EQ((std::vector<std::uint64_t>{3u}), backend.requestedRayCounts);
+  }
+
+  TEST(PathTracingIntegrator, BatchedRadianceRejectsMissingClosestHitFrontier) {
+    auto scene = simpleMatteScene(0.0, Colord(0.6, 0.3, 0.2));
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(1);
+
+    auto sampler = SamplerFactory::self().create("RegularSampler");
+    sampler->setup(/*numSamples=*/1, /*numSets=*/83);
+    std::vector<IntegratorRaySample> samples;
+    for (std::uint64_t sample = 0; sample != 3; ++sample) {
+      samples.push_back(IntegratorRaySample{primaryRay(), 0.0, sampler->stream(0, sample + 1)});
+    }
+
+    NullClosestHitFrontierBackend backend;
+    IntegratorBatchSettings settings;
+    settings.intersectionBackend = &backend;
+    FallbackRayCaster caster;
+    IntegratorBatchMetrics metrics;
+
+    EXPECT_THROW(integrator.radianceBatch(*scene, samples, caster, &metrics, settings),
+                 std::logic_error);
+    EXPECT_EQ((std::vector<std::size_t>{3u}), backend.requestedRayCounts);
   }
 
   TEST(PathTracingIntegrator, BatchedDirectLightingUsesConfiguredBackendForBoundedVisibility) {

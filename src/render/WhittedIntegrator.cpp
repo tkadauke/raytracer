@@ -452,6 +452,7 @@ namespace render {
       WavefrontIntersectionQueryTiming intersectionTiming;
       core::util::ScopedTimer timer(metrics ? &metrics->intersectionWorkerSeconds : nullptr);
       m_frontier = intersectionBackend.createClosestHitFrontier(std::move(m_queries));
+      validateFrontier();
       m_hits =
         intersectionBackend.intersectClosestFrontier(scene, *m_frontier, &intersectionTiming);
       validateHitCount();
@@ -487,6 +488,12 @@ namespace render {
     }
 
   private:
+    void validateFrontier() const {
+      if (!m_frontier) {
+        throw std::logic_error("Whitted closest-hit frontier batch resolved without a frontier");
+      }
+    }
+
     void validateHitCount() const {
       if (m_hits.size() != m_expectedHitCount) {
         throw std::logic_error(

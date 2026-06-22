@@ -331,6 +331,21 @@ namespace WhittedIntegratorTest {
       mutable std::vector<std::uint64_t> requestedRayCounts;
     };
 
+    class NullClosestHitFrontierBackend final : public CountingIntersectionBackend {
+    public:
+      bool prefersClosestHitBatch(std::uint64_t submittedRays) const override {
+        return submittedRays > 1;
+      }
+
+      std::unique_ptr<WavefrontClosestHitFrontier>
+      createClosestHitFrontier(std::vector<WavefrontClosestHitQuery> queries) const override {
+        requestedRayCounts.push_back(queries.size());
+        return nullptr;
+      }
+
+      mutable std::vector<std::size_t> requestedRayCounts;
+    };
+
     class ShortAnyHitFrontierBackend final : public CountingIntersectionBackend {
     public:
       std::unique_ptr<WavefrontAnyHitFrontier>
@@ -795,6 +810,26 @@ namespace WhittedIntegratorTest {
     EXPECT_THROW(integrator.radianceBatch(scene, samples, rayCaster, &metrics, settings),
                  std::logic_error);
     EXPECT_EQ((std::vector<std::uint64_t>{3u}), backend.requestedRayCounts);
+  }
+
+  TEST(WhittedIntegrator, BatchedRadianceRejectsMissingClosestHitFrontier) {
+    Scene scene;
+    scene.setBackground(Colord(0.2, 0.4, 0.6));
+    WhittedIntegrator integrator;
+    FixedRayCaster rayCaster;
+    NullClosestHitFrontierBackend backend;
+    IntegratorBatchSettings settings;
+    settings.intersectionBackend = &backend;
+    IntegratorBatchMetrics metrics;
+    std::vector<IntegratorRaySample> samples;
+    for (std::size_t sample = 0; sample != 3; ++sample) {
+      samples.push_back(
+        IntegratorRaySample{Rayd(Vector3d::null, Vector3d::forward()), 0.0, nullptr});
+    }
+
+    EXPECT_THROW(integrator.radianceBatch(scene, samples, rayCaster, &metrics, settings),
+                 std::logic_error);
+    EXPECT_EQ((std::vector<std::size_t>{3u}), backend.requestedRayCounts);
   }
 
   TEST(WhittedIntegrator, BatchedRadianceReportsSetupTiming) {
