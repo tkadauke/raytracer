@@ -916,10 +916,16 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                                     QStringLiteral("intersectionSceneUnsupportedReasons"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection scene upload bytes"), batching,
                               QStringLiteral("intersectionSceneUploadBytes"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection ray upload bytes"), batching,
+                              QStringLiteral("intersectionEstimatedRayUploadBytes"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Closest-hit ray upload bytes"), batching,
                               QStringLiteral("intersectionEstimatedClosestHitRayUploadBytes"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Any-hit ray upload bytes"), batching,
                               QStringLiteral("intersectionEstimatedAnyHitRayUploadBytes"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Closest-hit readback bytes"), batching,
+                              QStringLiteral("intersectionEstimatedClosestHitReadbackBytes"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Any-hit readback bytes"), batching,
+                              QStringLiteral("intersectionEstimatedAnyHitReadbackBytes"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection query transfer bytes"), batching,
                               QStringLiteral("intersectionEstimatedQueryTransferBytes"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Closest-hit query transfer bytes"), batching,

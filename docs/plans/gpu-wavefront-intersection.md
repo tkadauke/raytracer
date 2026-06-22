@@ -1658,7 +1658,9 @@ performance evidence on at least one large supported scene.
   reason in Modeler graph details and tooltips. Hybrid visibility and
   ray-traced shadow passes also expose `IntersectionService` frontier
   residency plus packed-ray, host-query, and state-handle payload bytes in the
-  selected-pass details.
+  selected-pass details. Wavefront selected-pass details also show total
+  ray-upload bytes plus closest-hit/any-hit readback bytes, matching the
+  rendercli transfer-breakdown diagnostics used for Phase 7/8 backend analysis.
 - rendercli should print compact backend diagnostics in metrics summaries. ✅
   **Done.** Wavefront metrics summaries print backend request, selected backend,
   availability, fallback reason, structured fallback capabilities, platform,
