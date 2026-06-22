@@ -23,6 +23,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Report resident path-loop submitted intersection rays and full-platform
   path-loop kernel availability in graph trace metadata, rendercli summaries,
   Modeler graph details, and backend benchmarks. — GPT-5 Codex
+- Add result-owned compiled diffuse path-loop tracing capability records,
+  including a tested future full-GPU reporting branch while preserving current
+  CPU-reference fallback metadata. — GPT-5 Codex
 
 ### Fixed
 

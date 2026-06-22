@@ -1031,6 +1031,87 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_FALSE(result.fullGpuPathLoopUnavailable());
   }
 
+  TEST(GpuDiffusePathLoopResult, ReportsCpuReferenceTracingCapabilitiesAsGpuFallbacks) {
+    GpuDiffusePathLoopResult result;
+    result.metrics.closestHitExecutionPath = "packed_cpu";
+    result.metrics.directLightVisibilityExecutionPath = "packed_cpu";
+    result.metrics.directLightContributionExecutionPath = "cpu_record";
+    result.pathStateResidency = "cpu_host";
+    TracingAccumulationDiagnostics accumulation;
+    accumulation.backend = "gpu_diffuse_path_loop";
+    accumulation.residency = "resident_accumulation_resolve";
+
+    const TracingExecutionCapabilityRecords capabilities = result.tracingCapabilities(accumulation);
+
+    EXPECT_TRUE(capabilities.hasFallback());
+    EXPECT_EQ(TracingCapabilitySupport::Fallback, capabilities.intersection.closestHit.support);
+    EXPECT_EQ(TracingExecutionDevice::GPU, capabilities.intersection.closestHit.requestedDevice);
+    EXPECT_EQ(TracingExecutionDevice::CPU, capabilities.intersection.closestHit.resolvedDevice);
+    EXPECT_EQ("packed_cpu", capabilities.intersection.closestHit.executionPath);
+    EXPECT_EQ("platform full-GPU path-loop kernel is not available yet",
+              capabilities.intersection.closestHit.fallback.reason);
+
+    EXPECT_EQ(TracingCapabilitySupport::Restricted, capabilities.scene.materialRecords.support);
+    EXPECT_EQ(TracingExecutionDevice::CPU, capabilities.scene.materialRecords.resolvedDevice);
+    EXPECT_EQ("host_records", capabilities.scene.materialRecords.executionPath);
+
+    EXPECT_EQ(TracingCapabilitySupport::Fallback, capabilities.bsdf.sample.support);
+    EXPECT_EQ("compiled CPU-reference path loop samples diffuse BSDF continuations on the host",
+              capabilities.bsdf.sample.fallback.reason);
+    EXPECT_EQ(TracingCapabilitySupport::Fallback,
+              capabilities.pathState.frontierCompaction.support);
+    EXPECT_EQ("compiled CPU-reference path loop compacts path state on the host",
+              capabilities.pathState.frontierCompaction.fallback.reason);
+    EXPECT_EQ(TracingCapabilitySupport::Fallback,
+              capabilities.accumulation.sampleAccumulation.support);
+    EXPECT_EQ("gpu_diffuse_path_loop", capabilities.accumulation.sampleAccumulation.executionPath);
+    EXPECT_EQ(TracingCapabilitySupport::Supported,
+              capabilities.accumulation.progressiveReadback.support);
+    EXPECT_EQ(TracingExecutionDevice::CPU,
+              capabilities.accumulation.progressiveReadback.resolvedDevice);
+  }
+
+  TEST(GpuDiffusePathLoopResult, ReportsFullGpuTracingCapabilitiesWithoutCpuFallbacks) {
+    GpuDiffusePathLoopResult result;
+    result.executionPath = "full_gpu_subset";
+    result.platformName = "metal";
+    result.pathStateResidency = "metal_path_state";
+    result.metrics.closestHitExecutionPath = "metal";
+    result.metrics.directLightVisibilityExecutionPath = "metal";
+    result.metrics.directLightContributionExecutionPath = "metal_path_loop";
+    TracingAccumulationDiagnostics accumulation;
+    accumulation.backend = "metal_accumulation";
+    accumulation.residency = "metal_shared_accumulation";
+
+    const TracingExecutionCapabilityRecords capabilities = result.tracingCapabilities(accumulation);
+
+    EXPECT_FALSE(capabilities.hasFallback());
+    EXPECT_EQ(TracingCapabilitySupport::Supported, capabilities.intersection.closestHit.support);
+    EXPECT_EQ(TracingExecutionDevice::GPU, capabilities.intersection.closestHit.requestedDevice);
+    EXPECT_EQ(TracingExecutionDevice::GPU, capabilities.intersection.closestHit.resolvedDevice);
+    EXPECT_EQ("metal", capabilities.intersection.closestHit.platform);
+    EXPECT_EQ("metal", capabilities.intersection.closestHit.executionPath);
+
+    EXPECT_EQ(TracingExecutionDevice::GPU, capabilities.scene.geometryRecords.resolvedDevice);
+    EXPECT_EQ("gpu_tracing_scene_records", capabilities.scene.geometryRecords.executionPath);
+    EXPECT_EQ(TracingExecutionDevice::GPU, capabilities.sampling.gpuRng.resolvedDevice);
+    EXPECT_EQ("gpu_sample_stream", capabilities.sampling.gpuRng.executionPath);
+    EXPECT_EQ(TracingExecutionDevice::GPU,
+              capabilities.directLighting.residentBatch.resolvedDevice);
+    EXPECT_EQ(TracingExecutionDevice::GPU, capabilities.bsdf.eval.resolvedDevice);
+    EXPECT_EQ(TracingExecutionDevice::Unsupported, capabilities.bsdf.deltaBranches.resolvedDevice);
+    EXPECT_EQ(TracingCapabilitySupport::Unsupported, capabilities.bsdf.deltaBranches.support);
+    EXPECT_EQ(TracingExecutionDevice::GPU, capabilities.pathState.residency.resolvedDevice);
+    EXPECT_EQ("metal_path_state", capabilities.pathState.residency.executionPath);
+    EXPECT_EQ(TracingExecutionDevice::GPU,
+              capabilities.accumulation.sampleAccumulation.resolvedDevice);
+    EXPECT_EQ("metal_accumulation", capabilities.accumulation.sampleAccumulation.executionPath);
+    EXPECT_EQ(TracingExecutionDevice::Hybrid,
+              capabilities.accumulation.progressiveReadback.resolvedDevice);
+    EXPECT_EQ("metal_shared_accumulation",
+              capabilities.accumulation.progressiveReadback.executionPath);
+  }
+
   TEST(GpuDiffusePathLoop, ReportsCpuReferenceResidencyAndCompactionDiagnostics) {
     Scene scene;
     scene.setEnvironmentRadiance(Colord(0.25, 0.5, 0.75));

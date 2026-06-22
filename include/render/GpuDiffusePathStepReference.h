@@ -3,6 +3,7 @@
 #include "core/math/Rect.h"
 #include "render/GpuTracingScene.h"
 #include "render/TracingAccumulationLayout.h"
+#include "render/TracingExecutionCapability.h"
 
 #include <cstdint>
 #include <optional>
@@ -63,6 +64,7 @@ namespace render {
     GpuDiffusePathStepMetrics metrics;
     std::string executionPath{"compiled_cpu_reference"};
     std::string pathStateResidency{"cpu_host"};
+    std::string platformName;
     std::uint64_t initialPathCount{0};
     std::uint64_t depthCount{0};
     std::uint64_t maxDepthTerminatedPaths{0};
@@ -87,6 +89,8 @@ namespace render {
     [[nodiscard]] std::uint64_t submittedIntersectionRayCount() const;
     [[nodiscard]] bool fullGpuPathLoopSupported() const;
     [[nodiscard]] bool fullGpuPathLoopUnavailable() const;
+    [[nodiscard]] TracingExecutionCapabilityRecords
+    tracingCapabilities(const TracingAccumulationDiagnostics& accumulation) const;
     [[nodiscard]] double removedPathFraction() const;
     [[nodiscard]] double movedRetainedPathFraction() const;
   };

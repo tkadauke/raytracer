@@ -1810,6 +1810,12 @@ Progress:
   details consume those result-owned values, so a future Metal/Vulkan path-loop
   result can switch the execution label without each caller reimplementing the
   same string and ray-count checks.
+- The compiled diffuse path-loop result now owns its structured tracing
+  capability records as well. Current CPU-reference results still report
+  GPU-requested CPU fallbacks for intersection, direct lighting, BSDF, path
+  state, and accumulation, while a future `full_gpu_subset` result can report
+  platform GPU ownership from the same result contract without graph metadata
+  reconstructing the capability model.
 
 ---
 

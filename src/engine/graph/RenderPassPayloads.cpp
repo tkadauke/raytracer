@@ -668,149 +668,12 @@ namespace engine::graph {
       service["sceneUploadBytes"] = static_cast<double>(diagnostics.uploadBytes);
     }
 
-    constexpr const char* compiledDiffusePathLoopGpuFallbackReason() {
-      return "platform full-GPU path-loop kernel is not available yet";
-    }
-
-    constexpr const char* compiledDiffusePathLoopPathStateResidencyFallbackReason() {
-      return "compiled CPU-reference path loop keeps path state on the host";
-    }
-
-    constexpr const char* compiledDiffusePathLoopFrontierCompactionFallbackReason() {
-      return "compiled CPU-reference path loop compacts path state on the host";
-    }
-
-    constexpr const char* compiledDiffusePathLoopDirectLightSamplingFallbackReason() {
-      return "compiled CPU-reference path loop samples direct lights on the host";
-    }
-
-    constexpr const char* compiledDiffusePathLoopDirectLightVisibilityFallbackReason() {
-      return "compiled CPU-reference path loop creates and consumes direct-light visibility "
-             "batches on the host";
-    }
-
     constexpr const char* compiledDiffusePathLoopDirectLightContributionFallbackReason() {
       return "compiled CPU-reference path loop evaluates direct-light contribution on the host";
     }
 
     constexpr const char* compiledDiffusePathLoopResidentDirectLightUnavailableReason() {
       return "compiled CPU-reference path loop resolves direct-light visibility on the host";
-    }
-
-    constexpr const char* compiledDiffusePathLoopBsdfEvalFallbackReason() {
-      return "compiled CPU-reference path loop evaluates diffuse BSDFs on the host";
-    }
-
-    constexpr const char* compiledDiffusePathLoopBsdfSampleFallbackReason() {
-      return "compiled CPU-reference path loop samples diffuse BSDF continuations on the host";
-    }
-
-    constexpr const char* compiledDiffusePathLoopSpawnedContinuationsFallbackReason() {
-      return "compiled CPU-reference path loop spawns path continuations on the host";
-    }
-
-    constexpr const char* compiledDiffusePathLoopSampleAccumulationFallbackReason() {
-      return "compiled CPU-reference path loop accumulates samples with CPU reference storage";
-    }
-
-    render::TracingExecutionCapabilityRecords compiledDiffusePathLoopCapabilities(
-      const render::GpuDiffusePathLoopResult& loop,
-      const render::TracingAccumulationDiagnostics& accumulation) {
-      using Domain = render::TracingExecutionDomain;
-      using Device = render::TracingExecutionDevice;
-
-      auto fallback = [](Domain domain, std::string name, std::string path) {
-        return render::TracingCapabilityRecord::fallbackRecord(
-          domain, std::move(name), Device::GPU, Device::CPU, std::move(path),
-          compiledDiffusePathLoopGpuFallbackReason());
-      };
-      auto fallbackWithReason = [](Domain domain, std::string name, std::string path,
-                                   const char* reason) {
-        return render::TracingCapabilityRecord::fallbackRecord(
-          domain, std::move(name), Device::GPU, Device::CPU, std::move(path), reason);
-      };
-      auto restrictedRecord = [](Domain domain, std::string name) {
-        return render::TracingCapabilityRecord::restricted(
-          domain, std::move(name), Device::CPU, "host_records",
-          "compiled GPU-facing records are interpreted by the CPU reference path loop");
-      };
-
-      const std::string closestHitPath = loop.metrics.closestHitExecutionPath.empty()
-                                           ? "packed_cpu"
-                                           : loop.metrics.closestHitExecutionPath;
-      const std::string anyHitPath = loop.metrics.directLightVisibilityExecutionPath.empty()
-                                       ? "packed_cpu"
-                                       : loop.metrics.directLightVisibilityExecutionPath;
-      const std::string directLightContributionPath =
-        loop.metrics.directLightContributionExecutionPath.empty()
-          ? "cpu_record"
-          : loop.metrics.directLightContributionExecutionPath;
-      const std::string accumulationPath =
-        accumulation.backend.empty() ? "gpu_diffuse_path_loop" : accumulation.backend;
-      const std::string accumulationResidency =
-        accumulation.residency.empty() ? "cpu_host" : accumulation.residency;
-
-      render::TracingExecutionCapabilityRecords records;
-      records.intersection.closestHit =
-        fallback(Domain::Intersection, "geometry.closest_hit", closestHitPath);
-      records.intersection.anyHit = fallback(Domain::Intersection, "geometry.any_hit", anyHitPath);
-
-      records.scene.geometryRecords =
-        restrictedRecord(Domain::SceneRecords, "scene.geometry_records");
-      records.scene.materialRecords =
-        restrictedRecord(Domain::SceneRecords, "scene.material_records");
-      records.scene.textureRecords =
-        restrictedRecord(Domain::SceneRecords, "scene.texture_records");
-      records.scene.lightRecords = restrictedRecord(Domain::SceneRecords, "scene.light_records");
-
-      records.sampling.gpuRng = render::TracingCapabilityRecord::restricted(
-        Domain::Sampling, "sampling.gpu_rng", Device::CPU, "gpu_sample_stream_cpu_reference",
-        "GPU sample stream dimensions are generated by the CPU reference path loop");
-      records.sampling.namedDimensions = render::TracingCapabilityRecord::cpu(
-        Domain::Sampling, "sampling.named_dimensions", "gpu_sample_stream");
-
-      records.directLighting.lightSampling =
-        fallbackWithReason(Domain::DirectLighting, "lighting.direct_light_sample", "cpu_record",
-                           compiledDiffusePathLoopDirectLightSamplingFallbackReason());
-      records.directLighting.visibility =
-        fallbackWithReason(Domain::DirectLighting, "lighting.direct_light_visibility", anyHitPath,
-                           compiledDiffusePathLoopDirectLightVisibilityFallbackReason());
-      records.directLighting.contribution = fallbackWithReason(
-        Domain::DirectLighting, "lighting.direct_light_contribution", directLightContributionPath,
-        compiledDiffusePathLoopDirectLightContributionFallbackReason());
-      records.directLighting.residentBatch = render::TracingCapabilityRecord::unsupported(
-        Domain::DirectLighting, "lighting.resident_direct_light_batches",
-        compiledDiffusePathLoopResidentDirectLightUnavailableReason());
-
-      records.bsdf.eval = fallbackWithReason(Domain::BSDF, "shading.bsdf_eval", "cpu_record",
-                                             compiledDiffusePathLoopBsdfEvalFallbackReason());
-      records.bsdf.sample = fallbackWithReason(Domain::BSDF, "shading.bsdf_sample", "cpu_record",
-                                               compiledDiffusePathLoopBsdfSampleFallbackReason());
-      records.bsdf.deltaBranches = render::TracingCapabilityRecord::unsupported(
-        Domain::BSDF, "shading.delta_branches",
-        "compiled diffuse path loop supports diffuse continuation only");
-
-      const std::string pathStateResidency =
-        loop.pathStateResidency.empty() ? "cpu_host" : loop.pathStateResidency;
-      const std::string pathLoopExecution =
-        loop.executionPath.empty() ? "compiled_cpu_reference" : loop.executionPath;
-
-      records.pathState.residency =
-        fallbackWithReason(Domain::PathState, "state.path_state_residency", pathStateResidency,
-                           compiledDiffusePathLoopPathStateResidencyFallbackReason());
-      records.pathState.frontierCompaction =
-        fallbackWithReason(Domain::PathState, "state.frontier_compaction", pathLoopExecution,
-                           compiledDiffusePathLoopFrontierCompactionFallbackReason());
-      records.pathState.spawnedContinuations =
-        fallbackWithReason(Domain::PathState, "state.spawned_continuations", "cpu_record",
-                           compiledDiffusePathLoopSpawnedContinuationsFallbackReason());
-
-      records.accumulation.sampleAccumulation = fallbackWithReason(
-        Domain::Accumulation, "accumulation.sample_accumulation", accumulationPath,
-        compiledDiffusePathLoopSampleAccumulationFallbackReason());
-      records.accumulation.progressiveReadback = render::TracingCapabilityRecord::cpu(
-        Domain::Accumulation, "accumulation.progressive_readback", accumulationResidency);
-      return records;
     }
 
     QJsonObject
@@ -836,10 +699,11 @@ namespace engine::graph {
       batching["integrator"] = QStringLiteral("pathtracer");
       batching["executionMode"] = QStringLiteral("compiled_diffuse_path_loop");
       batching["tracingBackendMode"] = QString::fromStdString(loop.executionPath);
-      batching["tracingBackend"] = QStringLiteral("cpu");
+      batching["tracingBackend"] =
+        loop.fullGpuPathLoopSupported() ? QStringLiteral("gpu") : QStringLiteral("cpu");
       batching["tracingBackendRequest"] = tracingExecutionPreferenceName(requestedTracingExecution);
       const render::TracingExecutionCapabilityRecords tracingCapabilities =
-        compiledDiffusePathLoopCapabilities(loop, accumulation);
+        loop.tracingCapabilities(accumulation);
       batching["tracingBackendCapabilities"] = tracingCapabilitiesToJson(tracingCapabilities);
       batching["tracingBackendFallback"] = tracingBackendFallbackToJson(tracingCapabilities);
       batching["closestHitExecutionPath"] =
@@ -1231,16 +1095,23 @@ namespace engine::graph {
                                                                 wavefront.tonemap().get());
         }
 
-        context.recordTraceMessage("compiled diffuse path loop rendered " +
-                                   std::to_string(generation.generatedPrimarySamples) +
-                                   " primary path state(s) through the CPU reference backend");
+        const QString actualTracingExecution =
+          loop.fullGpuPathLoopSupported() ? QStringLiteral("gpu") : QStringLiteral("cpu");
+        const QString actualTracingFallback =
+          loop.fullGpuPathLoopSupported()
+            ? QString()
+            : QStringLiteral("GPU tracing request executed by compiled CPU-reference diffuse "
+                             "path loop; platform full-GPU path-loop kernel is not available yet");
+        context.recordTraceMessage(
+          "compiled diffuse path loop rendered " +
+          std::to_string(generation.generatedPrimarySamples) +
+          " primary path state(s) through the " +
+          (loop.fullGpuPathLoopSupported() ? "platform GPU" : "CPU reference") + " backend");
         QJsonObject metadata = compiledDiffusePathLoopMetadata(
           compilation, generation, loop, accumulation,
           state.tracingExecution().value_or(TracingExecutionPreference::Auto));
         context.setTraceMetadata(withTracingExecutionMetadata(
-          metadata, context.pass(), QStringLiteral("cpu"),
-          QStringLiteral("GPU tracing request executed by compiled CPU-reference diffuse "
-                         "path loop; platform full-GPU path-loop kernel is not available yet")));
+          metadata, context.pass(), actualTracingExecution, actualTracingFallback));
         return true;
       }
 
