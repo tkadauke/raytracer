@@ -265,6 +265,15 @@ namespace WhittedIntegratorTest {
         return WavefrontIntersectionBackend::intersectAnyFrontier(scene, frontier, timing);
       }
 
+      WavefrontDirectLightVisibilityBatchResult
+      resolveDirectLightVisibilityBatch(const Scene& scene,
+                                        std::vector<WavefrontAnyHitQuery> queries) const override {
+        ++directLightVisibilityBatches;
+        directLightVisibilityBatchSizes.push_back(queries.size());
+        return WavefrontIntersectionBackend::resolveDirectLightVisibilityBatch(scene,
+                                                                               std::move(queries));
+      }
+
       PrimitivePacketHit4
       intersectPacketClosest(const Scene& scene, const Ray4& rays,
                              const PrimitivePacketState4& states,
@@ -288,6 +297,8 @@ namespace WhittedIntegratorTest {
       mutable std::vector<std::size_t> closestHitBatchSizes;
       mutable int anyHitFrontierQueries{0};
       mutable std::vector<std::uint64_t> anyHitFrontierSizes;
+      mutable int directLightVisibilityBatches{0};
+      mutable std::vector<std::size_t> directLightVisibilityBatchSizes;
       mutable int packet4Queries{0};
       mutable int packet8Queries{0};
       mutable int anyQueries{0};
@@ -619,6 +630,8 @@ namespace WhittedIntegratorTest {
     }
     EXPECT_EQ(1, backend.anyHitFrontierQueries);
     EXPECT_EQ((std::vector<std::uint64_t>{2u}), backend.anyHitFrontierSizes);
+    EXPECT_EQ(1, backend.directLightVisibilityBatches);
+    EXPECT_EQ((std::vector<std::size_t>{2u}), backend.directLightVisibilityBatchSizes);
     EXPECT_EQ(2, backend.anyQueries);
     EXPECT_EQ(1u, metrics.anyHitQueries);
     EXPECT_EQ(2u, metrics.anyHitRaysSubmitted);
@@ -676,6 +689,8 @@ namespace WhittedIntegratorTest {
     ASSERT_EQ(2u, colors.size());
     EXPECT_EQ(1, backend.anyHitFrontierQueries);
     EXPECT_EQ((std::vector<std::uint64_t>{2u}), backend.anyHitFrontierSizes);
+    EXPECT_EQ(1, backend.directLightVisibilityBatches);
+    EXPECT_EQ((std::vector<std::size_t>{2u}), backend.directLightVisibilityBatchSizes);
     EXPECT_EQ(2, backend.anyQueries);
     EXPECT_EQ(1u, metrics.anyHitQueries);
     EXPECT_EQ(2u, metrics.anyHitRaysSubmitted);
@@ -721,6 +736,8 @@ namespace WhittedIntegratorTest {
     ASSERT_COLOR_NEAR(Colord::black(), colors.front(), 1e-12);
     EXPECT_EQ(1, backend.anyHitFrontierQueries);
     EXPECT_EQ((std::vector<std::uint64_t>{1u}), backend.anyHitFrontierSizes);
+    EXPECT_EQ(1, backend.directLightVisibilityBatches);
+    EXPECT_EQ((std::vector<std::size_t>{1u}), backend.directLightVisibilityBatchSizes);
     EXPECT_EQ(1u, metrics.directLightSamples);
     EXPECT_EQ(0u, metrics.directLightContributingSamples);
     EXPECT_EQ(1u, metrics.directLightOccludedSamples);

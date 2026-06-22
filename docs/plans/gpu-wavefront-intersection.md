@@ -1288,6 +1288,10 @@ Progress:
   one result. Current backends still execute the host/packed/platform any-hit
   frontier immediately, but resident direct-light backends now have one
   overridable batch boundary without changing the path-tracer control flow.
+- Whitted direct-light visibility now resolves through the same backend-owned
+  batch hook. Whitted and path-tracing next-event-estimation visibility
+  therefore share one resident-direct-light override point while preserving
+  their distinct shading and contribution materialization paths.
 - Direct-light visibility batches now also own resolved-sample lookup, including
   selection PDF and occlusion lookup. Scalar and batched shading no longer pull
   raw selection records out of the batch, keeping the future resident

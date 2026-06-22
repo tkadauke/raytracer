@@ -545,19 +545,23 @@ namespace render {
     void resolveOcclusion(const Scene& scene,
                           const WavefrontIntersectionBackend& intersectionBackend, int depth,
                           IntegratorBatchMetrics* metrics) {
-      WavefrontIntersectionQueryTiming intersectionTiming;
       m_occluded.clear();
       m_frontier.reset();
-      m_frontier = intersectionBackend.createAnyHitFrontier(std::move(m_shadowQueries));
-      m_occluded = intersectionBackend.intersectAnyFrontier(
-        scene, *m_frontier, metrics ? &intersectionTiming : nullptr);
+      WavefrontDirectLightVisibilityBatchResult result =
+        intersectionBackend.resolveDirectLightVisibilityBatch(scene, std::move(m_shadowQueries));
+      m_frontier = std::move(result.frontier);
+      m_occluded = std::move(result.occluded);
+      if (!m_frontier) {
+        throw std::logic_error(
+          "Whitted direct-light visibility batch resolved without an any-hit frontier");
+      }
       validateResolvedOcclusionCount();
       if (metrics) {
         metrics->recordDirectLightAnyHitFrontierQuery(
           static_cast<std::uint64_t>(std::max(0, depth)), hostSelectionBytes(),
           hostOcclusionBytes(), intersectionBackend, m_frontier->residency(),
           m_frontier->rayCount(), m_frontier->packedRayBytes(), m_frontier->hostQueryBytes(),
-          m_frontier->stateHandleBytes(), intersectionTiming);
+          m_frontier->stateHandleBytes(), result.timing);
       }
     }
 

@@ -44,6 +44,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Route path-tracer direct-light visibility through a backend-owned batch hook,
   preserving current CPU behavior while giving resident direct-light backends a
   single override boundary. — GPT-5 Codex
+- Route Whitted direct-light visibility through the same backend-owned batch
+  hook used by path tracing, keeping ray-family direct-light frontiers aligned
+  for future resident backends. — GPT-5 Codex
 - Show intersection-service unsupported-scene reason histograms in graph trace
   metadata, rendercli compact summaries, Modeler selected-pass details, and
   graph-node tooltips. — GPT-5 Codex
