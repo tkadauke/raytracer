@@ -1825,6 +1825,9 @@ kept independent of the existing stratified sampler set path.
 5. ~~**Expose seed/stream diagnostics.**~~ ✅ **Done.** Raytracer pass state,
    render engine options, wavefront metrics input, and rendercli summaries now
    carry `sampleStreamMode` and sampling seed where relevant.
+   Structured tracing capabilities also use that mode: ordinary sampler renders
+   report that GPU sampling was not requested, while `gpu_sample_stream` renders
+   report the CPU reference implementation as `gpu_sample_stream_cpu_reference`.
    - Depends on: job 4.
    - Output: rendercli/trace fields showing seed and stream mode where relevant.
 

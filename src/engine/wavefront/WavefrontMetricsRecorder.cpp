@@ -33,6 +33,7 @@ namespace engine::wavefront::detail {
       static_cast<std::uint64_t>(std::max(0, configuredQueueSize));
     m_metrics.scheduling.resolvedQueueSize = tilePlan.size();
     m_metrics.scheduling.decision = tilePlan.isSingleTile() ? "single_tile" : "tiled";
+    m_metrics.batching.sampleStreamMode = sampleStreamMode;
     m_metrics.batching.integrator = integrator.diagnosticName();
     m_metrics.batching.executionMode = integrator.batchExecutionMode();
     m_metrics.batching.intersectionBackendExpectedRays = expectedIntersectionRays;

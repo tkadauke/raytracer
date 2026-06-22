@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Report `gpu_sample_stream` wavefront renders as using the GPU sampling
+  contract's CPU reference path in structured tracing capabilities, instead of
+  saying GPU sampling was not implemented. — GPT-5 Codex
 - Align compiled diffuse path-loop compact metric aliases with structured
   tracing capability fallback data, so rendercli summaries no longer report
   direct-light contribution or frontier compaction fallback as `none`.

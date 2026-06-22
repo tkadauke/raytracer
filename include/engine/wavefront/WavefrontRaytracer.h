@@ -64,6 +64,7 @@ namespace engine::wavefront {
     } scheduling;
 
     struct BatchSummary {
+      std::string sampleStreamMode;
       std::string integrator;
       std::string executionMode;
       std::string intersectionBackendRequest;

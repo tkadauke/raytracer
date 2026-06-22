@@ -1572,6 +1572,11 @@ Progress:
   the resident-direct-light unavailable reason, so graph consumers no longer
   have to parse legacy intersection backend booleans to tell whether
   next-event-estimation work can stay resident.
+- Structured tracing capability records now also distinguish sampler-owned CPU
+  sampling from the GPU sampling contract's CPU reference implementation:
+  `sampleStreamMode=gpu_sample_stream` reports `sampling.gpu_rng` as the
+  restricted `gpu_sample_stream_cpu_reference` path, while ordinary sampler
+  renders continue to report that GPU sampling was not requested.
 - rendercli now accepts compiled diffuse path-loop trace metadata as
   wavefront metrics, so explicit `--tracing_execution gpu` graph renders emit
   compact and JSON diagnostics for the current `compiled_cpu_reference` path
