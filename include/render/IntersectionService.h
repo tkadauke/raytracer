@@ -75,6 +75,8 @@ namespace render {
     [[nodiscard]] bool anyHit(const Rayd& ray, double maxDistance, State& state);
     [[nodiscard]] WavefrontOcclusionFlags anyHits(const std::vector<WavefrontAnyHitQuery>& queries);
     [[nodiscard]] WavefrontOcclusionFlags anyHits(const WavefrontAnyHitFrontier& frontier);
+    [[nodiscard]] WavefrontOcclusionFlags
+    resolveDirectLightVisibility(const std::vector<WavefrontAnyHitQuery>& queries);
 
   private:
     void refreshBackendDiagnostics();

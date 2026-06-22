@@ -1292,6 +1292,10 @@ Progress:
   batch hook. Whitted and path-tracing next-event-estimation visibility
   therefore share one resident-direct-light override point while preserving
   their distinct shading and contribution materialization paths.
+- `IntersectionService` direct-light visibility now resolves through that same
+  backend-owned batch hook too, so standalone GPU direct-light CPU-reference
+  consumers preserve the service diagnostics while exercising the
+  resident-direct-light override boundary.
 - Direct-light visibility batches now also own resolved-sample lookup, including
   selection PDF and occlusion lookup. Scalar and batched shading no longer pull
   raw selection records out of the batch, keeping the future resident

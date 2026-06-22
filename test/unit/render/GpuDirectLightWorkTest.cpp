@@ -431,6 +431,11 @@ namespace GpuDirectLightWorkTest {
     ASSERT_EQ(1u, resolved.size());
     EXPECT_EQ(1u, resolved[0].occluded);
     EXPECT_EQ("runtime_scene", intersectionService.diagnostics().lastAnyHitTiming.executionPath);
+    EXPECT_EQ(1u, intersectionService.diagnostics().anyHitQueryCount);
+    EXPECT_EQ(1u, intersectionService.diagnostics().anyHitOccludedCount);
+    EXPECT_EQ("host", intersectionService.diagnostics().anyHitFrontierResidency);
+    EXPECT_EQ(sizeof(WavefrontAnyHitQuery),
+              intersectionService.diagnostics().anyHitFrontierHostQueryBytes);
 
     const GpuDirectLightContributionRecord contribution =
       makeGpuDirectLightCpuContributionRecord(scene, work, resolved[0]);

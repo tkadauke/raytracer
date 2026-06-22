@@ -140,6 +140,23 @@ namespace render {
     return results;
   }
 
+  WavefrontOcclusionFlags IntersectionService::resolveDirectLightVisibility(
+    const std::vector<WavefrontAnyHitQuery>& queries) {
+    WavefrontDirectLightVisibilityBatchResult result = m_backend->resolveDirectLightVisibilityBatch(
+      *m_scene, std::vector<WavefrontAnyHitQuery>(queries.begin(), queries.end()));
+    if (!result.frontier) {
+      throw std::logic_error(
+        "IntersectionService direct-light visibility batch resolved without an any-hit frontier");
+    }
+    validateResultCount(result.occluded.size(), result.frontier->rayCount(),
+                        "IntersectionService direct-light visibility batch returned an occlusion "
+                        "count that does not match its ray count");
+    recordAnyHitFrontier(*result.frontier);
+    recordAnyHitWork(result.frontier->rayCount(), countOccludedResults(result.occluded),
+                     result.timing);
+    return result.occluded;
+  }
+
   void IntersectionService::refreshBackendDiagnostics() {
     m_diagnostics.requestedBackend = nonNullString(m_backend->requestedName());
     m_diagnostics.selectedBackend = nonNullString(m_backend->name());

@@ -133,6 +133,54 @@ namespace IntersectionServiceTest {
                                                                                   states, timing);
       }
     };
+
+    class DirectLightVisibilityCountingBackend final : public WavefrontIntersectionBackend {
+    public:
+      const char* name() const override {
+        return "direct_light_counting";
+      }
+
+      WavefrontDirectLightVisibilityBatchResult
+      resolveDirectLightVisibilityBatch(const Scene& scene,
+                                        std::vector<WavefrontAnyHitQuery> queries) const override {
+        ++directLightVisibilityBatches;
+        directLightVisibilityBatchSizes.push_back(queries.size());
+        return WavefrontIntersectionBackend::resolveDirectLightVisibilityBatch(scene,
+                                                                               std::move(queries));
+      }
+
+      const Primitive* intersectClosest(const Scene& scene, const Rayd& ray,
+                                        HitPointInterval& hitPoints, State& state,
+                                        WavefrontIntersectionQueryTiming* timing) const override {
+        return CpuWavefrontIntersectionBackend::instance().intersectClosest(scene, ray, hitPoints,
+                                                                            state, timing);
+      }
+
+      bool intersectAny(const Scene& scene, const Rayd& ray, double maxDistance, State& state,
+                        WavefrontIntersectionQueryTiming* timing) const override {
+        return CpuWavefrontIntersectionBackend::instance().intersectAny(scene, ray, maxDistance,
+                                                                        state, timing);
+      }
+
+      PrimitivePacketHit4
+      intersectPacketClosest(const Scene& scene, const Ray4& rays,
+                             const PrimitivePacketState4& states,
+                             WavefrontIntersectionQueryTiming* timing) const override {
+        return CpuWavefrontIntersectionBackend::instance().intersectPacketClosest(scene, rays,
+                                                                                  states, timing);
+      }
+
+      PrimitivePacketHit8
+      intersectPacketClosest(const Scene& scene, const Ray8& rays,
+                             const PrimitivePacketState8& states,
+                             WavefrontIntersectionQueryTiming* timing) const override {
+        return CpuWavefrontIntersectionBackend::instance().intersectPacketClosest(scene, rays,
+                                                                                  states, timing);
+      }
+
+      mutable int directLightVisibilityBatches{0};
+      mutable std::vector<std::size_t> directLightVisibilityBatchSizes;
+    };
   }
 
   TEST(IntersectionService, SubmitsClosestHitWorkThroughPreparedBackend) {
@@ -228,6 +276,32 @@ namespace IntersectionServiceTest {
     ASSERT_EQ(2u, occluded.size());
     EXPECT_NE(0, occluded[0]);
     EXPECT_EQ(0, occluded[1]);
+    EXPECT_EQ("runtime_scene", service.diagnostics().lastAnyHitTiming.executionPath);
+  }
+
+  TEST(IntersectionService, SubmitsDirectLightVisibilityThroughBackendHook) {
+    Scene scene = sphereScene();
+    DirectLightVisibilityCountingBackend backend;
+    IntersectionService service(scene, backend);
+    State firstState;
+    State secondState;
+    const std::vector<WavefrontAnyHitQuery> queries{
+      {Rayd(Vector3d(0, 0, 0), Vector3d::forward()), 4.0, &firstState},
+      {Rayd(Vector3d(0, 0, 0), Vector3d::forward()), 1.0, &secondState},
+    };
+
+    const WavefrontOcclusionFlags occluded = service.resolveDirectLightVisibility(queries);
+
+    ASSERT_EQ(2u, occluded.size());
+    EXPECT_NE(0, occluded[0]);
+    EXPECT_EQ(0, occluded[1]);
+    EXPECT_EQ(1, backend.directLightVisibilityBatches);
+    EXPECT_EQ((std::vector<std::size_t>{2u}), backend.directLightVisibilityBatchSizes);
+    EXPECT_EQ(2u, service.diagnostics().anyHitQueryCount);
+    EXPECT_EQ(1u, service.diagnostics().anyHitOccludedCount);
+    EXPECT_EQ("host", service.diagnostics().anyHitFrontierResidency);
+    EXPECT_EQ(2u * sizeof(WavefrontAnyHitQuery),
+              service.diagnostics().anyHitFrontierHostQueryBytes);
     EXPECT_EQ("runtime_scene", service.diagnostics().lastAnyHitTiming.executionPath);
   }
 
@@ -356,6 +430,25 @@ namespace IntersectionServiceTest {
     EXPECT_THROW(
       {
         const WavefrontOcclusionFlags occluded = service.anyHits(*frontier);
+        (void)occluded;
+      },
+      std::logic_error);
+  }
+
+  TEST(IntersectionService, RejectsMismatchedDirectLightVisibilityResults) {
+    Scene scene = sphereScene();
+    const ShortResultBackend backend;
+    IntersectionService service(scene, backend);
+    State firstState;
+    State secondState;
+    const std::vector<WavefrontAnyHitQuery> queries{
+      {Rayd(Vector3d(0, 0, 0), Vector3d::forward()), 4.0, &firstState},
+      {Rayd(Vector3d(0, 0, 0), Vector3d::forward()), 1.0, &secondState},
+    };
+
+    EXPECT_THROW(
+      {
+        const WavefrontOcclusionFlags occluded = service.resolveDirectLightVisibility(queries);
         (void)occluded;
       },
       std::logic_error);
