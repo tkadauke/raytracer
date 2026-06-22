@@ -633,6 +633,22 @@ compact summary prints total `tiles`, `tile_grid`,
 `last_retained_host_path_state_bytes`,
 `spawned_continuations`,
 `spawned_continuation_host_path_state_bytes`,
+`resident_path_loop_execution`,
+`resident_path_loop_residency`,
+`resident_path_loop_depths`,
+`resident_path_loop_input_paths`,
+`resident_path_loop_retained_paths`,
+`resident_path_loop_removed_paths`,
+`resident_path_loop_moved_paths`,
+`resident_path_loop_retained_index_bytes`,
+`resident_path_loop_resident_path_state_bytes`,
+`resident_path_loop_input_resident_path_state_bytes`,
+`resident_path_loop_retained_resident_path_state_bytes`,
+`resident_path_loop_removed_resident_path_state_bytes`,
+`resident_path_loop_compaction_passes`,
+`resident_path_loop_round_trips`,
+`resident_path_loop_saved_host_readbacks`,
+`resident_path_loop_saved_host_readback_bytes`,
 `frontier_compaction_candidate_packed_ray_bytes`,
 `frontier_compaction_candidate_state_handle_bytes`,
 `frontier_compaction_candidate_host_path_state_bytes`,
@@ -721,6 +737,11 @@ The same capture summaries preserve `last_active_host_path_state_bytes` and
 `last_retained_host_path_state_bytes`, matching the rendercli compact summary
 fields that show the final CPU-owned path frontier size before and after
 compaction/spawned continuations.
+They also preserve resident path-loop execution/residency labels, depth/path
+counts, retained-index bytes, resident path-state byte movement, compaction
+passes, round trips, and saved readback estimates. That keeps queue sweeps
+aligned with the compiled CPU-reference path-loop diagnostics that future
+platform path-state kernels must replace.
 The JSON also includes `sampleVariancePixelArea`, `sampleRadianceStddevRms`, and
 `maxSampleRadianceStddev`, which measure disagreement between samples of the
 same pixel and complement the between-depth radiance-delta convergence fields.

@@ -969,6 +969,12 @@ Progress:
   packed-ray and host-packed-ray byte counters in comparison reports and
   queue-sweep summaries, so benchmark captures include the same packed-host
   payload and retained host staging baselines as rendercli and the Modeler graph.
+- The capture helper now also preserves resident path-loop execution/residency
+  labels, path counts, retained-index bytes, resident path-state byte movement,
+  compaction passes, round trips, and saved readback estimates in comparison
+  reports and queue-sweep summaries. That keeps Phase 8 captures aligned with
+  the compiled CPU-reference path-loop diagnostics a platform resident path
+  loop must eventually replace.
 - Wavefront intersection backend benchmarks now publish the same packed and
   host-packed frontier ray byte counters as render metrics and convergence
   captures, including closest-hit, any-hit, and total payload sizes.

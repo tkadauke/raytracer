@@ -281,6 +281,22 @@ def wavefront_metric_values(path)
     active_hit_host_bytes: [],
     spawned_continuations: [],
     spawned_continuation_host_path_state_bytes: [],
+    resident_path_loop_execution: [],
+    resident_path_loop_residency: [],
+    resident_path_loop_depths: [],
+    resident_path_loop_input_paths: [],
+    resident_path_loop_retained_paths: [],
+    resident_path_loop_removed_paths: [],
+    resident_path_loop_moved_paths: [],
+    resident_path_loop_retained_index_bytes: [],
+    resident_path_loop_resident_path_state_bytes: [],
+    resident_path_loop_input_resident_path_state_bytes: [],
+    resident_path_loop_retained_resident_path_state_bytes: [],
+    resident_path_loop_removed_resident_path_state_bytes: [],
+    resident_path_loop_compaction_passes: [],
+    resident_path_loop_round_trips: [],
+    resident_path_loop_saved_host_readbacks: [],
+    resident_path_loop_saved_host_readback_bytes: [],
     frontier_hit_rays: [],
     frontier_miss_rays: [],
     frontier_packet_chunks: [],
@@ -393,6 +409,22 @@ def wavefront_metric_values(path)
       active_hit_host_bytes: 0.0,
       spawned_continuations: 0.0,
       spawned_continuation_host_path_state_bytes: 0.0,
+      resident_path_loop_execution: [],
+      resident_path_loop_residency: [],
+      resident_path_loop_depths: 0.0,
+      resident_path_loop_input_paths: 0.0,
+      resident_path_loop_retained_paths: 0.0,
+      resident_path_loop_removed_paths: 0.0,
+      resident_path_loop_moved_paths: 0.0,
+      resident_path_loop_retained_index_bytes: 0.0,
+      resident_path_loop_resident_path_state_bytes: 0.0,
+      resident_path_loop_input_resident_path_state_bytes: 0.0,
+      resident_path_loop_retained_resident_path_state_bytes: 0.0,
+      resident_path_loop_removed_resident_path_state_bytes: 0.0,
+      resident_path_loop_compaction_passes: 0.0,
+      resident_path_loop_round_trips: 0.0,
+      resident_path_loop_saved_host_readbacks: 0.0,
+      resident_path_loop_saved_host_readback_bytes: 0.0,
       frontier_hit_rays: 0.0,
       frontier_miss_rays: 0.0,
       frontier_packet_chunks: 0.0,
@@ -554,6 +586,44 @@ def wavefront_metric_values(path)
         batching.fetch("spawnedContinuationSamples", 0).to_f
       run_values[:spawned_continuation_host_path_state_bytes] +=
         batching.fetch("spawnedContinuationHostPathStateBytes", 0).to_f
+      resident_path_loop_execution =
+        batching.fetch("residentPathLoopExecutionPath", "")
+      resident_path_loop_residency = batching.fetch("residentPathLoopResidency", "")
+      unless resident_path_loop_execution.empty?
+        run_values[:resident_path_loop_execution] << resident_path_loop_execution
+      end
+      unless resident_path_loop_residency.empty?
+        run_values[:resident_path_loop_residency] << resident_path_loop_residency
+      end
+      run_values[:resident_path_loop_depths] +=
+        batching.fetch("residentPathLoopDepths", 0).to_f
+      run_values[:resident_path_loop_input_paths] +=
+        batching.fetch("residentPathLoopInputPaths", 0).to_f
+      run_values[:resident_path_loop_retained_paths] +=
+        batching.fetch("residentPathLoopRetainedPaths", 0).to_f
+      run_values[:resident_path_loop_removed_paths] +=
+        batching.fetch("residentPathLoopRemovedPaths", 0).to_f
+      run_values[:resident_path_loop_moved_paths] +=
+        batching.fetch("residentPathLoopMovedPaths", 0).to_f
+      run_values[:resident_path_loop_retained_index_bytes] +=
+        batching.fetch("residentPathLoopRetainedIndexBytes", 0).to_f
+      run_values[:resident_path_loop_resident_path_state_bytes] =
+        [run_values[:resident_path_loop_resident_path_state_bytes],
+         batching.fetch("residentPathLoopResidentPathStateBytes", 0).to_f].max
+      run_values[:resident_path_loop_input_resident_path_state_bytes] +=
+        batching.fetch("residentPathLoopInputResidentPathStateBytes", 0).to_f
+      run_values[:resident_path_loop_retained_resident_path_state_bytes] +=
+        batching.fetch("residentPathLoopRetainedResidentPathStateBytes", 0).to_f
+      run_values[:resident_path_loop_removed_resident_path_state_bytes] +=
+        batching.fetch("residentPathLoopRemovedResidentPathStateBytes", 0).to_f
+      run_values[:resident_path_loop_compaction_passes] +=
+        batching.fetch("residentPathLoopCompactionPasses", 0).to_f
+      run_values[:resident_path_loop_round_trips] +=
+        batching.fetch("residentPathLoopRoundTrips", 0).to_f
+      run_values[:resident_path_loop_saved_host_readbacks] +=
+        batching.fetch("residentPathLoopSavedHostReadbacks", 0).to_f
+      run_values[:resident_path_loop_saved_host_readback_bytes] +=
+        batching.fetch("residentPathLoopSavedHostReadbackBytes", 0).to_f
       retained = batching.fetch("retainedActiveSamplesPerDepth", [])
       run_values[:retained_active_samples] += retained.empty? ? 0.0 : retained.last.to_f
       run_values[:frontier_hit_rays] +=
@@ -890,6 +960,20 @@ end
    active_hit_host_bytes
    spawned_continuations
    spawned_continuation_host_path_state_bytes
+   resident_path_loop_depths
+   resident_path_loop_input_paths
+   resident_path_loop_retained_paths
+   resident_path_loop_removed_paths
+   resident_path_loop_moved_paths
+   resident_path_loop_retained_index_bytes
+   resident_path_loop_resident_path_state_bytes
+   resident_path_loop_input_resident_path_state_bytes
+   resident_path_loop_retained_resident_path_state_bytes
+   resident_path_loop_removed_resident_path_state_bytes
+   resident_path_loop_compaction_passes
+   resident_path_loop_round_trips
+   resident_path_loop_saved_host_readbacks
+   resident_path_loop_saved_host_readback_bytes
    resident_frontiers_supported
    gpu_frontier_compaction_supported
    prepared_ray_batch_compaction_supported
@@ -913,6 +997,8 @@ end
 
 %i[closest_hit_frontier_residency
    any_hit_frontier_residency
+   resident_path_loop_execution
+   resident_path_loop_residency
    gpu_frontier_compaction_unavailable_reason
    resident_direct_light_batches_unavailable_reason].each do |key|
   puts format("%s reference=%s candidate=%s",
@@ -1042,6 +1128,22 @@ def aggregate_run(run)
     active_hit_host_bytes: 0.0,
     spawned_continuations: 0.0,
     spawned_continuation_host_path_state_bytes: 0.0,
+    resident_path_loop_executions: [],
+    resident_path_loop_residencies: [],
+    resident_path_loop_depths: 0.0,
+    resident_path_loop_input_paths: 0.0,
+    resident_path_loop_retained_paths: 0.0,
+    resident_path_loop_removed_paths: 0.0,
+    resident_path_loop_moved_paths: 0.0,
+    resident_path_loop_retained_index_bytes: 0.0,
+    resident_path_loop_resident_path_state_bytes: 0.0,
+    resident_path_loop_input_resident_path_state_bytes: 0.0,
+    resident_path_loop_retained_resident_path_state_bytes: 0.0,
+    resident_path_loop_removed_resident_path_state_bytes: 0.0,
+    resident_path_loop_compaction_passes: 0.0,
+    resident_path_loop_round_trips: 0.0,
+    resident_path_loop_saved_host_readbacks: 0.0,
+    resident_path_loop_saved_host_readback_bytes: 0.0,
     tile_count: 0.0,
     tile_rows: 0.0,
     tile_columns: 0.0,
@@ -1147,6 +1249,44 @@ def aggregate_run(run)
     values[:spawned_continuations] += batching.fetch("spawnedContinuationSamples", 0).to_f
     values[:spawned_continuation_host_path_state_bytes] +=
       batching.fetch("spawnedContinuationHostPathStateBytes", 0).to_f
+    resident_path_loop_execution =
+      batching.fetch("residentPathLoopExecutionPath", "")
+    resident_path_loop_residency = batching.fetch("residentPathLoopResidency", "")
+    unless resident_path_loop_execution.empty?
+      values[:resident_path_loop_executions] << resident_path_loop_execution
+    end
+    unless resident_path_loop_residency.empty?
+      values[:resident_path_loop_residencies] << resident_path_loop_residency
+    end
+    values[:resident_path_loop_depths] +=
+      batching.fetch("residentPathLoopDepths", 0).to_f
+    values[:resident_path_loop_input_paths] +=
+      batching.fetch("residentPathLoopInputPaths", 0).to_f
+    values[:resident_path_loop_retained_paths] +=
+      batching.fetch("residentPathLoopRetainedPaths", 0).to_f
+    values[:resident_path_loop_removed_paths] +=
+      batching.fetch("residentPathLoopRemovedPaths", 0).to_f
+    values[:resident_path_loop_moved_paths] +=
+      batching.fetch("residentPathLoopMovedPaths", 0).to_f
+    values[:resident_path_loop_retained_index_bytes] +=
+      batching.fetch("residentPathLoopRetainedIndexBytes", 0).to_f
+    values[:resident_path_loop_resident_path_state_bytes] =
+      [values[:resident_path_loop_resident_path_state_bytes],
+       batching.fetch("residentPathLoopResidentPathStateBytes", 0).to_f].max
+    values[:resident_path_loop_input_resident_path_state_bytes] +=
+      batching.fetch("residentPathLoopInputResidentPathStateBytes", 0).to_f
+    values[:resident_path_loop_retained_resident_path_state_bytes] +=
+      batching.fetch("residentPathLoopRetainedResidentPathStateBytes", 0).to_f
+    values[:resident_path_loop_removed_resident_path_state_bytes] +=
+      batching.fetch("residentPathLoopRemovedResidentPathStateBytes", 0).to_f
+    values[:resident_path_loop_compaction_passes] +=
+      batching.fetch("residentPathLoopCompactionPasses", 0).to_f
+    values[:resident_path_loop_round_trips] +=
+      batching.fetch("residentPathLoopRoundTrips", 0).to_f
+    values[:resident_path_loop_saved_host_readbacks] +=
+      batching.fetch("residentPathLoopSavedHostReadbacks", 0).to_f
+    values[:resident_path_loop_saved_host_readback_bytes] +=
+      batching.fetch("residentPathLoopSavedHostReadbackBytes", 0).to_f
     retained = batching.fetch("retainedActiveSamplesPerDepth", [])
     values[:retained_active_samples] += retained.empty? ? 0.0 : retained.last.to_f
     values[:tile_count] += tiling.fetch("tileCount", 0).to_f
@@ -1346,7 +1486,118 @@ scene_dir = ARGV.fetch(0)
 queue_dirs = Dir.glob(File.join(scene_dir, "queue_*")).select { |path| File.directory?(path) }
 queue_dirs.sort_by! { |path| File.basename(path).delete_prefix("queue_").to_i }
 
-puts "queue_size variant render_ms primary_samples last_retained_active active_host_path_state_bytes last_active_host_path_state_bytes last_retained_host_path_state_bytes active_hit_host_bytes spawned_continuations spawned_continuation_host_path_state_bytes tile_count tile_grid max_tile_width max_tile_height max_tile_pixels avg_tile_pixels avg_tile_samples max_tile_samples ray8_chunks ray4_chunks closest_hit_batch_chunks closest_hit_batch_rays any_hit_batch_chunks any_hit_batch_rays direct_light_any_hit_round_trips resident_direct_light_round_trips_estimate resident_direct_light_round_trip_savings_estimate direct_light_selection_host_bytes direct_light_occlusion_host_bytes direct_light_contribution_host_bytes direct_light_any_hit_frontier_packed_ray_bytes direct_light_any_hit_frontier_host_packed_ray_bytes direct_light_any_hit_frontier_host_query_bytes direct_light_any_hit_frontier_state_handle_bytes direct_light_any_hit_frontier_last_packed_ray_bytes direct_light_any_hit_frontier_last_host_packed_ray_bytes direct_light_any_hit_frontier_last_host_query_bytes direct_light_any_hit_frontier_last_state_handle_bytes frontier_round_trips resident_frontier_round_trips resident_frontier_savings closest_hit_ray_upload_bytes any_hit_ray_upload_bytes closest_hit_query_transfer_bytes any_hit_query_transfer_bytes closest_hit_frontier_residency any_hit_frontier_residency closest_hit_frontier_packed_ray_bytes any_hit_frontier_packed_ray_bytes closest_hit_frontier_host_packed_ray_bytes any_hit_frontier_host_packed_ray_bytes closest_hit_frontier_host_query_bytes any_hit_frontier_host_query_bytes closest_hit_frontier_state_handle_bytes any_hit_frontier_state_handle_bytes resident_frontiers_supported gpu_frontier_compaction_supported gpu_frontier_compaction_unavailable_reason prepared_ray_batch_compaction_supported resident_direct_light_batches_supported resident_direct_light_batches_unavailable_reason mixed_query_depths mixed_query_round_trips mixed_query_rays mixed_query_closest_hit_rays mixed_query_any_hit_rays packet_fill scalar_tail_fraction fallback_fraction scalar_rays fallback_rays frontier_compaction_passes frontier_compaction_input_samples frontier_compaction_retained_samples frontier_compaction_removed_samples frontier_compaction_removed_fraction frontier_compaction_moved_samples frontier_compaction_moved_retained_fraction frontier_compaction_retained_index_bytes frontier_compaction_input_host_path_state_bytes frontier_compaction_retained_host_path_state_bytes frontier_compaction_removed_host_path_state_bytes frontier_compaction_candidate_packed_ray_bytes frontier_compaction_candidate_state_handle_bytes frontier_compaction_candidate_host_path_state_bytes frontier_largest_compaction_candidate_packed_ray_bytes frontier_largest_compaction_candidate_state_handle_bytes frontier_largest_compaction_candidate_host_path_state_bytes compaction_execution sample_generation_worker_ms integrator_worker_ms integrator_frontier_partition_worker_ms integrator_residual_worker_ms"
+puts %w[
+  queue_size
+  variant
+  render_ms
+  primary_samples
+  last_retained_active
+  active_host_path_state_bytes
+  last_active_host_path_state_bytes
+  last_retained_host_path_state_bytes
+  active_hit_host_bytes
+  spawned_continuations
+  spawned_continuation_host_path_state_bytes
+  resident_path_loop_execution
+  resident_path_loop_residency
+  resident_path_loop_depths
+  resident_path_loop_input_paths
+  resident_path_loop_retained_paths
+  resident_path_loop_removed_paths
+  resident_path_loop_moved_paths
+  resident_path_loop_retained_index_bytes
+  resident_path_loop_resident_path_state_bytes
+  resident_path_loop_input_resident_path_state_bytes
+  resident_path_loop_retained_resident_path_state_bytes
+  resident_path_loop_removed_resident_path_state_bytes
+  resident_path_loop_compaction_passes
+  resident_path_loop_round_trips
+  resident_path_loop_saved_host_readbacks
+  resident_path_loop_saved_host_readback_bytes
+  tile_count
+  tile_grid
+  max_tile_width
+  max_tile_height
+  max_tile_pixels
+  avg_tile_pixels
+  avg_tile_samples
+  max_tile_samples
+  ray8_chunks
+  ray4_chunks
+  closest_hit_batch_chunks
+  closest_hit_batch_rays
+  any_hit_batch_chunks
+  any_hit_batch_rays
+  direct_light_any_hit_round_trips
+  resident_direct_light_round_trips_estimate
+  resident_direct_light_round_trip_savings_estimate
+  direct_light_selection_host_bytes
+  direct_light_occlusion_host_bytes
+  direct_light_contribution_host_bytes
+  direct_light_any_hit_frontier_packed_ray_bytes
+  direct_light_any_hit_frontier_host_packed_ray_bytes
+  direct_light_any_hit_frontier_host_query_bytes
+  direct_light_any_hit_frontier_state_handle_bytes
+  direct_light_any_hit_frontier_last_packed_ray_bytes
+  direct_light_any_hit_frontier_last_host_packed_ray_bytes
+  direct_light_any_hit_frontier_last_host_query_bytes
+  direct_light_any_hit_frontier_last_state_handle_bytes
+  frontier_round_trips
+  resident_frontier_round_trips
+  resident_frontier_savings
+  closest_hit_ray_upload_bytes
+  any_hit_ray_upload_bytes
+  closest_hit_query_transfer_bytes
+  any_hit_query_transfer_bytes
+  closest_hit_frontier_residency
+  any_hit_frontier_residency
+  closest_hit_frontier_packed_ray_bytes
+  any_hit_frontier_packed_ray_bytes
+  closest_hit_frontier_host_packed_ray_bytes
+  any_hit_frontier_host_packed_ray_bytes
+  closest_hit_frontier_host_query_bytes
+  any_hit_frontier_host_query_bytes
+  closest_hit_frontier_state_handle_bytes
+  any_hit_frontier_state_handle_bytes
+  resident_frontiers_supported
+  gpu_frontier_compaction_supported
+  gpu_frontier_compaction_unavailable_reason
+  prepared_ray_batch_compaction_supported
+  resident_direct_light_batches_supported
+  resident_direct_light_batches_unavailable_reason
+  mixed_query_depths
+  mixed_query_round_trips
+  mixed_query_rays
+  mixed_query_closest_hit_rays
+  mixed_query_any_hit_rays
+  packet_fill
+  scalar_tail_fraction
+  fallback_fraction
+  scalar_rays
+  fallback_rays
+  frontier_compaction_passes
+  frontier_compaction_input_samples
+  frontier_compaction_retained_samples
+  frontier_compaction_removed_samples
+  frontier_compaction_removed_fraction
+  frontier_compaction_moved_samples
+  frontier_compaction_moved_retained_fraction
+  frontier_compaction_retained_index_bytes
+  frontier_compaction_input_host_path_state_bytes
+  frontier_compaction_retained_host_path_state_bytes
+  frontier_compaction_removed_host_path_state_bytes
+  frontier_compaction_candidate_packed_ray_bytes
+  frontier_compaction_candidate_state_handle_bytes
+  frontier_compaction_candidate_host_path_state_bytes
+  frontier_largest_compaction_candidate_packed_ray_bytes
+  frontier_largest_compaction_candidate_state_handle_bytes
+  frontier_largest_compaction_candidate_host_path_state_bytes
+  compaction_execution
+  sample_generation_worker_ms
+  integrator_worker_ms
+  integrator_frontier_partition_worker_ms
+  integrator_residual_worker_ms
+].join(" ")
 queue_dirs.each do |queue_dir|
   queue_size = File.basename(queue_dir).delete_prefix("queue_")
   Dir.glob(File.join(queue_dir, "wavefront_*.metrics.json")).sort.each do |metrics_path|
@@ -1371,6 +1622,10 @@ queue_dirs.each do |queue_dir|
       label_set(runs.map { |run| run.fetch(:closest_hit_frontier_residencies) })
     any_hit_frontier_residency =
       label_set(runs.map { |run| run.fetch(:any_hit_frontier_residencies) })
+    resident_path_loop_execution =
+      label_set(runs.map { |run| run.fetch(:resident_path_loop_executions) })
+    resident_path_loop_residency =
+      label_set(runs.map { |run| run.fetch(:resident_path_loop_residencies) })
     gpu_compaction_unavailable_reason =
       label_set(runs.map { |run| run.fetch(:gpu_frontier_compaction_unavailable_reasons) })
     resident_direct_light_unavailable_reason =
@@ -1390,6 +1645,22 @@ queue_dirs.each do |queue_dir|
       format("%.0f", median_for.call(:active_hit_host_bytes)),
       format("%.0f", median_for.call(:spawned_continuations)),
       format("%.0f", median_for.call(:spawned_continuation_host_path_state_bytes)),
+      resident_path_loop_execution,
+      resident_path_loop_residency,
+      format("%.0f", median_for.call(:resident_path_loop_depths)),
+      format("%.0f", median_for.call(:resident_path_loop_input_paths)),
+      format("%.0f", median_for.call(:resident_path_loop_retained_paths)),
+      format("%.0f", median_for.call(:resident_path_loop_removed_paths)),
+      format("%.0f", median_for.call(:resident_path_loop_moved_paths)),
+      format("%.0f", median_for.call(:resident_path_loop_retained_index_bytes)),
+      format("%.0f", median_for.call(:resident_path_loop_resident_path_state_bytes)),
+      format("%.0f", median_for.call(:resident_path_loop_input_resident_path_state_bytes)),
+      format("%.0f", median_for.call(:resident_path_loop_retained_resident_path_state_bytes)),
+      format("%.0f", median_for.call(:resident_path_loop_removed_resident_path_state_bytes)),
+      format("%.0f", median_for.call(:resident_path_loop_compaction_passes)),
+      format("%.0f", median_for.call(:resident_path_loop_round_trips)),
+      format("%.0f", median_for.call(:resident_path_loop_saved_host_readbacks)),
+      format("%.0f", median_for.call(:resident_path_loop_saved_host_readback_bytes)),
       format("%.0f", median_for.call(:tile_count)),
       tile_grid,
       format("%.0f", median_for.call(:max_tile_width)),

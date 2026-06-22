@@ -100,6 +100,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Preserve retained host packed-ray staging bytes in convergence comparison
   summaries, queue-sweep captures, and wavefront intersection backend benchmark
   counters. — GPT-5 Codex
+- Preserve resident path-loop execution and path-state byte diagnostics in
+  convergence comparison summaries and queue-sweep captures. — GPT-5 Codex
 - Added resident direct-light candidate and largest-depth diagnostics to
   wavefront metrics, rendercli summaries, and Modeler graph details. — GPT-5
   Codex
