@@ -93,13 +93,13 @@ Specific work:
 - ✅ **`TransparentMaterial`** — Snell's law refraction angle, critical-angle TIR boundary, ~~nested-medium IOR stacking~~ (still TODO — see §2 "no nested-medium tracking"), normal-incidence pass-through. ~~Belongs alongside the in-flight #36 fix.~~ Most of this landed via #36's `ShadeFixture`-based behavioural tests in `TransparentMaterialTest.cpp`.
 - ✅ **`PerfectTransmitter`** — first-ever test file. BTDF subdir generally under-tested. **Done in #36** (`test/unit/raytracer/brdf/PerfectTransmitterTest.cpp`).
 - ✅ **All `Material::shade()` subclasses** — at least one behavioural test per material that calls `shade()` and verifies the output colour against an expected value, not just constructed properties. **Done in #22** (`MatteMaterial`, `PhongMaterial`, `ReflectiveMaterial`, `TransparentMaterial`).
-- **`Texture` and texture mappings** — coordinate projection correctness for `PlanarMapping2D`; texture-pattern alternation for `CheckerBoardTexture`; constant-colour shading for `ConstantColorTexture`. *(World-side `Texture` family covered in #24; raytracer-side mappings still uncovered.)*
+- ✅ **`Texture` and texture mappings** — coordinate projection correctness through `PlanarMapping2D`; texture-pattern alternation for `CheckerBoardTexture`; constant-color shading for `ConstantColorTexture`. **Done.** Runtime texture coverage now lives in `test/unit/render/textures/CheckerBoardTextureTest.cpp` and `ConstantColorTextureTest.cpp`; world-side `Texture` family coverage remains from #24.
 - **Empty test body** — `PlaneTest.cpp::ShouldReturnBoundingBox` is a `// TODO` stub. Fill in.
 - ~~**`world/` layer** — 32 headers, 31 impls, zero tests. Either bring under test (it's the Qt-side scene description and likely live), or formally sunset and remove.~~ ✅ **Done.** All 39 world-layer classes now under test: `Element`, `Transformable`, `Scene`, `Light` family, `Surface` family, `Material` family, `Texture` family, `Camera` family (including `ThinLensCamera`, `TiltShiftCamera`, `EquirectangularCamera`), `CSGSurface` family, `Disk`, `OpenCylinder`, `Rectangle`, `Torus`, `Triangle`, `ScriptedSurface` — closes #24.
-- **Sampler distribution properties** — verify jittered sampler actually jitters, regular sampler stratifies, random sampler is uniform. Currently only iterator mechanics are tested.
+- **Sampler distribution properties** — ~~verify jittered sampler actually jitters~~ ✅ **Done.** `JitteredSamplerTest.cpp` now pins one sample per stratum and differing jittered sets; regular-sampler stratification and random-sampler uniformity remain open beyond the existing construction/determinism coverage.
 - **Factory methods** — `CameraFactory`, `SamplerFactory`, `ViewPlaneFactory` have no test files.
 
-Estimated effort: ~3-4 days. Most of the gap is in materials + integrator + texture-mapping unit tests; the `world/` decision (test vs sunset) is its own conversation.
+Estimated effort: ~1-2 days for the remaining R0 gaps: nested-medium behavior, the `PlaneTest.cpp::ShouldReturnBoundingBox` stub, regular/random sampler distribution properties, and factory-focused tests.
 
 Unblocks: every other refactor below. Specifically, R5 (`RenderEngine` abstraction) and R6 (`BSDF` split from `Material::shade`) cannot be confidently refactored without behavioural tests on the current integrator and materials.
 
