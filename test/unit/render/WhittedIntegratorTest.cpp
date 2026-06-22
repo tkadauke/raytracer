@@ -366,6 +366,20 @@ namespace WhittedIntegratorTest {
       mutable std::vector<std::uint64_t> requestedRayCounts;
     };
 
+    class NullDirectLightVisibilityFrontierBackend final : public CountingIntersectionBackend {
+    public:
+      WavefrontDirectLightVisibilityBatchResult
+      resolveDirectLightVisibilityBatch(const Scene&,
+                                        std::vector<WavefrontAnyHitQuery> queries) const override {
+        requestedQueryCounts.push_back(queries.size());
+        WavefrontDirectLightVisibilityBatchResult result;
+        result.occluded = WavefrontOcclusionFlags(queries.size(), 0U);
+        return result;
+      }
+
+      mutable std::vector<std::size_t> requestedQueryCounts;
+    };
+
     std::shared_ptr<NiceMock<MockPrimitive>> makeAlwaysHit(double distance = 1.0) {
       auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
       BoundingBoxd bbox(Vector3d(-100, -100, -100), Vector3d(100, 100, 100));
@@ -790,6 +804,29 @@ namespace WhittedIntegratorTest {
     EXPECT_THROW(integrator.radianceBatch(scene, samples, rayCaster, &metrics, settings),
                  std::logic_error);
     EXPECT_EQ((std::vector<std::uint64_t>{1u}), backend.requestedRayCounts);
+  }
+
+  TEST(WhittedIntegrator, BatchedRadianceRejectsMissingDirectLightVisibilityFrontier) {
+    Scene scene;
+    scene.setAmbient(Colord::black());
+    scene.setBackground(Colord::black());
+    scene.addLight(std::make_shared<PointLight>(Vector3d(0, 0, 0), Colord::white()));
+    auto sphere = std::make_shared<Sphere>(Vector3d(0, 0, 3), 1.0);
+    sphere->setMaterial(
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::white())));
+    scene.add(sphere);
+    WhittedIntegrator integrator;
+    FixedRayCaster rayCaster;
+    NullDirectLightVisibilityFrontierBackend backend;
+    IntegratorBatchSettings settings;
+    settings.intersectionBackend = &backend;
+    IntegratorBatchMetrics metrics;
+    std::vector<IntegratorRaySample> samples{
+      IntegratorRaySample{Rayd(Vector3d::null, Vector3d::forward()), 0.0, nullptr}};
+
+    EXPECT_THROW(integrator.radianceBatch(scene, samples, rayCaster, &metrics, settings),
+                 std::logic_error);
+    EXPECT_EQ((std::vector<std::size_t>{1u}), backend.requestedQueryCounts);
   }
 
   TEST(WhittedIntegrator, BatchedRadianceRejectsMismatchedClosestHitResults) {

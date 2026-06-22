@@ -655,6 +655,20 @@ namespace PathTracingIntegratorTest {
       mutable std::vector<std::uint64_t> requestedRayCounts;
     };
 
+    class NullDirectLightVisibilityFrontierBackend final : public CountingIntersectionBackend {
+    public:
+      WavefrontDirectLightVisibilityBatchResult
+      resolveDirectLightVisibilityBatch(const Scene&,
+                                        std::vector<WavefrontAnyHitQuery> queries) const override {
+        requestedQueryCounts.push_back(queries.size());
+        WavefrontDirectLightVisibilityBatchResult result;
+        result.occluded = WavefrontOcclusionFlags(queries.size(), 0U);
+        return result;
+      }
+
+      mutable std::vector<std::size_t> requestedQueryCounts;
+    };
+
     // Build a scene with a single Lambertian ground plane lit by one
     // directional light. Background is black so any radiance has to
     // come from the integrator's NEE direct-lighting step.
@@ -1894,6 +1908,37 @@ namespace PathTracingIntegratorTest {
     EXPECT_THROW(integrator.radianceBatch(*scene, samples, caster, &metrics, settings),
                  std::logic_error);
     EXPECT_EQ((std::vector<std::uint64_t>{2u}), backend.requestedRayCounts);
+  }
+
+  TEST(PathTracingIntegrator, BatchedDirectLightingRejectsMissingVisibilityFrontier) {
+    auto scene = std::make_unique<Scene>(Colord::black());
+    scene->setAmbient(Colord::black());
+    scene->setBackground(Colord::black());
+
+    auto material = std::make_shared<UnitDirectMaterial>();
+    auto plane = std::make_shared<Plane>(Vector3d(0, 1, 0), 0.0);
+    plane->setMaterial(material);
+    scene->add(plane);
+    scene->addLight(std::make_shared<FiniteDistanceLight>(4.25));
+
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(1);
+    integrator.setDirectLightSamples(2);
+    std::vector<IntegratorRaySample> samples;
+    samples.push_back(
+      IntegratorRaySample{primaryRay(), 0.0,
+                          std::make_unique<FixedDirectLightSampleStream>(
+                            std::vector<Vector2d>{Vector2d(0.25, 0.25), Vector2d(0.75, 0.75)})});
+
+    NullDirectLightVisibilityFrontierBackend backend;
+    IntegratorBatchSettings settings;
+    settings.intersectionBackend = &backend;
+    FallbackRayCaster caster;
+    IntegratorBatchMetrics metrics;
+
+    EXPECT_THROW(integrator.radianceBatch(*scene, samples, caster, &metrics, settings),
+                 std::logic_error);
+    EXPECT_EQ((std::vector<std::size_t>{2u}), backend.requestedQueryCounts);
   }
 
   TEST(PathTracingIntegrator, BatchedDirectLightingGroupsVisibilityAcrossDepthFrontier) {

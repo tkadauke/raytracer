@@ -1673,6 +1673,11 @@ Progress:
   Standalone service consumers therefore get the same explicit contract failure
   as the render integrators when a future platform backend cannot materialize a
   resident frontier handle.
+- Whitted and path-tracing direct-light tests now also pin the malformed
+  resident-direct-light case where a backend returns occlusion flags without an
+  any-hit frontier handle. That keeps the missing-frontier contract covered
+  across closest-hit, service any-hit, and next-event-estimation visibility
+  callers.
 
 ---
 
