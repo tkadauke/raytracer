@@ -942,9 +942,6 @@ namespace engine::graph {
       if (state.sampleStreamMode() && *state.sampleStreamMode() != "gpu_sample_stream") {
         return "compiled diffuse path loop requires the GPU sample stream";
       }
-      if (state.directLightSamples().value_or(1) != 1) {
-        return "compiled diffuse path loop currently supports one direct-light sample per hit";
-      }
       if (state.convergenceEnabled().value_or(false)) {
         return "compiled diffuse path loop does not support wavefront convergence yet";
       }
@@ -1160,6 +1157,8 @@ namespace engine::graph {
         settings.maxDepth = static_cast<std::uint32_t>(state.maximumRecursionDepth().value_or(8));
         settings.russianRouletteDepth =
           static_cast<std::uint32_t>(state.russianRouletteDepth().value_or(3));
+        settings.directLightSamples =
+          static_cast<std::uint32_t>(std::max(1, state.directLightSamples().value_or(1)));
         const render::GpuDiffusePathLoopResult loop =
           render::GpuDiffusePathLoop().run(compilation.sections, generation.pathStates, settings);
         const render::TracingAccumulationLayout layout =

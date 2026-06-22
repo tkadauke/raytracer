@@ -2233,6 +2233,8 @@ namespace GraphRenderEngineTest {
       Vector3d(-20.0, -20.0, 0.0), Vector3d(40.0, 0.0, 0.0), Vector3d(0.0, 40.0, 0.0));
     receiver->setMaterial(matte(Colord(0.8, 0.8, 0.8)));
     scene->add(receiver);
+    scene->addLight(
+      std::make_shared<render::PointLight>(Vector3d(0.0, 0.0, -3.0), Colord(0.5, 0.5, 0.5)));
 
     RenderIntent intent;
     intent.defaultExecutor = RenderExecutorPreference::Wavefront;
@@ -2240,6 +2242,7 @@ namespace GraphRenderEngineTest {
     intent.engineOptions.raytracer().setTracingExecution(TracingExecutionPreference::GPU);
     intent.engineOptions.raytracer().setSamplesPerPixel(1);
     intent.engineOptions.raytracer().setMaximumRecursionDepth(2);
+    intent.engineOptions.raytracer().setDirectLightSamples(2);
     intent.engineOptions.raytracer().setSampleStreamMode("gpu_sample_stream");
 
     RenderSceneAnalysis analysis;
@@ -2307,6 +2310,8 @@ namespace GraphRenderEngineTest {
               batching.value("residentPathLoopExecutionPath").toString().toStdString());
     EXPECT_EQ("cpu_host", batching.value("residentPathLoopResidency").toString().toStdString());
     EXPECT_EQ(64.0, batching.value("initialPathCount").toDouble());
+    EXPECT_GE(batching.value("directLightSamples").toDouble(), 2.0);
+    EXPECT_GE(batching.value("directLightVisibilityRays").toDouble(), 2.0);
     EXPECT_GT(batching.value("hits").toDouble(), 0.0);
     EXPECT_GT(batching.value("residentPathLoopDepths").toDouble(), 0.0);
     EXPECT_GT(batching.value("residentPathLoopInputPaths").toDouble(), 0.0);

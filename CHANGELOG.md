@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Honor path-tracer direct-light sample counts in the compiled diffuse
+  path-loop CPU-reference path instead of falling back when more than one
+  next-event-estimation sample is requested. — GPT-5 Codex
 - Normalize empty tracing accumulation backend and residency labels to
   `unknown`, keeping resident path-loop resolve diagnostics visible when future
   platform accumulation backends provide incomplete labels. — GPT-5 Codex

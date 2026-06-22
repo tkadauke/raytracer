@@ -23,8 +23,6 @@ using namespace render;
 
 namespace {
   constexpr std::uint32_t kBsdfSampleDimensionOffset = 0;
-  constexpr std::uint32_t kLightSampleDimensionOffset = 1;
-  constexpr std::uint32_t kLightSelectionDimensionOffset = 2;
   constexpr std::uint32_t kContinuationDimensionOffset = 3;
   constexpr double kLightTolerance = 1e-9;
   constexpr const char* kPackedCpuExecutionPath = "packed_cpu";
@@ -43,6 +41,29 @@ namespace {
   std::uint32_t sampleDimension(const GpuDiffusePathStateRecord& pathState, std::uint32_t offset) {
     return pathState.sampleDimensionBase + pathState.depth * pathState.sampleDimensionStride +
            offset;
+  }
+
+  std::uint32_t narrowDimension(std::uint64_t dimension) {
+    return static_cast<std::uint32_t>(dimension & std::numeric_limits<std::uint32_t>::max());
+  }
+
+  std::uint32_t directLightSelectionDimension(const GpuDiffusePathStateRecord& pathState,
+                                              std::uint32_t directSampleIndex) {
+    return narrowDimension(sampleDimensionIndex(
+      SampleDimension::LightSelection,
+      SampleStream::lightSelectionSampleIndex(pathState.depth, directSampleIndex)));
+  }
+
+  std::uint32_t directLightSurfaceDimension(const GpuDiffusePathStateRecord& pathState,
+                                            std::uint32_t lightIndex,
+                                            std::uint32_t directSampleIndex) {
+    return narrowDimension(sampleDimensionIndex(
+      SampleDimension::Light,
+      SampleStream::lightSampleIndex(pathState.depth, lightIndex, directSampleIndex)));
+  }
+
+  std::uint32_t directLightSampleCount(const GpuDiffusePathLoopSettings& settings) {
+    return std::max(1u, settings.directLightSamples);
   }
 
   std::uint64_t saturatedPathStateBytes(std::uint64_t count) {
@@ -582,46 +603,54 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
 
     const Colord bsdf = matteBsdf(scene, material);
     if (!scene.lights.empty()) {
-      const double selectionSample =
-        sample1D(pathState, sampleDimension(pathState, kLightSelectionDimensionOffset));
-      std::uint32_t lightIndex =
-        std::min(static_cast<std::uint32_t>(selectionSample * scene.lights.size()),
-                 static_cast<std::uint32_t>(scene.lights.size() - 1));
-      const double selectionPdf = 1.0 / static_cast<double>(scene.lights.size());
-      const LightSampleRecord light =
-        sampleLight(scene.lights[lightIndex], point,
-                    sample2D(pathState, sampleDimension(pathState, kLightSampleDimensionOffset)));
-      if (light.valid) {
-        result.metrics.directLightVisibilityExecutionPath = kPackedCpuExecutionPath;
-        result.metrics.directLightContributionExecutionPath = kCpuRecordExecutionPath;
-        ++result.metrics.directLightSamples;
-        const Rayd shadowRay = Rayd(Vector4d(hit.point), light.direction).epsilonShifted();
-        const std::uint32_t shadowRayIndex =
-          static_cast<std::uint32_t>(result.directLightShadowRays.size());
-        const GpuIntersectionRay packedShadowRay =
-          packRay(shadowRay, shadowRayIndex, /*minDistance=*/0.0, light.distance);
-        const bool occluded = intersector.intersectAny(scene.geometry, packedShadowRay);
-        result.directLightShadowRays.push_back(packedShadowRay);
-        result.directLightOcclusionRecords.push_back(
-          GpuIntersectionOcclusionRecord{occluded ? 1u : 0u, shadowRayIndex, {}});
-        ++result.metrics.directLightVisibilityRays;
-        if (occluded) {
-          ++result.metrics.directLightOccludedSamples;
-        } else {
-          ++result.metrics.directLightContributionEvaluations;
-          const double bsdfPdf = light.delta ? 0.0 : cosineHemispherePdf(normal, light.direction);
-          const Colord lightContribution =
-            mis::estimateDirectLightingFromLightSample(
-              bsdf, light.radiance, normal * light.direction, light.pdf, bsdfPdf, light.delta) /
-            selectionPdf;
-          const Colord contribution = throughput * lightContribution;
-          if (contribution != Colord::black()) {
-            ++result.metrics.directLightContributingSamples;
+      Colord directLightRadiance = Colord::black();
+      const std::uint32_t configuredDirectLightSamples = directLightSampleCount(settings);
+      for (std::uint32_t sampleIndex = 0; sampleIndex != configuredDirectLightSamples;
+           ++sampleIndex) {
+        const double selectionSample =
+          sample1D(pathState, directLightSelectionDimension(pathState, sampleIndex));
+        std::uint32_t lightIndex =
+          std::min(static_cast<std::uint32_t>(selectionSample * scene.lights.size()),
+                   static_cast<std::uint32_t>(scene.lights.size() - 1));
+        const double selectionPdf = 1.0 / static_cast<double>(scene.lights.size());
+        const LightSampleRecord light = sampleLight(
+          scene.lights[lightIndex], point,
+          sample2D(pathState, directLightSurfaceDimension(pathState, lightIndex, sampleIndex)));
+        if (light.valid) {
+          result.metrics.directLightVisibilityExecutionPath = kPackedCpuExecutionPath;
+          result.metrics.directLightContributionExecutionPath = kCpuRecordExecutionPath;
+          ++result.metrics.directLightSamples;
+          const Rayd shadowRay = Rayd(Vector4d(hit.point), light.direction).epsilonShifted();
+          const std::uint32_t shadowRayIndex =
+            static_cast<std::uint32_t>(result.directLightShadowRays.size());
+          const GpuIntersectionRay packedShadowRay =
+            packRay(shadowRay, shadowRayIndex, /*minDistance=*/0.0, light.distance);
+          const bool occluded = intersector.intersectAny(scene.geometry, packedShadowRay);
+          result.directLightShadowRays.push_back(packedShadowRay);
+          result.directLightOcclusionRecords.push_back(
+            GpuIntersectionOcclusionRecord{occluded ? 1u : 0u, shadowRayIndex, {}});
+          ++result.metrics.directLightVisibilityRays;
+          if (occluded) {
+            ++result.metrics.directLightOccludedSamples;
+          } else {
+            ++result.metrics.directLightContributionEvaluations;
+            const double bsdfPdf = light.delta ? 0.0 : cosineHemispherePdf(normal, light.direction);
+            const Colord lightContribution =
+              mis::estimateDirectLightingFromLightSample(
+                bsdf, light.radiance, normal * light.direction, light.pdf, bsdfPdf, light.delta) /
+              selectionPdf;
+            const Colord contribution = throughput * lightContribution;
+            if (contribution != Colord::black()) {
+              ++result.metrics.directLightContributingSamples;
+            }
+            directLightRadiance += contribution;
           }
-          accumulated += contribution;
-          stepRecord.directLightRadiance = contribution.toFloat4(0.0f);
         }
       }
+
+      directLightRadiance = directLightRadiance / static_cast<double>(configuredDirectLightSamples);
+      accumulated += directLightRadiance;
+      stepRecord.directLightRadiance = directLightRadiance.toFloat4(0.0f);
     }
 
     const Vector2d bsdfSample =

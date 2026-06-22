@@ -459,6 +459,38 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(1u, actual.metrics.directLightContributingSamples);
   }
 
+  TEST(GpuDiffusePathStep, DirectLightSamplesAreAveragedAcrossConfiguredSamples) {
+    Scene scene;
+    auto matte =
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::white()));
+    matte->setDiffuseCoefficient(1.0);
+    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    receiver->setMaterial(matte);
+    scene.add(receiver);
+    scene.addLight(std::make_shared<PointLight>(Vector3d(0.0, 0.0, -3.0), Colord(0.8, 0.6, 0.4)));
+    GpuTracingSceneSections sections = sectionsFor(scene);
+    const std::vector<GpuDiffusePathStateRecord> paths{activePath()};
+    GpuDiffusePathLoopSettings settings;
+    settings.directLightSamples = 2;
+
+    const GpuDiffusePathStepResult expected = GpuDiffusePathStepReference().step(
+      sections, paths, closestHitsFor(sections, paths), settings);
+    const GpuDiffusePathStepResult actual = GpuDiffusePathStep().step(sections, paths, settings);
+
+    expectStepResultParity(actual, expected);
+    ASSERT_EQ(1u, actual.pathStates.size());
+    ASSERT_EQ(2u, actual.directLightShadowRays.size());
+    ASSERT_EQ(2u, actual.directLightOcclusionRecords.size());
+    ASSERT_COLOR_NEAR(Colord(0.8 * invPI, 0.6 * invPI, 0.4 * invPI),
+                      colorFrom4(actual.stepRecords[0].directLightRadiance), 1e-5);
+    ASSERT_COLOR_NEAR(colorFrom4(actual.stepRecords[0].directLightRadiance),
+                      colorFrom4(actual.pathStates[0].accumulatedRadiance), 1e-6);
+    EXPECT_EQ(2u, actual.metrics.directLightSamples);
+    EXPECT_EQ(2u, actual.metrics.directLightVisibilityRays);
+    EXPECT_EQ(2u, actual.metrics.directLightContributionEvaluations);
+    EXPECT_EQ(2u, actual.metrics.directLightContributingSamples);
+  }
+
   TEST(GpuDiffusePathStep, UnsupportedMaterialLookupTerminatesExplicitly) {
     auto unsupportedSphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
     unsupportedSphere->setMaterial(std::make_shared<UnsupportedGpuTracingMaterial>());

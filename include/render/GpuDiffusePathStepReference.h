@@ -53,6 +53,7 @@ namespace render {
   struct GpuDiffusePathLoopSettings {
     std::uint32_t maxDepth{8};
     std::uint32_t russianRouletteDepth{3};
+    std::uint32_t directLightSamples{1};
   };
 
   struct GpuDiffusePathLoopResult {

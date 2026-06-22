@@ -1734,6 +1734,12 @@ Progress:
   diagnostics. Graph metadata consumes those result-owned values instead of
   re-deriving them locally, so future platform path-loop implementations have a
   single result contract to populate.
+- The compiled diffuse path-loop CPU-reference path now honors the configured
+  path-tracer direct-light sample count. It uses the shared named sample
+  dimensions for each next-event-estimation sample, submits one visibility ray
+  per valid light sample, and averages contributions the same way the CPU path
+  tracer does before future platform path-loop kernels replace this reference
+  implementation.
 
 ---
 
