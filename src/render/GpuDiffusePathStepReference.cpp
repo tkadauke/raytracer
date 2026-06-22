@@ -279,7 +279,7 @@ namespace {
       }
       const int x = static_cast<int>(record.pixelIndex % static_cast<std::uint64_t>(layout.width));
       const int y = static_cast<int>(record.pixelIndex / static_cast<std::uint64_t>(layout.width));
-      accumulation.addSample(x, y, colorFrom4(record.accumulatedRadiance));
+      accumulation.addSample(x, y, Colord(record.accumulatedRadiance));
       diagnostics.recordAdd(1);
     }
 
