@@ -655,7 +655,8 @@ namespace engine::graph {
     compiledDiffusePathLoopMetadata(const render::GpuTracingSceneCompilation& compilation,
                                     const render::GpuDiffusePrimaryPathStateGeneration& generation,
                                     const render::GpuDiffusePathLoopResult& loop,
-                                    const render::TracingAccumulationDiagnostics& accumulation) {
+                                    const render::TracingAccumulationDiagnostics& accumulation,
+                                    TracingExecutionPreference requestedTracingExecution) {
       QJsonObject input;
       input["primarySamples"] = static_cast<double>(generation.generatedPrimarySamples);
       input["skippedPrimarySamples"] = static_cast<double>(generation.skippedPrimarySamples);
@@ -674,7 +675,7 @@ namespace engine::graph {
       batching["executionMode"] = QStringLiteral("compiled_diffuse_path_loop");
       batching["tracingBackendMode"] = QStringLiteral("compiled_cpu_reference");
       batching["tracingBackend"] = QStringLiteral("cpu");
-      batching["tracingBackendRequest"] = QStringLiteral("gpu");
+      batching["tracingBackendRequest"] = tracingExecutionPreferenceName(requestedTracingExecution);
       batching["closestHitExecutionPath"] =
         QString::fromStdString(loop.metrics.closestHitExecutionPath);
       batching["emissionExecutionPath"] =
@@ -1033,8 +1034,9 @@ namespace engine::graph {
         context.recordTraceMessage("compiled diffuse path loop rendered " +
                                    std::to_string(generation.generatedPrimarySamples) +
                                    " primary path state(s) through the CPU reference backend");
-        QJsonObject metadata =
-          compiledDiffusePathLoopMetadata(compilation, generation, loop, accumulation);
+        QJsonObject metadata = compiledDiffusePathLoopMetadata(
+          compilation, generation, loop, accumulation,
+          state.tracingExecution().value_or(TracingExecutionPreference::Auto));
         context.setTraceMetadata(withTracingExecutionMetadata(
           metadata, context.pass(), QStringLiteral("cpu"),
           QStringLiteral("GPU tracing request executed by compiled CPU-reference diffuse "

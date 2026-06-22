@@ -2239,6 +2239,11 @@ namespace GraphRenderEngineTest {
               batching.value("executionMode").toString().toStdString());
     EXPECT_EQ("compiled_cpu_reference",
               batching.value("tracingBackendMode").toString().toStdString());
+    EXPECT_EQ("gpu", batching.value("tracingBackendRequest").toString().toStdString());
+    EXPECT_EQ("cpu", batching.value("tracingBackend").toString().toStdString());
+    EXPECT_TRUE(batching.value("tracingSceneCompiled").toBool());
+    EXPECT_GT(batching.value("tracingSceneMaterials").toDouble(), 0.0);
+    EXPECT_GT(batching.value("tracingSceneUploadBytes").toDouble(), 0.0);
     EXPECT_EQ("compiled_cpu_reference",
               batching.value("residentPathLoopExecutionPath").toString().toStdString());
     EXPECT_EQ("cpu_host", batching.value("residentPathLoopResidency").toString().toStdString());
@@ -2260,6 +2265,61 @@ namespace GraphRenderEngineTest {
     const QJsonObject accumulation = metadata.value("accumulation").toObject();
     EXPECT_EQ("gpu_diffuse_path_loop", accumulation.value("backend").toString().toStdString());
     EXPECT_EQ(64.0, accumulation.value("addedSamples").toDouble());
+  }
+
+  TEST(GraphRenderEngine, ReportsAutoTracingRequestForAutoSelectedCompiledDiffusePathLoop) {
+    const Colord background(0.125, 0.25, 0.5);
+    auto scene = std::make_shared<render::Scene>();
+    scene->setBackground(background);
+    scene->setEnvironmentRadiance(background);
+    auto receiver = std::make_shared<render::Rectangle>(
+      Vector3d(-20.0, -20.0, 0.0), Vector3d(40.0, 0.0, 0.0), Vector3d(0.0, 40.0, 0.0));
+    receiver->setMaterial(matte(Colord(0.8, 0.8, 0.8)));
+    scene->add(receiver);
+
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Wavefront;
+    intent.engineOptions.raytracer().setIntegrator("pathtracer");
+    intent.engineOptions.raytracer().setSamplesPerPixel(1);
+    intent.engineOptions.raytracer().setMaximumRecursionDepth(2);
+    intent.engineOptions.raytracer().setSampleStreamMode("gpu_sample_stream");
+
+    RenderSceneAnalysis analysis;
+    analysis.setFullGpuTracingSupportFromScene(*scene);
+    RenderGraphCompiler compiler;
+    const RenderPlan plan = compiler.compile({8, 8, 1}, intent, analysis);
+    ASSERT_FALSE(plan.passes().empty());
+    const RaytracerBeautyPassState* state = RaytracerBeautyPassState::fromPass(plan.passes()[0]);
+    ASSERT_NE(nullptr, state);
+    EXPECT_FALSE(state->tracingExecution());
+    ASSERT_TRUE(state->predictedTracingExecution());
+    EXPECT_EQ(TracingExecutionPreference::GPU, *state->predictedTracingExecution());
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(plan);
+
+    Buffer<Colord> buffer(8, 8);
+    engine.render(buffer);
+
+    auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const RenderPassTrace* wavefront = trace->findPass("wavefront_beauty");
+    ASSERT_NE(nullptr, wavefront);
+
+    const QJsonObject metadata = wavefront->metadata();
+    const QJsonObject tracingExecution = metadata.value("tracingExecution").toObject();
+    EXPECT_EQ("auto", tracingExecution.value("requestedMode").toString().toStdString());
+    EXPECT_EQ("gpu", tracingExecution.value("predictedMode").toString().toStdString());
+    EXPECT_EQ("cpu", tracingExecution.value("actualMode").toString().toStdString());
+
+    const QJsonObject batching = metadata.value("batching").toObject();
+    EXPECT_EQ("compiled_diffuse_path_loop",
+              batching.value("executionMode").toString().toStdString());
+    EXPECT_EQ("auto", batching.value("tracingBackendRequest").toString().toStdString());
+    EXPECT_EQ("cpu", batching.value("tracingBackend").toString().toStdString());
+    EXPECT_EQ("compiled_cpu_reference",
+              batching.value("tracingBackendMode").toString().toStdString());
   }
 
   TEST(GraphRenderEngine, CompilePlanUsesSceneAnalysisAndClonesIt) {

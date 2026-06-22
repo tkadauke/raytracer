@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Preserve the original tracing execution request in compiled diffuse path-loop
+  trace metadata instead of reporting every compiled CPU-reference run as an
+  explicit GPU request. — GPT-5 Codex
 - Treat compiled diffuse path-loop trace metadata as rendercli wavefront metrics
   so `--tracing_execution gpu` renders can emit compact and JSON metrics for
   the CPU-reference compiled path loop. — GPT-5 Codex
