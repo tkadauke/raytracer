@@ -301,6 +301,8 @@ namespace {
                             "none")
         << " tracing_backend_capabilities="
         << batching.value("tracingBackendCapabilities").toArray().size()
+        << " tracing_backend_fallback_capabilities="
+        << fallbackCapabilitySummary(batching.value("tracingBackendCapabilities").toArray())
         << " intersection_backend_request="
         << batching.value("intersectionBackendRequest").toString().toStdString()
         << " intersection_backend="
@@ -772,6 +774,55 @@ namespace {
       for (std::size_t index = 1; index != pairs.size(); ++index) {
         result += ",";
         result += pairs[index];
+      }
+      return result;
+    }
+
+    std::string fallbackCapabilitySummary(const QJsonArray& capabilities) const {
+      std::vector<std::string> names;
+      names.reserve(static_cast<std::size_t>(capabilities.size()));
+      for (const QJsonValue& value : capabilities) {
+        const QJsonObject capability = value.toObject();
+        const QJsonObject fallback = capability.value("fallback").toObject();
+        const bool activeFallback = fallback.value("active").toBool();
+        if (capability.value("support").toString() != "fallback" && !activeFallback) {
+          continue;
+        }
+
+        const QString fallbackRequested = fallback.value("requestedDevice").toString();
+        const QString fallbackResolved = fallback.value("resolvedDevice").toString();
+        const QString fallbackReason = fallback.value("reason").toString();
+        std::string summary =
+          compactToken(capability.value("name").toString(QStringLiteral("unknown")).toStdString());
+        summary += "=";
+        summary +=
+          compactToken((fallbackRequested.isEmpty() ? capability.value("requestedDevice").toString()
+                                                    : fallbackRequested)
+                         .toStdString());
+        summary += "->";
+        summary +=
+          compactToken((fallbackResolved.isEmpty() ? capability.value("resolvedDevice").toString()
+                                                   : fallbackResolved)
+                         .toStdString());
+
+        const QString reason = fallbackReason.isEmpty()
+                                 ? capability.value("unsupportedReason").toString()
+                                 : fallbackReason;
+        if (!reason.isEmpty()) {
+          summary += ":";
+          summary += compactToken(reason.toStdString());
+        }
+        names.push_back(summary);
+      }
+
+      if (names.empty()) {
+        return "none";
+      }
+      std::sort(names.begin(), names.end());
+      std::string result = std::to_string(names.size()) + ":" + names.front();
+      for (std::size_t index = 1; index != names.size(); ++index) {
+        result += ",";
+        result += names[index];
       }
       return result;
     }

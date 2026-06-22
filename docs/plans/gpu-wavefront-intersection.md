@@ -1581,6 +1581,9 @@ Progress:
   diffuse path-loop traces therefore expose the full current GPU-to-CPU
   boundary for intersection, direct lighting, BSDF, path-state, and
   accumulation capabilities in one place.
+- rendercli compact wavefront metrics now print the same structured fallback
+  capability list. CLI captures can therefore see every requested-GPU to
+  resolved-CPU boundary without opening the JSON metrics report.
 
 ---
 
@@ -1621,5 +1624,5 @@ performance evidence on at least one large supported scene.
   reason in Modeler graph details and tooltips.
 - rendercli should print compact backend diagnostics in metrics summaries. ✅
   **Done.** Wavefront metrics summaries print backend request, selected backend,
-  availability, fallback reason, platform, execution path, expected work, and
-  transfer/round-trip diagnostics.
+  availability, fallback reason, structured fallback capabilities, platform,
+  execution path, expected work, and transfer/round-trip diagnostics.

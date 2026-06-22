@@ -38,6 +38,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Added convertible C-array constructors for `Color`, SSE color
   specializations, and vector types so array-backed helpers can delegate to the
   math primitives directly. — GPT-5 Codex
+- Print the full structured tracing fallback capability list in rendercli
+  wavefront metrics summaries, matching the Modeler graph details surface.
+  — GPT-5 Codex
 - Show all structured tracing fallback capabilities in Modeler render graph
   pass details, not just the first active fallback record. — GPT-5 Codex
 - Expose structured tracing capability records for compiled diffuse path-loop

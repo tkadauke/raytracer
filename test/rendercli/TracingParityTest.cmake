@@ -384,6 +384,10 @@ function(tracing_parity_render_compiled_gpu_execution category scene_file depth 
     "tracing parity ${category} compiled GPU execution direct-light fallback"
     "${gpu_execution_stdout}"
     "resident_direct_light_batches_unavailable_reason=compiled_CPU-reference_path_loop_resolves_direct-light_visibility_on_the_host.*direct_light_contribution_execution=cpu_record.*direct_light_contribution_fallback=platform_full-GPU_path-loop_kernel_is_not_available_yet")
+  tracing_parity_assert_matches(
+    "tracing parity ${category} compiled GPU execution fallback capabilities summary"
+    "${gpu_execution_stdout}"
+    "tracing_backend_fallback_capabilities=[1-9][0-9]*:.*lighting\\.direct_light_contribution=gpu->cpu:platform_full-GPU_path-loop_kernel_is_not_available_yet.*state\\.frontier_compaction=gpu->cpu:platform_full-GPU_path-loop_kernel_is_not_available_yet")
 
   foreach(expectation
           "\"compiledDiffusePathLoop\""
