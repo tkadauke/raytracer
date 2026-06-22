@@ -1686,6 +1686,11 @@ Progress:
   occlusion payload. That keeps future resident direct-light backends from
   publishing internally inconsistent frontier diagnostics even when the
   light-selection count still happens to match the occlusion vector.
+- `IntersectionService` direct-light visibility now rejects returned any-hit
+  frontiers whose ray count disagrees with the originally submitted query count,
+  even if the backend also returns a matching shorter occlusion payload. That
+  keeps standalone service consumers on the same submitted-work contract as the
+  render integrators.
 
 ---
 

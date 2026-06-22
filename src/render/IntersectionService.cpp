@@ -23,8 +23,8 @@ namespace render {
       target = "mixed";
     }
 
-    void validateResultCount(std::size_t actual, std::uint64_t expected, const char* message) {
-      if (static_cast<std::uint64_t>(actual) != expected) {
+    void validateResultCount(std::uint64_t actual, std::uint64_t expected, const char* message) {
+      if (actual != expected) {
         throw std::logic_error(message);
       }
     }
@@ -145,12 +145,16 @@ namespace render {
 
   WavefrontOcclusionFlags
   IntersectionService::resolveDirectLightVisibility(std::vector<WavefrontAnyHitQuery> queries) {
+    const std::uint64_t submittedQueryCount = static_cast<std::uint64_t>(queries.size());
     WavefrontDirectLightVisibilityBatchResult result =
       m_backend->resolveDirectLightVisibilityBatch(*m_scene, std::move(queries));
     if (!result.frontier) {
       throw std::logic_error(
         "IntersectionService direct-light visibility batch resolved without an any-hit frontier");
     }
+    validateResultCount(result.frontier->rayCount(), submittedQueryCount,
+                        "IntersectionService direct-light visibility batch returned an any-hit "
+                        "frontier ray count that does not match its submitted query count");
     validateResultCount(result.occluded.size(), result.frontier->rayCount(),
                         "IntersectionService direct-light visibility batch returned an occlusion "
                         "count that does not match its ray count");

@@ -39,6 +39,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Reject direct-light visibility batches whose any-hit frontier ray count does
   not match the resolved occlusion payload before resident direct-light
   backends can publish inconsistent diagnostics. — GPT-5 Codex
+- Reject standalone intersection-service direct-light visibility results whose
+  returned any-hit frontier ray count does not match the submitted query count.
+  — GPT-5 Codex
 - Preserve mixed closest-hit and any-hit execution-path diagnostics in the
   reusable intersection service. — GPT-5 Codex
 

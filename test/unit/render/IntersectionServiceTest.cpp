@@ -180,7 +180,7 @@ namespace IntersectionServiceTest {
       }
     };
 
-    class DirectLightVisibilityCountingBackend final : public WavefrontIntersectionBackend {
+    class DirectLightVisibilityCountingBackend : public WavefrontIntersectionBackend {
     public:
       const char* name() const override {
         return "direct_light_counting";
@@ -226,6 +226,29 @@ namespace IntersectionServiceTest {
 
       mutable int directLightVisibilityBatches{0};
       mutable std::vector<std::size_t> directLightVisibilityBatchSizes;
+    };
+
+    class ShortDirectLightVisibilityFrontierBackend final
+        : public DirectLightVisibilityCountingBackend {
+    public:
+      const char* name() const override {
+        return "short_direct_light_frontier";
+      }
+
+      WavefrontDirectLightVisibilityBatchResult
+      resolveDirectLightVisibilityBatch(const Scene&,
+                                        std::vector<WavefrontAnyHitQuery> queries) const override {
+        ++directLightVisibilityBatches;
+        directLightVisibilityBatchSizes.push_back(queries.size());
+        if (!queries.empty()) {
+          queries.pop_back();
+        }
+        WavefrontDirectLightVisibilityBatchResult result;
+        result.frontier = createAnyHitFrontier(std::move(queries));
+        result.occluded = WavefrontOcclusionFlags(
+          result.frontier ? static_cast<std::size_t>(result.frontier->rayCount()) : 0U, 0U);
+        return result;
+      }
     };
   }
 
@@ -536,6 +559,27 @@ namespace IntersectionServiceTest {
         (void)occluded;
       },
       std::logic_error);
+  }
+
+  TEST(IntersectionService, RejectsMismatchedDirectLightVisibilityFrontier) {
+    Scene scene = sphereScene();
+    const ShortDirectLightVisibilityFrontierBackend backend;
+    IntersectionService service(scene, backend);
+    State firstState;
+    State secondState;
+    const std::vector<WavefrontAnyHitQuery> queries{
+      {Rayd(Vector3d(0, 0, 0), Vector3d::forward()), 4.0, &firstState},
+      {Rayd(Vector3d(0, 0, 0), Vector3d::forward()), 1.0, &secondState},
+    };
+
+    EXPECT_THROW(
+      {
+        const WavefrontOcclusionFlags occluded = service.resolveDirectLightVisibility(queries);
+        (void)occluded;
+      },
+      std::logic_error);
+    EXPECT_EQ(1, backend.directLightVisibilityBatches);
+    EXPECT_EQ((std::vector<std::size_t>{2u}), backend.directLightVisibilityBatchSizes);
   }
 
   TEST(IntersectionService, ReportsMixedObservedExecutionPathAcrossQueryFamilies) {
