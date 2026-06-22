@@ -159,9 +159,10 @@ namespace render {
       return result;
     }
 
+    const std::size_t queryCount = queries.size();
     const WavefrontOcclusionFlags occluded =
-      intersectionService.resolveDirectLightVisibility(queries);
-    if (occluded.size() != queries.size()) {
+      intersectionService.resolveDirectLightVisibility(std::move(queries));
+    if (occluded.size() != queryCount) {
       throw std::logic_error("direct-light CPU reference visibility occlusion size mismatch");
     }
     for (std::size_t queryIndex = 0; queryIndex != occluded.size(); ++queryIndex) {

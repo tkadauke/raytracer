@@ -1626,6 +1626,10 @@ Progress:
   frontier overload to match its existing any-hit frontier path. Hybrid and
   debug graph consumers therefore exercise the same resident-frontier-ready
   contract as wavefront batches instead of bypassing it with raw query vectors.
+- `IntersectionService` vector batch helpers now take ownership of query
+  vectors, so graph passes and direct-light CPU-reference consumers can move
+  their owned batches straight into backend-owned frontiers instead of copying
+  them at the service boundary.
 - `IntersectionService` diagnostics now also report closest-hit and any-hit
   frontier residency plus packed-ray, retained host-query, and retained
   state-handle byte counters. Hybrid visibility and ray-traced shadow graph

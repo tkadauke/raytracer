@@ -96,9 +96,8 @@ namespace render {
   }
 
   std::vector<WavefrontClosestHitResult>
-  IntersectionService::closestHits(const std::vector<WavefrontClosestHitQuery>& queries) {
-    auto frontier = m_backend->createClosestHitFrontier(
-      std::vector<WavefrontClosestHitQuery>(queries.begin(), queries.end()));
+  IntersectionService::closestHits(std::vector<WavefrontClosestHitQuery> queries) {
+    auto frontier = m_backend->createClosestHitFrontier(std::move(queries));
     return closestHits(*frontier);
   }
 
@@ -122,10 +121,8 @@ namespace render {
     return occluded;
   }
 
-  WavefrontOcclusionFlags
-  IntersectionService::anyHits(const std::vector<WavefrontAnyHitQuery>& queries) {
-    auto frontier = m_backend->createAnyHitFrontier(
-      std::vector<WavefrontAnyHitQuery>(queries.begin(), queries.end()));
+  WavefrontOcclusionFlags IntersectionService::anyHits(std::vector<WavefrontAnyHitQuery> queries) {
+    auto frontier = m_backend->createAnyHitFrontier(std::move(queries));
     return anyHits(*frontier);
   }
 
@@ -140,10 +137,10 @@ namespace render {
     return results;
   }
 
-  WavefrontOcclusionFlags IntersectionService::resolveDirectLightVisibility(
-    const std::vector<WavefrontAnyHitQuery>& queries) {
-    WavefrontDirectLightVisibilityBatchResult result = m_backend->resolveDirectLightVisibilityBatch(
-      *m_scene, std::vector<WavefrontAnyHitQuery>(queries.begin(), queries.end()));
+  WavefrontOcclusionFlags
+  IntersectionService::resolveDirectLightVisibility(std::vector<WavefrontAnyHitQuery> queries) {
+    WavefrontDirectLightVisibilityBatchResult result =
+      m_backend->resolveDirectLightVisibilityBatch(*m_scene, std::move(queries));
     if (!result.frontier) {
       throw std::logic_error(
         "IntersectionService direct-light visibility batch resolved without an any-hit frontier");

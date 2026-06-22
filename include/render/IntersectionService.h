@@ -69,14 +69,14 @@ namespace render {
 
     [[nodiscard]] WavefrontClosestHitResult closestHit(const Rayd& ray, State& state);
     [[nodiscard]] std::vector<WavefrontClosestHitResult>
-    closestHits(const std::vector<WavefrontClosestHitQuery>& queries);
+    closestHits(std::vector<WavefrontClosestHitQuery> queries);
     [[nodiscard]] std::vector<WavefrontClosestHitResult>
     closestHits(const WavefrontClosestHitFrontier& frontier);
     [[nodiscard]] bool anyHit(const Rayd& ray, double maxDistance, State& state);
-    [[nodiscard]] WavefrontOcclusionFlags anyHits(const std::vector<WavefrontAnyHitQuery>& queries);
+    [[nodiscard]] WavefrontOcclusionFlags anyHits(std::vector<WavefrontAnyHitQuery> queries);
     [[nodiscard]] WavefrontOcclusionFlags anyHits(const WavefrontAnyHitFrontier& frontier);
     [[nodiscard]] WavefrontOcclusionFlags
-    resolveDirectLightVisibility(const std::vector<WavefrontAnyHitQuery>& queries);
+    resolveDirectLightVisibility(std::vector<WavefrontAnyHitQuery> queries);
 
   private:
     void refreshBackendDiagnostics();

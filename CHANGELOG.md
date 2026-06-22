@@ -227,6 +227,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- Changed `IntersectionService` vector batch APIs to take ownership of query
+  vectors, letting graph passes and direct-light CPU-reference paths move
+  batches directly into backend-owned frontiers instead of copying them first.
+  — GPT-5 Codex
 - Humanized resident path-loop execution and residency labels in Modeler render
   graph selected-pass details. — GPT-5 Codex
 - Routed Whitted and path-tracing direct-light visibility through backend-owned

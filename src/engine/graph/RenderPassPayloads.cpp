@@ -1760,8 +1760,9 @@ namespace engine::graph {
           RaytracerBeautyPassState::valueFromPass(pass).intersectionBackend().value_or(
             render::WavefrontIntersectionBackendChoice::automatic());
         render::IntersectionService service(*scene, backendChoice, selectionContext);
-        const auto hits = service.closestHits(queries);
-        if (hits.size() != queries.size()) {
+        const std::size_t queryCount = queries.size();
+        const auto hits = service.closestHits(std::move(queries));
+        if (hits.size() != queryCount) {
           throw passError(pass, "intersection service returned an unexpected closest-hit count");
         }
 
@@ -1950,8 +1951,9 @@ namespace engine::graph {
           RaytracerBeautyPassState::valueFromPass(pass).intersectionBackend().value_or(
             render::WavefrontIntersectionBackendChoice::automatic());
         render::IntersectionService service(*scene, backendChoice, selectionContext);
-        const auto hits = service.closestHits(primaryQueries);
-        if (hits.size() != primaryQueries.size()) {
+        const std::size_t primaryQueryCount = primaryQueries.size();
+        const auto hits = service.closestHits(std::move(primaryQueries));
+        if (hits.size() != primaryQueryCount) {
           throw passError(pass, "intersection service returned an unexpected closest-hit count");
         }
 
@@ -1988,8 +1990,10 @@ namespace engine::graph {
         }
 
         if (!shadowQueries.empty() && !context.cancelled()) {
-          const render::WavefrontOcclusionFlags occluded = service.anyHits(shadowQueries);
-          if (occluded.size() != shadowQueries.size()) {
+          const std::size_t shadowQueryCount = shadowQueries.size();
+          const render::WavefrontOcclusionFlags occluded =
+            service.anyHits(std::move(shadowQueries));
+          if (occluded.size() != shadowQueryCount) {
             throw passError(pass, "intersection service returned an unexpected any-hit count");
           }
 
