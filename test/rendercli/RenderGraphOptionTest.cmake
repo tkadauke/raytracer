@@ -2287,7 +2287,7 @@ rendercli_run(
   NAME "rendercli writes graph wavefront metrics JSON and summary"
   OUTPUT_VARIABLE wavefront_metrics_stdout
   STDOUT_MATCHES
-    "wavefront_metrics.*pass=wavefront_beauty.*sampling_seed=12345.*sample_stream_mode=sampler.*integrator=whitted.*execution=depth_major_whitted.*tracing_backend=cpu.*tracing_backend_mode=wavefront_intersection.*tracing_backend_fallback=.*wavefront_intersection_backend.*tracing_backend_capabilities=19.*intersection_backend_request=gpu.*intersection_backend=cpu.*intersection_backend_availability=fallback.*intersection_backend_execution=packed_cpu.*intersection_expected_rays=[1-9][0-9]*.*intersection_expected_closest_hit_rays=[1-9][0-9]*.*intersection_expected_any_hit_rays=[1-9][0-9]*.*intersection_scene_compiled=true.*intersection_scene_primitives=[1-9][0-9]*.*intersection_scene_unsupported=0.*intersection_scene_upload_bytes=[1-9][0-9]*.*intersection_scene_triangle_kernel_eligible=false.*intersection_estimated_ray_upload_bytes=[1-9][0-9]*.*intersection_estimated_query_transfer_bytes=[1-9][0-9]*.*intersection_estimated_query_round_trips=[1-9][0-9]*.*intersection_estimated_closest_hit_query_round_trips=[1-9][0-9]*.*intersection_estimated_any_hit_query_round_trips=[1-9][0-9]*.*intersection_backend_upload_worker_ms=0.*intersection_backend_kernel_worker_ms=0.*intersection_backend_readback_worker_ms=0.*intersection_rays=[0-9][0-9]*.*closest_hit_rays=[0-9][0-9]*.*any_hit_rays=[1-9][0-9]*.*closest_hit_queries=[0-9][0-9]*.*any_hit_queries=[1-9][0-9]*.*samples=.*active_sample_depths=.*compatibility_shade_samples=.*convergence=disabled.*denoiser=box.*denoise_radius=2"
+    "wavefront_metrics.*pass=wavefront_beauty.*sampling_seed=12345.*sample_stream_mode=sampler.*integrator=whitted.*execution=depth_major_whitted.*tracing_backend=cpu.*tracing_backend_mode=wavefront_intersection.*tracing_backend_fallback=.*wavefront_intersection_backend.*tracing_backend_capabilities=20.*intersection_backend_request=gpu.*intersection_backend=cpu.*intersection_backend_availability=fallback.*intersection_backend_execution=packed_cpu.*intersection_expected_rays=[1-9][0-9]*.*intersection_expected_closest_hit_rays=[1-9][0-9]*.*intersection_expected_any_hit_rays=[1-9][0-9]*.*intersection_scene_compiled=true.*intersection_scene_primitives=[1-9][0-9]*.*intersection_scene_unsupported=0.*intersection_scene_upload_bytes=[1-9][0-9]*.*intersection_scene_triangle_kernel_eligible=false.*intersection_estimated_ray_upload_bytes=[1-9][0-9]*.*intersection_estimated_query_transfer_bytes=[1-9][0-9]*.*intersection_estimated_query_round_trips=[1-9][0-9]*.*intersection_estimated_closest_hit_query_round_trips=[1-9][0-9]*.*intersection_estimated_any_hit_query_round_trips=[1-9][0-9]*.*intersection_backend_upload_worker_ms=0.*intersection_backend_kernel_worker_ms=0.*intersection_backend_readback_worker_ms=0.*intersection_rays=[0-9][0-9]*.*closest_hit_rays=[0-9][0-9]*.*any_hit_rays=[1-9][0-9]*.*closest_hit_queries=[0-9][0-9]*.*any_hit_queries=[1-9][0-9]*.*samples=.*active_sample_depths=.*compatibility_shade_samples=.*convergence=disabled.*denoiser=box.*denoise_radius=2"
   COMMAND
     "${RENDERCLI}" --engine wavefront --width 16 --height 16
     --wavefront_intersection_backend gpu --sampling_seed 12345
@@ -3727,7 +3727,7 @@ foreach(expectation
         "tracing_backend=cpu"
         "tracing_backend_mode=wavefront_intersection"
         "tracing_backend_fallback=none"
-        "tracing_backend_capabilities=19"
+        "tracing_backend_capabilities=20"
         "intersection_backend_request=cpu"
         "intersection_backend=cpu"
         "intersection_backend_platform=none"
@@ -4040,7 +4040,7 @@ foreach(expectation
         "tracing_backend=cpu"
         "tracing_backend_mode=wavefront_intersection"
         "tracing_backend_fallback=GPU_intersection_scene_unsupported"
-        "tracing_backend_capabilities=19"
+        "tracing_backend_capabilities=20"
         "intersection_backend_request=gpu"
         "intersection_backend=cpu"
         "intersection_backend_availability=fallback"
@@ -5093,11 +5093,13 @@ rendercli_assert_nonempty("${graph_aov_normal}" NAME "multi AOV graph normal out
 
 rendercli_run(
   NAME "rendercli writes hybrid visibility graph AOV and trace metadata"
+  OUTPUT_VARIABLE graph_aov_hybrid_visibility_stdout
   COMMAND
     "${RENDERCLI}" --engine wavefront --width 32 --height 24
     --wavefront_intersection_backend cpu
     --render_graph_aov_out "hybrid_visibility=${graph_aov_hybrid_visibility}"
     --render_graph_trace_out "${graph_aov_hybrid_visibility_trace}"
+    --wavefront_metrics_summary
     "${static_scene}" "${graph_aov_render}"
 )
 rendercli_assert_image_dimensions("${graph_aov_hybrid_visibility}" 32 24
@@ -5124,6 +5126,13 @@ foreach(expectation
                     "" "" "${graph_aov_hybrid_visibility_trace_json}" "")
   endif()
 endforeach()
+if(NOT graph_aov_hybrid_visibility_stdout MATCHES
+       "intersection_service.*pass=hybrid_visibility_aov.*query_family=closest_hit.*query_tag=debug_aov.*requested_backend=cpu.*selected_backend=cpu.*closest_hit_execution=runtime_scene.*queries=[1-9][0-9]*.*hits=[1-9][0-9]*.*query_transfer_bytes=0")
+  _rendercli_fail(
+    "rendercli hybrid visibility AOV metrics summary"
+    "hybrid visibility AOV metrics summary did not expose intersection service diagnostics"
+    "" "" "${graph_aov_hybrid_visibility_stdout}" "")
+endif()
 
 rendercli_expect_failure(
   NAME "rendercli rejects invalid graph AOV output view"

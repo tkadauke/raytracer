@@ -1588,7 +1588,8 @@ Progress:
   rows for graph passes that use `IntersectionService`, including hybrid
   visibility and ray-traced shadow passes. That gives CLI users the same query
   family, backend path, counts, and transfer-byte diagnostics that trace JSON
-  and Modeler details already expose.
+  and Modeler details already expose. Rendercli functional coverage now pins
+  both the hybrid visibility AOV and ray-traced shadow pass summary rows.
 
 ---
 
