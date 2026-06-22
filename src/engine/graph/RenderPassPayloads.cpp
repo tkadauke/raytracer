@@ -652,6 +652,14 @@ namespace engine::graph {
       return result;
     }
 
+    constexpr const char* compiledDiffusePathLoopGpuFallbackReason() {
+      return "platform full-GPU path-loop kernel is not available yet";
+    }
+
+    constexpr const char* compiledDiffusePathLoopResidentDirectLightUnavailableReason() {
+      return "compiled CPU-reference path loop resolves direct-light visibility on the host";
+    }
+
     render::TracingExecutionCapabilityRecords compiledDiffusePathLoopCapabilities(
       const render::GpuDiffusePathLoopResult& loop,
       const render::TracingAccumulationDiagnostics& accumulation) {
@@ -661,7 +669,7 @@ namespace engine::graph {
       auto fallback = [](Domain domain, std::string name, std::string path) {
         return render::TracingCapabilityRecord::fallbackRecord(
           domain, std::move(name), Device::GPU, Device::CPU, std::move(path),
-          "platform full-GPU path-loop kernel is not available yet");
+          compiledDiffusePathLoopGpuFallbackReason());
       };
       auto restrictedRecord = [](Domain domain, std::string name) {
         return render::TracingCapabilityRecord::restricted(
@@ -711,7 +719,7 @@ namespace engine::graph {
         Domain::DirectLighting, "lighting.direct_light_contribution", directLightContributionPath);
       records.directLighting.residentBatch = render::TracingCapabilityRecord::unsupported(
         Domain::DirectLighting, "lighting.resident_direct_light_batches",
-        "compiled CPU-reference path loop resolves direct-light visibility on the host");
+        compiledDiffusePathLoopResidentDirectLightUnavailableReason());
 
       records.bsdf.eval = fallback(Domain::BSDF, "shading.bsdf_eval", "cpu_record");
       records.bsdf.sample = fallback(Domain::BSDF, "shading.bsdf_sample", "cpu_record");
@@ -770,12 +778,22 @@ namespace engine::graph {
         QString::fromStdString(loop.metrics.directLightVisibilityExecutionPath);
       batching["directLightContributionExecutionPath"] =
         QString::fromStdString(loop.metrics.directLightContributionExecutionPath);
+      batching["directLightContributionFallbackReason"] =
+        QString::fromLatin1(compiledDiffusePathLoopGpuFallbackReason());
       batching["intersectionBackendExecutionPath"] =
         QString::fromStdString(loop.metrics.closestHitExecutionPath);
       batching["intersectionBackendClosestHitExecutionPath"] =
         QString::fromStdString(loop.metrics.closestHitExecutionPath);
       batching["intersectionBackendAnyHitExecutionPath"] =
         QString::fromStdString(loop.metrics.directLightVisibilityExecutionPath);
+      batching["intersectionBackendSupportsResidentFrontiers"] = false;
+      batching["intersectionBackendSupportsGpuFrontierCompaction"] = false;
+      batching["intersectionBackendGpuFrontierCompactionUnavailableReason"] =
+        QStringLiteral("compiled CPU-reference path loop compacts path state on the host");
+      batching["intersectionBackendSupportsPreparedRayBatchCompaction"] = false;
+      batching["intersectionBackendSupportsResidentDirectLightBatches"] = false;
+      batching["intersectionBackendResidentDirectLightBatchesUnavailableReason"] =
+        QString::fromLatin1(compiledDiffusePathLoopResidentDirectLightUnavailableReason());
       batching["initialPathCount"] = static_cast<double>(loop.initialPathCount);
       batching["depthCount"] = static_cast<double>(loop.depthCount);
       batching["maxDepthTerminatedPaths"] = static_cast<double>(loop.maxDepthTerminatedPaths);
@@ -802,6 +820,37 @@ namespace engine::graph {
       batching["spawnedContinuations"] = static_cast<double>(loop.metrics.spawnedContinuations);
       batching["terminatedPaths"] = static_cast<double>(loop.metrics.terminatedPaths);
       const std::uint64_t pathStateBytes = sizeof(render::GpuDiffusePathStateRecord);
+      const std::uint64_t inputPathStateBytes = loop.metrics.activePaths * pathStateBytes;
+      const std::uint64_t retainedPathStateBytes =
+        loop.metrics.spawnedContinuations * pathStateBytes;
+      const std::uint64_t removedPathStateBytes = loop.resolvedPathStates.size() * pathStateBytes;
+      auto fraction = [](std::uint64_t numerator, std::uint64_t denominator) {
+        if (denominator == 0u) {
+          return 0.0;
+        }
+        return static_cast<double>(numerator) / static_cast<double>(denominator);
+      };
+      batching["frontierCompactionExecutionPath"] = QStringLiteral("compiled_cpu_reference");
+      batching["frontierCompactionPathStateResidency"] = QStringLiteral("cpu_host");
+      batching["frontierCompactionPasses"] = static_cast<double>(loop.depthCount);
+      batching["frontierCompactionInputSamples"] = static_cast<double>(loop.metrics.activePaths);
+      batching["frontierCompactionRetainedSamples"] =
+        static_cast<double>(loop.metrics.spawnedContinuations);
+      batching["frontierCompactionRemovedSamples"] =
+        static_cast<double>(loop.resolvedPathStates.size());
+      batching["frontierCompactionRemovedSampleFraction"] =
+        fraction(loop.resolvedPathStates.size(), loop.metrics.activePaths);
+      batching["frontierCompactionMovedSamples"] =
+        static_cast<double>(loop.metrics.spawnedContinuations);
+      batching["frontierCompactionMovedRetainedSampleFraction"] =
+        loop.metrics.spawnedContinuations == 0u ? 0.0 : 1.0;
+      batching["frontierCompactionRetainedIndexBytes"] = 0.0;
+      batching["frontierCompactionInputHostPathStateBytes"] =
+        static_cast<double>(inputPathStateBytes);
+      batching["frontierCompactionRetainedHostPathStateBytes"] =
+        static_cast<double>(retainedPathStateBytes);
+      batching["frontierCompactionRemovedHostPathStateBytes"] =
+        static_cast<double>(removedPathStateBytes);
       batching["residentPathLoopExecutionPath"] = QStringLiteral("compiled_cpu_reference");
       batching["residentPathLoopResidency"] = QStringLiteral("cpu_host");
       batching["residentPathLoopDepths"] = static_cast<double>(loop.depthCount);
@@ -816,11 +865,11 @@ namespace engine::graph {
       batching["residentPathLoopResidentPathStateBytes"] =
         static_cast<double>(loop.initialPathCount * pathStateBytes);
       batching["residentPathLoopInputResidentPathStateBytes"] =
-        static_cast<double>(loop.metrics.activePaths * pathStateBytes);
+        static_cast<double>(inputPathStateBytes);
       batching["residentPathLoopRetainedResidentPathStateBytes"] =
-        static_cast<double>(loop.metrics.spawnedContinuations * pathStateBytes);
+        static_cast<double>(retainedPathStateBytes);
       batching["residentPathLoopRemovedResidentPathStateBytes"] =
-        static_cast<double>(loop.resolvedPathStates.size() * pathStateBytes);
+        static_cast<double>(removedPathStateBytes);
       batching["residentPathLoopCompactionPasses"] = static_cast<double>(loop.depthCount);
       batching["residentPathLoopRoundTrips"] = 1.0;
       batching["residentPathLoopSavedHostReadbacks"] = 0.0;

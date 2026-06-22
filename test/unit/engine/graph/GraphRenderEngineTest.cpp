@@ -2248,6 +2248,18 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ("geometry.closest_hit", fallback.value("capability").toString().toStdString());
     EXPECT_EQ("gpu", fallback.value("requestedDevice").toString().toStdString());
     EXPECT_EQ("cpu", fallback.value("resolvedDevice").toString().toStdString());
+    EXPECT_EQ("platform full-GPU path-loop kernel is not available yet",
+              batching.value("directLightContributionFallbackReason").toString().toStdString());
+    EXPECT_EQ("compiled_cpu_reference",
+              batching.value("frontierCompactionExecutionPath").toString().toStdString());
+    EXPECT_EQ("cpu_host",
+              batching.value("frontierCompactionPathStateResidency").toString().toStdString());
+    EXPECT_GT(batching.value("frontierCompactionPasses").toDouble(), 0.0);
+    EXPECT_GT(batching.value("frontierCompactionInputSamples").toDouble(), 0.0);
+    EXPECT_EQ("compiled CPU-reference path loop resolves direct-light visibility on the host",
+              batching.value("intersectionBackendResidentDirectLightBatchesUnavailableReason")
+                .toString()
+                .toStdString());
     EXPECT_TRUE(batching.value("tracingSceneCompiled").toBool());
     EXPECT_GT(batching.value("tracingSceneMaterials").toDouble(), 0.0);
     EXPECT_GT(batching.value("tracingSceneUploadBytes").toDouble(), 0.0);

@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Align compiled diffuse path-loop compact metric aliases with structured
+  tracing capability fallback data, so rendercli summaries no longer report
+  direct-light contribution or frontier compaction fallback as `none`.
+  — GPT-5 Codex
 - Preserve the original tracing execution request in compiled diffuse path-loop
   trace metadata instead of reporting every compiled CPU-reference run as an
   explicit GPU request. — GPT-5 Codex
