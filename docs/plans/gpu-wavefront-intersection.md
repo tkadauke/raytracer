@@ -1695,6 +1695,11 @@ Progress:
   any-hit frontier execution returns one occlusion flag per frontier ray. That
   pins the resident-direct-light hook's own malformed-result contract instead
   of relying only on service and integrator callers to catch it.
+- Default host-readable closest-hit and any-hit frontier execution now validates
+  that the delegated batch result count matches the frontier ray count. That
+  keeps future resident-frontier implementations from satisfying handle
+  creation while returning a shortened host batch result at the common backend
+  boundary.
 
 ---
 

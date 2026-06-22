@@ -1446,7 +1446,11 @@ namespace render {
     if (!queries) {
       throw std::logic_error("closest-hit frontier is not host-readable");
     }
-    return intersectClosestBatch(scene, *queries, timing);
+    std::vector<WavefrontClosestHitResult> results = intersectClosestBatch(scene, *queries, timing);
+    validateResultCount(results.size(), frontier.rayCount(),
+                        "closest-hit frontier returned a result count that does not match its ray "
+                        "count");
+    return results;
   }
 
   std::unique_ptr<WavefrontAnyHitFrontier> WavefrontIntersectionBackend::createAnyHitFrontier(
@@ -1461,7 +1465,11 @@ namespace render {
     if (!queries) {
       throw std::logic_error("any-hit frontier is not host-readable");
     }
-    return intersectAnyBatch(scene, *queries, timing);
+    WavefrontOcclusionFlags results = intersectAnyBatch(scene, *queries, timing);
+    validateResultCount(results.size(), frontier.rayCount(),
+                        "any-hit frontier returned a result count that does not match its ray "
+                        "count");
+    return results;
   }
 
   WavefrontDirectLightVisibilityBatchResult

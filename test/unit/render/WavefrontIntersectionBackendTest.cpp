@@ -206,6 +206,56 @@ namespace WavefrontIntersectionBackendTest {
       }
     };
 
+    class ShortHostFrontierBatchBackend final : public WavefrontIntersectionBackend {
+    public:
+      const char* name() const override {
+        return "short_host_frontier_batch";
+      }
+
+      const Primitive*
+      intersectClosest(const Scene& /*scene*/, const Rayd& /*ray*/, HitPointInterval& /*hitPoints*/,
+                       State& /*state*/,
+                       WavefrontIntersectionQueryTiming* /*timing*/ = nullptr) const override {
+        return nullptr;
+      }
+
+      std::vector<WavefrontClosestHitResult>
+      intersectClosestBatch(const Scene&, const std::vector<WavefrontClosestHitQuery>& queries,
+                            WavefrontIntersectionQueryTiming*) const override {
+        if (queries.empty()) {
+          return {};
+        }
+        return std::vector<WavefrontClosestHitResult>(queries.size() - 1U);
+      }
+
+      bool intersectAny(const Scene& /*scene*/, const Rayd& /*ray*/, double /*maxDistance*/,
+                        State& /*state*/,
+                        WavefrontIntersectionQueryTiming* /*timing*/ = nullptr) const override {
+        return false;
+      }
+
+      WavefrontOcclusionFlags intersectAnyBatch(const Scene&,
+                                                const std::vector<WavefrontAnyHitQuery>& queries,
+                                                WavefrontIntersectionQueryTiming*) const override {
+        if (queries.empty()) {
+          return {};
+        }
+        return WavefrontOcclusionFlags(queries.size() - 1U, 0U);
+      }
+
+      PrimitivePacketHit4 intersectPacketClosest(
+        const Scene& /*scene*/, const Ray4& /*rays*/, const PrimitivePacketState4& /*states*/,
+        WavefrontIntersectionQueryTiming* /*timing*/ = nullptr) const override {
+        return {};
+      }
+
+      PrimitivePacketHit8 intersectPacketClosest(
+        const Scene& /*scene*/, const Ray8& /*rays*/, const PrimitivePacketState8& /*states*/,
+        WavefrontIntersectionQueryTiming* /*timing*/ = nullptr) const override {
+        return {};
+      }
+    };
+
     enum class PackedRecordFailure { Short, DuplicateRayIndex };
 
     class MalformedPackedRecordBackend final : public WavefrontIntersectionBackend {
@@ -671,6 +721,34 @@ namespace WavefrontIntersectionBackendTest {
     ASSERT_EQ(1u, occluded.size());
     EXPECT_TRUE(occluded.front());
     EXPECT_EQ("runtime_scene", timing.executionPath);
+  }
+
+  TEST(WavefrontIntersectionBackend, HostClosestHitFrontierRejectsMismatchedResultCount) {
+    Scene scene;
+    ShortHostFrontierBatchBackend backend;
+    State firstState;
+    State secondState;
+    std::vector<WavefrontClosestHitQuery> queries{
+      WavefrontClosestHitQuery{Rayd(Vector4d(0, 0, -3, 1), Vector3d(0, 0, 1)), &firstState},
+      WavefrontClosestHitQuery{Rayd(Vector4d(0, 0, -3, 1), Vector3d(0, 0, 1)), &secondState}};
+    auto frontier = backend.createClosestHitFrontier(std::move(queries));
+
+    ASSERT_NE(nullptr, frontier);
+    EXPECT_THROW((void)backend.intersectClosestFrontier(scene, *frontier), std::logic_error);
+  }
+
+  TEST(WavefrontIntersectionBackend, HostAnyHitFrontierRejectsMismatchedResultCount) {
+    Scene scene;
+    ShortHostFrontierBatchBackend backend;
+    State firstState;
+    State secondState;
+    std::vector<WavefrontAnyHitQuery> queries{
+      WavefrontAnyHitQuery{Rayd(Vector4d(0, 0, -3, 1), Vector3d(0, 0, 1)), 4.0, &firstState},
+      WavefrontAnyHitQuery{Rayd(Vector4d(0, 0, -3, 1), Vector3d(0, 0, 1)), 1.0, &secondState}};
+    auto frontier = backend.createAnyHitFrontier(std::move(queries));
+
+    ASSERT_NE(nullptr, frontier);
+    EXPECT_THROW((void)backend.intersectAnyFrontier(scene, *frontier), std::logic_error);
   }
 
   TEST(WavefrontIntersectionBackend, DirectLightVisibilityBatchRejectsMismatchedFrontierResults) {

@@ -45,6 +45,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Reject default wavefront backend direct-light visibility batches whose
   frontier any-hit execution returns an occlusion count that does not match the
   frontier ray count. — GPT-5 Codex
+- Reject default closest-hit and any-hit frontier execution results whose
+  host-readable batch result count does not match the frontier ray count.
+  — GPT-5 Codex
 - Preserve mixed closest-hit and any-hit execution-path diagnostics in the
   reusable intersection service. — GPT-5 Codex
 
