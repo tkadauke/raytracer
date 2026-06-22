@@ -253,6 +253,26 @@ namespace TracingPathStateBufferTest {
     EXPECT_TRUE(buffers.active().empty());
   }
 
+  TEST(ResidentDiffusePathLoop, RejectsInactiveRecordsInActiveFrontier) {
+    TracingPathStateBuffers buffers(1);
+    const Rayd ray(Vector4d(0.0, 0.0, 0.0, 1.0), Vector3d(0.0, 0.0, 1.0));
+    buffers.appendActive(makeResolvedPathStateRecord(ray, Colord::black(),
+                                                     /*pixelIndex=*/0, /*sampleIndex=*/0,
+                                                     /*depth=*/0));
+
+    ResidentPathLoopSettings settings;
+    settings.maxDepth = 2;
+    settings.russianRouletteDepth = 10;
+    const auto runLoop = [&]() {
+      (void)loopResidentDiffusePaths(buffers, settings,
+                                     [](const GpuPathStateRecord& record, std::uint32_t) {
+                                       return std::optional<GpuPathStateRecord>(record);
+                                     });
+    };
+
+    EXPECT_THROW(runLoop(), std::invalid_argument);
+  }
+
   TEST(ResidentDiffusePathLoop, CarriesTerminalRecordsIntoImageResolve) {
     TracingPathStateBuffers buffers(2);
     const Rayd ray(Vector4d(0.0, 0.0, 0.0, 1.0), Vector3d(0.0, 0.0, 1.0));

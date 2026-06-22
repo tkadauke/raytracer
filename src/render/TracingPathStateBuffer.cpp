@@ -342,7 +342,8 @@ namespace render {
       for (std::size_t pathIndex = 0; pathIndex != active.size(); ++pathIndex) {
         const GpuPathStateRecord& current = active[pathIndex];
         if (!hasFlag(current, GpuPathStateFlags::Active)) {
-          continue;
+          throw std::invalid_argument(
+            "resident diffuse path loop active frontier contains an inactive path record");
         }
 
         std::optional<GpuPathStateRecord> next = step(current, depth);

@@ -1707,7 +1707,8 @@ Progress:
 - Resident diffuse path-loop resolved records now clear the active flag before
   image resolve. Terminal CPU-reference path states are therefore distinct from
   retained live frontier state for future scheduler-owned GPU path-loop
-  backends, and the resolve helper now rejects active records at its boundary.
+  backends, the resolve helper rejects active records at its boundary, and the
+  active frontier rejects inactive records instead of silently dropping them.
 
 ---
 

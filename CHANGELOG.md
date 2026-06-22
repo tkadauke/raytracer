@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Reject inactive records in the resident diffuse path-loop active frontier so
+  malformed resident path state cannot silently disappear from both retained
+  and resolved output. — GPT-5 Codex
 - Reject active resident path-loop records at image resolve so accumulation
   cannot accidentally consume live frontier state as terminal radiance.
   — GPT-5 Codex
