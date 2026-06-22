@@ -90,7 +90,8 @@ namespace {
       state.counters["compiled_path_loop_initial_paths"] =
         static_cast<double>(result.initialPathCount);
       state.counters["compiled_path_loop_depths"] = static_cast<double>(result.depthCount);
-      state.counters["compiled_path_loop_active_paths"] = static_cast<double>(metrics.activePaths);
+      state.counters["compiled_path_loop_active_paths"] =
+        static_cast<double>(result.inputPathCount());
       state.counters["resident_path_loop_peak_active_paths"] =
         static_cast<double>(result.peakActivePathCount());
       state.counters["resident_path_loop_last_active_paths"] =
@@ -108,18 +109,19 @@ namespace {
       state.counters["compiled_path_loop_unsupported_hits"] =
         static_cast<double>(metrics.unsupportedHits);
       state.counters["compiled_path_loop_spawned_continuations"] =
-        static_cast<double>(metrics.spawnedContinuations);
+        static_cast<double>(result.retainedPathCount());
       state.counters["compiled_path_loop_terminated_paths"] =
         static_cast<double>(metrics.terminatedPaths);
       state.counters["compiled_path_loop_max_depth_terminated_paths"] =
         static_cast<double>(result.maxDepthTerminatedPaths);
       state.counters["resident_path_loop_compaction_passes"] =
-        static_cast<double>(result.depthCount);
-      state.counters["resident_path_loop_input_paths"] = static_cast<double>(metrics.activePaths);
+        static_cast<double>(result.compactionPassCount());
+      state.counters["resident_path_loop_input_paths"] =
+        static_cast<double>(result.inputPathCount());
       state.counters["resident_path_loop_retained_paths"] =
-        static_cast<double>(metrics.spawnedContinuations);
+        static_cast<double>(result.retainedPathCount());
       state.counters["resident_path_loop_removed_paths"] =
-        static_cast<double>(result.resolvedPathStates.size());
+        static_cast<double>(result.removedPathCount());
       state.counters["resident_path_loop_moved_paths"] =
         static_cast<double>(result.movedPathCount());
       state.counters["resident_path_loop_removed_fraction"] = result.removedPathFraction();
@@ -179,7 +181,7 @@ namespace {
       state.SetLabel(name + "/compiled_diffuse_path_loop_resolve/" + diagnostics.backend + "/" +
                      diagnostics.residency);
       state.counters["compiled_path_loop_resolved_paths"] =
-        static_cast<double>(result.resolvedPathStates.size());
+        static_cast<double>(result.removedPathCount());
       state.counters["compiled_path_loop_resolve_width"] = static_cast<double>(layout.width);
       state.counters["compiled_path_loop_resolve_height"] = static_cast<double>(layout.height);
       state.counters["tracing_render_seconds"] = measuredSeconds;
@@ -1156,7 +1158,7 @@ namespace {
       result = GpuDiffusePathLoop().run(compilation.sections, paths, settings);
       const auto stop = std::chrono::steady_clock::now();
       measuredSeconds += std::chrono::duration<double>(stop - start).count();
-      benchmark::DoNotOptimize(result.resolvedPathStates.size());
+      benchmark::DoNotOptimize(result.removedPathCount());
       benchmark::DoNotOptimize(result.stepRecords.size());
     }
 
@@ -1202,7 +1204,7 @@ namespace {
     workload.annotateCompiledDiffusePathLoopResolve(state, layout, diagnostics, result,
                                                     averageSeconds);
     state.SetItemsProcessed(state.iterations() *
-                            static_cast<std::int64_t>(result.resolvedPathStates.size()));
+                            static_cast<std::int64_t>(result.removedPathCount()));
   }
 
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT) || defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)

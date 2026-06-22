@@ -983,14 +983,26 @@ namespace GpuDiffusePathStepReferenceTest {
 
     EXPECT_EQ(0u, result.peakActivePathCount());
     EXPECT_EQ(0u, result.lastActivePathCount());
+    EXPECT_EQ(0u, result.compactionPassCount());
+    EXPECT_EQ(0u, result.inputPathCount());
+    EXPECT_EQ(0u, result.retainedPathCount());
+    EXPECT_EQ(0u, result.removedPathCount());
   }
 
-  TEST(GpuDiffusePathLoopResult, ReportsPeakAndLastActivePathCounts) {
+  TEST(GpuDiffusePathLoopResult, ReportsResidentPathLoopCounts) {
     GpuDiffusePathLoopResult result;
+    result.depthCount = 3;
     result.activePathsPerDepth = {4, 7, 2};
+    result.metrics.activePaths = 13;
+    result.metrics.spawnedContinuations = 5;
+    result.resolvedPathStates.resize(8);
 
     EXPECT_EQ(7u, result.peakActivePathCount());
     EXPECT_EQ(2u, result.lastActivePathCount());
+    EXPECT_EQ(3u, result.compactionPassCount());
+    EXPECT_EQ(13u, result.inputPathCount());
+    EXPECT_EQ(5u, result.retainedPathCount());
+    EXPECT_EQ(8u, result.removedPathCount());
   }
 
   TEST(GpuDiffusePathLoop, ReportsCpuReferenceResidencyAndCompactionDiagnostics) {
@@ -1011,6 +1023,10 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(0u, result.retainedPathStateBytes());
     EXPECT_EQ(pathStateBytes, result.removedPathStateBytes());
     EXPECT_EQ(0u, result.retainedPathIndexBytes());
+    EXPECT_EQ(1u, result.compactionPassCount());
+    EXPECT_EQ(1u, result.inputPathCount());
+    EXPECT_EQ(0u, result.retainedPathCount());
+    EXPECT_EQ(1u, result.removedPathCount());
     EXPECT_EQ(0u, result.movedPathCount());
     EXPECT_DOUBLE_EQ(1.0, result.removedPathFraction());
     EXPECT_DOUBLE_EQ(0.0, result.movedRetainedPathFraction());

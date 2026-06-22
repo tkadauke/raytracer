@@ -870,9 +870,9 @@ namespace engine::graph {
       batching["depthCount"] = static_cast<double>(loop.depthCount);
       batching["maxDepthTerminatedPaths"] = static_cast<double>(loop.maxDepthTerminatedPaths);
       batching["activePathsPerDepth"] = unsignedArrayToJson(loop.activePathsPerDepth);
-      batching["resolvedPathStates"] = static_cast<double>(loop.resolvedPathStates.size());
+      batching["resolvedPathStates"] = static_cast<double>(loop.removedPathCount());
       batching["stepRecords"] = static_cast<double>(loop.stepRecords.size());
-      batching["activePaths"] = static_cast<double>(loop.metrics.activePaths);
+      batching["activePaths"] = static_cast<double>(loop.inputPathCount());
       batching["closestHitRays"] = static_cast<double>(loop.metrics.closestHitRays);
       batching["misses"] = static_cast<double>(loop.metrics.misses);
       batching["hits"] = static_cast<double>(loop.metrics.hits);
@@ -889,17 +889,15 @@ namespace engine::graph {
         static_cast<double>(loop.metrics.directLightContributingSamples);
       batching["directLightOccludedSamples"] =
         static_cast<double>(loop.metrics.directLightOccludedSamples);
-      batching["spawnedContinuations"] = static_cast<double>(loop.metrics.spawnedContinuations);
+      batching["spawnedContinuations"] = static_cast<double>(loop.retainedPathCount());
       batching["terminatedPaths"] = static_cast<double>(loop.metrics.terminatedPaths);
       batching["frontierCompactionExecutionPath"] = QString::fromStdString(loop.executionPath);
       batching["frontierCompactionPathStateResidency"] =
         QString::fromStdString(loop.pathStateResidency);
-      batching["frontierCompactionPasses"] = static_cast<double>(loop.depthCount);
-      batching["frontierCompactionInputSamples"] = static_cast<double>(loop.metrics.activePaths);
-      batching["frontierCompactionRetainedSamples"] =
-        static_cast<double>(loop.metrics.spawnedContinuations);
-      batching["frontierCompactionRemovedSamples"] =
-        static_cast<double>(loop.resolvedPathStates.size());
+      batching["frontierCompactionPasses"] = static_cast<double>(loop.compactionPassCount());
+      batching["frontierCompactionInputSamples"] = static_cast<double>(loop.inputPathCount());
+      batching["frontierCompactionRetainedSamples"] = static_cast<double>(loop.retainedPathCount());
+      batching["frontierCompactionRemovedSamples"] = static_cast<double>(loop.removedPathCount());
       batching["frontierCompactionRemovedSampleFraction"] = loop.removedPathFraction();
       batching["frontierCompactionMovedSamples"] = static_cast<double>(loop.movedPathCount());
       batching["frontierCompactionMovedRetainedSampleFraction"] = loop.movedRetainedPathFraction();
@@ -914,11 +912,9 @@ namespace engine::graph {
       batching["residentPathLoopExecutionPath"] = QString::fromStdString(loop.executionPath);
       batching["residentPathLoopResidency"] = QString::fromStdString(loop.pathStateResidency);
       batching["residentPathLoopDepths"] = static_cast<double>(loop.depthCount);
-      batching["residentPathLoopInputPaths"] = static_cast<double>(loop.metrics.activePaths);
-      batching["residentPathLoopRetainedPaths"] =
-        static_cast<double>(loop.metrics.spawnedContinuations);
-      batching["residentPathLoopRemovedPaths"] =
-        static_cast<double>(loop.resolvedPathStates.size());
+      batching["residentPathLoopInputPaths"] = static_cast<double>(loop.inputPathCount());
+      batching["residentPathLoopRetainedPaths"] = static_cast<double>(loop.retainedPathCount());
+      batching["residentPathLoopRemovedPaths"] = static_cast<double>(loop.removedPathCount());
       batching["residentPathLoopMovedPaths"] = static_cast<double>(loop.movedPathCount());
       batching["residentPathLoopRetainedIndexBytes"] =
         static_cast<double>(loop.retainedPathIndexBytes());
@@ -930,7 +926,8 @@ namespace engine::graph {
         static_cast<double>(loop.retainedPathStateBytes());
       batching["residentPathLoopRemovedResidentPathStateBytes"] =
         static_cast<double>(loop.removedPathStateBytes());
-      batching["residentPathLoopCompactionPasses"] = static_cast<double>(loop.depthCount);
+      batching["residentPathLoopCompactionPasses"] =
+        static_cast<double>(loop.compactionPassCount());
       batching["residentPathLoopRoundTrips"] = static_cast<double>(loop.roundTrips);
       batching["residentPathLoopSavedHostReadbacks"] = static_cast<double>(loop.savedHostReadbacks);
       batching["residentPathLoopSavedHostReadbackBytes"] =

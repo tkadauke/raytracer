@@ -1799,6 +1799,11 @@ Progress:
   active-path counts into pairwise work comparisons and queue-sweep summaries.
   Captures can therefore compare the resident loop's depth-frontier shape
   without expanding the raw `activePathsPerDepth` array.
+- The compiled diffuse path-loop result now also owns its compaction pass,
+  input, retained, and removed path-count summaries. Benchmarks and graph trace
+  metadata consume those result-owned accessors instead of re-deriving the
+  values from internal metric fields or terminal state vectors, keeping the
+  contract ready for future Metal/Vulkan path-loop result objects.
 
 ---
 

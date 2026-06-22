@@ -77,6 +77,10 @@ namespace render {
     [[nodiscard]] std::uint64_t retainedPathStateBytes() const;
     [[nodiscard]] std::uint64_t removedPathStateBytes() const;
     [[nodiscard]] std::uint64_t retainedPathIndexBytes() const;
+    [[nodiscard]] std::uint64_t compactionPassCount() const;
+    [[nodiscard]] std::uint64_t inputPathCount() const;
+    [[nodiscard]] std::uint64_t retainedPathCount() const;
+    [[nodiscard]] std::uint64_t removedPathCount() const;
     [[nodiscard]] std::uint64_t movedPathCount() const;
     [[nodiscard]] std::uint64_t peakActivePathCount() const;
     [[nodiscard]] std::uint64_t lastActivePathCount() const;

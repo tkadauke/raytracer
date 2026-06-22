@@ -491,23 +491,39 @@ std::uint64_t GpuDiffusePathLoopResult::residentPathStateBytes() const {
 }
 
 std::uint64_t GpuDiffusePathLoopResult::inputPathStateBytes() const {
-  return saturatedPathStateBytes(metrics.activePaths);
+  return saturatedPathStateBytes(inputPathCount());
 }
 
 std::uint64_t GpuDiffusePathLoopResult::retainedPathStateBytes() const {
-  return saturatedPathStateBytes(metrics.spawnedContinuations);
+  return saturatedPathStateBytes(retainedPathCount());
 }
 
 std::uint64_t GpuDiffusePathLoopResult::removedPathStateBytes() const {
-  return saturatedPathStateBytes(static_cast<std::uint64_t>(resolvedPathStates.size()));
+  return saturatedPathStateBytes(removedPathCount());
 }
 
 std::uint64_t GpuDiffusePathLoopResult::retainedPathIndexBytes() const {
   return retainedIndexBytes;
 }
 
-std::uint64_t GpuDiffusePathLoopResult::movedPathCount() const {
+std::uint64_t GpuDiffusePathLoopResult::compactionPassCount() const {
+  return depthCount;
+}
+
+std::uint64_t GpuDiffusePathLoopResult::inputPathCount() const {
+  return metrics.activePaths;
+}
+
+std::uint64_t GpuDiffusePathLoopResult::retainedPathCount() const {
   return metrics.spawnedContinuations;
+}
+
+std::uint64_t GpuDiffusePathLoopResult::removedPathCount() const {
+  return static_cast<std::uint64_t>(resolvedPathStates.size());
+}
+
+std::uint64_t GpuDiffusePathLoopResult::movedPathCount() const {
+  return retainedPathCount();
 }
 
 std::uint64_t GpuDiffusePathLoopResult::peakActivePathCount() const {
@@ -522,11 +538,11 @@ std::uint64_t GpuDiffusePathLoopResult::lastActivePathCount() const {
 }
 
 double GpuDiffusePathLoopResult::removedPathFraction() const {
-  return fraction(static_cast<std::uint64_t>(resolvedPathStates.size()), metrics.activePaths);
+  return fraction(removedPathCount(), inputPathCount());
 }
 
 double GpuDiffusePathLoopResult::movedRetainedPathFraction() const {
-  return fraction(movedPathCount(), metrics.spawnedContinuations);
+  return fraction(movedPathCount(), retainedPathCount());
 }
 
 GpuDiffusePathStepResult
