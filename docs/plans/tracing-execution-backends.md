@@ -2080,7 +2080,9 @@ diffuse path tracer for the first supported subset.
    Added `loopResidentDiffusePaths` as the CPU-reference resident path-state
    loop with active/next ping-pong, max-depth draining, GPU sample-stream
    Russian roulette, and fixed-seed retained-record parity diagnostics for
-   issue #614.
+   issue #614. Resolved records now clear their active flag before image
+   resolve so terminal CPU-reference path states are distinct from live
+   frontier state.
    - Depends on: jobs 1 and 2.
    - Output: ~~supported diffuse paths execute multiple bounces and terminate
      according to the same policy as CPU.~~

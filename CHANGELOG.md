@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Clear the active flag on resident diffuse path-loop resolved records so
+  terminal CPU-reference path states cannot be mistaken for live frontier
+  records. — GPT-5 Codex
 - Report `gpu_sample_stream` wavefront renders as using the GPU sampling
   contract's CPU reference path in structured tracing capabilities, instead of
   saying GPU sampling was not implemented. — GPT-5 Codex

@@ -1704,6 +1704,10 @@ Progress:
   closest-hit records exactly match the active path ray-index frontier,
   rejecting missing, duplicate, or unexpected records before resident
   path-loop shading consumes them.
+- Resident diffuse path-loop resolved records now clear the active flag before
+  image resolve. Terminal CPU-reference path states are therefore distinct from
+  retained live frontier state for future scheduler-owned GPU path-loop
+  backends.
 
 ---
 

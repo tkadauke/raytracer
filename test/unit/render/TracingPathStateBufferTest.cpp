@@ -209,6 +209,7 @@ namespace TracingPathStateBufferTest {
     EXPECT_EQ(1u, diagnostics.depths[2].compaction.removedPathCount());
     ASSERT_EQ(1u, diagnostics.resolvedRecords.size());
     EXPECT_EQ(3u, diagnostics.resolvedRecords[0].depth);
+    EXPECT_FALSE(hasFlag(diagnostics.resolvedRecords[0], GpuPathStateFlags::Active));
     EXPECT_EQ(0u, diagnostics.finalActiveCount);
     EXPECT_EQ(3u, diagnostics.buffers.swapOperations);
   }
@@ -239,6 +240,7 @@ namespace TracingPathStateBufferTest {
     EXPECT_EQ(0u, diagnostics.depths[1].compaction.retainedPathCount());
     ASSERT_EQ(1u, diagnostics.resolvedRecords.size());
     EXPECT_EQ(2u, diagnostics.resolvedRecords[0].depth);
+    EXPECT_FALSE(hasFlag(diagnostics.resolvedRecords[0], GpuPathStateFlags::Active));
     EXPECT_TRUE(buffers.active().empty());
   }
 
@@ -269,6 +271,8 @@ namespace TracingPathStateBufferTest {
     ASSERT_EQ(2u, diagnostics.resolvedRecords.size());
     EXPECT_EQ(1u, diagnostics.resolvedRecords[0].pixelIndex);
     EXPECT_EQ(0u, diagnostics.resolvedRecords[1].pixelIndex);
+    EXPECT_FALSE(hasFlag(diagnostics.resolvedRecords[0], GpuPathStateFlags::Active));
+    EXPECT_FALSE(hasFlag(diagnostics.resolvedRecords[1], GpuPathStateFlags::Active));
     EXPECT_TRUE(buffers.active().empty());
 
     Buffer<unsigned int> resolved(2, 1);

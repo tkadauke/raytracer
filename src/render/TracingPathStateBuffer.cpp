@@ -48,6 +48,11 @@ namespace render {
       return a + b;
     }
 
+    GpuPathStateRecord resolvedPathState(GpuPathStateRecord record) {
+      record.flags &= ~flagValue(GpuPathStateFlags::Active);
+      return record;
+    }
+
     TracingPathStateLayout validatedLayout(TracingPathStateLayout layout) {
       layout.validate();
       return layout;
@@ -342,13 +347,13 @@ namespace render {
 
         std::optional<GpuPathStateRecord> next = step(current, depth);
         if (!next) {
-          diagnostics.resolvedRecords.push_back(current);
+          diagnostics.resolvedRecords.push_back(resolvedPathState(current));
           continue;
         }
 
         next->depth = depth + 1u;
         if (next->depth >= settings.maxDepth) {
-          diagnostics.resolvedRecords.push_back(*next);
+          diagnostics.resolvedRecords.push_back(resolvedPathState(*next));
           continue;
         }
 
@@ -360,7 +365,7 @@ namespace render {
           const PathContinuation continuation = pathContinuation(throughput, roulette);
           throughput = continuedThroughput(throughput, continuation);
           if (!continuation.continues) {
-            diagnostics.resolvedRecords.push_back(*next);
+            diagnostics.resolvedRecords.push_back(resolvedPathState(*next));
             continue;
           }
           next->throughput = {static_cast<float>(throughput.r()),
