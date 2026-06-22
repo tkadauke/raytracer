@@ -910,9 +910,22 @@ namespace engine::wavefront {
         ? residentPathLoopResidency
         : (frontierCompactionPathStateResidency.empty() ? "host"
                                                         : frontierCompactionPathStateResidency);
-    records.pathState.residency = tracingRecordForResolvedExecutionPath(
-      Domain::PathState, "state.path_state_residency", executionDeviceForLabel(pathStateResidency),
-      intersectionBackendPlatform, pathStateResidency);
+    const Device pathStateDevice = executionDeviceForLabel(pathStateResidency);
+    const bool gpuPathStateRequested =
+      requestedDeviceForLabel(intersectionBackendRequest) == Device::GPU;
+    if (gpuPathStateRequested && pathStateDevice == Device::CPU) {
+      const std::string reason = intersectionBackendGpuFrontierCompactionUnavailableReason.empty()
+                                   ? "GPU path-state residency is not available"
+                                   : intersectionBackendGpuFrontierCompactionUnavailableReason;
+      records.pathState.residency = render::TracingCapabilityRecord::fallbackRecord(
+        Domain::PathState, "state.path_state_residency", Device::GPU, Device::CPU,
+        pathStateResidency, reason);
+      records.pathState.residency.platform = intersectionBackendPlatform;
+    } else {
+      records.pathState.residency = tracingRecordForResolvedExecutionPath(
+        Domain::PathState, "state.path_state_residency", pathStateDevice,
+        intersectionBackendPlatform, pathStateResidency);
+    }
 
     const bool residentLoopCompactionReported =
       frontierCompactionExecutionPath.empty() && residentPathLoopCompactionPasses != 0;
@@ -924,9 +937,7 @@ namespace engine::wavefront {
       residentLoopCompactionReported && !residentPathLoopResidency.empty()
         ? executionDeviceForLabel(residentPathLoopResidency)
         : executionDeviceForLabel(compactionPath);
-    const bool gpuCompactionRequested =
-      requestedDeviceForLabel(intersectionBackendRequest) == Device::GPU;
-    if (gpuCompactionRequested && !intersectionBackendSupportsGpuFrontierCompaction &&
+    if (gpuPathStateRequested && !intersectionBackendSupportsGpuFrontierCompaction &&
         compactionDevice == Device::CPU) {
       const std::string reason = intersectionBackendGpuFrontierCompactionUnavailableReason.empty()
                                    ? "GPU frontier compaction is not available"

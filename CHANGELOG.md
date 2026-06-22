@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Report explicit GPU path-state residency requests as structured
+  `state.path_state_residency` fallbacks when scheduler-owned path records still
+  live on the host. — GPT-5 Codex
 - Report explicit GPU frontier-compaction requests as structured
   `state.frontier_compaction` fallbacks when scheduler-owned path state still
   compacts on the host. — GPT-5 Codex

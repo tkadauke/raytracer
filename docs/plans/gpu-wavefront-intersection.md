@@ -1148,6 +1148,11 @@ Progress:
   scheduler still compacts host-owned path state. That keeps rendercli and
   Modeler fallback summaries aligned with the lower-level unavailable-reason
   metrics.
+- Structured tracing capability records now also report explicit GPU requests
+  for path-state residency as `state.path_state_residency` fallbacks while
+  scheduler-owned path records still live on the host. This makes the remaining
+  resident path-state boundary visible before true GPU-owned `BatchPath`
+  storage lands.
 - The convergence capture helper now preserves GPU frontier-compaction
   unavailable reasons in reference/candidate comparisons and queue-sweep
   summaries, keeping offline Phase 8 captures aligned with render metrics and
