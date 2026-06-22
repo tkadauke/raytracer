@@ -26,6 +26,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Add result-owned compiled diffuse path-loop tracing capability records,
   including a tested future full-GPU reporting branch while preserving current
   CPU-reference fallback metadata. — GPT-5 Codex
+- Report resident path-loop platform names in graph trace metadata, rendercli
+  compact summaries, and Modeler selected-pass details. — GPT-5 Codex
 
 ### Fixed
 

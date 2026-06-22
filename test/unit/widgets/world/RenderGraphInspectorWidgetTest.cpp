@@ -1443,10 +1443,13 @@ namespace RenderGraphInspectorWidgetTest {
 
     const auto rows = widget.passDetailRows(QStringLiteral("wavefront_beauty"));
 
+    EXPECT_EQ(QStringLiteral("None"), rowValue(rows, QStringLiteral("Tracing backend platform")));
     EXPECT_EQ(QStringLiteral("Compiled CPU Reference"),
               rowValue(rows, QStringLiteral("Resident path-loop execution")));
     EXPECT_EQ(QStringLiteral("CPU Host"),
               rowValue(rows, QStringLiteral("Resident path-loop residency")));
+    EXPECT_EQ(QStringLiteral("None"),
+              rowValue(rows, QStringLiteral("Resident path-loop platform")));
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Resident path-loop depths")).isEmpty());
     EXPECT_FALSE(
       rowValue(rows, QStringLiteral("Resident path-loop active paths by depth")).isEmpty());
@@ -1497,6 +1500,8 @@ namespace RenderGraphInspectorWidgetTest {
     const QJsonObject batching = passTrace->metadata().value(QStringLiteral("batching")).toObject();
     EXPECT_EQ(QStringLiteral("compiled_cpu_reference"),
               batching.value(QStringLiteral("residentPathLoopExecutionPath")).toString());
+    EXPECT_EQ(QStringLiteral("none"),
+              batching.value(QStringLiteral("residentPathLoopPlatformName")).toString());
     EXPECT_FALSE(batching.value(QStringLiteral("activePathsPerDepth")).toArray().isEmpty());
     EXPECT_GT(batching.value(QStringLiteral("residentPathLoopCompactionPasses")).toDouble(), 0.0);
     EXPECT_GT(

@@ -212,6 +212,7 @@ $ rendercli --engine pathtracer --width 640 --height 360 \
 ```
 
 Inspect the compact `wavefront_metrics` stdout line first. The fields
+`tracing_backend_platform`,
 `intersection_backend_request`, `intersection_backend`,
 `intersection_backend_execution`, `closest_hit_execution`,
 `any_hit_execution`, `intersection_backend_platform`,
@@ -635,6 +636,7 @@ compact summary prints total `tiles`, `tile_grid`,
 `spawned_continuation_host_path_state_bytes`,
 `resident_path_loop_execution`,
 `resident_path_loop_residency`,
+`resident_path_loop_platform`,
 `resident_path_loop_depths`,
 `resident_path_loop_active_paths_per_depth`,
 `resident_path_loop_input_paths`,

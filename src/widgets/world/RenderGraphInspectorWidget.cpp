@@ -945,6 +945,8 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                                QStringLiteral("tracingBackend"), true);
     addDetailStringMetadataRow(rows, QStringLiteral("Tracing backend mode"), batching,
                                QStringLiteral("tracingBackendMode"), true);
+    addDetailStringMetadataRow(rows, QStringLiteral("Tracing backend platform"), batching,
+                               QStringLiteral("tracingBackendPlatform"), true);
     addDetailRow(rows, QStringLiteral("CPU execution"),
                  tracingCapabilityDeviceSummary(tracingCapabilities, QStringLiteral("cpu")));
     addDetailRow(rows, QStringLiteral("Hybrid execution"),
@@ -1078,6 +1080,8 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                              QStringLiteral("residentPathLoopExecutionPath"), true);
   addDetailStringMetadataRow(rows, QStringLiteral("Resident path-loop residency"), batching,
                              QStringLiteral("residentPathLoopResidency"), true);
+  addDetailStringMetadataRow(rows, QStringLiteral("Resident path-loop platform"), batching,
+                             QStringLiteral("residentPathLoopPlatformName"), true);
   addDetailIntegerMetadataRow(rows, QStringLiteral("Resident path-loop depths"), batching,
                               QStringLiteral("residentPathLoopDepths"));
   addDetailIntegerArrayMetadataRow(rows, QStringLiteral("Resident path-loop active paths by depth"),

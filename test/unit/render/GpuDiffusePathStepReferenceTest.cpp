@@ -1024,11 +1024,17 @@ namespace GpuDiffusePathStepReferenceTest {
 
     EXPECT_FALSE(result.fullGpuPathLoopSupported());
     EXPECT_TRUE(result.fullGpuPathLoopUnavailable());
+    EXPECT_EQ("none", result.platformLabel());
 
     result.executionPath = "full_gpu_subset";
 
     EXPECT_TRUE(result.fullGpuPathLoopSupported());
     EXPECT_FALSE(result.fullGpuPathLoopUnavailable());
+    EXPECT_EQ("platform_gpu_path_loop", result.platformLabel());
+
+    result.platformName = "metal";
+
+    EXPECT_EQ("metal", result.platformLabel());
   }
 
   TEST(GpuDiffusePathLoopResult, ReportsCpuReferenceTracingCapabilitiesAsGpuFallbacks) {

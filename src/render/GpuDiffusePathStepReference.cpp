@@ -603,13 +603,20 @@ bool GpuDiffusePathLoopResult::fullGpuPathLoopUnavailable() const {
   return !fullGpuPathLoopSupported();
 }
 
+std::string GpuDiffusePathLoopResult::platformLabel() const {
+  if (!platformName.empty()) {
+    return platformName;
+  }
+  return fullGpuPathLoopSupported() ? "platform_gpu_path_loop" : "none";
+}
+
 TracingExecutionCapabilityRecords GpuDiffusePathLoopResult::tracingCapabilities(
   const TracingAccumulationDiagnostics& accumulation) const {
   using Domain = TracingExecutionDomain;
   using Device = TracingExecutionDevice;
 
   const bool fullGpuLoop = fullGpuPathLoopSupported();
-  const std::string platform = platformName.empty() ? "platform_gpu_path_loop" : platformName;
+  const std::string platform = platformLabel();
   const std::string pathLoopExecution =
     executionPath.empty() ? "compiled_cpu_reference" : executionPath;
 

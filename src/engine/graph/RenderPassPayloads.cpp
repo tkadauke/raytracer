@@ -701,6 +701,7 @@ namespace engine::graph {
       batching["tracingBackendMode"] = QString::fromStdString(loop.executionPath);
       batching["tracingBackend"] =
         loop.fullGpuPathLoopSupported() ? QStringLiteral("gpu") : QStringLiteral("cpu");
+      batching["tracingBackendPlatform"] = QString::fromStdString(loop.platformLabel());
       batching["tracingBackendRequest"] = tracingExecutionPreferenceName(requestedTracingExecution);
       const render::TracingExecutionCapabilityRecords tracingCapabilities =
         loop.tracingCapabilities(accumulation);
@@ -775,6 +776,7 @@ namespace engine::graph {
         static_cast<double>(loop.removedPathStateBytes());
       batching["residentPathLoopExecutionPath"] = QString::fromStdString(loop.executionPath);
       batching["residentPathLoopResidency"] = QString::fromStdString(loop.pathStateResidency);
+      batching["residentPathLoopPlatformName"] = QString::fromStdString(loop.platformLabel());
       batching["residentPathLoopDepths"] = static_cast<double>(loop.depthCount);
       batching["residentPathLoopInputPaths"] = static_cast<double>(loop.inputPathCount());
       batching["residentPathLoopRetainedPaths"] = static_cast<double>(loop.retainedPathCount());
@@ -824,6 +826,7 @@ namespace engine::graph {
       QJsonObject compiledLoop;
       compiledLoop["backend"] = QString::fromStdString(loop.executionPath);
       compiledLoop["residency"] = QString::fromStdString(loop.pathStateResidency);
+      compiledLoop["platformName"] = QString::fromStdString(loop.platformLabel());
       compiledLoop["fullPlatformGpuKernel"] = loop.fullGpuPathLoopSupported();
       compiledLoop["submittedIntersectionRays"] =
         static_cast<double>(loop.submittedIntersectionRayCount());

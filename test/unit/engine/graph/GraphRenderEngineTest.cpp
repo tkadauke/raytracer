@@ -2303,6 +2303,7 @@ namespace GraphRenderEngineTest {
               batching.value("executionMode").toString().toStdString());
     EXPECT_EQ("compiled_cpu_reference",
               batching.value("tracingBackendMode").toString().toStdString());
+    EXPECT_EQ("none", batching.value("tracingBackendPlatform").toString().toStdString());
     EXPECT_EQ("gpu", batching.value("tracingBackendRequest").toString().toStdString());
     EXPECT_EQ("cpu", batching.value("tracingBackend").toString().toStdString());
     const QJsonArray capabilities = batching.value("tracingBackendCapabilities").toArray();
@@ -2349,6 +2350,7 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ("compiled_cpu_reference",
               batching.value("residentPathLoopExecutionPath").toString().toStdString());
     EXPECT_EQ("cpu_host", batching.value("residentPathLoopResidency").toString().toStdString());
+    EXPECT_EQ("none", batching.value("residentPathLoopPlatformName").toString().toStdString());
     EXPECT_EQ(64.0, batching.value("initialPathCount").toDouble());
     EXPECT_GE(batching.value("directLightSamples").toDouble(), 2.0);
     EXPECT_GE(batching.value("directLightVisibilityRays").toDouble(), 2.0);
@@ -2367,6 +2369,7 @@ namespace GraphRenderEngineTest {
     const QJsonObject loop = metadata.value("compiledDiffusePathLoop").toObject();
     EXPECT_EQ("compiled_cpu_reference", loop.value("backend").toString().toStdString());
     EXPECT_EQ("cpu_host", loop.value("residency").toString().toStdString());
+    EXPECT_EQ("none", loop.value("platformName").toString().toStdString());
     EXPECT_FALSE(loop.value("fullPlatformGpuKernel").toBool());
     EXPECT_GT(loop.value("submittedIntersectionRays").toDouble(), 0.0);
 

@@ -418,6 +418,8 @@ namespace {
         << " tracing_backend=" << compactTextValue(batching.value("tracingBackend"), "unknown")
         << " tracing_backend_mode="
         << compactTextValue(batching.value("tracingBackendMode"), "unknown")
+        << " tracing_backend_platform="
+        << compactTextValue(batching.value("tracingBackendPlatform"), "none")
         << " tracing_backend_fallback="
         << compactTextValue(batching.value("tracingBackendFallback").toObject().value("reason"),
                             "none")
@@ -616,6 +618,8 @@ namespace {
         << compactTextValue(batching.value("residentPathLoopExecutionPath"), "none")
         << " resident_path_loop_residency="
         << compactTextValue(batching.value("residentPathLoopResidency"), "none")
+        << " resident_path_loop_platform="
+        << compactTextValue(batching.value("residentPathLoopPlatformName"), "none")
         << " resident_path_loop_depths=" << unsignedValue(batching, "residentPathLoopDepths")
         << " resident_path_loop_active_paths_per_depth="
         << unsignedArraySummary(batching.value("activePathsPerDepth").toArray())

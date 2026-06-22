@@ -89,6 +89,7 @@ namespace render {
     [[nodiscard]] std::uint64_t submittedIntersectionRayCount() const;
     [[nodiscard]] bool fullGpuPathLoopSupported() const;
     [[nodiscard]] bool fullGpuPathLoopUnavailable() const;
+    [[nodiscard]] std::string platformLabel() const;
     [[nodiscard]] TracingExecutionCapabilityRecords
     tracingCapabilities(const TracingAccumulationDiagnostics& accumulation) const;
     [[nodiscard]] double removedPathFraction() const;

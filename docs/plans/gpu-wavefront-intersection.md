@@ -1816,6 +1816,11 @@ Progress:
   state, and accumulation, while a future `full_gpu_subset` result can report
   platform GPU ownership from the same result contract without graph metadata
   reconstructing the capability model.
+- The compiled diffuse path-loop result now also owns the platform label used
+  for resident path-loop diagnostics. Current CPU-reference runs publish
+  `none`, while future Metal/Vulkan path-loop result objects can populate the
+  same graph trace, rendercli summary, and Modeler detail fields with their
+  platform name.
 
 ---
 
