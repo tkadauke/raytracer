@@ -290,6 +290,15 @@ namespace render {
     [[nodiscard]] std::uint64_t directLightAnyHitQueryRoundTrips() const;
     [[nodiscard]] std::uint64_t residentDirectLightBatchRoundTripsEstimate() const;
     [[nodiscard]] std::uint64_t residentDirectLightBatchRoundTripSavingsEstimate() const;
+    [[nodiscard]] bool hasResidentDirectLightBatchCandidateDepth(std::size_t depth) const;
+    [[nodiscard]] std::uint64_t residentDirectLightBatchCandidateDepthCount() const;
+    [[nodiscard]] std::uint64_t residentDirectLightBatchCandidateRayCount() const;
+    [[nodiscard]] std::uint64_t residentDirectLightBatchCandidateHostBytes() const;
+    [[nodiscard]] std::uint64_t residentDirectLightBatchHostBytesAtDepth(std::size_t depth) const;
+    [[nodiscard]] std::uint64_t largestResidentDirectLightBatchDepth() const;
+    [[nodiscard]] std::uint64_t largestResidentDirectLightBatchRayCount() const;
+    [[nodiscard]] std::uint64_t largestResidentDirectLightBatchPackedRayBytes() const;
+    [[nodiscard]] std::uint64_t largestResidentDirectLightBatchHostBytes() const;
     [[nodiscard]] std::uint64_t mixedQueryDepthCount() const;
     [[nodiscard]] std::uint64_t mixedQueryDepthRoundTrips() const;
     [[nodiscard]] std::uint64_t mixedQueryDepthRays() const;

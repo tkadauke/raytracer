@@ -751,6 +751,20 @@ namespace {
         << unsignedValue(batching, "residentDirectLightBatchRoundTripsEstimate")
         << " resident_direct_light_round_trip_savings_estimate="
         << unsignedValue(batching, "residentDirectLightBatchRoundTripSavingsEstimate")
+        << " resident_direct_light_candidate_depths="
+        << unsignedValue(batching, "residentDirectLightBatchCandidateDepths")
+        << " resident_direct_light_candidate_rays="
+        << unsignedValue(batching, "residentDirectLightBatchCandidateRays")
+        << " resident_direct_light_candidate_host_bytes="
+        << unsignedValue(batching, "residentDirectLightBatchCandidateHostBytes")
+        << " resident_largest_direct_light_depth="
+        << unsignedValue(batching, "residentLargestDirectLightBatchDepth")
+        << " resident_largest_direct_light_rays="
+        << unsignedValue(batching, "residentLargestDirectLightBatchRays")
+        << " resident_largest_direct_light_packed_ray_bytes="
+        << unsignedValue(batching, "residentLargestDirectLightBatchPackedRayBytes")
+        << " resident_largest_direct_light_host_bytes="
+        << unsignedValue(batching, "residentLargestDirectLightBatchHostBytes")
         << " direct_light_selection_host_bytes="
         << unsignedValue(batching, "directLightSelectionHostBytes")
         << " direct_light_occlusion_host_bytes="

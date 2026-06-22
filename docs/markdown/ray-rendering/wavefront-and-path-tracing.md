@@ -688,6 +688,10 @@ need to eliminate or mirror. The any-hit frontier payload bytes are reported
 both as whole-render totals and per-depth arrays, split into packed rays, host
 queries, and state handles, so resident-direct-light captures can identify the
 specific bounce that moved the occlusion payload.
+The resident-direct-light candidate counters collapse those rows into a total
+candidate count and the largest candidate depth, so captures can point at the
+bounce that would benefit most from keeping light selections, visibility, and
+contribution storage resident.
 The structured capability list exposes the same distinction as
 `lighting.resident_direct_light_batches`: it remains unsupported when the
 backend can answer platform any-hit visibility but the scheduler still creates

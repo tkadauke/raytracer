@@ -1195,6 +1195,11 @@ Progress:
   round trips and a resident direct-light round-trip savings estimate. This
   makes the host readback boundary for next-event-estimation occlusion visible
   independently of the mixed-depth resident-frontier estimate.
+- Direct-light resident-batch diagnostics now also report candidate depth/ray
+  totals, candidate host payload bytes, and the largest candidate depth with
+  its ray count, packed-ray payload, and host payload. This gives Phase 8
+  resident-direct-light work the same "where is the biggest opportunity?"
+  signal that frontier compaction already had.
 - Direct-light visibility now resolves through backend-owned any-hit frontier
   handles even when the selected backend uses the CPU host fallback. Host
   frontiers preserve the existing scalar CPU visibility behavior internally,

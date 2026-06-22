@@ -76,6 +76,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Added resident direct-light candidate and largest-depth diagnostics to
+  wavefront metrics, rendercli summaries, and Modeler graph details. — GPT-5
+  Codex
 - Added convertible C-array constructors for `Color`, SSE color
   specializations, and vector types so array-backed helpers can delegate to the
   math primitives directly. — GPT-5 Codex

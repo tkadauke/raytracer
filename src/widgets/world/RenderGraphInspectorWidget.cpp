@@ -1230,6 +1230,22 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                               QStringLiteral("residentDirectLightBatchRoundTripsEstimate"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Resident direct-light savings"), batching,
                               QStringLiteral("residentDirectLightBatchRoundTripSavingsEstimate"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Resident direct-light candidate depths"),
+                              batching, QStringLiteral("residentDirectLightBatchCandidateDepths"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Resident direct-light candidate rays"),
+                              batching, QStringLiteral("residentDirectLightBatchCandidateRays"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Resident direct-light candidate host bytes"),
+                              batching,
+                              QStringLiteral("residentDirectLightBatchCandidateHostBytes"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Resident largest direct-light depth"), batching,
+                              QStringLiteral("residentLargestDirectLightBatchDepth"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Resident largest direct-light rays"), batching,
+                              QStringLiteral("residentLargestDirectLightBatchRays"));
+  addDetailIntegerMetadataRow(
+    rows, QStringLiteral("Resident largest direct-light packed ray bytes"), batching,
+    QStringLiteral("residentLargestDirectLightBatchPackedRayBytes"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Resident largest direct-light host bytes"),
+                              batching, QStringLiteral("residentLargestDirectLightBatchHostBytes"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Direct-light selection host bytes"), batching,
                               QStringLiteral("directLightSelectionHostBytes"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Direct-light occlusion host bytes"), batching,
@@ -1890,15 +1906,25 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
         jsonIntegerValue(batching, QStringLiteral("directLightAnyHitQueryRoundTrips"));
       const qulonglong residentDirectLightSavings = jsonIntegerValue(
         batching, QStringLiteral("residentDirectLightBatchRoundTripSavingsEstimate"));
+      const qulonglong residentLargestDirectLightRays =
+        jsonIntegerValue(batching, QStringLiteral("residentLargestDirectLightBatchRays"));
+      const qulonglong residentLargestDirectLightDepth =
+        jsonIntegerValue(batching, QStringLiteral("residentLargestDirectLightBatchDepth"));
+      const qulonglong residentLargestDirectLightHostBytes =
+        jsonIntegerValue(batching, QStringLiteral("residentLargestDirectLightBatchHostBytes"));
       line += QStringLiteral(
                 ", direct-light any-hit chunks %1 rays/%2 chunks, avg %3 (%4 round trips, "
-                "%5 resident savings, %6 occlusion bytes/%7 contribution bytes, %8 packed-ray "
-                "bytes/%9 host-query bytes/%10 state-handle bytes)")
+                "%5 resident savings, largest candidate depth %6 with %7 rays/%8 host bytes, "
+                "%9 occlusion bytes/%10 contribution bytes, %11 packed-ray bytes/%12 host-query "
+                "bytes/%13 state-handle bytes)")
                 .arg(directLightAnyHitBatchRays)
                 .arg(directLightAnyHitBatchChunks)
                 .arg(average(directLightAnyHitBatchRays, directLightAnyHitBatchChunks))
                 .arg(directLightAnyHitRoundTrips)
                 .arg(residentDirectLightSavings)
+                .arg(residentLargestDirectLightDepth)
+                .arg(residentLargestDirectLightRays)
+                .arg(residentLargestDirectLightHostBytes)
                 .arg(directLightOcclusionHostBytes)
                 .arg(directLightContributionHostBytes)
                 .arg(directLightAnyHitPackedRayBytes)

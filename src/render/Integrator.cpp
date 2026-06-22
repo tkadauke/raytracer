@@ -58,6 +58,10 @@ namespace render {
         target[key] += value;
       }
     }
+
+    std::uint64_t valueAt(const std::vector<std::uint64_t>& values, std::size_t index) {
+      return index < values.size() ? values[index] : 0;
+    }
   }
 
   const char* Integrator::diagnosticName() const {
@@ -812,6 +816,84 @@ namespace render {
 
   std::uint64_t IntegratorBatchMetrics::residentDirectLightBatchRoundTripSavingsEstimate() const {
     return directLightAnyHitQueryRoundTrips();
+  }
+
+  bool IntegratorBatchMetrics::hasResidentDirectLightBatchCandidateDepth(std::size_t depth) const {
+    return valueAt(directLightAnyHitBatchRaysPerDepth, depth) > 0;
+  }
+
+  std::uint64_t IntegratorBatchMetrics::residentDirectLightBatchCandidateDepthCount() const {
+    std::uint64_t count = 0;
+    for (std::size_t depth = 0; depth != directLightAnyHitBatchRaysPerDepth.size(); ++depth) {
+      if (hasResidentDirectLightBatchCandidateDepth(depth)) {
+        ++count;
+      }
+    }
+    return count;
+  }
+
+  std::uint64_t IntegratorBatchMetrics::residentDirectLightBatchCandidateRayCount() const {
+    std::uint64_t count = 0;
+    for (const std::uint64_t rays : directLightAnyHitBatchRaysPerDepth) {
+      count += rays;
+    }
+    return count;
+  }
+
+  std::uint64_t
+  IntegratorBatchMetrics::residentDirectLightBatchHostBytesAtDepth(std::size_t depth) const {
+    return valueAt(directLightSelectionHostBytesPerDepth, depth) +
+           valueAt(directLightOcclusionHostBytesPerDepth, depth) +
+           valueAt(directLightContributionHostBytesPerDepth, depth) +
+           valueAt(directLightAnyHitFrontierHostQueryBytesPerDepth, depth) +
+           valueAt(directLightAnyHitFrontierStateHandleBytesPerDepth, depth);
+  }
+
+  std::uint64_t IntegratorBatchMetrics::residentDirectLightBatchCandidateHostBytes() const {
+    const std::size_t depthCount = std::max(
+      {directLightSelectionHostBytesPerDepth.size(), directLightOcclusionHostBytesPerDepth.size(),
+       directLightContributionHostBytesPerDepth.size(),
+       directLightAnyHitFrontierHostQueryBytesPerDepth.size(),
+       directLightAnyHitFrontierStateHandleBytesPerDepth.size()});
+    std::uint64_t bytes = 0;
+    for (std::size_t depth = 0; depth != depthCount; ++depth) {
+      bytes += residentDirectLightBatchHostBytesAtDepth(depth);
+    }
+    return bytes;
+  }
+
+  std::uint64_t IntegratorBatchMetrics::largestResidentDirectLightBatchDepth() const {
+    std::uint64_t largestDepth = 0;
+    std::uint64_t largestRays = 0;
+    for (std::size_t depth = 0; depth != directLightAnyHitBatchRaysPerDepth.size(); ++depth) {
+      const std::uint64_t rays = directLightAnyHitBatchRaysPerDepth[depth];
+      if (rays > largestRays) {
+        largestRays = rays;
+        largestDepth = static_cast<std::uint64_t>(depth);
+      }
+    }
+    return largestDepth;
+  }
+
+  std::uint64_t IntegratorBatchMetrics::largestResidentDirectLightBatchRayCount() const {
+    std::uint64_t largestRays = 0;
+    for (const std::uint64_t rays : directLightAnyHitBatchRaysPerDepth) {
+      largestRays = std::max(largestRays, rays);
+    }
+    return largestRays;
+  }
+
+  std::uint64_t IntegratorBatchMetrics::largestResidentDirectLightBatchPackedRayBytes() const {
+    return valueAt(directLightAnyHitFrontierPackedRayBytesPerDepth,
+                   largestResidentDirectLightBatchDepth());
+  }
+
+  std::uint64_t IntegratorBatchMetrics::largestResidentDirectLightBatchHostBytes() const {
+    const std::uint64_t depth = largestResidentDirectLightBatchDepth();
+    if (largestResidentDirectLightBatchRayCount() == 0) {
+      return 0;
+    }
+    return residentDirectLightBatchHostBytesAtDepth(static_cast<std::size_t>(depth));
   }
 
   std::uint64_t IntegratorBatchMetrics::mixedQueryDepthCount() const {

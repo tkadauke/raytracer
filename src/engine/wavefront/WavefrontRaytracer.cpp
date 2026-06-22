@@ -26,6 +26,7 @@
 #include <QThread>
 #include <QThreadPool>
 
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <limits>
@@ -45,6 +46,10 @@ namespace engine::wavefront {
       if (target != source) {
         target = "mixed";
       }
+    }
+
+    std::uint64_t valueAt(const std::vector<std::uint64_t>& values, std::size_t index) {
+      return index < values.size() ? values[index] : 0;
     }
 
     void mergeAccumulationDiagnostics(render::TracingAccumulationDiagnostics& target,
@@ -648,6 +653,90 @@ namespace engine::wavefront {
   std::uint64_t
   WavefrontRenderMetrics::BatchSummary::residentDirectLightBatchRoundTripSavingsEstimate() const {
     return directLightAnyHitQueryRoundTrips();
+  }
+
+  bool WavefrontRenderMetrics::BatchSummary::hasResidentDirectLightBatchCandidateDepth(
+    std::size_t depth) const {
+    return valueAt(directLightAnyHitBatchRaysPerDepth, depth) > 0;
+  }
+
+  std::uint64_t
+  WavefrontRenderMetrics::BatchSummary::residentDirectLightBatchCandidateDepthCount() const {
+    std::uint64_t count = 0;
+    for (std::size_t depth = 0; depth != directLightAnyHitBatchRaysPerDepth.size(); ++depth) {
+      if (hasResidentDirectLightBatchCandidateDepth(depth)) {
+        ++count;
+      }
+    }
+    return count;
+  }
+
+  std::uint64_t
+  WavefrontRenderMetrics::BatchSummary::residentDirectLightBatchCandidateRayCount() const {
+    std::uint64_t count = 0;
+    for (const std::uint64_t rays : directLightAnyHitBatchRaysPerDepth) {
+      count += rays;
+    }
+    return count;
+  }
+
+  std::uint64_t WavefrontRenderMetrics::BatchSummary::residentDirectLightBatchHostBytesAtDepth(
+    std::size_t depth) const {
+    return valueAt(directLightSelectionHostBytesPerDepth, depth) +
+           valueAt(directLightOcclusionHostBytesPerDepth, depth) +
+           valueAt(directLightContributionHostBytesPerDepth, depth) +
+           valueAt(directLightAnyHitFrontierHostQueryBytesPerDepth, depth) +
+           valueAt(directLightAnyHitFrontierStateHandleBytesPerDepth, depth);
+  }
+
+  std::uint64_t
+  WavefrontRenderMetrics::BatchSummary::residentDirectLightBatchCandidateHostBytes() const {
+    const std::size_t depthCount = std::max(
+      {directLightSelectionHostBytesPerDepth.size(), directLightOcclusionHostBytesPerDepth.size(),
+       directLightContributionHostBytesPerDepth.size(),
+       directLightAnyHitFrontierHostQueryBytesPerDepth.size(),
+       directLightAnyHitFrontierStateHandleBytesPerDepth.size()});
+    std::uint64_t bytes = 0;
+    for (std::size_t depth = 0; depth != depthCount; ++depth) {
+      bytes += residentDirectLightBatchHostBytesAtDepth(depth);
+    }
+    return bytes;
+  }
+
+  std::uint64_t WavefrontRenderMetrics::BatchSummary::largestResidentDirectLightBatchDepth() const {
+    std::uint64_t largestDepth = 0;
+    std::uint64_t largestRays = 0;
+    for (std::size_t depth = 0; depth != directLightAnyHitBatchRaysPerDepth.size(); ++depth) {
+      const std::uint64_t rays = directLightAnyHitBatchRaysPerDepth[depth];
+      if (rays > largestRays) {
+        largestRays = rays;
+        largestDepth = static_cast<std::uint64_t>(depth);
+      }
+    }
+    return largestDepth;
+  }
+
+  std::uint64_t
+  WavefrontRenderMetrics::BatchSummary::largestResidentDirectLightBatchRayCount() const {
+    std::uint64_t largestRays = 0;
+    for (const std::uint64_t rays : directLightAnyHitBatchRaysPerDepth) {
+      largestRays = std::max(largestRays, rays);
+    }
+    return largestRays;
+  }
+
+  std::uint64_t
+  WavefrontRenderMetrics::BatchSummary::largestResidentDirectLightBatchPackedRayBytes() const {
+    return valueAt(directLightAnyHitFrontierPackedRayBytesPerDepth,
+                   largestResidentDirectLightBatchDepth());
+  }
+
+  std::uint64_t
+  WavefrontRenderMetrics::BatchSummary::largestResidentDirectLightBatchHostBytes() const {
+    if (largestResidentDirectLightBatchRayCount() == 0) {
+      return 0;
+    }
+    return residentDirectLightBatchHostBytesAtDepth(largestResidentDirectLightBatchDepth());
   }
 
   std::uint64_t WavefrontRenderMetrics::BatchSummary::mixedQueryDepthCount() const {
@@ -1365,6 +1454,20 @@ namespace engine::wavefront {
       static_cast<double>(batching.residentDirectLightBatchRoundTripsEstimate());
     batchingJson["residentDirectLightBatchRoundTripSavingsEstimate"] =
       static_cast<double>(batching.residentDirectLightBatchRoundTripSavingsEstimate());
+    batchingJson["residentDirectLightBatchCandidateDepths"] =
+      static_cast<double>(batching.residentDirectLightBatchCandidateDepthCount());
+    batchingJson["residentDirectLightBatchCandidateRays"] =
+      static_cast<double>(batching.residentDirectLightBatchCandidateRayCount());
+    batchingJson["residentDirectLightBatchCandidateHostBytes"] =
+      static_cast<double>(batching.residentDirectLightBatchCandidateHostBytes());
+    batchingJson["residentLargestDirectLightBatchDepth"] =
+      static_cast<double>(batching.largestResidentDirectLightBatchDepth());
+    batchingJson["residentLargestDirectLightBatchRays"] =
+      static_cast<double>(batching.largestResidentDirectLightBatchRayCount());
+    batchingJson["residentLargestDirectLightBatchPackedRayBytes"] =
+      static_cast<double>(batching.largestResidentDirectLightBatchPackedRayBytes());
+    batchingJson["residentLargestDirectLightBatchHostBytes"] =
+      static_cast<double>(batching.largestResidentDirectLightBatchHostBytes());
     batchingJson["frontierMixedQueryDepths"] = static_cast<double>(batching.mixedQueryDepthCount());
     batchingJson["frontierMixedQueryRoundTrips"] =
       static_cast<double>(batching.mixedQueryDepthRoundTrips());

@@ -418,6 +418,11 @@ become resident separately from all other any-hit frontiers.
 The same summary reports direct-light any-hit round trips and a resident
 direct-light savings estimate, making the host readback boundary visible before
 that work can stay on device.
+It also reports the number of resident-direct-light candidate depths, total
+candidate rays, candidate host payload bytes, and the largest candidate depth
+with its ray count, packed-ray bytes, and remaining host bytes. Those values
+identify which bounce currently offers the largest resident direct-light
+payoff.
 When a platform kernel actually runs, the same summary separates backend
 upload/setup, kernel dispatch/wait, and readback time; CPU fallback paths keep
 those backend buckets at zero while total intersection worker time still
@@ -592,6 +597,13 @@ compact summary prints total `tiles`, `tile_grid`,
 `gpu_frontier_compaction_supported`,
 `prepared_ray_batch_compaction_supported`,
 `resident_direct_light_batches_supported`,
+`resident_direct_light_candidate_depths`,
+`resident_direct_light_candidate_rays`,
+`resident_direct_light_candidate_host_bytes`,
+`resident_largest_direct_light_depth`,
+`resident_largest_direct_light_rays`,
+`resident_largest_direct_light_packed_ray_bytes`,
+`resident_largest_direct_light_host_bytes`,
 `direct_light_selection_host_bytes`,
 `last_direct_light_selection_host_bytes`,
 `direct_light_occlusion_host_bytes`,

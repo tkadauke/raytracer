@@ -338,6 +338,44 @@ namespace IntegratorTest {
     EXPECT_EQ(27u, metrics.directLightAnyHitFrontierStateHandleBytes);
   }
 
+  TEST(IntegratorBatchMetrics, ResidentDirectLightBatchCandidatesIdentifyLargestDepth) {
+    IntegratorBatchMetrics metrics;
+    metrics.reset(/*scalarFallback=*/false);
+
+    metrics.recordDirectLightVisibilityDepth(/*depth=*/1,
+                                             /*selectionHostBytes=*/5,
+                                             /*occlusionHostBytes=*/2,
+                                             /*batchChunks=*/1,
+                                             /*batchRays=*/4,
+                                             /*packedRayBytes=*/40,
+                                             /*hostQueryBytes=*/20,
+                                             /*stateHandleBytes=*/12);
+    metrics.recordDirectLightContributionHostBytes(/*depth=*/1, /*bytes=*/7);
+    metrics.recordDirectLightVisibilityDepth(/*depth=*/3,
+                                             /*selectionHostBytes=*/3,
+                                             /*occlusionHostBytes=*/5,
+                                             /*batchChunks=*/2,
+                                             /*batchRays=*/9,
+                                             /*packedRayBytes=*/90,
+                                             /*hostQueryBytes=*/45,
+                                             /*stateHandleBytes=*/27);
+    metrics.recordDirectLightContributionHostBytes(/*depth=*/3, /*bytes=*/11);
+
+    EXPECT_FALSE(metrics.hasResidentDirectLightBatchCandidateDepth(0));
+    EXPECT_TRUE(metrics.hasResidentDirectLightBatchCandidateDepth(1));
+    EXPECT_FALSE(metrics.hasResidentDirectLightBatchCandidateDepth(2));
+    EXPECT_TRUE(metrics.hasResidentDirectLightBatchCandidateDepth(3));
+    EXPECT_EQ(2u, metrics.residentDirectLightBatchCandidateDepthCount());
+    EXPECT_EQ(13u, metrics.residentDirectLightBatchCandidateRayCount());
+    EXPECT_EQ(46u, metrics.residentDirectLightBatchHostBytesAtDepth(1));
+    EXPECT_EQ(91u, metrics.residentDirectLightBatchHostBytesAtDepth(3));
+    EXPECT_EQ(137u, metrics.residentDirectLightBatchCandidateHostBytes());
+    EXPECT_EQ(3u, metrics.largestResidentDirectLightBatchDepth());
+    EXPECT_EQ(9u, metrics.largestResidentDirectLightBatchRayCount());
+    EXPECT_EQ(90u, metrics.largestResidentDirectLightBatchPackedRayBytes());
+    EXPECT_EQ(91u, metrics.largestResidentDirectLightBatchHostBytes());
+  }
+
   TEST(IntegratorBatchMetrics, CpuDirectLightContributionExecutionReportsGpuRequestFallback) {
     Scene scene;
     const std::shared_ptr<const WavefrontIntersectionBackend> cpuBackend =
