@@ -135,6 +135,36 @@ namespace {
     return empty;
   }
 
+  std::string compactSummaryToken(std::string value) {
+    if (value.empty()) {
+      return "unknown";
+    }
+    std::replace_if(
+      value.begin(), value.end(), [](unsigned char ch) { return std::isspace(ch) != 0; }, '_');
+    return value;
+  }
+
+  std::string compactUnsignedObjectPairs(const QJsonObject& object) {
+    if (object.isEmpty()) {
+      return "none";
+    }
+
+    std::vector<std::string> pairs;
+    pairs.reserve(object.size());
+    for (auto it = object.begin(); it != object.end(); ++it) {
+      pairs.push_back(compactSummaryToken(it.key().toStdString()) + ":" +
+                      std::to_string(static_cast<std::uint64_t>(it.value().toDouble())));
+    }
+    std::sort(pairs.begin(), pairs.end());
+
+    std::string result = pairs.front();
+    for (std::size_t index = 1; index != pairs.size(); ++index) {
+      result += ",";
+      result += pairs[index];
+    }
+    return result;
+  }
+
   void printRasterMetricsSummary(int run, const QString& passId, const QJsonObject& metrics) {
     const QJsonObject timings = metrics.value("timings").toObject();
     const QJsonObject tessellation = metrics.value("tessellation").toObject();
@@ -205,7 +235,8 @@ namespace {
       << " scene_primitives=" << unsignedJsonValue(service, "scenePrimitives")
       << " scene_supported_primitives=" << unsignedJsonValue(service, "sceneSupportedPrimitives")
       << " scene_unsupported_primitives="
-      << unsignedJsonValue(service, "sceneUnsupportedPrimitives")
+      << unsignedJsonValue(service, "sceneUnsupportedPrimitives") << " scene_unsupported_by_reason="
+      << compactUnsignedObjectPairs(service.value("sceneUnsupportedReasons").toObject())
       << " scene_upload_bytes=" << unsignedJsonValue(service, "sceneUploadBytes")
       << " queries=" << unsignedJsonValue(service, "queryCount")
       << " hits=" << unsignedJsonValue(service, "hitCount")

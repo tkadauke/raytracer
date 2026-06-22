@@ -706,6 +706,12 @@ QString RenderGraphInspectorWidget::Private::intersectionServiceTraceSummary(
     parts << sceneSummary;
   }
 
+  const QString unsupportedReasonSummary =
+    jsonIntegerObjectSummary(service.value(QStringLiteral("sceneUnsupportedReasons")).toObject());
+  if (!unsupportedReasonSummary.isEmpty()) {
+    parts << QStringLiteral("unsupported reasons %1").arg(unsupportedReasonSummary);
+  }
+
   const QString fallbackReason = service.value(QStringLiteral("fallbackReason")).toString();
   if (!fallbackReason.isEmpty()) {
     parts << QStringLiteral("fallback %1").arg(fallbackReason);
@@ -856,6 +862,9 @@ void RenderGraphInspectorWidget::Private::addIntersectionServiceDetailRows(
   addDetailIntegerMetadataRow(rows,
                               QStringLiteral("Intersection service unsupported scene primitives"),
                               service, QStringLiteral("sceneUnsupportedPrimitives"));
+  addDetailIntegerObjectMetadataRow(
+    rows, QStringLiteral("Intersection service unsupported scene reasons"), service,
+    QStringLiteral("sceneUnsupportedReasons"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection service scene upload bytes"),
                               service, QStringLiteral("sceneUploadBytes"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection service queries"), service,

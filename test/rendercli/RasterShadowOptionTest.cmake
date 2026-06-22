@@ -73,6 +73,7 @@ foreach(expectation IN ITEMS
     "\"shadowQueryCount\"[ \r\n]*:[ \r\n]*[1-9][0-9]*(\\.[0-9]+)?"
     "\"occludedCount\"[ \r\n]*:[ \r\n]*[1-9][0-9]*(\\.[0-9]+)?"
     "\"anyHitExecutionPath\"[ \r\n]*:[ \r\n]*\"runtime_scene\""
+    "\"sceneUnsupportedReasons\"[ \r\n]*:[ \r\n]*\\{[ \r\n]*\\}"
 )
   if(NOT ray_traced_shadow_trace_json MATCHES "${expectation}")
     message(FATAL_ERROR
@@ -81,7 +82,7 @@ foreach(expectation IN ITEMS
   endif()
 endforeach()
 if(NOT ray_traced_shadow_stdout MATCHES
-       "intersection_service.*pass=hybrid_ray_traced_shadows.*query_family=closest_hit\\+any_hit.*query_tag=hybrid_shadows.*requested_backend=cpu.*selected_backend=cpu.*availability=available.*platform=none.*closest_hit_execution=runtime_scene.*any_hit_execution=runtime_scene.*compiled_scene=false.*scene_primitives=0.*scene_supported_primitives=0.*scene_unsupported_primitives=0.*scene_upload_bytes=0.*shadow_queries=[1-9][0-9]*.*occluded=[1-9][0-9]*.*query_transfer_bytes=0.*closest_hit_frontier_residency=host.*any_hit_frontier_residency=host.*closest_hit_frontier_host_query_bytes=[1-9][0-9]*.*any_hit_frontier_host_query_bytes=[1-9][0-9]*")
+       "intersection_service.*pass=hybrid_ray_traced_shadows.*query_family=closest_hit\\+any_hit.*query_tag=hybrid_shadows.*requested_backend=cpu.*selected_backend=cpu.*availability=available.*platform=none.*closest_hit_execution=runtime_scene.*any_hit_execution=runtime_scene.*compiled_scene=false.*scene_primitives=0.*scene_supported_primitives=0.*scene_unsupported_primitives=0.*scene_unsupported_by_reason=none.*scene_upload_bytes=0.*shadow_queries=[1-9][0-9]*.*occluded=[1-9][0-9]*.*query_transfer_bytes=0.*closest_hit_frontier_residency=host.*any_hit_frontier_residency=host.*closest_hit_frontier_host_query_bytes=[1-9][0-9]*.*any_hit_frontier_host_query_bytes=[1-9][0-9]*")
   message(
     FATAL_ERROR
       "rendercli --shadow_mode ray_traced summary did not expose intersection service diagnostics: ${ray_traced_shadow_stdout}"

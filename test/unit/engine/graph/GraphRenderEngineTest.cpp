@@ -753,6 +753,46 @@ namespace GraphRenderEngineTest {
     EXPECT_GT(countNonBlackPixels(outputs.front()->colorPreview()), 0);
   }
 
+  TEST(GraphRenderEngine, RecordsHybridVisibilityUnsupportedServiceSceneReasons) {
+    auto scene = std::make_shared<render::Scene>();
+    auto curve =
+      std::make_shared<render::Curve>(core::Polyline({Vector3d(-1, 0, 0), Vector3d(1, 0, 0)}), 0.1);
+    curve->setName("debug curve");
+    scene->add(curve);
+
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Wavefront;
+    intent.defaultViewMode = RenderViewMode::HybridVisibility;
+    intent.engineOptions.raytracer().setIntersectionBackend("gpu");
+
+    RenderGraphCompiler compiler;
+    GraphRenderEngine engine(camera(), scene);
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(compiler.compile({16, 16, 1}, intent));
+
+    Buffer<unsigned int> buffer(16, 16);
+    engine.render(buffer);
+
+    auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const RenderPassTrace* passTrace = trace->findPass("hybrid_visibility_aov");
+    ASSERT_NE(nullptr, passTrace);
+    const QJsonObject service = passTrace->metadata().value("intersectionService").toObject();
+    EXPECT_EQ("gpu", service.value("requestedBackend").toString().toStdString());
+    EXPECT_EQ("cpu", service.value("selectedBackend").toString().toStdString());
+    EXPECT_EQ("fallback", service.value("availability").toString().toStdString());
+    EXPECT_TRUE(service.value("compiledScene").toBool());
+    EXPECT_EQ(1.0, service.value("scenePrimitives").toDouble());
+    EXPECT_EQ(0.0, service.value("sceneSupportedPrimitives").toDouble());
+    EXPECT_EQ(1.0, service.value("sceneUnsupportedPrimitives").toDouble());
+
+    const QJsonObject reasons = service.value("sceneUnsupportedReasons").toObject();
+    ASSERT_EQ(1, reasons.size());
+    EXPECT_EQ(
+      1.0,
+      reasons.value("primitive is not supported by GPU intersection scene compiler").toDouble());
+  }
+
   TEST(GraphRenderEngine, ExecutesSampleStddevAOVViewAndRecordsColorTrace) {
     RenderIntent intent;
     intent.defaultExecutor = RenderExecutorPreference::PathTracer;

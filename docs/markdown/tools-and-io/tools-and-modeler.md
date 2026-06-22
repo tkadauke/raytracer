@@ -306,8 +306,9 @@ summary includes a `wavefront_metrics` row for wavefront beauty passes and an
 passes. The service row reports the pass id, query family, requested and
 selected backend, backend availability, platform, closest-hit and any-hit
 execution paths, compiled-scene shape and upload bytes, query counts,
-hit/occlusion counts, upload/readback and transfer-byte estimates, frontier
-residency, frontier payload byte counters, and fallback reason. Normal
+unsupported-scene reason buckets, hit/occlusion counts, upload/readback and
+transfer-byte estimates, frontier residency, frontier payload byte counters,
+and fallback reason. Normal
 fallback reasons include CPU policy selection, missing platform device or
 render-path kernels, unsupported scene leaves, unsupported closest-hit or
 any-hit kernels, platform preparation or dispatch failure, malformed result

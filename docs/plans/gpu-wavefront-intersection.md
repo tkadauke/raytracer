@@ -1621,15 +1621,21 @@ Progress:
 - Hybrid visibility and ray-traced shadow graph passes now also expose the
   service compiled-scene shape in rendercli compact summaries and Modeler
   selected-pass details: whether a compiled scene was used, primitive support
-  counts, and scene-upload bytes. That keeps standalone intersection-service
-  consumers on the same scene-shape reporting contract as wavefront beauty
-  passes before resident frontiers or platform path loops consume those
-  compiled scenes.
+  counts, unsupported-scene reason histograms, and scene-upload bytes. That
+  keeps standalone intersection-service consumers on the same scene-shape
+  reporting contract as wavefront beauty passes before resident frontiers or
+  platform path loops consume those compiled scenes.
 - Modeler graph-node tooltips now include the same compact intersection-service
   query/backend/count/fallback and scene-shape summary for hybrid visibility
   and ray-traced shadow passes, so graph inspection can spot
   runtime-vs-compiled service execution without first opening the selected-pass
   details.
+- rendercli compact `intersection_service` rows now print the same
+  unsupported-scene reason histogram as `scene_unsupported_by_reason`, while
+  Modeler selected-pass details and graph-node tooltips show the human-readable
+  reason labels. Unsupported GPU requests on hybrid visibility/shadow service
+  consumers can therefore explain why they fell back to runtime CPU traversal
+  without opening lower-level backend metrics.
 
 ---
 

@@ -652,6 +652,22 @@ namespace engine::graph {
       return result;
     }
 
+    void addIntersectionServiceSceneDiagnostics(
+      QJsonObject& service, const render::WavefrontIntersectionSceneDiagnostics& diagnostics) {
+      const std::uint64_t supportedPrimitives =
+        diagnostics.primitives >= diagnostics.unsupportedPrimitives
+          ? diagnostics.primitives - diagnostics.unsupportedPrimitives
+          : 0u;
+
+      service["compiledScene"] = diagnostics.compiled;
+      service["scenePrimitives"] = static_cast<double>(diagnostics.primitives);
+      service["sceneSupportedPrimitives"] = static_cast<double>(supportedPrimitives);
+      service["sceneUnsupportedPrimitives"] =
+        static_cast<double>(diagnostics.unsupportedPrimitives);
+      service["sceneUnsupportedReasons"] = integerObject(diagnostics.unsupportedReasons);
+      service["sceneUploadBytes"] = static_cast<double>(diagnostics.uploadBytes);
+    }
+
     constexpr const char* compiledDiffusePathLoopGpuFallbackReason() {
       return "platform full-GPU path-loop kernel is not available yet";
     }
@@ -1850,13 +1866,7 @@ namespace engine::graph {
           static_cast<double>(diagnostics.anyHitFrontierHostQueryBytes);
         service["anyHitFrontierStateHandleBytes"] =
           static_cast<double>(diagnostics.anyHitFrontierStateHandleBytes);
-        service["compiledScene"] = diagnostics.scene.compiled;
-        service["scenePrimitives"] = static_cast<double>(diagnostics.scene.primitives);
-        service["sceneSupportedPrimitives"] = static_cast<double>(
-          diagnostics.scene.primitives - diagnostics.scene.unsupportedPrimitives);
-        service["sceneUnsupportedPrimitives"] =
-          static_cast<double>(diagnostics.scene.unsupportedPrimitives);
-        service["sceneUploadBytes"] = static_cast<double>(diagnostics.scene.uploadBytes);
+        addIntersectionServiceSceneDiagnostics(service, diagnostics.scene);
 
         QJsonObject timing;
         addTiming(timing, diagnostics.lastClosestHitTiming);
@@ -2075,13 +2085,7 @@ namespace engine::graph {
           static_cast<double>(diagnostics.anyHitFrontierHostQueryBytes);
         service["anyHitFrontierStateHandleBytes"] =
           static_cast<double>(diagnostics.anyHitFrontierStateHandleBytes);
-        service["compiledScene"] = diagnostics.scene.compiled;
-        service["scenePrimitives"] = static_cast<double>(diagnostics.scene.primitives);
-        service["sceneSupportedPrimitives"] = static_cast<double>(
-          diagnostics.scene.primitives - diagnostics.scene.unsupportedPrimitives);
-        service["sceneUnsupportedPrimitives"] =
-          static_cast<double>(diagnostics.scene.unsupportedPrimitives);
-        service["sceneUploadBytes"] = static_cast<double>(diagnostics.scene.uploadBytes);
+        addIntersectionServiceSceneDiagnostics(service, diagnostics.scene);
 
         QJsonObject closestTiming;
         addTiming(closestTiming, diagnostics.lastClosestHitTiming);

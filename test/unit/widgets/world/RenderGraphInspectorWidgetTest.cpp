@@ -479,6 +479,28 @@ namespace RenderGraphInspectorWidgetTest {
     return engine.lastExecutionTrace();
   }
 
+  std::shared_ptr<const RenderGraphExecutionTrace> unsupportedHybridVisibilityTrace() {
+    auto scene = std::make_shared<render::Scene>();
+    auto curve =
+      std::make_shared<render::Curve>(core::Polyline({Vector3d(-1, 0, 0), Vector3d(1, 0, 0)}), 0.1);
+    curve->setName("debug curve");
+    scene->add(curve);
+
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Wavefront;
+    intent.defaultViewMode = RenderViewMode::HybridVisibility;
+    intent.engineOptions.raytracer().setIntersectionBackend("gpu");
+
+    RenderGraphCompiler compiler;
+    GraphRenderEngine engine(camera(), scene);
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(compiler.compile({12, 12, 1}, intent));
+
+    Buffer<unsigned int> buffer(12, 12);
+    engine.render(buffer);
+    return engine.lastExecutionTrace();
+  }
+
   std::shared_ptr<const RenderGraphExecutionTrace> hybridRayTracedShadowTrace() {
     RenderIntent intent;
     intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
@@ -1536,6 +1558,8 @@ namespace RenderGraphInspectorWidgetTest {
               rowValue(rows, QStringLiteral("Intersection service supported scene primitives")));
     EXPECT_EQ(QStringLiteral("0"),
               rowValue(rows, QStringLiteral("Intersection service unsupported scene primitives")));
+    EXPECT_TRUE(
+      rowValue(rows, QStringLiteral("Intersection service unsupported scene reasons")).isEmpty());
     EXPECT_EQ(QStringLiteral("0"),
               rowValue(rows, QStringLiteral("Intersection service scene upload bytes")));
     EXPECT_EQ(QStringLiteral("Host"),
@@ -1564,6 +1588,7 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_EQ(0.0, service.value(QStringLiteral("scenePrimitives")).toDouble());
     EXPECT_EQ(0.0, service.value(QStringLiteral("sceneSupportedPrimitives")).toDouble());
     EXPECT_EQ(0.0, service.value(QStringLiteral("sceneUnsupportedPrimitives")).toDouble());
+    EXPECT_TRUE(service.value(QStringLiteral("sceneUnsupportedReasons")).toObject().isEmpty());
     EXPECT_EQ(0.0, service.value(QStringLiteral("sceneUploadBytes")).toDouble());
     EXPECT_GT(service.value(QStringLiteral("queryCount")).toDouble(), 0.0);
     EXPECT_GT(service.value(QStringLiteral("hitCount")).toDouble(), 0.0);
@@ -1590,6 +1615,41 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("0 upload bytes")));
   }
 
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldShowHybridServiceUnsupportedReasonsForSelectedPass) {
+    auto trace = unsupportedHybridVisibilityTrace();
+    ASSERT_TRUE(trace);
+
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(trace->plan());
+    widget.setExecutionTrace(trace);
+
+    const auto rows = widget.passDetailRows(QStringLiteral("hybrid_visibility_aov"));
+    EXPECT_EQ(QStringLiteral("yes"),
+              rowValue(rows, QStringLiteral("Intersection service compiled scene")));
+    EXPECT_EQ(QStringLiteral("1"),
+              rowValue(rows, QStringLiteral("Intersection service scene primitives")));
+    EXPECT_EQ(QStringLiteral("0"),
+              rowValue(rows, QStringLiteral("Intersection service supported scene primitives")));
+    EXPECT_EQ(QStringLiteral("1"),
+              rowValue(rows, QStringLiteral("Intersection service unsupported scene primitives")));
+
+    const QString reasonRow =
+      rowValue(rows, QStringLiteral("Intersection service unsupported scene reasons"));
+    EXPECT_TRUE(reasonRow.contains(QStringLiteral("Primitive Is Not Supported")));
+    EXPECT_TRUE(reasonRow.contains(QStringLiteral("1")));
+
+    auto* graph = widget.findChild<QGraphicsView*>(QStringLiteral("renderGraphView"));
+    ASSERT_NE(nullptr, graph);
+    ASSERT_NE(nullptr, graph->scene());
+
+    QGraphicsItem* pass = graphNodeItem(graph->scene(), "pass", "hybrid_visibility_aov");
+    ASSERT_NE(nullptr, pass);
+
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("service scene compiled")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("unsupported reasons")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("Primitive Is Not Supported")));
+  }
+
   TEST_F(RenderGraphInspectorWidgetTest,
          ShouldShowHybridShadowPrimaryServiceCountsForSelectedPass) {
     auto trace = hybridRayTracedShadowTrace();
@@ -1613,6 +1673,8 @@ namespace RenderGraphInspectorWidgetTest {
               rowValue(rows, QStringLiteral("Intersection service supported scene primitives")));
     EXPECT_EQ(QStringLiteral("0"),
               rowValue(rows, QStringLiteral("Intersection service unsupported scene primitives")));
+    EXPECT_TRUE(
+      rowValue(rows, QStringLiteral("Intersection service unsupported scene reasons")).isEmpty());
     EXPECT_EQ(QStringLiteral("0"),
               rowValue(rows, QStringLiteral("Intersection service scene upload bytes")));
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection service primary queries")).isEmpty());
@@ -1645,6 +1707,7 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_EQ(0.0, service.value(QStringLiteral("scenePrimitives")).toDouble());
     EXPECT_EQ(0.0, service.value(QStringLiteral("sceneSupportedPrimitives")).toDouble());
     EXPECT_EQ(0.0, service.value(QStringLiteral("sceneUnsupportedPrimitives")).toDouble());
+    EXPECT_TRUE(service.value(QStringLiteral("sceneUnsupportedReasons")).toObject().isEmpty());
     EXPECT_EQ(0.0, service.value(QStringLiteral("sceneUploadBytes")).toDouble());
     EXPECT_GT(service.value(QStringLiteral("primaryHitCount")).toDouble(), 0.0);
     EXPECT_GT(service.value(QStringLiteral("shadowQueryCount")).toDouble(), 0.0);
