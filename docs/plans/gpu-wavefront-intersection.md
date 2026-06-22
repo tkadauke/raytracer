@@ -1121,6 +1121,10 @@ Progress:
   remain `std::size_t`, but retained indices are validated before entering the
   backend compaction contract so future Metal/Vulkan compaction code can consume
   the public contract without another narrowing pass.
+- Path-tracing host path-state compaction now rejects backend compaction results
+  whose declared input path count does not match the active frontier. That keeps
+  future resident compaction kernels from silently applying retained indices to
+  the wrong host path-state generation.
 - Wavefront metrics now split estimated ray upload bytes by closest-hit and
   any-hit query family, so resident-frontier planning can tell whether path
   frontier intersections or direct-light visibility batches are driving the

@@ -545,6 +545,19 @@ namespace PathTracingIntegratorTest {
       mutable std::vector<std::size_t> directLightVisibilityBatchSizes;
     };
 
+    class MismatchedCompactionInputBackend final : public CountingIntersectionBackend {
+    public:
+      WavefrontFrontierCompactionResult
+      compactFrontier(const WavefrontFrontierCompactionRequest& request) const override {
+        compactionInputCounts.push_back(request.inputPathCount());
+        return WavefrontFrontierCompactionResult::fromRetainedPathIndices(
+          request.inputPathCount() + 1U, {}, "malformed_compaction",
+          request.pathStateBytesPerPath(), request.pathStateResidency());
+      }
+
+      mutable std::vector<std::size_t> compactionInputCounts;
+    };
+
     class BatchPreferringCountingIntersectionBackend final : public CountingIntersectionBackend {
     public:
       bool prefersClosestHitBatch(std::uint64_t submittedRays) const override {
@@ -2291,6 +2304,30 @@ namespace PathTracingIntegratorTest {
     EXPECT_EQ("host", metrics.frontierCompactionExecutionPath);
     EXPECT_EQ("host", metrics.frontierCompactionPathStateResidency);
     EXPECT_DOUBLE_EQ(1.0, metrics.frontierCompactionRemovedSampleFraction());
+  }
+
+  TEST(PathTracingIntegrator, BatchedRadianceRejectsMismatchedCompactionInputCount) {
+    auto scene = reflectiveBackgroundScene();
+    PathTracingIntegrator integrator;
+    integrator.setMaximumRecursionDepth(2);
+
+    auto sampler = SamplerFactory::self().create("RegularSampler");
+    sampler->setup(/*numSamples=*/1, /*numSets=*/83);
+    std::vector<IntegratorRaySample> samples;
+    samples.push_back(IntegratorRaySample{primaryRay(), 0.0, sampler->stream(0, 11ull)});
+    samples.push_back(IntegratorRaySample{Rayd(Vector3d(0, 5, 0), Vector3d(0, 1, 0)), 0.0,
+                                          sampler->stream(0, 29ull)});
+
+    MismatchedCompactionInputBackend backend;
+    IntegratorBatchSettings settings;
+    settings.intersectionBackend = &backend;
+    FallbackRayCaster caster;
+    IntegratorBatchMetrics metrics;
+
+    EXPECT_THROW(integrator.radianceBatch(*scene, samples, caster, &metrics, settings),
+                 std::logic_error);
+    ASSERT_FALSE(backend.compactionInputCounts.empty());
+    EXPECT_EQ(2u, backend.compactionInputCounts.front());
   }
 
   TEST(PathTracingIntegrator, BatchedRadianceKeepsSampleColorsWhenCompactingMovedPaths) {

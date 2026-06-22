@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Reject backend frontier-compaction results whose declared input path count
+  does not match the active path frontier, so future resident compaction
+  backends cannot silently corrupt host path-state updates. — GPT-5 Codex
 - Reject inactive records in the resident diffuse path-loop active frontier so
   malformed resident path state cannot silently disappear from both retained
   and resolved output. — GPT-5 Codex

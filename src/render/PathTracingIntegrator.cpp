@@ -192,7 +192,10 @@ namespace render {
     }
 
     void applyCompaction(const WavefrontFrontierCompactionResult& compaction) {
-      assert(m_paths.size() == compaction.inputPathCount());
+      if (m_paths.size() != compaction.inputPathCount()) {
+        throw std::logic_error(
+          "frontier compaction result input path count does not match active path frontier");
+      }
       const std::vector<std::uint32_t>& retainedPathIndices = compaction.retainedPathIndices();
       for (std::size_t outputIndex = 0; outputIndex != retainedPathIndices.size(); ++outputIndex) {
         const std::size_t inputIndex = retainedPathIndices[outputIndex];

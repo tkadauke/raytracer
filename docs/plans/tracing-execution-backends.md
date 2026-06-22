@@ -2074,7 +2074,8 @@ diffuse path tracer for the first supported subset.
      contract matching existing host compaction metrics.~~ ✅ **Done.**
      `ResidentPathCompactionContract` mirrors the host compaction counters with
      32-bit retained indices and resident path-state byte accounting for
-     issue #613.
+     issue #613, while the host path-state frontier rejects compaction results
+     whose declared input path count does not match the active frontier.
 
 3. **~~Loop over depth with max-depth and Russian roulette.~~** ✅ **Done.**
    Added `loopResidentDiffusePaths` as the CPU-reference resident path-state
