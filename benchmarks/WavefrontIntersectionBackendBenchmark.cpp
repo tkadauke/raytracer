@@ -1,5 +1,6 @@
 #include <benchmark/benchmark.h>
 
+#include "core/Buffer.h"
 #include "core/geometry/Polyline.h"
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
@@ -164,6 +165,49 @@ namespace {
                                        measureSceneCompileSeconds(),
                                        diagnostics.uploadBytes + result.residentPathStateBytes(),
                                        result.executionPath != "full_gpu_subset");
+    }
+
+    void annotateCompiledDiffusePathLoopResolve(benchmark::State& state,
+                                                const TracingAccumulationLayout& layout,
+                                                const TracingAccumulationDiagnostics& diagnostics,
+                                                const GpuDiffusePathLoopResult& result,
+                                                double measuredSeconds) const {
+      state.SetLabel(name + "/compiled_diffuse_path_loop_resolve/" + diagnostics.backend + "/" +
+                     diagnostics.residency);
+      state.counters["compiled_path_loop_resolved_paths"] =
+        static_cast<double>(result.resolvedPathStates.size());
+      state.counters["compiled_path_loop_resolve_width"] = static_cast<double>(layout.width);
+      state.counters["compiled_path_loop_resolve_height"] = static_cast<double>(layout.height);
+      state.counters["tracing_render_seconds"] = measuredSeconds;
+      state.counters["tracing_upload_readback_seconds"] = 0.0;
+      state.counters["tracing_upload_seconds"] = 0.0;
+      state.counters["tracing_kernel_seconds"] = measuredSeconds;
+      state.counters["tracing_readback_seconds"] = 0.0;
+      state.counters["tracing_scene_compile_seconds"] = measureSceneCompileSeconds();
+      state.counters["tracing_rays_per_second"] = 0.0;
+      state.counters["tracing_resident_bytes"] = static_cast<double>(diagnostics.residentBytes);
+      state.counters["tracing_fallback_rate"] = 1.0;
+      state.counters["tracing_accumulation_resident_bytes"] =
+        static_cast<double>(diagnostics.residentBytes);
+      state.counters["tracing_accumulation_color_sum_bytes"] =
+        static_cast<double>(layout.colorSumBytes());
+      state.counters["tracing_accumulation_sample_count_bytes"] =
+        static_cast<double>(layout.sampleCountBytes());
+      state.counters["tracing_accumulation_readback_bytes"] =
+        static_cast<double>(diagnostics.readbackBytes);
+      state.counters["tracing_accumulation_clear_operations"] =
+        static_cast<double>(diagnostics.clearOperations);
+      state.counters["tracing_accumulation_add_operations"] =
+        static_cast<double>(diagnostics.addOperations);
+      state.counters["tracing_accumulation_added_samples"] =
+        static_cast<double>(diagnostics.addedSamples);
+      state.counters["tracing_accumulation_resolve_operations"] =
+        static_cast<double>(diagnostics.resolveOperations);
+      state.counters["tracing_accumulation_readback_operations"] =
+        static_cast<double>(diagnostics.readbackOperations);
+      state.counters["tracing_resolve_samples_per_second"] =
+        measuredSeconds > 0.0 ? static_cast<double>(diagnostics.addedSamples) / measuredSeconds
+                              : 0.0;
     }
 
     [[nodiscard]] double measureSceneCompileSeconds(std::uint64_t* uploadBytes = nullptr) const {
@@ -611,6 +655,12 @@ namespace {
       paths.push_back(path);
     }
     return paths;
+  }
+
+  TracingAccumulationLayout accumulationLayoutForPathCount(std::int64_t count) {
+    const auto positiveCount = static_cast<double>(std::max<std::int64_t>(1, count));
+    const int side = static_cast<int>(std::ceil(std::sqrt(positiveCount)));
+    return TracingAccumulationLayout::image(side, side);
   }
 
   std::vector<GpuIntersectionRay> packRays(const std::vector<Rayd>& rays, double maxDistance) {
@@ -1112,6 +1162,45 @@ namespace {
     state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(paths.size()));
   }
 
+  void bm_compiledDiffusePathLoopResolveCpuReference(benchmark::State& state) {
+    const Workload& workload = workloadFor(state);
+    const GpuTracingSceneCompilation compilation = compileGpuTracingScene(*workload.scene);
+    const GpuDiffusePathLoopSupport support =
+      gpuDiffusePathLoopSupport(compilation, *workload.scene);
+    if (!support.supported) {
+      state.SkipWithError(support.reason.c_str());
+      return;
+    }
+
+    const std::vector<GpuDiffusePathStateRecord> paths = generateDiffusePathStates(state.range(1));
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = static_cast<std::uint32_t>(state.range(2));
+    settings.russianRouletteDepth = 3;
+    settings.directLightSamples = 1;
+    const GpuDiffusePathLoopResult result =
+      GpuDiffusePathLoop().run(compilation.sections, paths, settings);
+    const TracingAccumulationLayout layout = accumulationLayoutForPathCount(state.range(1));
+    Buffer<Colord> target(layout.width, layout.height);
+
+    TracingAccumulationDiagnostics diagnostics;
+    double measuredSeconds = 0.0;
+    for (auto _ : state) {
+      const auto start = std::chrono::steady_clock::now();
+      diagnostics = resolveGpuDiffusePathLoopImage(result, layout, target);
+      const auto stop = std::chrono::steady_clock::now();
+      measuredSeconds += std::chrono::duration<double>(stop - start).count();
+      benchmark::DoNotOptimize(diagnostics.addedSamples);
+      benchmark::DoNotOptimize(target[0][0]);
+    }
+
+    const double averageSeconds =
+      measuredSeconds / static_cast<double>(std::max<std::int64_t>(1, state.iterations()));
+    workload.annotateCompiledDiffusePathLoopResolve(state, layout, diagnostics, result,
+                                                    averageSeconds);
+    state.SetItemsProcessed(state.iterations() *
+                            static_cast<std::int64_t>(result.resolvedPathStates.size()));
+  }
+
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT) || defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
   void bm_requestedGpuClosestHitBatch(benchmark::State& state) {
     const Workload& workload = workloadFor(state);
@@ -1391,6 +1480,7 @@ BENCHMARK(bm_intersectionServiceMixedClosestAndAnyHitBatch)->Apply(supportedQuer
 BENCHMARK(bm_autoFrontierCompaction)->Apply(supportedQueryWorkloads);
 BENCHMARK(bm_requestedGpuUnsupportedMixedClosestAndAnyHitBatch)->Apply(unsupportedQueryWorkloads);
 BENCHMARK(bm_compiledDiffusePathLoopCpuReference)->Apply(compiledDiffusePathLoopWorkloads);
+BENCHMARK(bm_compiledDiffusePathLoopResolveCpuReference)->Apply(compiledDiffusePathLoopWorkloads);
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT) || defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
 BENCHMARK(bm_requestedGpuClosestHitBatch)->Apply(supportedQueryWorkloads);
 BENCHMARK(bm_requestedGpuAnyHitBatch)->Apply(supportedQueryWorkloads);

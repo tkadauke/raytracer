@@ -84,9 +84,10 @@ rows, automatic backend rows, `IntersectionService` rows, mixed query-family
 rows, explicit GPU rows when the platform backend is enabled, and the
 unsupported GPU fallback row. It also includes compiled diffuse path-loop rows
 for the `indirect_diffuse_supported` workload. Those rows time the current
-`compiled_cpu_reference` path-loop implementation over GPU-facing records and
-publish the resident path-loop counters a future Metal/Vulkan full path-loop
-kernel must replace.
+`compiled_cpu_reference` path-loop implementation over GPU-facing records, then
+time the CPU-reference image resolve/accumulation handoff for the same terminal
+records. Together they publish the resident path-loop and accumulation counters
+a future Metal/Vulkan full path-loop kernel must replace.
 
 ## Comparable Metric Fields
 
@@ -117,6 +118,7 @@ Compiled diffuse path-loop rows additionally publish:
 | --- | --- |
 | `compiled_path_loop_*` | Path-loop work totals: initial paths, depths, active paths, closest-hit rays, direct-light visibility rays, hits, misses, unsupported hits, spawned continuations, and terminated paths. |
 | `resident_path_loop_*` | Resident path-state accounting: compaction passes, input/retained/removed/moved path counts, retained-index bytes, resident path-state bytes, round trips, and saved-readback estimates. |
+| `tracing_accumulation_*` | CPU-reference image resolve accounting: resident accumulation bytes, color/sample buffer bytes, clear/add/resolve/readback operations, added samples, and readback bytes. |
 | `full_gpu_path_loop_supported` | `1.0` only when a platform full-GPU path-loop row actually owns the path loop. Current rows are `0.0`. |
 | `full_gpu_path_loop_unavailable` | `1.0` for the current CPU-reference compiled path loop, making the missing platform path-loop kernel visible in benchmark output. |
 

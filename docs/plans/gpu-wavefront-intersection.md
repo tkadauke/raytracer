@@ -1009,6 +1009,10 @@ Progress:
   `compiled_path_loop_*` work counters plus `resident_path_loop_*` residency
   counters, and keep `full_gpu_path_loop_unavailable` visible until a platform
   Metal/Vulkan path-loop kernel exists.
+- The same benchmark family now also times CPU-reference image resolve for the
+  compiled diffuse path-loop terminal records and publishes
+  `tracing_accumulation_*` counters. That makes the accumulation/readback side
+  of the future full-GPU path loop measurable separately from path stepping.
 - Frontier compaction results now expose their removed-path fraction directly,
   so renderer metrics, benchmarks, and future GPU kernels can report the same
   normalized compaction value without reimplementing the arithmetic at each
