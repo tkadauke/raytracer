@@ -960,7 +960,9 @@ counts, and fallback reason so a CPU fallback is visible rather than implied by
 the final image. rendercli prints the same service boundary as an
 `intersection_service` metrics-summary row for graph passes that use
 `IntersectionService`, including hybrid visibility and ray-traced shadow
-passes.
+passes. In the Modeler graph details, the same service block shows frontier
+residency plus packed-ray, retained host-query, and retained state-handle byte
+counts so the current CPU/GPU boundary is inspectable per pass.
 Raster visibility culling is also intent-derived. When
 `engineOptions.rasterizer.geometry.visibilityCulling` is `on` or `auto`, the
 compiler inserts a `raster_visibility` pass that writes a

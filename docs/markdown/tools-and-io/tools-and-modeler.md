@@ -269,7 +269,9 @@ material and texture evaluation, light sampling, BSDF evaluation, path state,
 continuation generation, accumulation, tonemapping, and final image output.
 A platform GPU execution path in the trace therefore means the closest-hit or
 any-hit query batch ran on Metal/Vulkan, not that the full frame was shaded or
-path traced on the GPU.
+path traced on the GPU. The Modeler render graph details expose the same
+service boundary with frontier residency plus packed-ray, retained host-query,
+and retained state-handle byte counts for those hybrid passes.
 
 The smallest headless checks are:
 

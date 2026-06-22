@@ -1514,6 +1514,14 @@ namespace RenderGraphInspectorWidgetTest {
               rowValue(rows, QStringLiteral("Intersection service backend")));
     EXPECT_EQ(QStringLiteral("Runtime Scene"),
               rowValue(rows, QStringLiteral("Intersection service closest-hit path")));
+    EXPECT_EQ(QStringLiteral("Host"),
+              rowValue(rows, QStringLiteral("Service closest-hit frontier residency")));
+    EXPECT_EQ(QStringLiteral("0"),
+              rowValue(rows, QStringLiteral("Service closest-hit frontier packed ray bytes")));
+    EXPECT_NE(QStringLiteral("0"),
+              rowValue(rows, QStringLiteral("Service closest-hit frontier host query bytes")));
+    EXPECT_EQ(QStringLiteral("0"),
+              rowValue(rows, QStringLiteral("Service closest-hit frontier state-handle bytes")));
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection service queries")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection service hits")).isEmpty());
     EXPECT_EQ(QStringLiteral("0"),
@@ -1530,6 +1538,9 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_EQ(QStringLiteral("cpu"), service.value(QStringLiteral("requestedBackend")).toString());
     EXPECT_GT(service.value(QStringLiteral("queryCount")).toDouble(), 0.0);
     EXPECT_GT(service.value(QStringLiteral("hitCount")).toDouble(), 0.0);
+    EXPECT_EQ(rowValue(rows, QStringLiteral("Service closest-hit frontier host query bytes")),
+              QString::number(static_cast<qulonglong>(
+                service.value(QStringLiteral("closestHitFrontierHostQueryBytes")).toDouble())));
   }
 
   TEST_F(RenderGraphInspectorWidgetTest,
@@ -1548,6 +1559,22 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection service primary hits")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection service shadow queries")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection service occluded queries")).isEmpty());
+    EXPECT_EQ(QStringLiteral("Host"),
+              rowValue(rows, QStringLiteral("Service closest-hit frontier residency")));
+    EXPECT_EQ(QStringLiteral("Host"),
+              rowValue(rows, QStringLiteral("Service any-hit frontier residency")));
+    EXPECT_NE(QStringLiteral("0"),
+              rowValue(rows, QStringLiteral("Service closest-hit frontier host query bytes")));
+    EXPECT_NE(QStringLiteral("0"),
+              rowValue(rows, QStringLiteral("Service any-hit frontier host query bytes")));
+    EXPECT_EQ(QStringLiteral("0"),
+              rowValue(rows, QStringLiteral("Service closest-hit frontier packed ray bytes")));
+    EXPECT_EQ(QStringLiteral("0"),
+              rowValue(rows, QStringLiteral("Service any-hit frontier packed ray bytes")));
+    EXPECT_EQ(QStringLiteral("0"),
+              rowValue(rows, QStringLiteral("Service closest-hit frontier state-handle bytes")));
+    EXPECT_EQ(QStringLiteral("0"),
+              rowValue(rows, QStringLiteral("Service any-hit frontier state-handle bytes")));
 
     const RenderPassTrace* passTrace = trace->findPass("hybrid_ray_traced_shadows");
     ASSERT_NE(nullptr, passTrace);
@@ -1556,6 +1583,9 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_GT(service.value(QStringLiteral("primaryQueryCount")).toDouble(), 0.0);
     EXPECT_GT(service.value(QStringLiteral("primaryHitCount")).toDouble(), 0.0);
     EXPECT_GT(service.value(QStringLiteral("shadowQueryCount")).toDouble(), 0.0);
+    EXPECT_EQ(rowValue(rows, QStringLiteral("Service any-hit frontier host query bytes")),
+              QString::number(static_cast<qulonglong>(
+                service.value(QStringLiteral("anyHitFrontierHostQueryBytes")).toDouble())));
   }
 
   TEST_F(RenderGraphInspectorWidgetTest,

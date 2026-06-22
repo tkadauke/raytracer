@@ -736,6 +736,10 @@ void RenderGraphInspectorWidget::Private::addIntersectionServiceDetailRows(
                              QStringLiteral("closestHitExecutionPath"), true);
   addDetailStringMetadataRow(rows, QStringLiteral("Intersection service any-hit path"), service,
                              QStringLiteral("anyHitExecutionPath"), true);
+  addDetailStringMetadataRow(rows, QStringLiteral("Service closest-hit frontier residency"),
+                             service, QStringLiteral("closestHitFrontierResidency"), true);
+  addDetailStringMetadataRow(rows, QStringLiteral("Service any-hit frontier residency"), service,
+                             QStringLiteral("anyHitFrontierResidency"), true);
   addDetailStringMetadataRow(rows, QStringLiteral("Intersection service fallback"), service,
                              QStringLiteral("fallbackReason"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection service queries"), service,
@@ -760,6 +764,19 @@ void RenderGraphInspectorWidget::Private::addIntersectionServiceDetailRows(
                               QStringLiteral("anyHitReadbackBytesEstimate"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Service query transfer bytes"), service,
                               QStringLiteral("queryTransferBytesEstimate"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Service closest-hit frontier packed ray bytes"),
+                              service, QStringLiteral("closestHitFrontierPackedRayBytes"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Service closest-hit frontier host query bytes"),
+                              service, QStringLiteral("closestHitFrontierHostQueryBytes"));
+  addDetailIntegerMetadataRow(rows,
+                              QStringLiteral("Service closest-hit frontier state-handle bytes"),
+                              service, QStringLiteral("closestHitFrontierStateHandleBytes"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Service any-hit frontier packed ray bytes"),
+                              service, QStringLiteral("anyHitFrontierPackedRayBytes"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Service any-hit frontier host query bytes"),
+                              service, QStringLiteral("anyHitFrontierHostQueryBytes"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Service any-hit frontier state-handle bytes"),
+                              service, QStringLiteral("anyHitFrontierStateHandleBytes"));
 }
 
 void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
