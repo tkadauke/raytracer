@@ -33,6 +33,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Reject malformed intersection-service closest-hit and any-hit result counts
   before graph or hybrid-visibility consumers can interpret misaligned backend
   data. — GPT-5 Codex
+- Reject missing intersection-service closest-hit and any-hit frontier handles
+  before standalone service consumers can dereference a malformed backend
+  result. — GPT-5 Codex
 - Preserve mixed closest-hit and any-hit execution-path diagnostics in the
   reusable intersection service. — GPT-5 Codex
 

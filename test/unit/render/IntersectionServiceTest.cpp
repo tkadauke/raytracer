@@ -134,6 +134,52 @@ namespace IntersectionServiceTest {
       }
     };
 
+    class NullFrontierBackend final : public WavefrontIntersectionBackend {
+    public:
+      const char* name() const override {
+        return "null_frontier";
+      }
+
+      std::unique_ptr<WavefrontClosestHitFrontier>
+      createClosestHitFrontier(std::vector<WavefrontClosestHitQuery>) const override {
+        return nullptr;
+      }
+
+      std::unique_ptr<WavefrontAnyHitFrontier>
+      createAnyHitFrontier(std::vector<WavefrontAnyHitQuery>) const override {
+        return nullptr;
+      }
+
+      const Primitive* intersectClosest(const Scene& scene, const Rayd& ray,
+                                        HitPointInterval& hitPoints, State& state,
+                                        WavefrontIntersectionQueryTiming* timing) const override {
+        return CpuWavefrontIntersectionBackend::instance().intersectClosest(scene, ray, hitPoints,
+                                                                            state, timing);
+      }
+
+      bool intersectAny(const Scene& scene, const Rayd& ray, double maxDistance, State& state,
+                        WavefrontIntersectionQueryTiming* timing) const override {
+        return CpuWavefrontIntersectionBackend::instance().intersectAny(scene, ray, maxDistance,
+                                                                        state, timing);
+      }
+
+      PrimitivePacketHit4
+      intersectPacketClosest(const Scene& scene, const Ray4& rays,
+                             const PrimitivePacketState4& states,
+                             WavefrontIntersectionQueryTiming* timing) const override {
+        return CpuWavefrontIntersectionBackend::instance().intersectPacketClosest(scene, rays,
+                                                                                  states, timing);
+      }
+
+      PrimitivePacketHit8
+      intersectPacketClosest(const Scene& scene, const Ray8& rays,
+                             const PrimitivePacketState8& states,
+                             WavefrontIntersectionQueryTiming* timing) const override {
+        return CpuWavefrontIntersectionBackend::instance().intersectPacketClosest(scene, rays,
+                                                                                  states, timing);
+      }
+    };
+
     class DirectLightVisibilityCountingBackend final : public WavefrontIntersectionBackend {
     public:
       const char* name() const override {
@@ -374,6 +420,25 @@ namespace IntersectionServiceTest {
       std::logic_error);
   }
 
+  TEST(IntersectionService, RejectsMissingClosestHitFrontier) {
+    Scene scene = sphereScene();
+    const NullFrontierBackend backend;
+    IntersectionService service(scene, backend);
+    State firstState;
+    State secondState;
+    const std::vector<WavefrontClosestHitQuery> queries{
+      {Rayd(Vector3d(0, 0, 0), Vector3d::forward()), &firstState},
+      {Rayd(Vector3d(4, 0, 0), Vector3d::forward()), &secondState},
+    };
+
+    EXPECT_THROW(
+      {
+        const std::vector<WavefrontClosestHitResult> hits = service.closestHits(queries);
+        (void)hits;
+      },
+      std::logic_error);
+  }
+
   TEST(IntersectionService, RejectsMismatchedClosestHitFrontierResults) {
     Scene scene = sphereScene();
     const ShortResultBackend backend;
@@ -398,6 +463,25 @@ namespace IntersectionServiceTest {
   TEST(IntersectionService, RejectsMismatchedAnyHitBatchResults) {
     Scene scene = sphereScene();
     const ShortResultBackend backend;
+    IntersectionService service(scene, backend);
+    State firstState;
+    State secondState;
+    const std::vector<WavefrontAnyHitQuery> queries{
+      {Rayd(Vector3d(0, 0, 0), Vector3d::forward()), 4.0, &firstState},
+      {Rayd(Vector3d(0, 0, 0), Vector3d::forward()), 1.0, &secondState},
+    };
+
+    EXPECT_THROW(
+      {
+        const WavefrontOcclusionFlags occluded = service.anyHits(queries);
+        (void)occluded;
+      },
+      std::logic_error);
+  }
+
+  TEST(IntersectionService, RejectsMissingAnyHitFrontier) {
+    Scene scene = sphereScene();
+    const NullFrontierBackend backend;
     IntersectionService service(scene, backend);
     State firstState;
     State secondState;

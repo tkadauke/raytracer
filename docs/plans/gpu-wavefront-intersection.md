@@ -1668,6 +1668,11 @@ Progress:
   backend frontier handle before dispatching intersection work. Future resident
   closest-hit backends therefore share the same loud contract failure as
   malformed hit-count results instead of risking a null-handle crash.
+- `IntersectionService` closest-hit and any-hit batch entry points now reject
+  missing backend frontier handles before delegating to frontier execution.
+  Standalone service consumers therefore get the same explicit contract failure
+  as the render integrators when a future platform backend cannot materialize a
+  resident frontier handle.
 
 ---
 

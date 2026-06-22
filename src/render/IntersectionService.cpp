@@ -98,6 +98,10 @@ namespace render {
   std::vector<WavefrontClosestHitResult>
   IntersectionService::closestHits(std::vector<WavefrontClosestHitQuery> queries) {
     auto frontier = m_backend->createClosestHitFrontier(std::move(queries));
+    if (!frontier) {
+      throw std::logic_error(
+        "IntersectionService closest-hit batch did not create a closest-hit frontier");
+    }
     return closestHits(*frontier);
   }
 
@@ -122,6 +126,10 @@ namespace render {
 
   WavefrontOcclusionFlags IntersectionService::anyHits(std::vector<WavefrontAnyHitQuery> queries) {
     auto frontier = m_backend->createAnyHitFrontier(std::move(queries));
+    if (!frontier) {
+      throw std::logic_error(
+        "IntersectionService any-hit batch did not create an any-hit frontier");
+    }
     return anyHits(*frontier);
   }
 
