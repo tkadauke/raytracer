@@ -1578,6 +1578,11 @@ namespace RenderGraphInspectorWidgetTest {
     QGraphicsItem* pass = graphNodeItem(graph->scene(), "pass", "hybrid_visibility_aov");
     ASSERT_NE(nullptr, pass);
 
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("intersection service Closest Hit")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("on CPU")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("via Runtime Scene")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("queries")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("hits")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("service scene runtime")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("0 primitives")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("0 supported")));
@@ -1654,6 +1659,13 @@ namespace RenderGraphInspectorWidgetTest {
     QGraphicsItem* pass = graphNodeItem(graph->scene(), "pass", "hybrid_ray_traced_shadows");
     ASSERT_NE(nullptr, pass);
 
+    EXPECT_TRUE(
+      nodeLineTooltipContains(pass, QStringLiteral("intersection service Closest Hit + Any Hit")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("on CPU")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("via Runtime Scene")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("queries")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("hits")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("occluded")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("service scene runtime")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("0 primitives")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("0 supported")));

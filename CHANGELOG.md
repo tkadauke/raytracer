@@ -44,6 +44,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Show intersection-service compiled-scene shape and scene-upload diagnostics
   in rendercli compact summaries, Modeler render graph selected-pass details,
   and graph-node tooltips. — GPT-5 Codex
+- Show intersection-service query family, backend path, query counts, and
+  fallback reason in Modeler graph-node tooltips for hybrid visibility and
+  ray-traced shadow passes. — GPT-5 Codex
 - Show total intersection ray-upload bytes and closest-hit/any-hit readback
   byte estimates in Modeler render graph selected-pass details. — GPT-5 Codex
 - Show intersection-service backend availability and platform in rendercli

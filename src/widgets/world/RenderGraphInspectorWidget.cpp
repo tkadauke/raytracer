@@ -132,6 +132,7 @@ struct RenderGraphInspectorWidget::Private {
   QString tracingExecutionModeText(const QString& value) const;
   QString intersectionScenePayloadSummary(const QJsonObject& batching) const;
   QString intersectionServiceSceneSummary(const QJsonObject& service) const;
+  QString intersectionServiceTraceSummary(const QJsonObject& service) const;
   QString passStateText(const RenderPassNode& pass) const;
   void addDetailRow(DetailRows& rows, const QString& name, const QString& value) const;
   void addDetailStringMetadataRow(DetailRows& rows, const QString& name,
@@ -666,6 +667,51 @@ QString RenderGraphInspectorWidget::Private::intersectionServiceSceneSummary(
     .arg(jsonIntegerValue(service, QStringLiteral("sceneSupportedPrimitives")))
     .arg(jsonIntegerValue(service, QStringLiteral("sceneUnsupportedPrimitives")))
     .arg(jsonIntegerValue(service, QStringLiteral("sceneUploadBytes")));
+}
+
+QString RenderGraphInspectorWidget::Private::intersectionServiceTraceSummary(
+  const QJsonObject& service) const {
+  if (service.isEmpty())
+    return QString();
+
+  QStringList parts;
+
+  QString serviceText = QStringLiteral("intersection service");
+  const QString queryFamily =
+    metadataIdentifierText(service.value(QStringLiteral("queryFamily")).toString());
+  if (!queryFamily.isEmpty()) {
+    serviceText += QStringLiteral(" %1").arg(queryFamily);
+  }
+  const QString selectedBackend =
+    metadataIdentifierText(service.value(QStringLiteral("selectedBackend")).toString());
+  if (!selectedBackend.isEmpty()) {
+    serviceText += QStringLiteral(" on %1").arg(selectedBackend);
+  }
+  const QString executionPath =
+    metadataIdentifierText(service.value(QStringLiteral("executionPath")).toString());
+  if (!executionPath.isEmpty()) {
+    serviceText += QStringLiteral(" via %1").arg(executionPath);
+  }
+  parts << serviceText;
+
+  const qulonglong queries = jsonIntegerValue(service, QStringLiteral("queryCount"));
+  const qulonglong hits = jsonIntegerValue(service, QStringLiteral("hitCount"));
+  const qulonglong occluded = jsonIntegerValue(service, QStringLiteral("occludedCount"));
+  if (queries > 0 || hits > 0 || occluded > 0) {
+    parts << QStringLiteral("%1 queries/%2 hits/%3 occluded").arg(queries).arg(hits).arg(occluded);
+  }
+
+  const QString sceneSummary = intersectionServiceSceneSummary(service);
+  if (!sceneSummary.isEmpty()) {
+    parts << sceneSummary;
+  }
+
+  const QString fallbackReason = service.value(QStringLiteral("fallbackReason")).toString();
+  if (!fallbackReason.isEmpty()) {
+    parts << QStringLiteral("fallback %1").arg(fallbackReason);
+  }
+
+  return parts.join(QStringLiteral(", "));
 }
 
 QString RenderGraphInspectorWidget::Private::passStateText(const RenderPassNode& pass) const {
@@ -1853,9 +1899,9 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
   }
   const QJsonObject service =
     passTrace->metadata().value(QStringLiteral("intersectionService")).toObject();
-  const QString serviceSceneSummary = intersectionServiceSceneSummary(service);
-  if (!serviceSceneSummary.isEmpty()) {
-    line += QStringLiteral(", %1").arg(serviceSceneSummary);
+  const QString serviceSummary = intersectionServiceTraceSummary(service);
+  if (!serviceSummary.isEmpty()) {
+    line += QStringLiteral(", %1").arg(serviceSummary);
   }
   const QJsonObject depthPrepass =
     passTrace->metadata().value(QStringLiteral("depthPrepass")).toObject();

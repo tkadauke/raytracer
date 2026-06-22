@@ -315,8 +315,9 @@ counts, and runtime-only material or continuation semantics. Unsupported scenes
 fall back to the full runtime CPU path rather than producing a partial GPU
 visibility result.
 The Modeler graph tooltip for those hybrid passes includes the same compact
-compiled-scene shape and upload-byte summary, while the selected-pass details
-remain the fuller inspection surface.
+query family, backend path, query counts, fallback reason, compiled-scene shape,
+and upload-byte summary, while the selected-pass details remain the fuller
+inspection surface.
 For path-tracing renders, the same diagnostics identify mixed query depths,
 where closest-hit frontier batches and direct-light any-hit chunks both ran.
 Those counts make the future GPU-resident frontier opportunity visible before
