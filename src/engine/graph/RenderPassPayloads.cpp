@@ -1763,19 +1763,17 @@ namespace engine::graph {
           maxDistance = std::max(maxDistance, distance);
         }
 
-        std::uint64_t hitCount = 0;
         for (std::size_t i = 0; i != hits.size(); ++i) {
           if (!hits[i].hit()) {
             continue;
           }
-          ++hitCount;
           const auto [x, y] = pixels[i];
           const double visibility =
             normalizedHitDistance(hits[i].hitPoint.distance(), minDistance, maxDistance);
           output[y][x] = Colord(visibility, visibility, visibility);
         }
 
-        recordTrace(context, service.diagnostics(), service.backend(), queries.size(), hitCount);
+        recordTrace(context, service.diagnostics());
       }
 
     private:
@@ -1803,11 +1801,9 @@ namespace engine::graph {
       }
 
       static void recordTrace(RenderExecutionContext& context,
-                              const render::IntersectionServiceDiagnostics& diagnostics,
-                              const render::WavefrontIntersectionBackend& backend,
-                              std::size_t queryCount, std::uint64_t hitCount) {
+                              const render::IntersectionServiceDiagnostics& diagnostics) {
         context.recordTraceMessage(
-          "hybrid visibility AOV submitted " + std::to_string(queryCount) +
+          "hybrid visibility AOV submitted " + std::to_string(diagnostics.closestHitQueryCount) +
           " closest-hit primary ray(s) through the intersection service on " +
           diagnostics.closestHitExecutionPath);
         if (!diagnostics.fallbackReason.empty()) {
@@ -1818,8 +1814,8 @@ namespace engine::graph {
         QJsonObject service;
         service["queryFamily"] = QStringLiteral("closest_hit");
         service["queryTag"] = QStringLiteral("debug_aov");
-        service["queryCount"] = static_cast<double>(queryCount);
-        service["hitCount"] = static_cast<double>(hitCount);
+        service["queryCount"] = static_cast<double>(diagnostics.closestHitQueryCount);
+        service["hitCount"] = static_cast<double>(diagnostics.closestHitHitCount);
         service["requestedBackend"] = QString::fromStdString(diagnostics.requestedBackend);
         service["selectedBackend"] = QString::fromStdString(diagnostics.selectedBackend);
         service["availability"] = QString::fromStdString(diagnostics.availability);
@@ -1828,14 +1824,16 @@ namespace engine::graph {
         service["closestHitExecutionPath"] =
           QString::fromStdString(diagnostics.closestHitExecutionPath);
         service["fallbackReason"] = QString::fromStdString(diagnostics.fallbackReason);
-        const auto closestHitUploadBytes = backend.estimatedClosestHitRayUploadBytes(queryCount);
-        const auto closestHitReadbackBytes = backend.estimatedClosestHitReadbackBytes(queryCount);
-        service["closestHitRayUploadBytesEstimate"] = static_cast<double>(closestHitUploadBytes);
-        service["closestHitReadbackBytesEstimate"] = static_cast<double>(closestHitReadbackBytes);
-        service["anyHitRayUploadBytesEstimate"] = 0.0;
-        service["anyHitReadbackBytesEstimate"] = 0.0;
+        service["closestHitRayUploadBytesEstimate"] =
+          static_cast<double>(diagnostics.closestHitRayUploadBytesEstimate);
+        service["closestHitReadbackBytesEstimate"] =
+          static_cast<double>(diagnostics.closestHitReadbackBytesEstimate);
+        service["anyHitRayUploadBytesEstimate"] =
+          static_cast<double>(diagnostics.anyHitRayUploadBytesEstimate);
+        service["anyHitReadbackBytesEstimate"] =
+          static_cast<double>(diagnostics.anyHitReadbackBytesEstimate);
         service["queryTransferBytesEstimate"] =
-          static_cast<double>(closestHitUploadBytes + closestHitReadbackBytes);
+          static_cast<double>(diagnostics.queryTransferBytesEstimate);
         service["compiledScene"] = diagnostics.scene.compiled;
         service["scenePrimitives"] = static_cast<double>(diagnostics.scene.primitives);
         service["sceneSupportedPrimitives"] = static_cast<double>(
@@ -1938,12 +1936,10 @@ namespace engine::graph {
         shadowQueries.reserve(shadowStates.size());
         shadowPixels.reserve(shadowStates.size());
 
-        std::uint64_t primaryHitCount = 0;
         for (std::size_t i = 0; i != hits.size(); ++i) {
           if (!hits[i].hit()) {
             continue;
           }
-          ++primaryHitCount;
           const Vector4d& point4 = hits[i].hitPoint.point();
           const Vector3d point(point4.x(), point4.y(), point4.z());
           const Vector3d normal = hits[i].hitPoint.normal().normalizedOrZero(1e-12);
@@ -1965,7 +1961,6 @@ namespace engine::graph {
           }
         }
 
-        std::uint64_t occludedCount = 0;
         if (!shadowQueries.empty() && !context.cancelled()) {
           const render::WavefrontOcclusionFlags occluded = service.anyHits(shadowQueries);
           if (occluded.size() != shadowQueries.size()) {
@@ -1981,7 +1976,6 @@ namespace engine::graph {
             sampleCounts[y][x] += 1.0;
             if (occluded[i]) {
               litFractions[y][x] -= 1.0;
-              ++occludedCount;
             }
           }
 
@@ -1997,8 +1991,7 @@ namespace engine::graph {
           }
         }
 
-        recordTrace(context, service.diagnostics(), service.backend(), primaryQueries.size(),
-                    primaryHitCount, shadowQueries.size(), occludedCount);
+        recordTrace(context, service.diagnostics());
       }
 
     private:
@@ -2012,15 +2005,13 @@ namespace engine::graph {
       }
 
       static void recordTrace(RenderExecutionContext& context,
-                              const render::IntersectionServiceDiagnostics& diagnostics,
-                              const render::WavefrontIntersectionBackend& backend,
-                              std::size_t primaryQueryCount, std::uint64_t primaryHitCount,
-                              std::size_t shadowQueryCount, std::uint64_t occludedCount) {
-        context.recordTraceMessage(
-          "hybrid ray-traced shadows submitted " + std::to_string(primaryQueryCount) +
-          " closest-hit primary ray(s) and " + std::to_string(shadowQueryCount) +
-          " any-hit shadow ray(s) through the intersection service on " +
-          diagnostics.anyHitExecutionPath);
+                              const render::IntersectionServiceDiagnostics& diagnostics) {
+        context.recordTraceMessage("hybrid ray-traced shadows submitted " +
+                                   std::to_string(diagnostics.closestHitQueryCount) +
+                                   " closest-hit primary ray(s) and " +
+                                   std::to_string(diagnostics.anyHitQueryCount) +
+                                   " any-hit shadow ray(s) through the intersection service on " +
+                                   diagnostics.anyHitExecutionPath);
         if (!diagnostics.fallbackReason.empty()) {
           context.recordTraceMessage("hybrid ray-traced shadows fallback: " +
                                      diagnostics.fallbackReason);
@@ -2029,10 +2020,10 @@ namespace engine::graph {
         QJsonObject service;
         service["queryFamily"] = QStringLiteral("closest_hit+any_hit");
         service["queryTag"] = QStringLiteral("hybrid_shadows");
-        service["primaryQueryCount"] = static_cast<double>(primaryQueryCount);
-        service["primaryHitCount"] = static_cast<double>(primaryHitCount);
-        service["shadowQueryCount"] = static_cast<double>(shadowQueryCount);
-        service["occludedCount"] = static_cast<double>(occludedCount);
+        service["primaryQueryCount"] = static_cast<double>(diagnostics.closestHitQueryCount);
+        service["primaryHitCount"] = static_cast<double>(diagnostics.closestHitHitCount);
+        service["shadowQueryCount"] = static_cast<double>(diagnostics.anyHitQueryCount);
+        service["occludedCount"] = static_cast<double>(diagnostics.anyHitOccludedCount);
         service["requestedBackend"] = QString::fromStdString(diagnostics.requestedBackend);
         service["selectedBackend"] = QString::fromStdString(diagnostics.selectedBackend);
         service["availability"] = QString::fromStdString(diagnostics.availability);
@@ -2042,19 +2033,16 @@ namespace engine::graph {
           QString::fromStdString(diagnostics.closestHitExecutionPath);
         service["anyHitExecutionPath"] = QString::fromStdString(diagnostics.anyHitExecutionPath);
         service["fallbackReason"] = QString::fromStdString(diagnostics.fallbackReason);
-        const auto closestHitUploadBytes =
-          backend.estimatedClosestHitRayUploadBytes(primaryQueryCount);
-        const auto closestHitReadbackBytes =
-          backend.estimatedClosestHitReadbackBytes(primaryQueryCount);
-        const auto anyHitUploadBytes = backend.estimatedAnyHitRayUploadBytes(shadowQueryCount);
-        const auto anyHitReadbackBytes = backend.estimatedAnyHitReadbackBytes(shadowQueryCount);
-        service["closestHitRayUploadBytesEstimate"] = static_cast<double>(closestHitUploadBytes);
-        service["closestHitReadbackBytesEstimate"] = static_cast<double>(closestHitReadbackBytes);
-        service["anyHitRayUploadBytesEstimate"] = static_cast<double>(anyHitUploadBytes);
-        service["anyHitReadbackBytesEstimate"] = static_cast<double>(anyHitReadbackBytes);
+        service["closestHitRayUploadBytesEstimate"] =
+          static_cast<double>(diagnostics.closestHitRayUploadBytesEstimate);
+        service["closestHitReadbackBytesEstimate"] =
+          static_cast<double>(diagnostics.closestHitReadbackBytesEstimate);
+        service["anyHitRayUploadBytesEstimate"] =
+          static_cast<double>(diagnostics.anyHitRayUploadBytesEstimate);
+        service["anyHitReadbackBytesEstimate"] =
+          static_cast<double>(diagnostics.anyHitReadbackBytesEstimate);
         service["queryTransferBytesEstimate"] =
-          static_cast<double>(closestHitUploadBytes + closestHitReadbackBytes + anyHitUploadBytes +
-                              anyHitReadbackBytes);
+          static_cast<double>(diagnostics.queryTransferBytesEstimate);
         service["compiledScene"] = diagnostics.scene.compiled;
         service["scenePrimitives"] = static_cast<double>(diagnostics.scene.primitives);
         service["sceneSupportedPrimitives"] = static_cast<double>(

@@ -203,6 +203,48 @@ namespace IntersectionServiceTest {
     EXPECT_EQ("runtime_scene", service.diagnostics().lastAnyHitTiming.executionPath);
   }
 
+  TEST(IntersectionService, AccumulatesQueryCountsAndTransferEstimates) {
+    Scene scene = sphereScene();
+    IntersectionService service(scene, WavefrontIntersectionBackendChoice::gpu());
+    State closestState;
+    State missState;
+    const std::vector<WavefrontClosestHitQuery> closestQueries{
+      {Rayd(Vector3d(0, 0, 0), Vector3d::forward()), &closestState},
+      {Rayd(Vector3d(4, 0, 0), Vector3d::forward()), &missState},
+    };
+
+    const std::vector<WavefrontClosestHitResult> hits = service.closestHits(closestQueries);
+
+    State occludedState;
+    State visibleState;
+    const std::vector<WavefrontAnyHitQuery> anyHitQueries{
+      {Rayd(Vector3d(0, 0, 0), Vector3d::forward()), 4.0, &occludedState},
+      {Rayd(Vector3d(0, 0, 0), Vector3d::forward()), 1.0, &visibleState},
+    };
+
+    const WavefrontOcclusionFlags occluded = service.anyHits(anyHitQueries);
+
+    ASSERT_EQ(2u, hits.size());
+    ASSERT_EQ(2u, occluded.size());
+    const IntersectionServiceDiagnostics& diagnostics = service.diagnostics();
+    EXPECT_EQ(2u, diagnostics.closestHitQueryCount);
+    EXPECT_EQ(1u, diagnostics.closestHitHitCount);
+    EXPECT_EQ(2u, diagnostics.anyHitQueryCount);
+    EXPECT_EQ(1u, diagnostics.anyHitOccludedCount);
+    EXPECT_EQ(service.backend().estimatedClosestHitRayUploadBytes(2),
+              diagnostics.closestHitRayUploadBytesEstimate);
+    EXPECT_EQ(service.backend().estimatedClosestHitReadbackBytes(2),
+              diagnostics.closestHitReadbackBytesEstimate);
+    EXPECT_EQ(service.backend().estimatedAnyHitRayUploadBytes(2),
+              diagnostics.anyHitRayUploadBytesEstimate);
+    EXPECT_EQ(service.backend().estimatedAnyHitReadbackBytes(2),
+              diagnostics.anyHitReadbackBytesEstimate);
+    EXPECT_EQ(diagnostics.closestHitRayUploadBytesEstimate +
+                diagnostics.closestHitReadbackBytesEstimate +
+                diagnostics.anyHitRayUploadBytesEstimate + diagnostics.anyHitReadbackBytesEstimate,
+              diagnostics.queryTransferBytesEstimate);
+  }
+
   TEST(IntersectionService, RejectsMismatchedClosestHitBatchResults) {
     Scene scene = sphereScene();
     const ShortResultBackend backend;

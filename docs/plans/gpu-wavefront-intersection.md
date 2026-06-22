@@ -1590,6 +1590,11 @@ Progress:
   family, backend path, counts, and transfer-byte diagnostics that trace JSON
   and Modeler details already expose. Rendercli functional coverage now pins
   both the hybrid visibility AOV and ray-traced shadow pass summary rows.
+- `IntersectionService` now owns closest-hit and any-hit query counts, hit and
+  occlusion counts, and per-family upload/readback transfer-byte estimates.
+  Hybrid visibility and ray-traced shadow graph passes read those
+  service-owned diagnostics instead of recomputing backend estimates at each
+  call site, keeping future service consumers on the same reporting contract.
 
 ---
 

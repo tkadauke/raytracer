@@ -3,6 +3,7 @@
 #include "core/math/Ray.h"
 #include "render/WavefrontIntersectionBackend.h"
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
@@ -24,6 +25,15 @@ namespace render {
     WavefrontIntersectionSceneDiagnostics scene;
     WavefrontIntersectionQueryTiming lastClosestHitTiming;
     WavefrontIntersectionQueryTiming lastAnyHitTiming;
+    std::uint64_t closestHitQueryCount{0};
+    std::uint64_t closestHitHitCount{0};
+    std::uint64_t anyHitQueryCount{0};
+    std::uint64_t anyHitOccludedCount{0};
+    std::uint64_t closestHitRayUploadBytesEstimate{0};
+    std::uint64_t closestHitReadbackBytesEstimate{0};
+    std::uint64_t anyHitRayUploadBytesEstimate{0};
+    std::uint64_t anyHitReadbackBytesEstimate{0};
+    std::uint64_t queryTransferBytesEstimate{0};
   };
 
   /**
@@ -60,6 +70,10 @@ namespace render {
     void applyRecordedQueryDiagnostics();
     void recordClosestHitTiming(const WavefrontIntersectionQueryTiming& timing);
     void recordAnyHitTiming(const WavefrontIntersectionQueryTiming& timing);
+    void recordClosestHitWork(std::uint64_t queryCount, std::uint64_t hitCount,
+                              const WavefrontIntersectionQueryTiming& timing);
+    void recordAnyHitWork(std::uint64_t queryCount, std::uint64_t occludedCount,
+                          const WavefrontIntersectionQueryTiming& timing);
     void recordTiming(WavefrontIntersectionQueryTiming IntersectionServiceDiagnostics::* member,
                       const WavefrontIntersectionQueryTiming& timing);
 

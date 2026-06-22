@@ -2,6 +2,7 @@
 
 #include "render/primitives/Scene.h"
 
+#include <limits>
 #include <stdexcept>
 #include <utility>
 
@@ -26,6 +27,33 @@ namespace render {
       if (static_cast<std::uint64_t>(actual) != expected) {
         throw std::logic_error(message);
       }
+    }
+
+    std::uint64_t saturatedAdd(std::uint64_t lhs, std::uint64_t rhs) {
+      if (std::numeric_limits<std::uint64_t>::max() - lhs < rhs) {
+        return std::numeric_limits<std::uint64_t>::max();
+      }
+      return lhs + rhs;
+    }
+
+    std::uint64_t countClosestHits(const std::vector<WavefrontClosestHitResult>& results) {
+      std::uint64_t count = 0;
+      for (const WavefrontClosestHitResult& result : results) {
+        if (result.hit()) {
+          ++count;
+        }
+      }
+      return count;
+    }
+
+    std::uint64_t countOccludedResults(const WavefrontOcclusionFlags& results) {
+      std::uint64_t count = 0;
+      for (const unsigned char result : results) {
+        if (result != 0) {
+          ++count;
+        }
+      }
+      return count;
     }
   }
 
@@ -63,7 +91,7 @@ namespace render {
     WavefrontIntersectionQueryTiming timing;
     WavefrontClosestHitResult result =
       m_backend->intersectClosestResult(*m_scene, ray, state, &timing);
-    recordClosestHitTiming(timing);
+    recordClosestHitWork(1, result.hit() ? 1 : 0, timing);
     return result;
   }
 
@@ -75,14 +103,15 @@ namespace render {
     validateResultCount(results.size(), static_cast<std::uint64_t>(queries.size()),
                         "IntersectionService closest-hit batch returned a result count that does "
                         "not match its query count");
-    recordClosestHitTiming(timing);
+    recordClosestHitWork(static_cast<std::uint64_t>(queries.size()), countClosestHits(results),
+                         timing);
     return results;
   }
 
   bool IntersectionService::anyHit(const Rayd& ray, double maxDistance, State& state) {
     WavefrontIntersectionQueryTiming timing;
     const bool occluded = m_backend->intersectAny(*m_scene, ray, maxDistance, state, &timing);
-    recordAnyHitTiming(timing);
+    recordAnyHitWork(1, occluded ? 1 : 0, timing);
     return occluded;
   }
 
@@ -93,7 +122,8 @@ namespace render {
     validateResultCount(results.size(), static_cast<std::uint64_t>(queries.size()),
                         "IntersectionService any-hit batch returned an occlusion count that does "
                         "not match its query count");
-    recordAnyHitTiming(timing);
+    recordAnyHitWork(static_cast<std::uint64_t>(queries.size()), countOccludedResults(results),
+                     timing);
     return results;
   }
 
@@ -103,7 +133,7 @@ namespace render {
     validateResultCount(results.size(), frontier.rayCount(),
                         "IntersectionService any-hit frontier returned an occlusion count that "
                         "does not match its ray count");
-    recordAnyHitTiming(timing);
+    recordAnyHitWork(frontier.rayCount(), countOccludedResults(results), timing);
     return results;
   }
 
@@ -149,6 +179,38 @@ namespace render {
 
   void IntersectionService::recordAnyHitTiming(const WavefrontIntersectionQueryTiming& timing) {
     recordTiming(&IntersectionServiceDiagnostics::lastAnyHitTiming, timing);
+  }
+
+  void IntersectionService::recordClosestHitWork(std::uint64_t queryCount, std::uint64_t hitCount,
+                                                 const WavefrontIntersectionQueryTiming& timing) {
+    recordClosestHitTiming(timing);
+    const std::uint64_t uploadBytes = m_backend->estimatedClosestHitRayUploadBytes(queryCount);
+    const std::uint64_t readbackBytes = m_backend->estimatedClosestHitReadbackBytes(queryCount);
+    m_diagnostics.closestHitQueryCount =
+      saturatedAdd(m_diagnostics.closestHitQueryCount, queryCount);
+    m_diagnostics.closestHitHitCount = saturatedAdd(m_diagnostics.closestHitHitCount, hitCount);
+    m_diagnostics.closestHitRayUploadBytesEstimate =
+      saturatedAdd(m_diagnostics.closestHitRayUploadBytesEstimate, uploadBytes);
+    m_diagnostics.closestHitReadbackBytesEstimate =
+      saturatedAdd(m_diagnostics.closestHitReadbackBytesEstimate, readbackBytes);
+    m_diagnostics.queryTransferBytesEstimate = saturatedAdd(
+      m_diagnostics.queryTransferBytesEstimate, saturatedAdd(uploadBytes, readbackBytes));
+  }
+
+  void IntersectionService::recordAnyHitWork(std::uint64_t queryCount, std::uint64_t occludedCount,
+                                             const WavefrontIntersectionQueryTiming& timing) {
+    recordAnyHitTiming(timing);
+    const std::uint64_t uploadBytes = m_backend->estimatedAnyHitRayUploadBytes(queryCount);
+    const std::uint64_t readbackBytes = m_backend->estimatedAnyHitReadbackBytes(queryCount);
+    m_diagnostics.anyHitQueryCount = saturatedAdd(m_diagnostics.anyHitQueryCount, queryCount);
+    m_diagnostics.anyHitOccludedCount =
+      saturatedAdd(m_diagnostics.anyHitOccludedCount, occludedCount);
+    m_diagnostics.anyHitRayUploadBytesEstimate =
+      saturatedAdd(m_diagnostics.anyHitRayUploadBytesEstimate, uploadBytes);
+    m_diagnostics.anyHitReadbackBytesEstimate =
+      saturatedAdd(m_diagnostics.anyHitReadbackBytesEstimate, readbackBytes);
+    m_diagnostics.queryTransferBytesEstimate = saturatedAdd(
+      m_diagnostics.queryTransferBytesEstimate, saturatedAdd(uploadBytes, readbackBytes));
   }
 
   void IntersectionService::recordTiming(
