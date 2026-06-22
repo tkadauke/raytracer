@@ -1465,6 +1465,18 @@ namespace render {
     return intersectAnyBatch(scene, *queries, timing);
   }
 
+  WavefrontDirectLightVisibilityBatchResult
+  WavefrontIntersectionBackend::resolveDirectLightVisibilityBatch(
+    const Scene& scene, std::vector<WavefrontAnyHitQuery> queries) const {
+    WavefrontDirectLightVisibilityBatchResult result;
+    result.frontier = createAnyHitFrontier(std::move(queries));
+    if (!result.frontier) {
+      throw std::logic_error("direct-light visibility batch did not create an any-hit frontier");
+    }
+    result.occluded = intersectAnyFrontier(scene, *result.frontier, &result.timing);
+    return result;
+  }
+
   WavefrontClosestHitResult WavefrontIntersectionBackend::intersectClosestResult(
     const Scene& scene, const Rayd& ray, State& state,
     WavefrontIntersectionQueryTiming* timing) const {

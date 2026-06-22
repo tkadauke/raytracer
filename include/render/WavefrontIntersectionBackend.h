@@ -119,6 +119,12 @@ namespace render {
     std::vector<WavefrontAnyHitQuery> m_queries;
   };
 
+  struct WavefrontDirectLightVisibilityBatchResult {
+    std::unique_ptr<WavefrontAnyHitFrontier> frontier;
+    WavefrontOcclusionFlags occluded;
+    WavefrontIntersectionQueryTiming timing;
+  };
+
   struct WavefrontClosestHitQuery {
     Rayd ray;
     State* state{nullptr};
@@ -345,6 +351,9 @@ namespace render {
     virtual WavefrontOcclusionFlags
     intersectAnyFrontier(const Scene& scene, const WavefrontAnyHitFrontier& frontier,
                          WavefrontIntersectionQueryTiming* timing = nullptr) const;
+    virtual WavefrontDirectLightVisibilityBatchResult
+    resolveDirectLightVisibilityBatch(const Scene& scene,
+                                      std::vector<WavefrontAnyHitQuery> queries) const;
 
     virtual WavefrontClosestHitResult
     intersectClosestResult(const Scene& scene, const Rayd& ray, State& state,

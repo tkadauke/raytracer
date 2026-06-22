@@ -1282,6 +1282,12 @@ Progress:
   temporary. Current results are still read back immediately, but resident
   direct-light scheduling now has one batch object that owns selections,
   frontier, and resolved visibility.
+- Path-tracing direct-light visibility now resolves through
+  `WavefrontIntersectionBackend::resolveDirectLightVisibilityBatch(...)`,
+  returning the backend-owned any-hit frontier, occlusion flags, and timing as
+  one result. Current backends still execute the host/packed/platform any-hit
+  frontier immediately, but resident direct-light backends now have one
+  overridable batch boundary without changing the path-tracer control flow.
 - Direct-light visibility batches now also own resolved-sample lookup, including
   selection PDF and occlusion lookup. Scalar and batched shading no longer pull
   raw selection records out of the batch, keeping the future resident

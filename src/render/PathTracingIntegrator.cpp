@@ -7,7 +7,6 @@
 #include "core/math/RayPacket.h"
 #include "core/util/ScopedTimer.h"
 #include "render/MIS.h"
-#include "render/IntersectionService.h"
 #include "render/PathTermination.h"
 #include "render/RayCaster.h"
 #include "render/State.h"
@@ -487,18 +486,22 @@ namespace render {
     void resolveOcclusion(const Scene& scene,
                           const WavefrontIntersectionBackend& intersectionBackend, int bounce,
                           IntegratorBatchMetrics* metrics) {
-      IntersectionService intersectionService(scene, intersectionBackend);
       m_occluded.clear();
       m_frontier.reset();
-      m_frontier = intersectionBackend.createAnyHitFrontier(std::move(m_shadowQueries));
-      m_occluded = intersectionService.anyHits(*m_frontier);
+      WavefrontDirectLightVisibilityBatchResult result =
+        intersectionBackend.resolveDirectLightVisibilityBatch(scene, std::move(m_shadowQueries));
+      m_frontier = std::move(result.frontier);
+      m_occluded = std::move(result.occluded);
+      if (!m_frontier) {
+        throw std::logic_error(
+          "direct-light visibility batch resolved without an any-hit frontier");
+      }
       validateResolvedOcclusionCount();
       if (metrics) {
         metrics->recordDirectLightAnyHitFrontierQuery(
-          depthIndex(bounce), hostSelectionBytes(), hostOcclusionBytes(),
-          intersectionService.backend(), m_frontier->residency(), m_frontier->rayCount(),
-          m_frontier->packedRayBytes(), m_frontier->hostQueryBytes(),
-          m_frontier->stateHandleBytes(), intersectionService.diagnostics().lastAnyHitTiming);
+          depthIndex(bounce), hostSelectionBytes(), hostOcclusionBytes(), intersectionBackend,
+          m_frontier->residency(), m_frontier->rayCount(), m_frontier->packedRayBytes(),
+          m_frontier->hostQueryBytes(), m_frontier->stateHandleBytes(), result.timing);
       }
     }
 

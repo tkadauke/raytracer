@@ -507,6 +507,15 @@ namespace PathTracingIntegratorTest {
         return WavefrontIntersectionBackend::intersectAnyBatch(scene, queries, timing);
       }
 
+      WavefrontDirectLightVisibilityBatchResult
+      resolveDirectLightVisibilityBatch(const Scene& scene,
+                                        std::vector<WavefrontAnyHitQuery> queries) const override {
+        ++directLightVisibilityBatches;
+        directLightVisibilityBatchSizes.push_back(queries.size());
+        return WavefrontIntersectionBackend::resolveDirectLightVisibilityBatch(scene,
+                                                                               std::move(queries));
+      }
+
       PrimitivePacketHit4
       intersectPacketClosest(const Scene& scene, const Ray4& rays,
                              const PrimitivePacketState4& states,
@@ -530,8 +539,10 @@ namespace PathTracingIntegratorTest {
       mutable int packet8Queries{0};
       mutable int anyQueries{0};
       mutable int anyBatchQueries{0};
+      mutable int directLightVisibilityBatches{0};
       mutable std::vector<double> anyMaxDistances;
       mutable std::vector<std::size_t> anyBatchSizes;
+      mutable std::vector<std::size_t> directLightVisibilityBatchSizes;
     };
 
     class BatchPreferringCountingIntersectionBackend final : public CountingIntersectionBackend {
@@ -1709,6 +1720,8 @@ namespace PathTracingIntegratorTest {
       integrator.radianceBatch(*scene, samples, caster, &metrics, settings);
 
     ASSERT_EQ(1u, pixels.size());
+    EXPECT_EQ(1, backend.directLightVisibilityBatches);
+    EXPECT_EQ((std::vector<std::size_t>{1u}), backend.directLightVisibilityBatchSizes);
     EXPECT_EQ(1, backend.anyHitFrontiers);
     EXPECT_EQ((std::vector<std::size_t>{1u}), backend.anyHitFrontierSizes);
     EXPECT_EQ(1, backend.anyQueries);
@@ -1774,6 +1787,8 @@ namespace PathTracingIntegratorTest {
       integrator.radianceBatch(*scene, samples, caster, &metrics, settings);
 
     ASSERT_EQ(1u, pixels.size());
+    EXPECT_EQ(1, backend.directLightVisibilityBatches);
+    EXPECT_EQ((std::vector<std::size_t>{3u}), backend.directLightVisibilityBatchSizes);
     EXPECT_EQ(1, backend.anyHitFrontiers);
     EXPECT_EQ((std::vector<std::size_t>{3u}), backend.anyHitFrontierSizes);
     EXPECT_EQ(3, backend.anyQueries);

@@ -41,6 +41,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Added convertible C-array constructors for `Color`, SSE color
   specializations, and vector types so array-backed helpers can delegate to the
   math primitives directly. — GPT-5 Codex
+- Route path-tracer direct-light visibility through a backend-owned batch hook,
+  preserving current CPU behavior while giving resident direct-light backends a
+  single override boundary. — GPT-5 Codex
 - Show intersection-service unsupported-scene reason histograms in graph trace
   metadata, rendercli compact summaries, Modeler selected-pass details, and
   graph-node tooltips. — GPT-5 Codex
