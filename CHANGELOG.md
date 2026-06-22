@@ -36,6 +36,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Preserve resident path-loop accumulation backend labels, storage sizes,
   operation counts, and readback bytes in wavefront convergence comparisons and
   queue-sweep summaries. — GPT-5 Codex
+- Show compiled diffuse path-loop accumulation backend, storage, operation, and
+  readback diagnostics in Modeler selected-pass details. — GPT-5 Codex
 
 ### Fixed
 

@@ -153,6 +153,7 @@ struct RenderGraphInspectorWidget::Private {
   void addActualTracingExecutionRows(DetailRows& rows, const QJsonObject& metadata) const;
   void addIntersectionServiceDetailRows(DetailRows& rows, const QJsonObject& metadata) const;
   void addIntersectionBackendDetailRows(DetailRows& rows, const QJsonObject& batching) const;
+  void addAccumulationDetailRows(DetailRows& rows, const QJsonObject& metadata) const;
   DetailRows passDetailRows(const RenderPlan& plan, const RenderPassId& passId) const;
   QString passTraceLine(const RenderPassNode& pass) const;
   const RenderGraphResourceSnapshot*
@@ -1363,6 +1364,49 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
       batching.value(QStringLiteral("intersectionBackendKernelRaysPerSecond")).toDouble(), 'f', 2));
 }
 
+void RenderGraphInspectorWidget::Private::addAccumulationDetailRows(
+  DetailRows& rows, const QJsonObject& metadata) const {
+  const QJsonObject accumulation = metadata.value(QStringLiteral("accumulation")).toObject();
+  if (accumulation.isEmpty())
+    return;
+
+  const QJsonObject layout = accumulation.value(QStringLiteral("layout")).toObject();
+  const auto addAccumulationIntegerRow = [&](const QString& name, const QString& key) {
+    if (accumulation.contains(key)) {
+      addDetailIntegerMetadataRow(rows, name, accumulation, key);
+      return;
+    }
+    addDetailIntegerMetadataRow(rows, name, layout, key);
+  };
+
+  addDetailStringMetadataRow(rows, QStringLiteral("Accumulation backend"), accumulation,
+                             QStringLiteral("backend"), true);
+  addDetailStringMetadataRow(rows, QStringLiteral("Accumulation residency"), accumulation,
+                             QStringLiteral("residency"), true);
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Accumulation resident bytes"), accumulation,
+                              QStringLiteral("residentBytes"));
+  addAccumulationIntegerRow(QStringLiteral("Accumulation color-sum bytes"),
+                            QStringLiteral("colorSumBytes"));
+  addAccumulationIntegerRow(QStringLiteral("Accumulation sample-count bytes"),
+                            QStringLiteral("sampleCountBytes"));
+  addAccumulationIntegerRow(QStringLiteral("Accumulation moment bytes"),
+                            QStringLiteral("momentBytes"));
+  addAccumulationIntegerRow(QStringLiteral("Accumulation resolve bytes"),
+                            QStringLiteral("resolveBytes"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Accumulation clear operations"), accumulation,
+                              QStringLiteral("clearOperations"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Accumulation add operations"), accumulation,
+                              QStringLiteral("addOperations"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Accumulation added samples"), accumulation,
+                              QStringLiteral("addedSamples"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Accumulation resolve operations"), accumulation,
+                              QStringLiteral("resolveOperations"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Accumulation readback operations"),
+                              accumulation, QStringLiteral("readbackOperations"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Accumulation readback bytes"), accumulation,
+                              QStringLiteral("readbackBytes"));
+}
+
 RenderGraphInspectorWidget::DetailRows
 RenderGraphInspectorWidget::Private::passDetailRows(const RenderPlan& plan,
                                                     const RenderPassId& passId) const {
@@ -1435,6 +1479,7 @@ RenderGraphInspectorWidget::Private::passDetailRows(const RenderPlan& plan,
   addIntersectionServiceDetailRows(rows, passTrace->metadata());
   addIntersectionBackendDetailRows(
     rows, passTrace->metadata().value(QStringLiteral("batching")).toObject());
+  addAccumulationDetailRows(rows, passTrace->metadata());
   return rows;
 }
 

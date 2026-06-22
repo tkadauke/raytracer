@@ -1835,6 +1835,10 @@ Progress:
   accumulation operation counts, and readback bytes. Queue sweeps and pairwise
   comparisons can therefore track the resolve/readback side of the resident
   path-loop handoff, not only path stepping and frontier work.
+- Modeler selected-pass details now expose the same compiled path-loop
+  accumulation backend/residency labels, storage sizes, operation counts, and
+  readback bytes. Interactive graph inspection can therefore see the resolve
+  boundary that future platform accumulation kernels will replace.
 
 ---
 

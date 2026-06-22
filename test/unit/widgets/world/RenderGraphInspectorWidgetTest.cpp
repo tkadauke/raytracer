@@ -1476,6 +1476,21 @@ namespace RenderGraphInspectorWidgetTest {
       rowValue(rows, QStringLiteral("Resident path-loop saved host readbacks")).isEmpty());
     EXPECT_FALSE(
       rowValue(rows, QStringLiteral("Resident path-loop saved host readback bytes")).isEmpty());
+    EXPECT_EQ(QStringLiteral("GPU Diffuse Path Loop"),
+              rowValue(rows, QStringLiteral("Accumulation backend")));
+    EXPECT_EQ(QStringLiteral("Resident Accumulation Resolve"),
+              rowValue(rows, QStringLiteral("Accumulation residency")));
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Accumulation resident bytes")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Accumulation color-sum bytes")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Accumulation sample-count bytes")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Accumulation moment bytes")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Accumulation resolve bytes")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Accumulation clear operations")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Accumulation add operations")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Accumulation added samples")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Accumulation resolve operations")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Accumulation readback operations")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Accumulation readback bytes")).isEmpty());
     const QString fallbackCapabilities = rowValue(rows, QStringLiteral("Fallback capabilities"));
     EXPECT_THAT(fallbackCapabilities.toStdString(),
                 ::testing::HasSubstr("Lighting Direct Light Contribution"));

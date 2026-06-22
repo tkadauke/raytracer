@@ -182,6 +182,10 @@ hidden inside one closest-hit-style total.
 The same metrics name the scene-upload bytes, platform availability flags,
 unsupported-scene reason buckets, selected execution path, fallback reason,
 frontier residency/byte counters, and backend upload/kernel/readback timing.
+For compiled diffuse path-loop renders, the selected pass details also show the
+accumulation backend, residency, resident storage, operation counts, and
+readback bytes so the resolve boundary is inspectable alongside path-state and
+frontier diagnostics.
 
 Use the same scene and metrics flags when comparing CPU, hybrid automatic, and
 GPU-requested wavefront execution. The current hybrid path keeps scheduling,
