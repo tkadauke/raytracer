@@ -1720,6 +1720,10 @@ Progress:
   normalize empty backend, residency, and execution-path labels to `unknown`.
   Future platform path-loop backends therefore cannot publish blank resident
   path-state labels that disappear during metrics merging.
+- Tracing accumulation diagnostics now apply the same empty-label normalization
+  to backend and residency fields, keeping the resident path-loop resolve
+  handoff from publishing blank accumulation labels when future platform
+  accumulation backends are plugged in.
 
 ---
 

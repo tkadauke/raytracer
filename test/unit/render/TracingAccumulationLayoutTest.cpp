@@ -53,6 +53,17 @@ namespace TracingAccumulationLayoutTest {
     EXPECT_EQ("rgba8_unorm_srgb", std::string(toString(TracingResolveFormat::RGBA8UnormSrgb)));
   }
 
+  TEST(TracingAccumulationDiagnostics, NormalizesEmptyBackendAndResidencyLabels) {
+    const TracingAccumulationLayout layout = TracingAccumulationLayout::image(2, 2);
+
+    const TracingAccumulationDiagnostics diagnostics =
+      TracingAccumulationDiagnostics::forLayout(layout, nullptr, "");
+
+    EXPECT_EQ("unknown", diagnostics.backend);
+    EXPECT_EQ("unknown", diagnostics.residency);
+    EXPECT_EQ(layout.totalBytes(), diagnostics.residentBytes);
+  }
+
   TEST(TracingAccumulationLayout, RejectsMissingImageShape) {
     EXPECT_THROW(TracingAccumulationLayout::image(0, 1), std::invalid_argument);
     EXPECT_THROW(TracingAccumulationLayout::image(1, 0), std::invalid_argument);

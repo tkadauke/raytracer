@@ -30,6 +30,10 @@ namespace render {
       }
       return a + b;
     }
+
+    const char* nonEmptyLabel(const char* label) {
+      return label && *label ? label : "unknown";
+    }
   }
 
   TracingAccumulationLayout TracingAccumulationLayout::image(int width, int height) {
@@ -90,8 +94,8 @@ namespace render {
     TracingAccumulationLayout validated = layout;
     validated.validate();
     TracingAccumulationDiagnostics diagnostics;
-    diagnostics.backend = backend ? backend : "";
-    diagnostics.residency = residency ? residency : "";
+    diagnostics.backend = nonEmptyLabel(backend);
+    diagnostics.residency = nonEmptyLabel(residency);
     diagnostics.layout = validated;
     diagnostics.residentBytes = validated.totalBytes();
     return diagnostics;
@@ -101,8 +105,7 @@ namespace render {
     clearOperations += operations;
   }
 
-  void TracingAccumulationDiagnostics::recordAdd(std::uint64_t samples,
-                                                 std::uint64_t operations) {
+  void TracingAccumulationDiagnostics::recordAdd(std::uint64_t samples, std::uint64_t operations) {
     addOperations += operations;
     addedSamples += samples;
   }
