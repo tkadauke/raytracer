@@ -1825,6 +1825,11 @@ Progress:
   into pairwise work comparisons and queue-sweep summaries, matching the
   execution and residency labels already preserved for offline Phase 8
   captures.
+- The same capture helper now preserves resident path-loop submitted-ray counts
+  and full-platform-kernel availability flags, and the compiled path-loop
+  benchmark label includes the result-owned platform label. Offline captures and
+  backend rows therefore retain every result-owned path-loop execution label
+  needed to compare the current CPU-reference loop with future platform loops.
 
 ---
 

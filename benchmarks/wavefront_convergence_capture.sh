@@ -298,6 +298,8 @@ def wavefront_metric_values(path)
     resident_path_loop_removed_resident_path_state_bytes: [],
     resident_path_loop_compaction_passes: [],
     resident_path_loop_round_trips: [],
+    resident_path_loop_submitted_intersection_rays: [],
+    resident_path_loop_full_platform_gpu_kernel: [],
     resident_path_loop_saved_host_readbacks: [],
     resident_path_loop_saved_host_readback_bytes: [],
     frontier_hit_rays: [],
@@ -429,6 +431,8 @@ def wavefront_metric_values(path)
       resident_path_loop_removed_resident_path_state_bytes: 0.0,
       resident_path_loop_compaction_passes: 0.0,
       resident_path_loop_round_trips: 0.0,
+      resident_path_loop_submitted_intersection_rays: 0.0,
+      resident_path_loop_full_platform_gpu_kernel: 0.0,
       resident_path_loop_saved_host_readbacks: 0.0,
       resident_path_loop_saved_host_readback_bytes: 0.0,
       frontier_hit_rays: 0.0,
@@ -639,6 +643,11 @@ def wavefront_metric_values(path)
         batching.fetch("residentPathLoopCompactionPasses", 0).to_f
       run_values[:resident_path_loop_round_trips] +=
         batching.fetch("residentPathLoopRoundTrips", 0).to_f
+      run_values[:resident_path_loop_submitted_intersection_rays] +=
+        batching.fetch("residentPathLoopSubmittedIntersectionRays", 0).to_f
+      if batching.fetch("residentPathLoopFullPlatformGpuKernel", false)
+        run_values[:resident_path_loop_full_platform_gpu_kernel] += 1.0
+      end
       run_values[:resident_path_loop_saved_host_readbacks] +=
         batching.fetch("residentPathLoopSavedHostReadbacks", 0).to_f
       run_values[:resident_path_loop_saved_host_readback_bytes] +=
@@ -993,6 +1002,8 @@ end
    resident_path_loop_removed_resident_path_state_bytes
    resident_path_loop_compaction_passes
    resident_path_loop_round_trips
+   resident_path_loop_submitted_intersection_rays
+   resident_path_loop_full_platform_gpu_kernel
    resident_path_loop_saved_host_readbacks
    resident_path_loop_saved_host_readback_bytes
    resident_frontiers_supported
@@ -1167,6 +1178,8 @@ def aggregate_run(run)
     resident_path_loop_removed_resident_path_state_bytes: 0.0,
     resident_path_loop_compaction_passes: 0.0,
     resident_path_loop_round_trips: 0.0,
+    resident_path_loop_submitted_intersection_rays: 0.0,
+    resident_path_loop_full_platform_gpu_kernel: 0.0,
     resident_path_loop_saved_host_readbacks: 0.0,
     resident_path_loop_saved_host_readback_bytes: 0.0,
     tile_count: 0.0,
@@ -1321,6 +1334,11 @@ def aggregate_run(run)
       batching.fetch("residentPathLoopCompactionPasses", 0).to_f
     values[:resident_path_loop_round_trips] +=
       batching.fetch("residentPathLoopRoundTrips", 0).to_f
+    values[:resident_path_loop_submitted_intersection_rays] +=
+      batching.fetch("residentPathLoopSubmittedIntersectionRays", 0).to_f
+    if batching.fetch("residentPathLoopFullPlatformGpuKernel", false)
+      values[:resident_path_loop_full_platform_gpu_kernel] += 1.0
+    end
     values[:resident_path_loop_saved_host_readbacks] +=
       batching.fetch("residentPathLoopSavedHostReadbacks", 0).to_f
     values[:resident_path_loop_saved_host_readback_bytes] +=
@@ -1553,6 +1571,8 @@ puts %w[
   resident_path_loop_removed_resident_path_state_bytes
   resident_path_loop_compaction_passes
   resident_path_loop_round_trips
+  resident_path_loop_submitted_intersection_rays
+  resident_path_loop_full_platform_gpu_kernel
   resident_path_loop_saved_host_readbacks
   resident_path_loop_saved_host_readback_bytes
   tile_count
@@ -1705,6 +1725,8 @@ queue_dirs.each do |queue_dir|
       format("%.0f", median_for.call(:resident_path_loop_removed_resident_path_state_bytes)),
       format("%.0f", median_for.call(:resident_path_loop_compaction_passes)),
       format("%.0f", median_for.call(:resident_path_loop_round_trips)),
+      format("%.0f", median_for.call(:resident_path_loop_submitted_intersection_rays)),
+      format("%.0f", median_for.call(:resident_path_loop_full_platform_gpu_kernel)),
       format("%.0f", median_for.call(:resident_path_loop_saved_host_readbacks)),
       format("%.0f", median_for.call(:resident_path_loop_saved_host_readback_bytes)),
       format("%.0f", median_for.call(:tile_count)),

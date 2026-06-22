@@ -85,7 +85,7 @@ namespace {
                                          double measuredSeconds) const {
       const GpuDiffusePathStepMetrics& metrics = result.metrics;
       state.SetLabel(name + "/compiled_diffuse_path_loop/" + result.executionPath + "/" +
-                     result.pathStateResidency);
+                     result.pathStateResidency + "/" + result.platformLabel());
 
       state.counters["compiled_path_loop_initial_paths"] =
         static_cast<double>(result.initialPathCount);
