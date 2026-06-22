@@ -641,6 +641,10 @@ namespace {
         << unsignedValue(batching, "residentPathLoopCompactionPasses")
         << " resident_path_loop_round_trips="
         << unsignedValue(batching, "residentPathLoopRoundTrips")
+        << " resident_path_loop_submitted_intersection_rays="
+        << unsignedValue(batching, "residentPathLoopSubmittedIntersectionRays")
+        << " resident_path_loop_full_platform_gpu_kernel="
+        << (batching.value("residentPathLoopFullPlatformGpuKernel").toBool() ? "true" : "false")
         << " resident_path_loop_saved_host_readbacks="
         << unsignedValue(batching, "residentPathLoopSavedHostReadbacks")
         << " resident_path_loop_saved_host_readback_bytes="

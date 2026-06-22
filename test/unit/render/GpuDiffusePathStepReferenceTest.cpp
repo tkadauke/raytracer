@@ -987,6 +987,9 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(0u, result.inputPathCount());
     EXPECT_EQ(0u, result.retainedPathCount());
     EXPECT_EQ(0u, result.removedPathCount());
+    EXPECT_EQ(0u, result.submittedIntersectionRayCount());
+    EXPECT_FALSE(result.fullGpuPathLoopSupported());
+    EXPECT_TRUE(result.fullGpuPathLoopUnavailable());
   }
 
   TEST(GpuDiffusePathLoopResult, ReportsResidentPathLoopCounts) {
@@ -994,6 +997,8 @@ namespace GpuDiffusePathStepReferenceTest {
     result.depthCount = 3;
     result.activePathsPerDepth = {4, 7, 2};
     result.metrics.activePaths = 13;
+    result.metrics.closestHitRays = 9;
+    result.metrics.directLightVisibilityRays = 6;
     result.metrics.spawnedContinuations = 5;
     result.resolvedPathStates.resize(8);
 
@@ -1003,6 +1008,27 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(13u, result.inputPathCount());
     EXPECT_EQ(5u, result.retainedPathCount());
     EXPECT_EQ(8u, result.removedPathCount());
+    EXPECT_EQ(15u, result.submittedIntersectionRayCount());
+  }
+
+  TEST(GpuDiffusePathLoopResult, SaturatesSubmittedIntersectionRayCount) {
+    GpuDiffusePathLoopResult result;
+    result.metrics.closestHitRays = std::numeric_limits<std::uint64_t>::max() - 2u;
+    result.metrics.directLightVisibilityRays = 8u;
+
+    EXPECT_EQ(std::numeric_limits<std::uint64_t>::max(), result.submittedIntersectionRayCount());
+  }
+
+  TEST(GpuDiffusePathLoopResult, ReportsFullGpuPathLoopAvailabilityFromExecutionPath) {
+    GpuDiffusePathLoopResult result;
+
+    EXPECT_FALSE(result.fullGpuPathLoopSupported());
+    EXPECT_TRUE(result.fullGpuPathLoopUnavailable());
+
+    result.executionPath = "full_gpu_subset";
+
+    EXPECT_TRUE(result.fullGpuPathLoopSupported());
+    EXPECT_FALSE(result.fullGpuPathLoopUnavailable());
   }
 
   TEST(GpuDiffusePathLoop, ReportsCpuReferenceResidencyAndCompactionDiagnostics) {
@@ -1027,6 +1053,7 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(1u, result.inputPathCount());
     EXPECT_EQ(0u, result.retainedPathCount());
     EXPECT_EQ(1u, result.removedPathCount());
+    EXPECT_EQ(1u, result.submittedIntersectionRayCount());
     EXPECT_EQ(0u, result.movedPathCount());
     EXPECT_DOUBLE_EQ(1.0, result.removedPathFraction());
     EXPECT_DOUBLE_EQ(0.0, result.movedRetainedPathFraction());

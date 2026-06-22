@@ -1466,6 +1466,10 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Resident path-loop compaction passes")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Resident path-loop round trips")).isEmpty());
     EXPECT_FALSE(
+      rowValue(rows, QStringLiteral("Resident path-loop submitted intersection rays")).isEmpty());
+    EXPECT_EQ(QStringLiteral("no"),
+              rowValue(rows, QStringLiteral("Resident path-loop platform GPU kernel")));
+    EXPECT_FALSE(
       rowValue(rows, QStringLiteral("Resident path-loop saved host readbacks")).isEmpty());
     EXPECT_FALSE(
       rowValue(rows, QStringLiteral("Resident path-loop saved host readback bytes")).isEmpty());
@@ -1495,6 +1499,9 @@ namespace RenderGraphInspectorWidgetTest {
               batching.value(QStringLiteral("residentPathLoopExecutionPath")).toString());
     EXPECT_FALSE(batching.value(QStringLiteral("activePathsPerDepth")).toArray().isEmpty());
     EXPECT_GT(batching.value(QStringLiteral("residentPathLoopCompactionPasses")).toDouble(), 0.0);
+    EXPECT_GT(
+      batching.value(QStringLiteral("residentPathLoopSubmittedIntersectionRays")).toDouble(), 0.0);
+    EXPECT_FALSE(batching.value(QStringLiteral("residentPathLoopFullPlatformGpuKernel")).toBool());
     EXPECT_EQ(0.0, batching.value(QStringLiteral("residentPathLoopSavedHostReadbacks")).toDouble());
     EXPECT_EQ(QStringLiteral("0"),
               rowValue(rows, QStringLiteral("Resident path-loop saved host readbacks")));

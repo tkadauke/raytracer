@@ -932,6 +932,9 @@ namespace engine::graph {
       batching["residentPathLoopSavedHostReadbacks"] = static_cast<double>(loop.savedHostReadbacks);
       batching["residentPathLoopSavedHostReadbackBytes"] =
         static_cast<double>(loop.savedHostReadbackBytes);
+      batching["residentPathLoopSubmittedIntersectionRays"] =
+        static_cast<double>(loop.submittedIntersectionRayCount());
+      batching["residentPathLoopFullPlatformGpuKernel"] = loop.fullGpuPathLoopSupported();
       batching["tracingSceneCompiled"] = compilation.diagnostics.compiled;
       batching["tracingSceneMaterials"] = static_cast<double>(compilation.diagnostics.materials);
       batching["tracingSceneTextures"] = static_cast<double>(compilation.diagnostics.textures);
@@ -955,11 +958,16 @@ namespace engine::graph {
         static_cast<double>(compilation.diagnostics.uploadBytes);
 
       QJsonObject compiledLoop;
-      compiledLoop["backend"] = QStringLiteral("compiled_cpu_reference");
-      compiledLoop["residency"] = QStringLiteral("host_records");
-      compiledLoop["fullPlatformGpuKernel"] = false;
-      compiledLoop["note"] = QStringLiteral(
-        "executes the GPU tracing record contract through the CPU reference path-loop");
+      compiledLoop["backend"] = QString::fromStdString(loop.executionPath);
+      compiledLoop["residency"] = QString::fromStdString(loop.pathStateResidency);
+      compiledLoop["fullPlatformGpuKernel"] = loop.fullGpuPathLoopSupported();
+      compiledLoop["submittedIntersectionRays"] =
+        static_cast<double>(loop.submittedIntersectionRayCount());
+      compiledLoop["note"] =
+        loop.fullGpuPathLoopSupported()
+          ? QStringLiteral("executes the GPU tracing record contract through a platform path-loop")
+          : QStringLiteral(
+              "executes the GPU tracing record contract through the CPU reference path-loop");
 
       QJsonObject metadata;
       metadata["input"] = input;

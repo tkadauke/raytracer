@@ -142,10 +142,12 @@ namespace {
         static_cast<double>(result.savedHostReadbacks);
       state.counters["resident_path_loop_saved_host_readback_bytes"] =
         static_cast<double>(result.savedHostReadbackBytes);
+      state.counters["resident_path_loop_submitted_intersection_rays"] =
+        static_cast<double>(result.submittedIntersectionRayCount());
       state.counters["full_gpu_path_loop_supported"] =
-        result.executionPath == "full_gpu_subset" ? 1.0 : 0.0;
+        result.fullGpuPathLoopSupported() ? 1.0 : 0.0;
       state.counters["full_gpu_path_loop_unavailable"] =
-        result.executionPath == "full_gpu_subset" ? 0.0 : 1.0;
+        result.fullGpuPathLoopUnavailable() ? 1.0 : 0.0;
 
       const GpuTracingSceneDiagnostics& diagnostics = compilation.diagnostics;
       state.counters["tracing_scene_materials"] = static_cast<double>(diagnostics.materials);
@@ -165,12 +167,10 @@ namespace {
       WavefrontIntersectionQueryTiming timing;
       timing.kernelSeconds = measuredSeconds;
       timing.executionPath = result.executionPath;
-      const std::uint64_t submittedRays =
-        metrics.closestHitRays + metrics.directLightVisibilityRays;
-      annotateComparableTracingMetrics(state, submittedRays, measuredSeconds, timing,
-                                       measureSceneCompileSeconds(),
+      annotateComparableTracingMetrics(state, result.submittedIntersectionRayCount(),
+                                       measuredSeconds, timing, measureSceneCompileSeconds(),
                                        diagnostics.uploadBytes + result.residentPathStateBytes(),
-                                       result.executionPath != "full_gpu_subset");
+                                       result.fullGpuPathLoopUnavailable());
     }
 
     void annotateCompiledDiffusePathLoopResolve(benchmark::State& state,

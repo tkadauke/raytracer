@@ -27,6 +27,7 @@ namespace {
   constexpr double kLightTolerance = 1e-9;
   constexpr const char* kPackedCpuExecutionPath = "packed_cpu";
   constexpr const char* kCpuRecordExecutionPath = "cpu_record";
+  constexpr const char* kFullGpuPathLoopExecutionPath = "full_gpu_subset";
 
   Rayd rayFromRecord(const GpuIntersectionRay& ray) {
     return Rayd(Vector4d(ray.origin), Vector3d(ray.direction));
@@ -73,6 +74,14 @@ namespace {
       return maxValue;
     }
     return count * bytesPerPath;
+  }
+
+  std::uint64_t saturatedAdd(std::uint64_t first, std::uint64_t second) {
+    constexpr std::uint64_t maxValue = std::numeric_limits<std::uint64_t>::max();
+    if (second > maxValue - first) {
+      return maxValue;
+    }
+    return first + second;
   }
 
   double fraction(std::uint64_t numerator, std::uint64_t denominator) {
@@ -535,6 +544,18 @@ std::uint64_t GpuDiffusePathLoopResult::peakActivePathCount() const {
 
 std::uint64_t GpuDiffusePathLoopResult::lastActivePathCount() const {
   return activePathsPerDepth.empty() ? 0 : activePathsPerDepth.back();
+}
+
+std::uint64_t GpuDiffusePathLoopResult::submittedIntersectionRayCount() const {
+  return saturatedAdd(metrics.closestHitRays, metrics.directLightVisibilityRays);
+}
+
+bool GpuDiffusePathLoopResult::fullGpuPathLoopSupported() const {
+  return executionPath == kFullGpuPathLoopExecutionPath;
+}
+
+bool GpuDiffusePathLoopResult::fullGpuPathLoopUnavailable() const {
+  return !fullGpuPathLoopSupported();
 }
 
 double GpuDiffusePathLoopResult::removedPathFraction() const {

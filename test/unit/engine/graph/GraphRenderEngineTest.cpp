@@ -2356,6 +2356,8 @@ namespace GraphRenderEngineTest {
     EXPECT_GT(batching.value("residentPathLoopDepths").toDouble(), 0.0);
     EXPECT_GT(batching.value("residentPathLoopInputPaths").toDouble(), 0.0);
     EXPECT_GT(batching.value("residentPathLoopCompactionPasses").toDouble(), 0.0);
+    EXPECT_GT(batching.value("residentPathLoopSubmittedIntersectionRays").toDouble(), 0.0);
+    EXPECT_FALSE(batching.value("residentPathLoopFullPlatformGpuKernel").toBool());
     EXPECT_EQ(0.0, batching.value("residentPathLoopSavedHostReadbacks").toDouble());
 
     const QJsonObject input = metadata.value("input").toObject();
@@ -2364,7 +2366,9 @@ namespace GraphRenderEngineTest {
 
     const QJsonObject loop = metadata.value("compiledDiffusePathLoop").toObject();
     EXPECT_EQ("compiled_cpu_reference", loop.value("backend").toString().toStdString());
+    EXPECT_EQ("cpu_host", loop.value("residency").toString().toStdString());
     EXPECT_FALSE(loop.value("fullPlatformGpuKernel").toBool());
+    EXPECT_GT(loop.value("submittedIntersectionRays").toDouble(), 0.0);
 
     const QJsonObject accumulation = metadata.value("accumulation").toObject();
     EXPECT_EQ("gpu_diffuse_path_loop", accumulation.value("backend").toString().toStdString());

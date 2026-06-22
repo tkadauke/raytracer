@@ -20,6 +20,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   work comparisons and queue-sweep summaries. — GPT-5 Codex
 - Publish resident path-loop peak and final active path counters in the compiled
   diffuse path-loop backend benchmark rows. — GPT-5 Codex
+- Report resident path-loop submitted intersection rays and full-platform
+  path-loop kernel availability in graph trace metadata, rendercli summaries,
+  Modeler graph details, and backend benchmarks. — GPT-5 Codex
 
 ### Fixed
 

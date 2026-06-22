@@ -84,6 +84,9 @@ namespace render {
     [[nodiscard]] std::uint64_t movedPathCount() const;
     [[nodiscard]] std::uint64_t peakActivePathCount() const;
     [[nodiscard]] std::uint64_t lastActivePathCount() const;
+    [[nodiscard]] std::uint64_t submittedIntersectionRayCount() const;
+    [[nodiscard]] bool fullGpuPathLoopSupported() const;
+    [[nodiscard]] bool fullGpuPathLoopUnavailable() const;
     [[nodiscard]] double removedPathFraction() const;
     [[nodiscard]] double movedRetainedPathFraction() const;
   };

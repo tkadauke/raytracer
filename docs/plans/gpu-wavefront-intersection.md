@@ -1804,6 +1804,12 @@ Progress:
   metadata consume those result-owned accessors instead of re-deriving the
   values from internal metric fields or terminal state vectors, keeping the
   contract ready for future Metal/Vulkan path-loop result objects.
+- The compiled diffuse path-loop result now also owns submitted intersection-ray
+  counting and full-platform path-loop availability classification. Benchmarks,
+  graph trace metadata, rendercli compact summaries, and Modeler selected-pass
+  details consume those result-owned values, so a future Metal/Vulkan path-loop
+  result can switch the execution label without each caller reimplementing the
+  same string and ray-count checks.
 
 ---
 

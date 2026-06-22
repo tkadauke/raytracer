@@ -648,6 +648,8 @@ compact summary prints total `tiles`, `tile_grid`,
 `resident_path_loop_removed_resident_path_state_bytes`,
 `resident_path_loop_compaction_passes`,
 `resident_path_loop_round_trips`,
+`resident_path_loop_submitted_intersection_rays`,
+`resident_path_loop_full_platform_gpu_kernel`,
 `resident_path_loop_saved_host_readbacks`,
 `resident_path_loop_saved_host_readback_bytes`,
 `frontier_compaction_candidate_packed_ray_bytes`,
@@ -741,9 +743,10 @@ compaction/spawned continuations.
 They also preserve resident path-loop execution/residency labels, depth/path
 counts, peak and last active path counts by depth, retained-index bytes,
 resident path-state byte movement, compaction passes, round trips, and saved
-readback estimates. That keeps queue sweeps aligned with the compiled
-CPU-reference path-loop diagnostics that future platform path-state kernels
-must replace.
+readback estimates. The compact summaries also preserve submitted intersection
+ray counts and whether the path-loop ran through a full platform GPU kernel.
+That keeps queue sweeps aligned with the compiled CPU-reference path-loop
+diagnostics that future platform path-state kernels must replace.
 The JSON also includes `sampleVariancePixelArea`, `sampleRadianceStddevRms`, and
 `maxSampleRadianceStddev`, which measure disagreement between samples of the
 same pixel and complement the between-depth radiance-delta convergence fields.
