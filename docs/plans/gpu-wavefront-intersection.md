@@ -1584,6 +1584,11 @@ Progress:
 - rendercli compact wavefront metrics now print the same structured fallback
   capability list. CLI captures can therefore see every requested-GPU to
   resolved-CPU boundary without opening the JSON metrics report.
+- rendercli metrics-summary mode now also prints compact `intersection_service`
+  rows for graph passes that use `IntersectionService`, including hybrid
+  visibility and ray-traced shadow passes. That gives CLI users the same query
+  family, backend path, counts, and transfer-byte diagnostics that trace JSON
+  and Modeler details already expose.
 
 ---
 
@@ -1625,4 +1630,7 @@ performance evidence on at least one large supported scene.
 - rendercli should print compact backend diagnostics in metrics summaries. ✅
   **Done.** Wavefront metrics summaries print backend request, selected backend,
   availability, fallback reason, structured fallback capabilities, platform,
-  execution path, expected work, and transfer/round-trip diagnostics.
+  execution path, expected work, and transfer/round-trip diagnostics. Graph
+  passes that use `IntersectionService` also print compact query family,
+  backend path, count, and transfer-byte summaries when metrics-summary mode is
+  enabled.

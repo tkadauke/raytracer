@@ -39,10 +39,11 @@ set(ray_traced_shadow_render "${TEST_OUTPUT_DIR}/raster-shadows-ray-traced.png")
 set(ray_traced_shadow_trace "${TEST_OUTPUT_DIR}/raster-shadows-ray-traced-trace.json")
 rendercli_run(
   NAME "rendercli --shadow_mode ray_traced renders deterministic shadow scene"
+  OUTPUT_VARIABLE ray_traced_shadow_stdout
   COMMAND
     "${RENDERCLI}" --engine raster --width 64 --height 64
     --shadow_mode ray_traced --wavefront_intersection_backend cpu
-    --render_graph_trace_out "${ray_traced_shadow_trace}"
+    --render_graph_trace_out "${ray_traced_shadow_trace}" --raster_metrics_summary
     "${shadow_scene}" "${ray_traced_shadow_render}"
 )
 rendercli_assert_image_dimensions("${ray_traced_shadow_render}" 64 64
@@ -75,6 +76,13 @@ foreach(expectation IN ITEMS
     )
   endif()
 endforeach()
+if(NOT ray_traced_shadow_stdout MATCHES
+       "intersection_service.*pass=hybrid_ray_traced_shadows.*query_family=closest_hit\\+any_hit.*query_tag=hybrid_shadows.*requested_backend=cpu.*selected_backend=cpu.*closest_hit_execution=runtime_scene.*any_hit_execution=runtime_scene.*shadow_queries=[1-9][0-9]*.*occluded=[1-9][0-9]*.*query_transfer_bytes=0")
+  message(
+    FATAL_ERROR
+      "rendercli --shadow_mode ray_traced summary did not expose intersection service diagnostics: ${ray_traced_shadow_stdout}"
+  )
+endif()
 
 foreach(cascade_count IN ITEMS 1 2 4)
   set(cascade_render "${TEST_OUTPUT_DIR}/raster-shadow-cascades-${cascade_count}.png")

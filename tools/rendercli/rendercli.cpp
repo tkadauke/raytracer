@@ -110,6 +110,24 @@ namespace {
            metadata.contains("tessellation");
   }
 
+  bool isIntersectionServiceMetricsObject(const QJsonObject& metadata) {
+    return metadata.value("intersectionService").isObject();
+  }
+
+  std::uint64_t unsignedJsonValue(const QJsonObject& object, const char* key) {
+    return static_cast<std::uint64_t>(object.value(key).toDouble());
+  }
+
+  std::string compactSummaryText(const QJsonValue& value, const std::string& empty) {
+    std::string result = value.toString().toStdString();
+    if (result.empty()) {
+      return empty;
+    }
+    std::replace_if(
+      result.begin(), result.end(), [](unsigned char ch) { return std::isspace(ch) != 0; }, '_');
+    return result;
+  }
+
   void printRasterMetricsSummary(int run, const QString& passId, const QJsonObject& metrics) {
     const QJsonObject timings = metrics.value("timings").toObject();
     const QJsonObject tessellation = metrics.value("tessellation").toObject();
@@ -149,6 +167,44 @@ namespace {
       << " shaded_fragments="
       << static_cast<std::uint64_t>(fragments.value("shadedFragments").toDouble())
       << " color_writes=" << static_cast<std::uint64_t>(fragments.value("colorWrites").toDouble())
+      << '\n';
+  }
+
+  void printIntersectionServiceSummary(int run, const QString& passId,
+                                       const QJsonObject& metadata) {
+    const QJsonObject service = metadata.value("intersectionService").toObject();
+    if (service.isEmpty()) {
+      return;
+    }
+
+    std::cout << "intersection_service"
+              << " run=" << run;
+    if (!passId.isEmpty()) {
+      std::cout << " pass=" << passId.toStdString();
+    }
+    std::cout
+      << " query_family=" << compactSummaryText(service.value("queryFamily"), "unknown")
+      << " query_tag=" << compactSummaryText(service.value("queryTag"), "none")
+      << " requested_backend=" << compactSummaryText(service.value("requestedBackend"), "unknown")
+      << " selected_backend=" << compactSummaryText(service.value("selectedBackend"), "unknown")
+      << " availability=" << compactSummaryText(service.value("availability"), "unknown")
+      << " fallback=" << compactSummaryText(service.value("fallbackReason"), "none")
+      << " execution_path=" << compactSummaryText(service.value("executionPath"), "none")
+      << " closest_hit_execution="
+      << compactSummaryText(service.value("closestHitExecutionPath"), "none")
+      << " any_hit_execution=" << compactSummaryText(service.value("anyHitExecutionPath"), "none")
+      << " queries=" << unsignedJsonValue(service, "queryCount")
+      << " hits=" << unsignedJsonValue(service, "hitCount")
+      << " primary_queries=" << unsignedJsonValue(service, "primaryQueryCount")
+      << " primary_hits=" << unsignedJsonValue(service, "primaryHitCount")
+      << " shadow_queries=" << unsignedJsonValue(service, "shadowQueryCount")
+      << " occluded=" << unsignedJsonValue(service, "occludedCount") << " closest_hit_upload_bytes="
+      << unsignedJsonValue(service, "closestHitRayUploadBytesEstimate")
+      << " closest_hit_readback_bytes="
+      << unsignedJsonValue(service, "closestHitReadbackBytesEstimate")
+      << " any_hit_upload_bytes=" << unsignedJsonValue(service, "anyHitRayUploadBytesEstimate")
+      << " any_hit_readback_bytes=" << unsignedJsonValue(service, "anyHitReadbackBytesEstimate")
+      << " query_transfer_bytes=" << unsignedJsonValue(service, "queryTransferBytesEstimate")
       << '\n';
   }
 
@@ -3029,6 +3085,19 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
         run["passes"] = passes;
       }
       wavefrontMetricRuns.push_back(run);
+    }
+
+    if (graphEngine && (m_rasterMetricsSummary || m_wavefrontMetricsSummary)) {
+      auto trace = graphEngine->lastExecutionTrace();
+      if (trace) {
+        for (const auto& passTrace : trace->passes()) {
+          if (!isIntersectionServiceMetricsObject(passTrace.metadata())) {
+            continue;
+          }
+          printIntersectionServiceSummary(i + 1, QString::fromStdString(passTrace.passId()),
+                                          passTrace.metadata());
+        }
+      }
     }
   }
 
