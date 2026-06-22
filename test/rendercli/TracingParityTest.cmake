@@ -388,6 +388,10 @@ function(tracing_parity_render_compiled_gpu_execution category scene_file depth 
     "tracing parity ${category} compiled GPU execution fallback capabilities summary"
     "${gpu_execution_stdout}"
     "tracing_backend_fallback_capabilities=[1-9][0-9]*:.*lighting\\.direct_light_contribution=gpu->cpu:platform_full-GPU_path-loop_kernel_is_not_available_yet.*state\\.frontier_compaction=gpu->cpu:platform_full-GPU_path-loop_kernel_is_not_available_yet")
+  tracing_parity_assert_matches(
+    "tracing parity ${category} compiled GPU execution restricted capabilities summary"
+    "${gpu_execution_stdout}"
+    "tracing_backend_restricted_capabilities=[1-9][0-9]*:.*sampling\\.gpu_rng=cpu:gpu_sample_stream_cpu_reference")
 
   foreach(expectation
           "\"compiledDiffusePathLoop\""

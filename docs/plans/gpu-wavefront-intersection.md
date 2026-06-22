@@ -1589,6 +1589,10 @@ Progress:
 - rendercli compact wavefront metrics now print the same structured fallback
   capability list. CLI captures can therefore see every requested-GPU to
   resolved-CPU boundary without opening the JSON metrics report.
+- rendercli compact wavefront metrics now also print structured restricted
+  capability summaries separately from fallbacks. CPU-reference contracts such
+  as `gpu_sample_stream_cpu_reference` are therefore visible without treating
+  them as failed GPU fallback.
 - rendercli metrics-summary mode now also prints compact `intersection_service`
   rows for graph passes that use `IntersectionService`, including hybrid
   visibility and ray-traced shadow passes. That gives CLI users the same query

@@ -227,7 +227,12 @@ sidecar keeps the same information as
 `intersectionBackendPlatformGpuDeviceAvailable`,
 `intersectionBackendPlatformGpuRenderPathAvailable`, and
 `intersectionBackendFallbackReason`, plus unsupported-scene reason buckets
-under `intersectionSceneUnsupportedReasons`.
+under `intersectionSceneUnsupportedReasons`. The compact summary also separates
+`tracing_backend_fallback_capabilities` from
+`tracing_backend_restricted_capabilities`: fallback rows mean a requested GPU
+capability resolved somewhere else, while restricted rows mean the engine is
+using an explicit limited contract such as a CPU reference implementation for a
+GPU-style sampling stream.
 
 `gpu` is accepted as durable intent and reports either the active platform path
 or a CPU fallback reason in graph trace and wavefront metrics. For a

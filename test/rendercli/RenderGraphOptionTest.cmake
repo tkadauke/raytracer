@@ -2303,6 +2303,12 @@ if(NOT wavefront_metrics_stdout MATCHES "intersection_auto_estimated_query_trans
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
 if(NOT wavefront_metrics_stdout MATCHES
+       "tracing_backend_restricted_capabilities=[1-9][0-9]*:.*scene\\.geometry_records=cpu:packed_cpu")
+  _rendercli_fail("rendercli wavefront metrics restricted capability summary"
+                  "wavefront metrics summary did not report restricted capability details"
+                  "${wavefront_metrics_stdout}" "" "" "")
+endif()
+if(NOT wavefront_metrics_stdout MATCHES
        "intersection_estimated_closest_hit_ray_upload_bytes=[1-9][0-9]*")
   _rendercli_fail("rendercli wavefront metrics closest-hit upload summary"
                   "wavefront metrics summary did not contain closest-hit upload byte estimate"

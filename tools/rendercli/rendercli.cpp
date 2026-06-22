@@ -374,6 +374,8 @@ namespace {
         << batching.value("tracingBackendCapabilities").toArray().size()
         << " tracing_backend_fallback_capabilities="
         << fallbackCapabilitySummary(batching.value("tracingBackendCapabilities").toArray())
+        << " tracing_backend_restricted_capabilities="
+        << restrictedCapabilitySummary(batching.value("tracingBackendCapabilities").toArray())
         << " intersection_backend_request="
         << batching.value("intersectionBackendRequest").toString().toStdString()
         << " intersection_backend="
@@ -879,6 +881,45 @@ namespace {
         const QString reason = fallbackReason.isEmpty()
                                  ? capability.value("unsupportedReason").toString()
                                  : fallbackReason;
+        if (!reason.isEmpty()) {
+          summary += ":";
+          summary += compactToken(reason.toStdString());
+        }
+        names.push_back(summary);
+      }
+
+      if (names.empty()) {
+        return "none";
+      }
+      std::sort(names.begin(), names.end());
+      std::string result = std::to_string(names.size()) + ":" + names.front();
+      for (std::size_t index = 1; index != names.size(); ++index) {
+        result += ",";
+        result += names[index];
+      }
+      return result;
+    }
+
+    std::string restrictedCapabilitySummary(const QJsonArray& capabilities) const {
+      std::vector<std::string> names;
+      names.reserve(static_cast<std::size_t>(capabilities.size()));
+      for (const QJsonValue& value : capabilities) {
+        const QJsonObject capability = value.toObject();
+        if (capability.value("support").toString() != "restricted") {
+          continue;
+        }
+
+        std::string summary =
+          compactToken(capability.value("name").toString(QStringLiteral("unknown")).toStdString());
+        summary += "=";
+        summary += compactToken(
+          capability.value("resolvedDevice").toString(QStringLiteral("unknown")).toStdString());
+        const QString executionPath = capability.value("executionPath").toString();
+        if (!executionPath.isEmpty()) {
+          summary += ":";
+          summary += compactToken(executionPath.toStdString());
+        }
+        const QString reason = capability.value("unsupportedReason").toString();
         if (!reason.isEmpty()) {
           summary += ":";
           summary += compactToken(reason.toStdString());

@@ -1907,7 +1907,9 @@ architecture on "intersection backend".
 
 3. **~~Serialize capabilities and preserve aliases.~~** ✅ **Done.** Wavefront
    metrics now serialize tracing capability records and rendercli aliases while
-   preserving existing intersection backend fields.
+   preserving existing intersection backend fields. Compact rendercli summaries
+   print fallback and restricted capability lists separately, so CPU-reference
+   contracts stay visible without being mislabeled as fallback.
    - Depends on: job 2.
    - Output: JSON/rendercli output with compatibility aliases for existing
      consumers.
