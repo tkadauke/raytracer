@@ -27,6 +27,7 @@
 #include <QGraphicsSceneMouseEvent>
 #include <QGraphicsSimpleTextItem>
 #include <QGraphicsView>
+#include <QJsonArray>
 #include <QLabel>
 #include <QToolButton>
 #include <QTreeWidget>
@@ -1447,6 +1448,8 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_EQ(QStringLiteral("CPU Host"),
               rowValue(rows, QStringLiteral("Resident path-loop residency")));
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Resident path-loop depths")).isEmpty());
+    EXPECT_FALSE(
+      rowValue(rows, QStringLiteral("Resident path-loop active paths by depth")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Resident path-loop input paths")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Resident path-loop retained paths")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Resident path-loop removed paths")).isEmpty());
@@ -1490,6 +1493,7 @@ namespace RenderGraphInspectorWidgetTest {
     const QJsonObject batching = passTrace->metadata().value(QStringLiteral("batching")).toObject();
     EXPECT_EQ(QStringLiteral("compiled_cpu_reference"),
               batching.value(QStringLiteral("residentPathLoopExecutionPath")).toString());
+    EXPECT_FALSE(batching.value(QStringLiteral("activePathsPerDepth")).toArray().isEmpty());
     EXPECT_GT(batching.value(QStringLiteral("residentPathLoopCompactionPasses")).toDouble(), 0.0);
     EXPECT_EQ(0.0, batching.value(QStringLiteral("residentPathLoopSavedHostReadbacks")).toDouble());
     EXPECT_EQ(QStringLiteral("0"),

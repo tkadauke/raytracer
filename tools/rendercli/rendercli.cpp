@@ -617,6 +617,8 @@ namespace {
         << " resident_path_loop_residency="
         << compactTextValue(batching.value("residentPathLoopResidency"), "none")
         << " resident_path_loop_depths=" << unsignedValue(batching, "residentPathLoopDepths")
+        << " resident_path_loop_active_paths_per_depth="
+        << unsignedArraySummary(batching.value("activePathsPerDepth").toArray())
         << " resident_path_loop_input_paths="
         << unsignedValue(batching, "residentPathLoopInputPaths")
         << " resident_path_loop_retained_paths="
@@ -897,6 +899,20 @@ namespace {
       std::uint64_t result = 0;
       for (const QJsonValue& value : array) {
         result += static_cast<std::uint64_t>(value.toDouble());
+      }
+      return result;
+    }
+
+    std::string unsignedArraySummary(const QJsonArray& array) const {
+      if (array.isEmpty()) {
+        return "none";
+      }
+      std::string result;
+      for (int index = 0; index != array.size(); ++index) {
+        if (!result.empty()) {
+          result += ",";
+        }
+        result += std::to_string(static_cast<std::uint64_t>(array.at(index).toDouble()));
       }
       return result;
     }

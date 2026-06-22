@@ -14,6 +14,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Add compiled diffuse path-loop benchmark rows with resident path-loop and
   accumulation resolve counters, giving future platform full-GPU path-loop
   kernels a documented CPU-reference baseline. — GPT-5 Codex
+- Expose compiled diffuse path-loop active path counts by depth in rendercli
+  compact metrics and Modeler graph pass details. — GPT-5 Codex
 
 ### Fixed
 

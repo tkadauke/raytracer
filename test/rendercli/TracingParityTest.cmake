@@ -356,7 +356,7 @@ function(tracing_parity_render_compiled_gpu_execution category scene_file depth 
     NAME "rendercli tracing parity ${category} compiled GPU execution metrics"
     OUTPUT_VARIABLE gpu_execution_stdout
     STDOUT_MATCHES
-      "wavefront_metrics.*integrator=pathtracer.*execution=compiled_diffuse_path_loop.*tracing_backend_request=gpu.*tracing_backend=cpu.*tracing_backend_mode=compiled_cpu_reference.*tracing_backend_fallback=platform_full-GPU_path-loop_kernel_is_not_available_yet.*tracing_backend_capabilities=[1-9][0-9]*.*tracing_scene_compiled=true.*tracing_scene_materials=[1-9][0-9]*.*resident_path_loop_execution=compiled_cpu_reference.*resident_path_loop_residency=cpu_host.*resident_path_loop_depths=[1-9][0-9]*.*samples=[1-9][0-9]*.*accumulation_backend=gpu_diffuse_path_loop"
+      "wavefront_metrics.*integrator=pathtracer.*execution=compiled_diffuse_path_loop.*tracing_backend_request=gpu.*tracing_backend=cpu.*tracing_backend_mode=compiled_cpu_reference.*tracing_backend_fallback=platform_full-GPU_path-loop_kernel_is_not_available_yet.*tracing_backend_capabilities=[1-9][0-9]*.*tracing_scene_compiled=true.*tracing_scene_materials=[1-9][0-9]*.*resident_path_loop_execution=compiled_cpu_reference.*resident_path_loop_residency=cpu_host.*resident_path_loop_depths=[1-9][0-9]*.*resident_path_loop_active_paths_per_depth=[1-9][0-9]*(,[0-9]+)*.*samples=[1-9][0-9]*.*accumulation_backend=gpu_diffuse_path_loop"
     COMMAND
       "${RENDERCLI}" --engine pathtracer --tracing_execution gpu
       --width 32 --height 24

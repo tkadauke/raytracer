@@ -1789,6 +1789,11 @@ Progress:
   bounced misses resolve against environment radiance, matching the scalar path
   tracer's background/environment split before platform path-loop kernels
   replace this reference implementation.
+- Compiled diffuse path-loop active-path counts are now visible as a per-depth
+  row in rendercli compact summaries and Modeler selected-pass details. The
+  graph metadata already owned `activePathsPerDepth`; surfacing it keeps the
+  resident path-loop frontier shape inspectable without opening the raw JSON
+  trace.
 
 ---
 

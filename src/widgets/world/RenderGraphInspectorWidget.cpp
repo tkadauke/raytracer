@@ -119,6 +119,7 @@ struct RenderGraphInspectorWidget::Private {
   qulonglong jsonIntegerValue(const QJsonObject& object, const QString& key) const;
   qulonglong jsonIntegerArraySum(const QJsonArray& array) const;
   qulonglong jsonIntegerArrayBack(const QJsonArray& array) const;
+  QString jsonIntegerArraySummary(const QJsonArray& array) const;
   QString jsonIntegerObjectSummary(const QJsonObject& object) const;
   QString percentage(double numerator, double denominator) const;
   QString average(double numerator, double denominator) const;
@@ -142,6 +143,8 @@ struct RenderGraphInspectorWidget::Private {
                                 const QString& key) const;
   void addDetailIntegerMetadataRow(DetailRows& rows, const QString& name,
                                    const QJsonObject& metadata, const QString& key) const;
+  void addDetailIntegerArrayMetadataRow(DetailRows& rows, const QString& name,
+                                        const QJsonObject& metadata, const QString& key) const;
   void addDetailIntegerObjectMetadataRow(DetailRows& rows, const QString& name,
                                          const QJsonObject& metadata, const QString& key) const;
   void addDetailMillisecondsMetadataRow(DetailRows& rows, const QString& name,
@@ -452,6 +455,16 @@ RenderGraphInspectorWidget::Private::jsonIntegerArrayBack(const QJsonArray& arra
     return 0;
   }
   return static_cast<qulonglong>(array.last().toDouble());
+}
+
+QString
+RenderGraphInspectorWidget::Private::jsonIntegerArraySummary(const QJsonArray& array) const {
+  QStringList values;
+  values.reserve(array.size());
+  for (const QJsonValue& value : array) {
+    values.push_back(QString::number(static_cast<qulonglong>(value.toDouble())));
+  }
+  return values.join(QStringLiteral(", "));
 }
 
 QString
@@ -770,6 +783,16 @@ void RenderGraphInspectorWidget::Private::addDetailIntegerMetadataRow(DetailRows
   addDetailRow(rows, name, QString::number(jsonIntegerValue(metadata, key)));
 }
 
+void RenderGraphInspectorWidget::Private::addDetailIntegerArrayMetadataRow(
+  DetailRows& rows, const QString& name, const QJsonObject& metadata, const QString& key) const {
+  if (!metadata.contains(key))
+    return;
+
+  const QString value = jsonIntegerArraySummary(metadata.value(key).toArray());
+  if (!value.isEmpty())
+    addDetailRow(rows, name, value);
+}
+
 void RenderGraphInspectorWidget::Private::addDetailIntegerObjectMetadataRow(
   DetailRows& rows, const QString& name, const QJsonObject& metadata, const QString& key) const {
   if (!metadata.contains(key))
@@ -1057,6 +1080,8 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                              QStringLiteral("residentPathLoopResidency"), true);
   addDetailIntegerMetadataRow(rows, QStringLiteral("Resident path-loop depths"), batching,
                               QStringLiteral("residentPathLoopDepths"));
+  addDetailIntegerArrayMetadataRow(rows, QStringLiteral("Resident path-loop active paths by depth"),
+                                   batching, QStringLiteral("activePathsPerDepth"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Resident path-loop input paths"), batching,
                               QStringLiteral("residentPathLoopInputPaths"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Resident path-loop retained paths"), batching,
