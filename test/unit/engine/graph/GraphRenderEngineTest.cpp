@@ -2241,6 +2241,13 @@ namespace GraphRenderEngineTest {
               batching.value("tracingBackendMode").toString().toStdString());
     EXPECT_EQ("gpu", batching.value("tracingBackendRequest").toString().toStdString());
     EXPECT_EQ("cpu", batching.value("tracingBackend").toString().toStdString());
+    const QJsonArray capabilities = batching.value("tracingBackendCapabilities").toArray();
+    EXPECT_EQ(20, capabilities.size());
+    const QJsonObject fallback = batching.value("tracingBackendFallback").toObject();
+    EXPECT_TRUE(fallback.value("active").toBool());
+    EXPECT_EQ("geometry.closest_hit", fallback.value("capability").toString().toStdString());
+    EXPECT_EQ("gpu", fallback.value("requestedDevice").toString().toStdString());
+    EXPECT_EQ("cpu", fallback.value("resolvedDevice").toString().toStdString());
     EXPECT_TRUE(batching.value("tracingSceneCompiled").toBool());
     EXPECT_GT(batching.value("tracingSceneMaterials").toDouble(), 0.0);
     EXPECT_GT(batching.value("tracingSceneUploadBytes").toDouble(), 0.0);
@@ -2320,6 +2327,8 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ("cpu", batching.value("tracingBackend").toString().toStdString());
     EXPECT_EQ("compiled_cpu_reference",
               batching.value("tracingBackendMode").toString().toStdString());
+    EXPECT_EQ(20, batching.value("tracingBackendCapabilities").toArray().size());
+    EXPECT_TRUE(batching.value("tracingBackendFallback").toObject().value("active").toBool());
   }
 
   TEST(GraphRenderEngine, CompilePlanUsesSceneAnalysisAndClonesIt) {
