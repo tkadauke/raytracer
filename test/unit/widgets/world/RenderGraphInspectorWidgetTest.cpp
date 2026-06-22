@@ -1199,6 +1199,7 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_EQ(QStringLiteral("none"), rowValue(rows, QStringLiteral("Hybrid execution")));
     EXPECT_EQ(QStringLiteral("none"), rowValue(rows, QStringLiteral("GPU execution")));
     EXPECT_EQ(QStringLiteral("none"), rowValue(rows, QStringLiteral("Tracing fallback")));
+    EXPECT_EQ(QStringLiteral("none"), rowValue(rows, QStringLiteral("Fallback capabilities")));
     EXPECT_THAT(rowValue(rows, QStringLiteral("Unsupported capabilities")).toStdString(),
                 ::testing::HasSubstr("Sampling GPU RNG"));
     EXPECT_EQ(QStringLiteral("CPU"), rowValue(rows, QStringLiteral("Actual tracing execution")));
@@ -1439,6 +1440,14 @@ namespace RenderGraphInspectorWidgetTest {
       rowValue(rows, QStringLiteral("Resident path-loop saved host readbacks")).isEmpty());
     EXPECT_FALSE(
       rowValue(rows, QStringLiteral("Resident path-loop saved host readback bytes")).isEmpty());
+    const QString fallbackCapabilities = rowValue(rows, QStringLiteral("Fallback capabilities"));
+    EXPECT_THAT(fallbackCapabilities.toStdString(),
+                ::testing::HasSubstr("Lighting Direct Light Contribution"));
+    EXPECT_THAT(fallbackCapabilities.toStdString(),
+                ::testing::HasSubstr("State Frontier Compaction"));
+    EXPECT_THAT(fallbackCapabilities.toStdString(), ::testing::HasSubstr("GPU -> CPU"));
+    EXPECT_THAT(fallbackCapabilities.toStdString(),
+                ::testing::HasSubstr("platform full-GPU path-loop kernel is not available yet"));
 
     const RenderPassTrace* passTrace = trace->findPass("wavefront_beauty");
     ASSERT_NE(nullptr, passTrace);
