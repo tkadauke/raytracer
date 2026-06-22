@@ -2366,10 +2366,15 @@ infrastructure exists.
    - Depends on: job 1.
    - Output: GPU path for supported non-recursive Whitted lighting.
 
-3. **Add mirror reflection continuation.**
+3. ~~**Add mirror reflection continuation.**~~ ✅ **Done.**
+   `ReflectiveMaterial::shadeWhitted` emits explicit mirror
+   `WhittedContinuation` records, the Whitted depth-major scheduler queues
+   them through the same closest-hit frontier path as primary rays, and unit
+   coverage compares scalar and batched reflective continuation output while
+   keeping built-in reflective packet hits on the packet path.
    - Depends on: job 2.
-   - Output: iterative reflection depth behavior matching CPU for supported
-     materials.
+   - Output: ~~iterative reflection depth behavior matching CPU for supported
+     materials.~~
 
 4. ~~**Add CPU/GPU parity scenes.**~~ ✅ **Done.** `rendercli_tracing_parity`
    now compares CPU Whitted renders with GPU-requested Whitted renders for
@@ -2378,9 +2383,15 @@ infrastructure exists.
    - Depends on: jobs 2 and 3.
    - Output: deterministic image parity for supported Whitted scenes.
 
-5. **Expose through graph/rendercli/Modeler.**
+5. ~~**Expose through graph/rendercli/Modeler.**~~ ✅ **Done.**
+   Render intent and graph pass state expose broad tracing execution controls,
+   rendercli accepts `--tracing_execution`, Modeler Render Settings exposes
+   Auto/CPU/Hybrid/GPU tracing execution controls for ray-family renders, and
+   graph traces show requested, predicted, actual, and fallback execution
+   fields for GPU-requested Whitted renders.
    - Depends on: job 4.
-   - Output: user-facing controls and trace fields for GPU Whitted execution.
+   - Output: ~~user-facing controls and trace fields for GPU Whitted
+     execution.~~
 
 **Gate:** GPU Whitted is a separate algorithm branch that reuses shared tracing
 backend services instead of creating a one-off renderer.
