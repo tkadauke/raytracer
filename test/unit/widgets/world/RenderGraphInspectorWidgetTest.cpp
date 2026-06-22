@@ -1528,6 +1528,16 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_EQ(QStringLiteral("-"), rowValue(rows, QStringLiteral("Intersection service platform")));
     EXPECT_EQ(QStringLiteral("Runtime Scene"),
               rowValue(rows, QStringLiteral("Intersection service closest-hit path")));
+    EXPECT_EQ(QStringLiteral("no"),
+              rowValue(rows, QStringLiteral("Intersection service compiled scene")));
+    EXPECT_EQ(QStringLiteral("0"),
+              rowValue(rows, QStringLiteral("Intersection service scene primitives")));
+    EXPECT_EQ(QStringLiteral("0"),
+              rowValue(rows, QStringLiteral("Intersection service supported scene primitives")));
+    EXPECT_EQ(QStringLiteral("0"),
+              rowValue(rows, QStringLiteral("Intersection service unsupported scene primitives")));
+    EXPECT_EQ(QStringLiteral("0"),
+              rowValue(rows, QStringLiteral("Intersection service scene upload bytes")));
     EXPECT_EQ(QStringLiteral("Host"),
               rowValue(rows, QStringLiteral("Service closest-hit frontier residency")));
     EXPECT_EQ(QStringLiteral("0"),
@@ -1550,6 +1560,11 @@ namespace RenderGraphInspectorWidgetTest {
               service.value(QStringLiteral("queryFamily")).toString());
     EXPECT_EQ(QStringLiteral("debug_aov"), service.value(QStringLiteral("queryTag")).toString());
     EXPECT_EQ(QStringLiteral("cpu"), service.value(QStringLiteral("requestedBackend")).toString());
+    EXPECT_FALSE(service.value(QStringLiteral("compiledScene")).toBool());
+    EXPECT_EQ(0.0, service.value(QStringLiteral("scenePrimitives")).toDouble());
+    EXPECT_EQ(0.0, service.value(QStringLiteral("sceneSupportedPrimitives")).toDouble());
+    EXPECT_EQ(0.0, service.value(QStringLiteral("sceneUnsupportedPrimitives")).toDouble());
+    EXPECT_EQ(0.0, service.value(QStringLiteral("sceneUploadBytes")).toDouble());
     EXPECT_GT(service.value(QStringLiteral("queryCount")).toDouble(), 0.0);
     EXPECT_GT(service.value(QStringLiteral("hitCount")).toDouble(), 0.0);
     EXPECT_EQ(rowValue(rows, QStringLiteral("Service closest-hit frontier host query bytes")),
@@ -1572,6 +1587,16 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_EQ(QStringLiteral("Available"),
               rowValue(rows, QStringLiteral("Intersection service availability")));
     EXPECT_EQ(QStringLiteral("-"), rowValue(rows, QStringLiteral("Intersection service platform")));
+    EXPECT_EQ(QStringLiteral("no"),
+              rowValue(rows, QStringLiteral("Intersection service compiled scene")));
+    EXPECT_EQ(QStringLiteral("0"),
+              rowValue(rows, QStringLiteral("Intersection service scene primitives")));
+    EXPECT_EQ(QStringLiteral("0"),
+              rowValue(rows, QStringLiteral("Intersection service supported scene primitives")));
+    EXPECT_EQ(QStringLiteral("0"),
+              rowValue(rows, QStringLiteral("Intersection service unsupported scene primitives")));
+    EXPECT_EQ(QStringLiteral("0"),
+              rowValue(rows, QStringLiteral("Intersection service scene upload bytes")));
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection service primary queries")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection service primary hits")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Intersection service shadow queries")).isEmpty());
@@ -1598,6 +1623,11 @@ namespace RenderGraphInspectorWidgetTest {
     const QJsonObject service =
       passTrace->metadata().value(QStringLiteral("intersectionService")).toObject();
     EXPECT_GT(service.value(QStringLiteral("primaryQueryCount")).toDouble(), 0.0);
+    EXPECT_FALSE(service.value(QStringLiteral("compiledScene")).toBool());
+    EXPECT_EQ(0.0, service.value(QStringLiteral("scenePrimitives")).toDouble());
+    EXPECT_EQ(0.0, service.value(QStringLiteral("sceneSupportedPrimitives")).toDouble());
+    EXPECT_EQ(0.0, service.value(QStringLiteral("sceneUnsupportedPrimitives")).toDouble());
+    EXPECT_EQ(0.0, service.value(QStringLiteral("sceneUploadBytes")).toDouble());
     EXPECT_GT(service.value(QStringLiteral("primaryHitCount")).toDouble(), 0.0);
     EXPECT_GT(service.value(QStringLiteral("shadowQueryCount")).toDouble(), 0.0);
     EXPECT_EQ(rowValue(rows, QStringLiteral("Service any-hit frontier host query bytes")),

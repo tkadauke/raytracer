@@ -128,6 +128,13 @@ namespace {
     return result;
   }
 
+  std::string compactSummaryBool(const QJsonValue& value, const std::string& empty) {
+    if (value.isBool()) {
+      return value.toBool() ? "true" : "false";
+    }
+    return empty;
+  }
+
   void printRasterMetricsSummary(int run, const QString& passId, const QJsonObject& metrics) {
     const QJsonObject timings = metrics.value("timings").toObject();
     const QJsonObject tessellation = metrics.value("tessellation").toObject();
@@ -194,6 +201,12 @@ namespace {
       << " closest_hit_execution="
       << compactSummaryText(service.value("closestHitExecutionPath"), "none")
       << " any_hit_execution=" << compactSummaryText(service.value("anyHitExecutionPath"), "none")
+      << " compiled_scene=" << compactSummaryBool(service.value("compiledScene"), "false")
+      << " scene_primitives=" << unsignedJsonValue(service, "scenePrimitives")
+      << " scene_supported_primitives=" << unsignedJsonValue(service, "sceneSupportedPrimitives")
+      << " scene_unsupported_primitives="
+      << unsignedJsonValue(service, "sceneUnsupportedPrimitives")
+      << " scene_upload_bytes=" << unsignedJsonValue(service, "sceneUploadBytes")
       << " queries=" << unsignedJsonValue(service, "queryCount")
       << " hits=" << unsignedJsonValue(service, "hitCount")
       << " primary_queries=" << unsignedJsonValue(service, "primaryQueryCount")

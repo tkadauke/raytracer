@@ -776,6 +776,18 @@ void RenderGraphInspectorWidget::Private::addIntersectionServiceDetailRows(
                              QStringLiteral("anyHitFrontierResidency"), true);
   addDetailStringMetadataRow(rows, QStringLiteral("Intersection service fallback"), service,
                              QStringLiteral("fallbackReason"));
+  addDetailBoolMetadataRow(rows, QStringLiteral("Intersection service compiled scene"), service,
+                           QStringLiteral("compiledScene"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection service scene primitives"),
+                              service, QStringLiteral("scenePrimitives"));
+  addDetailIntegerMetadataRow(rows,
+                              QStringLiteral("Intersection service supported scene primitives"),
+                              service, QStringLiteral("sceneSupportedPrimitives"));
+  addDetailIntegerMetadataRow(rows,
+                              QStringLiteral("Intersection service unsupported scene primitives"),
+                              service, QStringLiteral("sceneUnsupportedPrimitives"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection service scene upload bytes"),
+                              service, QStringLiteral("sceneUploadBytes"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection service queries"), service,
                               QStringLiteral("queryCount"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Intersection service hits"), service,

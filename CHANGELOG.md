@@ -41,6 +41,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Added convertible C-array constructors for `Color`, SSE color
   specializations, and vector types so array-backed helpers can delegate to the
   math primitives directly. — GPT-5 Codex
+- Show intersection-service compiled-scene shape and scene-upload diagnostics
+  in rendercli compact summaries and Modeler render graph selected-pass
+  details. — GPT-5 Codex
 - Show total intersection ray-upload bytes and closest-hit/any-hit readback
   byte estimates in Modeler render graph selected-pass details. — GPT-5 Codex
 - Show intersection-service backend availability and platform in rendercli

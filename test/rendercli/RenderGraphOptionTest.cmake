@@ -5137,7 +5137,7 @@ foreach(expectation
   endif()
 endforeach()
 if(NOT graph_aov_hybrid_visibility_stdout MATCHES
-       "intersection_service.*pass=hybrid_visibility_aov.*query_family=closest_hit.*query_tag=debug_aov.*requested_backend=cpu.*selected_backend=cpu.*availability=available.*platform=none.*closest_hit_execution=runtime_scene.*queries=[1-9][0-9]*.*hits=[1-9][0-9]*.*query_transfer_bytes=0.*closest_hit_frontier_residency=host.*any_hit_frontier_residency=none.*closest_hit_frontier_host_query_bytes=[1-9][0-9]*.*any_hit_frontier_host_query_bytes=0")
+       "intersection_service.*pass=hybrid_visibility_aov.*query_family=closest_hit.*query_tag=debug_aov.*requested_backend=cpu.*selected_backend=cpu.*availability=available.*platform=none.*closest_hit_execution=runtime_scene.*compiled_scene=false.*scene_primitives=0.*scene_supported_primitives=0.*scene_unsupported_primitives=0.*scene_upload_bytes=0.*queries=[1-9][0-9]*.*hits=[1-9][0-9]*.*query_transfer_bytes=0.*closest_hit_frontier_residency=host.*any_hit_frontier_residency=none.*closest_hit_frontier_host_query_bytes=[1-9][0-9]*.*any_hit_frontier_host_query_bytes=0")
   _rendercli_fail(
     "rendercli hybrid visibility AOV metrics summary"
     "hybrid visibility AOV metrics summary did not expose intersection service diagnostics"

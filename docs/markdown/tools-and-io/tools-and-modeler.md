@@ -305,9 +305,9 @@ summary includes a `wavefront_metrics` row for wavefront beauty passes and an
 `intersection_service` row for hybrid visibility and ray-traced shadow graph
 passes. The service row reports the pass id, query family, requested and
 selected backend, backend availability, platform, closest-hit and any-hit
-execution paths, query counts, hit/occlusion counts, upload/readback and
-transfer-byte estimates, frontier residency, frontier payload byte counters,
-and fallback reason. Normal
+execution paths, compiled-scene shape and upload bytes, query counts,
+hit/occlusion counts, upload/readback and transfer-byte estimates, frontier
+residency, frontier payload byte counters, and fallback reason. Normal
 fallback reasons include CPU policy selection, missing platform device or
 render-path kernels, unsupported scene leaves, unsupported closest-hit or
 any-hit kernels, platform preparation or dispatch failure, malformed result

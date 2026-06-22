@@ -1618,6 +1618,13 @@ Progress:
   traces, rendercli compact summaries, and Modeler pass details can therefore
   size the current host frontier boundary directly before platform resident
   frontiers replace it.
+- Hybrid visibility and ray-traced shadow graph passes now also expose the
+  service compiled-scene shape in rendercli compact summaries and Modeler
+  selected-pass details: whether a compiled scene was used, primitive support
+  counts, and scene-upload bytes. That keeps standalone intersection-service
+  consumers on the same scene-shape reporting contract as wavefront beauty
+  passes before resident frontiers or platform path loops consume those
+  compiled scenes.
 
 ---
 
