@@ -33,6 +33,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Preserve resident path-loop submitted-ray counts and full-platform-kernel
   flags in wavefront convergence comparisons and queue-sweep summaries, and
   include the platform label in compiled path-loop benchmark rows. — GPT-5 Codex
+- Preserve resident path-loop accumulation backend labels, storage sizes,
+  operation counts, and readback bytes in wavefront convergence comparisons and
+  queue-sweep summaries. — GPT-5 Codex
 
 ### Fixed
 

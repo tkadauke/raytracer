@@ -302,6 +302,19 @@ def wavefront_metric_values(path)
     resident_path_loop_full_platform_gpu_kernel: [],
     resident_path_loop_saved_host_readbacks: [],
     resident_path_loop_saved_host_readback_bytes: [],
+    accumulation_backend: [],
+    accumulation_residency: [],
+    accumulation_resident_bytes: [],
+    accumulation_color_sum_bytes: [],
+    accumulation_sample_count_bytes: [],
+    accumulation_moment_bytes: [],
+    accumulation_resolve_bytes: [],
+    accumulation_clear_ops: [],
+    accumulation_add_ops: [],
+    accumulation_added_samples: [],
+    accumulation_resolve_ops: [],
+    accumulation_readback_ops: [],
+    accumulation_readback_bytes: [],
     frontier_hit_rays: [],
     frontier_miss_rays: [],
     frontier_packet_chunks: [],
@@ -435,6 +448,19 @@ def wavefront_metric_values(path)
       resident_path_loop_full_platform_gpu_kernel: 0.0,
       resident_path_loop_saved_host_readbacks: 0.0,
       resident_path_loop_saved_host_readback_bytes: 0.0,
+      accumulation_backend: [],
+      accumulation_residency: [],
+      accumulation_resident_bytes: 0.0,
+      accumulation_color_sum_bytes: 0.0,
+      accumulation_sample_count_bytes: 0.0,
+      accumulation_moment_bytes: 0.0,
+      accumulation_resolve_bytes: 0.0,
+      accumulation_clear_ops: 0.0,
+      accumulation_add_ops: 0.0,
+      accumulation_added_samples: 0.0,
+      accumulation_resolve_ops: 0.0,
+      accumulation_readback_ops: 0.0,
+      accumulation_readback_bytes: 0.0,
       frontier_hit_rays: 0.0,
       frontier_miss_rays: 0.0,
       frontier_packet_chunks: 0.0,
@@ -528,17 +554,20 @@ def wavefront_metric_values(path)
     }
     tilings = []
     batchings = []
+    accumulations = []
     convergences = []
     timings = []
     if run["metrics"]
       tilings << run.dig("metrics", "tiling")
       batchings << run.dig("metrics", "batching")
+      accumulations << run.dig("metrics", "accumulation")
       convergences << run.dig("metrics", "convergence")
       timings << run.dig("metrics", "timings")
     end
     run.fetch("passes", []).each do |pass|
       tilings << pass.dig("metrics", "tiling")
       batchings << pass.dig("metrics", "batching")
+      accumulations << pass.dig("metrics", "accumulation")
       convergences << pass.dig("metrics", "convergence")
       timings << pass.dig("metrics", "timings")
     end
@@ -849,6 +878,37 @@ def wavefront_metric_values(path)
         run_values[:frontier_compaction_removed_samples] /
         run_values[:frontier_compaction_input_samples]
     end
+    accumulations.compact.each do |accumulation|
+      accumulation_backend = accumulation.fetch("backend", "")
+      accumulation_residency = accumulation.fetch("residency", "")
+      unless accumulation_backend.empty?
+        run_values[:accumulation_backend] << accumulation_backend
+      end
+      unless accumulation_residency.empty?
+        run_values[:accumulation_residency] << accumulation_residency
+      end
+      run_values[:accumulation_resident_bytes] =
+        [run_values[:accumulation_resident_bytes],
+         accumulation.fetch("residentBytes", 0).to_f].max
+      run_values[:accumulation_color_sum_bytes] =
+        [run_values[:accumulation_color_sum_bytes],
+         accumulation.fetch("colorSumBytes", 0).to_f].max
+      run_values[:accumulation_sample_count_bytes] =
+        [run_values[:accumulation_sample_count_bytes],
+         accumulation.fetch("sampleCountBytes", 0).to_f].max
+      run_values[:accumulation_moment_bytes] =
+        [run_values[:accumulation_moment_bytes],
+         accumulation.fetch("momentBytes", 0).to_f].max
+      run_values[:accumulation_resolve_bytes] =
+        [run_values[:accumulation_resolve_bytes],
+         accumulation.fetch("resolveBytes", 0).to_f].max
+      run_values[:accumulation_clear_ops] += accumulation.fetch("clearOperations", 0).to_f
+      run_values[:accumulation_add_ops] += accumulation.fetch("addOperations", 0).to_f
+      run_values[:accumulation_added_samples] += accumulation.fetch("addedSamples", 0).to_f
+      run_values[:accumulation_resolve_ops] += accumulation.fetch("resolveOperations", 0).to_f
+      run_values[:accumulation_readback_ops] += accumulation.fetch("readbackOperations", 0).to_f
+      run_values[:accumulation_readback_bytes] += accumulation.fetch("readbackBytes", 0).to_f
+    end
     convergences.compact.each do |convergence|
       run_values[:convergence_feedback_depths] += convergence.fetch("feedbackDepthCount", 0).to_f
     end
@@ -884,8 +944,8 @@ def wavefront_metric_values(path)
       run_values[:integrator_residual_worker_seconds] +=
         timing.fetch("integratorResidualWorkerSeconds", 0).to_f
     end
-    next if tilings.compact.empty? && batchings.compact.empty? && convergences.compact.empty? &&
-            timings.compact.empty?
+    next if tilings.compact.empty? && batchings.compact.empty? && accumulations.compact.empty? &&
+            convergences.compact.empty? && timings.compact.empty?
 
     run_values.each do |key, value|
       values[key] << (value || 0.0)
@@ -1006,6 +1066,17 @@ end
    resident_path_loop_full_platform_gpu_kernel
    resident_path_loop_saved_host_readbacks
    resident_path_loop_saved_host_readback_bytes
+   accumulation_resident_bytes
+   accumulation_color_sum_bytes
+   accumulation_sample_count_bytes
+   accumulation_moment_bytes
+   accumulation_resolve_bytes
+   accumulation_clear_ops
+   accumulation_add_ops
+   accumulation_added_samples
+   accumulation_resolve_ops
+   accumulation_readback_ops
+   accumulation_readback_bytes
    resident_frontiers_supported
    gpu_frontier_compaction_supported
    prepared_ray_batch_compaction_supported
@@ -1032,6 +1103,8 @@ end
    resident_path_loop_execution
    resident_path_loop_residency
    resident_path_loop_platform
+   accumulation_backend
+   accumulation_residency
    gpu_frontier_compaction_unavailable_reason
    resident_direct_light_batches_unavailable_reason].each do |key|
   puts format("%s reference=%s candidate=%s",
@@ -1182,6 +1255,19 @@ def aggregate_run(run)
     resident_path_loop_full_platform_gpu_kernel: 0.0,
     resident_path_loop_saved_host_readbacks: 0.0,
     resident_path_loop_saved_host_readback_bytes: 0.0,
+    accumulation_backends: [],
+    accumulation_residencies: [],
+    accumulation_resident_bytes: 0.0,
+    accumulation_color_sum_bytes: 0.0,
+    accumulation_sample_count_bytes: 0.0,
+    accumulation_moment_bytes: 0.0,
+    accumulation_resolve_bytes: 0.0,
+    accumulation_clear_ops: 0.0,
+    accumulation_add_ops: 0.0,
+    accumulation_added_samples: 0.0,
+    accumulation_resolve_ops: 0.0,
+    accumulation_readback_ops: 0.0,
+    accumulation_readback_bytes: 0.0,
     tile_count: 0.0,
     tile_rows: 0.0,
     tile_columns: 0.0,
@@ -1271,6 +1357,7 @@ def aggregate_run(run)
     input = metrics.fetch("input", {})
     tiling = metrics.fetch("tiling", {})
     batching = metrics.fetch("batching", {})
+    accumulation = metrics.fetch("accumulation", {})
     timings = metrics.fetch("timings", {})
     primary_samples = input.fetch("primarySamples", 0).to_f
     nonempty_tile_count = tiling.fetch("nonEmptyTileCount", 0).to_f
@@ -1343,6 +1430,31 @@ def aggregate_run(run)
       batching.fetch("residentPathLoopSavedHostReadbacks", 0).to_f
     values[:resident_path_loop_saved_host_readback_bytes] +=
       batching.fetch("residentPathLoopSavedHostReadbackBytes", 0).to_f
+    accumulation_backend = accumulation.fetch("backend", "")
+    accumulation_residency = accumulation.fetch("residency", "")
+    unless accumulation_backend.empty?
+      values[:accumulation_backends] << accumulation_backend
+    end
+    unless accumulation_residency.empty?
+      values[:accumulation_residencies] << accumulation_residency
+    end
+    values[:accumulation_resident_bytes] =
+      [values[:accumulation_resident_bytes], accumulation.fetch("residentBytes", 0).to_f].max
+    values[:accumulation_color_sum_bytes] =
+      [values[:accumulation_color_sum_bytes], accumulation.fetch("colorSumBytes", 0).to_f].max
+    values[:accumulation_sample_count_bytes] =
+      [values[:accumulation_sample_count_bytes],
+       accumulation.fetch("sampleCountBytes", 0).to_f].max
+    values[:accumulation_moment_bytes] =
+      [values[:accumulation_moment_bytes], accumulation.fetch("momentBytes", 0).to_f].max
+    values[:accumulation_resolve_bytes] =
+      [values[:accumulation_resolve_bytes], accumulation.fetch("resolveBytes", 0).to_f].max
+    values[:accumulation_clear_ops] += accumulation.fetch("clearOperations", 0).to_f
+    values[:accumulation_add_ops] += accumulation.fetch("addOperations", 0).to_f
+    values[:accumulation_added_samples] += accumulation.fetch("addedSamples", 0).to_f
+    values[:accumulation_resolve_ops] += accumulation.fetch("resolveOperations", 0).to_f
+    values[:accumulation_readback_ops] += accumulation.fetch("readbackOperations", 0).to_f
+    values[:accumulation_readback_bytes] += accumulation.fetch("readbackBytes", 0).to_f
     retained = batching.fetch("retainedActiveSamplesPerDepth", [])
     values[:retained_active_samples] += retained.empty? ? 0.0 : retained.last.to_f
     values[:tile_count] += tiling.fetch("tileCount", 0).to_f
@@ -1575,6 +1687,19 @@ puts %w[
   resident_path_loop_full_platform_gpu_kernel
   resident_path_loop_saved_host_readbacks
   resident_path_loop_saved_host_readback_bytes
+  accumulation_backend
+  accumulation_residency
+  accumulation_resident_bytes
+  accumulation_color_sum_bytes
+  accumulation_sample_count_bytes
+  accumulation_moment_bytes
+  accumulation_resolve_bytes
+  accumulation_clear_ops
+  accumulation_add_ops
+  accumulation_added_samples
+  accumulation_resolve_ops
+  accumulation_readback_ops
+  accumulation_readback_bytes
   tile_count
   tile_grid
   max_tile_width
@@ -1689,6 +1814,10 @@ queue_dirs.each do |queue_dir|
       label_set(runs.map { |run| run.fetch(:resident_path_loop_residencies) })
     resident_path_loop_platform =
       label_set(runs.map { |run| run.fetch(:resident_path_loop_platforms) })
+    accumulation_backend =
+      label_set(runs.map { |run| run.fetch(:accumulation_backends) })
+    accumulation_residency =
+      label_set(runs.map { |run| run.fetch(:accumulation_residencies) })
     gpu_compaction_unavailable_reason =
       label_set(runs.map { |run| run.fetch(:gpu_frontier_compaction_unavailable_reasons) })
     resident_direct_light_unavailable_reason =
@@ -1729,6 +1858,19 @@ queue_dirs.each do |queue_dir|
       format("%.0f", median_for.call(:resident_path_loop_full_platform_gpu_kernel)),
       format("%.0f", median_for.call(:resident_path_loop_saved_host_readbacks)),
       format("%.0f", median_for.call(:resident_path_loop_saved_host_readback_bytes)),
+      accumulation_backend,
+      accumulation_residency,
+      format("%.0f", median_for.call(:accumulation_resident_bytes)),
+      format("%.0f", median_for.call(:accumulation_color_sum_bytes)),
+      format("%.0f", median_for.call(:accumulation_sample_count_bytes)),
+      format("%.0f", median_for.call(:accumulation_moment_bytes)),
+      format("%.0f", median_for.call(:accumulation_resolve_bytes)),
+      format("%.0f", median_for.call(:accumulation_clear_ops)),
+      format("%.0f", median_for.call(:accumulation_add_ops)),
+      format("%.0f", median_for.call(:accumulation_added_samples)),
+      format("%.0f", median_for.call(:accumulation_resolve_ops)),
+      format("%.0f", median_for.call(:accumulation_readback_ops)),
+      format("%.0f", median_for.call(:accumulation_readback_bytes)),
       format("%.0f", median_for.call(:tile_count)),
       tile_grid,
       format("%.0f", median_for.call(:max_tile_width)),

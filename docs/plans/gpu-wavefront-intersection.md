@@ -1830,6 +1830,11 @@ Progress:
   benchmark label includes the result-owned platform label. Offline captures and
   backend rows therefore retain every result-owned path-loop execution label
   needed to compare the current CPU-reference loop with future platform loops.
+- The convergence capture helper now also preserves the path-loop accumulation
+  backend/residency labels, resident storage bytes, plane byte sizes,
+  accumulation operation counts, and readback bytes. Queue sweeps and pairwise
+  comparisons can therefore track the resolve/readback side of the resident
+  path-loop handoff, not only path stepping and frontier work.
 
 ---
 
