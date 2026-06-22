@@ -106,8 +106,23 @@ namespace {
     return Colord(texture.parameters);
   }
 
+  Colord environmentRecordColor(const GpuTracingSceneSections& scene, std::size_t index) {
+    return index < scene.environment.size() ? Colord(scene.environment[index].color)
+                                            : Colord::black();
+  }
+
+  Colord visibleBackgroundRadiance(const GpuTracingSceneSections& scene) {
+    return environmentRecordColor(scene, 0);
+  }
+
   Colord environmentRadiance(const GpuTracingSceneSections& scene) {
-    return scene.environment.empty() ? Colord::black() : Colord(scene.environment.front().color);
+    return scene.environment.empty() ? Colord::black()
+                                     : environmentRecordColor(scene, scene.environment.size() - 1u);
+  }
+
+  Colord missRadiance(const GpuTracingSceneSections& scene,
+                      const GpuDiffusePathStateRecord& pathState) {
+    return pathState.depth == 0u ? visibleBackgroundRadiance(scene) : environmentRadiance(scene);
   }
 
   struct LightSampleRecord {
@@ -537,7 +552,7 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
                                 : hitIt->second;
 
     if (!hit.hit) {
-      const Colord contribution = Colord(pathState.throughput) * environmentRadiance(scene);
+      const Colord contribution = Colord(pathState.throughput) * missRadiance(scene, pathState);
       pathState.accumulatedRadiance =
         (Colord(pathState.accumulatedRadiance) + contribution).toFloat4(0.0f);
       stepRecord.event = static_cast<std::uint32_t>(GpuDiffusePathStepEvent::Miss);

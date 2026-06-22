@@ -1740,6 +1740,12 @@ Progress:
   per valid light sample, and averages contributions the same way the CPU path
   tracer does before future platform path-loop kernels replace this reference
   implementation.
+- The compiled diffuse path-loop CPU-reference path now packs visible
+  background separately from environment radiance when the scene distinguishes
+  them. Primary misses resolve against the visible background record, while
+  bounced misses resolve against environment radiance, matching the scalar path
+  tracer's background/environment split before platform path-loop kernels
+  replace this reference implementation.
 
 ---
 

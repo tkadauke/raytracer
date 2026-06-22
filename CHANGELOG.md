@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Allow the compiled diffuse path-loop CPU-reference path to handle distinct
+  visible background and environment radiance records, matching path-tracer
+  miss semantics for primary and bounced rays. — GPT-5 Codex
 - Honor path-tracer direct-light sample counts in the compiled diffuse
   path-loop CPU-reference path instead of falling back when more than one
   next-event-estimation sample is requested. — GPT-5 Codex

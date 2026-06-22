@@ -554,18 +554,12 @@ bool GpuTracingSceneCompilation::supported() const {
 }
 
 GpuDiffusePathLoopSupport
-render::gpuDiffusePathLoopSupport(const GpuTracingSceneCompilation& compilation,
-                                  const Scene& scene) {
+render::gpuDiffusePathLoopSupport(const GpuTracingSceneCompilation& compilation, const Scene&) {
   if (!compilation.supported()) {
     return {false, "GPU diffuse path loop requires a fully compiled GPU tracing scene"};
   }
 
-  if (scene.background() != scene.environmentRadiance()) {
-    return {false, "GPU diffuse path loop requires visible background to match environment "
-                   "radiance"};
-  }
-
-  for (std::size_t materialId = 1; materialId != compilation.sections.materials.size();
+  for (std::size_t materialId = 1; materialId < compilation.sections.materials.size();
        ++materialId) {
     const auto kind =
       static_cast<GpuTracingMaterialKind>(compilation.sections.materials[materialId].kind);
@@ -599,8 +593,11 @@ render::compileGpuTracingScene(const CompiledIntersectionScene& intersectionScen
   compilation.sections.materials = compilation.materials.records;
   compilation.sections.textures = compilation.materials.textures.records;
   compilation.sections.lights = compilation.lights.records;
-  compilation.sections.environment.push_back(
-    makeGpuTracingConstantEnvironment(scene.environmentRadiance()));
+  compilation.sections.environment.push_back(makeGpuTracingConstantEnvironment(scene.background()));
+  if (scene.environmentRadiance() != scene.background()) {
+    compilation.sections.environment.push_back(
+      makeGpuTracingConstantEnvironment(scene.environmentRadiance()));
+  }
 
   compilation.diagnostics.compiled = true;
   compilation.diagnostics.materials = compilation.sections.materials.size();

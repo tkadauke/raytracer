@@ -77,8 +77,11 @@ namespace GpuDiffusePathStepReferenceTest {
       sections.materials = materials.records;
       sections.textures = materials.textures.records;
       sections.lights = compileGpuTracingLights(scene).records;
-      sections.environment.push_back(
-        makeGpuTracingConstantEnvironment(scene.environmentRadiance()));
+      sections.environment.push_back(makeGpuTracingConstantEnvironment(scene.background()));
+      if (scene.environmentRadiance() != scene.background()) {
+        sections.environment.push_back(
+          makeGpuTracingConstantEnvironment(scene.environmentRadiance()));
+      }
       return sections;
     }
 
@@ -603,11 +606,38 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(1u, result.metrics.directLightContributingSamples);
   }
 
-  TEST(GpuDiffusePathStepReference, MissAddsEnvironmentAndTerminatesPath) {
+  TEST(GpuDiffusePathStepReference, PrimaryMissAddsVisibleBackgroundAndTerminatesPath) {
     Scene scene;
+    scene.setBackground(Colord(0.25, 0.5, 0.75));
+    scene.setEnvironmentRadiance(Colord(0.75, 0.5, 0.25));
+    GpuTracingSceneSections sections = sectionsFor(scene);
+    GpuDiffusePathStateRecord path = activePath();
+    path.throughput = {0.5f, 0.25f, 0.125f, 0.0f};
+
+    const GpuDiffusePathStepResult result = GpuDiffusePathStepReference().step(
+      sections, {path}, {GpuIntersectionScenePacker().packMiss(7)});
+
+    EXPECT_TRUE(result.pathStates.empty());
+    ASSERT_EQ(1u, result.terminatedPathStates.size());
+    EXPECT_TRUE(gpuDiffusePathStateIsTerminated(result.terminatedPathStates[0]));
+    ASSERT_COLOR_NEAR(Colord(0.125, 0.125, 0.09375),
+                      colorFrom4(result.terminatedPathStates[0].accumulatedRadiance), 1e-6);
+    ASSERT_COLOR_NEAR(Colord(0.125, 0.125, 0.09375), colorFrom4(result.stepRecords[0].missRadiance),
+                      1e-6);
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuDiffusePathStepEvent::Miss),
+              result.stepRecords[0].event);
+    EXPECT_EQ(1u, result.metrics.misses);
+    EXPECT_EQ(1u, result.metrics.terminatedPaths);
+  }
+
+  TEST(GpuDiffusePathStepReference, BouncedMissAddsEnvironmentRadianceAndTerminatesPath) {
+    Scene scene;
+    scene.setBackground(Colord(0.75, 0.5, 0.25));
     scene.setEnvironmentRadiance(Colord(0.25, 0.5, 0.75));
     GpuTracingSceneSections sections = sectionsFor(scene);
     GpuDiffusePathStateRecord path = activePath();
+    path.depth = 1;
+    path.previousEventFlags = gpuDiffusePathStateSampledFromBsdfFlag;
     path.throughput = {0.5f, 0.25f, 0.125f, 0.0f};
 
     const GpuDiffusePathStepResult result = GpuDiffusePathStepReference().step(
@@ -906,7 +936,8 @@ namespace GpuDiffusePathStepReferenceTest {
 
   TEST(GpuDiffusePathLoop, ResolvesMissedPathsIntoImage) {
     Scene scene;
-    scene.setEnvironmentRadiance(Colord(0.25, 0.5, 0.75));
+    scene.setBackground(Colord(0.25, 0.5, 0.75));
+    scene.setEnvironmentRadiance(Colord(0.75, 0.5, 0.25));
     GpuTracingSceneSections sections = sectionsFor(scene);
     GpuDiffusePathStateRecord path = activePath();
     path.pixelIndex = 0;

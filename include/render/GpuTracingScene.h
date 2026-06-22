@@ -210,6 +210,9 @@ namespace render {
     std::vector<GpuTracingMaterialRecord> materials;
     std::vector<GpuTracingTextureRecord> textures;
     std::vector<GpuTracingLightRecord> lights;
+    // Record 0 is the visible background for primary misses. The last record
+    // is the environment radiance for bounced misses; one record means both
+    // colors are identical.
     std::vector<GpuTracingEnvironmentRecord> environment;
     std::vector<GpuTracingDebugIdRecord> debugIds;
 
