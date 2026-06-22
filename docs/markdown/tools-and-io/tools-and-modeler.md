@@ -707,11 +707,13 @@ any-hit chunk and ray arrays follow the same zero-row convention. Cancelled
 path-tracing renders keep zero rows for the depth that was started but skipped
 before intersection, so per-depth arrays remain comparable in graph details and
 compact summaries. The any-hit frontier payload byte arrays expose the same
-depth-local view for packed rays, retained host queries, and per-ray state
-handles while the compact summary keeps the whole-render totals.
+depth-local view for packed rays, retained host packed-ray staging, retained
+host queries, and per-ray state handles while the compact summary keeps the
+whole-render totals.
 The convergence capture helper also keeps the last recorded depth row from
 those payload arrays as
 `direct_light_any_hit_frontier_last_packed_ray_bytes`,
+`direct_light_any_hit_frontier_last_host_packed_ray_bytes`,
 `direct_light_any_hit_frontier_last_host_query_bytes`, and
 `direct_light_any_hit_frontier_last_state_handle_bytes`, so queue sweeps can
 compare the final visibility frontier without expanding the full JSON arrays.

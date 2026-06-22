@@ -97,6 +97,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Report retained host packed-ray staging bytes separately from prepared
   packed payload, host query, and state-handle bytes in wavefront and
   intersection-service frontier diagnostics. — GPT-5 Codex
+- Preserve retained host packed-ray staging bytes in convergence comparison
+  summaries, queue-sweep captures, and wavefront intersection backend benchmark
+  counters. — GPT-5 Codex
 - Added resident direct-light candidate and largest-depth diagnostics to
   wavefront metrics, rendercli summaries, and Modeler graph details. — GPT-5
   Codex
@@ -512,7 +515,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Reported wavefront frontier packed-ray byte counts in wavefront intersection
   backend benchmark counters. — GPT-5 Codex
 - Routed wavefront intersection backend batch benchmarks through backend-owned
-  frontier handles so benchmark timings cover the same seam as rendering.
+  frontier handles so benchmark timings cover the same frontier boundary as
+  rendering.
   — GPT-5 Codex
 - Packed prepared GPU-intersection closest-hit and any-hit frontier handles at
   creation time, reporting `packed_host` residency before future Metal/Vulkan
