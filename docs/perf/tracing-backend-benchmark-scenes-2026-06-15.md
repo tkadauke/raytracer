@@ -82,7 +82,11 @@ The Google Benchmark suite covers the same categories through
 pack cost, runtime CPU closest-hit/any-hit rows, packed closest-hit/any-hit
 rows, automatic backend rows, `IntersectionService` rows, mixed query-family
 rows, explicit GPU rows when the platform backend is enabled, and the
-unsupported GPU fallback row.
+unsupported GPU fallback row. It also includes compiled diffuse path-loop rows
+for the `indirect_diffuse_supported` workload. Those rows time the current
+`compiled_cpu_reference` path-loop implementation over GPU-facing records and
+publish the resident path-loop counters a future Metal/Vulkan full path-loop
+kernel must replace.
 
 ## Comparable Metric Fields
 
@@ -106,6 +110,15 @@ Platform-unavailable GPU rows still report their request, selected backend,
 availability, execution path, and fallback reason through the existing
 backend-specific counters. The normalized fallback rate makes those rows
 machine-comparable with available GPU and CPU rows.
+
+Compiled diffuse path-loop rows additionally publish:
+
+| Counter | Meaning |
+| --- | --- |
+| `compiled_path_loop_*` | Path-loop work totals: initial paths, depths, active paths, closest-hit rays, direct-light visibility rays, hits, misses, unsupported hits, spawned continuations, and terminated paths. |
+| `resident_path_loop_*` | Resident path-state accounting: compaction passes, input/retained/removed/moved path counts, retained-index bytes, resident path-state bytes, round trips, and saved-readback estimates. |
+| `full_gpu_path_loop_supported` | `1.0` only when a platform full-GPU path-loop row actually owns the path loop. Current rows are `0.0`. |
+| `full_gpu_path_loop_unavailable` | `1.0` for the current CPU-reference compiled path loop, making the missing platform path-loop kernel visible in benchmark output. |
 
 ## Automatic Selection Thresholds
 

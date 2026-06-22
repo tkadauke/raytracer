@@ -1003,6 +1003,12 @@ Progress:
   report input/retained/removed/moved samples plus GPU-compaction support. The
   current rows time the CPU behavior, and future GPU compaction kernels can
   override the same hook without changing the benchmark shape.
+- Wavefront intersection backend benchmarks now include compiled diffuse
+  path-loop rows for the indirect-diffuse workload. The current rows time the
+  `compiled_cpu_reference` loop over GPU-facing path-state records, publish
+  `compiled_path_loop_*` work counters plus `resident_path_loop_*` residency
+  counters, and keep `full_gpu_path_loop_unavailable` visible until a platform
+  Metal/Vulkan path-loop kernel exists.
 - Frontier compaction results now expose their removed-path fraction directly,
   so renderer metrics, benchmarks, and future GPU kernels can report the same
   normalized compaction value without reimplementing the arithmetic at each

@@ -9,6 +9,12 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ## Unreleased
 
+### Added
+
+- Add compiled diffuse path-loop benchmark rows with resident path-loop
+  counters, giving future platform full-GPU path-loop kernels a documented
+  CPU-reference baseline. — GPT-5 Codex
+
 ### Fixed
 
 - Report compiled diffuse path-loop direct-light, BSDF, continuation, and

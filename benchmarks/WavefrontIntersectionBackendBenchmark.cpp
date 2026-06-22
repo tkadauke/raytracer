@@ -3,7 +3,9 @@
 #include "core/geometry/Polyline.h"
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
+#include "render/GpuDiffusePathStepReference.h"
 #include "render/GpuIntersectionScene.h"
+#include "render/GpuTracingScene.h"
 #include "render/IntersectionService.h"
 #include "render/IntersectionSceneCompiler.h"
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
@@ -14,11 +16,14 @@
 #include "render/VulkanWavefrontSmokeKernel.h"
 #endif
 #include "render/WavefrontIntersectionBackend.h"
+#include "render/lights/PointLight.h"
+#include "render/materials/MatteMaterial.h"
 #include "render/primitives/Curve.h"
 #include "render/primitives/Rectangle.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
 #include "render/primitives/Triangle.h"
+#include "render/textures/ConstantColorTexture.h"
 
 #include <algorithm>
 #include <cctype>
@@ -71,6 +76,94 @@ namespace {
       state.counters["frontier_compaction_retained_index_bytes"] =
         static_cast<double>(result.retainedIndexBytes());
       annotateBackendCapabilityCounters(state, backend);
+    }
+
+    void annotateCompiledDiffusePathLoop(benchmark::State& state,
+                                         const GpuTracingSceneCompilation& compilation,
+                                         const GpuDiffusePathLoopResult& result,
+                                         double measuredSeconds) const {
+      const GpuDiffusePathStepMetrics& metrics = result.metrics;
+      state.SetLabel(name + "/compiled_diffuse_path_loop/" + result.executionPath + "/" +
+                     result.pathStateResidency);
+
+      state.counters["compiled_path_loop_initial_paths"] =
+        static_cast<double>(result.initialPathCount);
+      state.counters["compiled_path_loop_depths"] = static_cast<double>(result.depthCount);
+      state.counters["compiled_path_loop_active_paths"] = static_cast<double>(metrics.activePaths);
+      state.counters["compiled_path_loop_closest_hit_rays"] =
+        static_cast<double>(metrics.closestHitRays);
+      state.counters["compiled_path_loop_direct_light_visibility_rays"] =
+        static_cast<double>(metrics.directLightVisibilityRays);
+      state.counters["compiled_path_loop_direct_light_samples"] =
+        static_cast<double>(metrics.directLightSamples);
+      state.counters["compiled_path_loop_direct_light_contribution_evaluations"] =
+        static_cast<double>(metrics.directLightContributionEvaluations);
+      state.counters["compiled_path_loop_hits"] = static_cast<double>(metrics.hits);
+      state.counters["compiled_path_loop_misses"] = static_cast<double>(metrics.misses);
+      state.counters["compiled_path_loop_unsupported_hits"] =
+        static_cast<double>(metrics.unsupportedHits);
+      state.counters["compiled_path_loop_spawned_continuations"] =
+        static_cast<double>(metrics.spawnedContinuations);
+      state.counters["compiled_path_loop_terminated_paths"] =
+        static_cast<double>(metrics.terminatedPaths);
+      state.counters["compiled_path_loop_max_depth_terminated_paths"] =
+        static_cast<double>(result.maxDepthTerminatedPaths);
+      state.counters["resident_path_loop_compaction_passes"] =
+        static_cast<double>(result.depthCount);
+      state.counters["resident_path_loop_input_paths"] = static_cast<double>(metrics.activePaths);
+      state.counters["resident_path_loop_retained_paths"] =
+        static_cast<double>(metrics.spawnedContinuations);
+      state.counters["resident_path_loop_removed_paths"] =
+        static_cast<double>(result.resolvedPathStates.size());
+      state.counters["resident_path_loop_moved_paths"] =
+        static_cast<double>(result.movedPathCount());
+      state.counters["resident_path_loop_removed_fraction"] = result.removedPathFraction();
+      state.counters["resident_path_loop_moved_retained_fraction"] =
+        result.movedRetainedPathFraction();
+      state.counters["resident_path_loop_retained_index_bytes"] =
+        static_cast<double>(result.retainedPathIndexBytes());
+      state.counters["resident_path_loop_resident_path_state_bytes"] =
+        static_cast<double>(result.residentPathStateBytes());
+      state.counters["resident_path_loop_input_resident_path_state_bytes"] =
+        static_cast<double>(result.inputPathStateBytes());
+      state.counters["resident_path_loop_retained_resident_path_state_bytes"] =
+        static_cast<double>(result.retainedPathStateBytes());
+      state.counters["resident_path_loop_removed_resident_path_state_bytes"] =
+        static_cast<double>(result.removedPathStateBytes());
+      state.counters["resident_path_loop_round_trips"] = static_cast<double>(result.roundTrips);
+      state.counters["resident_path_loop_saved_host_readbacks"] =
+        static_cast<double>(result.savedHostReadbacks);
+      state.counters["resident_path_loop_saved_host_readback_bytes"] =
+        static_cast<double>(result.savedHostReadbackBytes);
+      state.counters["full_gpu_path_loop_supported"] =
+        result.executionPath == "full_gpu_subset" ? 1.0 : 0.0;
+      state.counters["full_gpu_path_loop_unavailable"] =
+        result.executionPath == "full_gpu_subset" ? 0.0 : 1.0;
+
+      const GpuTracingSceneDiagnostics& diagnostics = compilation.diagnostics;
+      state.counters["tracing_scene_materials"] = static_cast<double>(diagnostics.materials);
+      state.counters["tracing_scene_textures"] = static_cast<double>(diagnostics.textures);
+      state.counters["tracing_scene_lights"] = static_cast<double>(diagnostics.lights);
+      state.counters["tracing_scene_environment"] = static_cast<double>(diagnostics.environment);
+      state.counters["tracing_scene_upload_bytes"] = static_cast<double>(diagnostics.uploadBytes);
+      state.counters["tracing_scene_unsupported_primitives"] =
+        static_cast<double>(diagnostics.unsupportedPrimitives);
+      state.counters["tracing_scene_unsupported_materials"] =
+        static_cast<double>(diagnostics.unsupportedMaterials);
+      state.counters["tracing_scene_unsupported_textures"] =
+        static_cast<double>(diagnostics.unsupportedTextures);
+      state.counters["tracing_scene_unsupported_lights"] =
+        static_cast<double>(diagnostics.unsupportedLights);
+
+      WavefrontIntersectionQueryTiming timing;
+      timing.kernelSeconds = measuredSeconds;
+      timing.executionPath = result.executionPath;
+      const std::uint64_t submittedRays =
+        metrics.closestHitRays + metrics.directLightVisibilityRays;
+      annotateComparableTracingMetrics(state, submittedRays, measuredSeconds, timing,
+                                       measureSceneCompileSeconds(),
+                                       diagnostics.uploadBytes + result.residentPathStateBytes(),
+                                       result.executionPath != "full_gpu_subset");
     }
 
     [[nodiscard]] double measureSceneCompileSeconds(std::uint64_t* uploadBytes = nullptr) const {
@@ -375,6 +468,10 @@ namespace {
     return scene;
   }
 
+  std::shared_ptr<MatteMaterial> matte(const Colord& color) {
+    return std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(color));
+  }
+
   std::shared_ptr<Scene> makeMeshHeavySupportedScene() {
     auto scene = std::make_shared<Scene>();
 
@@ -421,11 +518,23 @@ namespace {
 
   std::shared_ptr<Scene> makeIndirectDiffuseSupportedScene() {
     auto scene = std::make_shared<Scene>();
-    scene->add(std::make_shared<Rectangle>(Vector3d(-2.0, -1.0, -0.5), Vector3d::up() * 3.0,
-                                           Vector3d::forward() * 4.0));
-    scene->add(std::make_shared<Rectangle>(Vector3d(-2.0, -1.0, -0.5), Vector3d::forward() * 4.0,
-                                           Vector3d::right() * 4.0));
-    scene->add(std::make_shared<Sphere>(Vector3d(0.65, -0.35, 1.0), 0.45));
+    scene->setBackground(Colord(0.02, 0.03, 0.05));
+    scene->setEnvironmentRadiance(Colord(0.04, 0.05, 0.07));
+    scene->addLight(std::make_shared<PointLight>(Vector3d(0.0, 1.6, -0.35), Colord(4.0, 3.6, 3.1)));
+
+    auto wall = std::make_shared<Rectangle>(Vector3d(-2.0, -1.0, -0.5), Vector3d::up() * 3.0,
+                                            Vector3d::forward() * 4.0);
+    wall->setMaterial(matte(Colord(0.7, 0.62, 0.55)));
+    scene->add(wall);
+
+    auto floor = std::make_shared<Rectangle>(Vector3d(-2.0, -1.0, -0.5), Vector3d::forward() * 4.0,
+                                             Vector3d::right() * 4.0);
+    floor->setMaterial(matte(Colord(0.55, 0.6, 0.68)));
+    scene->add(floor);
+
+    auto sphere = std::make_shared<Sphere>(Vector3d(0.65, -0.35, 1.0), 0.45);
+    sphere->setMaterial(matte(Colord(0.85, 0.2, 0.18)));
+    scene->add(sphere);
     return scene;
   }
 
@@ -468,6 +577,40 @@ namespace {
       rays.emplace_back(origin, (target - origin).normalized());
     }
     return rays;
+  }
+
+  std::vector<Rayd> generateDiffusePathLoopRays(std::int64_t count) {
+    std::mt19937 rng(4321);
+    std::uniform_real_distribution<double> originX(-1.75, 1.75);
+    std::uniform_real_distribution<double> targetX(-1.6, 1.6);
+    std::uniform_real_distribution<double> targetY(-0.95, 0.75);
+    std::uniform_real_distribution<double> targetZ(-0.15, 2.8);
+
+    std::vector<Rayd> rays;
+    rays.reserve(static_cast<std::size_t>(count));
+    for (std::int64_t index = 0; index != count; ++index) {
+      const Vector3d origin(originX(rng), 0.85, -4.0);
+      const Vector3d target(targetX(rng), targetY(rng), targetZ(rng));
+      rays.emplace_back(origin, (target - origin).normalized());
+    }
+    return rays;
+  }
+
+  std::vector<GpuDiffusePathStateRecord> generateDiffusePathStates(std::int64_t count) {
+    const std::vector<Rayd> rays = generateDiffusePathLoopRays(count);
+    GpuIntersectionScenePacker packer;
+    std::vector<GpuDiffusePathStateRecord> paths;
+    paths.reserve(rays.size());
+    for (std::size_t index = 0; index != rays.size(); ++index) {
+      GpuDiffusePathStateRecord path = makeActiveGpuDiffusePathState();
+      path.ray = packer.packRay(rays[index], static_cast<std::uint32_t>(index), 0.0,
+                                std::numeric_limits<double>::infinity());
+      path.pixelIndex = static_cast<std::uint32_t>(index);
+      path.primarySampleIndex = 0;
+      path.sampleSeed = 0x600DF00Du;
+      paths.push_back(path);
+    }
+    return paths;
   }
 
   std::vector<GpuIntersectionRay> packRays(const std::vector<Rayd>& rays, double maxDistance) {
@@ -936,6 +1079,39 @@ namespace {
       static_cast<std::int64_t>(closestFrontier->rayCount() + anyFrontier->rayCount()));
   }
 
+  void bm_compiledDiffusePathLoopCpuReference(benchmark::State& state) {
+    const Workload& workload = workloadFor(state);
+    const GpuTracingSceneCompilation compilation = compileGpuTracingScene(*workload.scene);
+    const GpuDiffusePathLoopSupport support =
+      gpuDiffusePathLoopSupport(compilation, *workload.scene);
+    if (!support.supported) {
+      state.SkipWithError(support.reason.c_str());
+      return;
+    }
+
+    const std::vector<GpuDiffusePathStateRecord> paths = generateDiffusePathStates(state.range(1));
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = static_cast<std::uint32_t>(state.range(2));
+    settings.russianRouletteDepth = 3;
+    settings.directLightSamples = 1;
+
+    GpuDiffusePathLoopResult result;
+    double measuredSeconds = 0.0;
+    for (auto _ : state) {
+      const auto start = std::chrono::steady_clock::now();
+      result = GpuDiffusePathLoop().run(compilation.sections, paths, settings);
+      const auto stop = std::chrono::steady_clock::now();
+      measuredSeconds += std::chrono::duration<double>(stop - start).count();
+      benchmark::DoNotOptimize(result.resolvedPathStates.size());
+      benchmark::DoNotOptimize(result.stepRecords.size());
+    }
+
+    const double averageSeconds =
+      measuredSeconds / static_cast<double>(std::max<std::int64_t>(1, state.iterations()));
+    workload.annotateCompiledDiffusePathLoop(state, compilation, result, averageSeconds);
+    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(paths.size()));
+  }
+
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT) || defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
   void bm_requestedGpuClosestHitBatch(benchmark::State& state) {
     const Workload& workload = workloadFor(state);
@@ -1194,6 +1370,11 @@ namespace {
     benchmark->Args({4, 256});
     benchmark->Args({4, 65536});
   }
+
+  void compiledDiffusePathLoopWorkloads(benchmark::internal::Benchmark* benchmark) {
+    benchmark->Args({3, 256, 4});
+    benchmark->Args({3, 4096, 4});
+  }
 }
 
 BENCHMARK(bm_compileAndPackScene)->Apply(allWorkloads);
@@ -1209,6 +1390,7 @@ BENCHMARK(bm_intersectionServiceAnyHitBatch)->Apply(supportedQueryWorkloads);
 BENCHMARK(bm_intersectionServiceMixedClosestAndAnyHitBatch)->Apply(supportedQueryWorkloads);
 BENCHMARK(bm_autoFrontierCompaction)->Apply(supportedQueryWorkloads);
 BENCHMARK(bm_requestedGpuUnsupportedMixedClosestAndAnyHitBatch)->Apply(unsupportedQueryWorkloads);
+BENCHMARK(bm_compiledDiffusePathLoopCpuReference)->Apply(compiledDiffusePathLoopWorkloads);
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT) || defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
 BENCHMARK(bm_requestedGpuClosestHitBatch)->Apply(supportedQueryWorkloads);
 BENCHMARK(bm_requestedGpuAnyHitBatch)->Apply(supportedQueryWorkloads);
