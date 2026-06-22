@@ -35,6 +35,14 @@ namespace render {
     std::uint64_t anyHitRayUploadBytesEstimate{0};
     std::uint64_t anyHitReadbackBytesEstimate{0};
     std::uint64_t queryTransferBytesEstimate{0};
+    std::string closestHitFrontierResidency;
+    std::string anyHitFrontierResidency;
+    std::uint64_t closestHitFrontierPackedRayBytes{0};
+    std::uint64_t closestHitFrontierHostQueryBytes{0};
+    std::uint64_t closestHitFrontierStateHandleBytes{0};
+    std::uint64_t anyHitFrontierPackedRayBytes{0};
+    std::uint64_t anyHitFrontierHostQueryBytes{0};
+    std::uint64_t anyHitFrontierStateHandleBytes{0};
   };
 
   /**
@@ -77,6 +85,8 @@ namespace render {
                               const WavefrontIntersectionQueryTiming& timing);
     void recordAnyHitWork(std::uint64_t queryCount, std::uint64_t occludedCount,
                           const WavefrontIntersectionQueryTiming& timing);
+    void recordClosestHitFrontier(const WavefrontClosestHitFrontier& frontier);
+    void recordAnyHitFrontier(const WavefrontAnyHitFrontier& frontier);
     void recordTiming(WavefrontIntersectionQueryTiming IntersectionServiceDiagnostics::* member,
                       const WavefrontIntersectionQueryTiming& timing);
 

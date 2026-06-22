@@ -1600,6 +1600,12 @@ Progress:
   frontier overload to match its existing any-hit frontier path. Hybrid and
   debug graph consumers therefore exercise the same resident-frontier-ready
   contract as wavefront batches instead of bypassing it with raw query vectors.
+- `IntersectionService` diagnostics now also report closest-hit and any-hit
+  frontier residency plus packed-ray, retained host-query, and retained
+  state-handle byte counters. Hybrid visibility and ray-traced shadow graph
+  traces, rendercli compact summaries, and Modeler pass details can therefore
+  size the current host frontier boundary directly before platform resident
+  frontiers replace it.
 
 ---
 

@@ -205,7 +205,22 @@ namespace {
       << " any_hit_upload_bytes=" << unsignedJsonValue(service, "anyHitRayUploadBytesEstimate")
       << " any_hit_readback_bytes=" << unsignedJsonValue(service, "anyHitReadbackBytesEstimate")
       << " query_transfer_bytes=" << unsignedJsonValue(service, "queryTransferBytesEstimate")
-      << '\n';
+      << " closest_hit_frontier_residency="
+      << compactSummaryText(service.value("closestHitFrontierResidency"), "none")
+      << " any_hit_frontier_residency="
+      << compactSummaryText(service.value("anyHitFrontierResidency"), "none")
+      << " closest_hit_frontier_packed_ray_bytes="
+      << unsignedJsonValue(service, "closestHitFrontierPackedRayBytes")
+      << " closest_hit_frontier_host_query_bytes="
+      << unsignedJsonValue(service, "closestHitFrontierHostQueryBytes")
+      << " closest_hit_frontier_state_handle_bytes="
+      << unsignedJsonValue(service, "closestHitFrontierStateHandleBytes")
+      << " any_hit_frontier_packed_ray_bytes="
+      << unsignedJsonValue(service, "anyHitFrontierPackedRayBytes")
+      << " any_hit_frontier_host_query_bytes="
+      << unsignedJsonValue(service, "anyHitFrontierHostQueryBytes")
+      << " any_hit_frontier_state_handle_bytes="
+      << unsignedJsonValue(service, "anyHitFrontierStateHandleBytes") << '\n';
   }
 
   class WavefrontMetricsFormatter {

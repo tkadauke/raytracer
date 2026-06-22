@@ -5118,6 +5118,10 @@ foreach(expectation
         "\"closestHitRayUploadBytesEstimate\"[ \r\n]*:[ \r\n]*0"
         "\"closestHitReadbackBytesEstimate\"[ \r\n]*:[ \r\n]*0"
         "\"queryTransferBytesEstimate\"[ \r\n]*:[ \r\n]*0"
+        "\"closestHitFrontierResidency\"[ \r\n]*:[ \r\n]*\"host\""
+        "\"anyHitFrontierResidency\"[ \r\n]*:[ \r\n]*\"\""
+        "\"closestHitFrontierHostQueryBytes\"[ \r\n]*:[ \r\n]*[1-9][0-9]*(\\.[0-9]+)?"
+        "\"anyHitFrontierHostQueryBytes\"[ \r\n]*:[ \r\n]*0"
         "\"queryCount\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
         "\"hitCount\"[ \r\n]*:[ \r\n]*[1-9][0-9]*")
   if(NOT graph_aov_hybrid_visibility_trace_json MATCHES "${expectation}")
@@ -5127,7 +5131,7 @@ foreach(expectation
   endif()
 endforeach()
 if(NOT graph_aov_hybrid_visibility_stdout MATCHES
-       "intersection_service.*pass=hybrid_visibility_aov.*query_family=closest_hit.*query_tag=debug_aov.*requested_backend=cpu.*selected_backend=cpu.*closest_hit_execution=runtime_scene.*queries=[1-9][0-9]*.*hits=[1-9][0-9]*.*query_transfer_bytes=0")
+       "intersection_service.*pass=hybrid_visibility_aov.*query_family=closest_hit.*query_tag=debug_aov.*requested_backend=cpu.*selected_backend=cpu.*closest_hit_execution=runtime_scene.*queries=[1-9][0-9]*.*hits=[1-9][0-9]*.*query_transfer_bytes=0.*closest_hit_frontier_residency=host.*any_hit_frontier_residency=none.*closest_hit_frontier_host_query_bytes=[1-9][0-9]*.*any_hit_frontier_host_query_bytes=0")
   _rendercli_fail(
     "rendercli hybrid visibility AOV metrics summary"
     "hybrid visibility AOV metrics summary did not expose intersection service diagnostics"

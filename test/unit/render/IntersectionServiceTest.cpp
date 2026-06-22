@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "render/IntersectionService.h"
+#include "render/GpuIntersectionScene.h"
 #include "render/State.h"
 #include "render/primitives/Curve.h"
 #include "render/primitives/Scene.h"
@@ -190,6 +191,11 @@ namespace IntersectionServiceTest {
     EXPECT_FALSE(hits[1].hit());
     EXPECT_EQ(2u, service.diagnostics().closestHitQueryCount);
     EXPECT_EQ(1u, service.diagnostics().closestHitHitCount);
+    EXPECT_EQ("host", service.diagnostics().closestHitFrontierResidency);
+    EXPECT_EQ(0u, service.diagnostics().closestHitFrontierPackedRayBytes);
+    EXPECT_EQ(2u * sizeof(WavefrontClosestHitQuery),
+              service.diagnostics().closestHitFrontierHostQueryBytes);
+    EXPECT_EQ(0u, service.diagnostics().closestHitFrontierStateHandleBytes);
     EXPECT_EQ("runtime_scene", service.diagnostics().lastClosestHitTiming.executionPath);
   }
 
@@ -265,6 +271,14 @@ namespace IntersectionServiceTest {
                 diagnostics.closestHitReadbackBytesEstimate +
                 diagnostics.anyHitRayUploadBytesEstimate + diagnostics.anyHitReadbackBytesEstimate,
               diagnostics.queryTransferBytesEstimate);
+    EXPECT_EQ("packed_host", diagnostics.closestHitFrontierResidency);
+    EXPECT_EQ("packed_host", diagnostics.anyHitFrontierResidency);
+    EXPECT_EQ(2u * sizeof(GpuIntersectionRay), diagnostics.closestHitFrontierPackedRayBytes);
+    EXPECT_EQ(0u, diagnostics.closestHitFrontierHostQueryBytes);
+    EXPECT_EQ(2u * sizeof(State*), diagnostics.closestHitFrontierStateHandleBytes);
+    EXPECT_EQ(2u * sizeof(GpuIntersectionRay), diagnostics.anyHitFrontierPackedRayBytes);
+    EXPECT_EQ(0u, diagnostics.anyHitFrontierHostQueryBytes);
+    EXPECT_EQ(2u * sizeof(State*), diagnostics.anyHitFrontierStateHandleBytes);
   }
 
   TEST(IntersectionService, RejectsMismatchedClosestHitBatchResults) {

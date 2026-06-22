@@ -1834,6 +1834,22 @@ namespace engine::graph {
           static_cast<double>(diagnostics.anyHitReadbackBytesEstimate);
         service["queryTransferBytesEstimate"] =
           static_cast<double>(diagnostics.queryTransferBytesEstimate);
+        service["closestHitFrontierResidency"] =
+          QString::fromStdString(diagnostics.closestHitFrontierResidency);
+        service["anyHitFrontierResidency"] =
+          QString::fromStdString(diagnostics.anyHitFrontierResidency);
+        service["closestHitFrontierPackedRayBytes"] =
+          static_cast<double>(diagnostics.closestHitFrontierPackedRayBytes);
+        service["closestHitFrontierHostQueryBytes"] =
+          static_cast<double>(diagnostics.closestHitFrontierHostQueryBytes);
+        service["closestHitFrontierStateHandleBytes"] =
+          static_cast<double>(diagnostics.closestHitFrontierStateHandleBytes);
+        service["anyHitFrontierPackedRayBytes"] =
+          static_cast<double>(diagnostics.anyHitFrontierPackedRayBytes);
+        service["anyHitFrontierHostQueryBytes"] =
+          static_cast<double>(diagnostics.anyHitFrontierHostQueryBytes);
+        service["anyHitFrontierStateHandleBytes"] =
+          static_cast<double>(diagnostics.anyHitFrontierStateHandleBytes);
         service["compiledScene"] = diagnostics.scene.compiled;
         service["scenePrimitives"] = static_cast<double>(diagnostics.scene.primitives);
         service["sceneSupportedPrimitives"] = static_cast<double>(
@@ -2043,6 +2059,22 @@ namespace engine::graph {
           static_cast<double>(diagnostics.anyHitReadbackBytesEstimate);
         service["queryTransferBytesEstimate"] =
           static_cast<double>(diagnostics.queryTransferBytesEstimate);
+        service["closestHitFrontierResidency"] =
+          QString::fromStdString(diagnostics.closestHitFrontierResidency);
+        service["anyHitFrontierResidency"] =
+          QString::fromStdString(diagnostics.anyHitFrontierResidency);
+        service["closestHitFrontierPackedRayBytes"] =
+          static_cast<double>(diagnostics.closestHitFrontierPackedRayBytes);
+        service["closestHitFrontierHostQueryBytes"] =
+          static_cast<double>(diagnostics.closestHitFrontierHostQueryBytes);
+        service["closestHitFrontierStateHandleBytes"] =
+          static_cast<double>(diagnostics.closestHitFrontierStateHandleBytes);
+        service["anyHitFrontierPackedRayBytes"] =
+          static_cast<double>(diagnostics.anyHitFrontierPackedRayBytes);
+        service["anyHitFrontierHostQueryBytes"] =
+          static_cast<double>(diagnostics.anyHitFrontierHostQueryBytes);
+        service["anyHitFrontierStateHandleBytes"] =
+          static_cast<double>(diagnostics.anyHitFrontierStateHandleBytes);
         service["compiledScene"] = diagnostics.scene.compiled;
         service["scenePrimitives"] = static_cast<double>(diagnostics.scene.primitives);
         service["sceneSupportedPrimitives"] = static_cast<double>(
