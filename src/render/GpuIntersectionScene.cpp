@@ -207,16 +207,15 @@ float GpuIntersectionScenePacker::packScalar(double value) const {
 }
 
 std::array<float, 4> GpuIntersectionScenePacker::packVector(const Vector2d& value) const {
-  return {packScalar(value.x()), packScalar(value.y()), 0.0f, 0.0f};
+  return value.toFloat4();
 }
 
 std::array<float, 4> GpuIntersectionScenePacker::packVector(const Vector3d& value, float w) const {
-  return {packScalar(value.x()), packScalar(value.y()), packScalar(value.z()), w};
+  return value.toFloat4(w);
 }
 
 std::array<float, 4> GpuIntersectionScenePacker::packVector(const Vector4d& value) const {
-  return {packScalar(value.x()), packScalar(value.y()), packScalar(value.z()),
-          packScalar(value.w())};
+  return value.toFloat4();
 }
 
 std::array<float, 16> GpuIntersectionScenePacker::packMatrix(const Matrix3d& value) const {
