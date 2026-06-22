@@ -387,7 +387,7 @@ function(tracing_parity_render_compiled_gpu_execution category scene_file depth 
   tracing_parity_assert_matches(
     "tracing parity ${category} compiled GPU execution fallback capabilities summary"
     "${gpu_execution_stdout}"
-    "tracing_backend_fallback_capabilities=[1-9][0-9]*:.*lighting\\.direct_light_contribution=gpu->cpu:platform_full-GPU_path-loop_kernel_is_not_available_yet.*state\\.frontier_compaction=gpu->cpu:platform_full-GPU_path-loop_kernel_is_not_available_yet")
+    "tracing_backend_fallback_capabilities=[1-9][0-9]*:.*lighting\\.direct_light_contribution=gpu->cpu:platform_full-GPU_path-loop_kernel_is_not_available_yet.*state\\.frontier_compaction=gpu->cpu:compiled_CPU-reference_path_loop_compacts_path_state_on_the_host.*state\\.path_state_residency=gpu->cpu:compiled_CPU-reference_path_loop_keeps_path_state_on_the_host")
   tracing_parity_assert_matches(
     "tracing parity ${category} compiled GPU execution restricted capabilities summary"
     "${gpu_execution_stdout}"
@@ -501,7 +501,7 @@ tracing_parity_render_compiled_gpu_execution(
   "indirect_bounce" "indirect_bounce.json" 3 4)
 tracing_parity_render_supported(
   "environment_miss" "environment_miss.json" 2 1 0.001
-  "tracing_scene_environment=1.*miss_luminance=[1-9]")
+  "tracing_scene_environment=[1-9][0-9]*.*miss_luminance=[1-9]")
 tracing_parity_render_unsupported(
   "transparent_fallback" "transparent_fallback.json" 4 1)
 render_whitted_gpu_parity(

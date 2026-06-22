@@ -2291,6 +2291,18 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ("geometry.closest_hit", fallback.value("capability").toString().toStdString());
     EXPECT_EQ("gpu", fallback.value("requestedDevice").toString().toStdString());
     EXPECT_EQ("cpu", fallback.value("resolvedDevice").toString().toStdString());
+    const QJsonObject pathStateResidency = capabilities.at(15).toObject();
+    EXPECT_EQ("state.path_state_residency",
+              pathStateResidency.value("name").toString().toStdString());
+    EXPECT_EQ(
+      "compiled CPU-reference path loop keeps path state on the host",
+      pathStateResidency.value("fallback").toObject().value("reason").toString().toStdString());
+    const QJsonObject frontierCompaction = capabilities.at(16).toObject();
+    EXPECT_EQ("state.frontier_compaction",
+              frontierCompaction.value("name").toString().toStdString());
+    EXPECT_EQ(
+      "compiled CPU-reference path loop compacts path state on the host",
+      frontierCompaction.value("fallback").toObject().value("reason").toString().toStdString());
     EXPECT_EQ("platform full-GPU path-loop kernel is not available yet",
               batching.value("directLightContributionFallbackReason").toString().toStdString());
     EXPECT_EQ("compiled_cpu_reference",

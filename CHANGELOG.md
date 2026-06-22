@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Report compiled diffuse path-loop `state.path_state_residency` and
+  `state.frontier_compaction` fallbacks with host path-state-specific reasons
+  instead of a generic full-GPU path-loop fallback. — GPT-5 Codex
 - Report explicit GPU path-state residency requests as structured
   `state.path_state_residency` fallbacks when scheduler-owned path records still
   live on the host. — GPT-5 Codex

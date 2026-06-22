@@ -672,6 +672,14 @@ namespace engine::graph {
       return "platform full-GPU path-loop kernel is not available yet";
     }
 
+    constexpr const char* compiledDiffusePathLoopPathStateResidencyFallbackReason() {
+      return "compiled CPU-reference path loop keeps path state on the host";
+    }
+
+    constexpr const char* compiledDiffusePathLoopFrontierCompactionFallbackReason() {
+      return "compiled CPU-reference path loop compacts path state on the host";
+    }
+
     constexpr const char* compiledDiffusePathLoopResidentDirectLightUnavailableReason() {
       return "compiled CPU-reference path loop resolves direct-light visibility on the host";
     }
@@ -686,6 +694,11 @@ namespace engine::graph {
         return render::TracingCapabilityRecord::fallbackRecord(
           domain, std::move(name), Device::GPU, Device::CPU, std::move(path),
           compiledDiffusePathLoopGpuFallbackReason());
+      };
+      auto fallbackWithReason = [](Domain domain, std::string name, std::string path,
+                                   const char* reason) {
+        return render::TracingCapabilityRecord::fallbackRecord(
+          domain, std::move(name), Device::GPU, Device::CPU, std::move(path), reason);
       };
       auto restrictedRecord = [](Domain domain, std::string name) {
         return render::TracingCapabilityRecord::restricted(
@@ -749,9 +762,11 @@ namespace engine::graph {
         loop.executionPath.empty() ? "compiled_cpu_reference" : loop.executionPath;
 
       records.pathState.residency =
-        fallback(Domain::PathState, "state.path_state_residency", pathStateResidency);
+        fallbackWithReason(Domain::PathState, "state.path_state_residency", pathStateResidency,
+                           compiledDiffusePathLoopPathStateResidencyFallbackReason());
       records.pathState.frontierCompaction =
-        fallback(Domain::PathState, "state.frontier_compaction", pathLoopExecution);
+        fallbackWithReason(Domain::PathState, "state.frontier_compaction", pathLoopExecution,
+                           compiledDiffusePathLoopFrontierCompactionFallbackReason());
       records.pathState.spawnedContinuations =
         fallback(Domain::PathState, "state.spawned_continuations", "cpu_record");
 

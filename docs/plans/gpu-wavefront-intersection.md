@@ -1153,6 +1153,11 @@ Progress:
   scheduler-owned path records still live on the host. This makes the remaining
   resident path-state boundary visible before true GPU-owned `BatchPath`
   storage lands.
+- Compiled diffuse path-loop trace metadata now reports capability-specific
+  fallback reasons for `state.path_state_residency` and
+  `state.frontier_compaction`, so graph-backed CPU-reference path-loop runs
+  distinguish host-resident path-state storage from the path-loop execution
+  path instead of using one generic full-GPU-kernel fallback reason.
 - The convergence capture helper now preserves GPU frontier-compaction
   unavailable reasons in reference/candidate comparisons and queue-sweep
   summaries, keeping offline Phase 8 captures aligned with render metrics and
