@@ -680,8 +680,37 @@ namespace engine::graph {
       return "compiled CPU-reference path loop compacts path state on the host";
     }
 
+    constexpr const char* compiledDiffusePathLoopDirectLightSamplingFallbackReason() {
+      return "compiled CPU-reference path loop samples direct lights on the host";
+    }
+
+    constexpr const char* compiledDiffusePathLoopDirectLightVisibilityFallbackReason() {
+      return "compiled CPU-reference path loop creates and consumes direct-light visibility "
+             "batches on the host";
+    }
+
+    constexpr const char* compiledDiffusePathLoopDirectLightContributionFallbackReason() {
+      return "compiled CPU-reference path loop evaluates direct-light contribution on the host";
+    }
+
     constexpr const char* compiledDiffusePathLoopResidentDirectLightUnavailableReason() {
       return "compiled CPU-reference path loop resolves direct-light visibility on the host";
+    }
+
+    constexpr const char* compiledDiffusePathLoopBsdfEvalFallbackReason() {
+      return "compiled CPU-reference path loop evaluates diffuse BSDFs on the host";
+    }
+
+    constexpr const char* compiledDiffusePathLoopBsdfSampleFallbackReason() {
+      return "compiled CPU-reference path loop samples diffuse BSDF continuations on the host";
+    }
+
+    constexpr const char* compiledDiffusePathLoopSpawnedContinuationsFallbackReason() {
+      return "compiled CPU-reference path loop spawns path continuations on the host";
+    }
+
+    constexpr const char* compiledDiffusePathLoopSampleAccumulationFallbackReason() {
+      return "compiled CPU-reference path loop accumulates samples with CPU reference storage";
     }
 
     render::TracingExecutionCapabilityRecords compiledDiffusePathLoopCapabilities(
@@ -741,17 +770,22 @@ namespace engine::graph {
         Domain::Sampling, "sampling.named_dimensions", "gpu_sample_stream");
 
       records.directLighting.lightSampling =
-        fallback(Domain::DirectLighting, "lighting.direct_light_sample", "cpu_record");
+        fallbackWithReason(Domain::DirectLighting, "lighting.direct_light_sample", "cpu_record",
+                           compiledDiffusePathLoopDirectLightSamplingFallbackReason());
       records.directLighting.visibility =
-        fallback(Domain::DirectLighting, "lighting.direct_light_visibility", anyHitPath);
-      records.directLighting.contribution = fallback(
-        Domain::DirectLighting, "lighting.direct_light_contribution", directLightContributionPath);
+        fallbackWithReason(Domain::DirectLighting, "lighting.direct_light_visibility", anyHitPath,
+                           compiledDiffusePathLoopDirectLightVisibilityFallbackReason());
+      records.directLighting.contribution = fallbackWithReason(
+        Domain::DirectLighting, "lighting.direct_light_contribution", directLightContributionPath,
+        compiledDiffusePathLoopDirectLightContributionFallbackReason());
       records.directLighting.residentBatch = render::TracingCapabilityRecord::unsupported(
         Domain::DirectLighting, "lighting.resident_direct_light_batches",
         compiledDiffusePathLoopResidentDirectLightUnavailableReason());
 
-      records.bsdf.eval = fallback(Domain::BSDF, "shading.bsdf_eval", "cpu_record");
-      records.bsdf.sample = fallback(Domain::BSDF, "shading.bsdf_sample", "cpu_record");
+      records.bsdf.eval = fallbackWithReason(Domain::BSDF, "shading.bsdf_eval", "cpu_record",
+                                             compiledDiffusePathLoopBsdfEvalFallbackReason());
+      records.bsdf.sample = fallbackWithReason(Domain::BSDF, "shading.bsdf_sample", "cpu_record",
+                                               compiledDiffusePathLoopBsdfSampleFallbackReason());
       records.bsdf.deltaBranches = render::TracingCapabilityRecord::unsupported(
         Domain::BSDF, "shading.delta_branches",
         "compiled diffuse path loop supports diffuse continuation only");
@@ -768,10 +802,12 @@ namespace engine::graph {
         fallbackWithReason(Domain::PathState, "state.frontier_compaction", pathLoopExecution,
                            compiledDiffusePathLoopFrontierCompactionFallbackReason());
       records.pathState.spawnedContinuations =
-        fallback(Domain::PathState, "state.spawned_continuations", "cpu_record");
+        fallbackWithReason(Domain::PathState, "state.spawned_continuations", "cpu_record",
+                           compiledDiffusePathLoopSpawnedContinuationsFallbackReason());
 
-      records.accumulation.sampleAccumulation =
-        fallback(Domain::Accumulation, "accumulation.sample_accumulation", accumulationPath);
+      records.accumulation.sampleAccumulation = fallbackWithReason(
+        Domain::Accumulation, "accumulation.sample_accumulation", accumulationPath,
+        compiledDiffusePathLoopSampleAccumulationFallbackReason());
       records.accumulation.progressiveReadback = render::TracingCapabilityRecord::cpu(
         Domain::Accumulation, "accumulation.progressive_readback", accumulationResidency);
       return records;
@@ -815,7 +851,7 @@ namespace engine::graph {
       batching["directLightContributionExecutionPath"] =
         QString::fromStdString(loop.metrics.directLightContributionExecutionPath);
       batching["directLightContributionFallbackReason"] =
-        QString::fromLatin1(compiledDiffusePathLoopGpuFallbackReason());
+        QString::fromLatin1(compiledDiffusePathLoopDirectLightContributionFallbackReason());
       batching["intersectionBackendExecutionPath"] =
         QString::fromStdString(loop.metrics.closestHitExecutionPath);
       batching["intersectionBackendClosestHitExecutionPath"] =

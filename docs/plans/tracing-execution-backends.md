@@ -2096,7 +2096,10 @@ diffuse path tracer for the first supported subset.
      path-tracing scenes through the compiled CPU-reference diffuse path loop,
      resolve terminal records through E5 accumulation diagnostics, and expose
      the result in rendercli, Modeler preview, and the render dialog trace as
-     `compiled_cpu_reference`.
+     `compiled_cpu_reference`. Capability records now keep that overall
+     missing-platform-kernel fallback separate from the direct-light, BSDF,
+     continuation, path-state, compaction, and accumulation subsystems still
+     owned by the CPU reference loop.
 
 5. ~~**Add end-to-end parity scenes.**~~ ✅ **Done.** Added fixed-seed
    rendercli CPU vs GPU-requested parity coverage for direct, indirect,

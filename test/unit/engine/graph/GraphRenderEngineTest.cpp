@@ -88,6 +88,27 @@ namespace GraphRenderEngineTest {
     return depth;
   }
 
+  QJsonObject capabilityByName(const QJsonArray& capabilities, const char* name) {
+    const QString expected = QString::fromLatin1(name);
+    for (const QJsonValue& value : capabilities) {
+      const QJsonObject capability = value.toObject();
+      if (capability.value("name").toString() == expected) {
+        return capability;
+      }
+    }
+    ADD_FAILURE() << "Missing tracing capability " << name;
+    return {};
+  }
+
+  std::string fallbackReasonForCapability(const QJsonArray& capabilities, const char* name) {
+    return capabilityByName(capabilities, name)
+      .value("fallback")
+      .toObject()
+      .value("reason")
+      .toString()
+      .toStdString();
+  }
+
   RenderResourceDescriptor objectIdResource(const std::string& id, RenderResourceLifetime lifetime,
                                             int width = 2, int height = 2) {
     RenderResourceDescriptor objectId;
@@ -2291,19 +2312,26 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ("geometry.closest_hit", fallback.value("capability").toString().toStdString());
     EXPECT_EQ("gpu", fallback.value("requestedDevice").toString().toStdString());
     EXPECT_EQ("cpu", fallback.value("resolvedDevice").toString().toStdString());
-    const QJsonObject pathStateResidency = capabilities.at(15).toObject();
-    EXPECT_EQ("state.path_state_residency",
-              pathStateResidency.value("name").toString().toStdString());
-    EXPECT_EQ(
-      "compiled CPU-reference path loop keeps path state on the host",
-      pathStateResidency.value("fallback").toObject().value("reason").toString().toStdString());
-    const QJsonObject frontierCompaction = capabilities.at(16).toObject();
-    EXPECT_EQ("state.frontier_compaction",
-              frontierCompaction.value("name").toString().toStdString());
-    EXPECT_EQ(
-      "compiled CPU-reference path loop compacts path state on the host",
-      frontierCompaction.value("fallback").toObject().value("reason").toString().toStdString());
-    EXPECT_EQ("platform full-GPU path-loop kernel is not available yet",
+    EXPECT_EQ("compiled CPU-reference path loop keeps path state on the host",
+              fallbackReasonForCapability(capabilities, "state.path_state_residency"));
+    EXPECT_EQ("compiled CPU-reference path loop compacts path state on the host",
+              fallbackReasonForCapability(capabilities, "state.frontier_compaction"));
+    EXPECT_EQ("compiled CPU-reference path loop samples direct lights on the host",
+              fallbackReasonForCapability(capabilities, "lighting.direct_light_sample"));
+    EXPECT_EQ("compiled CPU-reference path loop creates and consumes direct-light visibility "
+              "batches on the host",
+              fallbackReasonForCapability(capabilities, "lighting.direct_light_visibility"));
+    EXPECT_EQ("compiled CPU-reference path loop evaluates direct-light contribution on the host",
+              fallbackReasonForCapability(capabilities, "lighting.direct_light_contribution"));
+    EXPECT_EQ("compiled CPU-reference path loop evaluates diffuse BSDFs on the host",
+              fallbackReasonForCapability(capabilities, "shading.bsdf_eval"));
+    EXPECT_EQ("compiled CPU-reference path loop samples diffuse BSDF continuations on the host",
+              fallbackReasonForCapability(capabilities, "shading.bsdf_sample"));
+    EXPECT_EQ("compiled CPU-reference path loop spawns path continuations on the host",
+              fallbackReasonForCapability(capabilities, "state.spawned_continuations"));
+    EXPECT_EQ("compiled CPU-reference path loop accumulates samples with CPU reference storage",
+              fallbackReasonForCapability(capabilities, "accumulation.sample_accumulation"));
+    EXPECT_EQ("compiled CPU-reference path loop evaluates direct-light contribution on the host",
               batching.value("directLightContributionFallbackReason").toString().toStdString());
     EXPECT_EQ("compiled_cpu_reference",
               batching.value("frontierCompactionExecutionPath").toString().toStdString());

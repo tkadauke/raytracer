@@ -1158,6 +1158,12 @@ Progress:
   `state.frontier_compaction`, so graph-backed CPU-reference path-loop runs
   distinguish host-resident path-state storage from the path-loop execution
   path instead of using one generic full-GPU-kernel fallback reason.
+- Compiled diffuse path-loop capability records now also use subsystem-specific
+  fallback reasons for direct-light sampling/visibility/contribution, BSDF
+  eval/sample, spawned continuations, and sample accumulation. The graph still
+  reports the overall full platform path-loop kernel as missing, but rendercli
+  and Modeler can now see which CPU-reference subsystems a future platform
+  kernel must replace.
 - The convergence capture helper now preserves GPU frontier-compaction
   unavailable reasons in reference/candidate comparisons and queue-sweep
   summaries, keeping offline Phase 8 captures aligned with render metrics and

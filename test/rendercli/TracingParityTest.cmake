@@ -383,11 +383,11 @@ function(tracing_parity_render_compiled_gpu_execution category scene_file depth 
   tracing_parity_assert_matches(
     "tracing parity ${category} compiled GPU execution direct-light fallback"
     "${gpu_execution_stdout}"
-    "resident_direct_light_batches_unavailable_reason=compiled_CPU-reference_path_loop_resolves_direct-light_visibility_on_the_host.*direct_light_contribution_execution=cpu_record.*direct_light_contribution_fallback=platform_full-GPU_path-loop_kernel_is_not_available_yet")
+    "resident_direct_light_batches_unavailable_reason=compiled_CPU-reference_path_loop_resolves_direct-light_visibility_on_the_host.*direct_light_contribution_execution=cpu_record.*direct_light_contribution_fallback=compiled_CPU-reference_path_loop_evaluates_direct-light_contribution_on_the_host")
   tracing_parity_assert_matches(
     "tracing parity ${category} compiled GPU execution fallback capabilities summary"
     "${gpu_execution_stdout}"
-    "tracing_backend_fallback_capabilities=[1-9][0-9]*:.*lighting\\.direct_light_contribution=gpu->cpu:platform_full-GPU_path-loop_kernel_is_not_available_yet.*state\\.frontier_compaction=gpu->cpu:compiled_CPU-reference_path_loop_compacts_path_state_on_the_host.*state\\.path_state_residency=gpu->cpu:compiled_CPU-reference_path_loop_keeps_path_state_on_the_host")
+    "tracing_backend_fallback_capabilities=[1-9][0-9]*:.*lighting\\.direct_light_contribution=gpu->cpu:compiled_CPU-reference_path_loop_evaluates_direct-light_contribution_on_the_host.*state\\.frontier_compaction=gpu->cpu:compiled_CPU-reference_path_loop_compacts_path_state_on_the_host.*state\\.path_state_residency=gpu->cpu:compiled_CPU-reference_path_loop_keeps_path_state_on_the_host")
   tracing_parity_assert_matches(
     "tracing parity ${category} compiled GPU execution restricted capabilities summary"
     "${gpu_execution_stdout}"
@@ -402,7 +402,7 @@ function(tracing_parity_render_compiled_gpu_execution category scene_file depth 
           "\"tracingBackendRequest\"[ \r\n]*:[ \r\n]*\"gpu\""
           "\"tracingBackend\"[ \r\n]*:[ \r\n]*\"cpu\""
           "\"tracingBackendMode\"[ \r\n]*:[ \r\n]*\"compiled_cpu_reference\""
-          "\"directLightContributionFallbackReason\"[ \r\n]*:[ \r\n]*\"platform full-GPU path-loop kernel is not available yet\""
+          "\"directLightContributionFallbackReason\"[ \r\n]*:[ \r\n]*\"compiled CPU-reference path loop evaluates direct-light contribution on the host\""
           "\"frontierCompactionExecutionPath\"[ \r\n]*:[ \r\n]*\"compiled_cpu_reference\""
           "\"frontierCompactionPathStateResidency\"[ \r\n]*:[ \r\n]*\"cpu_host\""
           "\"intersectionBackendResidentDirectLightBatchesUnavailableReason\"[ \r\n]*:[ \r\n]*\"compiled CPU-reference path loop resolves direct-light visibility on the host\""

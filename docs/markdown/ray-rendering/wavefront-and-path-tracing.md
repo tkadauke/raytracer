@@ -442,7 +442,11 @@ The tracing capability records expose the same distinction: `state.frontier_comp
 names the operation path, while `state.path_state_residency` names where the
 active path records live. The compiled diffuse path-loop CPU reference uses the
 same capability names: it reports the GPU-facing path-loop operation separately
-from the host-resident path-state storage it still interprets on the CPU.
+from the host-resident path-state storage it still interprets on the CPU. Its
+capability fallbacks now also name the direct-light, BSDF, continuation, and
+accumulation steps that still run through host-owned CPU-reference records, so
+the trace distinguishes "no full platform path-loop kernel yet" from the
+individual subsystems a future kernel has to take over.
 The resident path-state layer mirrors the same contract with `uint32_t`
 retained indices, retained/removed/moved path counts, resident path-state byte
 totals, and an explicit execution-path label for future Metal/Vulkan kernels.

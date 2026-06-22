@@ -1474,6 +1474,9 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_THAT(fallbackCapabilities.toStdString(), ::testing::HasSubstr("GPU -> CPU"));
     EXPECT_THAT(fallbackCapabilities.toStdString(),
                 ::testing::HasSubstr("platform full-GPU path-loop kernel is not available yet"));
+    EXPECT_THAT(
+      fallbackCapabilities.toStdString(),
+      ::testing::HasSubstr("compiled CPU-reference path loop evaluates direct-light contribution"));
     const QString restrictedCapabilities =
       rowValue(rows, QStringLiteral("Restricted capabilities"));
     EXPECT_THAT(restrictedCapabilities.toStdString(), ::testing::HasSubstr("Sampling GPU RNG"));
