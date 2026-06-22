@@ -1007,7 +1007,8 @@ Progress:
   path-loop rows for the indirect-diffuse workload. The current rows time the
   `compiled_cpu_reference` loop over GPU-facing path-state records, publish
   `compiled_path_loop_*` work counters plus `resident_path_loop_*` residency
-  counters, and keep `full_gpu_path_loop_unavailable` visible until a platform
+  counters, including peak and final active path counts from the depth
+  frontier, and keep `full_gpu_path_loop_unavailable` visible until a platform
   Metal/Vulkan path-loop kernel exists.
 - The same benchmark family now also times CPU-reference image resolve for the
   compiled diffuse path-loop terminal records and publishes

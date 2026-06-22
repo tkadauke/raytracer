@@ -18,6 +18,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   compact metrics and Modeler graph pass details. — GPT-5 Codex
 - Preserve resident path-loop peak and final active path counts in convergence
   work comparisons and queue-sweep summaries. — GPT-5 Codex
+- Publish resident path-loop peak and final active path counters in the compiled
+  diffuse path-loop backend benchmark rows. — GPT-5 Codex
 
 ### Fixed
 

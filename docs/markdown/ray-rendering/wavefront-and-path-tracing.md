@@ -650,6 +650,9 @@ directly. Frontier-compaction benchmark rows run through the backend's
 `compactFrontier()` hook and report input, retained, removed, moved, and
 GPU-compaction-support counters, so the current CPU compaction path has a
 baseline before a device-side compaction kernel exists.
+Compiled diffuse path-loop benchmark rows also report peak and final active
+path counts from the depth frontier, matching the render metrics and capture
+summaries used to judge future resident path-loop kernels.
 
 Tracing backend performance captures use the same workload families in
 rendercli form: small supported primitives, a generated large triangle mesh,
