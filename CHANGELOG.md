@@ -28,6 +28,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   CPU-reference fallback metadata. — GPT-5 Codex
 - Report resident path-loop platform names in graph trace metadata, rendercli
   compact summaries, and Modeler selected-pass details. — GPT-5 Codex
+- Preserve resident path-loop platform labels in wavefront convergence
+  comparisons and queue-sweep summaries. — GPT-5 Codex
 
 ### Fixed
 

@@ -1821,6 +1821,10 @@ Progress:
   `none`, while future Metal/Vulkan path-loop result objects can populate the
   same graph trace, rendercli summary, and Modeler detail fields with their
   platform name.
+- The convergence capture helper now carries resident path-loop platform labels
+  into pairwise work comparisons and queue-sweep summaries, matching the
+  execution and residency labels already preserved for offline Phase 8
+  captures.
 
 ---
 

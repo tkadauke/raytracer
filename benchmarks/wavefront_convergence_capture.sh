@@ -283,6 +283,7 @@ def wavefront_metric_values(path)
     spawned_continuation_host_path_state_bytes: [],
     resident_path_loop_execution: [],
     resident_path_loop_residency: [],
+    resident_path_loop_platform: [],
     resident_path_loop_depths: [],
     resident_path_loop_peak_active_paths: [],
     resident_path_loop_last_active_paths: [],
@@ -413,6 +414,7 @@ def wavefront_metric_values(path)
       spawned_continuation_host_path_state_bytes: 0.0,
       resident_path_loop_execution: [],
       resident_path_loop_residency: [],
+      resident_path_loop_platform: [],
       resident_path_loop_depths: 0.0,
       resident_path_loop_peak_active_paths: 0.0,
       resident_path_loop_last_active_paths: 0.0,
@@ -593,11 +595,15 @@ def wavefront_metric_values(path)
       resident_path_loop_execution =
         batching.fetch("residentPathLoopExecutionPath", "")
       resident_path_loop_residency = batching.fetch("residentPathLoopResidency", "")
+      resident_path_loop_platform = batching.fetch("residentPathLoopPlatformName", "")
       unless resident_path_loop_execution.empty?
         run_values[:resident_path_loop_execution] << resident_path_loop_execution
       end
       unless resident_path_loop_residency.empty?
         run_values[:resident_path_loop_residency] << resident_path_loop_residency
+      end
+      unless resident_path_loop_platform.empty?
+        run_values[:resident_path_loop_platform] << resident_path_loop_platform
       end
       run_values[:resident_path_loop_depths] +=
         batching.fetch("residentPathLoopDepths", 0).to_f
@@ -1014,6 +1020,7 @@ end
    any_hit_frontier_residency
    resident_path_loop_execution
    resident_path_loop_residency
+   resident_path_loop_platform
    gpu_frontier_compaction_unavailable_reason
    resident_direct_light_batches_unavailable_reason].each do |key|
   puts format("%s reference=%s candidate=%s",
@@ -1145,6 +1152,7 @@ def aggregate_run(run)
     spawned_continuation_host_path_state_bytes: 0.0,
     resident_path_loop_executions: [],
     resident_path_loop_residencies: [],
+    resident_path_loop_platforms: [],
     resident_path_loop_depths: 0.0,
     resident_path_loop_peak_active_paths: 0.0,
     resident_path_loop_last_active_paths: 0.0,
@@ -1269,11 +1277,15 @@ def aggregate_run(run)
     resident_path_loop_execution =
       batching.fetch("residentPathLoopExecutionPath", "")
     resident_path_loop_residency = batching.fetch("residentPathLoopResidency", "")
+    resident_path_loop_platform = batching.fetch("residentPathLoopPlatformName", "")
     unless resident_path_loop_execution.empty?
       values[:resident_path_loop_executions] << resident_path_loop_execution
     end
     unless resident_path_loop_residency.empty?
       values[:resident_path_loop_residencies] << resident_path_loop_residency
+    end
+    unless resident_path_loop_platform.empty?
+      values[:resident_path_loop_platforms] << resident_path_loop_platform
     end
     values[:resident_path_loop_depths] +=
       batching.fetch("residentPathLoopDepths", 0).to_f
@@ -1526,6 +1538,7 @@ puts %w[
   spawned_continuation_host_path_state_bytes
   resident_path_loop_execution
   resident_path_loop_residency
+  resident_path_loop_platform
   resident_path_loop_depths
   resident_path_loop_peak_active_paths
   resident_path_loop_last_active_paths
@@ -1654,6 +1667,8 @@ queue_dirs.each do |queue_dir|
       label_set(runs.map { |run| run.fetch(:resident_path_loop_executions) })
     resident_path_loop_residency =
       label_set(runs.map { |run| run.fetch(:resident_path_loop_residencies) })
+    resident_path_loop_platform =
+      label_set(runs.map { |run| run.fetch(:resident_path_loop_platforms) })
     gpu_compaction_unavailable_reason =
       label_set(runs.map { |run| run.fetch(:gpu_frontier_compaction_unavailable_reasons) })
     resident_direct_light_unavailable_reason =
@@ -1675,6 +1690,7 @@ queue_dirs.each do |queue_dir|
       format("%.0f", median_for.call(:spawned_continuation_host_path_state_bytes)),
       resident_path_loop_execution,
       resident_path_loop_residency,
+      resident_path_loop_platform,
       format("%.0f", median_for.call(:resident_path_loop_depths)),
       format("%.0f", median_for.call(:resident_path_loop_peak_active_paths)),
       format("%.0f", median_for.call(:resident_path_loop_last_active_paths)),
