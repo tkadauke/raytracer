@@ -131,6 +131,7 @@ struct RenderGraphInspectorWidget::Private {
   QString tracingCapabilityUnsupportedSummary(const QJsonArray& capabilities) const;
   QString tracingExecutionModeText(const QString& value) const;
   QString intersectionScenePayloadSummary(const QJsonObject& batching) const;
+  QString intersectionServiceSceneSummary(const QJsonObject& service) const;
   QString passStateText(const RenderPassNode& pass) const;
   void addDetailRow(DetailRows& rows, const QString& name, const QString& value) const;
   void addDetailStringMetadataRow(DetailRows& rows, const QString& name,
@@ -642,6 +643,29 @@ QString RenderGraphInspectorWidget::Private::intersectionScenePayloadSummary(
     parts << QStringLiteral("%1 %2").arg(label).arg(count);
   }
   return parts.join(QStringLiteral(", "));
+}
+
+QString RenderGraphInspectorWidget::Private::intersectionServiceSceneSummary(
+  const QJsonObject& service) const {
+  if (service.isEmpty())
+    return QString();
+
+  const bool hasSceneShape = service.contains(QStringLiteral("compiledScene")) ||
+                             service.contains(QStringLiteral("scenePrimitives")) ||
+                             service.contains(QStringLiteral("sceneSupportedPrimitives")) ||
+                             service.contains(QStringLiteral("sceneUnsupportedPrimitives")) ||
+                             service.contains(QStringLiteral("sceneUploadBytes"));
+  if (!hasSceneShape)
+    return QString();
+
+  return QStringLiteral("service scene %1, %2 primitives (%3 supported, %4 unsupported), %5 upload "
+                        "bytes")
+    .arg(service.value(QStringLiteral("compiledScene")).toBool() ? QStringLiteral("compiled")
+                                                                 : QStringLiteral("runtime"))
+    .arg(jsonIntegerValue(service, QStringLiteral("scenePrimitives")))
+    .arg(jsonIntegerValue(service, QStringLiteral("sceneSupportedPrimitives")))
+    .arg(jsonIntegerValue(service, QStringLiteral("sceneUnsupportedPrimitives")))
+    .arg(jsonIntegerValue(service, QStringLiteral("sceneUploadBytes")));
 }
 
 QString RenderGraphInspectorWidget::Private::passStateText(const RenderPassNode& pass) const {
@@ -1826,6 +1850,12 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
                 .arg(directLightAnyHitHostQueryBytes)
                 .arg(directLightAnyHitStateHandleBytes);
     }
+  }
+  const QJsonObject service =
+    passTrace->metadata().value(QStringLiteral("intersectionService")).toObject();
+  const QString serviceSceneSummary = intersectionServiceSceneSummary(service);
+  if (!serviceSceneSummary.isEmpty()) {
+    line += QStringLiteral(", %1").arg(serviceSceneSummary);
   }
   const QJsonObject depthPrepass =
     passTrace->metadata().value(QStringLiteral("depthPrepass")).toObject();

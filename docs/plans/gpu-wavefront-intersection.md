@@ -1625,6 +1625,10 @@ Progress:
   consumers on the same scene-shape reporting contract as wavefront beauty
   passes before resident frontiers or platform path loops consume those
   compiled scenes.
+- Modeler graph-node tooltips now include the same compact intersection-service
+  scene-shape summary for hybrid visibility and ray-traced shadow passes, so
+  graph inspection can spot runtime-vs-compiled service execution without first
+  opening the selected-pass details.
 
 ---
 

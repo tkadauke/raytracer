@@ -1570,6 +1570,19 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_EQ(rowValue(rows, QStringLiteral("Service closest-hit frontier host query bytes")),
               QString::number(static_cast<qulonglong>(
                 service.value(QStringLiteral("closestHitFrontierHostQueryBytes")).toDouble())));
+
+    auto* graph = widget.findChild<QGraphicsView*>(QStringLiteral("renderGraphView"));
+    ASSERT_NE(nullptr, graph);
+    ASSERT_NE(nullptr, graph->scene());
+
+    QGraphicsItem* pass = graphNodeItem(graph->scene(), "pass", "hybrid_visibility_aov");
+    ASSERT_NE(nullptr, pass);
+
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("service scene runtime")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("0 primitives")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("0 supported")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("0 unsupported")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("0 upload bytes")));
   }
 
   TEST_F(RenderGraphInspectorWidgetTest,
@@ -1633,6 +1646,19 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_EQ(rowValue(rows, QStringLiteral("Service any-hit frontier host query bytes")),
               QString::number(static_cast<qulonglong>(
                 service.value(QStringLiteral("anyHitFrontierHostQueryBytes")).toDouble())));
+
+    auto* graph = widget.findChild<QGraphicsView*>(QStringLiteral("renderGraphView"));
+    ASSERT_NE(nullptr, graph);
+    ASSERT_NE(nullptr, graph->scene());
+
+    QGraphicsItem* pass = graphNodeItem(graph->scene(), "pass", "hybrid_ray_traced_shadows");
+    ASSERT_NE(nullptr, pass);
+
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("service scene runtime")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("0 primitives")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("0 supported")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("0 unsupported")));
+    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("0 upload bytes")));
   }
 
   TEST_F(RenderGraphInspectorWidgetTest,
