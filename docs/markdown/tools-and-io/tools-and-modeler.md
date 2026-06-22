@@ -232,7 +232,10 @@ under `intersectionSceneUnsupportedReasons`. The compact summary also separates
 `tracing_backend_restricted_capabilities`: fallback rows mean a requested GPU
 capability resolved somewhere else, while restricted rows mean the engine is
 using an explicit limited contract such as a CPU reference implementation for a
-GPU-style sampling stream.
+GPU-style sampling stream. The Modeler render graph selected-pass details use
+the same split, so a pass can show fallback GPU-to-CPU boundaries separately
+from restricted CPU-reference contracts such as
+`gpu_sample_stream_cpu_reference`.
 
 `gpu` is accepted as durable intent and reports either the active platform path
 or a CPU fallback reason in graph trace and wavefront metrics. For a

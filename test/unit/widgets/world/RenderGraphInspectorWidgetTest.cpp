@@ -1200,6 +1200,7 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_EQ(QStringLiteral("none"), rowValue(rows, QStringLiteral("GPU execution")));
     EXPECT_EQ(QStringLiteral("none"), rowValue(rows, QStringLiteral("Tracing fallback")));
     EXPECT_EQ(QStringLiteral("none"), rowValue(rows, QStringLiteral("Fallback capabilities")));
+    EXPECT_EQ(QStringLiteral("none"), rowValue(rows, QStringLiteral("Restricted capabilities")));
     EXPECT_THAT(rowValue(rows, QStringLiteral("Unsupported capabilities")).toStdString(),
                 ::testing::HasSubstr("Sampling GPU RNG"));
     EXPECT_EQ(QStringLiteral("CPU"), rowValue(rows, QStringLiteral("Actual tracing execution")));
@@ -1448,6 +1449,13 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_THAT(fallbackCapabilities.toStdString(), ::testing::HasSubstr("GPU -> CPU"));
     EXPECT_THAT(fallbackCapabilities.toStdString(),
                 ::testing::HasSubstr("platform full-GPU path-loop kernel is not available yet"));
+    const QString restrictedCapabilities =
+      rowValue(rows, QStringLiteral("Restricted capabilities"));
+    EXPECT_THAT(restrictedCapabilities.toStdString(), ::testing::HasSubstr("Sampling GPU RNG"));
+    EXPECT_THAT(restrictedCapabilities.toStdString(),
+                ::testing::HasSubstr("GPU Sample Stream CPU Reference"));
+    EXPECT_THAT(restrictedCapabilities.toStdString(),
+                ::testing::HasSubstr("GPU sample stream dimensions are generated"));
 
     const RenderPassTrace* passTrace = trace->findPass("wavefront_beauty");
     ASSERT_NE(nullptr, passTrace);

@@ -127,6 +127,7 @@ struct RenderGraphInspectorWidget::Private {
                                          const QString& resolvedDevice) const;
   QString tracingCapabilityFallbackSummary(const QJsonObject& fallback) const;
   QString tracingCapabilityFallbackListSummary(const QJsonArray& capabilities) const;
+  QString tracingCapabilityRestrictedSummary(const QJsonArray& capabilities) const;
   QString tracingCapabilityUnsupportedSummary(const QJsonArray& capabilities) const;
   QString tracingExecutionModeText(const QString& value) const;
   QString intersectionScenePayloadSummary(const QJsonObject& batching) const;
@@ -552,6 +553,35 @@ QString RenderGraphInspectorWidget::Private::tracingCapabilityFallbackListSummar
   return QStringLiteral("%1: %2").arg(names.size()).arg(names.join(QStringLiteral(", ")));
 }
 
+QString RenderGraphInspectorWidget::Private::tracingCapabilityRestrictedSummary(
+  const QJsonArray& capabilities) const {
+  QStringList names;
+  for (const QJsonValue& value : capabilities) {
+    const QJsonObject capability = value.toObject();
+    if (capability.value(QStringLiteral("support")).toString() != QStringLiteral("restricted"))
+      continue;
+
+    QString name = capabilityNameText(capability);
+    const QString resolved =
+      metadataIdentifierText(capability.value(QStringLiteral("resolvedDevice")).toString());
+    const QString path =
+      metadataIdentifierText(capability.value(QStringLiteral("executionPath")).toString());
+    name += QStringLiteral(": %1").arg(resolved);
+    if (!path.isEmpty())
+      name += QStringLiteral(" via %1").arg(path);
+
+    const QString reason = capability.value(QStringLiteral("unsupportedReason")).toString();
+    if (!reason.isEmpty())
+      name += QStringLiteral(" (%1)").arg(reason);
+    names << name;
+  }
+
+  if (names.isEmpty())
+    return QStringLiteral("none");
+  names.sort();
+  return QStringLiteral("%1: %2").arg(names.size()).arg(names.join(QStringLiteral(", ")));
+}
+
 QString RenderGraphInspectorWidget::Private::tracingCapabilityUnsupportedSummary(
   const QJsonArray& capabilities) const {
   QStringList names;
@@ -802,6 +832,8 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                    batching.value(QStringLiteral("tracingBackendFallback")).toObject()));
     addDetailRow(rows, QStringLiteral("Fallback capabilities"),
                  tracingCapabilityFallbackListSummary(tracingCapabilities));
+    addDetailRow(rows, QStringLiteral("Restricted capabilities"),
+                 tracingCapabilityRestrictedSummary(tracingCapabilities));
     addDetailRow(rows, QStringLiteral("Unsupported capabilities"),
                  tracingCapabilityUnsupportedSummary(tracingCapabilities));
   }

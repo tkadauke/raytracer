@@ -1593,6 +1593,9 @@ Progress:
   capability summaries separately from fallbacks. CPU-reference contracts such
   as `gpu_sample_stream_cpu_reference` are therefore visible without treating
   them as failed GPU fallback.
+- Modeler selected-pass graph details now show the same structured restricted
+  capability list separately from fallbacks, so GUI inspection can distinguish
+  limited CPU-reference contracts from requested-GPU fallback boundaries.
 - rendercli metrics-summary mode now also prints compact `intersection_service`
   rows for graph passes that use `IntersectionService`, including hybrid
   visibility and ray-traced shadow passes. That gives CLI users the same query

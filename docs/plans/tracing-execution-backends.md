@@ -1915,8 +1915,9 @@ architecture on "intersection backend".
      consumers.
 
 4. **~~Group Modeler graph metadata.~~** ✅ **Done.** Modeler selected-pass
-   rows now summarize tracing execution as CPU, hybrid, GPU, fallback, and
-   unsupported capability groups before the legacy intersection detail aliases.
+   rows now summarize tracing execution as CPU, hybrid, GPU, fallback,
+   restricted, and unsupported capability groups before the legacy intersection
+   detail aliases.
    - Depends on: job 3.
    - Output: selected-pass properties present execution capabilities as grouped
      CPU/hybrid/GPU state, not a flat dump of intersection fields.
