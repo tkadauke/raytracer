@@ -45,6 +45,22 @@ namespace {
            offset;
   }
 
+  std::uint64_t saturatedPathStateBytes(std::uint64_t count) {
+    constexpr std::uint64_t bytesPerPath = sizeof(GpuDiffusePathStateRecord);
+    constexpr std::uint64_t maxValue = std::numeric_limits<std::uint64_t>::max();
+    if (bytesPerPath != 0u && count > maxValue / bytesPerPath) {
+      return maxValue;
+    }
+    return count * bytesPerPath;
+  }
+
+  double fraction(std::uint64_t numerator, std::uint64_t denominator) {
+    if (denominator == 0u) {
+      return 0.0;
+    }
+    return static_cast<double>(numerator) / static_cast<double>(denominator);
+  }
+
   double sample1D(const GpuDiffusePathStateRecord& pathState, std::uint32_t dimension) {
     return GpuSampleStream::sample1D(GpuSampleCoordinate{pathState.sampleSeed, pathState.pixelIndex,
                                                          pathState.primarySampleIndex, dimension,
@@ -428,6 +444,42 @@ GpuDiffusePathStep::step(const GpuTracingSceneSections& scene,
     result.metrics.closestHitRays = activeRays.size();
   }
   return result;
+}
+
+std::uint64_t GpuDiffusePathLoopResult::pathStateBytesPerPath() const {
+  return sizeof(GpuDiffusePathStateRecord);
+}
+
+std::uint64_t GpuDiffusePathLoopResult::residentPathStateBytes() const {
+  return saturatedPathStateBytes(initialPathCount);
+}
+
+std::uint64_t GpuDiffusePathLoopResult::inputPathStateBytes() const {
+  return saturatedPathStateBytes(metrics.activePaths);
+}
+
+std::uint64_t GpuDiffusePathLoopResult::retainedPathStateBytes() const {
+  return saturatedPathStateBytes(metrics.spawnedContinuations);
+}
+
+std::uint64_t GpuDiffusePathLoopResult::removedPathStateBytes() const {
+  return saturatedPathStateBytes(static_cast<std::uint64_t>(resolvedPathStates.size()));
+}
+
+std::uint64_t GpuDiffusePathLoopResult::retainedPathIndexBytes() const {
+  return retainedIndexBytes;
+}
+
+std::uint64_t GpuDiffusePathLoopResult::movedPathCount() const {
+  return metrics.spawnedContinuations;
+}
+
+double GpuDiffusePathLoopResult::removedPathFraction() const {
+  return fraction(static_cast<std::uint64_t>(resolvedPathStates.size()), metrics.activePaths);
+}
+
+double GpuDiffusePathLoopResult::movedRetainedPathFraction() const {
+  return fraction(movedPathCount(), metrics.spawnedContinuations);
 }
 
 GpuDiffusePathStepResult

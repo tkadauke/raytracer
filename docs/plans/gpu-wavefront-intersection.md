@@ -1729,6 +1729,11 @@ Progress:
   to backend and residency fields, keeping the resident path-loop resolve
   handoff from publishing blank accumulation labels when future platform
   accumulation backends are plugged in.
+- The compiled diffuse path-loop result now owns its execution path,
+  path-state residency, compaction byte counters, and readback-savings
+  diagnostics. Graph metadata consumes those result-owned values instead of
+  re-deriving them locally, so future platform path-loop implementations have a
+  single result contract to populate.
 
 ---
 

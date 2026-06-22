@@ -60,9 +60,25 @@ namespace render {
     std::vector<GpuDiffusePathStepRecord> stepRecords;
     std::vector<std::uint64_t> activePathsPerDepth;
     GpuDiffusePathStepMetrics metrics;
+    std::string executionPath{"compiled_cpu_reference"};
+    std::string pathStateResidency{"cpu_host"};
     std::uint64_t initialPathCount{0};
     std::uint64_t depthCount{0};
     std::uint64_t maxDepthTerminatedPaths{0};
+    std::uint64_t retainedIndexBytes{0};
+    std::uint64_t roundTrips{1};
+    std::uint64_t savedHostReadbacks{0};
+    std::uint64_t savedHostReadbackBytes{0};
+
+    [[nodiscard]] std::uint64_t pathStateBytesPerPath() const;
+    [[nodiscard]] std::uint64_t residentPathStateBytes() const;
+    [[nodiscard]] std::uint64_t inputPathStateBytes() const;
+    [[nodiscard]] std::uint64_t retainedPathStateBytes() const;
+    [[nodiscard]] std::uint64_t removedPathStateBytes() const;
+    [[nodiscard]] std::uint64_t retainedPathIndexBytes() const;
+    [[nodiscard]] std::uint64_t movedPathCount() const;
+    [[nodiscard]] double removedPathFraction() const;
+    [[nodiscard]] double movedRetainedPathFraction() const;
   };
 
   struct GpuDiffusePrimaryPathStateGeneration {

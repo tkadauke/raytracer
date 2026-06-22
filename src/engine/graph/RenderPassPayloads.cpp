@@ -743,10 +743,15 @@ namespace engine::graph {
         Domain::BSDF, "shading.delta_branches",
         "compiled diffuse path loop supports diffuse continuation only");
 
+      const std::string pathStateResidency =
+        loop.pathStateResidency.empty() ? "cpu_host" : loop.pathStateResidency;
+      const std::string pathLoopExecution =
+        loop.executionPath.empty() ? "compiled_cpu_reference" : loop.executionPath;
+
       records.pathState.residency =
-        fallback(Domain::PathState, "state.path_state_residency", "cpu_host");
+        fallback(Domain::PathState, "state.path_state_residency", pathStateResidency);
       records.pathState.frontierCompaction =
-        fallback(Domain::PathState, "state.frontier_compaction", "compiled_cpu_reference");
+        fallback(Domain::PathState, "state.frontier_compaction", pathLoopExecution);
       records.pathState.spawnedContinuations =
         fallback(Domain::PathState, "state.spawned_continuations", "cpu_record");
 
@@ -779,7 +784,7 @@ namespace engine::graph {
       QJsonObject batching;
       batching["integrator"] = QStringLiteral("pathtracer");
       batching["executionMode"] = QStringLiteral("compiled_diffuse_path_loop");
-      batching["tracingBackendMode"] = QStringLiteral("compiled_cpu_reference");
+      batching["tracingBackendMode"] = QString::fromStdString(loop.executionPath);
       batching["tracingBackend"] = QStringLiteral("cpu");
       batching["tracingBackendRequest"] = tracingExecutionPreferenceName(requestedTracingExecution);
       const render::TracingExecutionCapabilityRecords tracingCapabilities =
@@ -835,61 +840,50 @@ namespace engine::graph {
         static_cast<double>(loop.metrics.directLightOccludedSamples);
       batching["spawnedContinuations"] = static_cast<double>(loop.metrics.spawnedContinuations);
       batching["terminatedPaths"] = static_cast<double>(loop.metrics.terminatedPaths);
-      const std::uint64_t pathStateBytes = sizeof(render::GpuDiffusePathStateRecord);
-      const std::uint64_t inputPathStateBytes = loop.metrics.activePaths * pathStateBytes;
-      const std::uint64_t retainedPathStateBytes =
-        loop.metrics.spawnedContinuations * pathStateBytes;
-      const std::uint64_t removedPathStateBytes = loop.resolvedPathStates.size() * pathStateBytes;
-      auto fraction = [](std::uint64_t numerator, std::uint64_t denominator) {
-        if (denominator == 0u) {
-          return 0.0;
-        }
-        return static_cast<double>(numerator) / static_cast<double>(denominator);
-      };
-      batching["frontierCompactionExecutionPath"] = QStringLiteral("compiled_cpu_reference");
-      batching["frontierCompactionPathStateResidency"] = QStringLiteral("cpu_host");
+      batching["frontierCompactionExecutionPath"] = QString::fromStdString(loop.executionPath);
+      batching["frontierCompactionPathStateResidency"] =
+        QString::fromStdString(loop.pathStateResidency);
       batching["frontierCompactionPasses"] = static_cast<double>(loop.depthCount);
       batching["frontierCompactionInputSamples"] = static_cast<double>(loop.metrics.activePaths);
       batching["frontierCompactionRetainedSamples"] =
         static_cast<double>(loop.metrics.spawnedContinuations);
       batching["frontierCompactionRemovedSamples"] =
         static_cast<double>(loop.resolvedPathStates.size());
-      batching["frontierCompactionRemovedSampleFraction"] =
-        fraction(loop.resolvedPathStates.size(), loop.metrics.activePaths);
-      batching["frontierCompactionMovedSamples"] =
-        static_cast<double>(loop.metrics.spawnedContinuations);
-      batching["frontierCompactionMovedRetainedSampleFraction"] =
-        loop.metrics.spawnedContinuations == 0u ? 0.0 : 1.0;
-      batching["frontierCompactionRetainedIndexBytes"] = 0.0;
+      batching["frontierCompactionRemovedSampleFraction"] = loop.removedPathFraction();
+      batching["frontierCompactionMovedSamples"] = static_cast<double>(loop.movedPathCount());
+      batching["frontierCompactionMovedRetainedSampleFraction"] = loop.movedRetainedPathFraction();
+      batching["frontierCompactionRetainedIndexBytes"] =
+        static_cast<double>(loop.retainedPathIndexBytes());
       batching["frontierCompactionInputHostPathStateBytes"] =
-        static_cast<double>(inputPathStateBytes);
+        static_cast<double>(loop.inputPathStateBytes());
       batching["frontierCompactionRetainedHostPathStateBytes"] =
-        static_cast<double>(retainedPathStateBytes);
+        static_cast<double>(loop.retainedPathStateBytes());
       batching["frontierCompactionRemovedHostPathStateBytes"] =
-        static_cast<double>(removedPathStateBytes);
-      batching["residentPathLoopExecutionPath"] = QStringLiteral("compiled_cpu_reference");
-      batching["residentPathLoopResidency"] = QStringLiteral("cpu_host");
+        static_cast<double>(loop.removedPathStateBytes());
+      batching["residentPathLoopExecutionPath"] = QString::fromStdString(loop.executionPath);
+      batching["residentPathLoopResidency"] = QString::fromStdString(loop.pathStateResidency);
       batching["residentPathLoopDepths"] = static_cast<double>(loop.depthCount);
       batching["residentPathLoopInputPaths"] = static_cast<double>(loop.metrics.activePaths);
       batching["residentPathLoopRetainedPaths"] =
         static_cast<double>(loop.metrics.spawnedContinuations);
       batching["residentPathLoopRemovedPaths"] =
         static_cast<double>(loop.resolvedPathStates.size());
-      batching["residentPathLoopMovedPaths"] =
-        static_cast<double>(loop.metrics.spawnedContinuations);
-      batching["residentPathLoopRetainedIndexBytes"] = 0.0;
+      batching["residentPathLoopMovedPaths"] = static_cast<double>(loop.movedPathCount());
+      batching["residentPathLoopRetainedIndexBytes"] =
+        static_cast<double>(loop.retainedPathIndexBytes());
       batching["residentPathLoopResidentPathStateBytes"] =
-        static_cast<double>(loop.initialPathCount * pathStateBytes);
+        static_cast<double>(loop.residentPathStateBytes());
       batching["residentPathLoopInputResidentPathStateBytes"] =
-        static_cast<double>(inputPathStateBytes);
+        static_cast<double>(loop.inputPathStateBytes());
       batching["residentPathLoopRetainedResidentPathStateBytes"] =
-        static_cast<double>(retainedPathStateBytes);
+        static_cast<double>(loop.retainedPathStateBytes());
       batching["residentPathLoopRemovedResidentPathStateBytes"] =
-        static_cast<double>(removedPathStateBytes);
+        static_cast<double>(loop.removedPathStateBytes());
       batching["residentPathLoopCompactionPasses"] = static_cast<double>(loop.depthCount);
-      batching["residentPathLoopRoundTrips"] = 1.0;
-      batching["residentPathLoopSavedHostReadbacks"] = 0.0;
-      batching["residentPathLoopSavedHostReadbackBytes"] = 0.0;
+      batching["residentPathLoopRoundTrips"] = static_cast<double>(loop.roundTrips);
+      batching["residentPathLoopSavedHostReadbacks"] = static_cast<double>(loop.savedHostReadbacks);
+      batching["residentPathLoopSavedHostReadbackBytes"] =
+        static_cast<double>(loop.savedHostReadbackBytes);
       batching["tracingSceneCompiled"] = compilation.diagnostics.compiled;
       batching["tracingSceneMaterials"] = static_cast<double>(compilation.diagnostics.materials);
       batching["tracingSceneTextures"] = static_cast<double>(compilation.diagnostics.textures);

@@ -913,6 +913,32 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(layout.resolveBytes(), diagnostics.readbackBytes);
   }
 
+  TEST(GpuDiffusePathLoop, ReportsCpuReferenceResidencyAndCompactionDiagnostics) {
+    Scene scene;
+    scene.setEnvironmentRadiance(Colord(0.25, 0.5, 0.75));
+    GpuTracingSceneSections sections = sectionsFor(scene);
+    GpuDiffusePathStateRecord path = activePath();
+    path.pixelIndex = 0;
+
+    const GpuDiffusePathLoopResult result = GpuDiffusePathLoop().run(sections, {path});
+    const std::uint64_t pathStateBytes = sizeof(GpuDiffusePathStateRecord);
+
+    EXPECT_EQ("compiled_cpu_reference", result.executionPath);
+    EXPECT_EQ("cpu_host", result.pathStateResidency);
+    EXPECT_EQ(pathStateBytes, result.pathStateBytesPerPath());
+    EXPECT_EQ(pathStateBytes, result.residentPathStateBytes());
+    EXPECT_EQ(pathStateBytes, result.inputPathStateBytes());
+    EXPECT_EQ(0u, result.retainedPathStateBytes());
+    EXPECT_EQ(pathStateBytes, result.removedPathStateBytes());
+    EXPECT_EQ(0u, result.retainedPathIndexBytes());
+    EXPECT_EQ(0u, result.movedPathCount());
+    EXPECT_DOUBLE_EQ(1.0, result.removedPathFraction());
+    EXPECT_DOUBLE_EQ(0.0, result.movedRetainedPathFraction());
+    EXPECT_EQ(1u, result.roundTrips);
+    EXPECT_EQ(0u, result.savedHostReadbacks);
+    EXPECT_EQ(0u, result.savedHostReadbackBytes);
+  }
+
   TEST(GpuDiffusePathLoop, TerminatesSurvivingContinuationsAtMaxDepth) {
     Scene scene;
     auto matte =
