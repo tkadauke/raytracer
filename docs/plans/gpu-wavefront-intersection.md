@@ -1576,6 +1576,11 @@ Progress:
   wavefront metrics, so explicit `--tracing_execution gpu` graph renders emit
   compact and JSON diagnostics for the current `compiled_cpu_reference` path
   instead of reporting that no wavefront pass produced metrics.
+- Modeler selected-pass graph details now show every structured tracing
+  fallback capability, not only the first active fallback record. Compiled
+  diffuse path-loop traces therefore expose the full current GPU-to-CPU
+  boundary for intersection, direct lighting, BSDF, path-state, and
+  accumulation capabilities in one place.
 
 ---
 
