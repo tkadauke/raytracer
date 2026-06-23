@@ -59,9 +59,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Report Metal/Vulkan prepared ray-batch compaction upload and kernel timing in
   the wavefront intersection backend benchmark rows. — GPT-5 Codex
 - Allow explicit Metal full-GPU diffuse path-loop renders with multiple samples
-  per output pixel by switching duplicate-pixel launches to path-slot
-  accumulation and resolving the final averaged image through the shared
-  accumulation path. — GPT-5 Codex
+  per output pixel by switching duplicate-pixel launches to platform
+  sample-slot accumulation, preserving Metal accumulation diagnostics for the
+  final averaged image. — GPT-5 Codex
 - Add compiled diffuse path-loop benchmark rows with resident path-loop and
   accumulation resolve counters, giving future platform full-GPU path-loop
   kernels a documented CPU-reference baseline. — GPT-5 Codex

@@ -548,7 +548,36 @@ namespace {
       throw std::logic_error(
         "gpu diffuse path-loop platform accumulation plane sizes do not match");
     }
+    if (result.platformAccumulationTargetMode == gpuDiffusePathLoopAccumulationTargetSampleSlot) {
+      return false;
+    }
     return result.platformAccumulationColorSums.size() == layout.pixelCount();
+  }
+
+  bool platformSampleSlotAccumulationMatchesLayout(const GpuDiffusePathLoopResult& result,
+                                                   const TracingAccumulationLayout& layout) {
+    if (!result.hasPlatformAccumulation()) {
+      return false;
+    }
+    if (result.platformAccumulationTargetMode != gpuDiffusePathLoopAccumulationTargetSampleSlot) {
+      return false;
+    }
+    if (result.platformAccumulationColorSums.size() !=
+        result.platformAccumulationSampleCounts.size()) {
+      throw std::logic_error(
+        "gpu diffuse path-loop platform accumulation plane sizes do not match");
+    }
+    if (result.platformAccumulationWidth == 0u || result.platformAccumulationHeight == 0u) {
+      return false;
+    }
+    if (result.platformAccumulationWidth >
+        std::numeric_limits<std::uint64_t>::max() / result.platformAccumulationHeight) {
+      throw std::overflow_error("gpu diffuse path-loop sample-slot accumulation shape overflows");
+    }
+    const std::uint64_t slotCount = static_cast<std::uint64_t>(result.platformAccumulationWidth) *
+                                    static_cast<std::uint64_t>(result.platformAccumulationHeight);
+    return result.platformAccumulationWidth == layout.pixelCount() &&
+           slotCount == result.platformAccumulationColorSums.size();
   }
 
   Colord resolvedPlatformAccumulationColor(const GpuDiffusePathLoopResult& result,
@@ -561,12 +590,51 @@ namespace {
            (1.0 / static_cast<double>(count));
   }
 
+  Colord resolvedPlatformSampleSlotAccumulationColor(const GpuDiffusePathLoopResult& result,
+                                                     std::uint64_t pixelIndex) {
+    const std::uint64_t slotStart =
+      pixelIndex * static_cast<std::uint64_t>(result.platformAccumulationHeight);
+    Colord sum = Colord::black();
+    std::uint64_t count = 0;
+    for (std::uint32_t sampleSlot = 0; sampleSlot != result.platformAccumulationHeight;
+         ++sampleSlot) {
+      const std::uint64_t slot = slotStart + sampleSlot;
+      const std::uint32_t sampleCount = result.platformAccumulationSampleCounts[slot];
+      if (sampleCount == 0u) {
+        continue;
+      }
+      sum += Colord(result.platformAccumulationColorSums[slot]);
+      count += sampleCount;
+    }
+    return count == 0u ? Colord::black() : sum * (1.0 / static_cast<double>(count));
+  }
+
+  TracingAccumulationLayout
+  platformAccumulationDiagnosticsLayout(const GpuDiffusePathLoopResult& result,
+                                        const TracingAccumulationLayout& fallbackLayout) {
+    if (result.platformAccumulationTargetMode == gpuDiffusePathLoopAccumulationTargetSampleSlot &&
+        result.platformAccumulationWidth != 0u && result.platformAccumulationHeight != 0u) {
+      if (result.platformAccumulationWidth >
+            static_cast<std::uint32_t>(std::numeric_limits<int>::max()) ||
+          result.platformAccumulationHeight >
+            static_cast<std::uint32_t>(std::numeric_limits<int>::max())) {
+        throw std::overflow_error(
+          "gpu diffuse path-loop sample-slot accumulation diagnostics layout exceeds int range");
+      }
+      return TracingAccumulationLayout::image(static_cast<int>(result.platformAccumulationWidth),
+                                              static_cast<int>(result.platformAccumulationHeight));
+    }
+    return fallbackLayout;
+  }
+
   TracingAccumulationDiagnostics
   platformAccumulationDiagnostics(const GpuDiffusePathLoopResult& result,
                                   const TracingAccumulationLayout& layout) {
-    TracingAccumulationDiagnostics diagnostics =
-      TracingAccumulationDiagnostics::forLayout(layout, platformAccumulationBackend(result).c_str(),
-                                                platformAccumulationResidency(result).c_str());
+    const TracingAccumulationLayout diagnosticsLayout =
+      platformAccumulationDiagnosticsLayout(result, layout);
+    TracingAccumulationDiagnostics diagnostics = TracingAccumulationDiagnostics::forLayout(
+      diagnosticsLayout, platformAccumulationBackend(result).c_str(),
+      platformAccumulationResidency(result).c_str());
     diagnostics.recordClear();
 
     std::uint64_t addOperations = 0;
@@ -602,6 +670,57 @@ namespace {
     }
     diagnostics.recordResolve();
     diagnostics.recordReadback(layout.accumulationBytes());
+    return diagnostics;
+  }
+
+  TracingAccumulationDiagnostics
+  resolvePlatformSampleSlotAccumulationImage(const GpuDiffusePathLoopResult& result,
+                                             const TracingAccumulationLayout& layout,
+                                             Buffer<Colord>& target) {
+    if (target.width() != layout.width || target.height() != layout.height) {
+      throw std::invalid_argument(
+        "gpu diffuse path-loop HDR target dimensions do not match layout");
+    }
+
+    TracingAccumulationDiagnostics diagnostics = platformAccumulationDiagnostics(result, layout);
+    const TracingAccumulationLayout diagnosticsLayout =
+      platformAccumulationDiagnosticsLayout(result, layout);
+    for (int y = 0; y != layout.height; ++y) {
+      for (int x = 0; x != layout.width; ++x) {
+        const std::uint64_t pixelIndex =
+          static_cast<std::uint64_t>(y) * static_cast<std::uint64_t>(layout.width) +
+          static_cast<std::uint64_t>(x);
+        target[y][x] = resolvedPlatformSampleSlotAccumulationColor(result, pixelIndex);
+      }
+    }
+    diagnostics.recordResolve();
+    diagnostics.recordReadback(diagnosticsLayout.accumulationBytes());
+    return diagnostics;
+  }
+
+  TracingAccumulationDiagnostics
+  resolvePlatformSampleSlotAccumulationImage(const GpuDiffusePathLoopResult& result,
+                                             const TracingAccumulationLayout& layout,
+                                             Buffer<unsigned int>& target, const Tonemap* tonemap) {
+    if (target.width() != layout.width || target.height() != layout.height) {
+      throw std::invalid_argument(
+        "gpu diffuse path-loop display target dimensions do not match layout");
+    }
+
+    TracingAccumulationDiagnostics diagnostics = platformAccumulationDiagnostics(result, layout);
+    const TracingAccumulationLayout diagnosticsLayout =
+      platformAccumulationDiagnosticsLayout(result, layout);
+    for (int y = 0; y != layout.height; ++y) {
+      for (int x = 0; x != layout.width; ++x) {
+        const std::uint64_t pixelIndex =
+          static_cast<std::uint64_t>(y) * static_cast<std::uint64_t>(layout.width) +
+          static_cast<std::uint64_t>(x);
+        const Colord color = resolvedPlatformSampleSlotAccumulationColor(result, pixelIndex);
+        target[y][x] = (tonemap ? tonemap->apply(color) : color).rgb();
+      }
+    }
+    diagnostics.recordResolve();
+    diagnostics.recordReadback(diagnosticsLayout.accumulationBytes());
     return diagnostics;
   }
 
@@ -1354,6 +1473,9 @@ render::resolveGpuDiffusePathLoopImage(const GpuDiffusePathLoopResult& result,
   if (platformAccumulationMatchesLayout(result, layout)) {
     return resolvePlatformAccumulationImage(result, layout, target);
   }
+  if (platformSampleSlotAccumulationMatchesLayout(result, layout)) {
+    return resolvePlatformSampleSlotAccumulationImage(result, layout, target);
+  }
   return render::resolveGpuDiffusePathLoopImage(result.resolvedPathStates, layout, target);
 }
 
@@ -1376,6 +1498,9 @@ render::resolveGpuDiffusePathLoopImage(const GpuDiffusePathLoopResult& result,
                                        Buffer<unsigned int>& target, const Tonemap* tonemap) {
   if (platformAccumulationMatchesLayout(result, layout)) {
     return resolvePlatformAccumulationImage(result, layout, target, tonemap);
+  }
+  if (platformSampleSlotAccumulationMatchesLayout(result, layout)) {
+    return resolvePlatformSampleSlotAccumulationImage(result, layout, target, tonemap);
   }
   return render::resolveGpuDiffusePathLoopImage(result.resolvedPathStates, layout, target, tonemap);
 }

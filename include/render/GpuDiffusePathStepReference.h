@@ -97,6 +97,10 @@ namespace render {
     std::uint32_t directLightSamples{1};
   };
 
+  inline constexpr std::uint32_t gpuDiffusePathLoopAccumulationTargetPixel = 0u;
+  inline constexpr std::uint32_t gpuDiffusePathLoopAccumulationTargetPath = 1u;
+  inline constexpr std::uint32_t gpuDiffusePathLoopAccumulationTargetSampleSlot = 2u;
+
   struct GpuDiffusePathLoopResult {
     std::vector<GpuDiffusePathStateRecord> resolvedPathStates;
     std::vector<GpuDiffusePathStepRecord> stepRecords;
@@ -121,6 +125,9 @@ namespace render {
     std::vector<std::uint32_t> platformAccumulationSampleCounts;
     std::string platformAccumulationBackend;
     std::string platformAccumulationResidency;
+    std::uint32_t platformAccumulationTargetMode{gpuDiffusePathLoopAccumulationTargetPixel};
+    std::uint32_t platformAccumulationWidth{0};
+    std::uint32_t platformAccumulationHeight{0};
 
     [[nodiscard]] std::uint64_t pathStateBytesPerPath() const;
     [[nodiscard]] std::uint64_t residentPathStateBytes() const;

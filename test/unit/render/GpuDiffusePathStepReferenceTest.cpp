@@ -1733,7 +1733,7 @@ namespace GpuDiffusePathStepReferenceTest {
 #endif
   }
 
-  TEST(MetalGpuDiffusePathLoopBackend, RunsDuplicatePixelSamplesWithPathSlotAccumulation) {
+  TEST(MetalGpuDiffusePathLoopBackend, RunsDuplicatePixelSamplesWithSampleSlotAccumulation) {
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
     const MetalGpuDiffusePathLoopBackend backend;
     if (!backend.fullGpuPathLoopAvailable()) {
@@ -1766,6 +1766,10 @@ namespace GpuDiffusePathStepReferenceTest {
     expectPathStateNear(result.resolvedPathStates[1], expected.resolvedPathStates[1], 1e-4);
     ASSERT_EQ(paths.size(), result.platformAccumulationColorSums.size());
     ASSERT_EQ(paths.size(), result.platformAccumulationSampleCounts.size());
+    EXPECT_EQ(gpuDiffusePathLoopAccumulationTargetSampleSlot,
+              result.platformAccumulationTargetMode);
+    EXPECT_EQ(1u, result.platformAccumulationWidth);
+    EXPECT_EQ(2u, result.platformAccumulationHeight);
     EXPECT_EQ(1u, result.platformAccumulationSampleCounts[0]);
     EXPECT_EQ(1u, result.platformAccumulationSampleCounts[1]);
 
@@ -1777,8 +1781,8 @@ namespace GpuDiffusePathStepReferenceTest {
       resolveGpuDiffusePathLoopImage(result, layout, resolved);
 
     ASSERT_COLOR_NEAR(expectedResolved[0][0], resolved[0][0], 1e-4);
-    EXPECT_EQ("gpu_diffuse_path_loop", diagnostics.backend);
-    EXPECT_EQ("resident_accumulation_resolve", diagnostics.residency);
+    EXPECT_EQ("metal_diffuse_path_loop", diagnostics.backend);
+    EXPECT_EQ("metal_accumulation_buffer", diagnostics.residency);
 #else
     GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
 #endif
@@ -3414,6 +3418,45 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(1u, diagnostics.resolveOperations);
     EXPECT_EQ(1u, diagnostics.readbackOperations);
     EXPECT_EQ(layout.accumulationBytes(), diagnostics.readbackBytes);
+  }
+
+  TEST(GpuDiffusePathLoop, ResolvesSampleSlotPlatformAccumulationIntoHdrImage) {
+    GpuDiffusePathStateRecord fallback = makeTerminatedGpuDiffusePathState();
+    fallback.pixelIndex = 0;
+    fallback.accumulatedRadiance = {1.0f, 0.0f, 0.0f, 0.0f};
+
+    GpuDiffusePathLoopResult result;
+    result.resolvedPathStates = {fallback};
+    result.platformAccumulationBackend = "metal_diffuse_path_loop";
+    result.platformAccumulationResidency = "metal_accumulation_buffer";
+    result.platformAccumulationTargetMode = gpuDiffusePathLoopAccumulationTargetSampleSlot;
+    result.platformAccumulationWidth = 2u;
+    result.platformAccumulationHeight = 3u;
+    result.platformAccumulationColorSums = {{{0.25f, 0.5f, 0.0f, 0.0f},
+                                             {0.75f, 0.25f, 0.25f, 0.0f},
+                                             {0.0f, 0.0f, 0.0f, 0.0f},
+                                             {0.0f, 0.25f, 0.5f, 0.0f},
+                                             {0.5f, 0.0f, 0.25f, 0.0f},
+                                             {1.0f, 0.75f, 0.0f, 0.0f}}};
+    result.platformAccumulationSampleCounts = {1u, 1u, 0u, 1u, 1u, 1u};
+
+    Buffer<Colord> resolved(2, 1);
+    const TracingAccumulationLayout layout = TracingAccumulationLayout::image(2, 1);
+    const TracingAccumulationDiagnostics diagnostics =
+      resolveGpuDiffusePathLoopImage(result, layout, resolved);
+
+    ASSERT_COLOR_NEAR(Colord(0.5, 0.375, 0.125), resolved[0][0], 1e-12);
+    ASSERT_COLOR_NEAR(Colord(0.5, 1.0 / 3.0, 0.25), resolved[0][1], 1e-12);
+    EXPECT_EQ("metal_diffuse_path_loop", diagnostics.backend);
+    EXPECT_EQ("metal_accumulation_buffer", diagnostics.residency);
+    EXPECT_EQ(TracingAccumulationLayout::image(2, 3).totalBytes(), diagnostics.residentBytes);
+    EXPECT_EQ(1u, diagnostics.clearOperations);
+    EXPECT_EQ(5u, diagnostics.addOperations);
+    EXPECT_EQ(5u, diagnostics.addedSamples);
+    EXPECT_EQ(1u, diagnostics.resolveOperations);
+    EXPECT_EQ(1u, diagnostics.readbackOperations);
+    EXPECT_EQ(TracingAccumulationLayout::image(2, 3).accumulationBytes(),
+              diagnostics.readbackBytes);
   }
 
   TEST(GpuDiffusePathLoop, FallsBackToPathStatesWhenPlatformAccumulationShapeDiffers) {

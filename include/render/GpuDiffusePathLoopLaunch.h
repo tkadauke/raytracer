@@ -8,8 +8,6 @@
 
 namespace render {
   inline constexpr std::uint32_t gpuDiffusePathLoopLaunchLayoutVersion = 5u;
-  inline constexpr std::uint32_t gpuDiffusePathLoopAccumulationTargetPixel = 0u;
-  inline constexpr std::uint32_t gpuDiffusePathLoopAccumulationTargetPath = 1u;
 
   struct alignas(16) GpuDiffusePathLoopLaunchParameters {
     std::uint32_t layoutVersion{gpuDiffusePathLoopLaunchLayoutVersion};

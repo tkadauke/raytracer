@@ -328,6 +328,7 @@ namespace render {
               "constant uint gpuDiffusePathStepEventHit = 2u;\n"
               "constant uint gpuDiffusePathStepEventUnsupported = 3u;\n"
               "constant uint gpuDiffusePathLoopAccumulationTargetPath = 1u;\n"
+              "constant uint gpuDiffusePathLoopAccumulationTargetSampleSlot = 2u;\n"
               "constant uint gpuSampleInitialCoordinateState = 0x811c9dc5u;\n"
               "constant uint gpuSampleCoordinateStep = 0x9e3779b9u;\n"
               "constant float pathLoopInvPi = 0.31830988618379067154f;\n"
@@ -1667,16 +1668,25 @@ namespace render {
               "  const uint pixelCount = parameters.imageWidth * parameters.imageHeight;\n"
               "  return reinterpret_cast<device uint*>(accumulation + pixelCount * 16u);\n"
               "}\n"
+              "uint accumulationIndexFor(\n"
+              "    constant GpuDiffusePathLoopLaunchParameters& parameters,\n"
+              "    uint pathIndex,\n"
+              "    GpuDiffusePathStateRecord path) {\n"
+              "  if (parameters.accumulationTargetMode == gpuDiffusePathLoopAccumulationTargetPath) {\n"
+              "    return pathIndex;\n"
+              "  }\n"
+              "  if (parameters.accumulationTargetMode == gpuDiffusePathLoopAccumulationTargetSampleSlot) {\n"
+              "    return path.pixelIndex * parameters.imageHeight + path.primarySampleIndex;\n"
+              "  }\n"
+              "  return path.pixelIndex;\n"
+              "}\n"
               "void accumulateTerminatedPath(\n"
               "    constant GpuDiffusePathLoopLaunchParameters& parameters,\n"
               "    device uchar* accumulation,\n"
               "    uint pathIndex,\n"
               "    GpuDiffusePathStateRecord path) {\n"
               "  const uint pixelCount = parameters.imageWidth * parameters.imageHeight;\n"
-              "  const uint accumulationIndex =\n"
-              "      parameters.accumulationTargetMode == gpuDiffusePathLoopAccumulationTargetPath\n"
-              "          ? pathIndex\n"
-              "          : path.pixelIndex;\n"
+              "  const uint accumulationIndex = accumulationIndexFor(parameters, pathIndex, path);\n"
               "  if (accumulationIndex >= pixelCount) {\n"
               "    return;\n"
               "  }\n"
@@ -2103,6 +2113,41 @@ namespace render {
           throw std::invalid_argument(
             std::string("Metal diffuse path-loop ") + probeName +
             " path accumulation layout has fewer slots than paths");
+        }
+        return;
+      }
+      if (plan.parameters.accumulationTargetMode ==
+          gpuDiffusePathLoopAccumulationTargetSampleSlot) {
+        std::vector<bool> seenSlots(static_cast<std::size_t>(pixels), false);
+        for (const GpuDiffusePathStateRecord& path : initialPathStates) {
+          if (!gpuDiffusePathStateIsActive(path)) {
+            continue;
+          }
+          if (path.pixelIndex >= plan.parameters.imageWidth) {
+            throw std::invalid_argument(
+              std::string("Metal diffuse path-loop ") + probeName +
+              " path pixel is outside the sample-slot accumulation layout");
+          }
+          if (path.primarySampleIndex >= plan.parameters.imageHeight) {
+            throw std::invalid_argument(
+              std::string("Metal diffuse path-loop ") + probeName +
+              " path sample is outside the sample-slot accumulation layout");
+          }
+          const std::uint64_t slot =
+            static_cast<std::uint64_t>(path.pixelIndex) *
+              static_cast<std::uint64_t>(plan.parameters.imageHeight) +
+            static_cast<std::uint64_t>(path.primarySampleIndex);
+          if (slot >= pixels) {
+            throw std::invalid_argument(
+              std::string("Metal diffuse path-loop ") + probeName +
+              " path sample slot is outside the accumulation layout");
+          }
+          if (seenSlots[static_cast<std::size_t>(slot)]) {
+            throw std::invalid_argument(
+              std::string("Metal diffuse path-loop ") + probeName +
+              " probe requires unique active pixel/sample targets");
+          }
+          seenSlots[static_cast<std::size_t>(slot)] = true;
         }
         return;
       }
