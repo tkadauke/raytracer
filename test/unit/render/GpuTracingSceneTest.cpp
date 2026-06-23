@@ -632,11 +632,15 @@ namespace GpuTracingSceneTest {
                     "precision"));
   }
 
-  TEST(GpuTracingScene, DiffusePathLoopSupportAcceptsMatteAndEmissiveScenes) {
+  TEST(GpuTracingScene, DiffusePathLoopSupportAcceptsMattePhongAndEmissiveScenes) {
     auto matte = std::make_shared<MatteMaterial>(
       std::make_shared<ConstantColorTexture>(Colord(0.25, 0.5, 0.75)));
     auto sphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
     sphere->setMaterial(matte);
+    auto phong = std::make_shared<PhongMaterial>(
+      std::make_shared<ConstantColorTexture>(Colord(0.5, 0.25, 0.125)), Colord::white(), 16.0);
+    auto phongSphere = std::make_shared<Sphere>(Vector3d(-3.0, 0.0, 0.0), 0.5);
+    phongSphere->setMaterial(phong);
     auto emissive = std::make_shared<EmissiveMaterial>(Colord(1.0, 0.5, 0.25));
     auto lightSphere = std::make_shared<Sphere>(Vector3d(3.0, 0.0, 0.0), 0.5);
     lightSphere->setMaterial(emissive);
@@ -644,6 +648,7 @@ namespace GpuTracingSceneTest {
     scene.setBackground(Colord(0.1, 0.2, 0.3));
     scene.setEnvironmentRadiance(Colord(0.1, 0.2, 0.3));
     scene.add(sphere);
+    scene.add(phongSphere);
     scene.add(lightSphere);
 
     const GpuTracingSceneCompilation compilation = compileGpuTracingScene(scene);
@@ -655,10 +660,10 @@ namespace GpuTracingSceneTest {
   }
 
   TEST(GpuTracingScene, DiffusePathLoopSupportRejectsNonDiffuseMaterials) {
-    auto phong = std::make_shared<PhongMaterial>(
-      std::make_shared<ConstantColorTexture>(Colord(0.25, 0.5, 0.75)), Colord::white(), 16.0);
+    auto reflective = std::make_shared<ReflectiveMaterial>(
+      std::make_shared<ConstantColorTexture>(Colord(0.25, 0.5, 0.75)));
     auto sphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
-    sphere->setMaterial(phong);
+    sphere->setMaterial(reflective);
     Scene scene;
     scene.setBackground(Colord(0.1, 0.2, 0.3));
     scene.setEnvironmentRadiance(Colord(0.1, 0.2, 0.3));
@@ -669,7 +674,8 @@ namespace GpuTracingSceneTest {
     const GpuDiffusePathLoopSupport support = gpuDiffusePathLoopSupport(compilation, scene);
 
     EXPECT_FALSE(support.supported);
-    EXPECT_EQ("GPU diffuse path loop supports only matte and emissive materials", support.reason);
+    EXPECT_EQ("GPU diffuse path loop supports only matte, Phong diffuse, and emissive materials",
+              support.reason);
     EXPECT_EQ(support.reason, gpuDiffusePathLoopUnsupportedReason(compilation, scene));
   }
 

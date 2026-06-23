@@ -26,6 +26,7 @@
 #include "render/materials/Material.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/materials/PhongMaterial.h"
+#include "render/materials/ReflectiveMaterial.h"
 #include "render/primitives/Disk.h"
 #include "render/primitives/Instance.h"
 #include "render/primitives/OpenCylinder.h"
@@ -628,8 +629,8 @@ namespace GpuDiffusePathStepReferenceTest {
 
   TEST(GpuDiffusePathStep, UnsupportedMaterialFallbackMatchesReferenceAndStaysExplicit) {
     auto unsupportedSphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
-    unsupportedSphere->setMaterial(
-      std::make_shared<PhongMaterial>(std::make_shared<ConstantColorTexture>(Colord::white())));
+    unsupportedSphere->setMaterial(std::make_shared<ReflectiveMaterial>(
+      std::make_shared<ConstantColorTexture>(Colord::white())));
 
     Scene scene;
     scene.add(unsupportedSphere);
@@ -651,6 +652,38 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_NE(0u, actual.terminatedPathStates[0].flags & gpuDiffusePathStateUnsupportedFlag);
     EXPECT_EQ(1u, actual.metrics.unsupportedHits);
     EXPECT_EQ(1u, actual.metrics.terminatedPaths);
+  }
+
+  TEST(GpuDiffusePathStep, PhongHitUsesDiffuseLobeForCompiledDiffusePathLoop) {
+    Scene scene;
+    auto phong = std::make_shared<PhongMaterial>(
+      std::make_shared<ConstantColorTexture>(Colord(0.25, 0.5, 0.75)), Colord::white(), 16.0);
+    phong->setDiffuseCoefficient(0.8);
+    phong->setSpecularCoefficient(1.0);
+    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    receiver->setMaterial(phong);
+    scene.add(receiver);
+    scene.addLight(std::make_shared<PointLight>(Vector3d(0.0, 0.0, -3.0), Colord(0.8, 0.6, 0.4)));
+    GpuTracingSceneSections sections = sectionsFor(scene);
+
+    GpuDiffusePathStateRecord path = activePath();
+    path.throughput = {0.5f, 0.25f, 0.125f, 0.0f};
+
+    const GpuDiffusePathStepResult result = GpuDiffusePathStep().step(sections, {path});
+
+    ASSERT_EQ(1u, result.pathStates.size());
+    ASSERT_EQ(1u, result.directLightShadowRays.size());
+    ASSERT_EQ(1u, result.directLightOcclusionRecords.size());
+    EXPECT_EQ(0u, result.directLightOcclusionRecords[0].occluded);
+    ASSERT_COLOR_NEAR(Colord(0.8 * 0.25 * 0.8 * invPI * 0.5, 0.6 * 0.5 * 0.8 * invPI * 0.25,
+                             0.4 * 0.75 * 0.8 * invPI * 0.125),
+                      colorFrom4(result.stepRecords[0].directLightRadiance), 1e-5);
+    ASSERT_COLOR_NEAR(Colord(0.25 * 0.8 * 0.5, 0.5 * 0.8 * 0.25, 0.75 * 0.8 * 0.125),
+                      colorFrom4(result.stepRecords[0].continuationThroughput), 1e-5);
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuDiffusePathStepEvent::Hit),
+              result.stepRecords[0].event);
+    EXPECT_EQ(1u, result.metrics.spawnedContinuations);
+    EXPECT_EQ(0u, result.metrics.unsupportedHits);
   }
 
   TEST(GpuDiffusePathStep, EmissiveHitFeedsContributionIntoStepRecord) {
@@ -1781,6 +1814,47 @@ namespace GpuDiffusePathStepReferenceTest {
     matte->setDiffuseCoefficient(1.0);
     auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
     receiver->setMaterial(matte);
+    scene.add(receiver);
+    scene.addLight(std::make_shared<PointLight>(Vector3d(0.0, 0.0, -3.0), Colord(0.8, 0.6, 0.4)));
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+    GpuDiffusePathStateRecord path = activePath();
+    path.pixelIndex = 0;
+    path.sampleSeed = 12347;
+    path.throughput = {0.5f, 0.25f, 0.125f, 0.0f};
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 1;
+    settings.russianRouletteDepth = 10;
+    settings.directLightSamples = 1;
+    const std::vector<GpuDiffusePathStateRecord> paths{path};
+
+    const GpuDiffusePathLoopResult expected = GpuDiffusePathLoop().run(sections, paths, settings);
+    const GpuDiffusePathLoopResult result = backend.run(sections, paths, settings);
+
+    EXPECT_TRUE(result.fullGpuPathLoopSupported());
+    EXPECT_EQ(1u, result.depthCount);
+    EXPECT_EQ(1u, result.maxDepthTerminatedPaths);
+    ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
+    expectPathStateNear(result.resolvedPathStates[0], expected.resolvedPathStates[0], 1e-4);
+#else
+    GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
+#endif
+  }
+
+  TEST(MetalGpuDiffusePathLoopBackend, RunsPhongDiffuseLobePathLoopWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    const MetalGpuDiffusePathLoopBackend backend;
+    if (!backend.fullGpuPathLoopAvailable()) {
+      GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
+    }
+
+    Scene scene;
+    auto phong = std::make_shared<PhongMaterial>(
+      std::make_shared<ConstantColorTexture>(Colord(0.25, 0.5, 0.75)), Colord::white(), 16.0);
+    phong->setDiffuseCoefficient(0.8);
+    phong->setSpecularCoefficient(1.0);
+    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    receiver->setMaterial(phong);
     scene.add(receiver);
     scene.addLight(std::make_shared<PointLight>(Vector3d(0.0, 0.0, -3.0), Colord(0.8, 0.6, 0.4)));
     const GpuTracingSceneSections sections = sectionsFor(scene);

@@ -366,8 +366,12 @@ namespace {
     return normalDotDirection <= 0.0 ? 0.0 : normalDotDirection * invPI;
   }
 
-  Colord matteBsdf(const GpuTracingSceneSections& scene, const GpuTracingMaterialRecord& material,
-                   const GpuIntersectionHitRecord& hit) {
+  bool isDiffusePathLoopMaterial(GpuTracingMaterialKind kind) {
+    return kind == GpuTracingMaterialKind::Matte || kind == GpuTracingMaterialKind::Phong;
+  }
+
+  Colord diffuseBsdf(const GpuTracingSceneSections& scene, const GpuTracingMaterialRecord& material,
+                     const GpuIntersectionHitRecord& hit) {
     return textureColor(scene, material.albedoTexture, hit) * material.parameters[1] * invPI;
   }
 
@@ -979,7 +983,7 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
       continue;
     }
 
-    if (materialKind != GpuTracingMaterialKind::Matte) {
+    if (!isDiffusePathLoopMaterial(materialKind)) {
       markUnsupported(pathState);
       stepRecord.event = static_cast<std::uint32_t>(GpuDiffusePathStepEvent::Unsupported);
       stepRecord.flags = pathState.flags;
@@ -989,7 +993,7 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
       continue;
     }
 
-    const Colord bsdf = matteBsdf(scene, material, hit);
+    const Colord bsdf = diffuseBsdf(scene, material, hit);
     if (!scene.lights.empty()) {
       Colord directLightRadiance = Colord::black();
       const std::uint32_t configuredDirectLightSamples = directLightSampleCount(settings);

@@ -74,9 +74,9 @@ end state for GPU tracing.
 - Closest-hit and any-hit frontiers are represented by backend-owned handles.
 - `render::GpuTracingSceneSections` and diagnostics compile GPU-readable
   material, texture, light, environment, and debug-id records for the initial
-  supported shading subset: Matte and Emissive materials, ConstantColor and
-  simple CheckerBoard textures, PointLight, DirectionalLight, and
-  RectangularAreaLight.
+  supported shading subset: Matte materials, Phong diffuse-lobe shading,
+  Emissive materials, ConstantColor and simple CheckerBoard textures,
+  PointLight, DirectionalLight, and RectangularAreaLight.
 - `render::GpuSampleStream` provides the CPU reference for deterministic
   GPU-style sampling dimensions with fixed-vector coverage.
 - Supported diffuse path-tracing scenes can route GPU execution requests
@@ -123,10 +123,11 @@ end state for GPU tracing.
 - Platform GPU-side path/frontier compaction for scheduler-owned path records.
 - Broad platform full-GPU path-loop kernels for the normal render path. A
   restricted Metal path-loop kernel can advance empty-scene and
-  optionally transformed triangle/sphere/plane/rectangle/disk Matte/Emissive
-  paths across multiple depths for backend tests and explicit GPU graph
-  requests, and a restricted Vulkan path-loop backend can execute empty-scene
-  all-miss paths when Vulkan is built and available. Graph auto-selection still
+  optionally transformed triangle/sphere/plane/rectangle/disk/open-cylinder/
+  torus paths with Matte, Phong diffuse-lobe, or Emissive materials across
+  multiple depths for backend tests and explicit GPU graph requests, and a
+  restricted Vulkan path-loop backend can execute empty-scene all-miss paths
+  when Vulkan is built and available. Graph auto-selection still
   waits for Vulkan shaded-path parity, broader scene support, and performance
   gates.
 - Platform full-GPU path-loop backend selection beyond that restricted Metal
@@ -1719,12 +1720,13 @@ comparison logic.
      sections with versioned layout expectations.
 
 2. ~~**Compile material records.**~~ ✅ **Done.**
-   `render::compileGpuTracingMaterials` now packs Matte and Emissive materials
-   into GPU tracing records keyed by runtime material id, with unsupported
-   material reasons counted for tracing scene diagnostics. Closes #580.
+   `render::compileGpuTracingMaterials` now packs Matte, Phong, Reflective,
+   and Emissive materials into GPU tracing records keyed by runtime material
+   id, with unsupported material reasons counted for tracing scene diagnostics.
+   Closes #580.
    - Depends on: job 1.
-   - Output: records for Matte and Emissive; explicit unsupported reasons for
-     all other materials.
+   - Output: records for Matte, Phong, Reflective, and Emissive; explicit
+     unsupported reasons for all other materials.
 
 3. ~~**Compile texture records.**~~ ✅ **Done.**
    `render::GpuTracingTextureCompilation` now packs ConstantColor textures and
@@ -2501,8 +2503,8 @@ scene is large enough to amortize upload/readback costs.
    - Output: supported initial path states, compiled scene records, fixed GPU
      sample stream dimensions, diffuse continuation, direct light sampling,
      any-hit visibility, path-state compaction, and accumulation execute inside
-     one Metal backend for Matte/Emissive scenes using ConstantColor or simple
-     CheckerBoard textures. ✅ **Started.**
+     one Metal backend for Matte, Phong diffuse-lobe, or Emissive scenes using
+     ConstantColor or simple CheckerBoard textures. ✅ **Started.**
      `MetalGpuDiffusePathLoopKernel` now compiles and dispatches a Metal
      launch-probe kernel that binds the shader-facing path-loop descriptor plus
      scene, initial/active/next path-state, step-record, retained-index, and
@@ -2544,9 +2546,10 @@ scene is large enough to amortize upload/readback costs.
      terminal accumulation ABI plus the retained-frontier ABI for the future
      path-loop kernel. A restricted `MetalGpuDiffusePathLoopBackend` now wraps
      the empty-scene and optionally transformed
-     triangle/sphere/plane/rectangle/disk Matte/Emissive paths behind the
-     platform backend interface, including scene/settings support rejection and
-     full-GPU result metadata for backend tests. Its first real path-loop
+     triangle/sphere/plane/rectangle/disk/open-cylinder/torus Matte,
+     Phong-diffuse, and Emissive paths behind the platform backend interface,
+     including scene/settings support rejection and full-GPU result metadata
+     for backend tests. Its first real path-loop
      dispatch can advance supported paths across multiple depths inside one
      Metal command buffer for that narrow subset. Broader primitive traversal,
      full material shading, full direct-light coverage, device-side compacted
@@ -2564,7 +2567,8 @@ scene is large enough to amortize upload/readback costs.
      compiled-geometry paths with Vulkan-owned active/next path-state,
      step-record, retained-index, and accumulation buffers. The backend reports
      platform path-state residency and cleanly rejects non-empty compiled
-     geometry until the shaded Matte/Emissive subset reaches parity with Metal.
+     geometry until the shaded Matte/Phong-diffuse/Emissive subset reaches
+     parity with Metal.
 
 4. **Wire graph auto-selection to platform backend availability.**
    - Depends on: jobs 2 and 3.

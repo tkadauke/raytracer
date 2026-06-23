@@ -58,6 +58,7 @@ namespace render {
                          [](const GpuTracingMaterialRecord& material) {
                            const auto kind = static_cast<GpuTracingMaterialKind>(material.kind);
                            return kind == GpuTracingMaterialKind::Matte ||
+                                  kind == GpuTracingMaterialKind::Phong ||
                                   kind == GpuTracingMaterialKind::Emissive;
                          });
     }
@@ -313,9 +314,8 @@ namespace render {
                      "triangle/sphere/plane/rectangle/disk/open-cylinder/torus geometry only"};
     }
     if (!supportedMaterials(scene)) {
-      return {
-        false,
-        "Metal diffuse path-loop backend currently supports Matte and Emissive materials only"};
+      return {false, "Metal diffuse path-loop backend currently supports Matte, Phong diffuse, and "
+                     "Emissive materials only"};
     }
     if (!supportedTextures(scene)) {
       return {false,

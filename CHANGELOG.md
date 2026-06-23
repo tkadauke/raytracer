@@ -35,6 +35,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Extend the restricted Metal full-GPU diffuse path-loop subset to support
   Torus geometry, bringing the remaining packed analytic primitive family into
   GPU-owned path-loop traversal and shading. — GPT-5 Codex
+- Extend the restricted Metal full-GPU diffuse path-loop subset to execute the
+  diffuse lobe of `PhongMaterial`, allowing common Phong scenes to stay on the
+  GPU-owned path loop while glossy/specular transport remains outside this
+  subset. — GPT-5 Codex
 - Extend the restricted Metal full-GPU diffuse path-loop subset to sample
   simple planar/UV CheckerBoard textures over ConstantColor child textures,
   letting common checker-textured matte/emissive scenes stay in the GPU-owned
