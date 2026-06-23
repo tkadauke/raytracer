@@ -12,6 +12,7 @@
 #include "engine/raster/RasterVisibilitySceneCache.h"
 #include "engine/raster/detail/RasterShadowMapBuilder.h"
 #include "render/cameras/PinholeCamera.h"
+#include "render/GpuDiffusePathLoopBackend.h"
 #include "render/lights/DirectionalLight.h"
 #include "render/lights/PointLight.h"
 #include "render/materials/Material.h"
@@ -197,6 +198,32 @@ namespace GraphRenderEngineTest {
     mutable std::condition_variable m_changed;
     mutable int m_calls{0};
     mutable bool m_release{false};
+  };
+
+  class ReportingFullGpuDiffusePathLoopBackend final : public render::GpuDiffusePathLoopBackend {
+  public:
+    const char* name() const override {
+      return "test_full_gpu_path_loop";
+    }
+
+    render::GpuDiffusePathLoopResult
+    run(const render::GpuTracingSceneSections& scene,
+        const std::vector<render::GpuDiffusePathStateRecord>& initialPathStates,
+        const render::GpuDiffusePathLoopSettings& settings) const override {
+      render::GpuDiffusePathLoopResult result =
+        render::CpuReferenceGpuDiffusePathLoopBackend::sharedInstance()->run(
+          scene, initialPathStates, settings);
+      result.executionPath = "full_gpu_subset";
+      result.pathStateResidency = "metal_path_state";
+      result.platformName = "metal";
+      result.metrics.closestHitExecutionPath = "metal";
+      result.metrics.directLightVisibilityExecutionPath = "metal";
+      result.metrics.directLightContributionExecutionPath = "metal_path_loop";
+      result.roundTrips = 0;
+      result.savedHostReadbacks = result.depthCount;
+      result.savedHostReadbackBytes = result.inputPathStateBytes();
+      return result;
+    }
   };
 
   class RecordingObserver : public RenderGraphExecutionObserver {
@@ -2376,6 +2403,88 @@ namespace GraphRenderEngineTest {
     const QJsonObject accumulation = metadata.value("accumulation").toObject();
     EXPECT_EQ("gpu_diffuse_path_loop", accumulation.value("backend").toString().toStdString());
     EXPECT_EQ(64.0, accumulation.value("addedSamples").toDouble());
+  }
+
+  TEST(GraphRenderEngine, UsesInjectedGpuDiffusePathLoopBackendForCompiledGpuRequest) {
+    const Colord background(0.125, 0.25, 0.5);
+    auto scene = std::make_shared<render::Scene>();
+    scene->setBackground(background);
+    scene->setEnvironmentRadiance(background);
+    auto receiver = std::make_shared<render::Rectangle>(
+      Vector3d(-20.0, -20.0, 0.0), Vector3d(40.0, 0.0, 0.0), Vector3d(0.0, 40.0, 0.0));
+    receiver->setMaterial(matte(Colord(0.8, 0.8, 0.8)));
+    scene->add(receiver);
+    scene->addLight(
+      std::make_shared<render::PointLight>(Vector3d(0.0, 0.0, -3.0), Colord(0.5, 0.5, 0.5)));
+
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Wavefront;
+    intent.engineOptions.raytracer().setIntegrator("pathtracer");
+    intent.engineOptions.raytracer().setTracingExecution(TracingExecutionPreference::GPU);
+    intent.engineOptions.raytracer().setSamplesPerPixel(1);
+    intent.engineOptions.raytracer().setMaximumRecursionDepth(2);
+    intent.engineOptions.raytracer().setDirectLightSamples(1);
+    intent.engineOptions.raytracer().setSampleStreamMode("gpu_sample_stream");
+
+    RenderSceneAnalysis analysis;
+    analysis.setFullGpuTracingSupportFromScene(*scene);
+    const RenderPlan plan = RenderGraphCompiler().compile({8, 8, 1}, intent, analysis);
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(plan);
+    engine.setGpuDiffusePathLoopBackend(std::make_shared<ReportingFullGpuDiffusePathLoopBackend>());
+
+    Buffer<Colord> buffer(8, 8);
+    engine.render(buffer);
+
+    const auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const RenderPassTrace* wavefront = trace->findPass("wavefront_beauty");
+    ASSERT_NE(nullptr, wavefront);
+
+    const QJsonObject metadata = wavefront->metadata();
+    const QJsonObject tracingExecution = metadata.value("tracingExecution").toObject();
+    EXPECT_EQ("gpu", tracingExecution.value("requestedMode").toString().toStdString());
+    EXPECT_EQ("gpu", tracingExecution.value("predictedMode").toString().toStdString());
+    EXPECT_EQ("gpu", tracingExecution.value("actualMode").toString().toStdString());
+    EXPECT_TRUE(tracingExecution.value("actualFallbackReason").toString().isEmpty());
+
+    const QJsonObject batching = metadata.value("batching").toObject();
+    EXPECT_EQ("compiled_diffuse_path_loop",
+              batching.value("executionMode").toString().toStdString());
+    EXPECT_EQ("full_gpu_subset", batching.value("tracingBackendMode").toString().toStdString());
+    EXPECT_EQ("metal", batching.value("tracingBackendPlatform").toString().toStdString());
+    EXPECT_EQ("gpu", batching.value("tracingBackend").toString().toStdString());
+    EXPECT_FALSE(batching.value("tracingBackendFallback").toObject().value("active").toBool());
+    EXPECT_EQ("metal", batching.value("closestHitExecutionPath").toString().toStdString());
+    EXPECT_EQ("metal",
+              batching.value("directLightVisibilityExecutionPath").toString().toStdString());
+    EXPECT_EQ("metal_path_loop",
+              batching.value("directLightContributionExecutionPath").toString().toStdString());
+    EXPECT_TRUE(batching.value("directLightContributionFallbackReason").toString().isEmpty());
+    EXPECT_TRUE(batching.value("intersectionBackendSupportsResidentFrontiers").toBool());
+    EXPECT_TRUE(batching.value("intersectionBackendSupportsGpuFrontierCompaction").toBool());
+    EXPECT_TRUE(batching.value("intersectionBackendGpuFrontierCompactionUnavailableReason")
+                  .toString()
+                  .isEmpty());
+    EXPECT_TRUE(batching.value("intersectionBackendSupportsResidentDirectLightBatches").toBool());
+    EXPECT_TRUE(batching.value("intersectionBackendResidentDirectLightBatchesUnavailableReason")
+                  .toString()
+                  .isEmpty());
+    EXPECT_EQ("full_gpu_subset",
+              batching.value("residentPathLoopExecutionPath").toString().toStdString());
+    EXPECT_EQ("metal_path_state",
+              batching.value("residentPathLoopResidency").toString().toStdString());
+    EXPECT_EQ("metal", batching.value("residentPathLoopPlatformName").toString().toStdString());
+    EXPECT_TRUE(batching.value("residentPathLoopFullPlatformGpuKernel").toBool());
+    EXPECT_GT(batching.value("residentPathLoopSavedHostReadbacks").toDouble(), 0.0);
+
+    const QJsonObject loop = metadata.value("compiledDiffusePathLoop").toObject();
+    EXPECT_EQ("full_gpu_subset", loop.value("backend").toString().toStdString());
+    EXPECT_EQ("metal_path_state", loop.value("residency").toString().toStdString());
+    EXPECT_EQ("metal", loop.value("platformName").toString().toStdString());
+    EXPECT_TRUE(loop.value("fullPlatformGpuKernel").toBool());
   }
 
   TEST(GraphRenderEngine, ReportsAutoTracingRequestForAutoSelectedCompiledDiffusePathLoop) {

@@ -11,6 +11,7 @@
 #include "engine/raster/RasterVisibilitySceneCache.h"
 #include "core/math/BoundingBox.h"
 #include "render/cameras/Camera.h"
+#include "render/GpuDiffusePathLoopBackend.h"
 #include "render/lights/Light.h"
 #include "render/materials/Material.h"
 #include "render/primitives/Scene.h"
@@ -727,8 +728,8 @@ namespace engine::graph {
     };
 
     template<class ExecutePass, class AfterPass>
-    void executeDependencyReadyPasses(const GraphExecutionRuntime& runtime,
-                                      const RenderPlan& plan, RenderResourceStorage& storage,
+    void executeDependencyReadyPasses(const GraphExecutionRuntime& runtime, const RenderPlan& plan,
+                                      RenderResourceStorage& storage,
                                       const TraceSession& traceSession, ExecutePass executePass,
                                       AfterPass afterPass) {
       const auto executionOrder = plan.executionOrder();
@@ -769,8 +770,8 @@ namespace engine::graph {
 
       auto traceSkipped = [&](std::size_t index, const std::string& message) {
         if (traceSession) {
-          runtime.traceRecorder->passSkipped(traceSession.session, *executionOrder[index],
-                                             storage, message);
+          runtime.traceRecorder->passSkipped(traceSession.session, *executionOrder[index], storage,
+                                             message);
         }
       };
 
@@ -834,8 +835,8 @@ namespace engine::graph {
         if (pass.concurrency.mode == RenderConcurrencyMode::Serial) {
           --serialRunningByExecutor[pass.executor];
         }
-        state[index] = result == ScheduledPassResult::Completed ? PassState::Completed
-                                                                : PassState::Skipped;
+        state[index] =
+          result == ScheduledPassResult::Completed ? PassState::Completed : PassState::Skipped;
         --unfinished;
 
         const bool publishesWrites = result != ScheduledPassResult::SkippedWithoutWrites;
@@ -977,6 +978,8 @@ namespace engine::graph {
       std::make_shared<RenderGraphArtifactCache>()};
     std::shared_ptr<engine::raster::RasterVisibilitySceneCache> rasterVisibilitySceneCache{
       std::make_shared<engine::raster::RasterVisibilitySceneCache>()};
+    std::shared_ptr<const render::GpuDiffusePathLoopBackend> gpuDiffusePathLoopBackend{
+      render::CpuReferenceGpuDiffusePathLoopBackend::sharedInstance()};
     std::shared_ptr<std::atomic<std::uint64_t>> nextExecutionGeneration{
       std::make_shared<std::atomic<std::uint64_t>>(1)};
     std::atomic<bool> executionTraceEnabled{false};
@@ -1050,6 +1053,7 @@ namespace engine::graph {
     result->p->executionTraceRecorder = p->executionTraceRecorder;
     result->p->artifactCache = p->artifactCache;
     result->p->rasterVisibilitySceneCache = p->rasterVisibilitySceneCache;
+    result->p->gpuDiffusePathLoopBackend = p->gpuDiffusePathLoopBackend;
     result->p->nextExecutionGeneration = p->nextExecutionGeneration;
     return result;
   }
@@ -1271,6 +1275,19 @@ namespace engine::graph {
     return p->rasterVisibilitySceneCache;
   }
 
+  void GraphRenderEngine::setGpuDiffusePathLoopBackend(
+    std::shared_ptr<const render::GpuDiffusePathLoopBackend> backend) {
+    if (!backend) {
+      throw std::runtime_error("GPU diffuse path-loop backend must not be null");
+    }
+    p->gpuDiffusePathLoopBackend = std::move(backend);
+  }
+
+  std::shared_ptr<const render::GpuDiffusePathLoopBackend>
+  GraphRenderEngine::gpuDiffusePathLoopBackend() const {
+    return p->gpuDiffusePathLoopBackend;
+  }
+
   void GraphRenderEngine::render(Buffer<Colord>& buffer) {
     if (buffer.width() <= 0 || buffer.height() <= 0 || !m_scene || !m_camera) {
       buffer.clear();
@@ -1330,9 +1347,8 @@ namespace engine::graph {
         }
       } reset{context};
 
-      executeObserved(*this, p->executionTraceRecorder, runtime.activePasses,
-                      traceSession.session, renderGeneration, pass, storage,
-                      &context.traceMetadata(), [&] {
+      executeObserved(*this, p->executionTraceRecorder, runtime.activePasses, traceSession.session,
+                      renderGeneration, pass, storage, &context.traceMetadata(), [&] {
                         auto payload = RenderPassPayload::createBuiltin(pass);
                         if (!payload) {
                           throw std::runtime_error(
@@ -1416,9 +1432,8 @@ namespace engine::graph {
         }
       } reset{context};
 
-      executeObserved(*this, p->executionTraceRecorder, runtime.activePasses,
-                      traceSession.session, renderGeneration, pass, storage,
-                      &context.traceMetadata(), [&] {
+      executeObserved(*this, p->executionTraceRecorder, runtime.activePasses, traceSession.session,
+                      renderGeneration, pass, storage, &context.traceMetadata(), [&] {
                         auto payload = RenderPassPayload::createBuiltin(pass);
                         if (!payload) {
                           throw std::runtime_error(

@@ -23,6 +23,7 @@
 #include "engine/wavefront/WavefrontRaytracer.h"
 #include "engine/wireframe/Wireframe.h"
 #include "render/cameras/Camera.h"
+#include "render/GpuDiffusePathLoopBackend.h"
 #include "render/GpuDiffusePathStepReference.h"
 #include "render/GpuTracingScene.h"
 #include "render/HomogeneousClipVolume.h"
@@ -716,21 +717,30 @@ namespace engine::graph {
       batching["directLightContributionExecutionPath"] =
         QString::fromStdString(loop.metrics.directLightContributionExecutionPath);
       batching["directLightContributionFallbackReason"] =
-        QString::fromLatin1(compiledDiffusePathLoopDirectLightContributionFallbackReason());
+        loop.fullGpuPathLoopSupported()
+          ? QString()
+          : QString::fromLatin1(compiledDiffusePathLoopDirectLightContributionFallbackReason());
       batching["intersectionBackendExecutionPath"] =
         QString::fromStdString(loop.metrics.closestHitExecutionPath);
       batching["intersectionBackendClosestHitExecutionPath"] =
         QString::fromStdString(loop.metrics.closestHitExecutionPath);
       batching["intersectionBackendAnyHitExecutionPath"] =
         QString::fromStdString(loop.metrics.directLightVisibilityExecutionPath);
-      batching["intersectionBackendSupportsResidentFrontiers"] = false;
-      batching["intersectionBackendSupportsGpuFrontierCompaction"] = false;
+      batching["intersectionBackendSupportsResidentFrontiers"] = loop.fullGpuPathLoopSupported();
+      batching["intersectionBackendSupportsGpuFrontierCompaction"] =
+        loop.fullGpuPathLoopSupported();
       batching["intersectionBackendGpuFrontierCompactionUnavailableReason"] =
-        QStringLiteral("compiled CPU-reference path loop compacts path state on the host");
-      batching["intersectionBackendSupportsPreparedRayBatchCompaction"] = false;
-      batching["intersectionBackendSupportsResidentDirectLightBatches"] = false;
+        loop.fullGpuPathLoopSupported()
+          ? QString()
+          : QStringLiteral("compiled CPU-reference path loop compacts path state on the host");
+      batching["intersectionBackendSupportsPreparedRayBatchCompaction"] =
+        loop.fullGpuPathLoopSupported();
+      batching["intersectionBackendSupportsResidentDirectLightBatches"] =
+        loop.fullGpuPathLoopSupported();
       batching["intersectionBackendResidentDirectLightBatchesUnavailableReason"] =
-        QString::fromLatin1(compiledDiffusePathLoopResidentDirectLightUnavailableReason());
+        loop.fullGpuPathLoopSupported()
+          ? QString()
+          : QString::fromLatin1(compiledDiffusePathLoopResidentDirectLightUnavailableReason());
       batching["initialPathCount"] = static_cast<double>(loop.initialPathCount);
       batching["depthCount"] = static_cast<double>(loop.depthCount);
       batching["maxDepthTerminatedPaths"] = static_cast<double>(loop.maxDepthTerminatedPaths);
@@ -1085,8 +1095,14 @@ namespace engine::graph {
           static_cast<std::uint32_t>(state.russianRouletteDepth().value_or(3));
         settings.directLightSamples =
           static_cast<std::uint32_t>(std::max(1, state.directLightSamples().value_or(1)));
+        const std::shared_ptr<const render::GpuDiffusePathLoopBackend> pathLoopBackend =
+          context.graph().gpuDiffusePathLoopBackend();
+        if (!pathLoopBackend) {
+          fallbackReason = "compiled diffuse path loop requires an execution backend";
+          return false;
+        }
         const render::GpuDiffusePathLoopResult loop =
-          render::GpuDiffusePathLoop().run(compilation.sections, generation.pathStates, settings);
+          pathLoopBackend->run(compilation.sections, generation.pathStates, settings);
         const render::TracingAccumulationLayout layout =
           render::TracingAccumulationLayout::image(width, height);
 

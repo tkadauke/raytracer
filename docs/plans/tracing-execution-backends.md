@@ -2164,6 +2164,15 @@ manually request internal graph nodes.
      tracing execution rows to the Modeler render dialog graph tab and feeds the
      completed graph trace back into the dialog with actual mode/fallback rows.
 
+6. **Dispatch compiled path loops through a backend seam.**
+   - Depends on: jobs 2 and 5.
+   - Output: ~~graph payloads call a path-loop execution backend instead of
+     constructing the CPU-reference diffuse loop directly.~~ ✅ **Done.**
+     `render::GpuDiffusePathLoopBackend` now owns the compiled diffuse
+     path-loop dispatch point, `GraphRenderEngine` carries the selected backend
+     through render clones, and graph metadata can now reflect an injected
+     full-GPU path-loop result without CPU-reference fallback text.
+
 **Gate:** users can request a broad execution intent and inspect what graph was
 compiled and what actually ran.
 

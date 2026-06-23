@@ -43,6 +43,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   queue-sweep summaries. — GPT-5 Codex
 - Show compiled diffuse path-loop accumulation backend, storage, operation, and
   readback diagnostics in Modeler selected-pass details. — GPT-5 Codex
+- Add a graph-owned compiled diffuse path-loop backend seam so future
+  Metal/Vulkan full-GPU path-loop implementations can replace the CPU-reference
+  loop without changing render graph payload code. — GPT-5 Codex
 
 ### Fixed
 
@@ -78,6 +81,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Normalize empty backend frontier-compaction execution-path labels to
   `unknown`, keeping malformed future resident compaction results visible in
   metrics instead of letting an empty path leak through. — GPT-5 Codex
+- Stop emitting CPU-reference direct-light and resident-batch fallback text
+  when a compiled diffuse path-loop backend reports a full-platform GPU result.
+  — GPT-5 Codex
 - Reject backend frontier-compaction results whose declared input path count
   does not match the active path frontier, so future resident compaction
   backends cannot silently corrupt host path-state updates. — GPT-5 Codex

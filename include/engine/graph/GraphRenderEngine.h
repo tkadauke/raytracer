@@ -11,6 +11,10 @@ namespace engine::raster {
   class RasterVisibilitySceneCache;
 }
 
+namespace render {
+  class GpuDiffusePathLoopBackend;
+}
+
 namespace engine::graph {
   class RenderGraphArtifactCache;
   class RenderGraphExecutionObserver;
@@ -224,6 +228,21 @@ namespace engine::graph {
       * @returns the scene-side cache used by raster visibility preprocessing.
       */
     std::shared_ptr<engine::raster::RasterVisibilitySceneCache> rasterVisibilitySceneCache() const;
+
+    /**
+      * Installs the backend used for compiled diffuse path-loop execution.
+      *
+      * The default is the CPU-reference backend. Platform implementations can
+      * be installed here so graph payloads do not instantiate a particular
+      * execution backend directly.
+      */
+    void
+    setGpuDiffusePathLoopBackend(std::shared_ptr<const render::GpuDiffusePathLoopBackend> backend);
+
+    /**
+      * @returns the backend used for compiled diffuse path-loop execution.
+      */
+    std::shared_ptr<const render::GpuDiffusePathLoopBackend> gpuDiffusePathLoopBackend() const;
 
     /**
       * Executes the current plan into @p buffer.
