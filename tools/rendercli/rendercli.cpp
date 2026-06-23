@@ -291,6 +291,7 @@ namespace {
       const QJsonObject input = metrics.value("input").toObject();
       const QJsonObject tiling = metrics.value("tiling").toObject();
       const QJsonObject accumulation = metrics.value("accumulation").toObject();
+      const QJsonObject accumulationLayout = accumulation.value("layout").toObject();
       const QJsonObject batching = metrics.value("batching").toObject();
       const QJsonObject convergence = metrics.value("convergence").toObject();
       const QJsonObject adaptiveSampling = metrics.value("adaptiveSampling").toObject();
@@ -668,10 +669,11 @@ namespace {
         << " accumulation_backend=" << compactTextValue(accumulation.value("backend"), "none")
         << " accumulation_residency=" << compactTextValue(accumulation.value("residency"), "none")
         << " accumulation_resident_bytes=" << unsignedValue(accumulation, "residentBytes")
-        << " accumulation_color_sum_bytes=" << unsignedValue(accumulation, "colorSumBytes")
-        << " accumulation_sample_count_bytes=" << unsignedValue(accumulation, "sampleCountBytes")
-        << " accumulation_moment_bytes=" << unsignedValue(accumulation, "momentBytes")
-        << " accumulation_resolve_bytes=" << unsignedValue(accumulation, "resolveBytes")
+        << " accumulation_color_sum_bytes=" << unsignedValue(accumulationLayout, "colorSumBytes")
+        << " accumulation_sample_count_bytes="
+        << unsignedValue(accumulationLayout, "sampleCountBytes")
+        << " accumulation_moment_bytes=" << unsignedValue(accumulationLayout, "momentBytes")
+        << " accumulation_resolve_bytes=" << unsignedValue(accumulationLayout, "resolveBytes")
         << " accumulation_clear_ops=" << unsignedValue(accumulation, "clearOperations")
         << " accumulation_add_ops=" << unsignedValue(accumulation, "addOperations")
         << " accumulation_added_samples=" << unsignedValue(accumulation, "addedSamples")

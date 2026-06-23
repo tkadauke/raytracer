@@ -275,6 +275,10 @@ namespace render {
       loop.frontierCompactionUploadWorkerSeconds = metalResult.uploadWorkerSeconds;
       loop.frontierCompactionKernelWorkerSeconds = metalResult.kernelWorkerSeconds;
       loop.frontierCompactionReadbackWorkerSeconds = metalResult.readbackWorkerSeconds;
+      loop.platformAccumulationColorSums = metalResult.accumulationColorSums;
+      loop.platformAccumulationSampleCounts = metalResult.accumulationSampleCounts;
+      loop.platformAccumulationBackend = "metal_diffuse_path_loop";
+      loop.platformAccumulationResidency = "metal_accumulation_buffer";
       recordDepthCounts(loop, metalResult, settings);
       mergeStepMetrics(loop, initialPathStates, metalResult, settings);
 

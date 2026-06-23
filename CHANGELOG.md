@@ -166,6 +166,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   GPU rays, and treat finite light-card endpoint hits as visible direct-light
   targets while reporting Metal upload/kernel/readback timings through the
   existing path-loop metrics. — GPT-5 Codex
+- Resolve matching platform accumulation planes from explicit Metal full-GPU
+  diffuse path-loop renders instead of rebuilding the image from terminal host
+  path states, and print the nested accumulation layout byte counters in
+  rendercli compact metrics. — GPT-5 Codex
 - Keep automatic tracing execution from predicting full GPU mode for the
   compiled diffuse CPU-reference path-loop before a platform path-loop kernel
   exists; explicit GPU requests still expose the compiled-reference diagnostics.

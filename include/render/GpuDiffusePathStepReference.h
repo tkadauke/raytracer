@@ -5,6 +5,7 @@
 #include "render/TracingAccumulationLayout.h"
 #include "render/TracingExecutionCapability.h"
 
+#include <array>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -116,6 +117,10 @@ namespace render {
     double frontierCompactionUploadWorkerSeconds{0.0};
     double frontierCompactionKernelWorkerSeconds{0.0};
     double frontierCompactionReadbackWorkerSeconds{0.0};
+    std::vector<std::array<float, 4>> platformAccumulationColorSums;
+    std::vector<std::uint32_t> platformAccumulationSampleCounts;
+    std::string platformAccumulationBackend;
+    std::string platformAccumulationResidency;
 
     [[nodiscard]] std::uint64_t pathStateBytesPerPath() const;
     [[nodiscard]] std::uint64_t residentPathStateBytes() const;
@@ -133,6 +138,7 @@ namespace render {
     [[nodiscard]] std::uint64_t submittedIntersectionRayCount() const;
     [[nodiscard]] bool fullGpuPathLoopSupported() const;
     [[nodiscard]] bool fullGpuPathLoopUnavailable() const;
+    [[nodiscard]] bool hasPlatformAccumulation() const;
     [[nodiscard]] std::string platformLabel() const;
     [[nodiscard]] TracingExecutionCapabilityRecords
     tracingCapabilities(const TracingAccumulationDiagnostics& accumulation) const;

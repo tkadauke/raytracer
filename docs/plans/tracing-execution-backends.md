@@ -2556,11 +2556,14 @@ scene is large enough to amortize upload/readback costs.
      backend interface, including scene/settings support rejection and
      full-GPU result metadata for backend tests. Its first real path-loop
      dispatch can advance supported paths across multiple depths inside one
-     Metal command buffer for that narrow subset. Broader primitive traversal,
-     full material shading, full direct-light coverage, device-side compacted
-     wavefront scheduling, Vulkan parity, performance gates, and render-graph
-     auto-selection still need to land before it can be used as the automatic
-     full GPU tracing path.
+     Metal command buffer for that narrow subset, and matching platform
+     accumulation planes now flow through the shared diffuse path-loop resolver
+     and rendercli metrics instead of requiring host-side image reconstruction
+     from terminal path states. Multi-sample platform accumulation, broader
+     primitive traversal, full material shading, full direct-light coverage,
+     device-side compacted wavefront scheduling, Vulkan parity, performance
+     gates, and render-graph auto-selection still need to land before it can be
+     used as the automatic full GPU tracing path.
 
 3. **Add a minimal Vulkan path-loop kernel.**
    - Depends on: job 1.

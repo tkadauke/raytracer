@@ -1206,6 +1206,7 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(0u, result.submittedIntersectionRayCount());
     EXPECT_FALSE(result.fullGpuPathLoopSupported());
     EXPECT_TRUE(result.fullGpuPathLoopUnavailable());
+    EXPECT_FALSE(result.hasPlatformAccumulation());
   }
 
   TEST(GpuDiffusePathLoopResult, ReportsResidentPathLoopCounts) {
@@ -3324,5 +3325,66 @@ namespace GpuDiffusePathStepReferenceTest {
       (void)unused;
     };
     EXPECT_THROW(resolveWrongSize(), std::invalid_argument);
+  }
+
+  TEST(GpuDiffusePathLoop, ResolvesMatchingPlatformAccumulationIntoHdrImage) {
+    GpuDiffusePathStateRecord fallback = makeTerminatedGpuDiffusePathState();
+    fallback.pixelIndex = 0;
+    fallback.accumulatedRadiance = {1.0f, 0.0f, 0.0f, 0.0f};
+
+    GpuDiffusePathLoopResult result;
+    result.resolvedPathStates = {fallback};
+    result.platformAccumulationBackend = "metal_diffuse_path_loop";
+    result.platformAccumulationResidency = "metal_accumulation_buffer";
+    result.platformAccumulationColorSums = {{{1.0f, 0.5f, 0.0f, 0.0f},
+                                             {0.0f, 0.0f, 0.0f, 0.0f},
+                                             {0.25f, 0.75f, 0.5f, 0.0f},
+                                             {0.0f, 0.0f, 0.0f, 0.0f}}};
+    result.platformAccumulationSampleCounts = {2u, 0u, 1u, 0u};
+
+    Buffer<Colord> resolved(2, 2);
+    const TracingAccumulationLayout layout = TracingAccumulationLayout::image(2, 2);
+    const TracingAccumulationDiagnostics diagnostics =
+      resolveGpuDiffusePathLoopImage(result, layout, resolved);
+
+    ASSERT_COLOR_NEAR(Colord(0.5, 0.25, 0.0), resolved[0][0], 1e-12);
+    ASSERT_COLOR_NEAR(Colord::black(), resolved[0][1], 1e-12);
+    ASSERT_COLOR_NEAR(Colord(0.25, 0.75, 0.5), resolved[1][0], 1e-12);
+    ASSERT_COLOR_NEAR(Colord::black(), resolved[1][1], 1e-12);
+    EXPECT_EQ("metal_diffuse_path_loop", diagnostics.backend);
+    EXPECT_EQ("metal_accumulation_buffer", diagnostics.residency);
+    EXPECT_EQ(layout.totalBytes(), diagnostics.residentBytes);
+    EXPECT_EQ(1u, diagnostics.clearOperations);
+    EXPECT_EQ(2u, diagnostics.addOperations);
+    EXPECT_EQ(3u, diagnostics.addedSamples);
+    EXPECT_EQ(1u, diagnostics.resolveOperations);
+    EXPECT_EQ(1u, diagnostics.readbackOperations);
+    EXPECT_EQ(layout.accumulationBytes(), diagnostics.readbackBytes);
+  }
+
+  TEST(GpuDiffusePathLoop, FallsBackToPathStatesWhenPlatformAccumulationShapeDiffers) {
+    GpuDiffusePathStateRecord path = makeTerminatedGpuDiffusePathState();
+    path.pixelIndex = 3;
+    path.accumulatedRadiance = {0.25f, 0.5f, 0.75f, 0.0f};
+
+    GpuDiffusePathLoopResult result;
+    result.resolvedPathStates = {path};
+    result.platformAccumulationBackend = "metal_diffuse_path_loop";
+    result.platformAccumulationResidency = "metal_accumulation_buffer";
+    result.platformAccumulationColorSums = {{{1.0f, 0.0f, 0.0f, 0.0f}}};
+    result.platformAccumulationSampleCounts = {1u};
+
+    Buffer<Colord> resolved(2, 2);
+    const TracingAccumulationLayout layout = TracingAccumulationLayout::image(2, 2);
+    const TracingAccumulationDiagnostics diagnostics =
+      resolveGpuDiffusePathLoopImage(result, layout, resolved);
+
+    ASSERT_COLOR_NEAR(Colord::black(), resolved[0][0], 1e-12);
+    ASSERT_COLOR_NEAR(Colord::black(), resolved[0][1], 1e-12);
+    ASSERT_COLOR_NEAR(Colord::black(), resolved[1][0], 1e-12);
+    ASSERT_COLOR_NEAR(Colord(0.25, 0.5, 0.75), resolved[1][1], 1e-12);
+    EXPECT_EQ("gpu_diffuse_path_loop", diagnostics.backend);
+    EXPECT_EQ("resident_accumulation_resolve", diagnostics.residency);
+    EXPECT_EQ(1u, diagnostics.addedSamples);
   }
 }
