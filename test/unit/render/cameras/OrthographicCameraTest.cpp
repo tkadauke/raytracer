@@ -4,18 +4,13 @@
 #include "render/primitives/Scene.h"
 #include "core/Buffer.h"
 
+#include "test/helpers/CameraTestHelper.h"
+
 namespace OrthographicCameraTest {
   using namespace ::testing;
   using namespace render;
   using namespace engine::raytracer;
-  using namespace render;
-  using namespace engine::raytracer;
-  using namespace render;
-  using namespace engine::raytracer;
-
-  static void initViewPlane(OrthographicCamera& camera, int width = 100, int height = 100) {
-    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, width, height));
-  }
+  using test::setupViewPlane;
 
   TEST(OrthographicCamera, ShouldConstructWithoutParameters) {
     OrthographicCamera camera;
@@ -54,7 +49,7 @@ namespace OrthographicCameraTest {
 
   TEST(OrthographicCamera, ClipSpaceProjectionMatchesProjectionWithDepth) {
     OrthographicCamera camera(Vector3d(0, 0, -1), Vector3d::null);
-    initViewPlane(camera, 200, 150);
+    setupViewPlane(camera, 200, 150);
 
     const Vector3d point(1.5, -0.5, 4.0);
     const Vector4d clip = camera.projectPointToClipSpace(point);
@@ -69,7 +64,7 @@ namespace OrthographicCameraTest {
 
   TEST(OrthographicCamera, ClipSpaceProjectionUsesUnitPerspectiveDivisor) {
     OrthographicCamera camera(Vector3d(0, 0, -1), Vector3d::null);
-    initViewPlane(camera);
+    setupViewPlane(camera);
 
     const Vector4d inFront = camera.projectPointToClipSpace(Vector3d::null);
     const Vector4d behind = camera.projectPointToClipSpace(Vector3d(0, 0, -2));
@@ -87,7 +82,7 @@ namespace OrthographicCameraTest {
     // canonical property: a point at the right edge of the view plane
     // (x = halfW) should project to NDC x = +1.
     OrthographicCamera camera(Vector3d(0, 0, -1), Vector3d::null);
-    initViewPlane(camera, 200, 150);
+    setupViewPlane(camera, 200, 150);
 
     auto plane = camera.viewPlane();
     const double halfW = plane->hSpan() * plane->pixelSize() / 2.0;
@@ -101,7 +96,7 @@ namespace OrthographicCameraTest {
     // The x and y components of projectPointToClipSpace must match the x and y
     // produced by applying projectionMatrix() directly.
     OrthographicCamera camera(Vector3d(0, 0, -1), Vector3d::null);
-    initViewPlane(camera, 200, 150);
+    setupViewPlane(camera, 200, 150);
 
     const Vector3d worldPoint(1.5, -0.5, 4.0);
     const Vector4d clip = camera.projectPointToClipSpace(worldPoint);

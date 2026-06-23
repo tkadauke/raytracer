@@ -186,8 +186,8 @@ GpuIntersectionRay GpuIntersectionScenePacker::packRay(const Rayd& ray, std::uin
                                                        double timeSample,
                                                        std::uint32_t flags) const {
   GpuIntersectionRay packed;
-  packed.origin = packVector(ray.origin());
-  packed.direction = packVector(ray.direction());
+  packed.origin = ray.origin().toFloat4();
+  packed.direction = ray.direction().toFloat4();
   packed.minDistance = packScalar(minDistance);
   packed.maxDistance = packScalar(maxDistance);
   packed.timeSample = packScalar(timeSample);
@@ -204,18 +204,6 @@ GpuIntersectionHitRecord GpuIntersectionScenePacker::packMiss(std::uint32_t rayI
 
 float GpuIntersectionScenePacker::packScalar(double value) const {
   return static_cast<float>(value);
-}
-
-std::array<float, 4> GpuIntersectionScenePacker::packVector(const Vector2d& value) const {
-  return value.toFloat4();
-}
-
-std::array<float, 4> GpuIntersectionScenePacker::packVector(const Vector3d& value, float w) const {
-  return value.toFloat4(w);
-}
-
-std::array<float, 4> GpuIntersectionScenePacker::packVector(const Vector4d& value) const {
-  return value.toFloat4();
 }
 
 std::array<float, 16> GpuIntersectionScenePacker::packMatrix(const Matrix3d& value) const {
@@ -240,7 +228,7 @@ std::array<float, 16> GpuIntersectionScenePacker::packMatrix(const Matrix4d& val
 }
 
 GpuIntersectionBounds GpuIntersectionScenePacker::packBounds(const BoundingBoxd& bounds) const {
-  return GpuIntersectionBounds{packVector(bounds.min()), packVector(bounds.max())};
+  return GpuIntersectionBounds{bounds.min().toFloat4(), bounds.max().toFloat4()};
 }
 
 GpuIntersectionPrimitiveKind
@@ -286,38 +274,38 @@ GpuIntersectionPrimitiveRecord GpuIntersectionScenePacker::packPrimitiveRecord(
 GpuIntersectionTrianglePayload
 GpuIntersectionScenePacker::packTrianglePayload(const IntersectionTrianglePayload& payload) const {
   return GpuIntersectionTrianglePayload{
-    packVector(payload.point0),  packVector(payload.point1),
-    packVector(payload.point2),  packVector(payload.normal0),
-    packVector(payload.normal1), packVector(payload.normal2),
-    packVector(payload.uv0),     packVector(payload.uv1),
-    packVector(payload.uv2),     {packScalar(payload.minimumHitDistance), 0.0f, 0.0f, 0.0f}};
+    payload.point0.toFloat4(),  payload.point1.toFloat4(),
+    payload.point2.toFloat4(),  payload.normal0.toFloat4(),
+    payload.normal1.toFloat4(), payload.normal2.toFloat4(),
+    payload.uv0.toFloat4(),     payload.uv1.toFloat4(),
+    payload.uv2.toFloat4(),     {packScalar(payload.minimumHitDistance), 0.0f, 0.0f, 0.0f}};
 }
 
 GpuIntersectionSpherePayload
 GpuIntersectionScenePacker::packSpherePayload(const IntersectionSpherePayload& payload) const {
   GpuIntersectionSpherePayload packed;
-  packed.centerRadius = packVector(payload.center, packScalar(payload.radius));
+  packed.centerRadius = payload.center.toFloat4(packScalar(payload.radius));
   return packed;
 }
 
 GpuIntersectionPlanePayload
 GpuIntersectionScenePacker::packPlanePayload(const IntersectionPlanePayload& payload) const {
   GpuIntersectionPlanePayload packed;
-  packed.normalDistance = packVector(payload.normal, packScalar(payload.distance));
+  packed.normalDistance = payload.normal.toFloat4(packScalar(payload.distance));
   return packed;
 }
 
 GpuIntersectionRectanglePayload GpuIntersectionScenePacker::packRectanglePayload(
   const IntersectionRectanglePayload& payload) const {
-  return GpuIntersectionRectanglePayload{packVector(payload.corner), packVector(payload.leg1),
-                                         packVector(payload.leg2), packVector(payload.normal)};
+  return GpuIntersectionRectanglePayload{payload.corner.toFloat4(), payload.leg1.toFloat4(),
+                                         payload.leg2.toFloat4(), payload.normal.toFloat4()};
 }
 
 GpuIntersectionDiskPayload
 GpuIntersectionScenePacker::packDiskPayload(const IntersectionDiskPayload& payload) const {
   return GpuIntersectionDiskPayload{
-    packVector(payload.center, packScalar(payload.radius)),
-    packVector(payload.normal, packScalar(payload.minimumHitDistance))};
+    payload.center.toFloat4(packScalar(payload.radius)),
+    payload.normal.toFloat4(packScalar(payload.minimumHitDistance))};
 }
 
 GpuIntersectionOpenCylinderPayload GpuIntersectionScenePacker::packOpenCylinderPayload(

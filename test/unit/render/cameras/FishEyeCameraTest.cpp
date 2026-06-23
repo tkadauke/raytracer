@@ -8,10 +8,6 @@ namespace FishEyeCameraTest {
   using namespace ::testing;
   using namespace render;
   using namespace engine::raytracer;
-  using namespace render;
-  using namespace engine::raytracer;
-  using namespace render;
-  using namespace engine::raytracer;
 
   TEST(FishEyeCamera, ShouldConstructWithoutParameters) {
     FishEyeCamera camera;

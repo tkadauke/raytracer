@@ -4,21 +4,14 @@
 #include "render/cameras/TiltShiftCamera.h"
 #include "engine/raytracer/Raytracer.h"
 #include "render/primitives/Scene.h"
-#include "core/math/Rect.h"
 
+#include "test/helpers/CameraTestHelper.h"
 #include "test/helpers/VectorTestHelper.h"
 
 namespace TiltShiftCameraTest {
   using namespace render;
   using namespace engine::raytracer;
-  using namespace render;
-  using namespace engine::raytracer;
-  using namespace render;
-  using namespace engine::raytracer;
-
-  static void initViewPlane(Camera& camera, int width = 100, int height = 100) {
-    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, width, height));
-  }
+  using test::setupViewPlane;
 
   TEST(TiltShiftCamera, ShouldDefaultToZeroTiltAndShift) {
     TiltShiftCamera camera;
@@ -132,12 +125,12 @@ namespace TiltShiftCameraTest {
     camera.setFocalDistance(2.5);
     camera.setTilt(25_degrees);
     camera.setShift(Vector2d(0.3, -0.2));
-    initViewPlane(camera, 160, 90);
+    setupViewPlane(camera, 160, 90);
 
     PinholeCamera pinhole(camera.position(), camera.target());
     pinhole.setDistance(camera.distance());
     pinhole.setZoom(camera.zoom());
-    initViewPlane(pinhole, 160, 90);
+    setupViewPlane(pinhole, 160, 90);
 
     const Vector3d point(1.0, -0.5, 3.0);
     ASSERT_VECTOR_NEAR(pinhole.projectPoint(point), camera.projectPoint(point), 1e-9);
