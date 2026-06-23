@@ -272,6 +272,9 @@ namespace render {
       loop.retainedIndexBytes =
         static_cast<std::uint64_t>(metalResult.retainedPathIndices.size() * sizeof(std::uint32_t));
       loop.roundTrips = 1;
+      loop.frontierCompactionUploadWorkerSeconds = metalResult.uploadWorkerSeconds;
+      loop.frontierCompactionKernelWorkerSeconds = metalResult.kernelWorkerSeconds;
+      loop.frontierCompactionReadbackWorkerSeconds = metalResult.readbackWorkerSeconds;
       recordDepthCounts(loop, metalResult, settings);
       mergeStepMetrics(loop, initialPathStates, metalResult, settings);
 

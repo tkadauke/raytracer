@@ -1916,6 +1916,9 @@ namespace GpuDiffusePathStepReferenceTest {
     const GpuDiffusePathLoopResult result = backend.run(sections, paths, settings);
 
     EXPECT_TRUE(result.fullGpuPathLoopSupported());
+    EXPECT_GT(result.frontierCompactionUploadWorkerSeconds, 0.0);
+    EXPECT_GT(result.frontierCompactionKernelWorkerSeconds, 0.0);
+    EXPECT_GT(result.frontierCompactionReadbackWorkerSeconds, 0.0);
     EXPECT_EQ(expected.depthCount, result.depthCount);
     EXPECT_EQ(expected.maxDepthTerminatedPaths, result.maxDepthTerminatedPaths);
     ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
