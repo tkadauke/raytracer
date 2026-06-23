@@ -12,6 +12,7 @@ namespace render {
     GpuDiffusePathLoopLaunchBufferSizes bufferSizes;
     std::vector<GpuDiffusePathStateRecord> copiedInitialPathStates;
     std::vector<GpuDiffusePathStateRecord> resolvedPathStates;
+    std::vector<GpuDiffusePathStateRecord> nextPathStates;
     std::vector<GpuIntersectionHitRecord> closestHitRecords;
     std::vector<GpuDiffusePathStepRecord> stepRecords;
     std::vector<std::array<float, 4>> accumulationColorSums;
@@ -45,5 +46,9 @@ namespace render {
     [[nodiscard]] MetalGpuDiffusePathLoopKernelResult
     runMatteHitShadingProbe(const GpuDiffusePathLoopLaunchPlan& plan,
                             const std::vector<GpuDiffusePathStateRecord>& initialPathStates) const;
+
+    [[nodiscard]] MetalGpuDiffusePathLoopKernelResult runMatteContinuationProbe(
+      const GpuDiffusePathLoopLaunchPlan& plan,
+      const std::vector<GpuDiffusePathStateRecord>& initialPathStates) const;
   };
 }

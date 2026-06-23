@@ -2499,12 +2499,15 @@ scene is large enough to amortize upload/readback costs.
      geometry and writes `GpuIntersectionHitRecord` rows for active path
      states. A restricted Matte/ConstantColor shading probe now reads material
      and texture records from that upload and computes the diffuse continuation
-     throughput for sphere hits. This proves the command-buffer, scene-upload,
-     geometry, material-record, texture-record, environment-record, path-state,
-     step-record, and restricted accumulation ABI for the future path-loop
-     kernel; broader primitive traversal, full material shading, continuation
-     ray generation, direct lighting, compaction, and general accumulation still
-     need to move into this backend before it can advertise full GPU execution.
+     throughput for sphere hits. A restricted continuation probe now samples a
+     GPU diffuse direction, applies Russian roulette, and writes the next
+     path-state record for that same sphere/Matte/ConstantColor subset. This
+     proves the command-buffer, scene-upload, geometry, material-record,
+     texture-record, environment-record, path-state, step-record, continuation,
+     and restricted accumulation ABI for the future path-loop kernel; broader
+     primitive traversal, full material shading, direct lighting, compaction,
+     and general accumulation still need to move into this backend before it can
+     advertise full GPU execution.
 
 3. **Add a minimal Vulkan path-loop kernel.**
    - Depends on: job 1.

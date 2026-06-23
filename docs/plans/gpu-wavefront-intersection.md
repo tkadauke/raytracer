@@ -59,7 +59,10 @@
 > `GpuIntersectionHitRecord` results for active path states. A restricted
 > Matte/ConstantColor shading probe can then read material and texture records
 > from that same upload and compute diffuse continuation throughput for sphere
-> hits. These probes do not advertise full GPU path tracing yet.
+> hits; a follow-up continuation probe now samples the GPU BSDF dimension,
+> applies Russian roulette, and writes the next path-state record for that same
+> restricted sphere/Matte/ConstantColor subset. These probes do not advertise
+> full GPU path tracing yet.
 > This is a follow-up to
 > `docs/plans/wavefront-and-path-tracing.md` Phase 7+ and is now a child slice
 > of `docs/plans/tracing-execution-backends.md`. It should not replace the CPU
