@@ -154,7 +154,8 @@ namespace {
 
   Vector2d textureCoordinates(const GpuTracingTextureRecord& texture,
                               const GpuIntersectionHitRecord& hit) {
-    const auto mapping = static_cast<GpuTracingTextureMappingKind>(texture.flags);
+    const auto mapping =
+      static_cast<GpuTracingTextureMappingKind>(texture.flags & gpuTracingTextureMappingMask);
     if (mapping == GpuTracingTextureMappingKind::UV) {
       return Vector2d(hit.uv[0] * texture.parameters[0], hit.uv[1] * texture.parameters[1]);
     }
@@ -162,6 +163,26 @@ namespace {
       return Vector2d(hit.point[0], hit.point[2]);
     }
     return Vector2d::null;
+  }
+
+  double normalizedTextureCoordinate(const GpuTracingTextureRecord& texture, double coordinate) {
+    if ((texture.flags & gpuTracingTextureWrapClampFlag) != 0u) {
+      return std::clamp(coordinate, 0.0, 1.0);
+    }
+    return coordinate - std::floor(coordinate);
+  }
+
+  int imageTextureCoordinate(const GpuTracingTextureRecord& texture, double coordinate, int size) {
+    const int result =
+      static_cast<int>(std::floor(normalizedTextureCoordinate(texture, coordinate) * size));
+    if ((texture.flags & gpuTracingTextureWrapClampFlag) != 0u) {
+      return std::clamp(result, 0, size - 1);
+    }
+    int wrapped = result % size;
+    if (wrapped < 0) {
+      wrapped += size;
+    }
+    return wrapped;
   }
 
   Colord textureColor(const GpuTracingSceneSections& scene, std::uint32_t textureId,
@@ -187,6 +208,27 @@ namespace {
       const std::uint32_t childTexture =
         parity % 2 == 0 ? texture.payloadOffset : texture.payloadCount;
       return textureColor(scene, childTexture, hit, depth + 1);
+    }
+
+    if (kind == GpuTracingTextureKind::Image) {
+      const int width = static_cast<int>(std::round(texture.parameters[2]));
+      const int height = static_cast<int>(std::round(texture.parameters[3]));
+      const std::uint64_t texelCount =
+        width > 0 && height > 0
+          ? static_cast<std::uint64_t>(width) * static_cast<std::uint64_t>(height)
+          : 0u;
+      if (width <= 0 || height <= 0 || texture.payloadOffset >= scene.textures.size() ||
+          texture.payloadCount != texelCount ||
+          static_cast<std::uint64_t>(texture.payloadOffset) + texture.payloadCount >
+            scene.textures.size()) {
+        return Colord::black();
+      }
+      const Vector2d st = textureCoordinates(texture, hit);
+      const int x = imageTextureCoordinate(texture, st.x(), width);
+      const int y = imageTextureCoordinate(texture, st.y(), height);
+      const std::uint32_t texelTexture =
+        texture.payloadOffset + static_cast<std::uint32_t>(y * width + x);
+      return textureColor(scene, texelTexture, hit, depth + 1);
     }
 
     return Colord::black();

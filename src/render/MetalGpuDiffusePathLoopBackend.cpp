@@ -74,7 +74,8 @@ namespace render {
         return true;
       }
       if (kind == GpuTracingTextureKind::CheckerBoard) {
-        const auto mapping = static_cast<GpuTracingTextureMappingKind>(texture.flags);
+        const auto mapping =
+          static_cast<GpuTracingTextureMappingKind>(texture.flags & gpuTracingTextureMappingMask);
         if (mapping != GpuTracingTextureMappingKind::Planar &&
             mapping != GpuTracingTextureMappingKind::UV) {
           return false;
@@ -87,6 +88,32 @@ namespace render {
                  GpuTracingTextureKind::ConstantColor &&
                static_cast<GpuTracingTextureKind>(scene.textures[texture.payloadCount].kind) ==
                  GpuTracingTextureKind::ConstantColor;
+      }
+      if (kind == GpuTracingTextureKind::Image) {
+        const auto mapping =
+          static_cast<GpuTracingTextureMappingKind>(texture.flags & gpuTracingTextureMappingMask);
+        if (mapping != GpuTracingTextureMappingKind::Planar &&
+            mapping != GpuTracingTextureMappingKind::UV) {
+          return false;
+        }
+        const std::uint32_t width = static_cast<std::uint32_t>(std::round(texture.parameters[2]));
+        const std::uint32_t height = static_cast<std::uint32_t>(std::round(texture.parameters[3]));
+        const std::uint64_t texelCount =
+          static_cast<std::uint64_t>(width) * static_cast<std::uint64_t>(height);
+        if (width == 0u || height == 0u || texture.payloadCount != texelCount ||
+            texture.payloadOffset >= scene.textures.size() ||
+            static_cast<std::uint64_t>(texture.payloadOffset) + texture.payloadCount >
+              scene.textures.size()) {
+          return false;
+        }
+        for (std::uint32_t offset = 0; offset != texture.payloadCount; ++offset) {
+          if (static_cast<GpuTracingTextureKind>(
+                scene.textures[texture.payloadOffset + offset].kind) !=
+              GpuTracingTextureKind::ConstantColor) {
+            return false;
+          }
+        }
+        return true;
       }
       return false;
     }
@@ -318,9 +345,8 @@ namespace render {
                      "Emissive materials only"};
     }
     if (!supportedTextures(scene)) {
-      return {false,
-              "Metal diffuse path-loop backend currently supports ConstantColor textures and "
-              "simple CheckerBoard textures only"};
+      return {false, "Metal diffuse path-loop backend currently supports ConstantColor, simple "
+                     "CheckerBoard, and nearest ImageTexture textures only"};
     }
     if (!supportedLights(scene)) {
       return {false, "Metal diffuse path-loop backend currently supports point, directional, and "

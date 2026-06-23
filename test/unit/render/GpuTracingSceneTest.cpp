@@ -17,6 +17,7 @@
 #include "render/primitives/Sphere.h"
 #include "render/textures/CheckerBoardTexture.h"
 #include "render/textures/ConstantColorTexture.h"
+#include "render/textures/ImageTexture.h"
 #include "render/textures/Texture.h"
 #include "render/textures/mappings/UVMapping2D.h"
 
@@ -359,6 +360,43 @@ namespace GpuTracingSceneTest {
               compilation.textures.records[3].kind);
     expectFloat4(compilation.textures.records[2].parameters, 0.8f, 0.1f, 0.2f, 1.0f);
     expectFloat4(compilation.textures.records[3].parameters, 0.1f, 0.2f, 0.8f, 1.0f);
+  }
+
+  TEST(GpuTracingScene, CompilesNearestImageTextureRecordsWithTexelPayloadIds) {
+    std::vector<Colord> pixels{Colord::red(), Colord::green(), Colord::blue(), Colord::white()};
+    auto imageTexture =
+      std::make_shared<ImageTexture>(new UVMapping2D(2.0, 3.0), 2, 2, pixels,
+                                     ImageTextureFilter::Nearest, ImageTextureWrap::Clamp);
+    auto matte = std::make_shared<MatteMaterial>(imageTexture);
+    auto sphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 0.5);
+    sphere->setMaterial(matte);
+
+    Scene scene;
+    scene.add(sphere);
+
+    const CompiledIntersectionScene intersection = IntersectionSceneCompiler().compile(scene);
+    const GpuTracingMaterialCompilation compilation = compileGpuTracingMaterials(intersection);
+
+    EXPECT_TRUE(compilation.supported());
+    ASSERT_EQ(2u, compilation.records.size());
+    ASSERT_EQ(6u, compilation.textures.records.size());
+    EXPECT_EQ(1u, compilation.records[1].albedoTexture);
+    const GpuTracingTextureRecord& image = compilation.textures.records[1];
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingTextureKind::Image), image.kind);
+    EXPECT_EQ(2u, image.payloadOffset);
+    EXPECT_EQ(4u, image.payloadCount);
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingTextureMappingKind::UV) |
+                gpuTracingTextureWrapClampFlag,
+              image.flags);
+    expectFloat4(image.parameters, 2.0f, 3.0f, 2.0f, 2.0f);
+    for (std::uint32_t textureId = 2; textureId != 6; ++textureId) {
+      EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingTextureKind::ConstantColor),
+                compilation.textures.records[textureId].kind);
+    }
+    expectFloat4(compilation.textures.records[2].parameters, 1.0f, 0.0f, 0.0f, 1.0f);
+    expectFloat4(compilation.textures.records[3].parameters, 0.0f, 1.0f, 0.0f, 1.0f);
+    expectFloat4(compilation.textures.records[4].parameters, 0.0f, 0.0f, 1.0f, 1.0f);
+    expectFloat4(compilation.textures.records[5].parameters, 1.0f, 1.0f, 1.0f, 1.0f);
   }
 
   TEST(GpuTracingScene, MatteMaterialPacksTextureIdsAndCoefficients) {

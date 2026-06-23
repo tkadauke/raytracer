@@ -40,6 +40,7 @@
 #include "render/samplers/Sampler.h"
 #include "render/textures/CheckerBoardTexture.h"
 #include "render/textures/ConstantColorTexture.h"
+#include "render/textures/ImageTexture.h"
 #include "render/textures/mappings/PlanarMapping2D.h"
 #include "render/textures/mappings/UVMapping2D.h"
 
@@ -995,6 +996,48 @@ namespace GpuDiffusePathStepReferenceTest {
     ASSERT_COLOR_NEAR(Colord::red(), colorFrom4(result.stepRecords[0].continuationThroughput),
                       1e-6);
     ASSERT_COLOR_NEAR(Colord::blue(), colorFrom4(result.stepRecords[1].continuationThroughput),
+                      1e-6);
+  }
+
+  TEST(GpuDiffusePathStepReference, MatteHitSamplesNearestImageTexture) {
+    std::vector<Colord> pixels{Colord::red(), Colord::green(), Colord::blue(), Colord::white()};
+    auto image =
+      std::make_shared<ImageTexture>(new UVMapping2D, 2, 2, pixels, ImageTextureFilter::Nearest);
+    auto matte = std::make_shared<MatteMaterial>(image);
+    matte->setDiffuseCoefficient(1.0);
+    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    receiver->setMaterial(matte);
+
+    Scene scene;
+    scene.add(receiver);
+    GpuTracingSceneSections sections = sectionsFor(scene);
+    sections.geometry = GpuIntersectionSceneBuffers{};
+    const std::uint32_t material = firstMaterialId(sections, GpuTracingMaterialKind::Matte);
+
+    GpuDiffusePathStateRecord redPath = activePath(17);
+    GpuDiffusePathStateRecord greenPath = activePath(18);
+    GpuDiffusePathStateRecord bluePath = activePath(19);
+    GpuIntersectionHitRecord redHit = hitRecord(17, material);
+    redHit.uv = {0.25f, 0.25f, 0.0f, 0.0f};
+    GpuIntersectionHitRecord greenHit = hitRecord(18, material);
+    greenHit.uv = {0.75f, 0.25f, 0.0f, 0.0f};
+    GpuIntersectionHitRecord blueHit = hitRecord(19, material);
+    blueHit.uv = {0.25f, 0.75f, 0.0f, 0.0f};
+    GpuDiffusePathLoopSettings settings;
+    settings.russianRouletteDepth = 10;
+
+    const GpuDiffusePathStepResult result = GpuDiffusePathStepReference().step(
+      sections, {redPath, greenPath, bluePath}, {redHit, greenHit, blueHit}, settings);
+
+    ASSERT_EQ(3u, result.pathStates.size());
+    ASSERT_COLOR_NEAR(Colord::red(), colorFrom4(result.pathStates[0].throughput), 1e-6);
+    ASSERT_COLOR_NEAR(Colord::green(), colorFrom4(result.pathStates[1].throughput), 1e-6);
+    ASSERT_COLOR_NEAR(Colord::blue(), colorFrom4(result.pathStates[2].throughput), 1e-6);
+    ASSERT_COLOR_NEAR(Colord::red(), colorFrom4(result.stepRecords[0].continuationThroughput),
+                      1e-6);
+    ASSERT_COLOR_NEAR(Colord::green(), colorFrom4(result.stepRecords[1].continuationThroughput),
+                      1e-6);
+    ASSERT_COLOR_NEAR(Colord::blue(), colorFrom4(result.stepRecords[2].continuationThroughput),
                       1e-6);
   }
 
