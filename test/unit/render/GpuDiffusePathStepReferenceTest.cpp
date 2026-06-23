@@ -48,6 +48,21 @@ namespace GpuDiffusePathStepReferenceTest {
       }
     };
 
+    Colord colorFrom4(const std::array<float, 4>& value) {
+      return Colord(value);
+    }
+
+    Vector3d vectorFrom4(const std::array<float, 4>& value) {
+      return Vector3d(value);
+    }
+
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    std::vector<std::uint32_t> sortedRetainedPathIndices(std::vector<std::uint32_t> indices) {
+      std::sort(indices.begin(), indices.end());
+      return indices;
+    }
+#endif
+
     GpuDiffusePathStateRecord activePath(std::uint32_t rayIndex = 7) {
       GpuDiffusePathStateRecord path = makeActiveGpuDiffusePathState();
       path.ray = GpuIntersectionScenePacker().packRay(
@@ -1522,7 +1537,7 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(2u * sizeof(GpuDiffusePathStateRecord), plan.buffers.activePathStateBytes);
     EXPECT_EQ(2u * sizeof(GpuDiffusePathStateRecord), plan.buffers.nextPathStateBytes);
     EXPECT_EQ(2u * 3u * sizeof(GpuDiffusePathStepRecord), plan.buffers.stepRecordBytes);
-    EXPECT_EQ(2u * sizeof(std::uint32_t), plan.buffers.retainedIndexBytes);
+    EXPECT_EQ(3u * sizeof(std::uint32_t), plan.buffers.retainedIndexBytes);
     EXPECT_EQ(accumulationLayout.totalBytes(), plan.buffers.accumulationBytes);
     EXPECT_EQ(plan.buffers.sceneUploadBytes + plan.buffers.initialPathStateBytes,
               plan.buffers.totalUploadBytes);
@@ -1646,6 +1661,8 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(2u, result.stepRecords[1].depth);
     EXPECT_EQ(paths[1].flags, result.stepRecords[1].flags);
     EXPECT_EQ(paths[1].throughput, result.stepRecords[1].continuationThroughput);
+    EXPECT_EQ(std::vector<std::uint32_t>({0u, 1u}),
+              sortedRetainedPathIndices(result.retainedPathIndices));
     EXPECT_GE(result.uploadWorkerSeconds, 0.0);
     EXPECT_GE(result.kernelWorkerSeconds, 0.0);
     EXPECT_GE(result.readbackWorkerSeconds, 0.0);
@@ -1712,6 +1729,7 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(result.resolvedPathStates[0].flags, result.stepRecords[0].flags);
     EXPECT_EQ(result.resolvedPathStates[1].flags, result.stepRecords[1].flags);
     EXPECT_EQ(paths[2].flags, result.stepRecords[2].flags);
+    EXPECT_TRUE(result.retainedPathIndices.empty());
 
     ASSERT_EQ(4u, result.accumulationColorSums.size());
     ASSERT_EQ(4u, result.accumulationSampleCounts.size());
@@ -1796,6 +1814,8 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(static_cast<std::uint32_t>(GpuDiffusePathStepEvent::Inactive),
               result.stepRecords[2].event);
     EXPECT_EQ(paths[2].flags, result.stepRecords[2].flags);
+    EXPECT_EQ(std::vector<std::uint32_t>({0u, 1u}),
+              sortedRetainedPathIndices(result.retainedPathIndices));
 #else
     GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
 #endif
@@ -1889,6 +1909,8 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(static_cast<std::uint32_t>(GpuDiffusePathStepEvent::Miss),
               result.stepRecords[1].event);
     EXPECT_EQ(paths[1].flags, result.stepRecords[1].flags);
+    EXPECT_EQ(std::vector<std::uint32_t>({0u, 1u}),
+              sortedRetainedPathIndices(result.retainedPathIndices));
 #else
     GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
 #endif
@@ -1943,6 +1965,7 @@ namespace GpuDiffusePathStepReferenceTest {
     expectFloat4Near(result.stepRecords[0].continuationThroughput,
                      expected.stepRecords[0].continuationThroughput, 1e-5);
     expectPathStateNear(result.nextPathStates[0], expected.pathStates[0], 1e-4);
+    EXPECT_EQ(std::vector<std::uint32_t>({0u}), result.retainedPathIndices);
     ASSERT_EQ(4u, result.accumulationColorSums.size());
     ASSERT_EQ(4u, result.accumulationSampleCounts.size());
     ASSERT_COLOR_NEAR(Colord::black(), colorFrom4(result.accumulationColorSums[0]), 1e-6);
@@ -2006,6 +2029,7 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(1u, result.accumulationSampleCounts[1]);
     EXPECT_EQ(0u, result.accumulationSampleCounts[2]);
     EXPECT_EQ(0u, result.accumulationSampleCounts[3]);
+    EXPECT_TRUE(result.retainedPathIndices.empty());
 #else
     GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
 #endif

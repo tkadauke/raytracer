@@ -104,6 +104,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Extend the Metal diffuse path-loop continuation probe to clear and write GPU
   accumulation color/count planes for terminal miss, emissive, unsupported, and
   no-continuation outcomes. — GPT-5 Codex
+- Add GPU-generated retained frontier indices to the Metal diffuse path-loop
+  probes, using a count-prefixed retained-index buffer in the launch ABI. —
+  GPT-5 Codex
 - Carry serialized compiled tracing-scene upload bytes through GPU diffuse
   path-loop launch plans so platform path-loop kernels can consume real scene
   records instead of size-only placeholder buffers. — GPT-5 Codex

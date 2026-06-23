@@ -915,6 +915,17 @@ namespace render {
               "      path.accumulatedRadiance;\n"
               "  accumulationSampleCounts(parameters, accumulation)[path.pixelIndex] = 1u;\n"
               "}\n"
+              "void recordRetainedActivePath(device atomic_uint* retainedIndices,\n"
+              "                              uint pathIndex,\n"
+              "                              GpuDiffusePathStateRecord path) {\n"
+              "  if (!pathStateIsActive(path)) {\n"
+              "    return;\n"
+              "  }\n"
+              "  const uint slot = atomic_fetch_add_explicit(&retainedIndices[0], 1u,\n"
+              "                                             memory_order_relaxed);\n"
+              "  atomic_store_explicit(&retainedIndices[slot + 1u], pathIndex,\n"
+              "                        memory_order_relaxed);\n"
+              "}\n"
               "kernel void clearDiffusePathLoopAccumulation(\n"
               "    constant GpuDiffusePathLoopLaunchParameters& parameters [[buffer(0)]],\n"
               "    device uchar* accumulation [[buffer(1)]],\n"
@@ -934,12 +945,11 @@ namespace render {
               "    device GpuDiffusePathStateRecord* activePathStates [[buffer(4)]],\n"
               "    device GpuDiffusePathStateRecord* nextPathStates [[buffer(5)]],\n"
               "    device GpuDiffusePathStepRecord* stepRecords [[buffer(6)]],\n"
-              "    device uchar* retainedIndices [[buffer(7)]],\n"
+              "    device atomic_uint* retainedIndices [[buffer(7)]],\n"
               "    device uchar* accumulation [[buffer(8)]],\n"
               "    uint id [[thread_position_in_grid]]) {\n"
               "  if (id == 0u) {\n"
               "    echoedParameters[0] = parameters;\n"
-              "    retainedIndices[0] = 0u;\n"
               "  }\n"
               "  if (id >= parameters.initialPathCount) {\n"
               "    return;\n"
@@ -947,6 +957,7 @@ namespace render {
               "  activePathStates[id] = initialPathStates[id];\n"
               "  nextPathStates[id] = activePathStates[id];\n"
               "  stepRecords[id] = inactiveStep(id, initialPathStates[id]);\n"
+              "  recordRetainedActivePath(retainedIndices, id, activePathStates[id]);\n"
               "  (void)sceneUpload;\n"
               "}\n"
               "kernel void probeDiffusePathLoopAllMiss(\n"
@@ -957,12 +968,11 @@ namespace render {
               "    device GpuDiffusePathStateRecord* activePathStates [[buffer(4)]],\n"
               "    device GpuDiffusePathStateRecord* nextPathStates [[buffer(5)]],\n"
               "    device GpuDiffusePathStepRecord* stepRecords [[buffer(6)]],\n"
-              "    device uchar* retainedIndices [[buffer(7)]],\n"
+              "    device atomic_uint* retainedIndices [[buffer(7)]],\n"
               "    device uchar* accumulation [[buffer(8)]],\n"
               "    uint id [[thread_position_in_grid]]) {\n"
               "  if (id == 0u) {\n"
               "    echoedParameters[0] = parameters;\n"
-              "    retainedIndices[0] = 0u;\n"
               "  }\n"
               "  if (id >= parameters.initialPathCount) {\n"
               "    return;\n"
@@ -983,6 +993,7 @@ namespace render {
               "  activePathStates[id] = path;\n"
               "  nextPathStates[id] = path;\n"
               "  stepRecords[id] = step;\n"
+              "  recordRetainedActivePath(retainedIndices, id, path);\n"
               "}\n"
               "kernel void probeDiffusePathLoopClosestHit(\n"
               "    constant GpuDiffusePathLoopLaunchParameters& parameters [[buffer(0)]],\n"
@@ -992,13 +1003,12 @@ namespace render {
               "    device GpuDiffusePathStateRecord* activePathStates [[buffer(4)]],\n"
               "    device GpuDiffusePathStateRecord* nextPathStates [[buffer(5)]],\n"
               "    device GpuDiffusePathStepRecord* stepRecords [[buffer(6)]],\n"
-              "    device uchar* retainedIndices [[buffer(7)]],\n"
+              "    device atomic_uint* retainedIndices [[buffer(7)]],\n"
               "    device uchar* accumulation [[buffer(8)]],\n"
               "    device GpuIntersectionHitRecord* closestHits [[buffer(9)]],\n"
               "    uint id [[thread_position_in_grid]]) {\n"
               "  if (id == 0u) {\n"
               "    echoedParameters[0] = parameters;\n"
-              "    retainedIndices[0] = 0u;\n"
               "  }\n"
               "  if (id >= parameters.initialPathCount) {\n"
               "    return;\n"
@@ -1022,6 +1032,7 @@ namespace render {
               "  nextPathStates[id] = path;\n"
               "  stepRecords[id] = step;\n"
               "  closestHits[id] = hit;\n"
+              "  recordRetainedActivePath(retainedIndices, id, path);\n"
               "  (void)accumulation;\n"
               "}\n"
               "kernel void probeDiffusePathLoopMatteContinuation(\n"
@@ -1032,13 +1043,12 @@ namespace render {
               "    device GpuDiffusePathStateRecord* activePathStates [[buffer(4)]],\n"
               "    device GpuDiffusePathStateRecord* nextPathStates [[buffer(5)]],\n"
               "    device GpuDiffusePathStepRecord* stepRecords [[buffer(6)]],\n"
-              "    device uchar* retainedIndices [[buffer(7)]],\n"
+              "    device atomic_uint* retainedIndices [[buffer(7)]],\n"
               "    device uchar* accumulation [[buffer(8)]],\n"
               "    device GpuIntersectionHitRecord* closestHits [[buffer(9)]],\n"
               "    uint id [[thread_position_in_grid]]) {\n"
               "  if (id == 0u) {\n"
               "    echoedParameters[0] = parameters;\n"
-              "    retainedIndices[0] = 0u;\n"
               "  }\n"
               "  if (id >= parameters.initialPathCount) {\n"
               "    return;\n"
@@ -1102,6 +1112,7 @@ namespace render {
               "  nextPathStates[id] = next;\n"
               "  stepRecords[id] = step;\n"
               "  closestHits[id] = hit;\n"
+              "  recordRetainedActivePath(retainedIndices, id, next);\n"
               "}\n"
               "kernel void probeDiffusePathLoopMatteHitShading(\n"
               "    constant GpuDiffusePathLoopLaunchParameters& parameters [[buffer(0)]],\n"
@@ -1111,13 +1122,12 @@ namespace render {
               "    device GpuDiffusePathStateRecord* activePathStates [[buffer(4)]],\n"
               "    device GpuDiffusePathStateRecord* nextPathStates [[buffer(5)]],\n"
               "    device GpuDiffusePathStepRecord* stepRecords [[buffer(6)]],\n"
-              "    device uchar* retainedIndices [[buffer(7)]],\n"
+              "    device atomic_uint* retainedIndices [[buffer(7)]],\n"
               "    device uchar* accumulation [[buffer(8)]],\n"
               "    device GpuIntersectionHitRecord* closestHits [[buffer(9)]],\n"
               "    uint id [[thread_position_in_grid]]) {\n"
               "  if (id == 0u) {\n"
               "    echoedParameters[0] = parameters;\n"
-              "    retainedIndices[0] = 0u;\n"
               "  }\n"
               "  if (id >= parameters.initialPathCount) {\n"
               "    return;\n"
@@ -1146,6 +1156,7 @@ namespace render {
               "  nextPathStates[id] = path;\n"
               "  stepRecords[id] = step;\n"
               "  closestHits[id] = hit;\n"
+              "  recordRetainedActivePath(retainedIndices, id, path);\n"
               "  (void)accumulation;\n"
               "}\n";
     }
@@ -1227,6 +1238,25 @@ namespace render {
     std::uint64_t pixelCount(const GpuDiffusePathLoopLaunchParameters& parameters) {
       return static_cast<std::uint64_t>(parameters.imageWidth) *
              static_cast<std::uint64_t>(parameters.imageHeight);
+    }
+
+    void clearRetainedIndexBuffer(id<MTLBuffer> retainedIndexBuffer, std::uint64_t bytes) {
+      if (bytes == 0) {
+        return;
+      }
+      std::memset([retainedIndexBuffer contents], 0, static_cast<std::size_t>(bytes));
+    }
+
+    std::vector<std::uint32_t> retainedPathIndicesFromBuffer(
+      id<MTLBuffer> retainedIndexBuffer, std::size_t maxPathCount) {
+      const auto* retainedIndices =
+        static_cast<const std::uint32_t*>([retainedIndexBuffer contents]);
+      const std::uint32_t retainedCount = retainedIndices[0];
+      if (retainedCount > maxPathCount) {
+        throw std::runtime_error(
+          "Metal diffuse path-loop retained path count exceeds initial path count");
+      }
+      return std::vector<std::uint32_t>(retainedIndices + 1, retainedIndices + 1 + retainedCount);
     }
 
     void validateUniqueActiveAccumulationTargets(
@@ -1392,6 +1422,7 @@ namespace render {
           !accumulationBuffer) {
         throw std::runtime_error("Metal diffuse path-loop launch buffer allocation failed");
       }
+      clearRetainedIndexBuffer(retainedIndexBuffer, plan.buffers.retainedIndexBytes);
       MetalGpuDiffusePathLoopKernelResult result;
       result.bufferSizes = plan.buffers;
       result.uploadWorkerSeconds = elapsedSeconds(uploadStart, std::chrono::steady_clock::now());
@@ -1438,6 +1469,8 @@ namespace render {
         std::memcpy(result.stepRecords.data(), [stepRecordBuffer contents],
                     result.stepRecords.size() * sizeof(GpuDiffusePathStepRecord));
       }
+      result.retainedPathIndices =
+        retainedPathIndicesFromBuffer(retainedIndexBuffer, initialPathStates.size());
       result.readbackWorkerSeconds =
         elapsedSeconds(readbackStart, std::chrono::steady_clock::now());
       return result;
@@ -1525,6 +1558,7 @@ namespace render {
           !accumulationBuffer) {
         throw std::runtime_error("Metal diffuse path-loop all-miss probe buffer allocation failed");
       }
+      clearRetainedIndexBuffer(retainedIndexBuffer, plan.buffers.retainedIndexBytes);
       MetalGpuDiffusePathLoopKernelResult result;
       result.executionPath = "metal_diffuse_path_loop_all_miss_probe";
       result.bufferSizes = plan.buffers;
@@ -1579,6 +1613,8 @@ namespace render {
         std::memcpy(result.stepRecords.data(), [stepRecordBuffer contents],
                     result.stepRecords.size() * sizeof(GpuDiffusePathStepRecord));
       }
+      result.retainedPathIndices =
+        retainedPathIndicesFromBuffer(retainedIndexBuffer, initialPathStates.size());
       result.accumulationColorSums.resize(pixelCount(plan.parameters));
       if (!result.accumulationColorSums.empty()) {
         std::memcpy(result.accumulationColorSums.data(), [accumulationBuffer contents],
@@ -1678,6 +1714,7 @@ namespace render {
         throw std::runtime_error(
           "Metal diffuse path-loop closest-hit probe buffer allocation failed");
       }
+      clearRetainedIndexBuffer(retainedIndexBuffer, plan.buffers.retainedIndexBytes);
       MetalGpuDiffusePathLoopKernelResult result;
       result.executionPath = "metal_diffuse_path_loop_closest_hit_probe";
       result.bufferSizes = plan.buffers;
@@ -1731,6 +1768,8 @@ namespace render {
         std::memcpy(result.stepRecords.data(), [stepRecordBuffer contents],
                     result.stepRecords.size() * sizeof(GpuDiffusePathStepRecord));
       }
+      result.retainedPathIndices =
+        retainedPathIndicesFromBuffer(retainedIndexBuffer, initialPathStates.size());
       result.readbackWorkerSeconds =
         elapsedSeconds(readbackStart, std::chrono::steady_clock::now());
       return result;
@@ -1816,6 +1855,7 @@ namespace render {
         throw std::runtime_error(
           "Metal diffuse path-loop matte shading probe buffer allocation failed");
       }
+      clearRetainedIndexBuffer(retainedIndexBuffer, plan.buffers.retainedIndexBytes);
       MetalGpuDiffusePathLoopKernelResult result;
       result.executionPath = "metal_diffuse_path_loop_matte_hit_shading_probe";
       result.bufferSizes = plan.buffers;
@@ -1870,6 +1910,8 @@ namespace render {
         std::memcpy(result.stepRecords.data(), [stepRecordBuffer contents],
                     result.stepRecords.size() * sizeof(GpuDiffusePathStepRecord));
       }
+      result.retainedPathIndices =
+        retainedPathIndicesFromBuffer(retainedIndexBuffer, initialPathStates.size());
       result.readbackWorkerSeconds =
         elapsedSeconds(readbackStart, std::chrono::steady_clock::now());
       return result;
@@ -1961,6 +2003,7 @@ namespace render {
         throw std::runtime_error(
           "Metal diffuse path-loop matte continuation probe buffer allocation failed");
       }
+      clearRetainedIndexBuffer(retainedIndexBuffer, plan.buffers.retainedIndexBytes);
       MetalGpuDiffusePathLoopKernelResult result;
       result.executionPath = "metal_diffuse_path_loop_matte_continuation_probe";
       result.bufferSizes = plan.buffers;
@@ -2027,6 +2070,8 @@ namespace render {
         std::memcpy(result.stepRecords.data(), [stepRecordBuffer contents],
                     result.stepRecords.size() * sizeof(GpuDiffusePathStepRecord));
       }
+      result.retainedPathIndices =
+        retainedPathIndicesFromBuffer(retainedIndexBuffer, initialPathStates.size());
       result.accumulationColorSums.resize(pixelCount(plan.parameters));
       if (!result.accumulationColorSums.empty()) {
         std::memcpy(result.accumulationColorSums.data(), [accumulationBuffer contents],

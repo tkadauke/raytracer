@@ -123,8 +123,10 @@ namespace render {
     plan.buffers.stepRecordBytes =
       checkedProduct(checkedProduct(initialPathCount, maxDepth, "path-step record count"),
                      sizeof(GpuDiffusePathStepRecord), "path-step record");
+    const std::uint64_t retainedIndexCount =
+      checkedAdd(initialPathCount, 1u, "retained path index count");
     plan.buffers.retainedIndexBytes =
-      checkedProduct(initialPathCount, sizeof(std::uint32_t), "retained path index");
+      checkedProduct(retainedIndexCount, sizeof(std::uint32_t), "retained path index");
     plan.buffers.accumulationBytes = accumulationLayout.totalBytes();
 
     plan.buffers.totalUploadBytes =

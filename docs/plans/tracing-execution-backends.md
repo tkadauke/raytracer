@@ -92,6 +92,10 @@ end state for GPU tracing.
   `defaultBackendForGpuRequest()` may return the CPU-reference or hybrid
   compaction path, while `defaultFullGpuBackendForGpuRequest()` remains empty
   until a real Metal/Vulkan path-loop backend can own the full loop.
+- Metal diffuse path-loop probes now publish GPU-generated retained frontier
+  indices through the shader-facing retained-index buffer. The ABI is
+  count-prefixed so the same buffer can become a device-side compacted frontier
+  handoff without a host scan of next path-state activity.
 - GPU-requested compiled diffuse path-loop renders automatically use an
   available Metal or Vulkan frontier-compaction backend for the live
   `GpuDiffusePathStateRecord` frontier, reporting that middle step as hybrid
@@ -2510,14 +2514,18 @@ scene is large enough to amortize upload/readback costs.
      Terminal outcomes from that continuation probe now clear and write the
      accumulation color/count planes for unique active pixel targets, including
      miss termination, emissive hits, unsupported hits, and diffuse paths that
-     fail to spawn a continuation.
+     fail to spawn a continuation. The Metal probes now also append active
+     surviving path indices into a count-prefixed retained-index buffer on the
+     GPU, giving the future multi-depth loop a shader-generated frontier
+     handoff instead of requiring the host to scan next path-state activity.
      This proves the command-buffer, scene-upload, geometry, material-record,
      texture-record, light-record, environment-record, path-state, step-record,
      continuation, direct-light-contribution, emissive-hit-termination, and
-     terminal accumulation ABI for the future path-loop kernel; broader
-     primitive traversal, full material shading, full direct-light coverage,
-     compaction, and multi-depth accumulation still need to move into this
-     backend before it can advertise full GPU execution.
+     terminal accumulation ABI plus the retained-frontier ABI for the future
+     path-loop kernel; broader primitive traversal, full material shading, full
+     direct-light coverage, in-kernel compaction, and multi-depth accumulation
+     still need to move into this backend before it can advertise full GPU
+     execution.
 
 3. **Add a minimal Vulkan path-loop kernel.**
    - Depends on: job 1.

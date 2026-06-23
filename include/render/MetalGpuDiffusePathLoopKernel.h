@@ -15,6 +15,7 @@ namespace render {
     std::vector<GpuDiffusePathStateRecord> nextPathStates;
     std::vector<GpuIntersectionHitRecord> closestHitRecords;
     std::vector<GpuDiffusePathStepRecord> stepRecords;
+    std::vector<std::uint32_t> retainedPathIndices;
     std::vector<std::array<float, 4>> accumulationColorSums;
     std::vector<std::uint32_t> accumulationSampleCounts;
     std::string executionPath{"metal_diffuse_path_loop_launch_probe"};
