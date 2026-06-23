@@ -550,12 +550,14 @@ namespace PathTracingIntegratorTest {
       WavefrontFrontierCompactionResult
       compactFrontier(const WavefrontFrontierCompactionRequest& request) const override {
         compactionInputCounts.push_back(request.inputPathCount());
+        compactionPathStateResidencies.push_back(request.pathStateResidency());
         return WavefrontFrontierCompactionResult::fromRetainedPathIndices(
           request.inputPathCount() + 1U, {}, "malformed_compaction",
           request.pathStateBytesPerPath(), request.pathStateResidency());
       }
 
       mutable std::vector<std::size_t> compactionInputCounts;
+      mutable std::vector<std::string> compactionPathStateResidencies;
     };
 
     class BatchPreferringCountingIntersectionBackend final : public CountingIntersectionBackend {
@@ -2328,6 +2330,8 @@ namespace PathTracingIntegratorTest {
                  std::logic_error);
     ASSERT_FALSE(backend.compactionInputCounts.empty());
     EXPECT_EQ(2u, backend.compactionInputCounts.front());
+    ASSERT_FALSE(backend.compactionPathStateResidencies.empty());
+    EXPECT_EQ("host", backend.compactionPathStateResidencies.front());
   }
 
   TEST(PathTracingIntegrator, BatchedRadianceKeepsSampleColorsWhenCompactingMovedPaths) {

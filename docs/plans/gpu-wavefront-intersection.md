@@ -1296,6 +1296,10 @@ Progress:
   host path-state byte metrics. The path-tracing scheduler asks the frontier
   owner to report its footprint instead of recomputing those byte totals in the
   main loop.
+- The host path frontier now explicitly stamps `host` path-state residency onto
+  backend compaction requests. Future resident path-state owners can therefore
+  swap that residency label at the frontier boundary instead of relying on the
+  compaction request's default.
 - The host path frontier now publishes the active-depth metric row together
   with active host path-state bytes. The depth scheduler keeps only the
   original active count it needs for convergence RMS math, while metric

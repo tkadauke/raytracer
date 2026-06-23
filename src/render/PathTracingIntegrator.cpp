@@ -111,6 +111,8 @@ namespace render {
 
   class PathTracingIntegrator::HostBatchPathFrontier {
   public:
+    static constexpr const char* pathStateResidency = "host";
+
     class Compaction {
     public:
       void retain(std::size_t pathIndex) {
@@ -127,6 +129,7 @@ namespace render {
       Compaction(std::size_t inputPathCount, std::uint64_t pathStateBytesPerPath)
           : m_request(inputPathCount) {
         m_request.setPathStateBytesPerPath(pathStateBytesPerPath);
+        m_request.setPathStateResidency(HostBatchPathFrontier::pathStateResidency);
       }
 
       WavefrontFrontierCompactionRequest m_request;
