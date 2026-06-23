@@ -85,11 +85,11 @@ That split gives three useful execution modes:
 
 The current full-GPU path-loop support is intentionally narrow. Metal-enabled
 builds can execute explicit GPU requests for empty scenes and untransformed
-sphere/plane scenes using Matte or Emissive materials, ConstantColor textures,
-and point, directional, or rectangular area lights. Vulkan currently covers the
-same path-loop contract only for empty-scene all-miss execution. Unsupported
-scenes still report the CPU-reference or hybrid diagnostic backend instead of
-pretending that the GPU owns the whole path tracer.
+triangle/sphere/plane scenes using Matte or Emissive materials, ConstantColor
+textures, and point, directional, or rectangular area lights. Vulkan currently
+covers the same path-loop contract only for empty-scene all-miss execution.
+Unsupported scenes still report the CPU-reference or hybrid diagnostic backend
+instead of pretending that the GPU owns the whole path tracer.
 
 Matching rendered images are therefore meaningful backend evidence
 only when the comparison holds the algorithm and schedule contract

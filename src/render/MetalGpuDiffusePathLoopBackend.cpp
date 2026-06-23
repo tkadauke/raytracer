@@ -23,17 +23,18 @@ namespace render {
     primitiveUsesSupportedGeometry(const GpuIntersectionPrimitiveRecord& primitive) {
       const auto kind = static_cast<GpuIntersectionPrimitiveKind>(primitive.kind);
       return primitive.transform == 0u && primitive.payloadCount == 1u &&
-             (kind == GpuIntersectionPrimitiveKind::Sphere ||
+             (kind == GpuIntersectionPrimitiveKind::Triangle ||
+              kind == GpuIntersectionPrimitiveKind::Sphere ||
               kind == GpuIntersectionPrimitiveKind::Plane);
     }
 
     [[nodiscard]] bool sceneHasSupportedGeometry(const GpuTracingSceneSections& scene) {
       const GpuIntersectionSceneBuffers& geometry = scene.geometry;
-      return !geometry.primitives.empty() && !geometry.bvh.empty() && geometry.triangles.empty() &&
-             geometry.rectangles.empty() && geometry.disks.empty() &&
-             geometry.openCylinders.empty() && geometry.tori.empty() &&
+      return !geometry.primitives.empty() && !geometry.bvh.empty() && geometry.rectangles.empty() &&
+             geometry.disks.empty() && geometry.openCylinders.empty() && geometry.tori.empty() &&
              geometry.transforms.empty() &&
-             geometry.spheres.size() + geometry.planes.size() == geometry.primitives.size() &&
+             geometry.triangles.size() + geometry.spheres.size() + geometry.planes.size() ==
+               geometry.primitives.size() &&
              std::all_of(geometry.primitives.begin(), geometry.primitives.end(),
                          primitiveUsesSupportedGeometry);
     }
@@ -271,7 +272,7 @@ namespace render {
     }
     if (!sceneHasNoGeometry(scene) && !sceneHasSupportedGeometry(scene)) {
       return {false, "Metal diffuse path-loop backend currently supports empty geometry or "
-                     "untransformed sphere/plane geometry only"};
+                     "untransformed triangle/sphere/plane geometry only"};
     }
     if (!supportedMaterials(scene)) {
       return {

@@ -26,9 +26,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   graph selection disabled until platform parity and performance gates pass. —
   GPT-5 Codex
 - Extend the restricted Metal full-GPU diffuse path-loop subset to support
-  untransformed sphere/plane Matte/Emissive scenes, letting ordinary floor
-  setups enter the GPU-owned path loop instead of being rejected before
-  dispatch. — GPT-5 Codex
+  untransformed triangle/sphere/plane Matte/Emissive scenes, letting ordinary
+  floor and mesh-like setups enter the GPU-owned path loop instead of being
+  rejected before dispatch. — GPT-5 Codex
 - Add a scene-specific full-GPU diffuse path-loop support query so future
   Metal/Vulkan path-loop backends can reject narrower compiled-scene subsets
   without making graph predictions overclaim full GPU execution. — GPT-5 Codex
