@@ -41,6 +41,9 @@
 > kernels remain part of the parent tracing execution backend plan. Automatic
 > tracing execution does not promote that CPU-reference loop to a full GPU
 > prediction, while explicit GPU requests can still run it for diagnostics.
+> The first actual platform-owned diffuse path loop is tracked as E15 in
+> `docs/plans/tracing-execution-backends.md`; this child plan should keep
+> focusing on reusable intersection/frontier services that E15 consumes.
 > This is a follow-up to
 > `docs/plans/wavefront-and-path-tracing.md` Phase 7+ and is now a child slice
 > of `docs/plans/tracing-execution-backends.md`. It should not replace the CPU

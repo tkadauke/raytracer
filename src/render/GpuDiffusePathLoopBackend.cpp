@@ -11,6 +11,11 @@
 #include <utility>
 
 namespace render {
+  namespace {
+    constexpr const char* kNoPlatformPathLoopReason =
+      "platform full-GPU path-loop kernel is not available yet";
+  }
+
   std::shared_ptr<const GpuDiffusePathLoopBackend>
   GpuDiffusePathLoopBackend::defaultBackendForGpuRequest() {
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
@@ -30,6 +35,23 @@ namespace render {
     }
 #endif
     return CpuReferenceGpuDiffusePathLoopBackend::sharedInstance();
+  }
+
+  std::shared_ptr<const GpuDiffusePathLoopBackend>
+  GpuDiffusePathLoopBackend::defaultFullGpuBackendForGpuRequest() {
+    return {};
+  }
+
+  bool GpuDiffusePathLoopBackend::fullGpuPathLoopAvailable() const {
+    return false;
+  }
+
+  const char* GpuDiffusePathLoopBackend::fullGpuPathLoopUnavailableReason() const {
+    return kNoPlatformPathLoopReason;
+  }
+
+  const char* GpuDiffusePathLoopBackend::platformName() const {
+    return "";
   }
 
   std::shared_ptr<const CpuReferenceGpuDiffusePathLoopBackend>

@@ -19,8 +19,13 @@ namespace render {
 
     [[nodiscard]] static std::shared_ptr<const GpuDiffusePathLoopBackend>
     defaultBackendForGpuRequest();
+    [[nodiscard]] static std::shared_ptr<const GpuDiffusePathLoopBackend>
+    defaultFullGpuBackendForGpuRequest();
 
     virtual const char* name() const = 0;
+    [[nodiscard]] virtual bool fullGpuPathLoopAvailable() const;
+    [[nodiscard]] virtual const char* fullGpuPathLoopUnavailableReason() const;
+    [[nodiscard]] virtual const char* platformName() const;
 
     [[nodiscard]] virtual GpuDiffusePathLoopResult
     run(const GpuTracingSceneSections& scene,

@@ -67,6 +67,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   compaction backend automatically for GPU-requested graph renders, falling
   back to the CPU reference backend when no platform compactor is available. —
   GPT-5 Codex
+- Add an explicit full-GPU diffuse path-loop backend selection hook and plan
+  milestone, keeping diagnostic CPU-reference GPU requests separate from
+  automatic platform full-GPU path-loop selection. — GPT-5 Codex
 
 ### Fixed
 

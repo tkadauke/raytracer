@@ -206,6 +206,14 @@ namespace GraphRenderEngineTest {
       return "test_full_gpu_path_loop";
     }
 
+    bool fullGpuPathLoopAvailable() const override {
+      return true;
+    }
+
+    const char* platformName() const override {
+      return "metal";
+    }
+
     render::GpuDiffusePathLoopResult
     run(const render::GpuTracingSceneSections& scene,
         const std::vector<render::GpuDiffusePathStateRecord>& initialPathStates,

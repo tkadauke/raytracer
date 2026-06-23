@@ -1,8 +1,10 @@
 #include "engine/graph/RenderSceneAnalysis.h"
 
+#include "render/GpuDiffusePathLoopBackend.h"
 #include "render/GpuTracingScene.h"
 
 #include <algorithm>
+#include <memory>
 #include <sstream>
 #include <stdexcept>
 #include <utility>
@@ -124,8 +126,12 @@ namespace engine::graph {
     const render::GpuDiffusePathLoopSupport support =
       render::gpuDiffusePathLoopSupport(compilation, scene);
     setFullGpuTracingSupported(support.supported, support.reason);
-    setFullGpuTracingBackendAvailable(false,
-                                      "platform full-GPU path-loop kernel is not available yet");
+    const std::shared_ptr<const render::GpuDiffusePathLoopBackend> fullGpuBackend =
+      render::GpuDiffusePathLoopBackend::defaultFullGpuBackendForGpuRequest();
+    setFullGpuTracingBackendAvailable(
+      fullGpuBackend && fullGpuBackend->fullGpuPathLoopAvailable(),
+      fullGpuBackend ? fullGpuBackend->fullGpuPathLoopUnavailableReason()
+                     : "platform full-GPU path-loop kernel is not available yet");
   }
 
   bool RenderSceneAnalysis::hasKnownVisibleSurfaceCount() const {

@@ -87,6 +87,11 @@ end state for GPU tracing.
   a full GPU backend. `auto` stays on CPU/hybrid execution until scene analysis
   can prove that a platform path-loop kernel is available; explicit GPU
   requests can still exercise the compiled CPU-reference loop for diagnostics.
+- The compiled path-loop backend interface now separates the diagnostic
+  GPU-request backend from the platform full-GPU backend selection point:
+  `defaultBackendForGpuRequest()` may return the CPU-reference or hybrid
+  compaction path, while `defaultFullGpuBackendForGpuRequest()` remains empty
+  until a real Metal/Vulkan path-loop backend can own the full loop.
 - GPU-requested compiled diffuse path-loop renders automatically use an
   available Metal or Vulkan frontier-compaction backend for the live
   `GpuDiffusePathStateRecord` frontier, reporting that middle step as hybrid
@@ -111,6 +116,9 @@ end state for GPU tracing.
 - Platform GPU-side path/frontier compaction for scheduler-owned path records.
 - Platform full-GPU path-loop kernels. The current supported path-loop is a
   compiled CPU-reference implementation over GPU-facing records.
+- Platform full-GPU path-loop backend selection. The factory hook exists, but
+  it intentionally returns no backend until a Metal/Vulkan path-loop kernel can
+  execute the supported subset without CPU-reference shading.
 - GPU material records beyond the current Matte, Emissive, Phong, and
   Reflective subset.
 - GPU texture records beyond ConstantColor.
@@ -2444,6 +2452,62 @@ infrastructure exists.
 
 **Gate:** GPU Whitted is a separate algorithm branch that reuses shared tracing
 backend services instead of creating a one-off renderer.
+
+### E15 - Platform Full-GPU Diffuse Path Loop v1
+
+**Epic dependencies:** E2, E3, E4, E5, E7, E8, E9, E10, E12.
+
+**Purpose:** replace the current compiled CPU-reference diffuse path loop with
+the first Metal/Vulkan-owned path-loop backend for the supported diffuse subset.
+This is the milestone that should produce a real GPU speedup claim when the
+scene is large enough to amortize upload/readback costs.
+
+**Jobs:**
+
+1. **Define the platform path-loop backend contract.**
+   - Depends on: none.
+   - Output: backend availability, platform label, unsupported reason, required
+     buffers, readback policy, and result metadata are explicit on the
+     `GpuDiffusePathLoopBackend` boundary. ✅ **Started.** The interface now has
+     a separate full-GPU backend selection hook so automatic graph compilation
+     cannot confuse the CPU-reference diagnostic backend with a platform-owned
+     path-loop backend.
+
+2. **Add a minimal Metal path-loop kernel.**
+   - Depends on: job 1.
+   - Output: supported initial path states, compiled scene records, fixed GPU
+     sample stream dimensions, diffuse continuation, direct light sampling,
+     any-hit visibility, path-state compaction, and accumulation execute inside
+     one Metal backend for Matte/Emissive/ConstantColor scenes.
+
+3. **Add a minimal Vulkan path-loop kernel.**
+   - Depends on: job 1.
+   - Output: Linux Vulkan implements the same supported subset and result
+     contract as the Metal backend, with skip behavior when Vulkan is not built
+     or no device is available.
+
+4. **Wire graph auto-selection to platform backend availability.**
+   - Depends on: jobs 2 and 3.
+   - Output: `auto` can select full GPU only when scene support, platform
+     backend availability, benchmark policy, and render-path capability all
+     pass; explicit GPU still reports precise fallback reasons.
+
+5. **Add parity and performance gates.**
+   - Depends on: jobs 2, 3, and 4.
+   - Output: CPU/path-loop image parity for fixed seeds, compact trace metrics
+     proving `full_gpu_subset`, and benchmark rows that compare CPU-reference,
+     hybrid-compaction, Metal, and Vulkan path-loop execution.
+
+6. **Update user-facing docs and examples.**
+   - Depends on: job 5.
+   - Output: rendercli/modeler instructions and textbook examples distinguish
+     CPU, hybrid intersection/compaction, and full platform GPU path-loop
+     execution with performance caveats.
+
+**Gate:** a supported diffuse path-tracing scene can render end-to-end through
+Metal or Vulkan with path state, shading, direct lighting, compaction, and
+accumulation owned by the platform backend, and the result is faster than the
+CPU-reference path loop on at least one documented benchmark workload.
 
 ---
 

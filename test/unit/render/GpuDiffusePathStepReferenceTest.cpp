@@ -1409,6 +1409,10 @@ namespace GpuDiffusePathStepReferenceTest {
       GpuDiffusePathLoopBackend::defaultBackendForGpuRequest();
 
     ASSERT_NE(nullptr, backend);
+    EXPECT_FALSE(backend->fullGpuPathLoopAvailable());
+    EXPECT_STREQ("platform full-GPU path-loop kernel is not available yet",
+                 backend->fullGpuPathLoopUnavailableReason());
+    EXPECT_STREQ("", backend->platformName());
     const GpuDiffusePathLoopResult result = backend->run(sections, {activePath()}, settings);
 
     EXPECT_EQ("compiled_cpu_reference", result.executionPath);
@@ -1422,6 +1426,10 @@ namespace GpuDiffusePathStepReferenceTest {
       EXPECT_NE("cpu_diffuse_frontier_compaction", result.frontierCompactionExecutionPath);
       EXPECT_NE("cpu_host", result.frontierCompactionPathStateResidency);
     }
+  }
+
+  TEST(GpuDiffusePathLoopBackend, DefaultFullGpuBackendIsUnavailableUntilPlatformLoopExists) {
+    EXPECT_EQ(nullptr, GpuDiffusePathLoopBackend::defaultFullGpuBackendForGpuRequest());
   }
 
   TEST(CompactingGpuDiffusePathLoopBackend, RejectsMissingCompactionBackend) {
