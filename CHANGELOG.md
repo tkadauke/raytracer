@@ -14,6 +14,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Report frontier-compaction upload, kernel, and readback timing in wavefront
   metrics, rendercli compact summaries, Modeler graph details, and convergence
   capture summaries. — GPT-5 Codex
+- Report Metal/Vulkan prepared ray-batch compaction upload and kernel timing in
+  the wavefront intersection backend benchmark rows. — GPT-5 Codex
 - Add compiled diffuse path-loop benchmark rows with resident path-loop and
   accumulation resolve counters, giving future platform full-GPU path-loop
   kernels a documented CPU-reference baseline. — GPT-5 Codex

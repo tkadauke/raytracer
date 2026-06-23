@@ -1,5 +1,6 @@
 #pragma once
 
+#include "render/WavefrontFrontierCompaction.h"
 #include "render/WavefrontIntersectionQueryTiming.h"
 
 #include <cstdint>
@@ -40,6 +41,11 @@ namespace render {
 
     struct Private;
     std::unique_ptr<Private> p;
+  };
+
+  struct MetalWavefrontRayBatchCompactionResult {
+    std::shared_ptr<const MetalWavefrontPreparedRayBatch> rays;
+    WavefrontFrontierCompactionTiming timing;
   };
 
   /**
@@ -85,6 +91,9 @@ namespace render {
     [[nodiscard]] std::shared_ptr<const MetalWavefrontPreparedRayBatch>
     compactRays(const MetalWavefrontPreparedRayBatch& sourceRays,
                 const std::vector<std::uint32_t>& retainedRayIndices) const;
+    [[nodiscard]] MetalWavefrontRayBatchCompactionResult
+    compactRaysTimed(const MetalWavefrontPreparedRayBatch& sourceRays,
+                     const std::vector<std::uint32_t>& retainedRayIndices) const;
     MetalWavefrontClosestHitKernelResult
     runTimedBasicClosestHitKernel(const std::vector<GpuIntersectionRay>& rays) const;
     MetalWavefrontClosestHitKernelResult

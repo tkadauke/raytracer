@@ -1795,8 +1795,12 @@ namespace WavefrontIntersectionBackendTest {
     ASSERT_NE(nullptr, rayBatch);
     EXPECT_THROW((void)prepared.compactRays(*rayBatch, {3u}), std::out_of_range);
 
-    const std::shared_ptr<const VulkanWavefrontPreparedRayBatch> compacted =
-      prepared.compactRays(*rayBatch, {2u, 0u});
+    const VulkanWavefrontRayBatchCompactionResult timedCompaction =
+      prepared.compactRaysTimed(*rayBatch, {2u, 0u});
+    EXPECT_GE(timedCompaction.timing.uploadSeconds, 0.0);
+    EXPECT_GE(timedCompaction.timing.kernelSeconds, 0.0);
+    EXPECT_EQ(0.0, timedCompaction.timing.readbackSeconds);
+    const std::shared_ptr<const VulkanWavefrontPreparedRayBatch> compacted = timedCompaction.rays;
     ASSERT_NE(nullptr, compacted);
     EXPECT_EQ(2u, compacted->rayCount());
     EXPECT_EQ(2u * sizeof(GpuIntersectionRay), compacted->packedRayBytes());
@@ -2120,8 +2124,12 @@ namespace WavefrontIntersectionBackendTest {
     ASSERT_NE(nullptr, rayBatch);
     EXPECT_THROW((void)prepared.compactRays(*rayBatch, {3u}), std::out_of_range);
 
-    const std::shared_ptr<const MetalWavefrontPreparedRayBatch> compacted =
-      prepared.compactRays(*rayBatch, {2u, 0u});
+    const MetalWavefrontRayBatchCompactionResult timedCompaction =
+      prepared.compactRaysTimed(*rayBatch, {2u, 0u});
+    EXPECT_GE(timedCompaction.timing.uploadSeconds, 0.0);
+    EXPECT_GE(timedCompaction.timing.kernelSeconds, 0.0);
+    EXPECT_EQ(0.0, timedCompaction.timing.readbackSeconds);
+    const std::shared_ptr<const MetalWavefrontPreparedRayBatch> compacted = timedCompaction.rays;
     ASSERT_NE(nullptr, compacted);
     EXPECT_EQ(2u, compacted->rayCount());
     EXPECT_EQ(2u * sizeof(GpuIntersectionRay), compacted->packedRayBytes());

@@ -2107,10 +2107,18 @@ namespace render {
   std::shared_ptr<const VulkanWavefrontPreparedRayBatch> VulkanWavefrontPreparedScene::compactRays(
     const VulkanWavefrontPreparedRayBatch& sourceRays,
     const std::vector<std::uint32_t>& retainedRayIndices) const {
+    return compactRaysTimed(sourceRays, retainedRayIndices).rays;
+  }
+
+  VulkanWavefrontRayBatchCompactionResult VulkanWavefrontPreparedScene::compactRaysTimed(
+    const VulkanWavefrontPreparedRayBatch& sourceRays,
+    const std::vector<std::uint32_t>& retainedRayIndices) const {
+    VulkanWavefrontRayBatchCompactionResult result;
     auto batch =
       std::shared_ptr<VulkanWavefrontPreparedRayBatch>(new VulkanWavefrontPreparedRayBatch);
+    result.rays = batch;
     if (retainedRayIndices.empty()) {
-      return batch;
+      return result;
     }
 
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
@@ -2132,12 +2140,11 @@ namespace render {
     const VkDeviceSize rayBytes =
       p->byteCountForRecords<GpuIntersectionRay>(retainedRayIndices.size());
 
+    const auto uploadStart = std::chrono::steady_clock::now();
     VulkanPreparedSmokeBuffer retainedIndexBuffer =
       p->createStorageBuffer(indexBytes, retainedRayIndices.data());
     try {
       batch->p->rays = p->createStorageBuffer(rayBytes, nullptr);
-      p->dispatchRayCompaction(sourceRays.p->rays, retainedIndexBuffer, batch->p->rays,
-                               retainedRayIndices.size());
       const std::array<std::uint32_t, 12> counts{
         p->sceneCounts0[0],
         p->sceneCounts0[1],
@@ -2153,12 +2160,19 @@ namespace render {
         0u,
       };
       batch->p->counts = p->createStorageBuffer(sizeof(counts), counts.data());
+      const auto uploadEnd = std::chrono::steady_clock::now();
+      const auto kernelStart = uploadEnd;
+      p->dispatchRayCompaction(sourceRays.p->rays, retainedIndexBuffer, batch->p->rays,
+                               retainedRayIndices.size());
+      const auto kernelEnd = std::chrono::steady_clock::now();
+      result.timing.uploadSeconds = p->secondsBetween(uploadStart, uploadEnd);
+      result.timing.kernelSeconds = p->secondsBetween(kernelStart, kernelEnd);
     } catch (...) {
       p->destroy(retainedIndexBuffer);
       throw;
     }
     p->destroy(retainedIndexBuffer);
-    return batch;
+    return result;
 #else
     (void)sourceRays;
     throw std::runtime_error("Vulkan wavefront backend is not enabled");

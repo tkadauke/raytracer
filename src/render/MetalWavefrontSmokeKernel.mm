@@ -1461,14 +1461,23 @@ namespace render {
   std::shared_ptr<const MetalWavefrontPreparedRayBatch> MetalWavefrontPreparedScene::compactRays(
     const MetalWavefrontPreparedRayBatch& sourceRays,
     const std::vector<std::uint32_t>& retainedRayIndices) const {
+    return compactRaysTimed(sourceRays, retainedRayIndices).rays;
+  }
+
+  MetalWavefrontRayBatchCompactionResult MetalWavefrontPreparedScene::compactRaysTimed(
+    const MetalWavefrontPreparedRayBatch& sourceRays,
+    const std::vector<std::uint32_t>& retainedRayIndices) const {
+    MetalWavefrontRayBatchCompactionResult result;
     auto batch = std::shared_ptr<MetalWavefrontPreparedRayBatch>(new MetalWavefrontPreparedRayBatch);
+    result.rays = batch;
     if (retainedRayIndices.empty()) {
-      return batch;
+      return result;
     }
     validateRetainedRayIndices(retainedRayIndices, sourceRays.rayCount(),
                                "Metal prepared ray-batch compaction");
 
     @autoreleasepool {
+      const auto uploadStart = std::chrono::steady_clock::now();
       id<MTLDevice> device = sharedMetalDevice();
       if (!device) {
         throw std::runtime_error("Metal prepared ray-batch compaction requires a Metal device");
@@ -1516,15 +1525,21 @@ namespace render {
       [encoder setBuffer:batch->p->rayBuffer offset:0 atIndex:2];
       dispatchOneDimensional(encoder, pipeline, retainedRayIndices.size());
       [encoder endEncoding];
+
+      const auto uploadEnd = std::chrono::steady_clock::now();
+      const auto kernelStart = uploadEnd;
       [commandBuffer commit];
       [commandBuffer waitUntilCompleted];
+      const auto kernelEnd = std::chrono::steady_clock::now();
 
       if (commandBuffer.error) {
         throw metalError("Metal prepared ray-batch compaction dispatch failed",
                          commandBuffer.error);
       }
+      result.timing.uploadSeconds = secondsBetween(uploadStart, uploadEnd);
+      result.timing.kernelSeconds = secondsBetween(kernelStart, kernelEnd);
     }
-    return batch;
+    return result;
   }
 
   MetalWavefrontClosestHitKernelResult

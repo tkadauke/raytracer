@@ -16,6 +16,7 @@
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
 #include "render/VulkanWavefrontSmokeKernel.h"
 #endif
+#include "render/WavefrontFrontierCompaction.h"
 #include "render/WavefrontIntersectionBackend.h"
 #include "render/lights/PointLight.h"
 #include "render/materials/MatteMaterial.h"
@@ -1348,7 +1349,8 @@ namespace {
 
   void annotatePreparedRayBatchCompaction(benchmark::State& state, const Workload& workload,
                                           const char* platformName, std::size_t inputRayCount,
-                                          std::size_t retainedRayCount) {
+                                          std::size_t retainedRayCount,
+                                          const WavefrontFrontierCompactionTiming& timing) {
     state.SetLabel(workload.name + "/" + platformName + "/prepared_ray_batch_compaction");
     state.counters["frontier_compaction_input_samples"] = static_cast<double>(inputRayCount);
     state.counters["frontier_compaction_retained_samples"] = static_cast<double>(retainedRayCount);
@@ -1364,6 +1366,9 @@ namespace {
       static_cast<double>(retainedRayCount * sizeof(GpuIntersectionRay));
     state.counters["frontier_compaction_retained_index_bytes"] =
       static_cast<double>(retainedRayCount * sizeof(std::uint32_t));
+    state.counters["frontier_compaction_upload_seconds"] = timing.uploadSeconds;
+    state.counters["frontier_compaction_kernel_seconds"] = timing.kernelSeconds;
+    state.counters["frontier_compaction_readback_seconds"] = timing.readbackSeconds;
     state.counters["prepared_ray_batch_compaction_supported"] = 1.0;
     state.counters["gpu_frontier_compaction_supported"] = 0.0;
   }
@@ -1396,15 +1401,15 @@ namespace {
     const std::shared_ptr<const MetalWavefrontPreparedRayBatch> sourceBatch =
       prepared.prepareRays(packedRays);
 
-    std::shared_ptr<const MetalWavefrontPreparedRayBatch> compacted =
-      prepared.compactRays(*sourceBatch, retainedIndices);
+    MetalWavefrontRayBatchCompactionResult compaction =
+      prepared.compactRaysTimed(*sourceBatch, retainedIndices);
     for (auto _ : state) {
-      compacted = prepared.compactRays(*sourceBatch, retainedIndices);
-      benchmark::DoNotOptimize(compacted->rayCount());
+      compaction = prepared.compactRaysTimed(*sourceBatch, retainedIndices);
+      benchmark::DoNotOptimize(compaction.rays->rayCount());
     }
 
     annotatePreparedRayBatchCompaction(state, workload, "metal", packedRays.size(),
-                                       retainedIndices.size());
+                                       retainedIndices.size(), compaction.timing);
     state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(packedRays.size()));
   }
 #endif
@@ -1437,15 +1442,15 @@ namespace {
     const std::shared_ptr<const VulkanWavefrontPreparedRayBatch> sourceBatch =
       prepared.prepareRays(packedRays);
 
-    std::shared_ptr<const VulkanWavefrontPreparedRayBatch> compacted =
-      prepared.compactRays(*sourceBatch, retainedIndices);
+    VulkanWavefrontRayBatchCompactionResult compaction =
+      prepared.compactRaysTimed(*sourceBatch, retainedIndices);
     for (auto _ : state) {
-      compacted = prepared.compactRays(*sourceBatch, retainedIndices);
-      benchmark::DoNotOptimize(compacted->rayCount());
+      compaction = prepared.compactRaysTimed(*sourceBatch, retainedIndices);
+      benchmark::DoNotOptimize(compaction.rays->rayCount());
     }
 
     annotatePreparedRayBatchCompaction(state, workload, "vulkan", packedRays.size(),
-                                       retainedIndices.size());
+                                       retainedIndices.size(), compaction.timing);
     state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(packedRays.size()));
   }
 #endif

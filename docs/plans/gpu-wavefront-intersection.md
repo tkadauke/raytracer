@@ -1165,6 +1165,11 @@ Progress:
   beside the capability flag. That makes the current boundary explicit:
   prepared platform ray batches can be compacted, but scheduler-owned active
   path state is still host-resident.
+- Metal and Vulkan prepared ray-batch compaction APIs now also expose timed
+  results. Backend benchmark rows publish upload/setup and kernel wait timing
+  for those lower-level platform kernels, while public scheduler-owned frontier
+  compaction still reports the host-resident boundary until active path state
+  moves onto the device.
 - Structured tracing capability records now also report explicit GPU requests
   for frontier compaction as `state.frontier_compaction` fallbacks when the
   scheduler still compacts host-owned path state. That keeps rendercli and
