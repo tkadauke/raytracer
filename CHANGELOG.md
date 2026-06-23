@@ -78,6 +78,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   GPU active/next buffers, writing probe step records, and binding required
   future path-loop buffers without advertising full GPU path tracing yet. —
   GPT-5 Codex
+- Extend the Metal diffuse path-loop all-miss probe to clear and write GPU
+  accumulation color/count planes for unique active pixel targets. —
+  GPT-5 Codex
 - Carry serialized compiled tracing-scene upload bytes through GPU diffuse
   path-loop launch plans so platform path-loop kernels can consume real scene
   records instead of size-only placeholder buffers. — GPT-5 Codex

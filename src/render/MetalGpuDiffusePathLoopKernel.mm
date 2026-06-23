@@ -10,9 +10,11 @@
 #include <algorithm>
 #include <chrono>
 #include <cstring>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
+#include <vector>
 
 namespace render {
   namespace {
@@ -172,6 +174,29 @@ namespace render {
               "          sceneUpload + parameters.environmentByteOffset);\n"
               "  return environment[environmentIndex].color;\n"
               "}\n"
+              "device float4* accumulationColorSums(\n"
+              "    constant GpuDiffusePathLoopLaunchParameters& parameters,\n"
+              "    device uchar* accumulation) {\n"
+              "  (void)parameters;\n"
+              "  return reinterpret_cast<device float4*>(accumulation);\n"
+              "}\n"
+              "device uint* accumulationSampleCounts(\n"
+              "    constant GpuDiffusePathLoopLaunchParameters& parameters,\n"
+              "    device uchar* accumulation) {\n"
+              "  const uint pixelCount = parameters.imageWidth * parameters.imageHeight;\n"
+              "  return reinterpret_cast<device uint*>(accumulation + pixelCount * 16u);\n"
+              "}\n"
+              "kernel void clearDiffusePathLoopAccumulation(\n"
+              "    constant GpuDiffusePathLoopLaunchParameters& parameters [[buffer(0)]],\n"
+              "    device uchar* accumulation [[buffer(1)]],\n"
+              "    uint id [[thread_position_in_grid]]) {\n"
+              "  const uint pixelCount = parameters.imageWidth * parameters.imageHeight;\n"
+              "  if (id >= pixelCount) {\n"
+              "    return;\n"
+              "  }\n"
+              "  accumulationColorSums(parameters, accumulation)[id] = float4(0.0f);\n"
+              "  accumulationSampleCounts(parameters, accumulation)[id] = 0u;\n"
+              "}\n"
               "kernel void probeDiffusePathLoopLaunch(\n"
               "    constant GpuDiffusePathLoopLaunchParameters& parameters [[buffer(0)]],\n"
               "    device GpuDiffusePathLoopLaunchParameters* echoedParameters [[buffer(1)]],\n"
@@ -186,7 +211,6 @@ namespace render {
               "  if (id == 0u) {\n"
               "    echoedParameters[0] = parameters;\n"
               "    retainedIndices[0] = 0u;\n"
-              "    accumulation[0] = 0u;\n"
               "  }\n"
               "  if (id >= parameters.initialPathCount) {\n"
               "    return;\n"
@@ -210,7 +234,6 @@ namespace render {
               "  if (id == 0u) {\n"
               "    echoedParameters[0] = parameters;\n"
               "    retainedIndices[0] = 0u;\n"
-              "    accumulation[0] = 0u;\n"
               "  }\n"
               "  if (id >= parameters.initialPathCount) {\n"
               "    return;\n"
@@ -222,6 +245,8 @@ namespace render {
               "    path.accumulatedRadiance += contribution;\n"
               "    path.flags = (path.flags & ~gpuDiffusePathStateActiveFlag) |\n"
               "                 gpuDiffusePathStateTerminatedFlag;\n"
+              "    accumulationColorSums(parameters, accumulation)[path.pixelIndex] = contribution;\n"
+              "    accumulationSampleCounts(parameters, accumulation)[path.pixelIndex] = 1u;\n"
               "    step.event = gpuDiffusePathStepEventMiss;\n"
               "    step.missRadiance = contribution;\n"
               "    step.flags = path.flags;\n"
@@ -270,8 +295,45 @@ namespace render {
       return pipeline;
     }
 
+    id<MTLComputePipelineState> sharedClearAccumulationPipeline() {
+      static id<MTLComputePipelineState> pipeline = [] {
+        id<MTLDevice> device = sharedMetalDevice();
+        return device ? newPipeline(device, @"clearDiffusePathLoopAccumulation") : nil;
+      }();
+      return pipeline;
+    }
+
     NSUInteger bufferLength(std::uint64_t requestedBytes) {
       return static_cast<NSUInteger>(std::max<std::uint64_t>(1, requestedBytes));
+    }
+
+    std::uint64_t pixelCount(const GpuDiffusePathLoopLaunchParameters& parameters) {
+      return static_cast<std::uint64_t>(parameters.imageWidth) *
+             static_cast<std::uint64_t>(parameters.imageHeight);
+    }
+
+    void validateAllMissAccumulationTargets(
+      const GpuDiffusePathLoopLaunchPlan& plan,
+      const std::vector<GpuDiffusePathStateRecord>& initialPathStates) {
+      const std::uint64_t pixels = pixelCount(plan.parameters);
+      if (pixels > static_cast<std::uint64_t>(std::numeric_limits<std::size_t>::max())) {
+        throw std::overflow_error("Metal diffuse path-loop all-miss pixel count overflows");
+      }
+      std::vector<bool> seenPixels(static_cast<std::size_t>(pixels), false);
+      for (const GpuDiffusePathStateRecord& path : initialPathStates) {
+        if (!gpuDiffusePathStateIsActive(path)) {
+          continue;
+        }
+        if (path.pixelIndex >= pixels) {
+          throw std::invalid_argument(
+            "Metal diffuse path-loop all-miss path pixel is outside the accumulation layout");
+        }
+        if (seenPixels[path.pixelIndex]) {
+          throw std::invalid_argument(
+            "Metal diffuse path-loop all-miss probe requires unique active pixel targets");
+        }
+        seenPixels[path.pixelIndex] = true;
+      }
     }
   }
 
@@ -455,6 +517,7 @@ namespace render {
       throw std::invalid_argument(
         "Metal diffuse path-loop scene upload bytes do not match launch descriptor");
     }
+    validateAllMissAccumulationTargets(plan, initialPathStates);
 
     @autoreleasepool {
       if (!launchPathAvailable()) {
@@ -464,8 +527,13 @@ namespace render {
       id<MTLDevice> device = sharedMetalDevice();
       id<MTLCommandQueue> queue = sharedCommandQueue();
       id<MTLComputePipelineState> pipeline = sharedAllMissProbePipeline();
+      id<MTLComputePipelineState> clearPipeline = sharedClearAccumulationPipeline();
       if (!pipeline) {
         throw std::runtime_error("Metal diffuse path-loop all-miss probe pipeline was not created");
+      }
+      if (!clearPipeline) {
+        throw std::runtime_error(
+          "Metal diffuse path-loop accumulation clear pipeline was not created");
       }
 
       const auto uploadStart = std::chrono::steady_clock::now();
@@ -519,6 +587,13 @@ namespace render {
         throw std::runtime_error("Metal diffuse path-loop all-miss probe command setup failed");
       }
 
+      const NSUInteger pixels = static_cast<NSUInteger>(pixelCount(plan.parameters));
+      [encoder setComputePipelineState:clearPipeline];
+      [encoder setBuffer:parameterBuffer offset:0 atIndex:0];
+      [encoder setBuffer:accumulationBuffer offset:0 atIndex:1];
+      [encoder dispatchThreads:MTLSizeMake(std::max<NSUInteger>(1, pixels), 1, 1)
+         threadsPerThreadgroup:MTLSizeMake(1, 1, 1)];
+
       [encoder setComputePipelineState:pipeline];
       [encoder setBuffer:parameterBuffer offset:0 atIndex:0];
       [encoder setBuffer:echoedParameterBuffer offset:0 atIndex:1];
@@ -554,6 +629,20 @@ namespace render {
       if (!result.stepRecords.empty()) {
         std::memcpy(result.stepRecords.data(), [stepRecordBuffer contents],
                     result.stepRecords.size() * sizeof(GpuDiffusePathStepRecord));
+      }
+      result.accumulationColorSums.resize(pixelCount(plan.parameters));
+      if (!result.accumulationColorSums.empty()) {
+        std::memcpy(result.accumulationColorSums.data(), [accumulationBuffer contents],
+                    result.accumulationColorSums.size() * sizeof(std::array<float, 4>));
+      }
+      result.accumulationSampleCounts.resize(pixelCount(plan.parameters));
+      if (!result.accumulationSampleCounts.empty()) {
+        const std::uint64_t colorBytes =
+          result.accumulationColorSums.size() * sizeof(std::array<float, 4>);
+        const auto* sampleCountBytes =
+          static_cast<const std::uint8_t*>([accumulationBuffer contents]) + colorBytes;
+        std::memcpy(result.accumulationSampleCounts.data(), sampleCountBytes,
+                    result.accumulationSampleCounts.size() * sizeof(std::uint32_t));
       }
       result.readbackWorkerSeconds =
         elapsedSeconds(readbackStart, std::chrono::steady_clock::now());

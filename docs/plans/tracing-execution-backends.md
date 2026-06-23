@@ -2492,10 +2492,12 @@ scene is large enough to amortize upload/readback costs.
      `GpuDiffusePathStepRecord` rows. A restricted all-miss Metal probe now
      also reads the environment section from the serialized scene upload and
      resolves empty-scene background/environment misses into terminated
-     GPU-owned path-state records. This proves the command-buffer, scene-upload,
-     environment-record, path-state, and step-record ABI for the future
-     path-loop kernel; closest-hit traversal, material shading, continuation,
-     direct lighting, compaction, and accumulation still need to move into this
+     GPU-owned path-state records while clearing and writing the matching
+     accumulation color/count planes for unique active pixel targets. This
+     proves the command-buffer, scene-upload, environment-record, path-state,
+     step-record, and restricted accumulation ABI for the future path-loop
+     kernel; closest-hit traversal, material shading, continuation, direct
+     lighting, compaction, and general accumulation still need to move into this
      backend before it can advertise full GPU execution.
 
 3. **Add a minimal Vulkan path-loop kernel.**

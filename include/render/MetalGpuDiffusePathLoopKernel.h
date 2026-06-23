@@ -2,6 +2,7 @@
 
 #include "render/GpuDiffusePathLoopLaunch.h"
 
+#include <array>
 #include <string>
 #include <vector>
 
@@ -12,6 +13,8 @@ namespace render {
     std::vector<GpuDiffusePathStateRecord> copiedInitialPathStates;
     std::vector<GpuDiffusePathStateRecord> resolvedPathStates;
     std::vector<GpuDiffusePathStepRecord> stepRecords;
+    std::vector<std::array<float, 4>> accumulationColorSums;
+    std::vector<std::uint32_t> accumulationSampleCounts;
     std::string executionPath{"metal_diffuse_path_loop_launch_probe"};
     std::string pathStateResidency{"metal_shared_diffuse_path_state"};
     double uploadWorkerSeconds{0.0};

@@ -1616,12 +1616,12 @@ namespace GpuDiffusePathStepReferenceTest {
     const TracingAccumulationLayout accumulationLayout = TracingAccumulationLayout::image(2, 2);
     std::vector<GpuDiffusePathStateRecord> paths{activePath(40), activePath(41),
                                                  makeTerminatedGpuDiffusePathState()};
-    paths[0].pixelIndex = 12;
+    paths[0].pixelIndex = 0;
     paths[0].throughput = {0.5f, 0.25f, 0.125f, 0.0f};
-    paths[1].pixelIndex = 13;
+    paths[1].pixelIndex = 1;
     paths[1].depth = 1;
     paths[1].throughput = {0.5f, 0.25f, 0.125f, 0.0f};
-    paths[2].pixelIndex = 14;
+    paths[2].pixelIndex = 2;
     paths[2].primarySampleIndex = 3;
     const GpuDiffusePathLoopLaunchPlan plan =
       GpuDiffusePathLoopLaunchPlanner().plan(sections, paths, accumulationLayout, settings);
@@ -1656,6 +1656,40 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(result.resolvedPathStates[0].flags, result.stepRecords[0].flags);
     EXPECT_EQ(result.resolvedPathStates[1].flags, result.stepRecords[1].flags);
     EXPECT_EQ(paths[2].flags, result.stepRecords[2].flags);
+
+    ASSERT_EQ(4u, result.accumulationColorSums.size());
+    ASSERT_EQ(4u, result.accumulationSampleCounts.size());
+    ASSERT_COLOR_NEAR(Colord(0.125, 0.125, 0.09375), colorFrom4(result.accumulationColorSums[0]),
+                      1e-6);
+    ASSERT_COLOR_NEAR(Colord(0.375, 0.125, 0.03125), colorFrom4(result.accumulationColorSums[1]),
+                      1e-6);
+    ASSERT_COLOR_NEAR(Colord::black(), colorFrom4(result.accumulationColorSums[2]), 1e-6);
+    ASSERT_COLOR_NEAR(Colord::black(), colorFrom4(result.accumulationColorSums[3]), 1e-6);
+    EXPECT_EQ(1u, result.accumulationSampleCounts[0]);
+    EXPECT_EQ(1u, result.accumulationSampleCounts[1]);
+    EXPECT_EQ(0u, result.accumulationSampleCounts[2]);
+    EXPECT_EQ(0u, result.accumulationSampleCounts[3]);
+#else
+    GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
+#endif
+  }
+
+  TEST(MetalGpuDiffusePathLoopKernel, AllMissProbeRejectsDuplicateAccumulationTargets) {
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    Scene scene;
+    scene.setBackground(Colord(0.25, 0.5, 0.75));
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 1;
+    std::vector<GpuDiffusePathStateRecord> paths{activePath(40), activePath(41)};
+    paths[0].pixelIndex = 0;
+    paths[1].pixelIndex = 0;
+    const GpuDiffusePathLoopLaunchPlan plan = GpuDiffusePathLoopLaunchPlanner().plan(
+      sections, paths, TracingAccumulationLayout::image(1, 2), settings);
+
+    EXPECT_THROW((void)MetalGpuDiffusePathLoopKernel().runAllMissProbe(plan, paths),
+                 std::invalid_argument);
 #else
     GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
 #endif
