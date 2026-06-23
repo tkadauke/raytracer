@@ -2,6 +2,7 @@
 
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
 #include "render/MetalGpuDiffusePathFrontierCompactionBackend.h"
+#include "render/MetalGpuDiffusePathLoopBackend.h"
 #endif
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
 #include "render/VulkanGpuDiffusePathFrontierCompactionBackend.h"
@@ -55,7 +56,13 @@ namespace render {
   }
 
   GpuDiffusePathLoopBackendSupport
-  GpuDiffusePathLoopBackend::fullGpuPathLoopSupport(const GpuTracingSceneSections&) const {
+  GpuDiffusePathLoopBackend::fullGpuPathLoopSupport(const GpuTracingSceneSections& scene) const {
+    return fullGpuPathLoopSupport(scene, GpuDiffusePathLoopSettings());
+  }
+
+  GpuDiffusePathLoopBackendSupport
+  GpuDiffusePathLoopBackend::fullGpuPathLoopSupport(const GpuTracingSceneSections&,
+                                                    const GpuDiffusePathLoopSettings&) const {
     if (!fullGpuPathLoopAvailable()) {
       return {false, fullGpuPathLoopUnavailableReason()};
     }

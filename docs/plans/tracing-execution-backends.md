@@ -2525,10 +2525,13 @@ scene is large enough to amortize upload/readback costs.
      texture-record, light-record, environment-record, path-state, step-record,
      continuation, direct-light-contribution, emissive-hit-termination, and
      terminal accumulation ABI plus the retained-frontier ABI for the future
-     path-loop kernel; broader primitive traversal, full material shading, full
-     direct-light coverage, in-kernel compaction, and multi-depth accumulation
-     still need to move into this backend before it can advertise full GPU
-     execution.
+     path-loop kernel. A restricted `MetalGpuDiffusePathLoopBackend` now wraps
+     the one-depth empty-scene and sphere/Matte/Emissive probe paths behind the
+     platform backend interface, including scene/settings support rejection and
+     full-GPU result metadata for backend tests. Broader primitive traversal,
+     full material shading, full direct-light coverage, in-kernel compaction,
+     and multi-depth accumulation still need to move into this backend before
+     it can advertise full GPU execution.
 
 3. **Add a minimal Vulkan path-loop kernel.**
    - Depends on: job 1.

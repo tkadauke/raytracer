@@ -9,9 +9,10 @@
 #include "render/GpuDiffusePathLoopLaunch.h"
 #include "render/GpuDiffusePathStepReference.h"
 #include "render/IntersectionSceneCompiler.h"
+#include "render/MetalGpuDiffusePathLoopBackend.h"
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
-#include "render/MetalGpuDiffusePathLoopKernel.h"
 #include "render/MetalGpuDiffusePathFrontierCompactionBackend.h"
+#include "render/MetalGpuDiffusePathLoopKernel.h"
 #endif
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
 #include "render/VulkanGpuDiffusePathFrontierCompactionBackend.h"
@@ -1498,6 +1499,129 @@ namespace GpuDiffusePathStepReferenceTest {
 
   TEST(GpuDiffusePathLoopBackend, DefaultFullGpuBackendIsUnavailableUntilPlatformLoopExists) {
     EXPECT_EQ(nullptr, GpuDiffusePathLoopBackend::defaultFullGpuBackendForGpuRequest());
+  }
+
+  TEST(MetalGpuDiffusePathLoopBackend, ReportsUnavailableWhenBuildOrDeviceCannotRunMetal) {
+    const MetalGpuDiffusePathLoopBackend backend;
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 1;
+    const GpuDiffusePathLoopBackendSupport support =
+      backend.fullGpuPathLoopSupport(GpuTracingSceneSections(), settings);
+
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    if (backend.fullGpuPathLoopAvailable()) {
+      EXPECT_TRUE(support.supported);
+      EXPECT_TRUE(support.reason.empty());
+    } else {
+      EXPECT_FALSE(support.supported);
+      EXPECT_FALSE(support.reason.empty());
+    }
+#else
+    EXPECT_FALSE(backend.fullGpuPathLoopAvailable());
+    EXPECT_FALSE(support.supported);
+    EXPECT_EQ("Metal diffuse path-loop backend is not enabled in this build", support.reason);
+#endif
+  }
+
+  TEST(MetalGpuDiffusePathLoopBackend, RejectsMultiDepthSettingsForCurrentRestrictedBackend) {
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    const MetalGpuDiffusePathLoopBackend backend;
+    if (!backend.fullGpuPathLoopAvailable()) {
+      GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
+    }
+
+    Scene scene;
+    auto matte =
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::white()));
+    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    receiver->setMaterial(matte);
+    scene.add(receiver);
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 2;
+
+    const GpuDiffusePathLoopBackendSupport support =
+      backend.fullGpuPathLoopSupport(sections, settings);
+
+    EXPECT_FALSE(support.supported);
+    EXPECT_EQ("Metal diffuse path-loop backend currently supports exactly one path depth",
+              support.reason);
+#else
+    GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
+#endif
+  }
+
+  TEST(MetalGpuDiffusePathLoopBackend, RunsOneDepthAllMissPathLoopWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    const MetalGpuDiffusePathLoopBackend backend;
+    if (!backend.fullGpuPathLoopAvailable()) {
+      GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
+    }
+
+    Scene scene;
+    scene.setBackground(Colord(0.25, 0.5, 0.75));
+    scene.setEnvironmentRadiance(Colord(0.1, 0.2, 0.3));
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+    GpuDiffusePathStateRecord path = activePath();
+    path.pixelIndex = 0;
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 1;
+    settings.russianRouletteDepth = 10;
+    const std::vector<GpuDiffusePathStateRecord> paths{path};
+
+    const GpuDiffusePathLoopResult expected = GpuDiffusePathLoop().run(sections, paths, settings);
+    const GpuDiffusePathLoopResult result = backend.run(sections, paths, settings);
+
+    EXPECT_TRUE(result.fullGpuPathLoopSupported());
+    EXPECT_EQ("metal", result.platformName);
+    EXPECT_EQ("metal_shared_diffuse_path_state", result.pathStateResidency);
+    ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
+    expectPathStateNear(result.resolvedPathStates[0], expected.resolvedPathStates[0], 1e-4);
+#else
+    GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
+#endif
+  }
+
+  TEST(MetalGpuDiffusePathLoopBackend, RunsOneDepthSphereDiffusePathLoopWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    const MetalGpuDiffusePathLoopBackend backend;
+    if (!backend.fullGpuPathLoopAvailable()) {
+      GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
+    }
+
+    Scene scene;
+    auto matte =
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::white()));
+    matte->setDiffuseCoefficient(1.0);
+    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    receiver->setMaterial(matte);
+    scene.add(receiver);
+    scene.addLight(std::make_shared<PointLight>(Vector3d(0.0, 0.0, -3.0), Colord(0.8, 0.6, 0.4)));
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+    GpuDiffusePathStateRecord path = activePath();
+    path.pixelIndex = 0;
+    path.sampleSeed = 12347;
+    path.throughput = {0.5f, 0.25f, 0.125f, 0.0f};
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 1;
+    settings.russianRouletteDepth = 10;
+    settings.directLightSamples = 1;
+    const std::vector<GpuDiffusePathStateRecord> paths{path};
+
+    const GpuDiffusePathLoopResult expected = GpuDiffusePathLoop().run(sections, paths, settings);
+    const GpuDiffusePathLoopResult result = backend.run(sections, paths, settings);
+
+    EXPECT_TRUE(result.fullGpuPathLoopSupported());
+    EXPECT_EQ(1u, result.depthCount);
+    EXPECT_EQ(1u, result.maxDepthTerminatedPaths);
+    ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
+    expectPathStateNear(result.resolvedPathStates[0], expected.resolvedPathStates[0], 1e-4);
+#else
+    GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
+#endif
   }
 
   TEST(GpuDiffusePathLoopLaunchPlanner, BuildsShaderFacingLaunchPlan) {

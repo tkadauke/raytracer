@@ -34,6 +34,9 @@ namespace render {
     [[nodiscard]] virtual const char* platformName() const;
     [[nodiscard]] virtual GpuDiffusePathLoopBackendSupport
     fullGpuPathLoopSupport(const GpuTracingSceneSections& scene) const;
+    [[nodiscard]] virtual GpuDiffusePathLoopBackendSupport
+    fullGpuPathLoopSupport(const GpuTracingSceneSections& scene,
+                           const GpuDiffusePathLoopSettings& settings) const;
 
     [[nodiscard]] virtual GpuDiffusePathLoopResult
     run(const GpuTracingSceneSections& scene,

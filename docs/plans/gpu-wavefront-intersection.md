@@ -73,9 +73,12 @@
 > frontier output removes one host-side scan from the probe contract and gives
 > the future platform path-loop kernel the compact-frontier handoff it needs,
 > and the path-loop backend boundary can now reject per-scene platform support
-> independently of generic compiled-scene support; the live render path still
-> stays on CPU-reference/hybrid execution until a true multi-depth platform loop
-> exists.
+> independently of generic compiled-scene support. A restricted
+> `MetalGpuDiffusePathLoopBackend` now wraps the one-depth all-miss and
+> sphere/Matte/Emissive probe paths behind the platform backend interface so
+> backend tests can exercise the result contract directly when Metal is
+> available; the live render path still stays on CPU-reference/hybrid execution
+> until a true multi-depth platform loop exists.
 > These probes do not advertise full GPU path tracing yet.
 > This is a follow-up to
 > `docs/plans/wavefront-and-path-tracing.md` Phase 7+ and is now a child slice
