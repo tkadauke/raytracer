@@ -361,6 +361,35 @@ namespace {
     }
   }
 
+  void validateRetainedPathIndices(std::size_t inputPathCount,
+                                   const std::vector<std::uint32_t>& retainedPathIndices) {
+    std::uint32_t previous = 0;
+    bool hasPrevious = false;
+    for (const std::uint32_t index : retainedPathIndices) {
+      if (index >= inputPathCount) {
+        throw std::out_of_range(
+          "gpu diffuse path frontier compaction retained path index is out of range");
+      }
+      if (hasPrevious && index <= previous) {
+        throw std::invalid_argument(
+          "gpu diffuse path frontier compaction retained path indices must be strictly "
+          "increasing");
+      }
+      previous = index;
+      hasPrevious = true;
+    }
+  }
+
+  std::uint64_t movedRetainedPathCount(const std::vector<std::uint32_t>& retainedPathIndices) {
+    std::uint64_t moved = 0;
+    for (std::size_t index = 0; index != retainedPathIndices.size(); ++index) {
+      if (retainedPathIndices[index] != index) {
+        ++moved;
+      }
+    }
+    return moved;
+  }
+
   std::map<std::uint32_t, GpuIntersectionHitRecord>
   hitsByRayIndex(const std::vector<GpuIntersectionHitRecord>& closestHits,
                  const std::vector<GpuDiffusePathStateRecord>& pathStates) {
@@ -512,6 +541,53 @@ void GpuDiffusePathStepMetrics::merge(const GpuDiffusePathStepMetrics& source) {
   terminatedPaths += source.terminatedPaths;
 }
 
+std::uint64_t GpuDiffusePathFrontierCompactionResult::retainedPathCount() const {
+  return retainedPathIndices.size();
+}
+
+std::uint64_t GpuDiffusePathFrontierCompactionResult::removedPathCount() const {
+  return inputPathCount >= retainedPathCount() ? inputPathCount - retainedPathCount() : 0u;
+}
+
+std::uint64_t GpuDiffusePathFrontierCompactionResult::movedPathCount() const {
+  return movedRetainedPathCount(retainedPathIndices);
+}
+
+std::uint64_t GpuDiffusePathFrontierCompactionResult::retainedIndexBytes() const {
+  return retainedPathIndices.size() * sizeof(std::uint32_t);
+}
+
+const CpuReferenceGpuDiffusePathFrontierCompactionBackend&
+CpuReferenceGpuDiffusePathFrontierCompactionBackend::instance() {
+  static const CpuReferenceGpuDiffusePathFrontierCompactionBackend backend;
+  return backend;
+}
+
+const char* CpuReferenceGpuDiffusePathFrontierCompactionBackend::name() const {
+  return "cpu_diffuse_frontier_compaction";
+}
+
+const char* CpuReferenceGpuDiffusePathFrontierCompactionBackend::pathStateResidency() const {
+  return "cpu_host";
+}
+
+GpuDiffusePathFrontierCompactionResult CpuReferenceGpuDiffusePathFrontierCompactionBackend::compact(
+  const std::vector<GpuDiffusePathStateRecord>& sourceRecords,
+  const std::vector<std::uint32_t>& retainedPathIndices) const {
+  validateRetainedPathIndices(sourceRecords.size(), retainedPathIndices);
+
+  GpuDiffusePathFrontierCompactionResult result;
+  result.executionPath = name();
+  result.pathStateResidency = pathStateResidency();
+  result.inputPathCount = sourceRecords.size();
+  result.retainedPathIndices = retainedPathIndices;
+  result.retainedRecords.reserve(retainedPathIndices.size());
+  for (const std::uint32_t index : retainedPathIndices) {
+    result.retainedRecords.push_back(sourceRecords[index]);
+  }
+  return result;
+}
+
 GpuDiffusePathStepResult
 GpuDiffusePathStep::step(const GpuTracingSceneSections& scene,
                          const std::vector<GpuDiffusePathStateRecord>& pathStates,
@@ -658,6 +734,10 @@ TracingExecutionCapabilityRecords GpuDiffusePathLoopResult::tracingCapabilities(
   const std::string pathStatePath = pathStateResidency.empty()
                                       ? (fullGpuLoop ? "gpu_resident_path_state" : "cpu_host")
                                       : pathStateResidency;
+  const std::string compactionPath =
+    frontierCompactionExecutionPath.empty()
+      ? (fullGpuLoop ? pathLoopExecution : "cpu_diffuse_frontier_compaction")
+      : frontierCompactionExecutionPath;
 
   TracingExecutionCapabilityRecords records;
   if (fullGpuLoop) {
@@ -696,7 +776,7 @@ TracingExecutionCapabilityRecords GpuDiffusePathLoopResult::tracingCapabilities(
     records.pathState.residency =
       gpuRecord(Domain::PathState, "state.path_state_residency", pathStatePath);
     records.pathState.frontierCompaction =
-      gpuRecord(Domain::PathState, "state.frontier_compaction", pathLoopExecution);
+      gpuRecord(Domain::PathState, "state.frontier_compaction", compactionPath);
     records.pathState.spawnedContinuations =
       gpuRecord(Domain::PathState, "state.spawned_continuations", pathLoopExecution);
 
@@ -750,7 +830,7 @@ TracingExecutionCapabilityRecords GpuDiffusePathLoopResult::tracingCapabilities(
     fallbackWithReason(Domain::PathState, "state.path_state_residency", pathStatePath,
                        compiledDiffusePathLoopPathStateResidencyFallbackReason());
   records.pathState.frontierCompaction =
-    fallbackWithReason(Domain::PathState, "state.frontier_compaction", pathLoopExecution,
+    fallbackWithReason(Domain::PathState, "state.frontier_compaction", compactionPath,
                        compiledDiffusePathLoopFrontierCompactionFallbackReason());
   records.pathState.spawnedContinuations =
     fallbackWithReason(Domain::PathState, "state.spawned_continuations", kCpuRecordExecutionPath,
@@ -969,8 +1049,19 @@ GpuDiffusePathLoopResult
 GpuDiffusePathLoop::run(const GpuTracingSceneSections& scene,
                         const std::vector<GpuDiffusePathStateRecord>& initialPathStates,
                         const GpuDiffusePathLoopSettings& settings) const {
+  return run(scene, initialPathStates, settings,
+             CpuReferenceGpuDiffusePathFrontierCompactionBackend::instance());
+}
+
+GpuDiffusePathLoopResult
+GpuDiffusePathLoop::run(const GpuTracingSceneSections& scene,
+                        const std::vector<GpuDiffusePathStateRecord>& initialPathStates,
+                        const GpuDiffusePathLoopSettings& settings,
+                        const GpuDiffusePathFrontierCompactionBackend& compactionBackend) const {
   GpuDiffusePathLoopResult result;
   result.initialPathCount = initialPathStates.size();
+  result.frontierCompactionExecutionPath = compactionBackend.name();
+  result.frontierCompactionPathStateResidency = compactionBackend.pathStateResidency();
 
   std::vector<GpuDiffusePathStateRecord> active;
   active.reserve(initialPathStates.size());
@@ -1002,18 +1093,40 @@ GpuDiffusePathLoop::run(const GpuTracingSceneSections& scene,
                                      step.terminatedPathStates.begin(),
                                      step.terminatedPathStates.end());
 
-    active.clear();
-    active.reserve(step.pathStates.size());
-    for (GpuDiffusePathStateRecord pathState : step.pathStates) {
+    std::vector<std::uint32_t> retainedPathIndices;
+    retainedPathIndices.reserve(step.pathStates.size());
+    for (std::size_t index = 0; index != step.pathStates.size(); ++index) {
+      GpuDiffusePathStateRecord pathState = step.pathStates[index];
       if (pathState.depth >= settings.maxDepth) {
         terminate(pathState);
         result.resolvedPathStates.push_back(pathState);
         ++result.maxDepthTerminatedPaths;
         ++result.metrics.terminatedPaths;
       } else {
-        active.push_back(pathState);
+        if (index > std::numeric_limits<std::uint32_t>::max()) {
+          throw std::overflow_error(
+            "gpu diffuse path frontier compaction path index exceeds GPU index range");
+        }
+        retainedPathIndices.push_back(static_cast<std::uint32_t>(index));
       }
     }
+
+    const GpuDiffusePathFrontierCompactionResult compaction =
+      compactionBackend.compact(step.pathStates, retainedPathIndices);
+    if (compaction.inputPathCount != step.pathStates.size()) {
+      throw std::logic_error(
+        "gpu diffuse path frontier compaction backend returned a mismatched input path count");
+    }
+    if (compaction.retainedRecords.size() != compaction.retainedPathCount()) {
+      throw std::logic_error(
+        "gpu diffuse path frontier compaction backend returned a mismatched retained path count");
+    }
+    result.retainedIndexBytes =
+      saturatedAdd(result.retainedIndexBytes, compaction.retainedIndexBytes());
+    result.frontierCompactionExecutionPath = compaction.executionPath;
+    result.frontierCompactionPathStateResidency = compaction.pathStateResidency;
+
+    active = compaction.retainedRecords;
   }
 
   return result;

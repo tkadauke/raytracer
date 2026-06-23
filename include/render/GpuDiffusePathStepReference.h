@@ -51,6 +51,42 @@ namespace render {
     GpuDiffusePathStepMetrics metrics;
   };
 
+  struct GpuDiffusePathFrontierCompactionResult {
+    std::vector<GpuDiffusePathStateRecord> retainedRecords;
+    std::vector<std::uint32_t> retainedPathIndices;
+    std::string executionPath{"cpu_diffuse_frontier_compaction"};
+    std::string pathStateResidency{"cpu_host"};
+    std::uint64_t inputPathCount{0};
+
+    [[nodiscard]] std::uint64_t retainedPathCount() const;
+    [[nodiscard]] std::uint64_t removedPathCount() const;
+    [[nodiscard]] std::uint64_t movedPathCount() const;
+    [[nodiscard]] std::uint64_t retainedIndexBytes() const;
+  };
+
+  class GpuDiffusePathFrontierCompactionBackend {
+  public:
+    virtual ~GpuDiffusePathFrontierCompactionBackend() = default;
+
+    [[nodiscard]] virtual const char* name() const = 0;
+    [[nodiscard]] virtual const char* pathStateResidency() const = 0;
+    [[nodiscard]] virtual GpuDiffusePathFrontierCompactionResult
+    compact(const std::vector<GpuDiffusePathStateRecord>& sourceRecords,
+            const std::vector<std::uint32_t>& retainedPathIndices) const = 0;
+  };
+
+  class CpuReferenceGpuDiffusePathFrontierCompactionBackend final
+      : public GpuDiffusePathFrontierCompactionBackend {
+  public:
+    [[nodiscard]] static const CpuReferenceGpuDiffusePathFrontierCompactionBackend& instance();
+
+    [[nodiscard]] const char* name() const override;
+    [[nodiscard]] const char* pathStateResidency() const override;
+    [[nodiscard]] GpuDiffusePathFrontierCompactionResult
+    compact(const std::vector<GpuDiffusePathStateRecord>& sourceRecords,
+            const std::vector<std::uint32_t>& retainedPathIndices) const override;
+  };
+
   struct GpuDiffusePathLoopSettings {
     std::uint32_t maxDepth{8};
     std::uint32_t russianRouletteDepth{3};
@@ -64,6 +100,8 @@ namespace render {
     GpuDiffusePathStepMetrics metrics;
     std::string executionPath{"compiled_cpu_reference"};
     std::string pathStateResidency{"cpu_host"};
+    std::string frontierCompactionExecutionPath{"cpu_diffuse_frontier_compaction"};
+    std::string frontierCompactionPathStateResidency{"cpu_host"};
     std::string platformName;
     std::uint64_t initialPathCount{0};
     std::uint64_t depthCount{0};
@@ -135,6 +173,11 @@ namespace render {
     run(const GpuTracingSceneSections& scene,
         const std::vector<GpuDiffusePathStateRecord>& initialPathStates,
         const GpuDiffusePathLoopSettings& settings = {}) const;
+    [[nodiscard]] GpuDiffusePathLoopResult
+    run(const GpuTracingSceneSections& scene,
+        const std::vector<GpuDiffusePathStateRecord>& initialPathStates,
+        const GpuDiffusePathLoopSettings& settings,
+        const GpuDiffusePathFrontierCompactionBackend& compactionBackend) const;
   };
 
   [[nodiscard]] TracingAccumulationDiagnostics

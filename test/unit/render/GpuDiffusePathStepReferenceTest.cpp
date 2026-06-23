@@ -56,6 +56,40 @@ namespace GpuDiffusePathStepReferenceTest {
       return path;
     }
 
+    class RecordingFrontierCompactionBackend final
+        : public GpuDiffusePathFrontierCompactionBackend {
+    public:
+      const char* name() const override {
+        return "recording_diffuse_frontier_compaction";
+      }
+
+      const char* pathStateResidency() const override {
+        return "recording_path_state";
+      }
+
+      GpuDiffusePathFrontierCompactionResult
+      compact(const std::vector<GpuDiffusePathStateRecord>& sourceRecords,
+              const std::vector<std::uint32_t>& retainedPathIndices) const override {
+        ++calls;
+        inputCounts.push_back(sourceRecords.size());
+        retainedIndices.push_back(retainedPathIndices);
+
+        GpuDiffusePathFrontierCompactionResult result;
+        result.executionPath = name();
+        result.pathStateResidency = pathStateResidency();
+        result.inputPathCount = sourceRecords.size();
+        result.retainedPathIndices = retainedPathIndices;
+        for (const std::uint32_t index : retainedPathIndices) {
+          result.retainedRecords.push_back(sourceRecords[index]);
+        }
+        return result;
+      }
+
+      mutable int calls{0};
+      mutable std::vector<std::size_t> inputCounts;
+      mutable std::vector<std::vector<std::uint32_t>> retainedIndices;
+    };
+
     GpuIntersectionHitRecord hitRecord(std::uint32_t rayIndex, std::uint32_t material) {
       GpuIntersectionHitRecord hit;
       hit.hit = 1;
@@ -1066,6 +1100,8 @@ namespace GpuDiffusePathStepReferenceTest {
               capabilities.bsdf.sample.fallback.reason);
     EXPECT_EQ(TracingCapabilitySupport::Fallback,
               capabilities.pathState.frontierCompaction.support);
+    EXPECT_EQ("cpu_diffuse_frontier_compaction",
+              capabilities.pathState.frontierCompaction.executionPath);
     EXPECT_EQ("compiled CPU-reference path loop compacts path state on the host",
               capabilities.pathState.frontierCompaction.fallback.reason);
     EXPECT_EQ(TracingCapabilitySupport::Fallback,
@@ -1082,6 +1118,8 @@ namespace GpuDiffusePathStepReferenceTest {
     result.executionPath = "full_gpu_subset";
     result.platformName = "metal";
     result.pathStateResidency = "metal_path_state";
+    result.frontierCompactionExecutionPath = "metal_path_loop";
+    result.frontierCompactionPathStateResidency = "metal_path_state";
     result.metrics.closestHitExecutionPath = "metal";
     result.metrics.directLightVisibilityExecutionPath = "metal";
     result.metrics.directLightContributionExecutionPath = "metal_path_loop";
@@ -1110,6 +1148,9 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(TracingExecutionDevice::GPU, capabilities.pathState.residency.resolvedDevice);
     EXPECT_EQ("metal_path_state", capabilities.pathState.residency.executionPath);
     EXPECT_EQ(TracingExecutionDevice::GPU,
+              capabilities.pathState.frontierCompaction.resolvedDevice);
+    EXPECT_EQ("metal_path_loop", capabilities.pathState.frontierCompaction.executionPath);
+    EXPECT_EQ(TracingExecutionDevice::GPU,
               capabilities.accumulation.sampleAccumulation.resolvedDevice);
     EXPECT_EQ("metal_accumulation", capabilities.accumulation.sampleAccumulation.executionPath);
     EXPECT_EQ(TracingExecutionDevice::Hybrid,
@@ -1130,6 +1171,8 @@ namespace GpuDiffusePathStepReferenceTest {
 
     EXPECT_EQ("compiled_cpu_reference", result.executionPath);
     EXPECT_EQ("cpu_host", result.pathStateResidency);
+    EXPECT_EQ("cpu_diffuse_frontier_compaction", result.frontierCompactionExecutionPath);
+    EXPECT_EQ("cpu_host", result.frontierCompactionPathStateResidency);
     EXPECT_EQ(pathStateBytes, result.pathStateBytesPerPath());
     EXPECT_EQ(pathStateBytes, result.residentPathStateBytes());
     EXPECT_EQ(pathStateBytes, result.inputPathStateBytes());
@@ -1147,6 +1190,60 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(1u, result.roundTrips);
     EXPECT_EQ(0u, result.savedHostReadbacks);
     EXPECT_EQ(0u, result.savedHostReadbackBytes);
+  }
+
+  TEST(CpuReferenceGpuDiffusePathFrontierCompactionBackend, CompactsRetainedPathsInOrder) {
+    std::vector<GpuDiffusePathStateRecord> source{activePath(2), activePath(3), activePath(4)};
+    source[0].pixelIndex = 10;
+    source[1].pixelIndex = 11;
+    source[2].pixelIndex = 12;
+
+    const GpuDiffusePathFrontierCompactionResult result =
+      CpuReferenceGpuDiffusePathFrontierCompactionBackend::instance().compact(source, {0u, 2u});
+
+    EXPECT_EQ("cpu_diffuse_frontier_compaction", result.executionPath);
+    EXPECT_EQ("cpu_host", result.pathStateResidency);
+    EXPECT_EQ(3u, result.inputPathCount);
+    EXPECT_EQ(2u, result.retainedPathCount());
+    EXPECT_EQ(1u, result.removedPathCount());
+    EXPECT_EQ(1u, result.movedPathCount());
+    EXPECT_EQ(2u * sizeof(std::uint32_t), result.retainedIndexBytes());
+    ASSERT_EQ(2u, result.retainedRecords.size());
+    EXPECT_EQ(10u, result.retainedRecords[0].pixelIndex);
+    EXPECT_EQ(12u, result.retainedRecords[1].pixelIndex);
+  }
+
+  TEST(GpuDiffusePathLoop, DispatchesSurvivingFrontierThroughCompactionBackend) {
+    Scene scene;
+    auto matte =
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::white()));
+    matte->setDiffuseCoefficient(1.0);
+    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    receiver->setMaterial(matte);
+    scene.add(receiver);
+    GpuTracingSceneSections sections = sectionsFor(scene);
+
+    GpuDiffusePathStateRecord path = activePath();
+    path.pixelIndex = 0;
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 2;
+    settings.russianRouletteDepth = 10;
+
+    RecordingFrontierCompactionBackend backend;
+    const GpuDiffusePathLoopResult result =
+      GpuDiffusePathLoop().run(sections, {path}, settings, backend);
+
+    EXPECT_EQ(2, backend.calls);
+    ASSERT_EQ(2u, backend.inputCounts.size());
+    EXPECT_EQ(1u, backend.inputCounts[0]);
+    EXPECT_EQ(0u, backend.inputCounts[1]);
+    ASSERT_EQ(2u, backend.retainedIndices.size());
+    EXPECT_EQ(std::vector<std::uint32_t>({0u}), backend.retainedIndices[0]);
+    EXPECT_TRUE(backend.retainedIndices[1].empty());
+    EXPECT_EQ("recording_diffuse_frontier_compaction", result.frontierCompactionExecutionPath);
+    EXPECT_EQ("recording_path_state", result.frontierCompactionPathStateResidency);
+    EXPECT_EQ(sizeof(std::uint32_t), result.retainedPathIndexBytes());
+    EXPECT_EQ(2u, result.compactionPassCount());
   }
 
   TEST(GpuDiffusePathLoop, TerminatesSurvivingContinuationsAtMaxDepth) {

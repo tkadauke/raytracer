@@ -51,6 +51,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   reporting it as GPU execution. — GPT-5 Codex
 - Add a Metal resident path-state compaction backend that compacts retained
   `GpuPathStateRecord` entries with a Metal compute kernel. — GPT-5 Codex
+- Add an explicit compiled diffuse path-loop frontier compaction backend seam,
+  with graph trace metadata now reporting compaction execution separately from
+  the overall CPU-reference path loop. — GPT-5 Codex
 
 ### Fixed
 

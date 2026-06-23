@@ -215,6 +215,8 @@ namespace GraphRenderEngineTest {
           scene, initialPathStates, settings);
       result.executionPath = "full_gpu_subset";
       result.pathStateResidency = "metal_path_state";
+      result.frontierCompactionExecutionPath = "metal_path_loop";
+      result.frontierCompactionPathStateResidency = "metal_path_state";
       result.platformName = "metal";
       result.metrics.closestHitExecutionPath = "metal";
       result.metrics.directLightVisibilityExecutionPath = "metal";
@@ -2361,7 +2363,7 @@ namespace GraphRenderEngineTest {
               fallbackReasonForCapability(capabilities, "accumulation.sample_accumulation"));
     EXPECT_EQ("compiled CPU-reference path loop evaluates direct-light contribution on the host",
               batching.value("directLightContributionFallbackReason").toString().toStdString());
-    EXPECT_EQ("compiled_cpu_reference",
+    EXPECT_EQ("cpu_diffuse_frontier_compaction",
               batching.value("frontierCompactionExecutionPath").toString().toStdString());
     EXPECT_EQ("cpu_host",
               batching.value("frontierCompactionPathStateResidency").toString().toStdString());
@@ -2462,6 +2464,10 @@ namespace GraphRenderEngineTest {
               batching.value("directLightVisibilityExecutionPath").toString().toStdString());
     EXPECT_EQ("metal_path_loop",
               batching.value("directLightContributionExecutionPath").toString().toStdString());
+    EXPECT_EQ("metal_path_loop",
+              batching.value("frontierCompactionExecutionPath").toString().toStdString());
+    EXPECT_EQ("metal_path_state",
+              batching.value("frontierCompactionPathStateResidency").toString().toStdString());
     EXPECT_TRUE(batching.value("directLightContributionFallbackReason").toString().isEmpty());
     EXPECT_TRUE(batching.value("intersectionBackendSupportsResidentFrontiers").toBool());
     EXPECT_TRUE(batching.value("intersectionBackendSupportsGpuFrontierCompaction").toBool());

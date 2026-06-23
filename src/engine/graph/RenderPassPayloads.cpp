@@ -766,9 +766,10 @@ namespace engine::graph {
         static_cast<double>(loop.metrics.directLightOccludedSamples);
       batching["spawnedContinuations"] = static_cast<double>(loop.retainedPathCount());
       batching["terminatedPaths"] = static_cast<double>(loop.metrics.terminatedPaths);
-      batching["frontierCompactionExecutionPath"] = QString::fromStdString(loop.executionPath);
+      batching["frontierCompactionExecutionPath"] =
+        QString::fromStdString(loop.frontierCompactionExecutionPath);
       batching["frontierCompactionPathStateResidency"] =
-        QString::fromStdString(loop.pathStateResidency);
+        QString::fromStdString(loop.frontierCompactionPathStateResidency);
       batching["frontierCompactionPasses"] = static_cast<double>(loop.compactionPassCount());
       batching["frontierCompactionInputSamples"] = static_cast<double>(loop.inputPathCount());
       batching["frontierCompactionRetainedSamples"] = static_cast<double>(loop.retainedPathCount());

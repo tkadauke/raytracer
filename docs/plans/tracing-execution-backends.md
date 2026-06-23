@@ -2082,7 +2082,11 @@ diffuse path tracer for the first supported subset.
      compaction as GPU execution. Metal-enabled builds now also have a
      standalone `MetalResidentPathCompactionBackend` that compacts retained
      `GpuPathStateRecord` entries with a Metal compute kernel for the same
-     retained-index contract.
+     retained-index contract. The live compiled diffuse path loop now has its
+     own `GpuDiffusePathFrontierCompactionBackend` seam for the
+     `GpuDiffusePathStateRecord` representation actually used by graph-backed
+     renders, and trace metadata reports that compaction execution separately
+     from the overall CPU-reference path-loop execution.
 
 3. **~~Loop over depth with max-depth and Russian roulette.~~** ✅ **Done.**
    Added `loopResidentDiffusePaths` as the CPU-reference resident path-state
