@@ -1022,6 +1022,10 @@ Progress:
   any-hit workloads through backend-owned frontier handles instead of bypassing
   the frontier contract with raw batch calls. That keeps benchmark evidence
   aligned with the renderer path that future resident frontiers will override.
+- Metal and Vulkan compiled-scene batch entry points now also create
+  backend-owned closest-hit and any-hit frontier handles before dispatching,
+  matching the renderer and benchmark path instead of bypassing the resident
+  frontier boundary through raw prepared-batch calls.
 - Prepared GPU-intersection backends now create closest-hit and any-hit
   frontiers that own the packed GPU ray payload at frontier-construction time.
   The packed fallback handles still live on the CPU and report `packed_host`

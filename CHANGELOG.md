@@ -46,6 +46,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Route Metal/Vulkan compiled-scene batch intersection entry points through
+  backend-owned frontier handles, matching the renderer and benchmark path used
+  for future resident frontier work. — GPT-5 Codex
 - Fix Metal-enabled wavefront builds on macOS SDKs that export a global `Rect`
   symbol before the project `Rect<T>` template is included. — GPT-5 Codex
 - Report compiled diffuse path-loop direct-light, BSDF, continuation, and

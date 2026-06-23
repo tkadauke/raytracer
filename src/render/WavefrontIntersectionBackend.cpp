@@ -2432,7 +2432,9 @@ namespace render {
     WavefrontIntersectionQueryTiming* timing) const {
     if (compiledScene()) {
       (void)scene;
-      return intersectPreparedClosestBatch(queries, timing);
+      std::unique_ptr<WavefrontClosestHitFrontier> frontier =
+        createClosestHitFrontier(std::vector<WavefrontClosestHitQuery>(queries));
+      return intersectPreparedClosestFrontier(*frontier, timing);
     }
     return WavefrontIntersectionBackend::intersectClosestBatch(scene, queries, timing);
   }
@@ -2485,7 +2487,9 @@ namespace render {
     WavefrontIntersectionQueryTiming* timing) const {
     if (compiledScene()) {
       (void)scene;
-      return intersectPreparedAnyBatch(queries, timing);
+      std::unique_ptr<WavefrontAnyHitFrontier> frontier =
+        createAnyHitFrontier(std::vector<WavefrontAnyHitQuery>(queries));
+      return intersectPreparedAnyFrontier(*frontier, timing);
     }
     return CpuWavefrontIntersectionBackend::instance().intersectAnyBatch(scene, queries, timing);
   }
@@ -2821,7 +2825,9 @@ namespace render {
     WavefrontIntersectionQueryTiming* timing) const {
     if (compiledScene()) {
       (void)scene;
-      return intersectPreparedClosestBatch(queries, timing);
+      std::unique_ptr<WavefrontClosestHitFrontier> frontier =
+        createClosestHitFrontier(std::vector<WavefrontClosestHitQuery>(queries));
+      return intersectPreparedClosestFrontier(*frontier, timing);
     }
     return WavefrontIntersectionBackend::intersectClosestBatch(scene, queries, timing);
   }
@@ -2874,7 +2880,9 @@ namespace render {
     WavefrontIntersectionQueryTiming* timing) const {
     if (compiledScene()) {
       (void)scene;
-      return intersectPreparedAnyBatch(queries, timing);
+      std::unique_ptr<WavefrontAnyHitFrontier> frontier =
+        createAnyHitFrontier(std::vector<WavefrontAnyHitQuery>(queries));
+      return intersectPreparedAnyFrontier(*frontier, timing);
     }
     return CpuWavefrontIntersectionBackend::instance().intersectAnyBatch(scene, queries, timing);
   }
