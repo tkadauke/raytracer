@@ -1839,6 +1839,12 @@ Progress:
   accumulation backend/residency labels, storage sizes, operation counts, and
   readback bytes. Interactive graph inspection can therefore see the resolve
   boundary that future platform accumulation kernels will replace.
+- Frontier compaction results now carry upload, kernel, and readback timing
+  buckets. Current host compaction keeps those buckets at zero, while future
+  scheduler-level Metal/Vulkan compaction kernels can report backend timing
+  through the same metrics, rendercli summaries, Modeler graph details,
+  backend benchmarks, and convergence capture columns without another public
+  metrics shape change.
 
 ---
 

@@ -2451,12 +2451,17 @@ namespace WavefrontRaytracerTest {
     batch.recordMissRadiance(Colord(0.0, 1.0, 1.0));
     batch.recordCompatibilityShadeRadiance(Colord(1.0, 0.0, 1.0));
     batch.recordUnsupportedPathMaterial();
+    render::WavefrontFrontierCompactionTiming compactionTiming;
+    compactionTiming.uploadSeconds = 0.001;
+    compactionTiming.kernelSeconds = 0.002;
+    compactionTiming.readbackSeconds = 0.003;
     batch.recordFrontierCompaction(/*inputSamples=*/8, /*retainedSamples=*/5, /*movedSamples=*/2,
                                    "host",
                                    /*retainedIndexBytes=*/5u * sizeof(std::uint32_t),
                                    /*inputHostPathStateBytes=*/8u * 64u,
                                    /*retainedHostPathStateBytes=*/5u * 64u,
-                                   /*removedHostPathStateBytes=*/3u * 64u);
+                                   /*removedHostPathStateBytes=*/3u * 64u,
+                                   /*pathStateResidency=*/"host", compactionTiming);
     batch.recordSpawnedContinuations(/*samples=*/3, /*hostPathStateBytes=*/3u * 64u);
     constexpr double redLuma = 0.299;
     constexpr double greenLuma = 0.587;
@@ -2517,6 +2522,9 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(8u * 64u, metrics.batching.frontierCompactionInputHostPathStateBytes);
     EXPECT_EQ(5u * 64u, metrics.batching.frontierCompactionRetainedHostPathStateBytes);
     EXPECT_EQ(3u * 64u, metrics.batching.frontierCompactionRemovedHostPathStateBytes);
+    EXPECT_DOUBLE_EQ(0.001, metrics.batching.frontierCompactionUploadWorkerSeconds);
+    EXPECT_DOUBLE_EQ(0.002, metrics.batching.frontierCompactionKernelWorkerSeconds);
+    EXPECT_DOUBLE_EQ(0.003, metrics.batching.frontierCompactionReadbackWorkerSeconds);
     EXPECT_EQ("host", metrics.batching.frontierCompactionExecutionPath);
     EXPECT_EQ("host", metrics.batching.frontierCompactionPathStateResidency);
     EXPECT_DOUBLE_EQ(3.0 / 8.0, metrics.batching.frontierCompactionRemovedSampleFraction());
@@ -2610,6 +2618,9 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(5.0 * 64.0,
               batching.value("frontierCompactionRetainedHostPathStateBytes").toDouble());
     EXPECT_EQ(3.0 * 64.0, batching.value("frontierCompactionRemovedHostPathStateBytes").toDouble());
+    EXPECT_DOUBLE_EQ(0.001, batching.value("frontierCompactionUploadWorkerSeconds").toDouble());
+    EXPECT_DOUBLE_EQ(0.002, batching.value("frontierCompactionKernelWorkerSeconds").toDouble());
+    EXPECT_DOUBLE_EQ(0.003, batching.value("frontierCompactionReadbackWorkerSeconds").toDouble());
     EXPECT_EQ("host", batching.value("frontierCompactionExecutionPath").toString().toStdString());
     EXPECT_EQ("host",
               batching.value("frontierCompactionPathStateResidency").toString().toStdString());

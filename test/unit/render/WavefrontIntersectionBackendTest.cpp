@@ -593,6 +593,21 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ("device_test", compaction.pathStateResidency());
   }
 
+  TEST(WavefrontFrontierCompaction, CarriesBackendTimingThroughResult) {
+    WavefrontFrontierCompactionResult compaction =
+      WavefrontFrontierCompactionResult::fromRetainedPathIndices(3, {0u, 2u}, "metal");
+    WavefrontFrontierCompactionTiming timing;
+    timing.uploadSeconds = 0.004;
+    timing.kernelSeconds = 0.005;
+    timing.readbackSeconds = 0.006;
+
+    compaction.setTiming(timing);
+
+    EXPECT_DOUBLE_EQ(0.004, compaction.timing().uploadSeconds);
+    EXPECT_DOUBLE_EQ(0.005, compaction.timing().kernelSeconds);
+    EXPECT_DOUBLE_EQ(0.006, compaction.timing().readbackSeconds);
+  }
+
   TEST(WavefrontFrontierCompaction, NormalizesEmptyResultLabels) {
     const WavefrontFrontierCompactionResult compaction =
       WavefrontFrontierCompactionResult::fromRetainedPathIndices(2, {0u}, "",

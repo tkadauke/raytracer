@@ -8,6 +8,14 @@
 namespace render {
   struct IntegratorBatchMetrics;
 
+  struct WavefrontFrontierCompactionTiming {
+    double uploadSeconds{0.0};
+    double kernelSeconds{0.0};
+    double readbackSeconds{0.0};
+
+    void add(const WavefrontFrontierCompactionTiming& other);
+  };
+
   class WavefrontFrontierCompactionRequest {
   public:
     explicit WavefrontFrontierCompactionRequest(std::size_t inputPathCount = 0);
@@ -63,6 +71,9 @@ namespace render {
     [[nodiscard]] std::uint64_t removedPathStateBytes() const;
     [[nodiscard]] std::uint64_t retainedIndexBytes() const;
     [[nodiscard]] const std::string& executionPath() const;
+    [[nodiscard]] const WavefrontFrontierCompactionTiming& timing() const;
+
+    void setTiming(WavefrontFrontierCompactionTiming timing);
 
     void record(IntegratorBatchMetrics* metrics) const;
 
@@ -83,5 +94,6 @@ namespace render {
     std::size_t m_movedPathCount{0};
     std::string m_executionPath;
     std::string m_pathStateResidency{"host"};
+    WavefrontFrontierCompactionTiming m_timing;
   };
 }

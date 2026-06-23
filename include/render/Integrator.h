@@ -3,6 +3,7 @@
 #include "core/Color.h"
 #include "core/math/Ray.h"
 #include "render/TracingAccumulationLayout.h"
+#include "render/WavefrontFrontierCompaction.h"
 #include "render/WavefrontIntersectionQueryTiming.h"
 
 #include <cstddef>
@@ -214,6 +215,9 @@ namespace render {
     std::uint64_t frontierCompactionInputHostPathStateBytes{0};
     std::uint64_t frontierCompactionRetainedHostPathStateBytes{0};
     std::uint64_t frontierCompactionRemovedHostPathStateBytes{0};
+    double frontierCompactionUploadWorkerSeconds{0.0};
+    double frontierCompactionKernelWorkerSeconds{0.0};
+    double frontierCompactionReadbackWorkerSeconds{0.0};
     std::string frontierCompactionExecutionPath;
     std::string frontierCompactionPathStateResidency;
     std::optional<TracingAccumulationDiagnostics> residentPathLoopAccumulation;
@@ -232,7 +236,8 @@ namespace render {
                                   std::uint64_t inputHostPathStateBytes = 0,
                                   std::uint64_t retainedHostPathStateBytes = 0,
                                   std::uint64_t removedHostPathStateBytes = 0,
-                                  std::string pathStateResidency = "host");
+                                  std::string pathStateResidency = "host",
+                                  WavefrontFrontierCompactionTiming timing = {});
     void recordHostFrontierCompaction(std::uint64_t inputSamples, std::uint64_t retainedSamples,
                                       std::uint64_t movedSamples);
     void recordResidentPathLoopExecution(const ResidentPathLoopDiagnostics& diagnostics,

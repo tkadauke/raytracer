@@ -415,7 +415,10 @@ inactive one.
 Executed compaction also reports input, retained, and removed host path-state
 bytes beside retained-index bytes, so the summary separates the index list a GPU
 kernel would need from the CPU scheduler state that still has to become
-resident.
+resident. The same executed-compaction row carries upload, kernel, and readback
+timing buckets; current host compaction normally reports zero there, while a
+future scheduler-level Metal/Vulkan compaction kernel can populate those fields
+without changing the inspection surface.
 Direct-light any-hit summaries now also include packed-ray, host-query,
 state-handle, and resolved occlusion-result byte totals for next-event-estimation
 occlusion frontiers. Those fields size the direct-light work that still has to
@@ -633,6 +636,9 @@ compact summary prints total `tiles`, `tile_grid`,
 `frontier_compaction_moved_samples`,
 `frontier_compaction_moved_retained_fraction`,
 `frontier_compaction_path_state_residency`,
+`frontier_compaction_upload_ms`,
+`frontier_compaction_kernel_ms`,
+`frontier_compaction_readback_ms`,
 `active_host_path_state_bytes`,
 `last_active_host_path_state_bytes`,
 `last_retained_host_path_state_bytes`,

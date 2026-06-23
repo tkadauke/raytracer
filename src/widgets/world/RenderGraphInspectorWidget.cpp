@@ -1180,6 +1180,15 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                              QStringLiteral("frontierCompactionExecutionPath"));
   addDetailStringMetadataRow(rows, QStringLiteral("Compaction path-state residency"), batching,
                              QStringLiteral("frontierCompactionPathStateResidency"), true);
+  addDetailMillisecondsMetadataRow(rows, QStringLiteral("Frontier compaction upload time"),
+                                   batching,
+                                   QStringLiteral("frontierCompactionUploadWorkerSeconds"));
+  addDetailMillisecondsMetadataRow(rows, QStringLiteral("Frontier compaction kernel time"),
+                                   batching,
+                                   QStringLiteral("frontierCompactionKernelWorkerSeconds"));
+  addDetailMillisecondsMetadataRow(rows, QStringLiteral("Frontier compaction readback time"),
+                                   batching,
+                                   QStringLiteral("frontierCompactionReadbackWorkerSeconds"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Frontier compaction passes"), batching,
                               QStringLiteral("frontierCompactionPasses"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Frontier compaction input samples"), batching,
@@ -1812,6 +1821,21 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
               .arg(compactionExecution, compactionResidency,
                    QString::number(compactionRemovedSamples), QString::number(retainedIndexBytes),
                    QString::number(removedHostPathStateBytes));
+          const double compactionUploadMs =
+            batching.value(QStringLiteral("frontierCompactionUploadWorkerSeconds")).toDouble() *
+            1000.0;
+          const double compactionKernelMs =
+            batching.value(QStringLiteral("frontierCompactionKernelWorkerSeconds")).toDouble() *
+            1000.0;
+          const double compactionReadbackMs =
+            batching.value(QStringLiteral("frontierCompactionReadbackWorkerSeconds")).toDouble() *
+            1000.0;
+          if (compactionUploadMs > 0.0 || compactionKernelMs > 0.0 || compactionReadbackMs > 0.0) {
+            line += QStringLiteral(" in %1 ms upload/%2 ms kernel/%3 ms readback")
+                      .arg(compactionUploadMs, 0, 'f', 3)
+                      .arg(compactionKernelMs, 0, 'f', 3)
+                      .arg(compactionReadbackMs, 0, 'f', 3);
+          }
         }
         if (compactionCandidateSamples > 0) {
           const qulonglong compactionCandidatePackedBytes =

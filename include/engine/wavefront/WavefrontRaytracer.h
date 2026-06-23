@@ -244,6 +244,9 @@ namespace engine::wavefront {
       std::uint64_t frontierCompactionInputHostPathStateBytes = 0;
       std::uint64_t frontierCompactionRetainedHostPathStateBytes = 0;
       std::uint64_t frontierCompactionRemovedHostPathStateBytes = 0;
+      double frontierCompactionUploadWorkerSeconds = 0.0;
+      double frontierCompactionKernelWorkerSeconds = 0.0;
+      double frontierCompactionReadbackWorkerSeconds = 0.0;
       std::string frontierCompactionExecutionPath;
       std::string frontierCompactionPathStateResidency;
       std::optional<render::TracingAccumulationDiagnostics> residentPathLoopAccumulation;

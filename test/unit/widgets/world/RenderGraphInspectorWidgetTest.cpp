@@ -1381,6 +1381,9 @@ namespace RenderGraphInspectorWidgetTest {
         .isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Frontier compaction removed host path-state bytes"))
                    .isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Frontier compaction upload time")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Frontier compaction kernel time")).isEmpty());
+    EXPECT_FALSE(rowValue(rows, QStringLiteral("Frontier compaction readback time")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Supports resident frontiers")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Supports GPU frontier compaction")).isEmpty());
     const QString gpuCompactionUnavailableReason =

@@ -265,6 +265,9 @@ namespace render {
     frontierCompactionInputHostPathStateBytes = 0;
     frontierCompactionRetainedHostPathStateBytes = 0;
     frontierCompactionRemovedHostPathStateBytes = 0;
+    frontierCompactionUploadWorkerSeconds = 0.0;
+    frontierCompactionKernelWorkerSeconds = 0.0;
+    frontierCompactionReadbackWorkerSeconds = 0.0;
     frontierCompactionExecutionPath.clear();
     frontierCompactionPathStateResidency.clear();
     residentPathLoopAccumulation.reset();
@@ -376,6 +379,9 @@ namespace render {
       source.frontierCompactionRetainedHostPathStateBytes;
     frontierCompactionRemovedHostPathStateBytes +=
       source.frontierCompactionRemovedHostPathStateBytes;
+    frontierCompactionUploadWorkerSeconds += source.frontierCompactionUploadWorkerSeconds;
+    frontierCompactionKernelWorkerSeconds += source.frontierCompactionKernelWorkerSeconds;
+    frontierCompactionReadbackWorkerSeconds += source.frontierCompactionReadbackWorkerSeconds;
     mergeLabel(frontierCompactionExecutionPath, source.frontierCompactionExecutionPath);
     mergeLabel(frontierCompactionPathStateResidency, source.frontierCompactionPathStateResidency);
     mergeLabel(residentPathLoopExecutionPath, source.residentPathLoopExecutionPath);
@@ -460,7 +466,8 @@ namespace render {
     std::uint64_t inputSamples, std::uint64_t retainedSamples, std::uint64_t movedSamples,
     const std::string& executionPath, std::uint64_t retainedIndexBytes,
     std::uint64_t inputHostPathStateBytes, std::uint64_t retainedHostPathStateBytes,
-    std::uint64_t removedHostPathStateBytes, std::string pathStateResidency) {
+    std::uint64_t removedHostPathStateBytes, std::string pathStateResidency,
+    WavefrontFrontierCompactionTiming timing) {
     ++frontierCompactionPasses;
     mergeLabel(frontierCompactionExecutionPath, executionPath.empty() ? "unknown" : executionPath);
     mergeLabel(frontierCompactionPathStateResidency,
@@ -474,6 +481,9 @@ namespace render {
     frontierCompactionInputHostPathStateBytes += inputHostPathStateBytes;
     frontierCompactionRetainedHostPathStateBytes += retainedHostPathStateBytes;
     frontierCompactionRemovedHostPathStateBytes += removedHostPathStateBytes;
+    frontierCompactionUploadWorkerSeconds += timing.uploadSeconds;
+    frontierCompactionKernelWorkerSeconds += timing.kernelSeconds;
+    frontierCompactionReadbackWorkerSeconds += timing.readbackSeconds;
   }
 
   void IntegratorBatchMetrics::recordHostFrontierCompaction(std::uint64_t inputSamples,

@@ -435,6 +435,11 @@ The compaction request/result also carries optional path-state bytes per path;
 today the path tracer fills that with `BatchPath` size, which lets the backend
 contract see the scheduler-owned payload that remains outside the ray-buffer
 compaction primitive.
+The same result contract now carries upload, kernel, and readback timing
+buckets. Current host compaction normally reports zero for those backend timing
+fields, but a future Metal/Vulkan scheduler-level compaction kernel can fill
+the same slots without changing rendercli, graph traces, Modeler details, or
+capture scripts.
 Today that execution path is `host` whenever a compaction pass runs. That makes
 the current CPU compaction contract explicit before any future kernel keeps the
 frontier resident on the GPU.

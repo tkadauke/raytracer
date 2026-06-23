@@ -348,6 +348,9 @@ namespace engine::wavefront {
       metrics.frontierCompactionRetainedHostPathStateBytes;
     frontierCompactionRemovedHostPathStateBytes +=
       metrics.frontierCompactionRemovedHostPathStateBytes;
+    frontierCompactionUploadWorkerSeconds += metrics.frontierCompactionUploadWorkerSeconds;
+    frontierCompactionKernelWorkerSeconds += metrics.frontierCompactionKernelWorkerSeconds;
+    frontierCompactionReadbackWorkerSeconds += metrics.frontierCompactionReadbackWorkerSeconds;
     mergeLabel(frontierCompactionExecutionPath, metrics.frontierCompactionExecutionPath);
     mergeLabel(frontierCompactionPathStateResidency, metrics.frontierCompactionPathStateResidency);
     if (metrics.residentPathLoopAccumulation) {
@@ -1380,6 +1383,12 @@ namespace engine::wavefront {
       static_cast<double>(batching.frontierCompactionRetainedHostPathStateBytes);
     batchingJson["frontierCompactionRemovedHostPathStateBytes"] =
       static_cast<double>(batching.frontierCompactionRemovedHostPathStateBytes);
+    batchingJson["frontierCompactionUploadWorkerSeconds"] =
+      batching.frontierCompactionUploadWorkerSeconds;
+    batchingJson["frontierCompactionKernelWorkerSeconds"] =
+      batching.frontierCompactionKernelWorkerSeconds;
+    batchingJson["frontierCompactionReadbackWorkerSeconds"] =
+      batching.frontierCompactionReadbackWorkerSeconds;
     batchingJson["frontierHostCompactionRemovedSampleFraction"] =
       batching.frontierCompactionRemovedSampleFraction();
     batchingJson["frontierCompactionRemovedSampleFraction"] =

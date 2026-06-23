@@ -774,6 +774,9 @@ namespace engine::graph {
         static_cast<double>(loop.retainedPathStateBytes());
       batching["frontierCompactionRemovedHostPathStateBytes"] =
         static_cast<double>(loop.removedPathStateBytes());
+      batching["frontierCompactionUploadWorkerSeconds"] = 0.0;
+      batching["frontierCompactionKernelWorkerSeconds"] = 0.0;
+      batching["frontierCompactionReadbackWorkerSeconds"] = 0.0;
       batching["residentPathLoopExecutionPath"] = QString::fromStdString(loop.executionPath);
       batching["residentPathLoopResidency"] = QString::fromStdString(loop.pathStateResidency);
       batching["residentPathLoopPlatformName"] = QString::fromStdString(loop.platformLabel());

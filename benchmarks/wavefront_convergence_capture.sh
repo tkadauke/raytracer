@@ -1340,6 +1340,9 @@ def aggregate_run(run)
     frontier_compaction_input_host_path_state_bytes: 0.0,
     frontier_compaction_retained_host_path_state_bytes: 0.0,
     frontier_compaction_removed_host_path_state_bytes: 0.0,
+    frontier_compaction_upload_ms: 0.0,
+    frontier_compaction_kernel_ms: 0.0,
+    frontier_compaction_readback_ms: 0.0,
     frontier_compaction_candidate_packed_ray_bytes: 0.0,
     frontier_compaction_candidate_state_handle_bytes: 0.0,
     frontier_compaction_candidate_host_path_state_bytes: 0.0,
@@ -1600,6 +1603,12 @@ def aggregate_run(run)
       batching.fetch("frontierCompactionRetainedHostPathStateBytes", 0).to_f
     values[:frontier_compaction_removed_host_path_state_bytes] +=
       batching.fetch("frontierCompactionRemovedHostPathStateBytes", 0).to_f
+    values[:frontier_compaction_upload_ms] +=
+      batching.fetch("frontierCompactionUploadWorkerSeconds", 0).to_f * 1000.0
+    values[:frontier_compaction_kernel_ms] +=
+      batching.fetch("frontierCompactionKernelWorkerSeconds", 0).to_f * 1000.0
+    values[:frontier_compaction_readback_ms] +=
+      batching.fetch("frontierCompactionReadbackWorkerSeconds", 0).to_f * 1000.0
     values[:frontier_compaction_candidate_packed_ray_bytes] +=
       batching.fetch("frontierCompactionCandidatePackedRayBytes", 0).to_f
     values[:frontier_compaction_candidate_state_handle_bytes] +=
@@ -1772,6 +1781,9 @@ puts %w[
   frontier_compaction_input_host_path_state_bytes
   frontier_compaction_retained_host_path_state_bytes
   frontier_compaction_removed_host_path_state_bytes
+  frontier_compaction_upload_ms
+  frontier_compaction_kernel_ms
+  frontier_compaction_readback_ms
   frontier_compaction_candidate_packed_ray_bytes
   frontier_compaction_candidate_state_handle_bytes
   frontier_compaction_candidate_host_path_state_bytes
@@ -1943,6 +1955,9 @@ queue_dirs.each do |queue_dir|
       format("%.0f", median_for.call(:frontier_compaction_input_host_path_state_bytes)),
       format("%.0f", median_for.call(:frontier_compaction_retained_host_path_state_bytes)),
       format("%.0f", median_for.call(:frontier_compaction_removed_host_path_state_bytes)),
+      format("%.3f", median_for.call(:frontier_compaction_upload_ms)),
+      format("%.3f", median_for.call(:frontier_compaction_kernel_ms)),
+      format("%.3f", median_for.call(:frontier_compaction_readback_ms)),
       format("%.0f", median_for.call(:frontier_compaction_candidate_packed_ray_bytes)),
       format("%.0f", median_for.call(:frontier_compaction_candidate_state_handle_bytes)),
       format("%.0f", median_for.call(:frontier_compaction_candidate_host_path_state_bytes)),

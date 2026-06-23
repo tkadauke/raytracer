@@ -76,6 +76,9 @@ namespace {
         result.movedRetainedPathFraction();
       state.counters["frontier_compaction_retained_index_bytes"] =
         static_cast<double>(result.retainedIndexBytes());
+      state.counters["frontier_compaction_upload_seconds"] = result.timing().uploadSeconds;
+      state.counters["frontier_compaction_kernel_seconds"] = result.timing().kernelSeconds;
+      state.counters["frontier_compaction_readback_seconds"] = result.timing().readbackSeconds;
       annotateBackendCapabilityCounters(state, backend);
     }
 

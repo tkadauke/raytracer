@@ -710,6 +710,12 @@ namespace {
         << unsignedValue(batching, "frontierCompactionRetainedHostPathStateBytes")
         << " frontier_compaction_removed_host_path_state_bytes="
         << unsignedValue(batching, "frontierCompactionRemovedHostPathStateBytes")
+        << " frontier_compaction_upload_ms="
+        << batching.value("frontierCompactionUploadWorkerSeconds").toDouble() * 1000.0
+        << " frontier_compaction_kernel_ms="
+        << batching.value("frontierCompactionKernelWorkerSeconds").toDouble() * 1000.0
+        << " frontier_compaction_readback_ms="
+        << batching.value("frontierCompactionReadbackWorkerSeconds").toDouble() * 1000.0
         << " batches=" << unsignedValue(batching, "batches")
         << " avg_batch=" << batching.value("averageBatchSize").toDouble()
         << " max_batch=" << unsignedValue(batching, "maxBatchSize")

@@ -22,6 +22,12 @@ namespace render {
     }
   }
 
+  void WavefrontFrontierCompactionTiming::add(const WavefrontFrontierCompactionTiming& other) {
+    uploadSeconds += other.uploadSeconds;
+    kernelSeconds += other.kernelSeconds;
+    readbackSeconds += other.readbackSeconds;
+  }
+
   WavefrontFrontierCompactionRequest::WavefrontFrontierCompactionRequest(std::size_t inputPathCount)
       : m_inputPathCount(inputPathCount) {
   }
@@ -166,6 +172,14 @@ namespace render {
     return m_executionPath;
   }
 
+  const WavefrontFrontierCompactionTiming& WavefrontFrontierCompactionResult::timing() const {
+    return m_timing;
+  }
+
+  void WavefrontFrontierCompactionResult::setTiming(WavefrontFrontierCompactionTiming timing) {
+    m_timing = timing;
+  }
+
   void WavefrontFrontierCompactionResult::record(IntegratorBatchMetrics* metrics) const {
     if (!metrics) {
       return;
@@ -174,7 +188,7 @@ namespace render {
       static_cast<std::uint64_t>(m_inputPathCount), static_cast<std::uint64_t>(retainedPathCount()),
       static_cast<std::uint64_t>(m_movedPathCount), m_executionPath, retainedIndexBytes(),
       inputPathStateBytes(), retainedPathStateBytes(), removedPathStateBytes(),
-      m_pathStateResidency);
+      m_pathStateResidency, m_timing);
   }
 
   WavefrontFrontierCompactionResult::WavefrontFrontierCompactionResult(

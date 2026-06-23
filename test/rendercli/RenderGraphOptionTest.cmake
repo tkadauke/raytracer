@@ -2861,6 +2861,9 @@ foreach(compaction_field
         frontierCompactionInputHostPathStateBytes
         frontierCompactionRetainedHostPathStateBytes
         frontierCompactionRemovedHostPathStateBytes
+        frontierCompactionUploadWorkerSeconds
+        frontierCompactionKernelWorkerSeconds
+        frontierCompactionReadbackWorkerSeconds
         frontierCompactionRemovedSampleFraction
         frontierCompactionMovedRetainedSampleFraction
         frontierCompactionCandidatePackedRayBytes
