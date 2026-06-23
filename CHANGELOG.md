@@ -17,6 +17,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Add a restricted Vulkan diffuse path-loop backend for empty-scene all-miss
   execution when Vulkan wavefront support is built and available, giving Linux
   builds the first platform-owned path-loop result contract. — GPT-5 Codex
+- Extend the restricted Vulkan diffuse path-loop backend from empty all-miss
+  execution to a first one-depth shaded sphere subset with Matte/Emissive
+  ConstantColor materials and zero or one point light. — GPT-5 Codex
 - Add a restricted Metal diffuse path-loop backend surface for one-depth
   empty-scene and sphere Matte/Emissive probe execution, while keeping
   automatic full-GPU graph selection disabled until a multi-depth platform loop

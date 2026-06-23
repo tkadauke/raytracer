@@ -24,6 +24,52 @@ namespace render {
       return geometry.primitives.empty() && geometry.bvh.empty();
     }
 
+    [[nodiscard]] bool sceneHasSingleUntransformedSphere(const GpuTracingSceneSections& scene) {
+      const GpuIntersectionSceneBuffers& geometry = scene.geometry;
+      if (geometry.primitives.size() != 1u || geometry.spheres.size() != 1u ||
+          !geometry.triangles.empty() || !geometry.planes.empty() || !geometry.rectangles.empty() ||
+          !geometry.disks.empty() || !geometry.openCylinders.empty() || !geometry.tori.empty() ||
+          !geometry.transforms.empty()) {
+        return false;
+      }
+      const GpuIntersectionPrimitiveRecord& primitive = geometry.primitives.front();
+      return static_cast<GpuIntersectionPrimitiveKind>(primitive.kind) ==
+               GpuIntersectionPrimitiveKind::Sphere &&
+             primitive.transform == 0u && primitive.payloadOffset == 0u;
+    }
+
+    [[nodiscard]] bool supportedMaterials(const GpuTracingSceneSections& scene) {
+      return std::all_of(scene.materials.begin(), scene.materials.end(),
+                         [](const GpuTracingMaterialRecord& material) {
+                           const auto kind = static_cast<GpuTracingMaterialKind>(material.kind);
+                           return kind == GpuTracingMaterialKind::Matte ||
+                                  kind == GpuTracingMaterialKind::Emissive;
+                         });
+    }
+
+    [[nodiscard]] bool supportedTextures(const GpuTracingSceneSections& scene) {
+      return std::all_of(scene.textures.begin(), scene.textures.end(),
+                         [](const GpuTracingTextureRecord& texture) {
+                           const auto kind = static_cast<GpuTracingTextureKind>(texture.kind);
+                           return kind == GpuTracingTextureKind::Unsupported ||
+                                  kind == GpuTracingTextureKind::ConstantColor;
+                         });
+    }
+
+    [[nodiscard]] bool supportedLights(const GpuTracingSceneSections& scene) {
+      if (scene.lights.empty()) {
+        return true;
+      }
+      return scene.lights.size() == 1u &&
+             static_cast<GpuTracingLightKind>(scene.lights.front().kind) ==
+               GpuTracingLightKind::Point;
+    }
+
+    void terminate(GpuDiffusePathStateRecord& path) {
+      path.flags &= ~gpuDiffusePathStateActiveFlag;
+      path.flags |= gpuDiffusePathStateTerminatedFlag;
+    }
+
     void validateUniqueActivePixels(const std::vector<GpuDiffusePathStateRecord>& pathStates) {
       std::uint64_t maxPixel = 0;
       bool hasActivePath = false;
@@ -68,8 +114,13 @@ namespace render {
       return TracingAccumulationLayout::image(static_cast<int>(maxPixel + 1u), 1);
     }
 
+    [[nodiscard]] bool stepHasContinuation(const GpuDiffusePathStepRecord& step) {
+      return arrayHasValue(step.continuationThroughput);
+    }
+
     void mergeStepMetrics(GpuDiffusePathLoopResult& loop,
-                          const VulkanGpuDiffusePathLoopKernelResult& vulkanResult) {
+                          const VulkanGpuDiffusePathLoopKernelResult& vulkanResult,
+                          const GpuDiffusePathLoopSettings& settings) {
       std::uint64_t activeSteps = 0;
       loop.metrics.closestHitExecutionPath = kFullGpuSubsetExecutionPath;
       loop.metrics.emissionExecutionPath = kFullGpuSubsetExecutionPath;
@@ -90,11 +141,12 @@ namespace render {
             ++loop.metrics.emissionContributionEvaluations;
           }
           if (arrayHasValue(step.directLightRadiance)) {
-            ++loop.metrics.directLightSamples;
+            loop.metrics.directLightSamples +=
+              std::max<std::uint32_t>(1u, settings.directLightSamples);
             ++loop.metrics.directLightContributionEvaluations;
             ++loop.metrics.directLightContributingSamples;
           }
-          if (arrayHasValue(step.continuationThroughput)) {
+          if (stepHasContinuation(step)) {
             ++loop.metrics.spawnedContinuations;
           }
         } else if (event == GpuDiffusePathStepEvent::Unsupported) {
@@ -141,15 +193,27 @@ namespace render {
         static_cast<std::uint64_t>(vulkanResult.retainedPathIndices.size() * sizeof(std::uint32_t));
       loop.roundTrips = 1;
       recordDepthCounts(loop, vulkanResult, settings);
-      mergeStepMetrics(loop, vulkanResult);
+      mergeStepMetrics(loop, vulkanResult, settings);
 
-      if (vulkanResult.resolvedPathStates.size() != initialPathStates.size()) {
+      std::vector<GpuDiffusePathStateRecord> nextPathStates = vulkanResult.nextPathStates.empty()
+                                                                ? vulkanResult.resolvedPathStates
+                                                                : vulkanResult.nextPathStates;
+      if (nextPathStates.size() != initialPathStates.size()) {
         throw std::logic_error(
           "Vulkan diffuse path-loop backend returned mismatched path-state count");
       }
-      for (GpuDiffusePathStateRecord path : vulkanResult.resolvedPathStates) {
-        if (gpuDiffusePathStateIsTerminated(path)) {
+      for (GpuDiffusePathStateRecord path : nextPathStates) {
+        if (gpuDiffusePathStateIsActive(path) && path.depth >= settings.maxDepth) {
+          terminate(path);
+          ++loop.maxDepthTerminatedPaths;
           ++loop.metrics.terminatedPaths;
+        } else if (gpuDiffusePathStateIsTerminated(path) && path.depth >= settings.maxDepth) {
+          ++loop.maxDepthTerminatedPaths;
+          ++loop.metrics.terminatedPaths;
+        } else if (gpuDiffusePathStateIsTerminated(path)) {
+          ++loop.metrics.terminatedPaths;
+        }
+        if (gpuDiffusePathStateIsTerminated(path)) {
           loop.resolvedPathStates.push_back(path);
         }
       }
@@ -199,9 +263,29 @@ namespace render {
     if (settings.maxDepth == 0u) {
       return {false, "Vulkan diffuse path-loop backend requires positive max depth"};
     }
-    if (!sceneHasNoGeometry(scene)) {
+    if (sceneHasNoGeometry(scene)) {
+      return {true, {}};
+    }
+    if (settings.maxDepth != 1u) {
+      return {false, "Vulkan diffuse path-loop backend currently supports non-empty scenes only at "
+                     "maxDepth=1"};
+    }
+    if (!sceneHasSingleUntransformedSphere(scene)) {
+      return {false, "Vulkan diffuse path-loop backend currently supports empty geometry or one "
+                     "untransformed sphere only"};
+    }
+    if (!supportedMaterials(scene)) {
       return {false,
-              "Vulkan diffuse path-loop backend currently supports empty compiled geometry only"};
+              "Vulkan diffuse path-loop backend currently supports Matte and Emissive materials "
+              "only"};
+    }
+    if (!supportedTextures(scene)) {
+      return {false,
+              "Vulkan diffuse path-loop backend currently supports ConstantColor textures only"};
+    }
+    if (!supportedLights(scene)) {
+      return {false,
+              "Vulkan diffuse path-loop backend currently supports zero or one point light only"};
     }
     return {true, {}};
 #else

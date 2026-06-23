@@ -32,18 +32,13 @@ namespace render {
              static_cast<std::uint64_t>(parameters.imageHeight);
     }
 
-    void validateAllMissPlan(const GpuDiffusePathLoopLaunchPlan& plan,
-                             const std::vector<GpuDiffusePathStateRecord>& initialPathStates) {
+    void validatePathLoopPlan(const GpuDiffusePathLoopLaunchPlan& plan,
+                              const std::vector<GpuDiffusePathStateRecord>& initialPathStates) {
       if (plan.parameters.layoutVersion != gpuDiffusePathLoopLaunchLayoutVersion) {
         throw std::invalid_argument("Vulkan diffuse path-loop descriptor version mismatch");
       }
       if (plan.parameters.maxDepth == 0u) {
-        throw std::invalid_argument(
-          "Vulkan diffuse path-loop all-miss requires positive max depth");
-      }
-      if (plan.parameters.primitiveCount != 0u || plan.parameters.bvhNodeCount != 0u) {
-        throw std::invalid_argument(
-          "Vulkan diffuse path-loop all-miss requires an empty compiled geometry section");
+        throw std::invalid_argument("Vulkan diffuse path-loop requires positive max depth");
       }
       if (initialPathStates.size() != plan.parameters.initialPathCount) {
         throw std::invalid_argument(
@@ -159,7 +154,7 @@ namespace render {
       VulkanGpuDiffusePathLoopKernelResult
       runAllMissPathLoop(const GpuDiffusePathLoopLaunchPlan& plan,
                          const std::vector<GpuDiffusePathStateRecord>& initialPathStates) const {
-        validateAllMissPlan(plan, initialPathStates);
+        validatePathLoopPlan(plan, initialPathStates);
 
         const auto uploadStart = std::chrono::steady_clock::now();
         VkInstance instance = createInstance();
@@ -255,7 +250,7 @@ namespace render {
 
         const auto readbackStart = std::chrono::steady_clock::now();
         VulkanGpuDiffusePathLoopKernelResult result;
-        result.executionPath = "vulkan_diffuse_path_loop_all_miss";
+        result.executionPath = "vulkan_diffuse_path_loop";
         result.pathStateResidency = "vulkan_host_visible_diffuse_path_state";
         result.bufferSizes = plan.buffers;
         result.uploadWorkerSeconds = secondsBetween(uploadStart, uploadEnd);

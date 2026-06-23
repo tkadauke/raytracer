@@ -125,16 +125,17 @@ end state for GPU tracing.
   restricted Metal path-loop kernel can advance empty-scene and
   optionally transformed triangle/sphere/plane/rectangle/disk/open-cylinder/
   torus paths with Matte, Phong diffuse-lobe, or Emissive materials across
-  multiple depths for backend tests and explicit GPU graph requests, and a
+  multiple depths for backend tests and explicit GPU graph requests. A
   restricted Vulkan path-loop backend can execute empty-scene all-miss paths
-  when Vulkan is built and available. Graph auto-selection still
-  waits for Vulkan shaded-path parity, broader scene support, and performance
-  gates.
+  and a first one-depth shaded one-sphere subset with Matte/Emissive
+  ConstantColor materials and zero or one point light when Vulkan is built and
+  available. Graph auto-selection still waits for Vulkan shaded-path parity,
+  broader scene support, and performance gates.
 - Platform full-GPU path-loop backend selection beyond that restricted Metal
-  subset and the restricted Vulkan all-miss subset. The factory hook can return
-  Metal or Vulkan platform backends in platform-enabled builds, but ordinary
-  builds and unsupported scenes still fall back to the CPU-reference or hybrid
-  diagnostic backend.
+  subset and the restricted Vulkan one-depth sphere subset. The factory hook
+  can return Metal or Vulkan platform backends in platform-enabled builds, but
+  ordinary builds and unsupported scenes still fall back to the CPU-reference or
+  hybrid diagnostic backend.
 - GPU material records beyond the current Matte, Emissive, Phong, and
   Reflective subset.
 - GPU texture records beyond ConstantColor, the first simple CheckerBoard
@@ -2564,13 +2565,14 @@ scene is large enough to amortize upload/readback costs.
    - Output: Linux Vulkan implements the same supported subset and result
      contract as the Metal backend, with skip behavior when Vulkan is not built
      or no device is available. ✅ **Started.** Vulkan-enabled builds now
-     compile an embedded all-miss diffuse path-loop compute shader and expose a
+     compile an embedded diffuse path-loop compute shader and expose a
      restricted `VulkanGpuDiffusePathLoopBackend` that can execute empty
-     compiled-geometry paths with Vulkan-owned active/next path-state,
-     step-record, retained-index, and accumulation buffers. The backend reports
-     platform path-state residency and cleanly rejects non-empty compiled
-     geometry until the shaded Matte/Phong-diffuse/Emissive subset reaches
-     parity with Metal.
+     all-miss paths and a first one-depth shaded one-sphere subset with
+     Matte/Emissive ConstantColor materials and zero or one point light. It
+     writes Vulkan-owned active/next path-state, step-record, retained-index,
+     and accumulation buffers, reports platform path-state residency, and
+     cleanly rejects deeper or broader compiled geometry until the
+     Matte/Phong-diffuse/Emissive subset reaches parity with Metal.
 
 4. **Wire graph auto-selection to platform backend availability.**
    - Depends on: jobs 2 and 3.

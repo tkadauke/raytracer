@@ -2,10 +2,26 @@
 
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
+const uint gpuIntersectionLeafNodeFlag = 1u;
+const uint gpuIntersectionSpherePrimitiveKind = 2u;
+const uint gpuTracingMatteMaterialKind = 1u;
+const uint gpuTracingEmissiveMaterialKind = 2u;
+const uint gpuTracingConstantColorTextureKind = 1u;
+const uint gpuTracingPointLightKind = 1u;
 const uint gpuDiffusePathStateActiveFlag = 1u;
 const uint gpuDiffusePathStateTerminatedFlag = 2u;
+const uint gpuDiffusePathStateSampledFromBsdfFlag = 4u;
+const uint gpuDiffusePathStateUnsupportedFlag = 16u;
 const uint gpuDiffusePathStepEventInactive = 0u;
 const uint gpuDiffusePathStepEventMiss = 1u;
+const uint gpuDiffusePathStepEventHit = 2u;
+const uint gpuDiffusePathStepEventUnsupported = 3u;
+const uint gpuSampleInitialCoordinateState = 0x811c9dc5u;
+const uint gpuSampleCoordinateStep = 0x9e3779b9u;
+const float pathLoopInvPi = 0.31830988618379067154;
+const float pathLoopTau = 6.28318530717958647692;
+const float pathLoopRayEpsilon = 1.0e-7;
+const float pathLoopMinimumContinuationProbability = 0.05;
 
 struct GpuDiffusePathLoopLaunchParameters {
   uint layoutVersion;
@@ -50,6 +66,35 @@ struct GpuDiffusePathLoopLaunchParameters {
   uint transformCount;
 };
 
+struct GpuIntersectionBounds {
+  vec4 minimum;
+  vec4 maximum;
+};
+
+struct GpuIntersectionBvhNode {
+  GpuIntersectionBounds bounds;
+  uint leftOrFirstPrimitive;
+  uint primitiveCount;
+  uint flags;
+  uint reserved;
+};
+
+struct GpuIntersectionPrimitiveRecord {
+  GpuIntersectionBounds bounds;
+  uint kind;
+  uint material;
+  uint object;
+  uint transform;
+  uint payloadOffset;
+  uint payloadCount;
+  uint reserved0;
+  uint reserved1;
+};
+
+struct GpuIntersectionSpherePayload {
+  vec4 centerRadius;
+};
+
 struct GpuIntersectionRay {
   vec4 origin;
   vec4 direction;
@@ -61,6 +106,62 @@ struct GpuIntersectionRay {
   uint reserved0;
   uint reserved1;
   uint reserved2;
+};
+
+struct GpuIntersectionHitRecord {
+  uint hit;
+  uint material;
+  uint object;
+  uint primitiveRecord;
+  uint rayIndex;
+  uint reservedId0;
+  uint reservedId1;
+  uint reservedId2;
+  float distance;
+  float reservedDistance0;
+  float reservedDistance1;
+  float reservedDistance2;
+  vec4 point;
+  vec4 normal;
+  vec4 uv;
+  vec4 barycentric;
+};
+
+struct LocalPrimitiveHit {
+  bool hit;
+  float distance;
+  vec4 point;
+  vec4 normal;
+  vec4 uv;
+  vec4 barycentric;
+};
+
+struct GpuTracingMaterialRecord {
+  uint kind;
+  uint albedoTexture;
+  uint emissionTexture;
+  uint flags;
+  vec4 parameters;
+  vec4 continuationParameters;
+};
+
+struct GpuTracingTextureRecord {
+  uint kind;
+  uint payloadOffset;
+  uint payloadCount;
+  uint flags;
+  vec4 parameters;
+};
+
+struct GpuTracingLightRecord {
+  uint kind;
+  uint emissionTexture;
+  uint flags;
+  uint object;
+  vec4 positionOrDirection;
+  vec4 u;
+  vec4 v;
+  vec4 parameters;
 };
 
 struct GpuDiffusePathStateRecord {
@@ -136,13 +237,518 @@ layout(std430, binding = 8) buffer Accumulation {
   uint accumulationWords[];
 };
 
+float rayInfinity() {
+  return uintBitsToFloat(0x7f800000u);
+}
+
+uint byteOffsetWords(uint byteOffset) {
+  return byteOffset / 4u;
+}
+
+vec4 readVec4(uint wordOffset) {
+  return vec4(uintBitsToFloat(sceneWords[wordOffset + 0u]),
+              uintBitsToFloat(sceneWords[wordOffset + 1u]),
+              uintBitsToFloat(sceneWords[wordOffset + 2u]),
+              uintBitsToFloat(sceneWords[wordOffset + 3u]));
+}
+
 bool pathStateIsActive(GpuDiffusePathStateRecord path) {
   return (path.flags & gpuDiffusePathStateActiveFlag) != 0u &&
          (path.flags & gpuDiffusePathStateTerminatedFlag) == 0u;
 }
 
+uint activePathFlags(uint flags) {
+  return (flags | gpuDiffusePathStateActiveFlag) & ~gpuDiffusePathStateTerminatedFlag;
+}
+
 uint terminatedPathFlags(uint flags) {
   return (flags | gpuDiffusePathStateTerminatedFlag) & ~gpuDiffusePathStateActiveFlag;
+}
+
+uint unsupportedPathFlags(uint flags) {
+  return (flags | gpuDiffusePathStateUnsupportedFlag | gpuDiffusePathStateTerminatedFlag) &
+         ~gpuDiffusePathStateActiveFlag;
+}
+
+uint sampleDimension(GpuDiffusePathStateRecord path, uint offset) {
+  return path.sampleDimensionBase + path.depth * path.sampleDimensionStride + offset;
+}
+
+uint pcgHash32(uint inputValue) {
+  const uint state = inputValue * 747796405u + 2891336453u;
+  const uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+  return (word >> 22u) ^ word;
+}
+
+uint mixSampleCoordinateWord(uint state, uint value) {
+  return pcgHash32(state ^
+                   (value + gpuSampleCoordinateStep + (state << 6u) + (state >> 2u)));
+}
+
+uint sampleHash(uint seed, uint pixelIndex, uint primarySampleIndex, uint dimension,
+                uint component) {
+  uint state = gpuSampleInitialCoordinateState;
+  state = mixSampleCoordinateWord(state, seed);
+  state = mixSampleCoordinateWord(state, pixelIndex);
+  state = mixSampleCoordinateWord(state, primarySampleIndex);
+  state = mixSampleCoordinateWord(state, dimension);
+  state = mixSampleCoordinateWord(state, component);
+  return pcgHash32(state);
+}
+
+float sample1D(GpuDiffusePathStateRecord path, uint dimension, uint component) {
+  return float(sampleHash(path.sampleSeed, path.pixelIndex, path.primarySampleIndex,
+                          dimension, component) >> 8u) *
+         (1.0 / 16777216.0);
+}
+
+vec2 sample2D(GpuDiffusePathStateRecord path, uint dimension) {
+  return vec2(sample1D(path, dimension, 0u), sample1D(path, dimension, 1u));
+}
+
+float maxColor(vec4 color) {
+  return max(max(color.x, color.y), color.z);
+}
+
+vec3 tangentFor(vec3 normal) {
+  const vec3 helper = abs(normal.y) < 0.999 ? vec3(0.0, 1.0, 0.0) :
+                                               vec3(1.0, 0.0, 0.0);
+  return normalize(cross(helper, normal));
+}
+
+vec3 cosineHemisphereDirection(vec3 normal, vec2 sample) {
+  const float u0 = clamp(sample.x, 0.0, 1.0);
+  const float u1 = clamp(sample.y, 0.0, 1.0);
+  const float r = sqrt(u0);
+  const float phi = pathLoopTau * u1;
+  const float x = r * cos(phi);
+  const float y = r * sin(phi);
+  const float z = sqrt(max(0.0, 1.0 - u0));
+  const vec3 tangent = tangentFor(normal);
+  const vec3 bitangent = cross(normal, tangent);
+  return normalize(tangent * x + bitangent * y + normal * z);
+}
+
+float cosineHemispherePdf(vec3 normal, vec3 direction) {
+  const float normalDotDirection = dot(normal, direction);
+  return normalDotDirection <= 0.0 ? 0.0 : normalDotDirection * pathLoopInvPi;
+}
+
+float continuationProbability(vec4 throughput) {
+  const float maximum = maxColor(throughput);
+  if (maximum <= 0.0) {
+    return 0.0;
+  }
+  return clamp(maximum, pathLoopMinimumContinuationProbability, 1.0);
+}
+
+bool throughputIsBlack(vec4 throughput) {
+  return throughput.x <= 0.0 && throughput.y <= 0.0 && throughput.z <= 0.0;
+}
+
+GpuIntersectionBounds readBounds(uint wordOffset) {
+  GpuIntersectionBounds bounds;
+  bounds.minimum = readVec4(wordOffset);
+  bounds.maximum = readVec4(wordOffset + 4u);
+  return bounds;
+}
+
+GpuIntersectionBvhNode readBvhNode(uint index) {
+  const uint wordOffset = byteOffsetWords(parameters.bvhByteOffset) + index * 12u;
+  GpuIntersectionBvhNode node;
+  node.bounds = readBounds(wordOffset);
+  node.leftOrFirstPrimitive = sceneWords[wordOffset + 8u];
+  node.primitiveCount = sceneWords[wordOffset + 9u];
+  node.flags = sceneWords[wordOffset + 10u];
+  node.reserved = sceneWords[wordOffset + 11u];
+  return node;
+}
+
+GpuIntersectionPrimitiveRecord readPrimitive(uint index) {
+  const uint wordOffset = byteOffsetWords(parameters.primitiveByteOffset) + index * 16u;
+  GpuIntersectionPrimitiveRecord primitive;
+  primitive.bounds = readBounds(wordOffset);
+  primitive.kind = sceneWords[wordOffset + 8u];
+  primitive.material = sceneWords[wordOffset + 9u];
+  primitive.object = sceneWords[wordOffset + 10u];
+  primitive.transform = sceneWords[wordOffset + 11u];
+  primitive.payloadOffset = sceneWords[wordOffset + 12u];
+  primitive.payloadCount = sceneWords[wordOffset + 13u];
+  primitive.reserved0 = sceneWords[wordOffset + 14u];
+  primitive.reserved1 = sceneWords[wordOffset + 15u];
+  return primitive;
+}
+
+GpuIntersectionSpherePayload readSphere(uint index) {
+  const uint wordOffset = byteOffsetWords(parameters.sphereByteOffset) + index * 4u;
+  GpuIntersectionSpherePayload sphere;
+  sphere.centerRadius = readVec4(wordOffset);
+  return sphere;
+}
+
+GpuTracingMaterialRecord readMaterial(uint materialId) {
+  const uint wordOffset = byteOffsetWords(parameters.materialByteOffset) + materialId * 12u;
+  GpuTracingMaterialRecord material;
+  material.kind = sceneWords[wordOffset + 0u];
+  material.albedoTexture = sceneWords[wordOffset + 1u];
+  material.emissionTexture = sceneWords[wordOffset + 2u];
+  material.flags = sceneWords[wordOffset + 3u];
+  material.parameters = readVec4(wordOffset + 4u);
+  material.continuationParameters = readVec4(wordOffset + 8u);
+  return material;
+}
+
+GpuTracingTextureRecord readTexture(uint textureId) {
+  const uint wordOffset = byteOffsetWords(parameters.textureByteOffset) + textureId * 8u;
+  GpuTracingTextureRecord texture;
+  texture.kind = sceneWords[wordOffset + 0u];
+  texture.payloadOffset = sceneWords[wordOffset + 1u];
+  texture.payloadCount = sceneWords[wordOffset + 2u];
+  texture.flags = sceneWords[wordOffset + 3u];
+  texture.parameters = readVec4(wordOffset + 4u);
+  return texture;
+}
+
+GpuTracingLightRecord readLight(uint lightIndex) {
+  const uint wordOffset = byteOffsetWords(parameters.lightByteOffset) + lightIndex * 20u;
+  GpuTracingLightRecord light;
+  light.kind = sceneWords[wordOffset + 0u];
+  light.emissionTexture = sceneWords[wordOffset + 1u];
+  light.flags = sceneWords[wordOffset + 2u];
+  light.object = sceneWords[wordOffset + 3u];
+  light.positionOrDirection = readVec4(wordOffset + 4u);
+  light.u = readVec4(wordOffset + 8u);
+  light.v = readVec4(wordOffset + 12u);
+  light.parameters = readVec4(wordOffset + 16u);
+  return light;
+}
+
+bool boundsIntersectsRay(GpuIntersectionBounds bounds, GpuIntersectionRay ray,
+                         float maxHitDistance) {
+  float enter = ray.minDistance;
+  float exit = min(ray.maxDistance, maxHitDistance);
+  if (exit < enter) {
+    return false;
+  }
+  for (uint axis = 0u; axis != 3u; ++axis) {
+    const float origin = ray.origin[axis];
+    const float direction = ray.direction[axis];
+    const float minimum = bounds.minimum[axis];
+    const float maximum = bounds.maximum[axis];
+    if (abs(direction) <= 1.1920928955078125e-7) {
+      if (origin < minimum || origin > maximum) {
+        return false;
+      }
+      continue;
+    }
+    const float inverseDirection = 1.0 / direction;
+    float nearDistance = (minimum - origin) * inverseDirection;
+    float farDistance = (maximum - origin) * inverseDirection;
+    if (nearDistance > farDistance) {
+      const float temporary = nearDistance;
+      nearDistance = farDistance;
+      farDistance = temporary;
+    }
+    enter = max(enter, nearDistance);
+    exit = min(exit, farDistance);
+    if (exit < enter) {
+      return false;
+    }
+  }
+  return true;
+}
+
+LocalPrimitiveHit emptyPrimitiveHit(float maxHitDistance) {
+  LocalPrimitiveHit result;
+  result.hit = false;
+  result.distance = maxHitDistance;
+  result.point = vec4(0.0);
+  result.normal = vec4(0.0);
+  result.uv = vec4(0.0);
+  result.barycentric = vec4(0.0);
+  return result;
+}
+
+LocalPrimitiveHit intersectSphere(GpuIntersectionRay ray, GpuIntersectionSpherePayload sphere,
+                                  float maxHitDistance) {
+  LocalPrimitiveHit result = emptyPrimitiveHit(maxHitDistance);
+  const vec3 center = sphere.centerRadius.xyz;
+  const float radius = sphere.centerRadius.w;
+  const vec3 origin = ray.origin.xyz - center;
+  const vec3 direction = ray.direction.xyz;
+  const float od = dot(origin, direction);
+  const float dd = dot(direction, direction);
+  if (dd <= 1.1920928955078125e-7) {
+    return result;
+  }
+  const float discriminant = od * od - dd * (dot(origin, origin) - radius * radius);
+  if (discriminant <= 0.0) {
+    return result;
+  }
+  const float root = sqrt(discriminant);
+  const float nearDistance = (-od - root) / dd;
+  const float farDistance = (-od + root) / dd;
+  if (nearDistance <= 0.0 && farDistance <= 0.0) {
+    return result;
+  }
+  const float distance = nearDistance >= ray.minDistance ? nearDistance : farDistance;
+  if (distance < ray.minDistance || distance > ray.maxDistance || distance >= maxHitDistance) {
+    return result;
+  }
+  result.hit = true;
+  result.distance = distance;
+  const vec3 point = ray.origin.xyz + ray.direction.xyz * distance;
+  result.point = vec4(point, 1.0);
+  result.normal = vec4(normalize(point - center), 0.0);
+  return result;
+}
+
+GpuIntersectionHitRecord missHitRecord(GpuIntersectionRay ray) {
+  GpuIntersectionHitRecord record;
+  record.hit = 0u;
+  record.material = 0u;
+  record.object = 0u;
+  record.primitiveRecord = 0u;
+  record.rayIndex = ray.rayIndex;
+  record.reservedId0 = 0u;
+  record.reservedId1 = 0u;
+  record.reservedId2 = 0u;
+  record.distance = rayInfinity();
+  record.reservedDistance0 = 0.0;
+  record.reservedDistance1 = 0.0;
+  record.reservedDistance2 = 0.0;
+  record.point = vec4(0.0);
+  record.normal = vec4(0.0);
+  record.uv = vec4(0.0);
+  record.barycentric = vec4(0.0);
+  return record;
+}
+
+GpuIntersectionHitRecord hitRecordForPrimitive(GpuIntersectionRay ray,
+                                                GpuIntersectionPrimitiveRecord primitive,
+                                                uint primitiveIndex,
+                                                LocalPrimitiveHit hit) {
+  GpuIntersectionHitRecord record;
+  record.hit = 1u;
+  record.material = primitive.material;
+  record.object = primitive.object;
+  record.primitiveRecord = primitiveIndex;
+  record.rayIndex = ray.rayIndex;
+  record.reservedId0 = 0u;
+  record.reservedId1 = 0u;
+  record.reservedId2 = 0u;
+  record.distance = hit.distance;
+  record.reservedDistance0 = 0.0;
+  record.reservedDistance1 = 0.0;
+  record.reservedDistance2 = 0.0;
+  record.point = hit.point;
+  record.normal = hit.normal;
+  record.uv = hit.uv;
+  record.barycentric = hit.barycentric;
+  return record;
+}
+
+GpuIntersectionHitRecord closestSupportedHit(GpuIntersectionRay ray) {
+  GpuIntersectionHitRecord closest = missHitRecord(ray);
+  if (parameters.primitiveCount == 0u || parameters.sphereCount == 0u) {
+    return closest;
+  }
+
+  if (parameters.bvhNodeCount == 0u) {
+    for (uint primitiveIndex = 0u; primitiveIndex != parameters.primitiveCount; ++primitiveIndex) {
+      const GpuIntersectionPrimitiveRecord primitive = readPrimitive(primitiveIndex);
+      if (primitive.kind != gpuIntersectionSpherePrimitiveKind || primitive.transform != 0u ||
+          primitive.payloadOffset >= parameters.sphereCount ||
+          !boundsIntersectsRay(primitive.bounds, ray, closest.distance)) {
+        continue;
+      }
+      const LocalPrimitiveHit sphereHit =
+          intersectSphere(ray, readSphere(primitive.payloadOffset), closest.distance);
+      if (sphereHit.hit) {
+        closest = hitRecordForPrimitive(ray, primitive, primitiveIndex, sphereHit);
+      }
+    }
+    return closest;
+  }
+
+  uint stack[64];
+  uint stackSize = 0u;
+  stack[stackSize++] = 0u;
+  while (stackSize != 0u) {
+    const uint nodeIndex = stack[--stackSize];
+    if (nodeIndex >= parameters.bvhNodeCount) {
+      continue;
+    }
+    const GpuIntersectionBvhNode node = readBvhNode(nodeIndex);
+    if (!boundsIntersectsRay(node.bounds, ray, closest.distance)) {
+      continue;
+    }
+    if ((node.flags & gpuIntersectionLeafNodeFlag) == 0u) {
+      if (stackSize + 2u <= 64u) {
+        stack[stackSize++] = node.primitiveCount;
+        stack[stackSize++] = node.leftOrFirstPrimitive;
+      }
+      continue;
+    }
+    for (uint offset = 0u; offset != node.primitiveCount; ++offset) {
+      const uint primitiveIndex = node.leftOrFirstPrimitive + offset;
+      if (primitiveIndex >= parameters.primitiveCount) {
+        continue;
+      }
+      const GpuIntersectionPrimitiveRecord primitive = readPrimitive(primitiveIndex);
+      if (primitive.kind != gpuIntersectionSpherePrimitiveKind || primitive.transform != 0u ||
+          primitive.payloadOffset >= parameters.sphereCount ||
+          !boundsIntersectsRay(primitive.bounds, ray, closest.distance)) {
+        continue;
+      }
+      const LocalPrimitiveHit sphereHit =
+          intersectSphere(ray, readSphere(primitive.payloadOffset), closest.distance);
+      if (sphereHit.hit) {
+        closest = hitRecordForPrimitive(ray, primitive, primitiveIndex, sphereHit);
+      }
+    }
+  }
+  return closest;
+}
+
+vec4 environmentColor(uint environmentIndex) {
+  if (parameters.environmentCount == 0u || environmentIndex >= parameters.environmentCount) {
+    return vec4(0.0);
+  }
+  const uint byteOffset = parameters.environmentByteOffset + environmentIndex * 32u;
+  if (byteOffset + 32u > parameters.sceneUploadBytes) {
+    return vec4(0.0);
+  }
+  const uint wordOffset = byteOffset / 4u;
+  return readVec4(wordOffset + 4u);
+}
+
+vec4 missRadiance(GpuDiffusePathStateRecord path) {
+  const uint environmentIndex = path.depth == 0u ? 0u : parameters.environmentCount - 1u;
+  return environmentColor(environmentIndex);
+}
+
+bool constantTextureColor(uint textureId, out vec4 color) {
+  color = vec4(0.0);
+  if (textureId >= parameters.textureCount) {
+    return false;
+  }
+  const GpuTracingTextureRecord texture = readTexture(textureId);
+  if (texture.kind != gpuTracingConstantColorTextureKind) {
+    return false;
+  }
+  color = texture.parameters;
+  return true;
+}
+
+bool matteReflectance(GpuIntersectionHitRecord hit, out vec4 reflectance) {
+  reflectance = vec4(0.0);
+  if (hit.material >= parameters.materialCount) {
+    return false;
+  }
+  const GpuTracingMaterialRecord material = readMaterial(hit.material);
+  if (material.kind != gpuTracingMatteMaterialKind) {
+    return false;
+  }
+  vec4 albedo;
+  if (!constantTextureColor(material.albedoTexture, albedo)) {
+    return false;
+  }
+  reflectance = albedo * material.parameters.y;
+  return true;
+}
+
+bool emissiveContribution(GpuIntersectionHitRecord hit, GpuDiffusePathStateRecord path,
+                          out vec4 emitted) {
+  emitted = vec4(0.0);
+  if (hit.material >= parameters.materialCount) {
+    return false;
+  }
+  const GpuTracingMaterialRecord material = readMaterial(hit.material);
+  if (material.kind != gpuTracingEmissiveMaterialKind) {
+    return false;
+  }
+  vec4 emission;
+  if (!constantTextureColor(material.emissionTexture, emission)) {
+    return false;
+  }
+  const vec3 normal = normalize(hit.normal.xyz);
+  const vec3 incoming = -normalize(path.ray.direction.xyz);
+  emitted = dot(normal, incoming) > 0.0 ? path.throughput * emission : vec4(0.0);
+  return true;
+}
+
+vec4 directLightRadiance(GpuIntersectionHitRecord hit, GpuDiffusePathStateRecord path,
+                         vec4 reflectance) {
+  if (parameters.lightCount != 1u) {
+    return vec4(0.0);
+  }
+  const GpuTracingLightRecord light = readLight(0u);
+  if (light.kind != gpuTracingPointLightKind) {
+    return vec4(0.0);
+  }
+  const vec3 offset = light.positionOrDirection.xyz - hit.point.xyz;
+  const float distance = length(offset);
+  if (distance <= pathLoopRayEpsilon) {
+    return vec4(0.0);
+  }
+  const vec3 direction = offset / distance;
+  const float normalDotLight = dot(normalize(hit.normal.xyz), direction);
+  if (normalDotLight <= 0.0) {
+    return vec4(0.0);
+  }
+  const vec4 bsdfValue = reflectance * pathLoopInvPi;
+  return path.throughput * bsdfValue * light.parameters * normalDotLight;
+}
+
+GpuIntersectionRay continuationRay(GpuIntersectionHitRecord hit, GpuDiffusePathStateRecord path,
+                                   vec3 direction) {
+  GpuIntersectionRay ray = path.ray;
+  ray.origin = vec4(hit.point.xyz + direction * pathLoopRayEpsilon, 1.0);
+  ray.direction = vec4(direction, 0.0);
+  ray.minDistance = 0.0;
+  ray.maxDistance = rayInfinity();
+  ray.timeSample = 0.0;
+  return ray;
+}
+
+GpuDiffusePathStateRecord matteContinuationPath(GpuIntersectionHitRecord hit,
+                                                GpuDiffusePathStateRecord path,
+                                                vec4 continuationThroughput,
+                                                vec4 accumulatedRadiance,
+                                                out bool spawned) {
+  spawned = false;
+  GpuDiffusePathStateRecord next = path;
+  next.accumulatedRadiance = accumulatedRadiance;
+  const vec3 normal = normalize(hit.normal.xyz);
+  const vec2 bsdfSample = sample2D(path, sampleDimension(path, 0u));
+  const vec3 direction = cosineHemisphereDirection(normal, bsdfSample);
+  const float pdf = cosineHemispherePdf(normal, direction);
+  if (pdf <= 0.0) {
+    continuationThroughput = vec4(0.0);
+  }
+  if (path.depth >= parameters.russianRouletteDepth) {
+    const float probability = continuationProbability(continuationThroughput);
+    const float roulette = sample1D(path, sampleDimension(path, 3u), 0u);
+    continuationThroughput =
+        roulette < probability && probability > 0.0 ? continuationThroughput / probability :
+                                                      vec4(0.0);
+  }
+  if (throughputIsBlack(continuationThroughput)) {
+    next.flags = terminatedPathFlags(path.flags);
+    next.throughput = vec4(0.0);
+    return next;
+  }
+  next.ray = continuationRay(hit, path, direction);
+  next.throughput = continuationThroughput;
+  next.depth = path.depth + 1u;
+  next.previousBsdfPdf = pdf;
+  next.previousLightPdf = 0.0;
+  next.previousMaterial = hit.material;
+  next.previousEventFlags = gpuDiffusePathStateSampledFromBsdfFlag;
+  next.flags = activePathFlags(path.flags);
+  spawned = true;
+  return next;
 }
 
 GpuDiffusePathStepRecord inactiveStep(uint pathIndex, GpuDiffusePathStateRecord path) {
@@ -162,25 +768,61 @@ GpuDiffusePathStepRecord inactiveStep(uint pathIndex, GpuDiffusePathStateRecord 
   return step;
 }
 
-vec4 environmentColor(uint environmentIndex) {
-  if (parameters.environmentCount == 0u || environmentIndex >= parameters.environmentCount) {
-    return vec4(0.0);
-  }
-  const uint byteOffset = parameters.environmentByteOffset + environmentIndex * 32u;
-  if (byteOffset + 32u > parameters.sceneUploadBytes) {
-    return vec4(0.0);
-  }
-  const uint wordOffset = byteOffset / 4u;
-  return vec4(uintBitsToFloat(sceneWords[wordOffset + 4u]),
-              uintBitsToFloat(sceneWords[wordOffset + 5u]),
-              uintBitsToFloat(sceneWords[wordOffset + 6u]),
-              uintBitsToFloat(sceneWords[wordOffset + 7u]));
+GpuDiffusePathStateRecord terminatedPathWithAccumulatedRadiance(GpuDiffusePathStateRecord path,
+                                                                vec4 accumulatedRadiance) {
+  GpuDiffusePathStateRecord next = path;
+  next.accumulatedRadiance = accumulatedRadiance;
+  next.flags = terminatedPathFlags(path.flags);
+  return next;
 }
 
-vec4 missRadiance(GpuDiffusePathStateRecord path) {
-  const uint environmentIndex =
-      path.depth == 0u ? 0u : parameters.environmentCount - 1u;
-  return environmentColor(environmentIndex);
+GpuDiffusePathStepRecord pathStep(uint pathIndex, GpuDiffusePathStateRecord path,
+                                  out GpuDiffusePathStateRecord next) {
+  next = path;
+  GpuDiffusePathStepRecord step = inactiveStep(pathIndex, path);
+  if (!pathStateIsActive(path)) {
+    return step;
+  }
+
+  const GpuIntersectionHitRecord hit = closestSupportedHit(path.ray);
+  if (hit.hit == 0u) {
+    const vec4 contribution = path.throughput * missRadiance(path);
+    next = terminatedPathWithAccumulatedRadiance(path, path.accumulatedRadiance + contribution);
+    step.event = gpuDiffusePathStepEventMiss;
+    step.missRadiance = contribution;
+    step.flags = next.flags;
+    return step;
+  }
+
+  step.event = gpuDiffusePathStepEventHit;
+  step.material = hit.material;
+  step.object = hit.object;
+
+  vec4 reflectance;
+  if (matteReflectance(hit, reflectance)) {
+    const vec4 directLight = directLightRadiance(hit, path, reflectance);
+    const vec4 accumulatedRadiance = path.accumulatedRadiance + directLight;
+    const vec4 continuation = path.throughput * reflectance;
+    bool spawned = false;
+    next = matteContinuationPath(hit, path, continuation, accumulatedRadiance, spawned);
+    step.directLightRadiance = directLight;
+    step.continuationThroughput = spawned ? next.throughput : vec4(0.0);
+    step.flags = next.flags;
+    return step;
+  }
+
+  vec4 emitted;
+  if (emissiveContribution(hit, path, emitted)) {
+    next = terminatedPathWithAccumulatedRadiance(path, path.accumulatedRadiance + emitted);
+    step.emittedRadiance = emitted;
+    step.flags = next.flags;
+    return step;
+  }
+
+  next.flags = unsupportedPathFlags(path.flags);
+  step.event = gpuDiffusePathStepEventUnsupported;
+  step.flags = next.flags;
+  return step;
 }
 
 uint pixelCount() {
@@ -209,19 +851,17 @@ void main() {
     return;
   }
 
-  GpuDiffusePathStateRecord path = initialPathStates[id];
-  GpuDiffusePathStepRecord step = inactiveStep(id, path);
-  if (pathStateIsActive(path)) {
-    const vec4 contribution = path.throughput * missRadiance(path);
-    path.accumulatedRadiance += contribution;
-    path.flags = terminatedPathFlags(path.flags);
-    writeAccumulation(path.pixelIndex, path.accumulatedRadiance);
-    step.event = gpuDiffusePathStepEventMiss;
-    step.missRadiance = contribution;
-    step.continuationThroughput = vec4(0.0);
-    step.flags = path.flags;
+  const GpuDiffusePathStateRecord path = initialPathStates[id];
+  GpuDiffusePathStateRecord next;
+  const GpuDiffusePathStepRecord step = pathStep(id, path, next);
+  GpuDiffusePathStateRecord resolved = next;
+  if (pathStateIsActive(resolved) && resolved.depth >= parameters.maxDepth) {
+    resolved.flags = terminatedPathFlags(resolved.flags);
   }
-  activePathStates[id] = path;
-  nextPathStates[id] = path;
+  if ((resolved.flags & gpuDiffusePathStateTerminatedFlag) != 0u) {
+    writeAccumulation(resolved.pixelIndex, resolved.accumulatedRadiance);
+  }
+  activePathStates[id] = resolved;
+  nextPathStates[id] = next;
   stepRecords[id] = step;
 }
