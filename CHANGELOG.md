@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Add a scene-specific full-GPU diffuse path-loop support query so future
+  Metal/Vulkan path-loop backends can reject narrower compiled-scene subsets
+  without making graph predictions overclaim full GPU execution. — GPT-5 Codex
 - Report frontier-compaction upload, kernel, and readback timing in wavefront
   metrics, rendercli compact summaries, Modeler graph details, and convergence
   capture summaries. — GPT-5 Codex

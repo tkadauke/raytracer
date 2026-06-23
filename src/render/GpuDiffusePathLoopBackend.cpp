@@ -54,6 +54,14 @@ namespace render {
     return "";
   }
 
+  GpuDiffusePathLoopBackendSupport
+  GpuDiffusePathLoopBackend::fullGpuPathLoopSupport(const GpuTracingSceneSections&) const {
+    if (!fullGpuPathLoopAvailable()) {
+      return {false, fullGpuPathLoopUnavailableReason()};
+    }
+    return {true, {}};
+  }
+
   std::shared_ptr<const CpuReferenceGpuDiffusePathLoopBackend>
   CpuReferenceGpuDiffusePathLoopBackend::sharedInstance() {
     static const std::shared_ptr<const CpuReferenceGpuDiffusePathLoopBackend> instance =

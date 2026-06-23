@@ -3,9 +3,15 @@
 #include "render/GpuDiffusePathStepReference.h"
 
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace render {
+  struct GpuDiffusePathLoopBackendSupport {
+    bool supported{false};
+    std::string reason;
+  };
+
   /**
     * Backend boundary for the compiled diffuse path-loop subset.
     *
@@ -26,6 +32,8 @@ namespace render {
     [[nodiscard]] virtual bool fullGpuPathLoopAvailable() const;
     [[nodiscard]] virtual const char* fullGpuPathLoopUnavailableReason() const;
     [[nodiscard]] virtual const char* platformName() const;
+    [[nodiscard]] virtual GpuDiffusePathLoopBackendSupport
+    fullGpuPathLoopSupport(const GpuTracingSceneSections& scene) const;
 
     [[nodiscard]] virtual GpuDiffusePathLoopResult
     run(const GpuTracingSceneSections& scene,

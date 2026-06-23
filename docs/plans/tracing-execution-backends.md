@@ -2479,7 +2479,10 @@ scene is large enough to amortize upload/readback costs.
      shader-facing launch parameters, serialized compiled-scene upload payload,
      section offsets, geometry subrange offsets/counts, and byte accounting for
      scene upload, ping-pong path-state buffers, per-depth step records,
-     retained indices, and accumulation storage.
+     retained indices, and accumulation storage. The backend boundary now also
+     exposes scene-specific full-GPU support so a platform backend can be
+     available but reject a narrower compiled-scene subset without making graph
+     analysis overclaim full GPU execution.
 
 2. **Add a minimal Metal path-loop kernel.**
    - Depends on: job 1.

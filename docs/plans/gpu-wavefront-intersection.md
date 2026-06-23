@@ -72,8 +72,10 @@
 > a count-prefixed retained-index buffer directly on the GPU. That retained
 > frontier output removes one host-side scan from the probe contract and gives
 > the future platform path-loop kernel the compact-frontier handoff it needs,
-> though the live render path still stays on CPU-reference/hybrid execution
-> until a true multi-depth platform loop exists.
+> and the path-loop backend boundary can now reject per-scene platform support
+> independently of generic compiled-scene support; the live render path still
+> stays on CPU-reference/hybrid execution until a true multi-depth platform loop
+> exists.
 > These probes do not advertise full GPU path tracing yet.
 > This is a follow-up to
 > `docs/plans/wavefront-and-path-tracing.md` Phase 7+ and is now a child slice

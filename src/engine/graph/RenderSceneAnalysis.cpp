@@ -128,10 +128,15 @@ namespace engine::graph {
     setFullGpuTracingSupported(support.supported, support.reason);
     const std::shared_ptr<const render::GpuDiffusePathLoopBackend> fullGpuBackend =
       render::GpuDiffusePathLoopBackend::defaultFullGpuBackendForGpuRequest();
+    const bool backendAvailable = fullGpuBackend && fullGpuBackend->fullGpuPathLoopAvailable();
     setFullGpuTracingBackendAvailable(
-      fullGpuBackend && fullGpuBackend->fullGpuPathLoopAvailable(),
-      fullGpuBackend ? fullGpuBackend->fullGpuPathLoopUnavailableReason()
-                     : "platform full-GPU path-loop kernel is not available yet");
+      backendAvailable, fullGpuBackend ? fullGpuBackend->fullGpuPathLoopUnavailableReason()
+                                       : "platform full-GPU path-loop kernel is not available yet");
+    if (support.supported && backendAvailable) {
+      const render::GpuDiffusePathLoopBackendSupport backendSupport =
+        fullGpuBackend->fullGpuPathLoopSupport(compilation.sections);
+      setFullGpuTracingSupported(backendSupport.supported, backendSupport.reason);
+    }
   }
 
   bool RenderSceneAnalysis::hasKnownVisibleSurfaceCount() const {

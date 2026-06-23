@@ -121,6 +121,31 @@ namespace GpuDiffusePathStepReferenceTest {
       double readbackWorkerSeconds{0.03};
     };
 
+    class AvailableFullGpuPathLoopBackend : public GpuDiffusePathLoopBackend {
+    public:
+      const char* name() const override {
+        return "available_full_gpu_path_loop";
+      }
+
+      bool fullGpuPathLoopAvailable() const override {
+        return true;
+      }
+
+      GpuDiffusePathLoopResult run(const GpuTracingSceneSections&,
+                                   const std::vector<GpuDiffusePathStateRecord>&,
+                                   const GpuDiffusePathLoopSettings&) const override {
+        return {};
+      }
+    };
+
+    class SceneRejectingFullGpuPathLoopBackend final : public AvailableFullGpuPathLoopBackend {
+    public:
+      GpuDiffusePathLoopBackendSupport
+      fullGpuPathLoopSupport(const GpuTracingSceneSections&) const override {
+        return {false, "test backend supports only a narrower scene subset"};
+      }
+    };
+
     GpuIntersectionHitRecord hitRecord(std::uint32_t rayIndex, std::uint32_t material) {
       GpuIntersectionHitRecord hit;
       hit.hit = 1;
@@ -1101,6 +1126,30 @@ namespace GpuDiffusePathStepReferenceTest {
     result.platformName = "metal";
 
     EXPECT_EQ("metal", result.platformLabel());
+  }
+
+  TEST(GpuDiffusePathLoopBackend, DefaultFullGpuSceneSupportFollowsBackendAvailability) {
+    const GpuDiffusePathLoopBackendSupport unavailableSupport =
+      CpuReferenceGpuDiffusePathLoopBackend::sharedInstance()->fullGpuPathLoopSupport({});
+
+    EXPECT_FALSE(unavailableSupport.supported);
+    EXPECT_EQ("platform full-GPU path-loop kernel is not available yet", unavailableSupport.reason);
+
+    const AvailableFullGpuPathLoopBackend backend;
+    const GpuDiffusePathLoopBackendSupport availableSupport = backend.fullGpuPathLoopSupport({});
+
+    EXPECT_TRUE(availableSupport.supported);
+    EXPECT_TRUE(availableSupport.reason.empty());
+  }
+
+  TEST(GpuDiffusePathLoopBackend, AvailableFullGpuBackendCanRejectSpecificScene) {
+    const SceneRejectingFullGpuPathLoopBackend backend;
+
+    ASSERT_TRUE(backend.fullGpuPathLoopAvailable());
+    const GpuDiffusePathLoopBackendSupport support = backend.fullGpuPathLoopSupport({});
+
+    EXPECT_FALSE(support.supported);
+    EXPECT_EQ("test backend supports only a narrower scene subset", support.reason);
   }
 
   TEST(GpuDiffusePathLoopResult, ReportsCpuReferenceTracingCapabilitiesAsGpuFallbacks) {
