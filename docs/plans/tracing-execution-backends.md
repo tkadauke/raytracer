@@ -2501,13 +2501,16 @@ scene is large enough to amortize upload/readback costs.
      and texture records from that upload and computes the diffuse continuation
      throughput for sphere hits. A restricted continuation probe now samples a
      GPU diffuse direction, applies Russian roulette, and writes the next
-     path-state record for that same sphere/Matte/ConstantColor subset. This
-     proves the command-buffer, scene-upload, geometry, material-record,
-     texture-record, environment-record, path-state, step-record, continuation,
-     and restricted accumulation ABI for the future path-loop kernel; broader
-     primitive traversal, full material shading, direct lighting, compaction,
-     and general accumulation still need to move into this backend before it can
-     advertise full GPU execution.
+     path-state record for that same sphere/Matte/ConstantColor subset. That
+     continuation probe also evaluates restricted point/directional
+     direct-light contribution with GPU light-selection dimensions and sphere
+     any-hit shadow rejection. This proves the command-buffer, scene-upload,
+     geometry, material-record, texture-record, light-record,
+     environment-record, path-state, step-record, continuation,
+     direct-light-contribution, and restricted accumulation ABI for the future
+     path-loop kernel; broader primitive traversal, full material shading, full
+     direct-light coverage, compaction, and general accumulation still need to
+     move into this backend before it can advertise full GPU execution.
 
 3. **Add a minimal Vulkan path-loop kernel.**
    - Depends on: job 1.
