@@ -66,8 +66,11 @@
 > contribution with GPU light-selection and light-surface dimensions plus
 > sphere any-hit shadow rejection, and it can terminate restricted
 > Emissive/ConstantColor sphere hits while carrying emitted radiance into the
-> next path-state record. These probes do not advertise full GPU path tracing
-> yet.
+> next path-state record. Terminal outcomes from that continuation probe now
+> clear and write the accumulation color/count planes for unique active pixel
+> targets, covering miss termination, emissive hits, unsupported hits, and
+> diffuse paths that fail to spawn a continuation. These probes do not advertise
+> full GPU path tracing yet.
 > This is a follow-up to
 > `docs/plans/wavefront-and-path-tracing.md` Phase 7+ and is now a child slice
 > of `docs/plans/tracing-execution-backends.md`. It should not replace the CPU

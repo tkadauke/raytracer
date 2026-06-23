@@ -2507,13 +2507,17 @@ scene is large enough to amortize upload/readback costs.
      light-selection and light-surface dimensions plus sphere any-hit shadow
      rejection, and it can terminate restricted Emissive/ConstantColor sphere
      hits while preserving emitted radiance in the GPU path-state contract.
+     Terminal outcomes from that continuation probe now clear and write the
+     accumulation color/count planes for unique active pixel targets, including
+     miss termination, emissive hits, unsupported hits, and diffuse paths that
+     fail to spawn a continuation.
      This proves the command-buffer, scene-upload, geometry, material-record,
      texture-record, light-record, environment-record, path-state, step-record,
      continuation, direct-light-contribution, emissive-hit-termination, and
-     restricted accumulation ABI for the future path-loop kernel; broader
+     terminal accumulation ABI for the future path-loop kernel; broader
      primitive traversal, full material shading, full direct-light coverage,
-     compaction, and general accumulation still need to move into this backend
-     before it can advertise full GPU execution.
+     compaction, and multi-depth accumulation still need to move into this
+     backend before it can advertise full GPU execution.
 
 3. **Add a minimal Vulkan path-loop kernel.**
    - Depends on: job 1.

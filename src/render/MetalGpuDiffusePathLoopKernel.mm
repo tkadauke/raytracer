@@ -279,6 +279,9 @@ namespace render {
               "  return (path.flags & gpuDiffusePathStateActiveFlag) != 0u &&\n"
               "         (path.flags & gpuDiffusePathStateTerminatedFlag) == 0u;\n"
               "}\n"
+              "bool pathStateIsTerminated(const GpuDiffusePathStateRecord path) {\n"
+              "  return (path.flags & gpuDiffusePathStateTerminatedFlag) != 0u;\n"
+              "}\n"
               "uint activePathFlags(uint flags) {\n"
               "  return (flags | gpuDiffusePathStateActiveFlag) &\n"
               "         ~gpuDiffusePathStateTerminatedFlag;\n"
@@ -900,6 +903,18 @@ namespace render {
               "  const uint pixelCount = parameters.imageWidth * parameters.imageHeight;\n"
               "  return reinterpret_cast<device uint*>(accumulation + pixelCount * 16u);\n"
               "}\n"
+              "void accumulateTerminatedPath(\n"
+              "    constant GpuDiffusePathLoopLaunchParameters& parameters,\n"
+              "    device uchar* accumulation,\n"
+              "    GpuDiffusePathStateRecord path) {\n"
+              "  const uint pixelCount = parameters.imageWidth * parameters.imageHeight;\n"
+              "  if (path.pixelIndex >= pixelCount) {\n"
+              "    return;\n"
+              "  }\n"
+              "  accumulationColorSums(parameters, accumulation)[path.pixelIndex] =\n"
+              "      path.accumulatedRadiance;\n"
+              "  accumulationSampleCounts(parameters, accumulation)[path.pixelIndex] = 1u;\n"
+              "}\n"
               "kernel void clearDiffusePathLoopAccumulation(\n"
               "    constant GpuDiffusePathLoopLaunchParameters& parameters [[buffer(0)]],\n"
               "    device uchar* accumulation [[buffer(1)]],\n"
@@ -959,10 +974,10 @@ namespace render {
               "    path.accumulatedRadiance += contribution;\n"
               "    path.flags = (path.flags & ~gpuDiffusePathStateActiveFlag) |\n"
               "                 gpuDiffusePathStateTerminatedFlag;\n"
-              "    accumulationColorSums(parameters, accumulation)[path.pixelIndex] = contribution;\n"
-              "    accumulationSampleCounts(parameters, accumulation)[path.pixelIndex] = 1u;\n"
+              "    accumulateTerminatedPath(parameters, accumulation, path);\n"
               "    step.event = gpuDiffusePathStepEventMiss;\n"
               "    step.missRadiance = contribution;\n"
+              "    step.continuationThroughput = float4(0.0f);\n"
               "    step.flags = path.flags;\n"
               "  }\n"
               "  activePathStates[id] = path;\n"
@@ -1065,19 +1080,28 @@ namespace render {
               "        } else {\n"
               "          step.event = gpuDiffusePathStepEventUnsupported;\n"
               "          next.flags = unsupportedPathFlags(path.flags);\n"
+              "          step.continuationThroughput = float4(0.0f);\n"
               "          step.flags = next.flags;\n"
               "        }\n"
               "      }\n"
               "    } else {\n"
+              "      const float4 contribution = path.throughput *\n"
+              "          missRadiance(parameters, sceneUpload, path);\n"
+              "      next = terminatedPathWithAccumulatedRadiance(\n"
+              "          path, path.accumulatedRadiance + contribution);\n"
               "      step.event = gpuDiffusePathStepEventMiss;\n"
-              "      step.flags = path.flags;\n"
+              "      step.missRadiance = contribution;\n"
+              "      step.continuationThroughput = float4(0.0f);\n"
+              "      step.flags = next.flags;\n"
               "    }\n"
+              "  }\n"
+              "  if (pathStateIsActive(path) && pathStateIsTerminated(next)) {\n"
+              "    accumulateTerminatedPath(parameters, accumulation, next);\n"
               "  }\n"
               "  activePathStates[id] = path;\n"
               "  nextPathStates[id] = next;\n"
               "  stepRecords[id] = step;\n"
               "  closestHits[id] = hit;\n"
-              "  (void)accumulation;\n"
               "}\n"
               "kernel void probeDiffusePathLoopMatteHitShading(\n"
               "    constant GpuDiffusePathLoopLaunchParameters& parameters [[buffer(0)]],\n"
@@ -1205,12 +1229,14 @@ namespace render {
              static_cast<std::uint64_t>(parameters.imageHeight);
     }
 
-    void validateAllMissAccumulationTargets(
+    void validateUniqueActiveAccumulationTargets(
       const GpuDiffusePathLoopLaunchPlan& plan,
-      const std::vector<GpuDiffusePathStateRecord>& initialPathStates) {
+      const std::vector<GpuDiffusePathStateRecord>& initialPathStates,
+      const char* probeName) {
       const std::uint64_t pixels = pixelCount(plan.parameters);
       if (pixels > static_cast<std::uint64_t>(std::numeric_limits<std::size_t>::max())) {
-        throw std::overflow_error("Metal diffuse path-loop all-miss pixel count overflows");
+        throw std::overflow_error(std::string("Metal diffuse path-loop ") + probeName +
+                                  " pixel count overflows");
       }
       std::vector<bool> seenPixels(static_cast<std::size_t>(pixels), false);
       for (const GpuDiffusePathStateRecord& path : initialPathStates) {
@@ -1219,11 +1245,13 @@ namespace render {
         }
         if (path.pixelIndex >= pixels) {
           throw std::invalid_argument(
-            "Metal diffuse path-loop all-miss path pixel is outside the accumulation layout");
+            std::string("Metal diffuse path-loop ") + probeName +
+            " path pixel is outside the accumulation layout");
         }
         if (seenPixels[path.pixelIndex]) {
           throw std::invalid_argument(
-            "Metal diffuse path-loop all-miss probe requires unique active pixel targets");
+            std::string("Metal diffuse path-loop ") + probeName +
+            " probe requires unique active pixel targets");
         }
         seenPixels[path.pixelIndex] = true;
       }
@@ -1438,7 +1466,7 @@ namespace render {
       throw std::invalid_argument(
         "Metal diffuse path-loop scene upload bytes do not match launch descriptor");
     }
-    validateAllMissAccumulationTargets(plan, initialPathStates);
+    validateUniqueActiveAccumulationTargets(plan, initialPathStates, "all-miss");
 
     @autoreleasepool {
       if (!launchPathAvailable()) {
@@ -1868,6 +1896,7 @@ namespace render {
         "Metal diffuse path-loop scene upload bytes do not match launch descriptor");
     }
     validateMatteHitShadingProbeScene(plan);
+    validateUniqueActiveAccumulationTargets(plan, initialPathStates, "matte continuation");
 
     @autoreleasepool {
       if (!launchPathAvailable()) {
@@ -1877,9 +1906,14 @@ namespace render {
       id<MTLDevice> device = sharedMetalDevice();
       id<MTLCommandQueue> queue = sharedCommandQueue();
       id<MTLComputePipelineState> pipeline = sharedMatteContinuationProbePipeline();
+      id<MTLComputePipelineState> clearPipeline = sharedClearAccumulationPipeline();
       if (!pipeline) {
         throw std::runtime_error(
           "Metal diffuse path-loop matte continuation probe pipeline was not created");
+      }
+      if (!clearPipeline) {
+        throw std::runtime_error(
+          "Metal diffuse path-loop accumulation clear pipeline was not created");
       }
 
       const auto uploadStart = std::chrono::steady_clock::now();
@@ -1939,6 +1973,13 @@ namespace render {
           "Metal diffuse path-loop matte continuation probe command setup failed");
       }
 
+      const NSUInteger pixels = static_cast<NSUInteger>(pixelCount(plan.parameters));
+      [encoder setComputePipelineState:clearPipeline];
+      [encoder setBuffer:parameterBuffer offset:0 atIndex:0];
+      [encoder setBuffer:accumulationBuffer offset:0 atIndex:1];
+      [encoder dispatchThreads:MTLSizeMake(std::max<NSUInteger>(1, pixels), 1, 1)
+         threadsPerThreadgroup:MTLSizeMake(1, 1, 1)];
+
       [encoder setComputePipelineState:pipeline];
       [encoder setBuffer:parameterBuffer offset:0 atIndex:0];
       [encoder setBuffer:echoedParameterBuffer offset:0 atIndex:1];
@@ -1985,6 +2026,20 @@ namespace render {
       if (!result.stepRecords.empty()) {
         std::memcpy(result.stepRecords.data(), [stepRecordBuffer contents],
                     result.stepRecords.size() * sizeof(GpuDiffusePathStepRecord));
+      }
+      result.accumulationColorSums.resize(pixelCount(plan.parameters));
+      if (!result.accumulationColorSums.empty()) {
+        std::memcpy(result.accumulationColorSums.data(), [accumulationBuffer contents],
+                    result.accumulationColorSums.size() * sizeof(std::array<float, 4>));
+      }
+      result.accumulationSampleCounts.resize(pixelCount(plan.parameters));
+      if (!result.accumulationSampleCounts.empty()) {
+        const std::uint64_t colorBytes =
+          result.accumulationColorSums.size() * sizeof(std::array<float, 4>);
+        const auto* sampleCountBytes =
+          static_cast<const std::uint8_t*>([accumulationBuffer contents]) + colorBytes;
+        std::memcpy(result.accumulationSampleCounts.data(), sampleCountBytes,
+                    result.accumulationSampleCounts.size() * sizeof(std::uint32_t));
       }
       result.readbackWorkerSeconds =
         elapsedSeconds(readbackStart, std::chrono::steady_clock::now());

@@ -1943,6 +1943,69 @@ namespace GpuDiffusePathStepReferenceTest {
     expectFloat4Near(result.stepRecords[0].continuationThroughput,
                      expected.stepRecords[0].continuationThroughput, 1e-5);
     expectPathStateNear(result.nextPathStates[0], expected.pathStates[0], 1e-4);
+    ASSERT_EQ(4u, result.accumulationColorSums.size());
+    ASSERT_EQ(4u, result.accumulationSampleCounts.size());
+    ASSERT_COLOR_NEAR(Colord::black(), colorFrom4(result.accumulationColorSums[0]), 1e-6);
+    EXPECT_EQ(0u, result.accumulationSampleCounts[0]);
+#else
+    GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
+#endif
+  }
+
+  TEST(MetalGpuDiffusePathLoopKernel, MatteContinuationProbeResolvesMissAndAccumulatesWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    MetalGpuDiffusePathLoopKernel kernel;
+    if (!kernel.launchPathAvailable()) {
+      GTEST_SKIP() << kernel.launchPathUnavailableReason();
+    }
+
+    Scene scene;
+    scene.setBackground(Colord(0.25, 0.5, 0.75));
+    auto matte =
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::white()));
+    matte->setDiffuseCoefficient(1.0);
+    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    receiver->setMaterial(matte);
+    scene.add(receiver);
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 2;
+    settings.russianRouletteDepth = 10;
+    const TracingAccumulationLayout accumulationLayout = TracingAccumulationLayout::image(2, 2);
+    std::vector<GpuDiffusePathStateRecord> paths{
+      activePath(Rayd(Vector4d(3.0, 0.0, -4.0, 1.0), Vector3d(0.0, 0.0, 1.0)), 40)};
+    paths[0].pixelIndex = 1;
+    paths[0].throughput = {0.5f, 0.25f, 0.125f, 0.0f};
+    paths[0].accumulatedRadiance = {0.1f, 0.2f, 0.3f, 0.0f};
+    const GpuDiffusePathLoopLaunchPlan plan =
+      GpuDiffusePathLoopLaunchPlanner().plan(sections, paths, accumulationLayout, settings);
+    const GpuDiffusePathStepResult expected = GpuDiffusePathStepReference().step(
+      sections, paths, closestHitsFor(sections, paths), settings);
+    ASSERT_TRUE(expected.pathStates.empty());
+    ASSERT_EQ(1u, expected.terminatedPathStates.size());
+
+    const MetalGpuDiffusePathLoopKernelResult result =
+      kernel.runMatteContinuationProbe(plan, paths);
+
+    ASSERT_EQ(paths.size(), result.stepRecords.size());
+    ASSERT_EQ(paths.size(), result.nextPathStates.size());
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuDiffusePathStepEvent::Miss),
+              result.stepRecords[0].event);
+    expectFloat4Near(result.stepRecords[0].missRadiance, expected.stepRecords[0].missRadiance,
+                     1e-5);
+    expectPathStateNear(result.nextPathStates[0], expected.terminatedPathStates[0], 1e-4);
+    ASSERT_EQ(4u, result.accumulationColorSums.size());
+    ASSERT_EQ(4u, result.accumulationSampleCounts.size());
+    ASSERT_COLOR_NEAR(Colord(expected.terminatedPathStates[0].accumulatedRadiance),
+                      colorFrom4(result.accumulationColorSums[1]), 1e-5);
+    ASSERT_COLOR_NEAR(Colord::black(), colorFrom4(result.accumulationColorSums[0]), 1e-6);
+    ASSERT_COLOR_NEAR(Colord::black(), colorFrom4(result.accumulationColorSums[2]), 1e-6);
+    ASSERT_COLOR_NEAR(Colord::black(), colorFrom4(result.accumulationColorSums[3]), 1e-6);
+    EXPECT_EQ(0u, result.accumulationSampleCounts[0]);
+    EXPECT_EQ(1u, result.accumulationSampleCounts[1]);
+    EXPECT_EQ(0u, result.accumulationSampleCounts[2]);
+    EXPECT_EQ(0u, result.accumulationSampleCounts[3]);
 #else
     GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
 #endif
@@ -2084,6 +2147,11 @@ namespace GpuDiffusePathStepReferenceTest {
     expectFloat4Near(result.stepRecords[0].continuationThroughput,
                      expected.stepRecords[0].continuationThroughput, 1e-5);
     expectPathStateNear(result.nextPathStates[0], expected.terminatedPathStates[0], 1e-4);
+    ASSERT_EQ(4u, result.accumulationColorSums.size());
+    ASSERT_EQ(4u, result.accumulationSampleCounts.size());
+    ASSERT_COLOR_NEAR(Colord(expected.terminatedPathStates[0].accumulatedRadiance),
+                      colorFrom4(result.accumulationColorSums[0]), 1e-5);
+    EXPECT_EQ(1u, result.accumulationSampleCounts[0]);
 #else
     GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
 #endif
@@ -2152,6 +2220,31 @@ namespace GpuDiffusePathStepReferenceTest {
       sections, paths, TracingAccumulationLayout::image(1, 2), settings);
 
     EXPECT_THROW((void)MetalGpuDiffusePathLoopKernel().runAllMissProbe(plan, paths),
+                 std::invalid_argument);
+#else
+    GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
+#endif
+  }
+
+  TEST(MetalGpuDiffusePathLoopKernel, MatteContinuationProbeRejectsDuplicateAccumulationTargets) {
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    Scene scene;
+    auto matte =
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::white()));
+    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    receiver->setMaterial(matte);
+    scene.add(receiver);
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 1;
+    std::vector<GpuDiffusePathStateRecord> paths{activePath(40), activePath(41)};
+    paths[0].pixelIndex = 0;
+    paths[1].pixelIndex = 0;
+    const GpuDiffusePathLoopLaunchPlan plan = GpuDiffusePathLoopLaunchPlanner().plan(
+      sections, paths, TracingAccumulationLayout::image(1, 2), settings);
+
+    EXPECT_THROW((void)MetalGpuDiffusePathLoopKernel().runMatteContinuationProbe(plan, paths),
                  std::invalid_argument);
 #else
     GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
