@@ -97,6 +97,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Add restricted point/directional direct-light contribution inside the Metal
   Matte/ConstantColor path-loop continuation probe, including GPU light
   selection dimensions and sphere any-hit shadow rejection. — GPT-5 Codex
+- Add restricted rectangular-area direct-light contribution inside the Metal
+  Matte/ConstantColor path-loop continuation probe. — GPT-5 Codex
 - Add restricted Emissive/ConstantColor hit termination to the Metal
   diffuse path-loop continuation probe for sphere hits. — GPT-5 Codex
 - Carry serialized compiled tracing-scene upload bytes through GPU diffuse
