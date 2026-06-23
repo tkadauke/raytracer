@@ -2,8 +2,13 @@
 
 #include "render/TracingAccumulationReference.h"
 
+// macOS SDK headers still export a global Rect symbol. This translation unit
+// also needs the project's global Rect<T> template through Buffer, so shield the
+// SDK spelling while importing Objective-C frameworks.
+#define Rect MacOSRect
 #import <Foundation/Foundation.h>
 #import <Metal/Metal.h>
+#undef Rect
 
 #include <algorithm>
 #include <cstring>

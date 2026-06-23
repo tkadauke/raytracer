@@ -46,6 +46,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Fix Metal-enabled wavefront builds on macOS SDKs that export a global `Rect`
+  symbol before the project `Rect<T>` template is included. — GPT-5 Codex
 - Report compiled diffuse path-loop direct-light, BSDF, continuation, and
   accumulation fallbacks with subsystem-specific host CPU-reference reasons
   instead of a generic full-GPU path-loop fallback. — GPT-5 Codex
