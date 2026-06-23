@@ -10,10 +10,6 @@ namespace SphericalCameraTest {
   using namespace ::testing;
   using namespace render;
   using namespace engine::raytracer;
-  using namespace render;
-  using namespace engine::raytracer;
-  using namespace render;
-  using namespace engine::raytracer;
 
   TEST(SphericalCamera, ShouldConstructWithoutParameters) {
     SphericalCamera camera;

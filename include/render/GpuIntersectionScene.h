@@ -168,9 +168,6 @@ namespace render {
 
   private:
     [[nodiscard]] float packScalar(double value) const;
-    [[nodiscard]] std::array<float, 4> packVector(const Vector2d& value) const;
-    [[nodiscard]] std::array<float, 4> packVector(const Vector3d& value, float w = 0.0f) const;
-    [[nodiscard]] std::array<float, 4> packVector(const Vector4d& value) const;
     [[nodiscard]] std::array<float, 16> packMatrix(const Matrix3d& value) const;
     [[nodiscard]] std::array<float, 16> packMatrix(const Matrix4d& value) const;
     [[nodiscard]] GpuIntersectionBounds packBounds(const BoundingBoxd& bounds) const;

@@ -460,16 +460,10 @@ namespace render {
                                             double animationFrame, double animationTime,
                                             std::uint32_t rngSeed) {
     GpuPathStateRecord record;
-    record.origin = {static_cast<float>(ray.origin().x()), static_cast<float>(ray.origin().y()),
-                     static_cast<float>(ray.origin().z()), static_cast<float>(ray.origin().w())};
-    record.direction = {static_cast<float>(ray.direction().x()),
-                        static_cast<float>(ray.direction().y()),
-                        static_cast<float>(ray.direction().z()), 0.0f};
-    record.throughput = {static_cast<float>(throughput.r()), static_cast<float>(throughput.g()),
-                         static_cast<float>(throughput.b()), 1.0f};
-    record.accumulatedRadiance = {static_cast<float>(accumulatedRadiance.r()),
-                                  static_cast<float>(accumulatedRadiance.g()),
-                                  static_cast<float>(accumulatedRadiance.b()), 1.0f};
+    record.origin = ray.origin().toFloat4();
+    record.direction = ray.direction().toFloat4();
+    record.throughput = throughput.toFloat4();
+    record.accumulatedRadiance = accumulatedRadiance.toFloat4();
     record.continuation = {static_cast<float>(bsdfSamplePdf), static_cast<float>(timeSample),
                            static_cast<float>(animationFrame), static_cast<float>(animationTime)};
     record.pixelIndex = pixelIndex;

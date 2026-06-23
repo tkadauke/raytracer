@@ -5,28 +5,14 @@
 #include "render/primitives/Scene.h"
 #include "core/Buffer.h"
 #include "core/math/Constants.h"
-#include "core/math/Rect.h"
 
+#include "test/helpers/CameraTestHelper.h"
 #include "test/helpers/VectorTestHelper.h"
 
 namespace EquirectangularCameraTest {
   using namespace render;
   using namespace engine::raytracer;
-  using namespace render;
-  using namespace engine::raytracer;
-  using namespace render;
-  using namespace engine::raytracer;
-
-  // EquirectangularCamera::rayForPixel divides by viewPlane()->width()
-  // and ::height(), which are 0 on a freshly-constructed camera (the
-  // viewplane only learns its dimensions when Raytracer::render calls
-  // setup). The tests call rayForPixel directly without going through
-  // Raytracer::render, so explicitly set up the viewplane to a known
-  // size before the geometry asserts. Buffer width × height = 360 × 180
-  // matches the canonical 2:1 equirectangular aspect.
-  static void setupViewPlane(Camera& c, int width, int height) {
-    c.viewPlane()->setup(c.matrix(), Recti(0, 0, width, height));
-  }
+  using test::setupViewPlane;
 
   TEST(EquirectangularCamera, ShouldConstructWithoutParameters) {
     EquirectangularCamera camera;

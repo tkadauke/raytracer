@@ -7,8 +7,8 @@
 #include "render/viewplanes/PointInterlacedViewPlane.h"
 #include "render/samplers/JitteredSampler.h"
 #include "core/Buffer.h"
-#include "core/math/Rect.h"
 
+#include "test/helpers/CameraTestHelper.h"
 #include "test/helpers/VectorTestHelper.h"
 
 #include <optional>
@@ -16,14 +16,7 @@
 namespace ThinLensCameraTest {
   using namespace render;
   using namespace engine::raytracer;
-  using namespace render;
-  using namespace engine::raytracer;
-  using namespace render;
-  using namespace engine::raytracer;
-
-  static void initViewPlane(Camera& camera, int width = 100, int height = 100) {
-    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, width, height));
-  }
+  using test::setupViewPlane;
 
   TEST(ThinLensCamera, ShouldDefaultToCannedValues) {
     ThinLensCamera camera;
@@ -141,12 +134,12 @@ namespace ThinLensCameraTest {
     camera.setZoom(1.25);
     camera.setApertureRadius(0.7);
     camera.setFocalDistance(2.5);
-    initViewPlane(camera, 160, 90);
+    setupViewPlane(camera, 160, 90);
 
     PinholeCamera pinhole(camera.position(), camera.target());
     pinhole.setDistance(camera.distance());
     pinhole.setZoom(camera.zoom());
-    initViewPlane(pinhole, 160, 90);
+    setupViewPlane(pinhole, 160, 90);
 
     const Vector3d point(1.0, -0.5, 3.0);
     ASSERT_VECTOR_NEAR(pinhole.projectPoint(point), camera.projectPoint(point), 1e-9);
@@ -166,7 +159,7 @@ namespace ThinLensCameraTest {
     auto sampler = std::make_shared<JitteredSampler>();
     sampler->setup(4, 16);
     camera.viewPlane()->setSampler(sampler);
-    initViewPlane(camera, 160, 90);
+    setupViewPlane(camera, 160, 90);
 
     auto pixel = camera.viewPlane()->begin(Recti(0, 0, 160, 90));
     ++pixel;
