@@ -543,8 +543,9 @@ namespace engine::graph {
     };
 
     bool executionPathUsesGpu(const QString& path) {
-      return path == QStringLiteral("gpu") || path == QStringLiteral("metal") ||
-             path == QStringLiteral("vulkan");
+      return path == QStringLiteral("gpu") || path.startsWith(QStringLiteral("metal")) ||
+             path.startsWith(QStringLiteral("vulkan")) ||
+             path.startsWith(QStringLiteral("full_gpu"));
     }
 
     QString actualTracingExecutionFromWavefrontMetrics(const QJsonObject& metrics) {
@@ -697,6 +698,9 @@ namespace engine::graph {
       input["actualHeight"] = generation.actualRect.height();
 
       QJsonObject batching;
+      const bool frontierCompactionUsesGpu =
+        loop.fullGpuPathLoopSupported() ||
+        executionPathUsesGpu(QString::fromStdString(loop.frontierCompactionExecutionPath));
       batching["integrator"] = QStringLiteral("pathtracer");
       batching["executionMode"] = QStringLiteral("compiled_diffuse_path_loop");
       batching["tracingBackendMode"] = QString::fromStdString(loop.executionPath);
@@ -727,10 +731,9 @@ namespace engine::graph {
       batching["intersectionBackendAnyHitExecutionPath"] =
         QString::fromStdString(loop.metrics.directLightVisibilityExecutionPath);
       batching["intersectionBackendSupportsResidentFrontiers"] = loop.fullGpuPathLoopSupported();
-      batching["intersectionBackendSupportsGpuFrontierCompaction"] =
-        loop.fullGpuPathLoopSupported();
+      batching["intersectionBackendSupportsGpuFrontierCompaction"] = frontierCompactionUsesGpu;
       batching["intersectionBackendGpuFrontierCompactionUnavailableReason"] =
-        loop.fullGpuPathLoopSupported()
+        frontierCompactionUsesGpu
           ? QString()
           : QStringLiteral("compiled CPU-reference path loop compacts path state on the host");
       batching["intersectionBackendSupportsPreparedRayBatchCompaction"] =
@@ -785,9 +788,12 @@ namespace engine::graph {
         static_cast<double>(loop.retainedPathStateBytes());
       batching["frontierCompactionRemovedHostPathStateBytes"] =
         static_cast<double>(loop.removedPathStateBytes());
-      batching["frontierCompactionUploadWorkerSeconds"] = 0.0;
-      batching["frontierCompactionKernelWorkerSeconds"] = 0.0;
-      batching["frontierCompactionReadbackWorkerSeconds"] = 0.0;
+      batching["frontierCompactionUploadWorkerSeconds"] =
+        loop.frontierCompactionUploadWorkerSeconds;
+      batching["frontierCompactionKernelWorkerSeconds"] =
+        loop.frontierCompactionKernelWorkerSeconds;
+      batching["frontierCompactionReadbackWorkerSeconds"] =
+        loop.frontierCompactionReadbackWorkerSeconds;
       batching["residentPathLoopExecutionPath"] = QString::fromStdString(loop.executionPath);
       batching["residentPathLoopResidency"] = QString::fromStdString(loop.pathStateResidency);
       batching["residentPathLoopPlatformName"] = QString::fromStdString(loop.platformLabel());
@@ -1118,8 +1124,12 @@ namespace engine::graph {
                                                                 wavefront.tonemap().get());
         }
 
+        const bool frontierCompactionUsesGpu =
+          executionPathUsesGpu(QString::fromStdString(loop.frontierCompactionExecutionPath));
         const QString actualTracingExecution =
-          loop.fullGpuPathLoopSupported() ? QStringLiteral("gpu") : QStringLiteral("cpu");
+          loop.fullGpuPathLoopSupported()
+            ? QStringLiteral("gpu")
+            : (frontierCompactionUsesGpu ? QStringLiteral("hybrid") : QStringLiteral("cpu"));
         const QString actualTracingFallback =
           loop.fullGpuPathLoopSupported()
             ? QString()

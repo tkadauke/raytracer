@@ -136,6 +136,11 @@ namespace {
     return static_cast<double>(numerator) / static_cast<double>(denominator);
   }
 
+  bool executionPathUsesGpu(const std::string& path) {
+    return path == kFullGpuPathLoopExecutionPath || path.find("metal") != std::string::npos ||
+           path.find("vulkan") != std::string::npos;
+  }
+
   double sample1D(const GpuDiffusePathStateRecord& pathState, std::uint32_t dimension) {
     return GpuSampleStream::sample1D(GpuSampleCoordinate{pathState.sampleSeed, pathState.pixelIndex,
                                                          pathState.primarySampleIndex, dimension,
@@ -738,6 +743,7 @@ TracingExecutionCapabilityRecords GpuDiffusePathLoopResult::tracingCapabilities(
     frontierCompactionExecutionPath.empty()
       ? (fullGpuLoop ? pathLoopExecution : "cpu_diffuse_frontier_compaction")
       : frontierCompactionExecutionPath;
+  const bool compactionUsesGpu = executionPathUsesGpu(compactionPath);
 
   TracingExecutionCapabilityRecords records;
   if (fullGpuLoop) {
@@ -829,9 +835,14 @@ TracingExecutionCapabilityRecords GpuDiffusePathLoopResult::tracingCapabilities(
   records.pathState.residency =
     fallbackWithReason(Domain::PathState, "state.path_state_residency", pathStatePath,
                        compiledDiffusePathLoopPathStateResidencyFallbackReason());
-  records.pathState.frontierCompaction =
-    fallbackWithReason(Domain::PathState, "state.frontier_compaction", compactionPath,
-                       compiledDiffusePathLoopFrontierCompactionFallbackReason());
+  if (compactionUsesGpu) {
+    records.pathState.frontierCompaction =
+      gpuRecord(Domain::PathState, "state.frontier_compaction", compactionPath);
+  } else {
+    records.pathState.frontierCompaction =
+      fallbackWithReason(Domain::PathState, "state.frontier_compaction", compactionPath,
+                         compiledDiffusePathLoopFrontierCompactionFallbackReason());
+  }
   records.pathState.spawnedContinuations =
     fallbackWithReason(Domain::PathState, "state.spawned_continuations", kCpuRecordExecutionPath,
                        compiledDiffusePathLoopSpawnedContinuationsFallbackReason());
@@ -1123,6 +1134,9 @@ GpuDiffusePathLoop::run(const GpuTracingSceneSections& scene,
     }
     result.retainedIndexBytes =
       saturatedAdd(result.retainedIndexBytes, compaction.retainedIndexBytes());
+    result.frontierCompactionUploadWorkerSeconds += compaction.uploadWorkerSeconds;
+    result.frontierCompactionKernelWorkerSeconds += compaction.kernelWorkerSeconds;
+    result.frontierCompactionReadbackWorkerSeconds += compaction.readbackWorkerSeconds;
     result.frontierCompactionExecutionPath = compaction.executionPath;
     result.frontierCompactionPathStateResidency = compaction.pathStateResidency;
 

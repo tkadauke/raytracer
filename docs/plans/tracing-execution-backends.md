@@ -2089,6 +2089,12 @@ diffuse path tracer for the first supported subset.
      from the overall CPU-reference path-loop execution. Metal-enabled builds
      now also have `MetalGpuDiffusePathFrontierCompactionBackend`, a compute
      kernel that compacts the live diffuse path-loop state-record layout.
+     `CompactingGpuDiffusePathLoopBackend` can now run the compiled
+     CPU-reference loop through an injected frontier-compaction service, so
+     graph traces classify that middle state as hybrid execution when a Metal
+     or Vulkan compaction path participates, while still reporting the overall
+     path loop as `compiled_cpu_reference` until a full platform path-loop
+     kernel exists.
 
 3. **~~Loop over depth with max-depth and Russian roulette.~~** ✅ **Done.**
    Added `loopResidentDiffusePaths` as the CPU-reference resident path-state
@@ -2184,7 +2190,10 @@ manually request internal graph nodes.
      `render::GpuDiffusePathLoopBackend` now owns the compiled diffuse
      path-loop dispatch point, `GraphRenderEngine` carries the selected backend
      through render clones, and graph metadata can now reflect an injected
-     full-GPU path-loop result without CPU-reference fallback text.
+     full-GPU path-loop result without CPU-reference fallback text. Injected
+     GPU frontier-compaction services are also visible as hybrid actual
+     execution with their own timing and capability rows, without claiming the
+     path loop itself is full GPU.
 
 **Gate:** users can request a broad execution intent and inspect what graph was
 compiled and what actually ran.

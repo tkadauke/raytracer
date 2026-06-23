@@ -57,6 +57,9 @@ namespace render {
     std::string executionPath{"cpu_diffuse_frontier_compaction"};
     std::string pathStateResidency{"cpu_host"};
     std::uint64_t inputPathCount{0};
+    double uploadWorkerSeconds{0.0};
+    double kernelWorkerSeconds{0.0};
+    double readbackWorkerSeconds{0.0};
 
     [[nodiscard]] std::uint64_t retainedPathCount() const;
     [[nodiscard]] std::uint64_t removedPathCount() const;
@@ -110,6 +113,9 @@ namespace render {
     std::uint64_t roundTrips{1};
     std::uint64_t savedHostReadbacks{0};
     std::uint64_t savedHostReadbackBytes{0};
+    double frontierCompactionUploadWorkerSeconds{0.0};
+    double frontierCompactionKernelWorkerSeconds{0.0};
+    double frontierCompactionReadbackWorkerSeconds{0.0};
 
     [[nodiscard]] std::uint64_t pathStateBytesPerPath() const;
     [[nodiscard]] std::uint64_t residentPathStateBytes() const;

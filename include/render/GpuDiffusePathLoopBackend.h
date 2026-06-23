@@ -36,4 +36,20 @@ namespace render {
         const std::vector<GpuDiffusePathStateRecord>& initialPathStates,
         const GpuDiffusePathLoopSettings& settings = {}) const override;
   };
+
+  class CompactingGpuDiffusePathLoopBackend final : public GpuDiffusePathLoopBackend {
+  public:
+    explicit CompactingGpuDiffusePathLoopBackend(
+      std::shared_ptr<const GpuDiffusePathFrontierCompactionBackend> compactionBackend);
+
+    const char* name() const override;
+    [[nodiscard]] const GpuDiffusePathFrontierCompactionBackend& compactionBackend() const;
+    [[nodiscard]] GpuDiffusePathLoopResult
+    run(const GpuTracingSceneSections& scene,
+        const std::vector<GpuDiffusePathStateRecord>& initialPathStates,
+        const GpuDiffusePathLoopSettings& settings = {}) const override;
+
+  private:
+    std::shared_ptr<const GpuDiffusePathFrontierCompactionBackend> m_compactionBackend;
+  };
 }

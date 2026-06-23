@@ -8,6 +8,7 @@
 #undef Rect
 
 #include <algorithm>
+#include <chrono>
 #include <cstring>
 #include <limits>
 #include <stdexcept>
@@ -40,6 +41,11 @@ namespace render {
         detail = [[error localizedDescription] UTF8String];
       }
       return std::runtime_error(detail.empty() ? context : context + ": " + detail);
+    }
+
+    double elapsedSeconds(std::chrono::steady_clock::time_point start,
+                          std::chrono::steady_clock::time_point end) {
+      return std::chrono::duration<double>(end - start).count();
     }
 
     NSString* diffuseFrontierCompactionKernelSource() {
@@ -223,6 +229,7 @@ namespace render {
       id<MTLCommandQueue> queue = sharedCommandQueue();
       id<MTLComputePipelineState> pipeline = sharedPathCompactionPipeline();
 
+      const auto uploadStart = std::chrono::steady_clock::now();
       id<MTLBuffer> sourceBuffer =
         [device newBufferWithBytes:sourceRecords.data()
                             length:sourceRecords.size() * sizeof(GpuDiffusePathStateRecord)
@@ -238,6 +245,8 @@ namespace render {
       if (!sourceBuffer || !retainedIndexBuffer || !compactedBuffer) {
         throw std::runtime_error("Metal diffuse frontier compaction buffer allocation failed");
       }
+      result.uploadWorkerSeconds =
+        elapsedSeconds(uploadStart, std::chrono::steady_clock::now());
 
       id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
       id<MTLComputeCommandEncoder> encoder = [commandBuffer computeCommandEncoder];
@@ -251,15 +260,21 @@ namespace render {
       [encoder setBuffer:compactedBuffer offset:0 atIndex:2];
       dispatchOneDimensional(encoder, pipeline, retainedPathIndices.size());
       [encoder endEncoding];
+      const auto kernelStart = std::chrono::steady_clock::now();
       [commandBuffer commit];
       [commandBuffer waitUntilCompleted];
+      result.kernelWorkerSeconds =
+        elapsedSeconds(kernelStart, std::chrono::steady_clock::now());
       if (commandBuffer.status == MTLCommandBufferStatusError) {
         throw metalError("Metal diffuse frontier compaction dispatch failed", commandBuffer.error);
       }
 
+      const auto readbackStart = std::chrono::steady_clock::now();
       result.retainedRecords.resize(retainedPathIndices.size());
       std::memcpy(result.retainedRecords.data(), [compactedBuffer contents],
                   result.retainedRecords.size() * sizeof(GpuDiffusePathStateRecord));
+      result.readbackWorkerSeconds =
+        elapsedSeconds(readbackStart, std::chrono::steady_clock::now());
     }
     return result;
   }

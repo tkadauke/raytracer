@@ -5,6 +5,7 @@
 #include "core/math/Constants.h"
 #include "test/helpers/ColorTestHelper.h"
 
+#include "render/GpuDiffusePathLoopBackend.h"
 #include "render/GpuDiffusePathStepReference.h"
 #include "render/IntersectionSceneCompiler.h"
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
@@ -82,6 +83,9 @@ namespace GpuDiffusePathStepReferenceTest {
         result.pathStateResidency = pathStateResidency();
         result.inputPathCount = sourceRecords.size();
         result.retainedPathIndices = retainedPathIndices;
+        result.uploadWorkerSeconds = uploadWorkerSeconds;
+        result.kernelWorkerSeconds = kernelWorkerSeconds;
+        result.readbackWorkerSeconds = readbackWorkerSeconds;
         for (const std::uint32_t index : retainedPathIndices) {
           result.retainedRecords.push_back(sourceRecords[index]);
         }
@@ -91,6 +95,9 @@ namespace GpuDiffusePathStepReferenceTest {
       mutable int calls{0};
       mutable std::vector<std::size_t> inputCounts;
       mutable std::vector<std::vector<std::uint32_t>> retainedIndices;
+      double uploadWorkerSeconds{0.01};
+      double kernelWorkerSeconds{0.02};
+      double readbackWorkerSeconds{0.03};
     };
 
     GpuIntersectionHitRecord hitRecord(std::uint32_t rayIndex, std::uint32_t material) {
@@ -1116,6 +1123,35 @@ namespace GpuDiffusePathStepReferenceTest {
               capabilities.accumulation.progressiveReadback.resolvedDevice);
   }
 
+  TEST(GpuDiffusePathLoopResult, ReportsGpuFrontierCompactionWithoutFullGpuPathLoop) {
+    GpuDiffusePathLoopResult result;
+    result.metrics.closestHitExecutionPath = "packed_cpu";
+    result.metrics.directLightVisibilityExecutionPath = "packed_cpu";
+    result.metrics.directLightContributionExecutionPath = "cpu_record";
+    result.pathStateResidency = "cpu_host";
+    result.frontierCompactionExecutionPath = "metal_diffuse_frontier_compaction";
+    result.frontierCompactionPathStateResidency = "metal_shared_diffuse_path_state";
+    TracingAccumulationDiagnostics accumulation;
+    accumulation.backend = "gpu_diffuse_path_loop";
+    accumulation.residency = "resident_accumulation_resolve";
+
+    const TracingExecutionCapabilityRecords capabilities = result.tracingCapabilities(accumulation);
+
+    EXPECT_TRUE(capabilities.hasFallback());
+    EXPECT_EQ(TracingCapabilitySupport::Fallback, capabilities.pathState.residency.support);
+    EXPECT_EQ("compiled CPU-reference path loop keeps path state on the host",
+              capabilities.pathState.residency.fallback.reason);
+    EXPECT_EQ(TracingCapabilitySupport::Supported,
+              capabilities.pathState.frontierCompaction.support);
+    EXPECT_EQ(TracingExecutionDevice::GPU,
+              capabilities.pathState.frontierCompaction.requestedDevice);
+    EXPECT_EQ(TracingExecutionDevice::GPU,
+              capabilities.pathState.frontierCompaction.resolvedDevice);
+    EXPECT_EQ("metal_diffuse_frontier_compaction",
+              capabilities.pathState.frontierCompaction.executionPath);
+    EXPECT_TRUE(capabilities.pathState.frontierCompaction.fallback.reason.empty());
+  }
+
   TEST(GpuDiffusePathLoopResult, ReportsFullGpuTracingCapabilitiesWithoutCpuFallbacks) {
     GpuDiffusePathLoopResult result;
     result.executionPath = "full_gpu_subset";
@@ -1243,6 +1279,9 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(102u, result.retainedRecords[1].pixelIndex);
     EXPECT_EQ(3u, result.retainedRecords[1].depth);
     EXPECT_FLOAT_EQ(0.25f, result.retainedRecords[1].previousBsdfPdf);
+    EXPECT_GT(result.uploadWorkerSeconds, 0.0);
+    EXPECT_GT(result.kernelWorkerSeconds, 0.0);
+    EXPECT_GT(result.readbackWorkerSeconds, 0.0);
 #else
     GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
 #endif
@@ -1279,6 +1318,44 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ("recording_path_state", result.frontierCompactionPathStateResidency);
     EXPECT_EQ(sizeof(std::uint32_t), result.retainedPathIndexBytes());
     EXPECT_EQ(2u, result.compactionPassCount());
+    EXPECT_DOUBLE_EQ(0.02, result.frontierCompactionUploadWorkerSeconds);
+    EXPECT_DOUBLE_EQ(0.04, result.frontierCompactionKernelWorkerSeconds);
+    EXPECT_DOUBLE_EQ(0.06, result.frontierCompactionReadbackWorkerSeconds);
+  }
+
+  TEST(CompactingGpuDiffusePathLoopBackend, DispatchesLoopThroughInjectedCompactionBackend) {
+    Scene scene;
+    auto matte =
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::white()));
+    matte->setDiffuseCoefficient(1.0);
+    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    receiver->setMaterial(matte);
+    scene.add(receiver);
+    GpuTracingSceneSections sections = sectionsFor(scene);
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 2;
+    settings.russianRouletteDepth = 10;
+    auto compactionBackend = std::make_shared<RecordingFrontierCompactionBackend>();
+    const CompactingGpuDiffusePathLoopBackend backend(compactionBackend);
+
+    const GpuDiffusePathLoopResult result = backend.run(sections, {activePath()}, settings);
+
+    EXPECT_EQ("compiled_cpu_reference_with_compaction_backend", std::string(backend.name()));
+    EXPECT_EQ("recording_diffuse_frontier_compaction",
+              std::string(backend.compactionBackend().name()));
+    EXPECT_EQ(2, compactionBackend->calls);
+    EXPECT_EQ("compiled_cpu_reference", result.executionPath);
+    EXPECT_EQ("cpu_host", result.pathStateResidency);
+    EXPECT_EQ("recording_diffuse_frontier_compaction", result.frontierCompactionExecutionPath);
+    EXPECT_EQ("recording_path_state", result.frontierCompactionPathStateResidency);
+    EXPECT_DOUBLE_EQ(0.02, result.frontierCompactionUploadWorkerSeconds);
+    EXPECT_DOUBLE_EQ(0.04, result.frontierCompactionKernelWorkerSeconds);
+    EXPECT_DOUBLE_EQ(0.06, result.frontierCompactionReadbackWorkerSeconds);
+  }
+
+  TEST(CompactingGpuDiffusePathLoopBackend, RejectsMissingCompactionBackend) {
+    EXPECT_THROW(CompactingGpuDiffusePathLoopBackend(nullptr), std::invalid_argument);
   }
 
   TEST(GpuDiffusePathLoop, TerminatesSurvivingContinuationsAtMaxDepth) {

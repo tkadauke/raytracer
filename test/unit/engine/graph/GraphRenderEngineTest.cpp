@@ -228,6 +228,36 @@ namespace GraphRenderEngineTest {
     }
   };
 
+  class ReportingMetalFrontierCompactionBackend final
+      : public render::GpuDiffusePathFrontierCompactionBackend {
+  public:
+    const char* name() const override {
+      return "metal_diffuse_frontier_compaction";
+    }
+
+    const char* pathStateResidency() const override {
+      return "metal_shared_diffuse_path_state";
+    }
+
+    render::GpuDiffusePathFrontierCompactionResult
+    compact(const std::vector<render::GpuDiffusePathStateRecord>& sourceRecords,
+            const std::vector<std::uint32_t>& retainedPathIndices) const override {
+      render::GpuDiffusePathFrontierCompactionResult result;
+      result.executionPath = name();
+      result.pathStateResidency = pathStateResidency();
+      result.inputPathCount = sourceRecords.size();
+      result.retainedPathIndices = retainedPathIndices;
+      result.uploadWorkerSeconds = 0.001;
+      result.kernelWorkerSeconds = 0.002;
+      result.readbackWorkerSeconds = 0.003;
+      result.retainedRecords.reserve(retainedPathIndices.size());
+      for (const std::uint32_t index : retainedPathIndices) {
+        result.retainedRecords.push_back(sourceRecords[index]);
+      }
+      return result;
+    }
+  };
+
   class RecordingObserver : public RenderGraphExecutionObserver {
   public:
     void passStarted(const RenderPassId& passId) override {
@@ -2491,6 +2521,81 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ("metal_path_state", loop.value("residency").toString().toStdString());
     EXPECT_EQ("metal", loop.value("platformName").toString().toStdString());
     EXPECT_TRUE(loop.value("fullPlatformGpuKernel").toBool());
+  }
+
+  TEST(GraphRenderEngine, ReportsHybridGpuCompactionForCompiledGpuRequest) {
+    const Colord background(0.125, 0.25, 0.5);
+    auto scene = std::make_shared<render::Scene>();
+    scene->setBackground(background);
+    scene->setEnvironmentRadiance(background);
+    auto receiver = std::make_shared<render::Rectangle>(
+      Vector3d(-20.0, -20.0, 0.0), Vector3d(40.0, 0.0, 0.0), Vector3d(0.0, 40.0, 0.0));
+    receiver->setMaterial(matte(Colord(0.8, 0.8, 0.8)));
+    scene->add(receiver);
+
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Wavefront;
+    intent.engineOptions.raytracer().setIntegrator("pathtracer");
+    intent.engineOptions.raytracer().setTracingExecution(TracingExecutionPreference::GPU);
+    intent.engineOptions.raytracer().setSamplesPerPixel(1);
+    intent.engineOptions.raytracer().setMaximumRecursionDepth(2);
+    intent.engineOptions.raytracer().setSampleStreamMode("gpu_sample_stream");
+
+    RenderSceneAnalysis analysis;
+    analysis.setFullGpuTracingSupportFromScene(*scene);
+    const RenderPlan plan = RenderGraphCompiler().compile({8, 8, 1}, intent, analysis);
+    auto compactionBackend = std::make_shared<ReportingMetalFrontierCompactionBackend>();
+    auto pathLoopBackend =
+      std::make_shared<render::CompactingGpuDiffusePathLoopBackend>(compactionBackend);
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(plan);
+    engine.setGpuDiffusePathLoopBackend(pathLoopBackend);
+
+    Buffer<Colord> buffer(8, 8);
+    engine.render(buffer);
+
+    const auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const RenderPassTrace* wavefront = trace->findPass("wavefront_beauty");
+    ASSERT_NE(nullptr, wavefront);
+
+    const QJsonObject metadata = wavefront->metadata();
+    const QJsonObject tracingExecution = metadata.value("tracingExecution").toObject();
+    EXPECT_EQ("gpu", tracingExecution.value("requestedMode").toString().toStdString());
+    EXPECT_EQ("gpu", tracingExecution.value("predictedMode").toString().toStdString());
+    EXPECT_EQ("hybrid", tracingExecution.value("actualMode").toString().toStdString());
+    EXPECT_NE(std::string::npos, tracingExecution.value("actualFallbackReason")
+                                   .toString()
+                                   .toStdString()
+                                   .find("platform full-GPU path-loop kernel"));
+
+    const QJsonObject batching = metadata.value("batching").toObject();
+    EXPECT_EQ("compiled_cpu_reference",
+              batching.value("tracingBackendMode").toString().toStdString());
+    EXPECT_EQ("cpu", batching.value("tracingBackend").toString().toStdString());
+    EXPECT_FALSE(batching.value("residentPathLoopFullPlatformGpuKernel").toBool());
+    EXPECT_TRUE(batching.value("intersectionBackendSupportsGpuFrontierCompaction").toBool());
+    EXPECT_TRUE(batching.value("intersectionBackendGpuFrontierCompactionUnavailableReason")
+                  .toString()
+                  .isEmpty());
+    EXPECT_EQ("metal_diffuse_frontier_compaction",
+              batching.value("frontierCompactionExecutionPath").toString().toStdString());
+    EXPECT_EQ("metal_shared_diffuse_path_state",
+              batching.value("frontierCompactionPathStateResidency").toString().toStdString());
+    EXPECT_GT(batching.value("frontierCompactionUploadWorkerSeconds").toDouble(), 0.0);
+    EXPECT_GT(batching.value("frontierCompactionKernelWorkerSeconds").toDouble(), 0.0);
+    EXPECT_GT(batching.value("frontierCompactionReadbackWorkerSeconds").toDouble(), 0.0);
+
+    const QJsonArray capabilities = batching.value("tracingBackendCapabilities").toArray();
+    const QJsonObject compaction = capabilityByName(capabilities, "state.frontier_compaction");
+    EXPECT_EQ("supported", compaction.value("support").toString().toStdString());
+    EXPECT_EQ("gpu", compaction.value("requestedDevice").toString().toStdString());
+    EXPECT_EQ("gpu", compaction.value("resolvedDevice").toString().toStdString());
+    EXPECT_EQ("metal_diffuse_frontier_compaction",
+              compaction.value("executionPath").toString().toStdString());
+    EXPECT_TRUE(compaction.value("fallback").toObject().value("reason").toString().isEmpty());
   }
 
   TEST(GraphRenderEngine, ReportsAutoTracingRequestForAutoSelectedCompiledDiffusePathLoop) {
