@@ -49,8 +49,10 @@
 > will consume, including serialized compiled-scene upload bytes and section
 > offsets, plus a Metal launch-probe kernel that binds those buffers through a
 > command buffer and copies initial path-state records into GPU-owned
-> active/next buffers while writing probe step records, without advertising full
-> GPU path tracing yet.
+> active/next buffers while writing probe step records. The Metal path-loop
+> probe can also resolve empty-scene background/environment misses into
+> terminated GPU path-state records, without advertising full GPU path tracing
+> yet.
 > This is a follow-up to
 > `docs/plans/wavefront-and-path-tracing.md` Phase 7+ and is now a child slice
 > of `docs/plans/tracing-execution-backends.md`. It should not replace the CPU

@@ -1576,23 +1576,109 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(2u, result.copiedInitialPathStates[1].depth);
     EXPECT_EQ(41u, result.copiedInitialPathStates[1].ray.rayIndex);
     EXPECT_FLOAT_EQ(0.5f, result.copiedInitialPathStates[1].previousBsdfPdf);
-    ASSERT_EQ(paths.size(), result.probeStepRecords.size());
+    ASSERT_EQ(paths.size(), result.stepRecords.size());
     EXPECT_EQ(static_cast<std::uint32_t>(GpuDiffusePathStepEvent::Inactive),
-              result.probeStepRecords[0].event);
-    EXPECT_EQ(0u, result.probeStepRecords[0].pathIndex);
-    EXPECT_EQ(12u, result.probeStepRecords[0].pixelIndex);
-    EXPECT_EQ(paths[0].primarySampleIndex, result.probeStepRecords[0].primarySampleIndex);
-    EXPECT_EQ(paths[0].depth, result.probeStepRecords[0].depth);
-    EXPECT_EQ(paths[0].flags, result.probeStepRecords[0].flags);
-    EXPECT_EQ(paths[0].throughput, result.probeStepRecords[0].continuationThroughput);
-    EXPECT_EQ(1u, result.probeStepRecords[1].pathIndex);
-    EXPECT_EQ(13u, result.probeStepRecords[1].pixelIndex);
-    EXPECT_EQ(2u, result.probeStepRecords[1].depth);
-    EXPECT_EQ(paths[1].flags, result.probeStepRecords[1].flags);
-    EXPECT_EQ(paths[1].throughput, result.probeStepRecords[1].continuationThroughput);
+              result.stepRecords[0].event);
+    EXPECT_EQ(0u, result.stepRecords[0].pathIndex);
+    EXPECT_EQ(12u, result.stepRecords[0].pixelIndex);
+    EXPECT_EQ(paths[0].primarySampleIndex, result.stepRecords[0].primarySampleIndex);
+    EXPECT_EQ(paths[0].depth, result.stepRecords[0].depth);
+    EXPECT_EQ(paths[0].flags, result.stepRecords[0].flags);
+    EXPECT_EQ(paths[0].throughput, result.stepRecords[0].continuationThroughput);
+    EXPECT_EQ(1u, result.stepRecords[1].pathIndex);
+    EXPECT_EQ(13u, result.stepRecords[1].pixelIndex);
+    EXPECT_EQ(2u, result.stepRecords[1].depth);
+    EXPECT_EQ(paths[1].flags, result.stepRecords[1].flags);
+    EXPECT_EQ(paths[1].throughput, result.stepRecords[1].continuationThroughput);
     EXPECT_GE(result.uploadWorkerSeconds, 0.0);
     EXPECT_GE(result.kernelWorkerSeconds, 0.0);
     EXPECT_GE(result.readbackWorkerSeconds, 0.0);
+#else
+    GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
+#endif
+  }
+
+  TEST(MetalGpuDiffusePathLoopKernel, AllMissProbeResolvesBackgroundAndEnvironmentWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    MetalGpuDiffusePathLoopKernel kernel;
+    if (!kernel.launchPathAvailable()) {
+      GTEST_SKIP() << kernel.launchPathUnavailableReason();
+    }
+
+    Scene scene;
+    scene.setBackground(Colord(0.25, 0.5, 0.75));
+    scene.setEnvironmentRadiance(Colord(0.75, 0.5, 0.25));
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 2;
+    settings.russianRouletteDepth = 1;
+    const TracingAccumulationLayout accumulationLayout = TracingAccumulationLayout::image(2, 2);
+    std::vector<GpuDiffusePathStateRecord> paths{activePath(40), activePath(41),
+                                                 makeTerminatedGpuDiffusePathState()};
+    paths[0].pixelIndex = 12;
+    paths[0].throughput = {0.5f, 0.25f, 0.125f, 0.0f};
+    paths[1].pixelIndex = 13;
+    paths[1].depth = 1;
+    paths[1].throughput = {0.5f, 0.25f, 0.125f, 0.0f};
+    paths[2].pixelIndex = 14;
+    paths[2].primarySampleIndex = 3;
+    const GpuDiffusePathLoopLaunchPlan plan =
+      GpuDiffusePathLoopLaunchPlanner().plan(sections, paths, accumulationLayout, settings);
+
+    const MetalGpuDiffusePathLoopKernelResult result = kernel.runAllMissProbe(plan, paths);
+
+    EXPECT_EQ("metal_diffuse_path_loop_all_miss_probe", result.executionPath);
+    EXPECT_EQ("metal_shared_diffuse_path_state", result.pathStateResidency);
+    ASSERT_EQ(paths.size(), result.resolvedPathStates.size());
+    ASSERT_EQ(paths.size(), result.stepRecords.size());
+
+    EXPECT_TRUE(gpuDiffusePathStateIsTerminated(result.resolvedPathStates[0]));
+    EXPECT_TRUE(gpuDiffusePathStateIsTerminated(result.resolvedPathStates[1]));
+    EXPECT_TRUE(gpuDiffusePathStateIsTerminated(result.resolvedPathStates[2]));
+    ASSERT_COLOR_NEAR(Colord(0.125, 0.125, 0.09375),
+                      colorFrom4(result.resolvedPathStates[0].accumulatedRadiance), 1e-6);
+    ASSERT_COLOR_NEAR(Colord(0.375, 0.125, 0.03125),
+                      colorFrom4(result.resolvedPathStates[1].accumulatedRadiance), 1e-6);
+    ASSERT_COLOR_NEAR(Colord::black(), colorFrom4(result.resolvedPathStates[2].accumulatedRadiance),
+                      1e-6);
+
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuDiffusePathStepEvent::Miss),
+              result.stepRecords[0].event);
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuDiffusePathStepEvent::Miss),
+              result.stepRecords[1].event);
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuDiffusePathStepEvent::Inactive),
+              result.stepRecords[2].event);
+    ASSERT_COLOR_NEAR(Colord(0.125, 0.125, 0.09375), colorFrom4(result.stepRecords[0].missRadiance),
+                      1e-6);
+    ASSERT_COLOR_NEAR(Colord(0.375, 0.125, 0.03125), colorFrom4(result.stepRecords[1].missRadiance),
+                      1e-6);
+    EXPECT_EQ(result.resolvedPathStates[0].flags, result.stepRecords[0].flags);
+    EXPECT_EQ(result.resolvedPathStates[1].flags, result.stepRecords[1].flags);
+    EXPECT_EQ(paths[2].flags, result.stepRecords[2].flags);
+#else
+    GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
+#endif
+  }
+
+  TEST(MetalGpuDiffusePathLoopKernel, AllMissProbeRejectsNonEmptyGeometryBeforeDispatch) {
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    Scene scene;
+    auto matte =
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::white()));
+    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    receiver->setMaterial(matte);
+    scene.add(receiver);
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 1;
+    const std::vector<GpuDiffusePathStateRecord> paths{activePath()};
+    const GpuDiffusePathLoopLaunchPlan plan = GpuDiffusePathLoopLaunchPlanner().plan(
+      sections, paths, TracingAccumulationLayout::image(1, 1), settings);
+
+    EXPECT_THROW((void)MetalGpuDiffusePathLoopKernel().runAllMissProbe(plan, paths),
+                 std::invalid_argument);
 #else
     GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
 #endif

@@ -84,6 +84,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Add compiled scene section offsets to GPU diffuse path-loop launch
   descriptors, making material, texture, light, environment, and debug-id
   records addressable from platform path-loop kernels. — GPT-5 Codex
+- Add a restricted Metal diffuse path-loop all-miss probe that resolves visible
+  background and environment radiance into terminated GPU path-state records for
+  empty compiled scenes. — GPT-5 Codex
 
 ### Fixed
 

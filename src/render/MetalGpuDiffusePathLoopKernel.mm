@@ -24,6 +24,8 @@ namespace render {
     static_assert(alignof(GpuDiffusePathStateRecord) == 16);
     static_assert(sizeof(GpuDiffusePathStepRecord) == 96);
     static_assert(alignof(GpuDiffusePathStepRecord) == 16);
+    static_assert(sizeof(GpuTracingEnvironmentRecord) == 32);
+    static_assert(alignof(GpuTracingEnvironmentRecord) == 16);
 
     id<MTLDevice> sharedMetalDevice() {
       static id<MTLDevice> device = MTLCreateSystemDefaultDevice();
@@ -127,6 +129,49 @@ namespace render {
               "  float4 missRadiance;\n"
               "  float4 continuationThroughput;\n"
               "};\n"
+              "struct GpuTracingEnvironmentRecord {\n"
+              "  uint texture;\n"
+              "  uint flags;\n"
+              "  uint2 reserved;\n"
+              "  float4 color;\n"
+              "};\n"
+              "constant uint gpuDiffusePathStateActiveFlag = 1u;\n"
+              "constant uint gpuDiffusePathStateTerminatedFlag = 2u;\n"
+              "constant uint gpuDiffusePathStepEventInactive = 0u;\n"
+              "constant uint gpuDiffusePathStepEventMiss = 1u;\n"
+              "bool pathStateIsActive(const GpuDiffusePathStateRecord path) {\n"
+              "  return (path.flags & gpuDiffusePathStateActiveFlag) != 0u &&\n"
+              "         (path.flags & gpuDiffusePathStateTerminatedFlag) == 0u;\n"
+              "}\n"
+              "GpuDiffusePathStepRecord inactiveStep(uint pathIndex,\n"
+              "                                      GpuDiffusePathStateRecord path) {\n"
+              "  GpuDiffusePathStepRecord step;\n"
+              "  step.event = gpuDiffusePathStepEventInactive;\n"
+              "  step.pathIndex = pathIndex;\n"
+              "  step.pixelIndex = path.pixelIndex;\n"
+              "  step.primarySampleIndex = path.primarySampleIndex;\n"
+              "  step.depth = path.depth;\n"
+              "  step.material = 0u;\n"
+              "  step.object = 0u;\n"
+              "  step.flags = path.flags;\n"
+              "  step.emittedRadiance = float4(0.0f);\n"
+              "  step.directLightRadiance = float4(0.0f);\n"
+              "  step.missRadiance = float4(0.0f);\n"
+              "  step.continuationThroughput = path.throughput;\n"
+              "  return step;\n"
+              "}\n"
+              "float4 missRadiance(constant GpuDiffusePathLoopLaunchParameters& parameters,\n"
+              "                    device const uchar* sceneUpload,\n"
+              "                    GpuDiffusePathStateRecord path) {\n"
+              "  if (parameters.environmentCount == 0u) {\n"
+              "    return float4(0.0f);\n"
+              "  }\n"
+              "  uint environmentIndex = path.depth == 0u ? 0u : parameters.environmentCount - 1u;\n"
+              "  device const GpuTracingEnvironmentRecord* environment =\n"
+              "      reinterpret_cast<device const GpuTracingEnvironmentRecord*>(\n"
+              "          sceneUpload + parameters.environmentByteOffset);\n"
+              "  return environment[environmentIndex].color;\n"
+              "}\n"
               "kernel void probeDiffusePathLoopLaunch(\n"
               "    constant GpuDiffusePathLoopLaunchParameters& parameters [[buffer(0)]],\n"
               "    device GpuDiffusePathLoopLaunchParameters* echoedParameters [[buffer(1)]],\n"
@@ -148,25 +193,46 @@ namespace render {
               "  }\n"
               "  activePathStates[id] = initialPathStates[id];\n"
               "  nextPathStates[id] = activePathStates[id];\n"
-              "  GpuDiffusePathStepRecord step;\n"
-              "  step.event = 0u;\n"
-              "  step.pathIndex = id;\n"
-              "  step.pixelIndex = initialPathStates[id].pixelIndex;\n"
-              "  step.primarySampleIndex = initialPathStates[id].primarySampleIndex;\n"
-              "  step.depth = initialPathStates[id].depth;\n"
-              "  step.material = 0u;\n"
-              "  step.object = 0u;\n"
-              "  step.flags = initialPathStates[id].flags;\n"
-              "  step.emittedRadiance = float4(0.0f);\n"
-              "  step.directLightRadiance = float4(0.0f);\n"
-              "  step.missRadiance = float4(0.0f);\n"
-              "  step.continuationThroughput = initialPathStates[id].throughput;\n"
-              "  stepRecords[id] = step;\n"
+              "  stepRecords[id] = inactiveStep(id, initialPathStates[id]);\n"
               "  (void)sceneUpload;\n"
+              "}\n"
+              "kernel void probeDiffusePathLoopAllMiss(\n"
+              "    constant GpuDiffusePathLoopLaunchParameters& parameters [[buffer(0)]],\n"
+              "    device GpuDiffusePathLoopLaunchParameters* echoedParameters [[buffer(1)]],\n"
+              "    device const uchar* sceneUpload [[buffer(2)]],\n"
+              "    device const GpuDiffusePathStateRecord* initialPathStates [[buffer(3)]],\n"
+              "    device GpuDiffusePathStateRecord* activePathStates [[buffer(4)]],\n"
+              "    device GpuDiffusePathStateRecord* nextPathStates [[buffer(5)]],\n"
+              "    device GpuDiffusePathStepRecord* stepRecords [[buffer(6)]],\n"
+              "    device uchar* retainedIndices [[buffer(7)]],\n"
+              "    device uchar* accumulation [[buffer(8)]],\n"
+              "    uint id [[thread_position_in_grid]]) {\n"
+              "  if (id == 0u) {\n"
+              "    echoedParameters[0] = parameters;\n"
+              "    retainedIndices[0] = 0u;\n"
+              "    accumulation[0] = 0u;\n"
+              "  }\n"
+              "  if (id >= parameters.initialPathCount) {\n"
+              "    return;\n"
+              "  }\n"
+              "  GpuDiffusePathStateRecord path = initialPathStates[id];\n"
+              "  GpuDiffusePathStepRecord step = inactiveStep(id, path);\n"
+              "  if (pathStateIsActive(path)) {\n"
+              "    float4 contribution = path.throughput * missRadiance(parameters, sceneUpload, path);\n"
+              "    path.accumulatedRadiance += contribution;\n"
+              "    path.flags = (path.flags & ~gpuDiffusePathStateActiveFlag) |\n"
+              "                 gpuDiffusePathStateTerminatedFlag;\n"
+              "    step.event = gpuDiffusePathStepEventMiss;\n"
+              "    step.missRadiance = contribution;\n"
+              "    step.flags = path.flags;\n"
+              "  }\n"
+              "  activePathStates[id] = path;\n"
+              "  nextPathStates[id] = path;\n"
+              "  stepRecords[id] = step;\n"
               "}\n";
     }
 
-    id<MTLComputePipelineState> newPipeline(id<MTLDevice> device) {
+    id<MTLComputePipelineState> newPipeline(id<MTLDevice> device, NSString* functionName) {
       NSError* error = nil;
       id<MTLLibrary> library = [device newLibraryWithSource:diffusePathLoopKernelSource()
                                                     options:nil
@@ -175,9 +241,9 @@ namespace render {
         throw metalError("Metal diffuse path-loop shader compilation failed", error);
       }
 
-      id<MTLFunction> function = [library newFunctionWithName:@"probeDiffusePathLoopLaunch"];
+      id<MTLFunction> function = [library newFunctionWithName:functionName];
       if (!function) {
-        throw std::runtime_error("Metal diffuse path-loop launch probe function was not found");
+        throw std::runtime_error("Metal diffuse path-loop probe function was not found");
       }
 
       id<MTLComputePipelineState> pipeline = [device newComputePipelineStateWithFunction:function
@@ -191,7 +257,15 @@ namespace render {
     id<MTLComputePipelineState> sharedLaunchProbePipeline() {
       static id<MTLComputePipelineState> pipeline = [] {
         id<MTLDevice> device = sharedMetalDevice();
-        return device ? newPipeline(device) : nil;
+        return device ? newPipeline(device, @"probeDiffusePathLoopLaunch") : nil;
+      }();
+      return pipeline;
+    }
+
+    id<MTLComputePipelineState> sharedAllMissProbePipeline() {
+      static id<MTLComputePipelineState> pipeline = [] {
+        id<MTLDevice> device = sharedMetalDevice();
+        return device ? newPipeline(device, @"probeDiffusePathLoopAllMiss") : nil;
       }();
       return pipeline;
     }
@@ -348,10 +422,138 @@ namespace render {
         std::memcpy(result.copiedInitialPathStates.data(), [activePathBuffer contents],
                     result.copiedInitialPathStates.size() * sizeof(GpuDiffusePathStateRecord));
       }
-      result.probeStepRecords.resize(initialPathStates.size());
-      if (!result.probeStepRecords.empty()) {
-        std::memcpy(result.probeStepRecords.data(), [stepRecordBuffer contents],
-                    result.probeStepRecords.size() * sizeof(GpuDiffusePathStepRecord));
+      result.stepRecords.resize(initialPathStates.size());
+      if (!result.stepRecords.empty()) {
+        std::memcpy(result.stepRecords.data(), [stepRecordBuffer contents],
+                    result.stepRecords.size() * sizeof(GpuDiffusePathStepRecord));
+      }
+      result.readbackWorkerSeconds =
+        elapsedSeconds(readbackStart, std::chrono::steady_clock::now());
+      return result;
+    }
+  }
+
+  MetalGpuDiffusePathLoopKernelResult
+  MetalGpuDiffusePathLoopKernel::runAllMissProbe(
+    const GpuDiffusePathLoopLaunchPlan& plan,
+    const std::vector<GpuDiffusePathStateRecord>& initialPathStates) const {
+    if (plan.parameters.layoutVersion != gpuDiffusePathLoopLaunchLayoutVersion) {
+      throw std::invalid_argument("Metal diffuse path-loop launch descriptor version mismatch");
+    }
+    if (plan.parameters.maxDepth == 0) {
+      throw std::invalid_argument("Metal diffuse path-loop all-miss probe requires positive max depth");
+    }
+    if (plan.parameters.primitiveCount != 0u || plan.parameters.bvhNodeCount != 0u) {
+      throw std::invalid_argument(
+        "Metal diffuse path-loop all-miss probe requires an empty compiled geometry section");
+    }
+    if (initialPathStates.size() != plan.parameters.initialPathCount) {
+      throw std::invalid_argument(
+        "Metal diffuse path-loop initial path-state count does not match launch descriptor");
+    }
+    if (plan.sceneUpload.size() != plan.buffers.sceneUploadBytes) {
+      throw std::invalid_argument(
+        "Metal diffuse path-loop scene upload bytes do not match launch descriptor");
+    }
+
+    @autoreleasepool {
+      if (!launchPathAvailable()) {
+        throw std::runtime_error(launchPathUnavailableReason());
+      }
+
+      id<MTLDevice> device = sharedMetalDevice();
+      id<MTLCommandQueue> queue = sharedCommandQueue();
+      id<MTLComputePipelineState> pipeline = sharedAllMissProbePipeline();
+      if (!pipeline) {
+        throw std::runtime_error("Metal diffuse path-loop all-miss probe pipeline was not created");
+      }
+
+      const auto uploadStart = std::chrono::steady_clock::now();
+      id<MTLBuffer> parameterBuffer =
+        [device newBufferWithBytes:&plan.parameters
+                            length:sizeof(GpuDiffusePathLoopLaunchParameters)
+                           options:MTLResourceStorageModeShared];
+      id<MTLBuffer> echoedParameterBuffer =
+        [device newBufferWithLength:sizeof(GpuDiffusePathLoopLaunchParameters)
+                            options:MTLResourceStorageModeShared];
+      id<MTLBuffer> sceneUploadBuffer =
+        plan.sceneUpload.empty()
+          ? [device newBufferWithLength:1 options:MTLResourceStorageModeShared]
+          : [device newBufferWithBytes:plan.sceneUpload.data()
+                                length:plan.buffers.sceneUploadBytes
+                               options:MTLResourceStorageModeShared];
+      id<MTLBuffer> initialPathBuffer = initialPathStates.empty()
+                                          ? [device newBufferWithLength:1
+                                                                options:MTLResourceStorageModeShared]
+                                          : [device newBufferWithBytes:initialPathStates.data()
+                                                                length:plan.buffers.initialPathStateBytes
+                                                               options:MTLResourceStorageModeShared];
+      id<MTLBuffer> activePathBuffer =
+        [device newBufferWithLength:bufferLength(plan.buffers.activePathStateBytes)
+                            options:MTLResourceStorageModeShared];
+      id<MTLBuffer> nextPathBuffer =
+        [device newBufferWithLength:bufferLength(plan.buffers.nextPathStateBytes)
+                            options:MTLResourceStorageModeShared];
+      id<MTLBuffer> stepRecordBuffer =
+        [device newBufferWithLength:bufferLength(plan.buffers.stepRecordBytes)
+                            options:MTLResourceStorageModeShared];
+      id<MTLBuffer> retainedIndexBuffer =
+        [device newBufferWithLength:bufferLength(plan.buffers.retainedIndexBytes)
+                            options:MTLResourceStorageModeShared];
+      id<MTLBuffer> accumulationBuffer =
+        [device newBufferWithLength:bufferLength(plan.buffers.accumulationBytes)
+                            options:MTLResourceStorageModeShared];
+      if (!parameterBuffer || !echoedParameterBuffer || !sceneUploadBuffer || !initialPathBuffer ||
+          !activePathBuffer || !nextPathBuffer || !stepRecordBuffer || !retainedIndexBuffer ||
+          !accumulationBuffer) {
+        throw std::runtime_error("Metal diffuse path-loop all-miss probe buffer allocation failed");
+      }
+      MetalGpuDiffusePathLoopKernelResult result;
+      result.executionPath = "metal_diffuse_path_loop_all_miss_probe";
+      result.bufferSizes = plan.buffers;
+      result.uploadWorkerSeconds = elapsedSeconds(uploadStart, std::chrono::steady_clock::now());
+
+      id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
+      id<MTLComputeCommandEncoder> encoder = [commandBuffer computeCommandEncoder];
+      if (!commandBuffer || !encoder) {
+        throw std::runtime_error("Metal diffuse path-loop all-miss probe command setup failed");
+      }
+
+      [encoder setComputePipelineState:pipeline];
+      [encoder setBuffer:parameterBuffer offset:0 atIndex:0];
+      [encoder setBuffer:echoedParameterBuffer offset:0 atIndex:1];
+      [encoder setBuffer:sceneUploadBuffer offset:0 atIndex:2];
+      [encoder setBuffer:initialPathBuffer offset:0 atIndex:3];
+      [encoder setBuffer:activePathBuffer offset:0 atIndex:4];
+      [encoder setBuffer:nextPathBuffer offset:0 atIndex:5];
+      [encoder setBuffer:stepRecordBuffer offset:0 atIndex:6];
+      [encoder setBuffer:retainedIndexBuffer offset:0 atIndex:7];
+      [encoder setBuffer:accumulationBuffer offset:0 atIndex:8];
+      [encoder dispatchThreads:MTLSizeMake(std::max<std::size_t>(1, initialPathStates.size()), 1, 1)
+         threadsPerThreadgroup:MTLSizeMake(1, 1, 1)];
+      [encoder endEncoding];
+
+      const auto kernelStart = std::chrono::steady_clock::now();
+      [commandBuffer commit];
+      [commandBuffer waitUntilCompleted];
+      result.kernelWorkerSeconds = elapsedSeconds(kernelStart, std::chrono::steady_clock::now());
+      if (commandBuffer.status == MTLCommandBufferStatusError) {
+        throw metalError("Metal diffuse path-loop all-miss probe dispatch failed",
+                         commandBuffer.error);
+      }
+
+      const auto readbackStart = std::chrono::steady_clock::now();
+      std::memcpy(&result.echoedParameters, [echoedParameterBuffer contents],
+                  sizeof(result.echoedParameters));
+      result.resolvedPathStates.resize(initialPathStates.size());
+      if (!result.resolvedPathStates.empty()) {
+        std::memcpy(result.resolvedPathStates.data(), [activePathBuffer contents],
+                    result.resolvedPathStates.size() * sizeof(GpuDiffusePathStateRecord));
+      }
+      result.stepRecords.resize(initialPathStates.size());
+      if (!result.stepRecords.empty()) {
+        std::memcpy(result.stepRecords.data(), [stepRecordBuffer contents],
+                    result.stepRecords.size() * sizeof(GpuDiffusePathStepRecord));
       }
       result.readbackWorkerSeconds =
         elapsedSeconds(readbackStart, std::chrono::steady_clock::now());

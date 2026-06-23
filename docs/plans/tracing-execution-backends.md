@@ -2489,11 +2489,14 @@ scene is large enough to amortize upload/readback costs.
      accumulation buffers, uploads the serialized compiled-scene payload with
      descriptor-visible section offsets, and copies initial path-state records
      into GPU active/next path-state buffers while writing probe
-     `GpuDiffusePathStepRecord` rows. This proves the command-buffer,
-     scene-upload, path-state, and step-record ABI for the future path-loop
-     kernel; shading, continuation, direct lighting,
-     compaction, and accumulation still need to move into this backend before it
-     can advertise full GPU execution.
+     `GpuDiffusePathStepRecord` rows. A restricted all-miss Metal probe now
+     also reads the environment section from the serialized scene upload and
+     resolves empty-scene background/environment misses into terminated
+     GPU-owned path-state records. This proves the command-buffer, scene-upload,
+     environment-record, path-state, and step-record ABI for the future
+     path-loop kernel; closest-hit traversal, material shading, continuation,
+     direct lighting, compaction, and accumulation still need to move into this
+     backend before it can advertise full GPU execution.
 
 3. **Add a minimal Vulkan path-loop kernel.**
    - Depends on: job 1.
