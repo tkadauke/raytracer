@@ -20,9 +20,11 @@ namespace render {
     }
 
     [[nodiscard]] bool
-    primitiveUsesSupportedGeometry(const GpuIntersectionPrimitiveRecord& primitive) {
+    primitiveUsesSupportedGeometry(const GpuIntersectionPrimitiveRecord& primitive,
+                                   std::size_t transformCount) {
       const auto kind = static_cast<GpuIntersectionPrimitiveKind>(primitive.kind);
-      return primitive.transform == 0u && primitive.payloadCount == 1u &&
+      return primitive.payloadCount == 1u &&
+             (primitive.transform == 0u || primitive.transform < transformCount) &&
              (kind == GpuIntersectionPrimitiveKind::Triangle ||
               kind == GpuIntersectionPrimitiveKind::Sphere ||
               kind == GpuIntersectionPrimitiveKind::Plane ||
@@ -34,12 +36,14 @@ namespace render {
       const GpuIntersectionSceneBuffers& geometry = scene.geometry;
       return !geometry.primitives.empty() && !geometry.bvh.empty() &&
              geometry.openCylinders.empty() && geometry.tori.empty() &&
-             geometry.transforms.empty() &&
              geometry.triangles.size() + geometry.spheres.size() + geometry.planes.size() +
                  geometry.rectangles.size() + geometry.disks.size() ==
                geometry.primitives.size() &&
              std::all_of(geometry.primitives.begin(), geometry.primitives.end(),
-                         primitiveUsesSupportedGeometry);
+                         [&geometry](const GpuIntersectionPrimitiveRecord& primitive) {
+                           return primitiveUsesSupportedGeometry(primitive,
+                                                                 geometry.transforms.size());
+                         });
     }
 
     [[nodiscard]] bool sceneHasNoGeometry(const GpuTracingSceneSections& scene) {
@@ -275,7 +279,7 @@ namespace render {
     }
     if (!sceneHasNoGeometry(scene) && !sceneHasSupportedGeometry(scene)) {
       return {false, "Metal diffuse path-loop backend currently supports empty geometry or "
-                     "untransformed triangle/sphere/plane/rectangle/disk geometry only"};
+                     "triangle/sphere/plane/rectangle/disk geometry only"};
     }
     if (!supportedMaterials(scene)) {
       return {
