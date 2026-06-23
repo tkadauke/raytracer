@@ -83,6 +83,14 @@ That split gives three useful execution modes:
   back the final image, but it no longer shades every hit or decides
   every continuation between device queries.
 
+The current full-GPU path-loop support is intentionally narrow. Metal-enabled
+builds can execute explicit GPU requests for empty scenes and untransformed
+sphere/plane scenes using Matte or Emissive materials, ConstantColor textures,
+and point, directional, or rectangular area lights. Vulkan currently covers the
+same path-loop contract only for empty-scene all-miss execution. Unsupported
+scenes still report the CPU-reference or hybrid diagnostic backend instead of
+pretending that the GPU owns the whole path tracer.
+
 Matching rendered images are therefore meaningful backend evidence
 only when the comparison holds the algorithm and schedule contract
 steady. A CPU path tracer and a hybrid GPU-intersection path tracer may
@@ -826,6 +834,14 @@ choices become inspectable user-facing metadata.
 - `src/render/TracingPathStateBuffer.cpp`
 - `include/render/VulkanTracingAccumulationKernel.h`
 - `src/render/VulkanTracingAccumulationKernel.cpp`
+- `include/render/GpuDiffusePathLoopBackend.h`
+- `src/render/GpuDiffusePathLoopBackend.cpp`
+- `include/render/GpuDiffusePathLoopLaunch.h`
+- `src/render/GpuDiffusePathLoopLaunch.cpp`
+- `include/render/MetalGpuDiffusePathLoopBackend.h`
+- `src/render/MetalGpuDiffusePathLoopBackend.cpp`
+- `include/render/MetalGpuDiffusePathLoopKernel.h`
+- `src/render/MetalGpuDiffusePathLoopKernel.mm`
 - `include/render/PathTracingIntegrator.h`
 - `src/render/PathTracingIntegrator.cpp`
 - `include/render/PathTermination.h`

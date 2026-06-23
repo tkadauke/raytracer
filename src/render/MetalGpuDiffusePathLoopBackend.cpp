@@ -19,12 +19,23 @@ namespace render {
                          [](float component) { return std::fabs(component) > 1.0e-8f; });
     }
 
-    [[nodiscard]] bool sceneHasOnlySphereGeometry(const GpuTracingSceneSections& scene) {
+    [[nodiscard]] bool
+    primitiveUsesSupportedGeometry(const GpuIntersectionPrimitiveRecord& primitive) {
+      const auto kind = static_cast<GpuIntersectionPrimitiveKind>(primitive.kind);
+      return primitive.transform == 0u && primitive.payloadCount == 1u &&
+             (kind == GpuIntersectionPrimitiveKind::Sphere ||
+              kind == GpuIntersectionPrimitiveKind::Plane);
+    }
+
+    [[nodiscard]] bool sceneHasSupportedGeometry(const GpuTracingSceneSections& scene) {
       const GpuIntersectionSceneBuffers& geometry = scene.geometry;
       return !geometry.primitives.empty() && !geometry.bvh.empty() && geometry.triangles.empty() &&
-             geometry.planes.empty() && geometry.rectangles.empty() && geometry.disks.empty() &&
+             geometry.rectangles.empty() && geometry.disks.empty() &&
              geometry.openCylinders.empty() && geometry.tori.empty() &&
-             geometry.transforms.empty() && geometry.spheres.size() == geometry.primitives.size();
+             geometry.transforms.empty() &&
+             geometry.spheres.size() + geometry.planes.size() == geometry.primitives.size() &&
+             std::all_of(geometry.primitives.begin(), geometry.primitives.end(),
+                         primitiveUsesSupportedGeometry);
     }
 
     [[nodiscard]] bool sceneHasNoGeometry(const GpuTracingSceneSections& scene) {
@@ -258,10 +269,9 @@ namespace render {
     if (settings.maxDepth == 0u) {
       return {false, "Metal diffuse path-loop backend requires positive max depth"};
     }
-    if (!sceneHasNoGeometry(scene) && !sceneHasOnlySphereGeometry(scene)) {
-      return {false,
-              "Metal diffuse path-loop backend currently supports empty or untransformed sphere "
-              "geometry only"};
+    if (!sceneHasNoGeometry(scene) && !sceneHasSupportedGeometry(scene)) {
+      return {false, "Metal diffuse path-loop backend currently supports empty geometry or "
+                     "untransformed sphere/plane geometry only"};
     }
     if (!supportedMaterials(scene)) {
       return {

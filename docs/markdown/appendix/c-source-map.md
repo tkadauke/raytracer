@@ -88,6 +88,8 @@
 | `include/engine/raytracer/Raytracer.h` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
 | `include/engine/wavefront/WavefrontRaytracer.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `include/engine/wireframe/Wireframe.h` | [Wireframe rendering](../rasterization/wireframe-rendering.md) |
+| `include/render/GpuDiffusePathLoopBackend.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
+| `include/render/GpuDiffusePathLoopLaunch.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `include/render/GpuIntersectionScene.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `include/render/GpuTracingScene.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `include/render/HomogeneousClipVolume.h` | [Clipping, depth, stencil](../rasterization/clipping-depth-stencil.md)<br>[The rasterization pipeline](../rasterization/the-rasterization-pipeline.md) |
@@ -95,6 +97,8 @@
 | `include/render/IntersectionSceneCompiler.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `include/render/IntersectionService.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `include/render/MIS.h` | [Materials and BRDFs](../ray-rendering/materials-and-brdfs.md) |
+| `include/render/MetalGpuDiffusePathLoopBackend.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
+| `include/render/MetalGpuDiffusePathLoopKernel.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `include/render/MetalWavefrontSmokeKernel.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `include/render/PathTermination.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `include/render/PathTracingIntegrator.h` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
@@ -272,11 +276,15 @@
 | `src/engine/wireframe/Wireframe.cpp` | [Wireframe rendering](../rasterization/wireframe-rendering.md) |
 | `src/modeler/` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `src/modeler/MainWindow.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md)<br>[LDraw import](../tools-and-io/ldraw-import.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
+| `src/render/GpuDiffusePathLoopBackend.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
+| `src/render/GpuDiffusePathLoopLaunch.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `src/render/GpuIntersectionScene.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `src/render/GpuTracingScene.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `src/render/Integrator.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `src/render/IntersectionSceneCompiler.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `src/render/IntersectionService.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
+| `src/render/MetalGpuDiffusePathLoopBackend.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
+| `src/render/MetalGpuDiffusePathLoopKernel.mm` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `src/render/MetalWavefrontSmokeKernel.mm` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `src/render/PathTracingIntegrator.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |
 | `src/render/TracingAccumulationLayout.cpp` | [Wavefront and path tracing](../ray-rendering/wavefront-and-path-tracing.md) |

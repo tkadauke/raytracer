@@ -122,11 +122,11 @@ end state for GPU tracing.
 - Platform GPU-side path/frontier compaction for scheduler-owned path records.
 - Broad platform full-GPU path-loop kernels for the normal render path. A
   restricted Metal path-loop kernel can advance empty-scene and
-  sphere/Matte/Emissive paths across multiple depths for backend tests and
-  explicit GPU graph requests, and a restricted Vulkan path-loop backend can
-  execute empty-scene all-miss paths when Vulkan is built and available. Graph
-  auto-selection still waits for Vulkan shaded-path parity, broader scene
-  support, and performance gates.
+  untransformed sphere/plane Matte/Emissive paths across multiple depths for
+  backend tests and explicit GPU graph requests, and a restricted Vulkan
+  path-loop backend can execute empty-scene all-miss paths when Vulkan is built
+  and available. Graph auto-selection still waits for Vulkan shaded-path
+  parity, broader scene support, and performance gates.
 - Platform full-GPU path-loop backend selection beyond that restricted Metal
   subset and the restricted Vulkan all-miss subset. The factory hook can return
   Metal or Vulkan platform backends in platform-enabled builds, but ordinary
@@ -2535,13 +2535,13 @@ scene is large enough to amortize upload/readback costs.
      continuation, direct-light-contribution, emissive-hit-termination, and
      terminal accumulation ABI plus the retained-frontier ABI for the future
      path-loop kernel. A restricted `MetalGpuDiffusePathLoopBackend` now wraps
-     the empty-scene and sphere/Matte/Emissive paths behind the platform
-     backend interface, including scene/settings support rejection and full-GPU
-     result metadata for backend tests. Its first real path-loop dispatch can
-     advance supported paths across multiple depths inside one Metal command
-     buffer for that narrow subset. Broader primitive traversal, full material
-     shading, full direct-light coverage, device-side compacted wavefront
-     scheduling, Vulkan parity, performance gates, and render-graph
+     the empty-scene and untransformed sphere/plane Matte/Emissive paths behind
+     the platform backend interface, including scene/settings support rejection
+     and full-GPU result metadata for backend tests. Its first real path-loop
+     dispatch can advance supported paths across multiple depths inside one
+     Metal command buffer for that narrow subset. Broader primitive traversal,
+     full material shading, full direct-light coverage, device-side compacted
+     wavefront scheduling, Vulkan parity, performance gates, and render-graph
      auto-selection still need to land before it can be used as the automatic
      full GPU tracing path.
 
