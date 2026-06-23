@@ -30,15 +30,16 @@ namespace render {
               kind == GpuIntersectionPrimitiveKind::Plane ||
               kind == GpuIntersectionPrimitiveKind::Rectangle ||
               kind == GpuIntersectionPrimitiveKind::Disk ||
-              kind == GpuIntersectionPrimitiveKind::OpenCylinder);
+              kind == GpuIntersectionPrimitiveKind::OpenCylinder ||
+              kind == GpuIntersectionPrimitiveKind::Torus);
     }
 
     [[nodiscard]] bool sceneHasSupportedGeometry(const GpuTracingSceneSections& scene) {
       const GpuIntersectionSceneBuffers& geometry = scene.geometry;
-      return !geometry.primitives.empty() && !geometry.bvh.empty() && geometry.tori.empty() &&
+      return !geometry.primitives.empty() && !geometry.bvh.empty() &&
              geometry.triangles.size() + geometry.spheres.size() + geometry.planes.size() +
                  geometry.rectangles.size() + geometry.disks.size() +
-                 geometry.openCylinders.size() ==
+                 geometry.openCylinders.size() + geometry.tori.size() ==
                geometry.primitives.size() &&
              std::all_of(geometry.primitives.begin(), geometry.primitives.end(),
                          [&geometry](const GpuIntersectionPrimitiveRecord& primitive) {
@@ -309,7 +310,7 @@ namespace render {
     }
     if (!sceneHasNoGeometry(scene) && !sceneHasSupportedGeometry(scene)) {
       return {false, "Metal diffuse path-loop backend currently supports empty geometry or "
-                     "triangle/sphere/plane/rectangle/disk/open-cylinder geometry only"};
+                     "triangle/sphere/plane/rectangle/disk/open-cylinder/torus geometry only"};
     }
     if (!supportedMaterials(scene)) {
       return {

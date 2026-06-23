@@ -2530,8 +2530,7 @@ scene is large enough to amortize upload/readback costs.
      The full Metal loop now also samples simple planar/UV CheckerBoard texture
      records whose children are ConstantColor records, so checker-textured
      matte/emissive scenes can stay in the GPU-owned path loop. OpenCylinder
-     payload traversal is now in the same full Metal loop; torus remains future
-     primitive coverage.
+     and Torus payload traversal are now in the same full Metal loop.
      Terminal outcomes from that continuation probe now clear and write the
      accumulation color/count planes for unique active pixel targets, including
      miss termination, emissive hits, unsupported hits, and diffuse paths that
