@@ -60,10 +60,12 @@ endif()
 
 if(RAYTRACER_ENABLE_METAL_WAVEFRONT)
   target_sources(raytracer PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/render/MetalResidentPathCompactionBackend.mm"
     "${CMAKE_CURRENT_SOURCE_DIR}/render/MetalTracingAccumulationKernel.mm"
     "${CMAKE_CURRENT_SOURCE_DIR}/render/MetalWavefrontSmokeKernel.mm"
   )
   set_source_files_properties(
+    "${CMAKE_CURRENT_SOURCE_DIR}/render/MetalResidentPathCompactionBackend.mm"
     "${CMAKE_CURRENT_SOURCE_DIR}/render/MetalTracingAccumulationKernel.mm"
     "${CMAKE_CURRENT_SOURCE_DIR}/render/MetalWavefrontSmokeKernel.mm"
     PROPERTIES COMPILE_FLAGS "-fobjc-arc"

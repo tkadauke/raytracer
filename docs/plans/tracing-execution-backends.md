@@ -2079,7 +2079,10 @@ diffuse path tracer for the first supported subset.
      `ResidentPathCompactionBackend` now gives the resident path loop an
      explicit compaction dispatch point, with the default CPU backend reporting
      `cpu_resident_path_compaction` so metrics no longer classify host
-     compaction as GPU execution.
+     compaction as GPU execution. Metal-enabled builds now also have a
+     standalone `MetalResidentPathCompactionBackend` that compacts retained
+     `GpuPathStateRecord` entries with a Metal compute kernel for the same
+     retained-index contract.
 
 3. **~~Loop over depth with max-depth and Russian roulette.~~** ✅ **Done.**
    Added `loopResidentDiffusePaths` as the CPU-reference resident path-state

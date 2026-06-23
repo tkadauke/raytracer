@@ -4,6 +4,10 @@
 #include "render/TracingPathStateBuffer.h"
 #include "test/helpers/ColorTestHelper.h"
 
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+#include "render/MetalResidentPathCompactionBackend.h"
+#endif
+
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
@@ -268,6 +272,42 @@ namespace TracingPathStateBufferTest {
     EXPECT_EQ(2u, result.contract.retainedPathCount());
     EXPECT_EQ(1u, result.contract.removedPathCount());
     EXPECT_EQ("cpu_resident_path_compaction", result.contract.executionPath());
+  }
+
+  TEST(MetalResidentPathCompactionBackend, CompactsRetainedPathRecordsWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    MetalResidentPathCompactionBackend backend;
+    if (!backend.compactionPathAvailable()) {
+      GTEST_SKIP() << backend.compactionPathUnavailableReason();
+    }
+
+    const Rayd ray(Vector4d(0.0, 0.0, 0.0, 1.0), Vector3d(0.0, 0.0, 1.0));
+    std::vector<GpuPathStateRecord> sourceRecords;
+    sourceRecords.push_back(makeGpuPathStateRecord(ray, Colord(0.1, 0.2, 0.3), Colord::black(),
+                                                   /*pixelIndex=*/7, /*sampleIndex=*/1,
+                                                   /*depth=*/0));
+    sourceRecords.push_back(makeGpuPathStateRecord(ray, Colord(0.4, 0.5, 0.6), Colord::black(),
+                                                   /*pixelIndex=*/8, /*sampleIndex=*/2,
+                                                   /*depth=*/1));
+    sourceRecords.push_back(makeGpuPathStateRecord(ray, Colord(0.7, 0.8, 0.9), Colord::black(),
+                                                   /*pixelIndex=*/9, /*sampleIndex=*/3,
+                                                   /*depth=*/2));
+
+    const ResidentPathCompactionResult result = backend.compact(sourceRecords, {1u, 2u});
+
+    EXPECT_EQ("metal_resident_path_compaction", result.contract.executionPath());
+    ASSERT_EQ(2u, result.retainedRecords.size());
+    EXPECT_EQ(sourceRecords[1].pixelIndex, result.retainedRecords[0].pixelIndex);
+    EXPECT_EQ(sourceRecords[1].sampleIndex, result.retainedRecords[0].sampleIndex);
+    EXPECT_EQ(sourceRecords[1].depth, result.retainedRecords[0].depth);
+    EXPECT_EQ(sourceRecords[1].throughput, result.retainedRecords[0].throughput);
+    EXPECT_EQ(sourceRecords[2].pixelIndex, result.retainedRecords[1].pixelIndex);
+    EXPECT_EQ(sourceRecords[2].sampleIndex, result.retainedRecords[1].sampleIndex);
+    EXPECT_EQ(sourceRecords[2].depth, result.retainedRecords[1].depth);
+    EXPECT_EQ(sourceRecords[2].throughput, result.retainedRecords[1].throughput);
+#else
+    GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
+#endif
   }
 
   TEST(ResidentDiffusePathLoop, ExecutesMultipleDepthsAndTerminatesAtMaxDepth) {

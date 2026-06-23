@@ -49,6 +49,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Add a resident path-state compaction backend seam and classify the current
   CPU-reference compaction path as `cpu_resident_path_compaction` instead of
   reporting it as GPU execution. — GPT-5 Codex
+- Add a Metal resident path-state compaction backend that compacts retained
+  `GpuPathStateRecord` entries with a Metal compute kernel. — GPT-5 Codex
 
 ### Fixed
 
