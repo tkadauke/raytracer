@@ -1453,6 +1453,7 @@ namespace GpuDiffusePathStepReferenceTest {
 
     const GpuDiffusePathLoopLaunchPlan plan =
       GpuDiffusePathLoopLaunchPlanner().plan(sections, paths, accumulationLayout, settings);
+    const auto layouts = sections.sectionLayouts();
 
     EXPECT_EQ(gpuDiffusePathLoopLaunchLayoutVersion, plan.parameters.layoutVersion);
     EXPECT_EQ(3u, plan.parameters.maxDepth);
@@ -1466,6 +1467,13 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(sections.lights.size(), plan.parameters.lightCount);
     EXPECT_EQ(sections.environment.size(), plan.parameters.environmentCount);
     EXPECT_EQ(sections.debugIds.size(), plan.parameters.debugIdCount);
+    EXPECT_EQ(layouts[0].byteOffset, plan.parameters.geometryByteOffset);
+    EXPECT_EQ(layouts[1].byteOffset, plan.parameters.materialByteOffset);
+    EXPECT_EQ(layouts[2].byteOffset, plan.parameters.textureByteOffset);
+    EXPECT_EQ(layouts[3].byteOffset, plan.parameters.lightByteOffset);
+    EXPECT_EQ(layouts[4].byteOffset, plan.parameters.environmentByteOffset);
+    EXPECT_EQ(layouts[5].byteOffset, plan.parameters.debugIdByteOffset);
+    EXPECT_EQ(sections.uploadByteCount(), plan.parameters.sceneUploadBytes);
     EXPECT_EQ(sections.geometry.bvh.size(), plan.parameters.bvhNodeCount);
     EXPECT_EQ(sections.geometry.primitives.size(), plan.parameters.primitiveCount);
     EXPECT_EQ(sections.geometry.transforms.size(), plan.parameters.transformCount);
@@ -1548,6 +1556,13 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(plan.parameters.lightCount, result.echoedParameters.lightCount);
     EXPECT_EQ(plan.parameters.environmentCount, result.echoedParameters.environmentCount);
     EXPECT_EQ(plan.parameters.debugIdCount, result.echoedParameters.debugIdCount);
+    EXPECT_EQ(plan.parameters.geometryByteOffset, result.echoedParameters.geometryByteOffset);
+    EXPECT_EQ(plan.parameters.materialByteOffset, result.echoedParameters.materialByteOffset);
+    EXPECT_EQ(plan.parameters.textureByteOffset, result.echoedParameters.textureByteOffset);
+    EXPECT_EQ(plan.parameters.lightByteOffset, result.echoedParameters.lightByteOffset);
+    EXPECT_EQ(plan.parameters.environmentByteOffset, result.echoedParameters.environmentByteOffset);
+    EXPECT_EQ(plan.parameters.debugIdByteOffset, result.echoedParameters.debugIdByteOffset);
+    EXPECT_EQ(plan.parameters.sceneUploadBytes, result.echoedParameters.sceneUploadBytes);
     EXPECT_EQ(plan.parameters.bvhNodeCount, result.echoedParameters.bvhNodeCount);
     EXPECT_EQ(plan.parameters.primitiveCount, result.echoedParameters.primitiveCount);
     EXPECT_EQ(plan.parameters.transformCount, result.echoedParameters.transformCount);

@@ -68,6 +68,13 @@ namespace render {
     plan.parameters.lightCount = checkedU32(scene.lights.size(), "light count");
     plan.parameters.environmentCount = checkedU32(scene.environment.size(), "environment count");
     plan.parameters.debugIdCount = checkedU32(scene.debugIds.size(), "debug id count");
+    const auto sectionLayouts = scene.sectionLayouts();
+    plan.parameters.geometryByteOffset = sectionLayouts[0].byteOffset;
+    plan.parameters.materialByteOffset = sectionLayouts[1].byteOffset;
+    plan.parameters.textureByteOffset = sectionLayouts[2].byteOffset;
+    plan.parameters.lightByteOffset = sectionLayouts[3].byteOffset;
+    plan.parameters.environmentByteOffset = sectionLayouts[4].byteOffset;
+    plan.parameters.debugIdByteOffset = sectionLayouts[5].byteOffset;
     plan.parameters.bvhNodeCount = checkedU32(scene.geometry.bvh.size(), "BVH node count");
     plan.parameters.primitiveCount =
       checkedU32(scene.geometry.primitives.size(), "primitive count");
@@ -76,6 +83,7 @@ namespace render {
 
     plan.sceneUpload = scene.uploadBytes();
     plan.buffers.sceneUploadBytes = plan.sceneUpload.size();
+    plan.parameters.sceneUploadBytes = checkedU32(plan.sceneUpload.size(), "scene upload bytes");
     plan.buffers.initialPathStateBytes = pathStateBytes(initialPathCount, "initial path state");
     plan.buffers.activePathStateBytes = pathStateBytes(initialPathCount, "active path state");
     plan.buffers.nextPathStateBytes = pathStateBytes(initialPathCount, "next path state");

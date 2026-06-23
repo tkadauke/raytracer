@@ -81,6 +81,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Carry serialized compiled tracing-scene upload bytes through GPU diffuse
   path-loop launch plans so platform path-loop kernels can consume real scene
   records instead of size-only placeholder buffers. — GPT-5 Codex
+- Add compiled scene section offsets to GPU diffuse path-loop launch
+  descriptors, making material, texture, light, environment, and debug-id
+  records addressable from platform path-loop kernels. — GPT-5 Codex
 
 ### Fixed
 

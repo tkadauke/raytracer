@@ -46,10 +46,11 @@
 > focusing on reusable intersection/frontier services that E15 consumes.
 > E15 now has a launch descriptor for the scene, path-state, step-record,
 > retained-index, and accumulation buffers that the future platform kernels
-> will consume, including serialized compiled-scene upload bytes, plus a Metal
-> launch-probe kernel that binds those buffers through a command buffer and
-> copies initial path-state records into GPU-owned active/next buffers while
-> writing probe step records, without advertising full GPU path tracing yet.
+> will consume, including serialized compiled-scene upload bytes and section
+> offsets, plus a Metal launch-probe kernel that binds those buffers through a
+> command buffer and copies initial path-state records into GPU-owned
+> active/next buffers while writing probe step records, without advertising full
+> GPU path tracing yet.
 > This is a follow-up to
 > `docs/plans/wavefront-and-path-tracing.md` Phase 7+ and is now a child slice
 > of `docs/plans/tracing-execution-backends.md`. It should not replace the CPU

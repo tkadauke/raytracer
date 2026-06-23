@@ -18,7 +18,7 @@ namespace render {
   namespace {
     static_assert(std::is_standard_layout_v<GpuDiffusePathLoopLaunchParameters>,
                   "Metal diffuse path-loop launch parameters must stay shader ABI friendly");
-    static_assert(sizeof(GpuDiffusePathLoopLaunchParameters) == 64);
+    static_assert(sizeof(GpuDiffusePathLoopLaunchParameters) == 96);
     static_assert(alignof(GpuDiffusePathLoopLaunchParameters) == 16);
     static_assert(sizeof(GpuDiffusePathStateRecord) == 160);
     static_assert(alignof(GpuDiffusePathStateRecord) == 16);
@@ -67,10 +67,18 @@ namespace render {
               "  uint lightCount;\n"
               "  uint environmentCount;\n"
               "  uint debugIdCount;\n"
+              "  uint geometryByteOffset;\n"
+              "  uint materialByteOffset;\n"
+              "  uint textureByteOffset;\n"
+              "  uint lightByteOffset;\n"
+              "  uint environmentByteOffset;\n"
+              "  uint debugIdByteOffset;\n"
+              "  uint sceneUploadBytes;\n"
+              "  uint reserved0;\n"
               "  uint bvhNodeCount;\n"
               "  uint primitiveCount;\n"
               "  uint transformCount;\n"
-              "  uint reserved0;\n"
+              "  uint reserved1;\n"
               "};\n"
               "struct GpuIntersectionRay {\n"
               "  float4 origin;\n"
