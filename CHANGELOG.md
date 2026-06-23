@@ -85,6 +85,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   subrange offsets/counts so future platform path-loop kernels can reconstruct
   BVH, primitive, payload, and transform arrays from the resident scene upload.
   — GPT-5 Codex
+- Add a restricted Metal diffuse path-loop closest-hit probe that reads packed
+  BVH, primitive, and sphere payload records from the resident scene upload for
+  untransformed sphere geometry. — GPT-5 Codex
 - Carry serialized compiled tracing-scene upload bytes through GPU diffuse
   path-loop launch plans so platform path-loop kernels can consume real scene
   records instead of size-only placeholder buffers. — GPT-5 Codex

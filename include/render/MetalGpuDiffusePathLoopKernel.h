@@ -12,6 +12,7 @@ namespace render {
     GpuDiffusePathLoopLaunchBufferSizes bufferSizes;
     std::vector<GpuDiffusePathStateRecord> copiedInitialPathStates;
     std::vector<GpuDiffusePathStateRecord> resolvedPathStates;
+    std::vector<GpuIntersectionHitRecord> closestHitRecords;
     std::vector<GpuDiffusePathStepRecord> stepRecords;
     std::vector<std::array<float, 4>> accumulationColorSums;
     std::vector<std::uint32_t> accumulationSampleCounts;
@@ -36,5 +37,9 @@ namespace render {
     [[nodiscard]] MetalGpuDiffusePathLoopKernelResult
     runAllMissProbe(const GpuDiffusePathLoopLaunchPlan& plan,
                     const std::vector<GpuDiffusePathStateRecord>& initialPathStates) const;
+
+    [[nodiscard]] MetalGpuDiffusePathLoopKernelResult
+    runClosestHitProbe(const GpuDiffusePathLoopLaunchPlan& plan,
+                       const std::vector<GpuDiffusePathStateRecord>& initialPathStates) const;
   };
 }

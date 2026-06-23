@@ -53,8 +53,11 @@
 > step records. The Metal path-loop probe can also resolve empty-scene
 > background/environment misses into
 > terminated GPU path-state records and write the matching accumulation
-> color/count planes for unique active pixel targets, without advertising full
-> GPU path tracing yet.
+> color/count planes for unique active pixel targets. It also has a restricted
+> closest-hit probe for untransformed sphere geometry that traverses the packed
+> BVH/primitive/sphere records from the resident scene upload and writes
+> `GpuIntersectionHitRecord` results for active path states. These probes do
+> not advertise full GPU path tracing yet.
 > This is a follow-up to
 > `docs/plans/wavefront-and-path-tracing.md` Phase 7+ and is now a child slice
 > of `docs/plans/tracing-execution-backends.md`. It should not replace the CPU

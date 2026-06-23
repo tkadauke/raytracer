@@ -2493,12 +2493,16 @@ scene is large enough to amortize upload/readback costs.
      also reads the environment section from the serialized scene upload and
      resolves empty-scene background/environment misses into terminated
      GPU-owned path-state records while clearing and writing the matching
-     accumulation color/count planes for unique active pixel targets. This
-     proves the command-buffer, scene-upload, environment-record, path-state,
-     step-record, and restricted accumulation ABI for the future path-loop
-     kernel; closest-hit traversal, material shading, continuation, direct
-     lighting, compaction, and general accumulation still need to move into this
-     backend before it can advertise full GPU execution.
+     accumulation color/count planes for unique active pixel targets. A
+     restricted closest-hit probe now traverses packed BVH/primitive/sphere
+     records from the same resident scene upload for untransformed sphere
+     geometry and writes `GpuIntersectionHitRecord` rows for active path
+     states. This proves the command-buffer, scene-upload, geometry,
+     environment-record, path-state, step-record, and restricted accumulation
+     ABI for the future path-loop kernel; broader primitive traversal, material
+     shading, continuation, direct lighting, compaction, and general
+     accumulation still need to move into this backend before it can advertise
+     full GPU execution.
 
 3. **Add a minimal Vulkan path-loop kernel.**
    - Depends on: job 1.
