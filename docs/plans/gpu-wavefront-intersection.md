@@ -56,8 +56,10 @@
 > color/count planes for unique active pixel targets. It also has a restricted
 > closest-hit probe for untransformed sphere geometry that traverses the packed
 > BVH/primitive/sphere records from the resident scene upload and writes
-> `GpuIntersectionHitRecord` results for active path states. These probes do
-> not advertise full GPU path tracing yet.
+> `GpuIntersectionHitRecord` results for active path states. A restricted
+> Matte/ConstantColor shading probe can then read material and texture records
+> from that same upload and compute diffuse continuation throughput for sphere
+> hits. These probes do not advertise full GPU path tracing yet.
 > This is a follow-up to
 > `docs/plans/wavefront-and-path-tracing.md` Phase 7+ and is now a child slice
 > of `docs/plans/tracing-execution-backends.md`. It should not replace the CPU

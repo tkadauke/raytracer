@@ -41,5 +41,9 @@ namespace render {
     [[nodiscard]] MetalGpuDiffusePathLoopKernelResult
     runClosestHitProbe(const GpuDiffusePathLoopLaunchPlan& plan,
                        const std::vector<GpuDiffusePathStateRecord>& initialPathStates) const;
+
+    [[nodiscard]] MetalGpuDiffusePathLoopKernelResult
+    runMatteHitShadingProbe(const GpuDiffusePathLoopLaunchPlan& plan,
+                            const std::vector<GpuDiffusePathStateRecord>& initialPathStates) const;
   };
 }
