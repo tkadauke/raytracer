@@ -73,6 +73,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Add a GPU diffuse path-loop launch descriptor with shader-facing parameters
   and buffer byte accounting for future Metal/Vulkan path-loop kernels. —
   GPT-5 Codex
+- Add the first Metal diffuse path-loop launch probe kernel, binding the
+  shader-facing launch descriptor and required future path-loop buffers without
+  advertising full GPU path tracing yet. — GPT-5 Codex
 
 ### Fixed
 

@@ -2481,7 +2481,14 @@ scene is large enough to amortize upload/readback costs.
    - Output: supported initial path states, compiled scene records, fixed GPU
      sample stream dimensions, diffuse continuation, direct light sampling,
      any-hit visibility, path-state compaction, and accumulation execute inside
-     one Metal backend for Matte/Emissive/ConstantColor scenes.
+     one Metal backend for Matte/Emissive/ConstantColor scenes. ✅ **Started.**
+     `MetalGpuDiffusePathLoopKernel` now compiles and dispatches a Metal
+     launch-probe kernel that binds the shader-facing path-loop descriptor plus
+     scene, initial/active/next path-state, step-record, retained-index, and
+     accumulation buffers. This proves the command-buffer ABI for the future
+     path-loop kernel; shading, continuation, direct lighting, compaction, and
+     accumulation still need to move into this backend before it can advertise
+     full GPU execution.
 
 3. **Add a minimal Vulkan path-loop kernel.**
    - Depends on: job 1.

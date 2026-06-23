@@ -10,6 +10,7 @@
 #include "render/GpuDiffusePathStepReference.h"
 #include "render/IntersectionSceneCompiler.h"
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+#include "render/MetalGpuDiffusePathLoopKernel.h"
 #include "render/MetalGpuDiffusePathFrontierCompactionBackend.h"
 #endif
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
@@ -1498,6 +1499,60 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_THROW((void)GpuDiffusePathLoopLaunchPlanner().plan(GpuTracingSceneSections(), {},
                                                               invalidLayout, settings),
                  std::invalid_argument);
+  }
+
+  TEST(MetalGpuDiffusePathLoopKernel, LaunchProbeConsumesShaderFacingPlanWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    MetalGpuDiffusePathLoopKernel kernel;
+    if (!kernel.launchPathAvailable()) {
+      GTEST_SKIP() << kernel.launchPathUnavailableReason();
+    }
+
+    Scene scene;
+    auto matte =
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::white()));
+    matte->setDiffuseCoefficient(1.0);
+    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    receiver->setMaterial(matte);
+    scene.add(receiver);
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 2;
+    settings.russianRouletteDepth = 1;
+    settings.directLightSamples = 3;
+    const TracingAccumulationLayout accumulationLayout = TracingAccumulationLayout::image(2, 2);
+    const std::vector<GpuDiffusePathStateRecord> paths{activePath(), activePath()};
+    const GpuDiffusePathLoopLaunchPlan plan =
+      GpuDiffusePathLoopLaunchPlanner().plan(sections, paths, accumulationLayout, settings);
+
+    const MetalGpuDiffusePathLoopKernelResult result = kernel.runLaunchProbe(plan);
+
+    EXPECT_EQ("metal_diffuse_path_loop_launch_probe", result.executionPath);
+    EXPECT_EQ("metal_shared_diffuse_path_state", result.pathStateResidency);
+    EXPECT_EQ(plan.parameters.layoutVersion, result.echoedParameters.layoutVersion);
+    EXPECT_EQ(plan.parameters.maxDepth, result.echoedParameters.maxDepth);
+    EXPECT_EQ(plan.parameters.russianRouletteDepth, result.echoedParameters.russianRouletteDepth);
+    EXPECT_EQ(plan.parameters.directLightSamples, result.echoedParameters.directLightSamples);
+    EXPECT_EQ(plan.parameters.initialPathCount, result.echoedParameters.initialPathCount);
+    EXPECT_EQ(plan.parameters.imageWidth, result.echoedParameters.imageWidth);
+    EXPECT_EQ(plan.parameters.imageHeight, result.echoedParameters.imageHeight);
+    EXPECT_EQ(plan.parameters.materialCount, result.echoedParameters.materialCount);
+    EXPECT_EQ(plan.parameters.textureCount, result.echoedParameters.textureCount);
+    EXPECT_EQ(plan.parameters.lightCount, result.echoedParameters.lightCount);
+    EXPECT_EQ(plan.parameters.environmentCount, result.echoedParameters.environmentCount);
+    EXPECT_EQ(plan.parameters.debugIdCount, result.echoedParameters.debugIdCount);
+    EXPECT_EQ(plan.parameters.bvhNodeCount, result.echoedParameters.bvhNodeCount);
+    EXPECT_EQ(plan.parameters.primitiveCount, result.echoedParameters.primitiveCount);
+    EXPECT_EQ(plan.parameters.transformCount, result.echoedParameters.transformCount);
+    EXPECT_EQ(plan.buffers.totalUploadBytes, result.bufferSizes.totalUploadBytes);
+    EXPECT_EQ(plan.buffers.totalResidentBytes, result.bufferSizes.totalResidentBytes);
+    EXPECT_GE(result.uploadWorkerSeconds, 0.0);
+    EXPECT_GE(result.kernelWorkerSeconds, 0.0);
+    EXPECT_GE(result.readbackWorkerSeconds, 0.0);
+#else
+    GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
+#endif
   }
 
   TEST(CompactingGpuDiffusePathLoopBackend, RejectsMissingCompactionBackend) {
