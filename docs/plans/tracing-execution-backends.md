@@ -123,12 +123,15 @@ end state for GPU tracing.
 - Broad platform full-GPU path-loop kernels for the normal render path. A
   restricted Metal path-loop kernel can advance empty-scene and
   sphere/Matte/Emissive paths across multiple depths for backend tests and
-  explicit GPU graph requests, but graph auto-selection still waits for Vulkan
-  parity, broader scene support, and performance gates.
+  explicit GPU graph requests, and a restricted Vulkan path-loop backend can
+  execute empty-scene all-miss paths when Vulkan is built and available. Graph
+  auto-selection still waits for Vulkan shaded-path parity, broader scene
+  support, and performance gates.
 - Platform full-GPU path-loop backend selection beyond that restricted Metal
-  subset. The factory hook can return the Metal backend in Metal-enabled
-  builds, but ordinary builds and unsupported scenes still fall back to the
-  CPU-reference or hybrid diagnostic backend.
+  subset and the restricted Vulkan all-miss subset. The factory hook can return
+  Metal or Vulkan platform backends in platform-enabled builds, but ordinary
+  builds and unsupported scenes still fall back to the CPU-reference or hybrid
+  diagnostic backend.
 - GPU material records beyond the current Matte, Emissive, Phong, and
   Reflective subset.
 - GPU texture records beyond ConstantColor.
@@ -2546,7 +2549,13 @@ scene is large enough to amortize upload/readback costs.
    - Depends on: job 1.
    - Output: Linux Vulkan implements the same supported subset and result
      contract as the Metal backend, with skip behavior when Vulkan is not built
-     or no device is available.
+     or no device is available. ✅ **Started.** Vulkan-enabled builds now
+     compile an embedded all-miss diffuse path-loop compute shader and expose a
+     restricted `VulkanGpuDiffusePathLoopBackend` that can execute empty
+     compiled-geometry paths with Vulkan-owned active/next path-state,
+     step-record, retained-index, and accumulation buffers. The backend reports
+     platform path-state residency and cleanly rejects non-empty compiled
+     geometry until the shaded Matte/Emissive subset reaches parity with Metal.
 
 4. **Wire graph auto-selection to platform backend availability.**
    - Depends on: jobs 2 and 3.

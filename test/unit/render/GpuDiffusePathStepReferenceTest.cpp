@@ -17,6 +17,7 @@
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
 #include "render/VulkanGpuDiffusePathFrontierCompactionBackend.h"
 #endif
+#include "render/VulkanGpuDiffusePathLoopBackend.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/lights/PointLight.h"
 #include "render/lights/RectangularAreaLight.h"
@@ -1504,6 +1505,10 @@ namespace GpuDiffusePathStepReferenceTest {
     ASSERT_NE(nullptr, backend);
     EXPECT_STREQ("metal_diffuse_path_loop", backend->name());
     EXPECT_STREQ("metal", backend->platformName());
+#elif defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    ASSERT_NE(nullptr, backend);
+    EXPECT_STREQ("vulkan_diffuse_path_loop", backend->name());
+    EXPECT_STREQ("vulkan", backend->platformName());
 #else
     EXPECT_EQ(nullptr, backend);
 #endif
@@ -1588,6 +1593,90 @@ namespace GpuDiffusePathStepReferenceTest {
     expectPathStateNear(result.resolvedPathStates[0], expected.resolvedPathStates[0], 1e-4);
 #else
     GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
+#endif
+  }
+
+  TEST(VulkanGpuDiffusePathLoopBackend, ReportsUnavailableWhenBuildOrDeviceCannotRunVulkan) {
+    const VulkanGpuDiffusePathLoopBackend backend;
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 1;
+    const GpuDiffusePathLoopBackendSupport support =
+      backend.fullGpuPathLoopSupport(GpuTracingSceneSections(), settings);
+
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    if (backend.fullGpuPathLoopAvailable()) {
+      EXPECT_TRUE(support.supported);
+      EXPECT_TRUE(support.reason.empty());
+    } else {
+      EXPECT_FALSE(support.supported);
+      EXPECT_FALSE(support.reason.empty());
+    }
+#else
+    EXPECT_FALSE(backend.fullGpuPathLoopAvailable());
+    EXPECT_FALSE(support.supported);
+    EXPECT_EQ("Vulkan diffuse path-loop backend is not enabled in this build", support.reason);
+#endif
+  }
+
+  TEST(VulkanGpuDiffusePathLoopBackend, SupportsOnlyEmptyGeometryWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    const VulkanGpuDiffusePathLoopBackend backend;
+    if (!backend.fullGpuPathLoopAvailable()) {
+      GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
+    }
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 1;
+
+    Scene emptyScene;
+    const GpuTracingSceneSections emptySections = sectionsFor(emptyScene);
+    const GpuDiffusePathLoopBackendSupport emptySupport =
+      backend.fullGpuPathLoopSupport(emptySections, settings);
+    EXPECT_TRUE(emptySupport.supported);
+    EXPECT_TRUE(emptySupport.reason.empty());
+
+    Scene geometryScene;
+    geometryScene.add(std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0));
+    const GpuTracingSceneSections geometrySections = sectionsFor(geometryScene);
+    const GpuDiffusePathLoopBackendSupport geometrySupport =
+      backend.fullGpuPathLoopSupport(geometrySections, settings);
+    EXPECT_FALSE(geometrySupport.supported);
+    EXPECT_EQ("Vulkan diffuse path-loop backend currently supports empty compiled geometry only",
+              geometrySupport.reason);
+#else
+    GTEST_SKIP() << "Vulkan wavefront support is not enabled in this build";
+#endif
+  }
+
+  TEST(VulkanGpuDiffusePathLoopBackend, RunsOneDepthAllMissPathLoopWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    const VulkanGpuDiffusePathLoopBackend backend;
+    if (!backend.fullGpuPathLoopAvailable()) {
+      GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
+    }
+
+    Scene scene;
+    scene.setBackground(Colord(0.25, 0.5, 0.75));
+    scene.setEnvironmentRadiance(Colord(0.1, 0.2, 0.3));
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+    GpuDiffusePathStateRecord path = activePath();
+    path.pixelIndex = 0;
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 1;
+    settings.russianRouletteDepth = 10;
+    const std::vector<GpuDiffusePathStateRecord> paths{path};
+
+    const GpuDiffusePathLoopResult expected = GpuDiffusePathLoop().run(sections, paths, settings);
+    const GpuDiffusePathLoopResult result = backend.run(sections, paths, settings);
+
+    EXPECT_TRUE(result.fullGpuPathLoopSupported());
+    EXPECT_EQ("vulkan", result.platformName);
+    EXPECT_EQ("vulkan_host_visible_diffuse_path_state", result.pathStateResidency);
+    ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
+    expectPathStateNear(result.resolvedPathStates[0], expected.resolvedPathStates[0], 1e-4);
+#else
+    GTEST_SKIP() << "Vulkan wavefront support is not enabled in this build";
 #endif
   }
 

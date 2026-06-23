@@ -6,6 +6,7 @@
 #endif
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
 #include "render/VulkanGpuDiffusePathFrontierCompactionBackend.h"
+#include "render/VulkanGpuDiffusePathLoopBackend.h"
 #endif
 
 #include <stdexcept>
@@ -42,6 +43,8 @@ namespace render {
   GpuDiffusePathLoopBackend::defaultFullGpuBackendForGpuRequest() {
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
     return MetalGpuDiffusePathLoopBackend::sharedInstance();
+#elif defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    return VulkanGpuDiffusePathLoopBackend::sharedInstance();
 #else
     return {};
 #endif

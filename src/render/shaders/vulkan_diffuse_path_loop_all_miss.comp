@@ -1,0 +1,227 @@
+#version 450
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+const uint gpuDiffusePathStateActiveFlag = 1u;
+const uint gpuDiffusePathStateTerminatedFlag = 2u;
+const uint gpuDiffusePathStepEventInactive = 0u;
+const uint gpuDiffusePathStepEventMiss = 1u;
+
+struct GpuDiffusePathLoopLaunchParameters {
+  uint layoutVersion;
+  uint maxDepth;
+  uint russianRouletteDepth;
+  uint directLightSamples;
+  uint initialPathCount;
+  uint imageWidth;
+  uint imageHeight;
+  uint materialCount;
+  uint textureCount;
+  uint lightCount;
+  uint environmentCount;
+  uint debugIdCount;
+  uint geometryByteOffset;
+  uint materialByteOffset;
+  uint textureByteOffset;
+  uint lightByteOffset;
+  uint environmentByteOffset;
+  uint debugIdByteOffset;
+  uint sceneUploadBytes;
+  uint reserved0;
+  uint bvhByteOffset;
+  uint primitiveByteOffset;
+  uint triangleByteOffset;
+  uint sphereByteOffset;
+  uint planeByteOffset;
+  uint rectangleByteOffset;
+  uint diskByteOffset;
+  uint openCylinderByteOffset;
+  uint torusByteOffset;
+  uint transformByteOffset;
+  uint bvhNodeCount;
+  uint primitiveCount;
+  uint triangleCount;
+  uint sphereCount;
+  uint planeCount;
+  uint rectangleCount;
+  uint diskCount;
+  uint openCylinderCount;
+  uint torusCount;
+  uint transformCount;
+};
+
+struct GpuIntersectionRay {
+  vec4 origin;
+  vec4 direction;
+  float minDistance;
+  float maxDistance;
+  float timeSample;
+  uint flags;
+  uint rayIndex;
+  uint reserved0;
+  uint reserved1;
+  uint reserved2;
+};
+
+struct GpuDiffusePathStateRecord {
+  GpuIntersectionRay ray;
+  vec4 throughput;
+  vec4 accumulatedRadiance;
+  uint pixelIndex;
+  uint primarySampleIndex;
+  uint depth;
+  uint sampleSeed;
+  uint sampleDimensionBase;
+  uint sampleDimensionStride;
+  uint flags;
+  uint reserved0;
+  float previousBsdfPdf;
+  float previousLightPdf;
+  uint previousMaterial;
+  uint previousEventFlags;
+  uint reserved1;
+  uint reserved2;
+  uint reserved3;
+  uint reserved4;
+};
+
+struct GpuDiffusePathStepRecord {
+  uint event;
+  uint pathIndex;
+  uint pixelIndex;
+  uint primarySampleIndex;
+  uint depth;
+  uint material;
+  uint object;
+  uint flags;
+  vec4 emittedRadiance;
+  vec4 directLightRadiance;
+  vec4 missRadiance;
+  vec4 continuationThroughput;
+};
+
+layout(std430, binding = 0) readonly buffer PathLoopParameters {
+  GpuDiffusePathLoopLaunchParameters parameters;
+};
+
+layout(std430, binding = 1) writeonly buffer EchoedPathLoopParameters {
+  GpuDiffusePathLoopLaunchParameters echoedParameters;
+};
+
+layout(std430, binding = 2) readonly buffer SceneUpload {
+  uint sceneWords[];
+};
+
+layout(std430, binding = 3) readonly buffer InitialPathStates {
+  GpuDiffusePathStateRecord initialPathStates[];
+};
+
+layout(std430, binding = 4) writeonly buffer ActivePathStates {
+  GpuDiffusePathStateRecord activePathStates[];
+};
+
+layout(std430, binding = 5) writeonly buffer NextPathStates {
+  GpuDiffusePathStateRecord nextPathStates[];
+};
+
+layout(std430, binding = 6) writeonly buffer StepRecords {
+  GpuDiffusePathStepRecord stepRecords[];
+};
+
+layout(std430, binding = 7) buffer RetainedIndices {
+  uint retainedIndices[];
+};
+
+layout(std430, binding = 8) buffer Accumulation {
+  uint accumulationWords[];
+};
+
+bool pathStateIsActive(GpuDiffusePathStateRecord path) {
+  return (path.flags & gpuDiffusePathStateActiveFlag) != 0u &&
+         (path.flags & gpuDiffusePathStateTerminatedFlag) == 0u;
+}
+
+uint terminatedPathFlags(uint flags) {
+  return (flags | gpuDiffusePathStateTerminatedFlag) & ~gpuDiffusePathStateActiveFlag;
+}
+
+GpuDiffusePathStepRecord inactiveStep(uint pathIndex, GpuDiffusePathStateRecord path) {
+  GpuDiffusePathStepRecord step;
+  step.event = gpuDiffusePathStepEventInactive;
+  step.pathIndex = pathIndex;
+  step.pixelIndex = path.pixelIndex;
+  step.primarySampleIndex = path.primarySampleIndex;
+  step.depth = path.depth;
+  step.material = 0u;
+  step.object = 0u;
+  step.flags = path.flags;
+  step.emittedRadiance = vec4(0.0);
+  step.directLightRadiance = vec4(0.0);
+  step.missRadiance = vec4(0.0);
+  step.continuationThroughput = vec4(0.0);
+  return step;
+}
+
+vec4 environmentColor(uint environmentIndex) {
+  if (parameters.environmentCount == 0u || environmentIndex >= parameters.environmentCount) {
+    return vec4(0.0);
+  }
+  const uint byteOffset = parameters.environmentByteOffset + environmentIndex * 32u;
+  if (byteOffset + 32u > parameters.sceneUploadBytes) {
+    return vec4(0.0);
+  }
+  const uint wordOffset = byteOffset / 4u;
+  return vec4(uintBitsToFloat(sceneWords[wordOffset + 4u]),
+              uintBitsToFloat(sceneWords[wordOffset + 5u]),
+              uintBitsToFloat(sceneWords[wordOffset + 6u]),
+              uintBitsToFloat(sceneWords[wordOffset + 7u]));
+}
+
+vec4 missRadiance(GpuDiffusePathStateRecord path) {
+  const uint environmentIndex =
+      path.depth == 0u ? 0u : parameters.environmentCount - 1u;
+  return environmentColor(environmentIndex);
+}
+
+uint pixelCount() {
+  return parameters.imageWidth * parameters.imageHeight;
+}
+
+void writeAccumulation(uint pixelIndex, vec4 color) {
+  if (pixelIndex >= pixelCount()) {
+    return;
+  }
+  const uint colorWordOffset = pixelIndex * 4u;
+  accumulationWords[colorWordOffset + 0u] = floatBitsToUint(color.x);
+  accumulationWords[colorWordOffset + 1u] = floatBitsToUint(color.y);
+  accumulationWords[colorWordOffset + 2u] = floatBitsToUint(color.z);
+  accumulationWords[colorWordOffset + 3u] = floatBitsToUint(color.w);
+  accumulationWords[pixelCount() * 4u + pixelIndex] = 1u;
+}
+
+void main() {
+  const uint id = gl_GlobalInvocationID.x;
+  if (id == 0u) {
+    echoedParameters = parameters;
+    retainedIndices[0] = 0u;
+  }
+  if (id >= parameters.initialPathCount) {
+    return;
+  }
+
+  GpuDiffusePathStateRecord path = initialPathStates[id];
+  GpuDiffusePathStepRecord step = inactiveStep(id, path);
+  if (pathStateIsActive(path)) {
+    const vec4 contribution = path.throughput * missRadiance(path);
+    path.accumulatedRadiance += contribution;
+    path.flags = terminatedPathFlags(path.flags);
+    writeAccumulation(path.pixelIndex, path.accumulatedRadiance);
+    step.event = gpuDiffusePathStepEventMiss;
+    step.missRadiance = contribution;
+    step.continuationThroughput = vec4(0.0);
+    step.flags = path.flags;
+  }
+  activePathStates[id] = path;
+  nextPathStates[id] = path;
+  stepRecords[id] = step;
+}
