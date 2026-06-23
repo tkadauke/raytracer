@@ -28,6 +28,7 @@
 #include "render/materials/PhongMaterial.h"
 #include "render/primitives/Disk.h"
 #include "render/primitives/Instance.h"
+#include "render/primitives/OpenCylinder.h"
 #include "render/primitives/Plane.h"
 #include "render/primitives/Rectangle.h"
 #include "render/primitives/Scene.h"
@@ -1985,6 +1986,47 @@ namespace GpuDiffusePathStepReferenceTest {
     ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
     expectPathStateNear(result.resolvedPathStates[0], expected.resolvedPathStates[0], 1e-4);
     expectPathStateNear(result.resolvedPathStates[1], expected.resolvedPathStates[1], 1e-4);
+#else
+    GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
+#endif
+  }
+
+  TEST(MetalGpuDiffusePathLoopBackend, RunsOpenCylinderDiffusePathLoopWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    const MetalGpuDiffusePathLoopBackend backend;
+    if (!backend.fullGpuPathLoopAvailable()) {
+      GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
+    }
+
+    Scene scene;
+    auto material = std::make_shared<MatteMaterial>(
+      std::make_shared<ConstantColorTexture>(Colord(0.25, 0.5, 0.75)));
+    material->setDiffuseCoefficient(0.8);
+    auto cylinder = std::make_shared<OpenCylinder>(1.0, 2.0);
+    cylinder->setMaterial(material);
+    scene.add(cylinder);
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+    GpuDiffusePathStateRecord path =
+      activePath(Rayd(Vector4d(0.0, 0.0, -3.0, 1.0), Vector3d(0.0, 0.0, 1.0)), 19);
+    path.pixelIndex = 0;
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 1;
+    settings.russianRouletteDepth = 10;
+    settings.directLightSamples = 1;
+    const std::vector<GpuDiffusePathStateRecord> paths{path};
+
+    const GpuDiffusePathLoopResult expected = GpuDiffusePathLoop().run(sections, paths, settings);
+    const GpuDiffusePathLoopResult result = backend.run(sections, paths, settings);
+
+    EXPECT_TRUE(result.fullGpuPathLoopSupported());
+    EXPECT_EQ(expected.depthCount, result.depthCount);
+    EXPECT_EQ(expected.maxDepthTerminatedPaths, result.maxDepthTerminatedPaths);
+    ASSERT_EQ(expected.stepRecords.size(), result.stepRecords.size());
+    expectFloat4Near(result.stepRecords[0].continuationThroughput,
+                     expected.stepRecords[0].continuationThroughput, 1e-4);
+    ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
+    expectPathStateNear(result.resolvedPathStates[0], expected.resolvedPathStates[0], 1e-4);
 #else
     GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
 #endif

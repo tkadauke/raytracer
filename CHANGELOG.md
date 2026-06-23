@@ -29,6 +29,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   optionally transformed triangle/sphere/plane/rectangle/disk Matte/Emissive
   scenes, letting ordinary floor and mesh-like setups enter the GPU-owned path
   loop instead of being rejected before dispatch. — GPT-5 Codex
+- Extend the restricted Metal full-GPU diffuse path-loop subset to support
+  OpenCylinder geometry, allowing another packed primitive family to stay in
+  GPU-owned path-loop traversal and shading. — GPT-5 Codex
 - Extend the restricted Metal full-GPU diffuse path-loop subset to sample
   simple planar/UV CheckerBoard textures over ConstantColor child textures,
   letting common checker-textured matte/emissive scenes stay in the GPU-owned
