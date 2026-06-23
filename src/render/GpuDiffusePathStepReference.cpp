@@ -152,17 +152,44 @@ namespace {
                                      pathState.primarySampleIndex, dimension);
   }
 
-  Colord textureColor(const GpuTracingSceneSections& scene, std::uint32_t textureId) {
+  Vector2d textureCoordinates(const GpuTracingTextureRecord& texture,
+                              const GpuIntersectionHitRecord& hit) {
+    const auto mapping = static_cast<GpuTracingTextureMappingKind>(texture.flags);
+    if (mapping == GpuTracingTextureMappingKind::UV) {
+      return Vector2d(hit.uv[0] * texture.parameters[0], hit.uv[1] * texture.parameters[1]);
+    }
+    if (mapping == GpuTracingTextureMappingKind::Planar) {
+      return Vector2d(hit.point[0], hit.point[2]);
+    }
+    return Vector2d::null;
+  }
+
+  Colord textureColor(const GpuTracingSceneSections& scene, std::uint32_t textureId,
+                      const GpuIntersectionHitRecord& hit, std::uint32_t depth = 0) {
+    constexpr std::uint32_t maxTextureEvaluationDepth = 8;
     if (textureId >= scene.textures.size()) {
+      return Colord::black();
+    }
+    if (depth >= maxTextureEvaluationDepth) {
       return Colord::black();
     }
 
     const GpuTracingTextureRecord& texture = scene.textures[textureId];
-    if (texture.kind != static_cast<std::uint32_t>(GpuTracingTextureKind::ConstantColor)) {
-      return Colord::black();
+    const auto kind = static_cast<GpuTracingTextureKind>(texture.kind);
+    if (kind == GpuTracingTextureKind::ConstantColor) {
+      return Colord(texture.parameters);
     }
 
-    return Colord(texture.parameters);
+    if (kind == GpuTracingTextureKind::CheckerBoard) {
+      const Vector2d st = textureCoordinates(texture, hit);
+      const int parity =
+        static_cast<int>(std::floor(st.x())) + static_cast<int>(std::floor(st.y()));
+      const std::uint32_t childTexture =
+        parity % 2 == 0 ? texture.payloadOffset : texture.payloadCount;
+      return textureColor(scene, childTexture, hit, depth + 1);
+    }
+
+    return Colord::black();
   }
 
   Colord environmentRecordColor(const GpuTracingSceneSections& scene, std::size_t index) {
@@ -339,8 +366,9 @@ namespace {
     return normalDotDirection <= 0.0 ? 0.0 : normalDotDirection * invPI;
   }
 
-  Colord matteBsdf(const GpuTracingSceneSections& scene, const GpuTracingMaterialRecord& material) {
-    return textureColor(scene, material.albedoTexture) * material.parameters[1] * invPI;
+  Colord matteBsdf(const GpuTracingSceneSections& scene, const GpuTracingMaterialRecord& material,
+                   const GpuIntersectionHitRecord& hit) {
+    return textureColor(scene, material.albedoTexture, hit) * material.parameters[1] * invPI;
   }
 
   void terminate(GpuDiffusePathStateRecord& pathState) {
@@ -938,7 +966,7 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
       result.metrics.emissionExecutionPath = kCpuRecordExecutionPath;
       ++result.metrics.emissionContributionEvaluations;
       const Colord emitted =
-        (normal * wi) > 0.0 ? textureColor(scene, material.emissionTexture) : Colord::black();
+        (normal * wi) > 0.0 ? textureColor(scene, material.emissionTexture, hit) : Colord::black();
       const Colord contribution = throughput * emitted;
       accumulated += contribution;
       pathState.accumulatedRadiance = accumulated.toFloat4(0.0f);
@@ -961,7 +989,7 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
       continue;
     }
 
-    const Colord bsdf = matteBsdf(scene, material);
+    const Colord bsdf = matteBsdf(scene, material, hit);
     if (!scene.lights.empty()) {
       Colord directLightRadiance = Colord::black();
       const std::uint32_t configuredDirectLightSamples = directLightSampleCount(settings);

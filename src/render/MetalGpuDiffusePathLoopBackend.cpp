@@ -60,12 +60,41 @@ namespace render {
                          });
     }
 
+    [[nodiscard]] bool supportedTexture(const GpuTracingSceneSections& scene,
+                                        std::size_t textureIndex) {
+      const GpuTracingTextureRecord& texture = scene.textures[textureIndex];
+      const auto kind = static_cast<GpuTracingTextureKind>(texture.kind);
+      if (kind == GpuTracingTextureKind::Unsupported) {
+        return textureIndex == 0u;
+      }
+      if (kind == GpuTracingTextureKind::ConstantColor) {
+        return true;
+      }
+      if (kind == GpuTracingTextureKind::CheckerBoard) {
+        const auto mapping = static_cast<GpuTracingTextureMappingKind>(texture.flags);
+        if (mapping != GpuTracingTextureMappingKind::Planar &&
+            mapping != GpuTracingTextureMappingKind::UV) {
+          return false;
+        }
+        if (texture.payloadOffset >= scene.textures.size() ||
+            texture.payloadCount >= scene.textures.size()) {
+          return false;
+        }
+        return static_cast<GpuTracingTextureKind>(scene.textures[texture.payloadOffset].kind) ==
+                 GpuTracingTextureKind::ConstantColor &&
+               static_cast<GpuTracingTextureKind>(scene.textures[texture.payloadCount].kind) ==
+                 GpuTracingTextureKind::ConstantColor;
+      }
+      return false;
+    }
+
     [[nodiscard]] bool supportedTextures(const GpuTracingSceneSections& scene) {
-      return std::all_of(scene.textures.begin(), scene.textures.end(),
-                         [](const GpuTracingTextureRecord& texture) {
-                           return static_cast<GpuTracingTextureKind>(texture.kind) ==
-                                  GpuTracingTextureKind::ConstantColor;
-                         });
+      for (std::size_t index = 0; index != scene.textures.size(); ++index) {
+        if (!supportedTexture(scene, index)) {
+          return false;
+        }
+      }
+      return true;
     }
 
     [[nodiscard]] bool supportedLights(const GpuTracingSceneSections& scene) {
@@ -288,7 +317,8 @@ namespace render {
     }
     if (!supportedTextures(scene)) {
       return {false,
-              "Metal diffuse path-loop backend currently supports ConstantColor textures only"};
+              "Metal diffuse path-loop backend currently supports ConstantColor textures and "
+              "simple CheckerBoard textures only"};
     }
     if (!supportedLights(scene)) {
       return {false, "Metal diffuse path-loop backend currently supports point, directional, and "

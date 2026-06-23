@@ -45,6 +45,8 @@ namespace render {
     CheckerBoard = 2
   };
 
+  enum class GpuTracingTextureMappingKind : std::uint32_t { None = 0, Planar = 1, UV = 2 };
+
   enum class GpuTracingLightKind : std::uint32_t {
     Unsupported = 0,
     Point = 1,

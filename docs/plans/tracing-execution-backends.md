@@ -74,8 +74,9 @@ end state for GPU tracing.
 - Closest-hit and any-hit frontiers are represented by backend-owned handles.
 - `render::GpuTracingSceneSections` and diagnostics compile GPU-readable
   material, texture, light, environment, and debug-id records for the initial
-  supported shading subset: Matte and Emissive materials, ConstantColor
-  textures, PointLight, DirectionalLight, and RectangularAreaLight.
+  supported shading subset: Matte and Emissive materials, ConstantColor and
+  simple CheckerBoard textures, PointLight, DirectionalLight, and
+  RectangularAreaLight.
 - `render::GpuSampleStream` provides the CPU reference for deterministic
   GPU-style sampling dimensions with fixed-vector coverage.
 - Supported diffuse path-tracing scenes can route GPU execution requests
@@ -135,7 +136,8 @@ end state for GPU tracing.
   diagnostic backend.
 - GPU material records beyond the current Matte, Emissive, Phong, and
   Reflective subset.
-- GPU texture records beyond ConstantColor.
+- GPU texture records beyond ConstantColor and the first simple CheckerBoard
+  subset.
 - GPU light records beyond PointLight, DirectionalLight, and
   RectangularAreaLight.
 - Platform GPU BSDF evaluation.
@@ -1725,13 +1727,13 @@ comparison logic.
      all other materials.
 
 3. ~~**Compile texture records.**~~ ✅ **Done.**
-   `render::GpuTracingTextureCompilation` now packs ConstantColor textures into
-   GPU tracing records keyed by material-referenced texture ids, with
-   unsupported texture reasons counted for tracing scene diagnostics. Closes
-   #581.
+   `render::GpuTracingTextureCompilation` now packs ConstantColor textures and
+   planar/UV CheckerBoard texture references into GPU tracing records keyed by
+   material-referenced texture ids, with unsupported texture reasons counted
+   for tracing scene diagnostics. Closes #581.
    - Depends on: job 1.
-   - Output: records for ConstantColor; optional CheckerBoard only if required
-     coordinates are already represented; unsupported reasons otherwise.
+   - Output: records for ConstantColor and planar/UV CheckerBoard texture
+     graphs; unsupported reasons otherwise.
 
 4. ~~**Compile light records.**~~ ✅ **Done.**
    `render::GpuTracingLightCompilation` now packs PointLight,
@@ -2499,7 +2501,8 @@ scene is large enough to amortize upload/readback costs.
    - Output: supported initial path states, compiled scene records, fixed GPU
      sample stream dimensions, diffuse continuation, direct light sampling,
      any-hit visibility, path-state compaction, and accumulation execute inside
-     one Metal backend for Matte/Emissive/ConstantColor scenes. ✅ **Started.**
+     one Metal backend for Matte/Emissive scenes using ConstantColor or simple
+     CheckerBoard textures. ✅ **Started.**
      `MetalGpuDiffusePathLoopKernel` now compiles and dispatches a Metal
      launch-probe kernel that binds the shader-facing path-loop descriptor plus
      scene, initial/active/next path-state, step-record, retained-index, and
@@ -2524,6 +2527,9 @@ scene is large enough to amortize upload/readback costs.
      light-selection and light-surface dimensions plus sphere any-hit shadow
      rejection, and it can terminate restricted Emissive/ConstantColor sphere
      hits while preserving emitted radiance in the GPU path-state contract.
+     The full Metal loop now also samples simple planar/UV CheckerBoard texture
+     records whose children are ConstantColor records, so checker-textured
+     matte/emissive scenes can stay in the GPU-owned path loop.
      Terminal outcomes from that continuation probe now clear and write the
      accumulation color/count planes for unique active pixel targets, including
      miss termination, emissive hits, unsupported hits, and diffuse paths that

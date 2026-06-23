@@ -18,7 +18,7 @@
 #include "render/textures/CheckerBoardTexture.h"
 #include "render/textures/ConstantColorTexture.h"
 #include "render/textures/Texture.h"
-#include "render/textures/mappings/PlanarMapping2D.h"
+#include "render/textures/mappings/UVMapping2D.h"
 
 #include <cstddef>
 #include <cstring>
@@ -328,6 +328,39 @@ namespace GpuTracingSceneTest {
     expectFloat4(record->parameters, 0.25f, 0.5f, 0.75f, 1.0f);
   }
 
+  TEST(GpuTracingScene, CompilesCheckerBoardTextureRecordsWithChildTextureIds) {
+    auto brightTexture = std::make_shared<ConstantColorTexture>(Colord(0.8, 0.1, 0.2));
+    auto darkTexture = std::make_shared<ConstantColorTexture>(Colord(0.1, 0.2, 0.8));
+    auto checkerTexture =
+      std::make_shared<CheckerBoardTexture>(new UVMapping2D(4.0, 8.0), brightTexture, darkTexture);
+    auto matte = std::make_shared<MatteMaterial>(checkerTexture);
+    auto sphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 0.5);
+    sphere->setMaterial(matte);
+
+    Scene scene;
+    scene.add(sphere);
+
+    const CompiledIntersectionScene intersection = IntersectionSceneCompiler().compile(scene);
+    const GpuTracingMaterialCompilation compilation = compileGpuTracingMaterials(intersection);
+
+    EXPECT_TRUE(compilation.supported());
+    ASSERT_EQ(2u, compilation.records.size());
+    ASSERT_EQ(4u, compilation.textures.records.size());
+    EXPECT_EQ(1u, compilation.records[1].albedoTexture);
+    const GpuTracingTextureRecord& checker = compilation.textures.records[1];
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingTextureKind::CheckerBoard), checker.kind);
+    EXPECT_EQ(2u, checker.payloadOffset);
+    EXPECT_EQ(3u, checker.payloadCount);
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingTextureMappingKind::UV), checker.flags);
+    expectFloat4(checker.parameters, 4.0f, 8.0f, 0.0f, 0.0f);
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingTextureKind::ConstantColor),
+              compilation.textures.records[2].kind);
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingTextureKind::ConstantColor),
+              compilation.textures.records[3].kind);
+    expectFloat4(compilation.textures.records[2].parameters, 0.8f, 0.1f, 0.2f, 1.0f);
+    expectFloat4(compilation.textures.records[3].parameters, 0.1f, 0.2f, 0.8f, 1.0f);
+  }
+
   TEST(GpuTracingScene, MatteMaterialPacksTextureIdsAndCoefficients) {
     MatteMaterial material;
     material.setAmbientCoefficient(0.25);
@@ -485,9 +518,7 @@ namespace GpuTracingSceneTest {
   }
 
   TEST(GpuTracingScene, RecordsFirstUnsupportedTextureReasonAndGroupedCounts) {
-    auto firstUnsupportedTexture = std::make_shared<CheckerBoardTexture>(
-      new PlanarMapping2D, std::make_shared<ConstantColorTexture>(Colord::white()),
-      std::make_shared<ConstantColorTexture>(Colord::black()));
+    auto firstUnsupportedTexture = std::make_shared<UnsupportedTexture>();
     auto secondUnsupportedTexture = std::make_shared<UnsupportedTexture>();
     auto firstMaterial = std::make_shared<MatteMaterial>(firstUnsupportedTexture);
     auto secondMaterial = std::make_shared<MatteMaterial>(secondUnsupportedTexture);
@@ -507,7 +538,7 @@ namespace GpuTracingSceneTest {
     EXPECT_FALSE(compilation.supported());
     ASSERT_EQ(2u, compilation.textures.unsupportedTextures.size());
     EXPECT_EQ(1u, compilation.textures.unsupportedTextures[0].textureId);
-    EXPECT_EQ("CheckerBoardTexture", compilation.textures.unsupportedTextures[0].type);
+    EXPECT_EQ("Texture", compilation.textures.unsupportedTextures[0].type);
     EXPECT_EQ("texture type is not supported by GPU tracing scene compiler",
               compilation.textures.unsupportedTextures[0].reason);
     EXPECT_EQ(2u, compilation.textures.unsupportedTextures[1].textureId);

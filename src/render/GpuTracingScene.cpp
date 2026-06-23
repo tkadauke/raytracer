@@ -12,8 +12,11 @@
 #include "render/materials/ReflectiveMaterial.h"
 #include "render/materials/TransparentMaterial.h"
 #include "render/primitives/Scene.h"
+#include "render/textures/CheckerBoardTexture.h"
 #include "render/textures/ConstantColorTexture.h"
 #include "render/textures/Texture.h"
+#include "render/textures/mappings/PlanarMapping2D.h"
+#include "render/textures/mappings/UVMapping2D.h"
 
 #include <algorithm>
 #include <cstring>
@@ -195,6 +198,29 @@ namespace {
   private:
     TextureIdFor m_textureIdFor;
     AppendConstantColorTexture m_appendConstantColorTexture;
+  };
+
+  class GpuTracingTextureResourceContext {
+  public:
+    virtual ~GpuTracingTextureResourceContext() = default;
+
+    virtual std::uint32_t textureIdFor(const std::shared_ptr<Texturec>& texture) = 0;
+  };
+
+  class FunctionGpuTracingTextureResourceContext final : public GpuTracingTextureResourceContext {
+  public:
+    using TextureIdFor = std::function<std::uint32_t(const std::shared_ptr<Texturec>& texture)>;
+
+    explicit FunctionGpuTracingTextureResourceContext(TextureIdFor textureIdFor)
+        : m_textureIdFor(std::move(textureIdFor)) {
+    }
+
+    std::uint32_t textureIdFor(const std::shared_ptr<Texturec>& texture) override {
+      return m_textureIdFor(texture);
+    }
+
+  private:
+    TextureIdFor m_textureIdFor;
   };
 
   class GpuTracingMaterialModel {
@@ -449,8 +475,10 @@ GpuTracingMaterialCompilation::unsupportedReasonCounts() const {
   return unsupportedReasonCountsFor(unsupportedMaterials);
 }
 
-std::optional<GpuTracingTextureRecord>
-render::makeGpuTracingTextureRecord(const Texturec& texture, std::string* unsupportedReason) {
+static std::optional<GpuTracingTextureRecord>
+makeGpuTracingTextureRecordWithResources(const Texturec& texture,
+                                         GpuTracingTextureResourceContext& resources,
+                                         std::string* unsupportedReason) {
   if (const auto* constantColor = dynamic_cast<const ConstantColorTexture*>(&texture)) {
     GpuTracingTextureRecord record;
     record.kind = static_cast<std::uint32_t>(GpuTracingTextureKind::ConstantColor);
@@ -458,9 +486,40 @@ render::makeGpuTracingTextureRecord(const Texturec& texture, std::string* unsupp
     return record;
   }
 
+  if (const auto* checkerBoard = dynamic_cast<const CheckerBoardTexture*>(&texture)) {
+    const TextureMapping2D* mapping = checkerBoard->mapping();
+    GpuTracingTextureRecord record;
+    record.kind = static_cast<std::uint32_t>(GpuTracingTextureKind::CheckerBoard);
+    record.payloadOffset = resources.textureIdFor(checkerBoard->brightTexture());
+    record.payloadCount = resources.textureIdFor(checkerBoard->darkTexture());
+    if (const auto* uvMapping = dynamic_cast<const UVMapping2D*>(mapping)) {
+      record.flags = static_cast<std::uint32_t>(GpuTracingTextureMappingKind::UV);
+      record.parameters = {static_cast<float>(uvMapping->uScale()),
+                           static_cast<float>(uvMapping->vScale()), 0.0f, 0.0f};
+      return record;
+    }
+    if (dynamic_cast<const PlanarMapping2D*>(mapping)) {
+      record.flags = static_cast<std::uint32_t>(GpuTracingTextureMappingKind::Planar);
+      record.parameters = {1.0f, 1.0f, 0.0f, 0.0f};
+      return record;
+    }
+
+    setUnsupportedReason(
+      unsupportedReason,
+      "checkerboard texture mapping is not supported by GPU tracing scene compiler");
+    return std::nullopt;
+  }
+
   setUnsupportedReason(unsupportedReason,
                        "texture type is not supported by GPU tracing scene compiler");
   return std::nullopt;
+}
+
+std::optional<GpuTracingTextureRecord>
+render::makeGpuTracingTextureRecord(const Texturec& texture, std::string* unsupportedReason) {
+  FunctionGpuTracingTextureResourceContext resources(
+    [](const std::shared_ptr<Texturec>&) { return 0u; });
+  return makeGpuTracingTextureRecordWithResources(texture, resources, unsupportedReason);
 }
 
 std::optional<GpuTracingMaterialRecord>
@@ -487,7 +546,11 @@ render::compileGpuTracingMaterials(const CompiledIntersectionScene& scene) {
     return id;
   };
 
-  auto textureIdFor = [&compilation, &textureIds](const std::shared_ptr<Texturec>& texture) {
+  std::function<std::uint32_t(const std::shared_ptr<Texturec>&)> textureIdFor;
+  FunctionGpuTracingTextureResourceContext textureResources(
+    [&textureIdFor](const std::shared_ptr<Texturec>& texture) { return textureIdFor(texture); });
+  textureIdFor = [&compilation, &textureIds,
+                  &textureResources](const std::shared_ptr<Texturec>& texture) {
     if (!texture) {
       return 0u;
     }
@@ -498,16 +561,16 @@ render::compileGpuTracingMaterials(const CompiledIntersectionScene& scene) {
     }
 
     const std::uint32_t id = static_cast<std::uint32_t>(compilation.textures.records.size());
+    textureIds.emplace(texture.get(), id);
+    compilation.textures.records.push_back(GpuTracingTextureRecord{});
     std::string reason;
     if (const std::optional<GpuTracingTextureRecord> record =
-          makeGpuTracingTextureRecord(*texture, &reason)) {
-      compilation.textures.records.push_back(*record);
+          makeGpuTracingTextureRecordWithResources(*texture, textureResources, &reason)) {
+      compilation.textures.records[id] = *record;
     } else {
-      compilation.textures.records.push_back(GpuTracingTextureRecord{});
       compilation.textures.unsupportedTextures.push_back(
         UnsupportedGpuTracingTexture{id, texture->typeName(), reason});
     }
-    textureIds.emplace(texture.get(), id);
     return id;
   };
   FunctionGpuTracingMaterialResourceContext resources(textureIdFor, appendConstantColorTexture);
