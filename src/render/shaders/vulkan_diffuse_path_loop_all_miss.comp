@@ -44,7 +44,7 @@ struct GpuDiffusePathLoopLaunchParameters {
   uint environmentByteOffset;
   uint debugIdByteOffset;
   uint sceneUploadBytes;
-  uint reserved0;
+  uint accumulationTargetMode;
   uint bvhByteOffset;
   uint primitiveByteOffset;
   uint triangleByteOffset;

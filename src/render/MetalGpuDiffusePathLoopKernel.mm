@@ -86,7 +86,7 @@ namespace render {
               "  uint environmentByteOffset;\n"
               "  uint debugIdByteOffset;\n"
               "  uint sceneUploadBytes;\n"
-              "  uint reserved0;\n"
+              "  uint accumulationTargetMode;\n"
               "  uint bvhByteOffset;\n"
               "  uint primitiveByteOffset;\n"
               "  uint triangleByteOffset;\n"
@@ -327,6 +327,7 @@ namespace render {
               "constant uint gpuDiffusePathStepEventMiss = 1u;\n"
               "constant uint gpuDiffusePathStepEventHit = 2u;\n"
               "constant uint gpuDiffusePathStepEventUnsupported = 3u;\n"
+              "constant uint gpuDiffusePathLoopAccumulationTargetPath = 1u;\n"
               "constant uint gpuSampleInitialCoordinateState = 0x811c9dc5u;\n"
               "constant uint gpuSampleCoordinateStep = 0x9e3779b9u;\n"
               "constant float pathLoopInvPi = 0.31830988618379067154f;\n"
@@ -1669,14 +1670,19 @@ namespace render {
               "void accumulateTerminatedPath(\n"
               "    constant GpuDiffusePathLoopLaunchParameters& parameters,\n"
               "    device uchar* accumulation,\n"
+              "    uint pathIndex,\n"
               "    GpuDiffusePathStateRecord path) {\n"
               "  const uint pixelCount = parameters.imageWidth * parameters.imageHeight;\n"
-              "  if (path.pixelIndex >= pixelCount) {\n"
+              "  const uint accumulationIndex =\n"
+              "      parameters.accumulationTargetMode == gpuDiffusePathLoopAccumulationTargetPath\n"
+              "          ? pathIndex\n"
+              "          : path.pixelIndex;\n"
+              "  if (accumulationIndex >= pixelCount) {\n"
               "    return;\n"
               "  }\n"
-              "  accumulationColorSums(parameters, accumulation)[path.pixelIndex] =\n"
+              "  accumulationColorSums(parameters, accumulation)[accumulationIndex] =\n"
               "      path.accumulatedRadiance;\n"
-              "  accumulationSampleCounts(parameters, accumulation)[path.pixelIndex] = 1u;\n"
+              "  accumulationSampleCounts(parameters, accumulation)[accumulationIndex] = 1u;\n"
               "}\n"
               "void recordRetainedActivePath(device atomic_uint* retainedIndices,\n"
               "                              uint pathIndex,\n"
@@ -1747,7 +1753,7 @@ namespace render {
               "    path.accumulatedRadiance += contribution;\n"
               "    path.flags = (path.flags & ~gpuDiffusePathStateActiveFlag) |\n"
               "                 gpuDiffusePathStateTerminatedFlag;\n"
-              "    accumulateTerminatedPath(parameters, accumulation, path);\n"
+              "    accumulateTerminatedPath(parameters, accumulation, id, path);\n"
               "    step.event = gpuDiffusePathStepEventMiss;\n"
               "    step.missRadiance = contribution;\n"
               "    step.continuationThroughput = float4(0.0f);\n"
@@ -1869,7 +1875,7 @@ namespace render {
               "    }\n"
               "  }\n"
               "  if (pathStateIsActive(path) && pathStateIsTerminated(next)) {\n"
-              "    accumulateTerminatedPath(parameters, accumulation, next);\n"
+              "    accumulateTerminatedPath(parameters, accumulation, id, next);\n"
               "  }\n"
               "  activePathStates[id] = path;\n"
               "  nextPathStates[id] = next;\n"
@@ -1900,7 +1906,7 @@ namespace render {
               "  GpuIntersectionHitRecord lastHit = missHitRecord(path.ray);\n"
               "  if (pathStateIsActive(path) && path.depth >= parameters.maxDepth) {\n"
               "    path.flags = terminatedPathFlags(path.flags);\n"
-              "    accumulateTerminatedPath(parameters, accumulation, path);\n"
+              "    accumulateTerminatedPath(parameters, accumulation, id, path);\n"
               "  }\n"
               "  for (uint depthIndex = 0u; depthIndex != parameters.maxDepth; ++depthIndex) {\n"
               "    if (!pathStateIsActive(path) || path.depth >= parameters.maxDepth) {\n"
@@ -1913,11 +1919,11 @@ namespace render {
               "    stepRecords[id * parameters.maxDepth + depthIndex] = step;\n"
               "    lastHit = hit;\n"
               "    if (pathStateIsActive(path) && pathStateIsTerminated(next)) {\n"
-              "      accumulateTerminatedPath(parameters, accumulation, next);\n"
+              "      accumulateTerminatedPath(parameters, accumulation, id, next);\n"
               "    }\n"
               "    if (pathStateIsActive(next) && next.depth >= parameters.maxDepth) {\n"
               "      next.flags = terminatedPathFlags(next.flags);\n"
-              "      accumulateTerminatedPath(parameters, accumulation, next);\n"
+              "      accumulateTerminatedPath(parameters, accumulation, id, next);\n"
               "    }\n"
               "    path = next;\n"
               "  }\n"
@@ -2091,6 +2097,14 @@ namespace render {
       if (pixels > static_cast<std::uint64_t>(std::numeric_limits<std::size_t>::max())) {
         throw std::overflow_error(std::string("Metal diffuse path-loop ") + probeName +
                                   " pixel count overflows");
+      }
+      if (plan.parameters.accumulationTargetMode == gpuDiffusePathLoopAccumulationTargetPath) {
+        if (pixels < initialPathStates.size()) {
+          throw std::invalid_argument(
+            std::string("Metal diffuse path-loop ") + probeName +
+            " path accumulation layout has fewer slots than paths");
+        }
+        return;
       }
       std::vector<bool> seenPixels(static_cast<std::size_t>(pixels), false);
       for (const GpuDiffusePathStateRecord& path : initialPathStates) {

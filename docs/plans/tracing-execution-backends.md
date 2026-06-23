@@ -2559,11 +2559,15 @@ scene is large enough to amortize upload/readback costs.
      Metal command buffer for that narrow subset, and matching platform
      accumulation planes now flow through the shared diffuse path-loop resolver
      and rendercli metrics instead of requiring host-side image reconstruction
-     from terminal path states. Multi-sample platform accumulation, broader
-     primitive traversal, full material shading, full direct-light coverage,
-     device-side compacted wavefront scheduling, Vulkan parity, performance
-     gates, and render-graph auto-selection still need to land before it can be
-     used as the automatic full GPU tracing path.
+     from terminal path states. Multi-sample explicit GPU renders can now stay
+     on the Metal path-loop kernel by switching duplicate output-pixel samples
+     to path-slot accumulation and resolving the averaged final image through
+     the shared accumulation path. Matching per-output-pixel platform
+     multi-sample accumulation, broader primitive traversal, full material
+     shading, full direct-light coverage, device-side compacted wavefront
+     scheduling, Vulkan parity, performance gates, and render-graph
+     auto-selection still need to land before it can be used as the automatic
+     full GPU tracing path.
 
 3. **Add a minimal Vulkan path-loop kernel.**
    - Depends on: job 1.

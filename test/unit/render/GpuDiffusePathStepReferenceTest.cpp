@@ -1733,6 +1733,57 @@ namespace GpuDiffusePathStepReferenceTest {
 #endif
   }
 
+  TEST(MetalGpuDiffusePathLoopBackend, RunsDuplicatePixelSamplesWithPathSlotAccumulation) {
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    const MetalGpuDiffusePathLoopBackend backend;
+    if (!backend.fullGpuPathLoopAvailable()) {
+      GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
+    }
+
+    Scene scene;
+    scene.setBackground(Colord(0.2, 0.4, 0.6));
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+
+    std::vector<GpuDiffusePathStateRecord> paths{activePath(40), activePath(41)};
+    paths[0].pixelIndex = 0;
+    paths[0].primarySampleIndex = 0;
+    paths[0].throughput = {1.0f, 1.0f, 1.0f, 0.0f};
+    paths[1].pixelIndex = 0;
+    paths[1].primarySampleIndex = 1;
+    paths[1].throughput = {0.5f, 0.25f, 0.125f, 0.0f};
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 1;
+    settings.russianRouletteDepth = 10;
+
+    const GpuDiffusePathLoopResult expected = GpuDiffusePathLoop().run(sections, paths, settings);
+    const GpuDiffusePathLoopResult result = backend.run(sections, paths, settings);
+
+    EXPECT_TRUE(result.fullGpuPathLoopSupported());
+    EXPECT_EQ("metal", result.platformName);
+    ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
+    expectPathStateNear(result.resolvedPathStates[0], expected.resolvedPathStates[0], 1e-4);
+    expectPathStateNear(result.resolvedPathStates[1], expected.resolvedPathStates[1], 1e-4);
+    ASSERT_EQ(paths.size(), result.platformAccumulationColorSums.size());
+    ASSERT_EQ(paths.size(), result.platformAccumulationSampleCounts.size());
+    EXPECT_EQ(1u, result.platformAccumulationSampleCounts[0]);
+    EXPECT_EQ(1u, result.platformAccumulationSampleCounts[1]);
+
+    const TracingAccumulationLayout layout = TracingAccumulationLayout::image(1, 1);
+    Buffer<Colord> expectedResolved(1, 1);
+    Buffer<Colord> resolved(1, 1);
+    (void)resolveGpuDiffusePathLoopImage(expected, layout, expectedResolved);
+    const TracingAccumulationDiagnostics diagnostics =
+      resolveGpuDiffusePathLoopImage(result, layout, resolved);
+
+    ASSERT_COLOR_NEAR(expectedResolved[0][0], resolved[0][0], 1e-4);
+    EXPECT_EQ("gpu_diffuse_path_loop", diagnostics.backend);
+    EXPECT_EQ("resident_accumulation_resolve", diagnostics.residency);
+#else
+    GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
+#endif
+  }
+
   TEST(VulkanGpuDiffusePathLoopBackend, ReportsUnavailableWhenBuildOrDeviceCannotRunVulkan) {
     const VulkanGpuDiffusePathLoopBackend backend;
     GpuDiffusePathLoopSettings settings;
@@ -2347,6 +2398,7 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(2u, plan.parameters.initialPathCount);
     EXPECT_EQ(3u, plan.parameters.imageWidth);
     EXPECT_EQ(2u, plan.parameters.imageHeight);
+    EXPECT_EQ(gpuDiffusePathLoopAccumulationTargetPixel, plan.parameters.accumulationTargetMode);
     EXPECT_EQ(sections.materials.size(), plan.parameters.materialCount);
     EXPECT_EQ(sections.textures.size(), plan.parameters.textureCount);
     EXPECT_EQ(sections.lights.size(), plan.parameters.lightCount);
@@ -2484,6 +2536,8 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(plan.parameters.environmentByteOffset, result.echoedParameters.environmentByteOffset);
     EXPECT_EQ(plan.parameters.debugIdByteOffset, result.echoedParameters.debugIdByteOffset);
     EXPECT_EQ(plan.parameters.sceneUploadBytes, result.echoedParameters.sceneUploadBytes);
+    EXPECT_EQ(plan.parameters.accumulationTargetMode,
+              result.echoedParameters.accumulationTargetMode);
     EXPECT_EQ(plan.parameters.bvhByteOffset, result.echoedParameters.bvhByteOffset);
     EXPECT_EQ(plan.parameters.primitiveByteOffset, result.echoedParameters.primitiveByteOffset);
     EXPECT_EQ(plan.parameters.triangleByteOffset, result.echoedParameters.triangleByteOffset);

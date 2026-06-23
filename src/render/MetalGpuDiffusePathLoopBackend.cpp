@@ -152,7 +152,8 @@ namespace render {
       return arrayHasValue(step.continuationThroughput);
     }
 
-    void validateUniqueActivePixels(const std::vector<GpuDiffusePathStateRecord>& pathStates) {
+    [[nodiscard]] bool
+    hasDuplicateActivePixelTarget(const std::vector<GpuDiffusePathStateRecord>& pathStates) {
       std::uint64_t maxPixel = 0;
       bool hasActivePath = false;
       for (const GpuDiffusePathStateRecord& path : pathStates) {
@@ -163,7 +164,7 @@ namespace render {
         maxPixel = std::max<std::uint64_t>(maxPixel, path.pixelIndex);
       }
       if (!hasActivePath) {
-        return;
+        return false;
       }
       if (maxPixel >= static_cast<std::uint64_t>(std::numeric_limits<int>::max())) {
         throw std::overflow_error(
@@ -176,15 +177,15 @@ namespace render {
           continue;
         }
         if (seen[path.pixelIndex]) {
-          throw std::invalid_argument(
-            "Metal diffuse path-loop backend requires unique active pixel targets");
+          return true;
         }
         seen[path.pixelIndex] = true;
       }
+      return false;
     }
 
     [[nodiscard]] TracingAccumulationLayout
-    accumulationLayoutFor(const std::vector<GpuDiffusePathStateRecord>& pathStates) {
+    pixelAccumulationLayoutFor(const std::vector<GpuDiffusePathStateRecord>& pathStates) {
       std::uint64_t maxPixel = 0;
       for (const GpuDiffusePathStateRecord& path : pathStates) {
         maxPixel = std::max<std::uint64_t>(maxPixel, path.pixelIndex);
@@ -194,6 +195,29 @@ namespace render {
           "Metal diffuse path-loop backend accumulation pixel index exceeds layout range");
       }
       return TracingAccumulationLayout::image(static_cast<int>(maxPixel + 1u), 1);
+    }
+
+    [[nodiscard]] TracingAccumulationLayout
+    pathAccumulationLayoutFor(const std::vector<GpuDiffusePathStateRecord>& pathStates) {
+      if (pathStates.size() >= static_cast<std::size_t>(std::numeric_limits<int>::max())) {
+        throw std::overflow_error(
+          "Metal diffuse path-loop backend path accumulation index exceeds layout range");
+      }
+      return TracingAccumulationLayout::image(
+        static_cast<int>(std::max<std::size_t>(1u, pathStates.size())), 1);
+    }
+
+    struct MetalAccumulationPlan {
+      TracingAccumulationLayout layout;
+      std::uint32_t targetMode{gpuDiffusePathLoopAccumulationTargetPixel};
+    };
+
+    [[nodiscard]] MetalAccumulationPlan
+    accumulationPlanFor(const std::vector<GpuDiffusePathStateRecord>& pathStates) {
+      if (hasDuplicateActivePixelTarget(pathStates)) {
+        return {pathAccumulationLayoutFor(pathStates), gpuDiffusePathLoopAccumulationTargetPath};
+      }
+      return {pixelAccumulationLayoutFor(pathStates), gpuDiffusePathLoopAccumulationTargetPixel};
     }
 
     void mergeStepMetrics(GpuDiffusePathLoopResult& loop,
@@ -383,11 +407,10 @@ namespace render {
     if (!support.supported) {
       throw std::invalid_argument(support.reason);
     }
-    validateUniqueActivePixels(initialPathStates);
-
-    const TracingAccumulationLayout layout = accumulationLayoutFor(initialPathStates);
-    const GpuDiffusePathLoopLaunchPlan plan =
-      GpuDiffusePathLoopLaunchPlanner().plan(scene, initialPathStates, layout, settings);
+    const MetalAccumulationPlan accumulation = accumulationPlanFor(initialPathStates);
+    GpuDiffusePathLoopLaunchPlan plan = GpuDiffusePathLoopLaunchPlanner().plan(
+      scene, initialPathStates, accumulation.layout, settings);
+    plan.parameters.accumulationTargetMode = accumulation.targetMode;
     const MetalGpuDiffusePathLoopKernelResult metalResult =
       MetalGpuDiffusePathLoopKernel().runMattePathLoop(plan, initialPathStates);
     return makeLoopResult(initialPathStates, settings, metalResult);

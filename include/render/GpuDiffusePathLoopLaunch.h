@@ -7,7 +7,9 @@
 #include <vector>
 
 namespace render {
-  inline constexpr std::uint32_t gpuDiffusePathLoopLaunchLayoutVersion = 4u;
+  inline constexpr std::uint32_t gpuDiffusePathLoopLaunchLayoutVersion = 5u;
+  inline constexpr std::uint32_t gpuDiffusePathLoopAccumulationTargetPixel = 0u;
+  inline constexpr std::uint32_t gpuDiffusePathLoopAccumulationTargetPath = 1u;
 
   struct alignas(16) GpuDiffusePathLoopLaunchParameters {
     std::uint32_t layoutVersion{gpuDiffusePathLoopLaunchLayoutVersion};
@@ -29,7 +31,7 @@ namespace render {
     std::uint32_t environmentByteOffset{0};
     std::uint32_t debugIdByteOffset{0};
     std::uint32_t sceneUploadBytes{0};
-    std::uint32_t reserved0{0};
+    std::uint32_t accumulationTargetMode{gpuDiffusePathLoopAccumulationTargetPixel};
     std::uint32_t bvhByteOffset{0};
     std::uint32_t primitiveByteOffset{0};
     std::uint32_t triangleByteOffset{0};
