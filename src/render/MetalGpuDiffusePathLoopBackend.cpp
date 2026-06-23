@@ -138,7 +138,8 @@ namespace render {
       return std::all_of(
         scene.lights.begin(), scene.lights.end(), [](const GpuTracingLightRecord& light) {
           const auto kind = static_cast<GpuTracingLightKind>(light.kind);
-          return kind == GpuTracingLightKind::Point || kind == GpuTracingLightKind::Directional;
+          return kind == GpuTracingLightKind::Point || kind == GpuTracingLightKind::Directional ||
+                 kind == GpuTracingLightKind::RectangularArea;
         });
     }
 
@@ -355,8 +356,8 @@ namespace render {
                      "CheckerBoard, and nearest ImageTexture textures only"};
     }
     if (!supportedLights(scene)) {
-      return {false, "Metal diffuse path-loop backend currently supports point and directional "
-                     "lights only"};
+      return {false, "Metal diffuse path-loop backend currently supports point, directional, and "
+                     "rectangular area lights only"};
     }
     return {true, {}};
 #else

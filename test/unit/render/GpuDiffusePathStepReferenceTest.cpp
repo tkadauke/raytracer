@@ -2946,9 +2946,13 @@ namespace GpuDiffusePathStepReferenceTest {
 #endif
   }
 
-  TEST(MetalGpuDiffusePathLoopBackend, RejectsRectangularAreaLightsUntilDirectLightGpuPathIsReady) {
+  TEST(MetalGpuDiffusePathLoopKernel,
+       MatteContinuationProbeAddsRectangularAreaLightContributionWhenEnabled) {
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
-    const MetalGpuDiffusePathLoopBackend backend;
+    MetalGpuDiffusePathLoopKernel kernel;
+    if (!kernel.launchPathAvailable()) {
+      GTEST_SKIP() << kernel.launchPathUnavailableReason();
+    }
 
     Scene scene;
     auto matte =
@@ -2966,14 +2970,27 @@ namespace GpuDiffusePathStepReferenceTest {
     settings.maxDepth = 2;
     settings.russianRouletteDepth = 10;
     settings.directLightSamples = 1;
+    const TracingAccumulationLayout accumulationLayout = TracingAccumulationLayout::image(2, 2);
+    std::vector<GpuDiffusePathStateRecord> paths{activePath()};
+    paths[0].pixelIndex = 0;
+    paths[0].sampleSeed = 12347;
+    paths[0].throughput = {0.5f, 0.25f, 0.125f, 0.0f};
+    const GpuDiffusePathLoopLaunchPlan plan =
+      GpuDiffusePathLoopLaunchPlanner().plan(sections, paths, accumulationLayout, settings);
+    const GpuDiffusePathStepResult expected = GpuDiffusePathStepReference().step(
+      sections, paths, closestHitsFor(sections, paths), settings);
+    ASSERT_EQ(1u, expected.pathStates.size());
 
-    const GpuDiffusePathLoopBackendSupport support =
-      backend.fullGpuPathLoopSupport(sections, settings);
+    const MetalGpuDiffusePathLoopKernelResult result =
+      kernel.runMatteContinuationProbe(plan, paths);
 
-    EXPECT_FALSE(support.supported);
-    EXPECT_EQ(
-      "Metal diffuse path-loop backend currently supports point and directional lights only",
-      support.reason);
+    ASSERT_EQ(paths.size(), result.stepRecords.size());
+    ASSERT_EQ(paths.size(), result.nextPathStates.size());
+    expectFloat4Near(result.stepRecords[0].directLightRadiance,
+                     expected.stepRecords[0].directLightRadiance, 1e-4);
+    expectFloat4Near(result.nextPathStates[0].accumulatedRadiance,
+                     expected.pathStates[0].accumulatedRadiance, 1e-4);
+    expectPathStateNear(result.nextPathStates[0], expected.pathStates[0], 1e-4);
 #else
     GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
 #endif

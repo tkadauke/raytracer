@@ -126,8 +126,7 @@ end state for GPU tracing.
   optionally transformed triangle/sphere/plane/rectangle/disk/open-cylinder/
   torus paths with Matte, Phong diffuse-lobe, or Emissive materials across
   multiple depths for backend tests and explicit GPU graph requests when the
-  light set is empty or uses point/directional lights. It deliberately rejects
-  rectangular area lights until that direct-light path is correct on GPU. A
+  light set is empty or uses point, directional, or rectangular area lights. A
   restricted Vulkan path-loop backend can execute empty-scene all-miss paths and
   a first one-depth shaded one-sphere subset with Matte/Emissive ConstantColor
   materials and zero or one point light when Vulkan is built and available.
@@ -2552,12 +2551,10 @@ scene is large enough to amortize upload/readback costs.
      path-loop kernel. A restricted `MetalGpuDiffusePathLoopBackend` now wraps
      the empty-scene and optionally transformed
      triangle/sphere/plane/rectangle/disk/open-cylinder/torus Matte,
-     Phong-diffuse, and Emissive paths with empty, point-light, or
-     directional-light scenes behind the platform backend interface, including
-     scene/settings support rejection and full-GPU result metadata for backend
-     tests. Rectangular area lights remain a follow-up because the current
-     platform direct-light path is not ready to advertise them. Its first real
-     path-loop
+     Phong-diffuse, and Emissive paths with empty, point-light,
+     directional-light, or rectangular-area-light scenes behind the platform
+     backend interface, including scene/settings support rejection and
+     full-GPU result metadata for backend tests. Its first real path-loop
      dispatch can advance supported paths across multiple depths inside one
      Metal command buffer for that narrow subset. Broader primitive traversal,
      full material shading, full direct-light coverage, device-side compacted
