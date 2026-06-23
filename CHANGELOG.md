@@ -75,8 +75,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   GPT-5 Codex
 - Add the first Metal diffuse path-loop launch probe kernel, binding the
   shader-facing launch descriptor, copying initial path-state records through
-  GPU active/next buffers, and binding required future path-loop buffers without
-  advertising full GPU path tracing yet. — GPT-5 Codex
+  GPU active/next buffers, writing probe step records, and binding required
+  future path-loop buffers without advertising full GPU path tracing yet. —
+  GPT-5 Codex
 
 ### Fixed
 

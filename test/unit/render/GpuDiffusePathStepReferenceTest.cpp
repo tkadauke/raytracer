@@ -1560,6 +1560,20 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(2u, result.copiedInitialPathStates[1].depth);
     EXPECT_EQ(41u, result.copiedInitialPathStates[1].ray.rayIndex);
     EXPECT_FLOAT_EQ(0.5f, result.copiedInitialPathStates[1].previousBsdfPdf);
+    ASSERT_EQ(paths.size(), result.probeStepRecords.size());
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuDiffusePathStepEvent::Inactive),
+              result.probeStepRecords[0].event);
+    EXPECT_EQ(0u, result.probeStepRecords[0].pathIndex);
+    EXPECT_EQ(12u, result.probeStepRecords[0].pixelIndex);
+    EXPECT_EQ(paths[0].primarySampleIndex, result.probeStepRecords[0].primarySampleIndex);
+    EXPECT_EQ(paths[0].depth, result.probeStepRecords[0].depth);
+    EXPECT_EQ(paths[0].flags, result.probeStepRecords[0].flags);
+    EXPECT_EQ(paths[0].throughput, result.probeStepRecords[0].continuationThroughput);
+    EXPECT_EQ(1u, result.probeStepRecords[1].pathIndex);
+    EXPECT_EQ(13u, result.probeStepRecords[1].pixelIndex);
+    EXPECT_EQ(2u, result.probeStepRecords[1].depth);
+    EXPECT_EQ(paths[1].flags, result.probeStepRecords[1].flags);
+    EXPECT_EQ(paths[1].throughput, result.probeStepRecords[1].continuationThroughput);
     EXPECT_GE(result.uploadWorkerSeconds, 0.0);
     EXPECT_GE(result.kernelWorkerSeconds, 0.0);
     EXPECT_GE(result.readbackWorkerSeconds, 0.0);

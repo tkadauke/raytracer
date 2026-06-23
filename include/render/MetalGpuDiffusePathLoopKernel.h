@@ -10,6 +10,7 @@ namespace render {
     GpuDiffusePathLoopLaunchParameters echoedParameters;
     GpuDiffusePathLoopLaunchBufferSizes bufferSizes;
     std::vector<GpuDiffusePathStateRecord> copiedInitialPathStates;
+    std::vector<GpuDiffusePathStepRecord> probeStepRecords;
     std::string executionPath{"metal_diffuse_path_loop_launch_probe"};
     std::string pathStateResidency{"metal_shared_diffuse_path_state"};
     double uploadWorkerSeconds{0.0};

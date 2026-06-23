@@ -22,6 +22,8 @@ namespace render {
     static_assert(alignof(GpuDiffusePathLoopLaunchParameters) == 16);
     static_assert(sizeof(GpuDiffusePathStateRecord) == 160);
     static_assert(alignof(GpuDiffusePathStateRecord) == 16);
+    static_assert(sizeof(GpuDiffusePathStepRecord) == 96);
+    static_assert(alignof(GpuDiffusePathStepRecord) == 16);
 
     id<MTLDevice> sharedMetalDevice() {
       static id<MTLDevice> device = MTLCreateSystemDefaultDevice();
@@ -103,6 +105,20 @@ namespace render {
               "  uint reserved3;\n"
               "  uint reserved4;\n"
               "};\n"
+              "struct GpuDiffusePathStepRecord {\n"
+              "  uint event;\n"
+              "  uint pathIndex;\n"
+              "  uint pixelIndex;\n"
+              "  uint primarySampleIndex;\n"
+              "  uint depth;\n"
+              "  uint material;\n"
+              "  uint object;\n"
+              "  uint flags;\n"
+              "  float4 emittedRadiance;\n"
+              "  float4 directLightRadiance;\n"
+              "  float4 missRadiance;\n"
+              "  float4 continuationThroughput;\n"
+              "};\n"
               "kernel void probeDiffusePathLoopLaunch(\n"
               "    constant GpuDiffusePathLoopLaunchParameters& parameters [[buffer(0)]],\n"
               "    device GpuDiffusePathLoopLaunchParameters* echoedParameters [[buffer(1)]],\n"
@@ -110,13 +126,12 @@ namespace render {
               "    device const GpuDiffusePathStateRecord* initialPathStates [[buffer(3)]],\n"
               "    device GpuDiffusePathStateRecord* activePathStates [[buffer(4)]],\n"
               "    device GpuDiffusePathStateRecord* nextPathStates [[buffer(5)]],\n"
-              "    device uchar* stepRecords [[buffer(6)]],\n"
+              "    device GpuDiffusePathStepRecord* stepRecords [[buffer(6)]],\n"
               "    device uchar* retainedIndices [[buffer(7)]],\n"
               "    device uchar* accumulation [[buffer(8)]],\n"
               "    uint id [[thread_position_in_grid]]) {\n"
               "  if (id == 0u) {\n"
               "    echoedParameters[0] = parameters;\n"
-              "    stepRecords[0] = 0u;\n"
               "    retainedIndices[0] = 0u;\n"
               "    accumulation[0] = 0u;\n"
               "  }\n"
@@ -125,6 +140,20 @@ namespace render {
               "  }\n"
               "  activePathStates[id] = initialPathStates[id];\n"
               "  nextPathStates[id] = activePathStates[id];\n"
+              "  GpuDiffusePathStepRecord step;\n"
+              "  step.event = 0u;\n"
+              "  step.pathIndex = id;\n"
+              "  step.pixelIndex = initialPathStates[id].pixelIndex;\n"
+              "  step.primarySampleIndex = initialPathStates[id].primarySampleIndex;\n"
+              "  step.depth = initialPathStates[id].depth;\n"
+              "  step.material = 0u;\n"
+              "  step.object = 0u;\n"
+              "  step.flags = initialPathStates[id].flags;\n"
+              "  step.emittedRadiance = float4(0.0f);\n"
+              "  step.directLightRadiance = float4(0.0f);\n"
+              "  step.missRadiance = float4(0.0f);\n"
+              "  step.continuationThroughput = initialPathStates[id].throughput;\n"
+              "  stepRecords[id] = step;\n"
               "  (void)sceneUpload;\n"
               "}\n";
     }
@@ -303,6 +332,11 @@ namespace render {
       if (!result.copiedInitialPathStates.empty()) {
         std::memcpy(result.copiedInitialPathStates.data(), [activePathBuffer contents],
                     result.copiedInitialPathStates.size() * sizeof(GpuDiffusePathStateRecord));
+      }
+      result.probeStepRecords.resize(initialPathStates.size());
+      if (!result.probeStepRecords.empty()) {
+        std::memcpy(result.probeStepRecords.data(), [stepRecordBuffer contents],
+                    result.probeStepRecords.size() * sizeof(GpuDiffusePathStepRecord));
       }
       result.readbackWorkerSeconds =
         elapsedSeconds(readbackStart, std::chrono::steady_clock::now());

@@ -2486,10 +2486,11 @@ scene is large enough to amortize upload/readback costs.
      launch-probe kernel that binds the shader-facing path-loop descriptor plus
      scene, initial/active/next path-state, step-record, retained-index, and
      accumulation buffers, and copies initial path-state records into GPU
-     active/next path-state buffers. This proves the command-buffer and
-     path-state ABI for the future path-loop kernel; shading, continuation,
-     direct lighting, compaction, and accumulation still need to move into this
-     backend before it can advertise full GPU execution.
+     active/next path-state buffers while writing probe `GpuDiffusePathStepRecord`
+     rows. This proves the command-buffer, path-state, and step-record ABI for
+     the future path-loop kernel; shading, continuation, direct lighting,
+     compaction, and accumulation still need to move into this backend before it
+     can advertise full GPU execution.
 
 3. **Add a minimal Vulkan path-loop kernel.**
    - Depends on: job 1.
