@@ -1522,11 +1522,16 @@ namespace GpuDiffusePathStepReferenceTest {
     settings.russianRouletteDepth = 1;
     settings.directLightSamples = 3;
     const TracingAccumulationLayout accumulationLayout = TracingAccumulationLayout::image(2, 2);
-    const std::vector<GpuDiffusePathStateRecord> paths{activePath(), activePath()};
+    std::vector<GpuDiffusePathStateRecord> paths{activePath(40), activePath(41)};
+    paths[0].pixelIndex = 12;
+    paths[0].sampleSeed = 101;
+    paths[1].pixelIndex = 13;
+    paths[1].depth = 2;
+    paths[1].previousBsdfPdf = 0.5f;
     const GpuDiffusePathLoopLaunchPlan plan =
       GpuDiffusePathLoopLaunchPlanner().plan(sections, paths, accumulationLayout, settings);
 
-    const MetalGpuDiffusePathLoopKernelResult result = kernel.runLaunchProbe(plan);
+    const MetalGpuDiffusePathLoopKernelResult result = kernel.runLaunchProbe(plan, paths);
 
     EXPECT_EQ("metal_diffuse_path_loop_launch_probe", result.executionPath);
     EXPECT_EQ("metal_shared_diffuse_path_state", result.pathStateResidency);
@@ -1547,6 +1552,14 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(plan.parameters.transformCount, result.echoedParameters.transformCount);
     EXPECT_EQ(plan.buffers.totalUploadBytes, result.bufferSizes.totalUploadBytes);
     EXPECT_EQ(plan.buffers.totalResidentBytes, result.bufferSizes.totalResidentBytes);
+    ASSERT_EQ(paths.size(), result.copiedInitialPathStates.size());
+    EXPECT_EQ(12u, result.copiedInitialPathStates[0].pixelIndex);
+    EXPECT_EQ(101u, result.copiedInitialPathStates[0].sampleSeed);
+    EXPECT_EQ(40u, result.copiedInitialPathStates[0].ray.rayIndex);
+    EXPECT_EQ(13u, result.copiedInitialPathStates[1].pixelIndex);
+    EXPECT_EQ(2u, result.copiedInitialPathStates[1].depth);
+    EXPECT_EQ(41u, result.copiedInitialPathStates[1].ray.rayIndex);
+    EXPECT_FLOAT_EQ(0.5f, result.copiedInitialPathStates[1].previousBsdfPdf);
     EXPECT_GE(result.uploadWorkerSeconds, 0.0);
     EXPECT_GE(result.kernelWorkerSeconds, 0.0);
     EXPECT_GE(result.readbackWorkerSeconds, 0.0);

@@ -3,11 +3,13 @@
 #include "render/GpuDiffusePathLoopLaunch.h"
 
 #include <string>
+#include <vector>
 
 namespace render {
   struct MetalGpuDiffusePathLoopKernelResult {
     GpuDiffusePathLoopLaunchParameters echoedParameters;
     GpuDiffusePathLoopLaunchBufferSizes bufferSizes;
+    std::vector<GpuDiffusePathStateRecord> copiedInitialPathStates;
     std::string executionPath{"metal_diffuse_path_loop_launch_probe"};
     std::string pathStateResidency{"metal_shared_diffuse_path_state"};
     double uploadWorkerSeconds{0.0};
@@ -23,6 +25,7 @@ namespace render {
     [[nodiscard]] std::string launchPathUnavailableReason() const;
 
     [[nodiscard]] MetalGpuDiffusePathLoopKernelResult
-    runLaunchProbe(const GpuDiffusePathLoopLaunchPlan& plan) const;
+    runLaunchProbe(const GpuDiffusePathLoopLaunchPlan& plan,
+                   const std::vector<GpuDiffusePathStateRecord>& initialPathStates) const;
   };
 }
