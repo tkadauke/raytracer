@@ -2471,7 +2471,10 @@ scene is large enough to amortize upload/readback costs.
      `GpuDiffusePathLoopBackend` boundary. ✅ **Started.** The interface now has
      a separate full-GPU backend selection hook so automatic graph compilation
      cannot confuse the CPU-reference diagnostic backend with a platform-owned
-     path-loop backend.
+     path-loop backend. `GpuDiffusePathLoopLaunchPlanner` also defines the
+     shader-facing launch parameters and byte accounting for scene upload,
+     ping-pong path-state buffers, per-depth step records, retained indices,
+     and accumulation storage.
 
 2. **Add a minimal Metal path-loop kernel.**
    - Depends on: job 1.

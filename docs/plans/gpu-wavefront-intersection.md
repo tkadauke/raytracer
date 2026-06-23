@@ -44,6 +44,9 @@
 > The first actual platform-owned diffuse path loop is tracked as E15 in
 > `docs/plans/tracing-execution-backends.md`; this child plan should keep
 > focusing on reusable intersection/frontier services that E15 consumes.
+> E15 now has a launch descriptor for the scene, path-state, step-record,
+> retained-index, and accumulation buffers that the future platform kernels
+> will consume.
 > This is a follow-up to
 > `docs/plans/wavefront-and-path-tracing.md` Phase 7+ and is now a child slice
 > of `docs/plans/tracing-execution-backends.md`. It should not replace the CPU

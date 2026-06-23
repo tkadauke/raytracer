@@ -70,6 +70,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Add an explicit full-GPU diffuse path-loop backend selection hook and plan
   milestone, keeping diagnostic CPU-reference GPU requests separate from
   automatic platform full-GPU path-loop selection. — GPT-5 Codex
+- Add a GPU diffuse path-loop launch descriptor with shader-facing parameters
+  and buffer byte accounting for future Metal/Vulkan path-loop kernels. —
+  GPT-5 Codex
 
 ### Fixed
 

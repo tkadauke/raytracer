@@ -6,6 +6,7 @@
 #include "test/helpers/ColorTestHelper.h"
 
 #include "render/GpuDiffusePathLoopBackend.h"
+#include "render/GpuDiffusePathLoopLaunch.h"
 #include "render/GpuDiffusePathStepReference.h"
 #include "render/IntersectionSceneCompiler.h"
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
@@ -1430,6 +1431,73 @@ namespace GpuDiffusePathStepReferenceTest {
 
   TEST(GpuDiffusePathLoopBackend, DefaultFullGpuBackendIsUnavailableUntilPlatformLoopExists) {
     EXPECT_EQ(nullptr, GpuDiffusePathLoopBackend::defaultFullGpuBackendForGpuRequest());
+  }
+
+  TEST(GpuDiffusePathLoopLaunchPlanner, BuildsShaderFacingLaunchPlan) {
+    Scene scene;
+    auto matte =
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::white()));
+    matte->setDiffuseCoefficient(1.0);
+    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    receiver->setMaterial(matte);
+    scene.add(receiver);
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 3;
+    settings.russianRouletteDepth = 2;
+    settings.directLightSamples = 4;
+    const TracingAccumulationLayout accumulationLayout = TracingAccumulationLayout::image(3, 2);
+    const std::vector<GpuDiffusePathStateRecord> paths{activePath(), activePath()};
+
+    const GpuDiffusePathLoopLaunchPlan plan =
+      GpuDiffusePathLoopLaunchPlanner().plan(sections, paths, accumulationLayout, settings);
+
+    EXPECT_EQ(gpuDiffusePathLoopLaunchLayoutVersion, plan.parameters.layoutVersion);
+    EXPECT_EQ(3u, plan.parameters.maxDepth);
+    EXPECT_EQ(2u, plan.parameters.russianRouletteDepth);
+    EXPECT_EQ(4u, plan.parameters.directLightSamples);
+    EXPECT_EQ(2u, plan.parameters.initialPathCount);
+    EXPECT_EQ(3u, plan.parameters.imageWidth);
+    EXPECT_EQ(2u, plan.parameters.imageHeight);
+    EXPECT_EQ(sections.materials.size(), plan.parameters.materialCount);
+    EXPECT_EQ(sections.textures.size(), plan.parameters.textureCount);
+    EXPECT_EQ(sections.lights.size(), plan.parameters.lightCount);
+    EXPECT_EQ(sections.environment.size(), plan.parameters.environmentCount);
+    EXPECT_EQ(sections.debugIds.size(), plan.parameters.debugIdCount);
+    EXPECT_EQ(sections.geometry.bvh.size(), plan.parameters.bvhNodeCount);
+    EXPECT_EQ(sections.geometry.primitives.size(), plan.parameters.primitiveCount);
+    EXPECT_EQ(sections.geometry.transforms.size(), plan.parameters.transformCount);
+
+    EXPECT_EQ(sections.uploadByteCount(), plan.buffers.sceneUploadBytes);
+    EXPECT_EQ(2u * sizeof(GpuDiffusePathStateRecord), plan.buffers.initialPathStateBytes);
+    EXPECT_EQ(2u * sizeof(GpuDiffusePathStateRecord), plan.buffers.activePathStateBytes);
+    EXPECT_EQ(2u * sizeof(GpuDiffusePathStateRecord), plan.buffers.nextPathStateBytes);
+    EXPECT_EQ(2u * 3u * sizeof(GpuDiffusePathStepRecord), plan.buffers.stepRecordBytes);
+    EXPECT_EQ(2u * sizeof(std::uint32_t), plan.buffers.retainedIndexBytes);
+    EXPECT_EQ(accumulationLayout.totalBytes(), plan.buffers.accumulationBytes);
+    EXPECT_EQ(plan.buffers.sceneUploadBytes + plan.buffers.initialPathStateBytes,
+              plan.buffers.totalUploadBytes);
+    EXPECT_EQ(plan.buffers.sceneUploadBytes + plan.buffers.activePathStateBytes +
+                plan.buffers.nextPathStateBytes + plan.buffers.stepRecordBytes +
+                plan.buffers.retainedIndexBytes + plan.buffers.accumulationBytes,
+              plan.buffers.totalResidentBytes);
+  }
+
+  TEST(GpuDiffusePathLoopLaunchPlanner, RejectsInvalidSettingsAndLayout) {
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 0;
+    EXPECT_THROW((void)GpuDiffusePathLoopLaunchPlanner().plan(
+                   GpuTracingSceneSections(), {}, TracingAccumulationLayout::image(1, 1), settings),
+                 std::invalid_argument);
+
+    settings.maxDepth = 1;
+    TracingAccumulationLayout invalidLayout;
+    invalidLayout.width = 0;
+    invalidLayout.height = 1;
+    EXPECT_THROW((void)GpuDiffusePathLoopLaunchPlanner().plan(GpuTracingSceneSections(), {},
+                                                              invalidLayout, settings),
+                 std::invalid_argument);
   }
 
   TEST(CompactingGpuDiffusePathLoopBackend, RejectsMissingCompactionBackend) {
