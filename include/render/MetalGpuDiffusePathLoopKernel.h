@@ -51,5 +51,9 @@ namespace render {
     [[nodiscard]] MetalGpuDiffusePathLoopKernelResult runMatteContinuationProbe(
       const GpuDiffusePathLoopLaunchPlan& plan,
       const std::vector<GpuDiffusePathStateRecord>& initialPathStates) const;
+
+    [[nodiscard]] MetalGpuDiffusePathLoopKernelResult
+    runMattePathLoop(const GpuDiffusePathLoopLaunchPlan& plan,
+                     const std::vector<GpuDiffusePathStateRecord>& initialPathStates) const;
   };
 }

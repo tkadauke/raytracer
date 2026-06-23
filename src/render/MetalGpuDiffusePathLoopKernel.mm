@@ -891,6 +891,66 @@ namespace render {
               "          sceneUpload + parameters.environmentByteOffset);\n"
               "  return environment[environmentIndex].color;\n"
               "}\n"
+              "GpuDiffusePathStepRecord mattePathStep(\n"
+              "    constant GpuDiffusePathLoopLaunchParameters& parameters,\n"
+              "    device const uchar* sceneUpload,\n"
+              "    uint pathIndex,\n"
+              "    GpuDiffusePathStateRecord path,\n"
+              "    thread GpuDiffusePathStateRecord& next,\n"
+              "    thread GpuIntersectionHitRecord& hit) {\n"
+              "  next = path;\n"
+              "  GpuDiffusePathStepRecord step = inactiveStep(pathIndex, path);\n"
+              "  hit = missHitRecord(path.ray);\n"
+              "  if (pathStateIsActive(path)) {\n"
+              "    hit = closestSphereHit(parameters, sceneUpload, path.ray);\n"
+              "    if (hit.hit != 0u) {\n"
+              "      bool matteSupported = false;\n"
+              "      const float4 reflectance = matteDiffuseReflectance(\n"
+              "          parameters, sceneUpload, hit, matteSupported);\n"
+              "      const float4 continuation = path.throughput * reflectance;\n"
+              "      step.event = gpuDiffusePathStepEventHit;\n"
+              "      step.material = hit.material;\n"
+              "      step.object = hit.object;\n"
+              "      if (matteSupported) {\n"
+              "        const float4 directLight = directLightRadiance(\n"
+              "            parameters, sceneUpload, hit, path, reflectance);\n"
+              "        const float4 accumulatedRadiance = path.accumulatedRadiance + directLight;\n"
+              "        step.directLightRadiance = directLight;\n"
+              "        bool spawned = false;\n"
+              "        next = matteContinuationPath(parameters, hit, path, continuation,\n"
+              "                                     accumulatedRadiance, spawned);\n"
+              "        step.continuationThroughput = spawned ? next.throughput : float4(0.0f);\n"
+              "        step.flags = next.flags;\n"
+              "      } else {\n"
+              "        bool emissiveSupported = false;\n"
+              "        const float4 emitted = emissiveContribution(\n"
+              "            parameters, sceneUpload, hit, path, emissiveSupported);\n"
+              "        if (emissiveSupported) {\n"
+              "          const float4 accumulatedRadiance = path.accumulatedRadiance + emitted;\n"
+              "          next = terminatedPathWithAccumulatedRadiance(path, accumulatedRadiance);\n"
+              "          step.emittedRadiance = emitted;\n"
+              "          step.continuationThroughput = float4(0.0f);\n"
+              "          step.flags = next.flags;\n"
+              "        } else {\n"
+              "          step.event = gpuDiffusePathStepEventUnsupported;\n"
+              "          next.flags = unsupportedPathFlags(path.flags);\n"
+              "          step.continuationThroughput = float4(0.0f);\n"
+              "          step.flags = next.flags;\n"
+              "        }\n"
+              "      }\n"
+              "    } else {\n"
+              "      const float4 contribution = path.throughput *\n"
+              "          missRadiance(parameters, sceneUpload, path);\n"
+              "      next = terminatedPathWithAccumulatedRadiance(\n"
+              "          path, path.accumulatedRadiance + contribution);\n"
+              "      step.event = gpuDiffusePathStepEventMiss;\n"
+              "      step.missRadiance = contribution;\n"
+              "      step.continuationThroughput = float4(0.0f);\n"
+              "      step.flags = next.flags;\n"
+              "    }\n"
+              "  }\n"
+              "  return step;\n"
+              "}\n"
               "device float4* accumulationColorSums(\n"
               "    constant GpuDiffusePathLoopLaunchParameters& parameters,\n"
               "    device uchar* accumulation) {\n"
@@ -1114,6 +1174,54 @@ namespace render {
               "  closestHits[id] = hit;\n"
               "  recordRetainedActivePath(retainedIndices, id, next);\n"
               "}\n"
+              "kernel void runDiffusePathLoopMatteSubset(\n"
+              "    constant GpuDiffusePathLoopLaunchParameters& parameters [[buffer(0)]],\n"
+              "    device GpuDiffusePathLoopLaunchParameters* echoedParameters [[buffer(1)]],\n"
+              "    device const uchar* sceneUpload [[buffer(2)]],\n"
+              "    device const GpuDiffusePathStateRecord* initialPathStates [[buffer(3)]],\n"
+              "    device GpuDiffusePathStateRecord* activePathStates [[buffer(4)]],\n"
+              "    device GpuDiffusePathStateRecord* nextPathStates [[buffer(5)]],\n"
+              "    device GpuDiffusePathStepRecord* stepRecords [[buffer(6)]],\n"
+              "    device atomic_uint* retainedIndices [[buffer(7)]],\n"
+              "    device uchar* accumulation [[buffer(8)]],\n"
+              "    device GpuIntersectionHitRecord* closestHits [[buffer(9)]],\n"
+              "    uint id [[thread_position_in_grid]]) {\n"
+              "  if (id == 0u) {\n"
+              "    echoedParameters[0] = parameters;\n"
+              "  }\n"
+              "  if (id >= parameters.initialPathCount) {\n"
+              "    return;\n"
+              "  }\n"
+              "  GpuDiffusePathStateRecord path = initialPathStates[id];\n"
+              "  activePathStates[id] = path;\n"
+              "  GpuIntersectionHitRecord lastHit = missHitRecord(path.ray);\n"
+              "  if (pathStateIsActive(path) && path.depth >= parameters.maxDepth) {\n"
+              "    path.flags = terminatedPathFlags(path.flags);\n"
+              "    accumulateTerminatedPath(parameters, accumulation, path);\n"
+              "  }\n"
+              "  for (uint depthIndex = 0u; depthIndex != parameters.maxDepth; ++depthIndex) {\n"
+              "    if (!pathStateIsActive(path) || path.depth >= parameters.maxDepth) {\n"
+              "      break;\n"
+              "    }\n"
+              "    GpuDiffusePathStateRecord next = path;\n"
+              "    GpuIntersectionHitRecord hit = missHitRecord(path.ray);\n"
+              "    GpuDiffusePathStepRecord step = mattePathStep(\n"
+              "        parameters, sceneUpload, id, path, next, hit);\n"
+              "    stepRecords[id * parameters.maxDepth + depthIndex] = step;\n"
+              "    lastHit = hit;\n"
+              "    if (pathStateIsActive(path) && pathStateIsTerminated(next)) {\n"
+              "      accumulateTerminatedPath(parameters, accumulation, next);\n"
+              "    }\n"
+              "    if (pathStateIsActive(next) && next.depth >= parameters.maxDepth) {\n"
+              "      next.flags = terminatedPathFlags(next.flags);\n"
+              "      accumulateTerminatedPath(parameters, accumulation, next);\n"
+              "    }\n"
+              "    path = next;\n"
+              "  }\n"
+              "  nextPathStates[id] = path;\n"
+              "  closestHits[id] = lastHit;\n"
+              "  recordRetainedActivePath(retainedIndices, id, path);\n"
+              "}\n"
               "kernel void probeDiffusePathLoopMatteHitShading(\n"
               "    constant GpuDiffusePathLoopLaunchParameters& parameters [[buffer(0)]],\n"
               "    device GpuDiffusePathLoopLaunchParameters* echoedParameters [[buffer(1)]],\n"
@@ -1223,6 +1331,14 @@ namespace render {
       return pipeline;
     }
 
+    id<MTLComputePipelineState> sharedMattePathLoopPipeline() {
+      static id<MTLComputePipelineState> pipeline = [] {
+        id<MTLDevice> device = sharedMetalDevice();
+        return device ? newPipeline(device, @"runDiffusePathLoopMatteSubset") : nil;
+      }();
+      return pipeline;
+    }
+
     id<MTLComputePipelineState> sharedClearAccumulationPipeline() {
       static id<MTLComputePipelineState> pipeline = [] {
         id<MTLDevice> device = sharedMetalDevice();
@@ -1313,6 +1429,13 @@ namespace render {
         throw std::invalid_argument(
           "Metal diffuse path-loop matte shading probe requires material and texture records");
       }
+    }
+
+    void validateMattePathLoopScene(const GpuDiffusePathLoopLaunchPlan& plan) {
+      if (plan.parameters.primitiveCount == 0u && plan.parameters.bvhNodeCount == 0u) {
+        return;
+      }
+      validateMatteHitShadingProbeScene(plan);
     }
   }
 
@@ -2070,6 +2193,189 @@ namespace render {
         std::memcpy(result.stepRecords.data(), [stepRecordBuffer contents],
                     result.stepRecords.size() * sizeof(GpuDiffusePathStepRecord));
       }
+      result.retainedPathIndices =
+        retainedPathIndicesFromBuffer(retainedIndexBuffer, initialPathStates.size());
+      result.accumulationColorSums.resize(pixelCount(plan.parameters));
+      if (!result.accumulationColorSums.empty()) {
+        std::memcpy(result.accumulationColorSums.data(), [accumulationBuffer contents],
+                    result.accumulationColorSums.size() * sizeof(std::array<float, 4>));
+      }
+      result.accumulationSampleCounts.resize(pixelCount(plan.parameters));
+      if (!result.accumulationSampleCounts.empty()) {
+        const std::uint64_t colorBytes =
+          result.accumulationColorSums.size() * sizeof(std::array<float, 4>);
+        const auto* sampleCountBytes =
+          static_cast<const std::uint8_t*>([accumulationBuffer contents]) + colorBytes;
+        std::memcpy(result.accumulationSampleCounts.data(), sampleCountBytes,
+                    result.accumulationSampleCounts.size() * sizeof(std::uint32_t));
+      }
+      result.readbackWorkerSeconds =
+        elapsedSeconds(readbackStart, std::chrono::steady_clock::now());
+      return result;
+    }
+  }
+
+  MetalGpuDiffusePathLoopKernelResult MetalGpuDiffusePathLoopKernel::runMattePathLoop(
+    const GpuDiffusePathLoopLaunchPlan& plan,
+    const std::vector<GpuDiffusePathStateRecord>& initialPathStates) const {
+    if (plan.parameters.layoutVersion != gpuDiffusePathLoopLaunchLayoutVersion) {
+      throw std::invalid_argument("Metal diffuse path-loop launch descriptor version mismatch");
+    }
+    if (plan.parameters.maxDepth == 0) {
+      throw std::invalid_argument("Metal diffuse path-loop requires positive max depth");
+    }
+    if (initialPathStates.size() != plan.parameters.initialPathCount) {
+      throw std::invalid_argument(
+        "Metal diffuse path-loop initial path-state count does not match launch descriptor");
+    }
+    if (plan.sceneUpload.size() != plan.buffers.sceneUploadBytes) {
+      throw std::invalid_argument(
+        "Metal diffuse path-loop scene upload bytes do not match launch descriptor");
+    }
+    validateMattePathLoopScene(plan);
+    validateUniqueActiveAccumulationTargets(plan, initialPathStates, "matte path-loop");
+
+    @autoreleasepool {
+      if (!launchPathAvailable()) {
+        throw std::runtime_error(launchPathUnavailableReason());
+      }
+
+      id<MTLDevice> device = sharedMetalDevice();
+      id<MTLCommandQueue> queue = sharedCommandQueue();
+      id<MTLComputePipelineState> pipeline = sharedMattePathLoopPipeline();
+      id<MTLComputePipelineState> clearPipeline = sharedClearAccumulationPipeline();
+      if (!pipeline) {
+        throw std::runtime_error("Metal diffuse path-loop pipeline was not created");
+      }
+      if (!clearPipeline) {
+        throw std::runtime_error(
+          "Metal diffuse path-loop accumulation clear pipeline was not created");
+      }
+
+      const auto uploadStart = std::chrono::steady_clock::now();
+      id<MTLBuffer> parameterBuffer =
+        [device newBufferWithBytes:&plan.parameters
+                            length:sizeof(GpuDiffusePathLoopLaunchParameters)
+                           options:MTLResourceStorageModeShared];
+      id<MTLBuffer> echoedParameterBuffer =
+        [device newBufferWithLength:sizeof(GpuDiffusePathLoopLaunchParameters)
+                            options:MTLResourceStorageModeShared];
+      id<MTLBuffer> sceneUploadBuffer =
+        plan.sceneUpload.empty()
+          ? [device newBufferWithLength:1 options:MTLResourceStorageModeShared]
+          : [device newBufferWithBytes:plan.sceneUpload.data()
+                                length:plan.buffers.sceneUploadBytes
+                               options:MTLResourceStorageModeShared];
+      id<MTLBuffer> initialPathBuffer = initialPathStates.empty()
+                                          ? [device newBufferWithLength:1
+                                                                options:MTLResourceStorageModeShared]
+                                          : [device newBufferWithBytes:initialPathStates.data()
+                                                                length:plan.buffers.initialPathStateBytes
+                                                               options:MTLResourceStorageModeShared];
+      id<MTLBuffer> activePathBuffer =
+        [device newBufferWithLength:bufferLength(plan.buffers.activePathStateBytes)
+                            options:MTLResourceStorageModeShared];
+      id<MTLBuffer> nextPathBuffer =
+        [device newBufferWithLength:bufferLength(plan.buffers.nextPathStateBytes)
+                            options:MTLResourceStorageModeShared];
+      id<MTLBuffer> stepRecordBuffer =
+        [device newBufferWithLength:bufferLength(plan.buffers.stepRecordBytes)
+                            options:MTLResourceStorageModeShared];
+      id<MTLBuffer> retainedIndexBuffer =
+        [device newBufferWithLength:bufferLength(plan.buffers.retainedIndexBytes)
+                            options:MTLResourceStorageModeShared];
+      id<MTLBuffer> accumulationBuffer =
+        [device newBufferWithLength:bufferLength(plan.buffers.accumulationBytes)
+                            options:MTLResourceStorageModeShared];
+      id<MTLBuffer> closestHitBuffer =
+        [device newBufferWithLength:bufferLength(initialPathStates.size() *
+                                                sizeof(GpuIntersectionHitRecord))
+                            options:MTLResourceStorageModeShared];
+      if (!parameterBuffer || !echoedParameterBuffer || !sceneUploadBuffer || !initialPathBuffer ||
+          !activePathBuffer || !nextPathBuffer || !stepRecordBuffer || !retainedIndexBuffer ||
+          !accumulationBuffer || !closestHitBuffer) {
+        throw std::runtime_error("Metal diffuse path-loop buffer allocation failed");
+      }
+      clearRetainedIndexBuffer(retainedIndexBuffer, plan.buffers.retainedIndexBytes);
+      if (plan.buffers.stepRecordBytes != 0u) {
+        std::memset([stepRecordBuffer contents], 0,
+                    static_cast<std::size_t>(plan.buffers.stepRecordBytes));
+      }
+      MetalGpuDiffusePathLoopKernelResult result;
+      result.executionPath = "metal_diffuse_path_loop";
+      result.bufferSizes = plan.buffers;
+      result.uploadWorkerSeconds = elapsedSeconds(uploadStart, std::chrono::steady_clock::now());
+
+      id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
+      id<MTLComputeCommandEncoder> encoder = [commandBuffer computeCommandEncoder];
+      if (!commandBuffer || !encoder) {
+        throw std::runtime_error("Metal diffuse path-loop command setup failed");
+      }
+
+      const NSUInteger pixels = static_cast<NSUInteger>(pixelCount(plan.parameters));
+      [encoder setComputePipelineState:clearPipeline];
+      [encoder setBuffer:parameterBuffer offset:0 atIndex:0];
+      [encoder setBuffer:accumulationBuffer offset:0 atIndex:1];
+      [encoder dispatchThreads:MTLSizeMake(std::max<NSUInteger>(1, pixels), 1, 1)
+         threadsPerThreadgroup:MTLSizeMake(1, 1, 1)];
+
+      [encoder setComputePipelineState:pipeline];
+      [encoder setBuffer:parameterBuffer offset:0 atIndex:0];
+      [encoder setBuffer:echoedParameterBuffer offset:0 atIndex:1];
+      [encoder setBuffer:sceneUploadBuffer offset:0 atIndex:2];
+      [encoder setBuffer:initialPathBuffer offset:0 atIndex:3];
+      [encoder setBuffer:activePathBuffer offset:0 atIndex:4];
+      [encoder setBuffer:nextPathBuffer offset:0 atIndex:5];
+      [encoder setBuffer:stepRecordBuffer offset:0 atIndex:6];
+      [encoder setBuffer:retainedIndexBuffer offset:0 atIndex:7];
+      [encoder setBuffer:accumulationBuffer offset:0 atIndex:8];
+      [encoder setBuffer:closestHitBuffer offset:0 atIndex:9];
+      [encoder dispatchThreads:MTLSizeMake(std::max<std::size_t>(1, initialPathStates.size()), 1, 1)
+         threadsPerThreadgroup:MTLSizeMake(1, 1, 1)];
+      [encoder endEncoding];
+
+      const auto kernelStart = std::chrono::steady_clock::now();
+      [commandBuffer commit];
+      [commandBuffer waitUntilCompleted];
+      result.kernelWorkerSeconds = elapsedSeconds(kernelStart, std::chrono::steady_clock::now());
+      if (commandBuffer.status == MTLCommandBufferStatusError) {
+        throw metalError("Metal diffuse path-loop dispatch failed", commandBuffer.error);
+      }
+
+      const auto readbackStart = std::chrono::steady_clock::now();
+      std::memcpy(&result.echoedParameters, [echoedParameterBuffer contents],
+                  sizeof(result.echoedParameters));
+      result.copiedInitialPathStates.resize(initialPathStates.size());
+      if (!result.copiedInitialPathStates.empty()) {
+        std::memcpy(result.copiedInitialPathStates.data(), [activePathBuffer contents],
+                    result.copiedInitialPathStates.size() * sizeof(GpuDiffusePathStateRecord));
+      }
+      result.nextPathStates.resize(initialPathStates.size());
+      if (!result.nextPathStates.empty()) {
+        std::memcpy(result.nextPathStates.data(), [nextPathBuffer contents],
+                    result.nextPathStates.size() * sizeof(GpuDiffusePathStateRecord));
+      }
+      result.closestHitRecords.resize(initialPathStates.size());
+      if (!result.closestHitRecords.empty()) {
+        std::memcpy(result.closestHitRecords.data(), [closestHitBuffer contents],
+                    result.closestHitRecords.size() * sizeof(GpuIntersectionHitRecord));
+      }
+
+      const std::size_t rawStepCount =
+        initialPathStates.size() * static_cast<std::size_t>(plan.parameters.maxDepth);
+      std::vector<GpuDiffusePathStepRecord> rawStepRecords(rawStepCount);
+      if (!rawStepRecords.empty()) {
+        std::memcpy(rawStepRecords.data(), [stepRecordBuffer contents],
+                    rawStepRecords.size() * sizeof(GpuDiffusePathStepRecord));
+      }
+      result.stepRecords.reserve(rawStepRecords.size());
+      for (const GpuDiffusePathStepRecord& step : rawStepRecords) {
+        if (static_cast<GpuDiffusePathStepEvent>(step.event) !=
+            GpuDiffusePathStepEvent::Inactive) {
+          result.stepRecords.push_back(step);
+        }
+      }
+
       result.retainedPathIndices =
         retainedPathIndicesFromBuffer(retainedIndexBuffer, initialPathStates.size());
       result.accumulationColorSums.resize(pixelCount(plan.parameters));

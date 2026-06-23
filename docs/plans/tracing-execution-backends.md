@@ -118,8 +118,10 @@ end state for GPU tracing.
 
 - Platform GPU-owned path state.
 - Platform GPU-side path/frontier compaction for scheduler-owned path records.
-- Platform full-GPU path-loop kernels. The current supported path-loop is a
-  compiled CPU-reference implementation over GPU-facing records.
+- Platform full-GPU path-loop kernels for the normal render path. A restricted
+  Metal path-loop kernel can advance empty-scene and sphere/Matte/Emissive
+  paths across multiple depths for backend tests, but graph auto-selection still
+  waits for platform parity, broader scene support, and performance gates.
 - Platform full-GPU path-loop backend selection. The factory hook exists, but
   it intentionally returns no backend until a Metal/Vulkan path-loop kernel can
   execute the supported subset without CPU-reference shading.
@@ -2526,12 +2528,15 @@ scene is large enough to amortize upload/readback costs.
      continuation, direct-light-contribution, emissive-hit-termination, and
      terminal accumulation ABI plus the retained-frontier ABI for the future
      path-loop kernel. A restricted `MetalGpuDiffusePathLoopBackend` now wraps
-     the one-depth empty-scene and sphere/Matte/Emissive probe paths behind the
-     platform backend interface, including scene/settings support rejection and
-     full-GPU result metadata for backend tests. Broader primitive traversal,
-     full material shading, full direct-light coverage, in-kernel compaction,
-     and multi-depth accumulation still need to move into this backend before
-     it can advertise full GPU execution.
+     the empty-scene and sphere/Matte/Emissive paths behind the platform
+     backend interface, including scene/settings support rejection and full-GPU
+     result metadata for backend tests. Its first real path-loop dispatch can
+     advance supported paths across multiple depths inside one Metal command
+     buffer for that narrow subset. Broader primitive traversal, full material
+     shading, full direct-light coverage, device-side compacted wavefront
+     scheduling, Vulkan parity, performance gates, and render-graph
+     auto-selection still need to land before it can be used as the automatic
+     full GPU tracing path.
 
 3. **Add a minimal Vulkan path-loop kernel.**
    - Depends on: job 1.

@@ -74,12 +74,14 @@
 > the future platform path-loop kernel the compact-frontier handoff it needs,
 > and the path-loop backend boundary can now reject per-scene platform support
 > independently of generic compiled-scene support. A restricted
-> `MetalGpuDiffusePathLoopBackend` now wraps the one-depth all-miss and
-> sphere/Matte/Emissive probe paths behind the platform backend interface so
-> backend tests can exercise the result contract directly when Metal is
-> available; the live render path still stays on CPU-reference/hybrid execution
-> until a true multi-depth platform loop exists.
-> These probes do not advertise full GPU path tracing yet.
+> `MetalGpuDiffusePathLoopBackend` now wraps the all-miss and
+> sphere/Matte/Emissive paths behind the platform backend interface so backend
+> tests can exercise the result contract directly when Metal is available. Its
+> first real path-loop dispatch can advance supported paths across multiple
+> depths inside one Metal command buffer for that narrow subset; the live render
+> path still stays on CPU-reference/hybrid execution until parity, support, and
+> performance gates justify automatic full GPU selection.
+> This restricted backend does not advertise full GPU path tracing yet.
 > This is a follow-up to
 > `docs/plans/wavefront-and-path-tracing.md` Phase 7+ and is now a child slice
 > of `docs/plans/tracing-execution-backends.md`. It should not replace the CPU

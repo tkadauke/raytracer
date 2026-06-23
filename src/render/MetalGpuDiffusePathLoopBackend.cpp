@@ -63,10 +63,8 @@ namespace render {
       path.flags |= gpuDiffusePathStateTerminatedFlag;
     }
 
-    [[nodiscard]] std::uint64_t
-    activePathCount(const std::vector<GpuDiffusePathStateRecord>& pathStates) {
-      return static_cast<std::uint64_t>(
-        std::count_if(pathStates.begin(), pathStates.end(), gpuDiffusePathStateIsActive));
+    [[nodiscard]] bool stepHasContinuation(const GpuDiffusePathStepRecord& step) {
+      return arrayHasValue(step.continuationThroughput);
     }
 
     void validateUniqueActivePixels(const std::vector<GpuDiffusePathStateRecord>& pathStates) {
@@ -117,9 +115,8 @@ namespace render {
                           const std::vector<GpuDiffusePathStateRecord>& initialPathStates,
                           const MetalGpuDiffusePathLoopKernelResult& metalResult,
                           const GpuDiffusePathLoopSettings& settings) {
-      const std::uint64_t active = activePathCount(initialPathStates);
-      loop.metrics.activePaths = active;
-      loop.metrics.closestHitRays = active;
+      (void)initialPathStates;
+      std::uint64_t activeSteps = 0;
       loop.metrics.closestHitExecutionPath = kFullGpuSubsetExecutionPath;
       loop.metrics.emissionExecutionPath = kFullGpuSubsetExecutionPath;
       loop.metrics.directLightVisibilityExecutionPath = kFullGpuSubsetExecutionPath;
@@ -127,6 +124,9 @@ namespace render {
 
       for (const GpuDiffusePathStepRecord& step : metalResult.stepRecords) {
         const auto event = static_cast<GpuDiffusePathStepEvent>(step.event);
+        if (event != GpuDiffusePathStepEvent::Inactive) {
+          ++activeSteps;
+        }
         if (event == GpuDiffusePathStepEvent::Miss) {
           ++loop.metrics.misses;
         } else if (event == GpuDiffusePathStepEvent::Hit) {
@@ -141,12 +141,35 @@ namespace render {
             ++loop.metrics.directLightContributionEvaluations;
             ++loop.metrics.directLightContributingSamples;
           }
+          if (stepHasContinuation(step)) {
+            ++loop.metrics.spawnedContinuations;
+          }
         } else if (event == GpuDiffusePathStepEvent::Unsupported) {
           ++loop.metrics.unsupportedHits;
         }
       }
-      loop.metrics.spawnedContinuations =
-        static_cast<std::uint64_t>(metalResult.retainedPathIndices.size());
+      loop.metrics.activePaths = activeSteps;
+      loop.metrics.closestHitRays = activeSteps;
+    }
+
+    void recordDepthCounts(GpuDiffusePathLoopResult& loop,
+                           const MetalGpuDiffusePathLoopKernelResult& metalResult,
+                           const GpuDiffusePathLoopSettings& settings) {
+      std::vector<std::uint64_t> counts(settings.maxDepth, 0u);
+      for (const GpuDiffusePathStepRecord& step : metalResult.stepRecords) {
+        const auto event = static_cast<GpuDiffusePathStepEvent>(step.event);
+        if (event == GpuDiffusePathStepEvent::Inactive || step.depth >= counts.size()) {
+          continue;
+        }
+        ++counts[step.depth];
+      }
+      for (const std::uint64_t count : counts) {
+        if (count == 0u) {
+          continue;
+        }
+        loop.activePathsPerDepth.push_back(count);
+      }
+      loop.depthCount = loop.activePathsPerDepth.size();
     }
 
     [[nodiscard]] GpuDiffusePathLoopResult
@@ -164,11 +187,7 @@ namespace render {
       loop.retainedIndexBytes =
         static_cast<std::uint64_t>(metalResult.retainedPathIndices.size() * sizeof(std::uint32_t));
       loop.roundTrips = 1;
-      const std::uint64_t active = activePathCount(initialPathStates);
-      if (active != 0u) {
-        loop.depthCount = 1;
-        loop.activePathsPerDepth.push_back(active);
-      }
+      recordDepthCounts(loop, metalResult, settings);
       mergeStepMetrics(loop, initialPathStates, metalResult, settings);
 
       std::vector<GpuDiffusePathStateRecord> nextPathStates = metalResult.nextPathStates.empty()
@@ -181,6 +200,9 @@ namespace render {
       for (GpuDiffusePathStateRecord path : nextPathStates) {
         if (gpuDiffusePathStateIsActive(path) && path.depth >= settings.maxDepth) {
           terminate(path);
+          ++loop.maxDepthTerminatedPaths;
+          ++loop.metrics.terminatedPaths;
+        } else if (gpuDiffusePathStateIsTerminated(path) && path.depth >= settings.maxDepth) {
           ++loop.maxDepthTerminatedPaths;
           ++loop.metrics.terminatedPaths;
         } else if (gpuDiffusePathStateIsTerminated(path)) {
@@ -233,8 +255,8 @@ namespace render {
     if (!kernel.launchPathAvailable()) {
       return {false, kernel.launchPathUnavailableReason()};
     }
-    if (settings.maxDepth != 1u) {
-      return {false, "Metal diffuse path-loop backend currently supports exactly one path depth"};
+    if (settings.maxDepth == 0u) {
+      return {false, "Metal diffuse path-loop backend requires positive max depth"};
     }
     if (!sceneHasNoGeometry(scene) && !sceneHasOnlySphereGeometry(scene)) {
       return {false,
@@ -277,9 +299,7 @@ namespace render {
     const GpuDiffusePathLoopLaunchPlan plan =
       GpuDiffusePathLoopLaunchPlanner().plan(scene, initialPathStates, layout, settings);
     const MetalGpuDiffusePathLoopKernelResult metalResult =
-      sceneHasNoGeometry(scene)
-        ? MetalGpuDiffusePathLoopKernel().runAllMissProbe(plan, initialPathStates)
-        : MetalGpuDiffusePathLoopKernel().runMatteContinuationProbe(plan, initialPathStates);
+      MetalGpuDiffusePathLoopKernel().runMattePathLoop(plan, initialPathStates);
     return makeLoopResult(initialPathStates, settings, metalResult);
 #else
     (void)scene;

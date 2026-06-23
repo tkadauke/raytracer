@@ -15,6 +15,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   empty-scene and sphere Matte/Emissive probe execution, while keeping
   automatic full-GPU graph selection disabled until a multi-depth platform loop
   exists. — GPT-5 Codex
+- Extend the restricted Metal diffuse path-loop backend with a single-dispatch
+  multi-depth Matte/Emissive sphere path loop, while keeping automatic full-GPU
+  graph selection disabled until platform parity and performance gates pass. —
+  GPT-5 Codex
 - Add a scene-specific full-GPU diffuse path-loop support query so future
   Metal/Vulkan path-loop backends can reject narrower compiled-scene subsets
   without making graph predictions overclaim full GPU execution. — GPT-5 Codex
