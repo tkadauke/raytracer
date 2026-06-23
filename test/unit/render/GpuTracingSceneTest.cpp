@@ -21,6 +21,7 @@
 #include "render/textures/mappings/PlanarMapping2D.h"
 
 #include <cstddef>
+#include <cstring>
 #include <memory>
 #include <type_traits>
 #include <vector>
@@ -34,6 +35,13 @@ namespace GpuTracingSceneTest {
       EXPECT_TRUE(std::is_standard_layout_v<Record>);
       EXPECT_EQ(16u, alignof(Record));
       EXPECT_EQ(0u, sizeof(Record) % 16u);
+    }
+
+    template<typename Record>
+    Record recordAt(const std::vector<std::uint8_t>& bytes, std::size_t offset) {
+      Record record;
+      std::memcpy(&record, bytes.data() + offset, sizeof(Record));
+      return record;
     }
 
     class UnsupportedLight final : public Light {
@@ -161,6 +169,53 @@ namespace GpuTracingSceneTest {
     EXPECT_EQ(layouts[4].byteOffset + layouts[4].byteCount, layouts[5].byteOffset);
 
     EXPECT_EQ(layouts[5].byteOffset + layouts[5].byteCount, sections.uploadByteCount());
+  }
+
+  TEST(GpuTracingScene, UploadBytesFollowSectionLayoutOrder) {
+    GpuTracingSceneSections sections;
+    GpuIntersectionPrimitiveRecord primitive;
+    primitive.kind = static_cast<std::uint32_t>(GpuIntersectionPrimitiveKind::Sphere);
+    primitive.material = 7u;
+    sections.geometry.primitives.push_back(primitive);
+    GpuIntersectionSpherePayload sphere;
+    sphere.centerRadius = {1.0f, 2.0f, 3.0f, 4.0f};
+    sections.geometry.spheres.push_back(sphere);
+    GpuTracingMaterialRecord material;
+    material.kind = static_cast<std::uint32_t>(GpuTracingMaterialKind::Matte);
+    material.albedoTexture = 3u;
+    sections.materials.push_back(material);
+    GpuTracingTextureRecord texture;
+    texture.kind = static_cast<std::uint32_t>(GpuTracingTextureKind::ConstantColor);
+    texture.parameters = {0.25f, 0.5f, 0.75f, 0.0f};
+    sections.textures.push_back(texture);
+    GpuTracingLightRecord light;
+    light.kind = static_cast<std::uint32_t>(GpuTracingLightKind::Point);
+    light.parameters = {2.0f, 3.0f, 4.0f, 0.0f};
+    sections.lights.push_back(light);
+    sections.environment.push_back(makeGpuTracingConstantEnvironment(Colord(0.125, 0.25, 0.5)));
+    GpuTracingDebugIdRecord debugId;
+    debugId.object = 11u;
+    sections.debugIds.push_back(debugId);
+
+    const std::vector<std::uint8_t> bytes = sections.uploadBytes();
+    const auto layouts = sections.sectionLayouts();
+
+    ASSERT_EQ(sections.uploadByteCount(), bytes.size());
+    const auto materialRecord = recordAt<GpuTracingMaterialRecord>(bytes, layouts[1].byteOffset);
+    const auto textureRecord = recordAt<GpuTracingTextureRecord>(bytes, layouts[2].byteOffset);
+    const auto lightRecord = recordAt<GpuTracingLightRecord>(bytes, layouts[3].byteOffset);
+    const auto environmentRecord =
+      recordAt<GpuTracingEnvironmentRecord>(bytes, layouts[4].byteOffset);
+    const auto debugRecord = recordAt<GpuTracingDebugIdRecord>(bytes, layouts[5].byteOffset);
+
+    EXPECT_EQ(material.kind, materialRecord.kind);
+    EXPECT_EQ(material.albedoTexture, materialRecord.albedoTexture);
+    EXPECT_EQ(texture.kind, textureRecord.kind);
+    EXPECT_EQ(texture.parameters, textureRecord.parameters);
+    EXPECT_EQ(light.kind, lightRecord.kind);
+    EXPECT_EQ(light.parameters, lightRecord.parameters);
+    EXPECT_EQ(Colord(0.125, 0.25, 0.5).toFloat4(), environmentRecord.color);
+    EXPECT_EQ(debugId.object, debugRecord.object);
   }
 
   TEST(GpuTracingScene, ShadingRecordsAreSeparateFromIntersectionHitRecords) {

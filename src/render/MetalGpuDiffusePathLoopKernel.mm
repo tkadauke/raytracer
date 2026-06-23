@@ -245,6 +245,10 @@ namespace render {
       throw std::invalid_argument(
         "Metal diffuse path-loop initial path-state count does not match launch descriptor");
     }
+    if (plan.sceneUpload.size() != plan.buffers.sceneUploadBytes) {
+      throw std::invalid_argument(
+        "Metal diffuse path-loop scene upload bytes do not match launch descriptor");
+    }
 
     @autoreleasepool {
       if (!launchPathAvailable()) {
@@ -264,8 +268,11 @@ namespace render {
         [device newBufferWithLength:sizeof(GpuDiffusePathLoopLaunchParameters)
                             options:MTLResourceStorageModeShared];
       id<MTLBuffer> sceneUploadBuffer =
-        [device newBufferWithLength:bufferLength(plan.buffers.sceneUploadBytes)
-                            options:MTLResourceStorageModeShared];
+        plan.sceneUpload.empty()
+          ? [device newBufferWithLength:1 options:MTLResourceStorageModeShared]
+          : [device newBufferWithBytes:plan.sceneUpload.data()
+                                length:plan.buffers.sceneUploadBytes
+                               options:MTLResourceStorageModeShared];
       id<MTLBuffer> initialPathBuffer = initialPathStates.empty()
                                           ? [device newBufferWithLength:1
                                                                 options:MTLResourceStorageModeShared]

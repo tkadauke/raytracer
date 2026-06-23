@@ -74,7 +74,8 @@ namespace render {
     plan.parameters.transformCount =
       checkedU32(scene.geometry.transforms.size(), "transform count");
 
-    plan.buffers.sceneUploadBytes = scene.uploadByteCount();
+    plan.sceneUpload = scene.uploadBytes();
+    plan.buffers.sceneUploadBytes = plan.sceneUpload.size();
     plan.buffers.initialPathStateBytes = pathStateBytes(initialPathCount, "initial path state");
     plan.buffers.activePathStateBytes = pathStateBytes(initialPathCount, "active path state");
     plan.buffers.nextPathStateBytes = pathStateBytes(initialPathCount, "next path state");

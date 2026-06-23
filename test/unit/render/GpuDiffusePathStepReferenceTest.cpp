@@ -1471,6 +1471,7 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(sections.geometry.transforms.size(), plan.parameters.transformCount);
 
     EXPECT_EQ(sections.uploadByteCount(), plan.buffers.sceneUploadBytes);
+    EXPECT_EQ(sections.uploadBytes(), plan.sceneUpload);
     EXPECT_EQ(2u * sizeof(GpuDiffusePathStateRecord), plan.buffers.initialPathStateBytes);
     EXPECT_EQ(2u * sizeof(GpuDiffusePathStateRecord), plan.buffers.activePathStateBytes);
     EXPECT_EQ(2u * sizeof(GpuDiffusePathStateRecord), plan.buffers.nextPathStateBytes);

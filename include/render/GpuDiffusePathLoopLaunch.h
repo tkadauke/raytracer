@@ -43,6 +43,7 @@ namespace render {
   struct GpuDiffusePathLoopLaunchPlan {
     GpuDiffusePathLoopLaunchParameters parameters;
     GpuDiffusePathLoopLaunchBufferSizes buffers;
+    std::vector<std::uint8_t> sceneUpload;
   };
 
   class GpuDiffusePathLoopLaunchPlanner {

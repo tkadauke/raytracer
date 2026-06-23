@@ -16,6 +16,7 @@
 #include "render/textures/Texture.h"
 
 #include <algorithm>
+#include <cstring>
 #include <functional>
 #include <limits>
 #include <map>
@@ -58,6 +59,32 @@ namespace {
     return value > std::numeric_limits<std::uint32_t>::max()
              ? std::numeric_limits<std::uint32_t>::max()
              : static_cast<std::uint32_t>(value);
+  }
+
+  template<typename Record>
+  void appendRecordBytes(std::vector<std::uint8_t>& target, const std::vector<Record>& records) {
+    if (records.empty()) {
+      return;
+    }
+
+    const std::size_t offset = target.size();
+    const std::size_t bytes = records.size() * sizeof(Record);
+    target.resize(offset + bytes);
+    std::memcpy(target.data() + offset, records.data(), bytes);
+  }
+
+  void appendGeometryBytes(std::vector<std::uint8_t>& target,
+                           const GpuIntersectionSceneBuffers& geometry) {
+    appendRecordBytes(target, geometry.bvh);
+    appendRecordBytes(target, geometry.primitives);
+    appendRecordBytes(target, geometry.triangles);
+    appendRecordBytes(target, geometry.spheres);
+    appendRecordBytes(target, geometry.planes);
+    appendRecordBytes(target, geometry.rectangles);
+    appendRecordBytes(target, geometry.disks);
+    appendRecordBytes(target, geometry.openCylinders);
+    appendRecordBytes(target, geometry.tori);
+    appendRecordBytes(target, geometry.transforms);
   }
 
   void setUnsupportedReason(std::string* unsupportedReason, const char* reason) {
@@ -375,6 +402,18 @@ std::size_t GpuTracingSceneSections::uploadByteCount() const {
          lights.size() * sizeof(GpuTracingLightRecord) +
          environment.size() * sizeof(GpuTracingEnvironmentRecord) +
          debugIds.size() * sizeof(GpuTracingDebugIdRecord);
+}
+
+std::vector<std::uint8_t> GpuTracingSceneSections::uploadBytes() const {
+  std::vector<std::uint8_t> result;
+  result.reserve(uploadByteCount());
+  appendGeometryBytes(result, geometry);
+  appendRecordBytes(result, materials);
+  appendRecordBytes(result, textures);
+  appendRecordBytes(result, lights);
+  appendRecordBytes(result, environment);
+  appendRecordBytes(result, debugIds);
+  return result;
 }
 
 GpuTracingEnvironmentRecord render::makeGpuTracingConstantEnvironment(const Colord& color) {

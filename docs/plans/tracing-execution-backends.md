@@ -2472,9 +2472,9 @@ scene is large enough to amortize upload/readback costs.
      a separate full-GPU backend selection hook so automatic graph compilation
      cannot confuse the CPU-reference diagnostic backend with a platform-owned
      path-loop backend. `GpuDiffusePathLoopLaunchPlanner` also defines the
-     shader-facing launch parameters and byte accounting for scene upload,
-     ping-pong path-state buffers, per-depth step records, retained indices,
-     and accumulation storage.
+     shader-facing launch parameters, serialized compiled-scene upload payload,
+     and byte accounting for scene upload, ping-pong path-state buffers,
+     per-depth step records, retained indices, and accumulation storage.
 
 2. **Add a minimal Metal path-loop kernel.**
    - Depends on: job 1.
@@ -2485,10 +2485,11 @@ scene is large enough to amortize upload/readback costs.
      `MetalGpuDiffusePathLoopKernel` now compiles and dispatches a Metal
      launch-probe kernel that binds the shader-facing path-loop descriptor plus
      scene, initial/active/next path-state, step-record, retained-index, and
-     accumulation buffers, and copies initial path-state records into GPU
-     active/next path-state buffers while writing probe `GpuDiffusePathStepRecord`
-     rows. This proves the command-buffer, path-state, and step-record ABI for
-     the future path-loop kernel; shading, continuation, direct lighting,
+     accumulation buffers, uploads the serialized compiled-scene payload, and
+     copies initial path-state records into GPU active/next path-state buffers
+     while writing probe `GpuDiffusePathStepRecord` rows. This proves the
+     command-buffer, scene-upload, path-state, and step-record ABI for the
+     future path-loop kernel; shading, continuation, direct lighting,
      compaction, and accumulation still need to move into this backend before it
      can advertise full GPU execution.
 

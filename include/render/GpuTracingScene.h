@@ -218,6 +218,7 @@ namespace render {
 
     [[nodiscard]] std::array<GpuTracingSceneSectionLayout, 6> sectionLayouts() const;
     [[nodiscard]] std::size_t uploadByteCount() const;
+    [[nodiscard]] std::vector<std::uint8_t> uploadBytes() const;
   };
 
   struct UnsupportedGpuTracingLight {
