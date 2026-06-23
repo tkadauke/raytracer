@@ -81,6 +81,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Extend the Metal diffuse path-loop all-miss probe to clear and write GPU
   accumulation color/count planes for unique active pixel targets. —
   GPT-5 Codex
+- Extend the GPU diffuse path-loop launch ABI with serialized geometry
+  subrange offsets/counts so future platform path-loop kernels can reconstruct
+  BVH, primitive, payload, and transform arrays from the resident scene upload.
+  — GPT-5 Codex
 - Carry serialized compiled tracing-scene upload bytes through GPU diffuse
   path-loop launch plans so platform path-loop kernels can consume real scene
   records instead of size-only placeholder buffers. — GPT-5 Codex

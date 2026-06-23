@@ -7,7 +7,7 @@
 #include <vector>
 
 namespace render {
-  inline constexpr std::uint32_t gpuDiffusePathLoopLaunchLayoutVersion = 2u;
+  inline constexpr std::uint32_t gpuDiffusePathLoopLaunchLayoutVersion = 3u;
 
   struct alignas(16) GpuDiffusePathLoopLaunchParameters {
     std::uint32_t layoutVersion{gpuDiffusePathLoopLaunchLayoutVersion};
@@ -30,10 +30,26 @@ namespace render {
     std::uint32_t debugIdByteOffset{0};
     std::uint32_t sceneUploadBytes{0};
     std::uint32_t reserved0{0};
+    std::uint32_t bvhByteOffset{0};
+    std::uint32_t primitiveByteOffset{0};
+    std::uint32_t triangleByteOffset{0};
+    std::uint32_t sphereByteOffset{0};
+    std::uint32_t planeByteOffset{0};
+    std::uint32_t rectangleByteOffset{0};
+    std::uint32_t diskByteOffset{0};
+    std::uint32_t openCylinderByteOffset{0};
+    std::uint32_t torusByteOffset{0};
+    std::uint32_t transformByteOffset{0};
     std::uint32_t bvhNodeCount{0};
     std::uint32_t primitiveCount{0};
+    std::uint32_t triangleCount{0};
+    std::uint32_t sphereCount{0};
+    std::uint32_t planeCount{0};
+    std::uint32_t rectangleCount{0};
+    std::uint32_t diskCount{0};
+    std::uint32_t openCylinderCount{0};
+    std::uint32_t torusCount{0};
     std::uint32_t transformCount{0};
-    std::uint32_t reserved1{0};
   };
 
   struct GpuDiffusePathLoopLaunchBufferSizes {

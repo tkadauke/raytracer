@@ -2473,9 +2473,9 @@ scene is large enough to amortize upload/readback costs.
      cannot confuse the CPU-reference diagnostic backend with a platform-owned
      path-loop backend. `GpuDiffusePathLoopLaunchPlanner` also defines the
      shader-facing launch parameters, serialized compiled-scene upload payload,
-     section offsets, and byte accounting for scene upload, ping-pong path-state
-     buffers, per-depth step records, retained indices, and accumulation
-     storage.
+     section offsets, geometry subrange offsets/counts, and byte accounting for
+     scene upload, ping-pong path-state buffers, per-depth step records,
+     retained indices, and accumulation storage.
 
 2. **Add a minimal Metal path-loop kernel.**
    - Depends on: job 1.

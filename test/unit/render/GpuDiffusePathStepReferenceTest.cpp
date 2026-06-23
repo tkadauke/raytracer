@@ -1476,7 +1476,43 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(sections.uploadByteCount(), plan.parameters.sceneUploadBytes);
     EXPECT_EQ(sections.geometry.bvh.size(), plan.parameters.bvhNodeCount);
     EXPECT_EQ(sections.geometry.primitives.size(), plan.parameters.primitiveCount);
+    EXPECT_EQ(sections.geometry.triangles.size(), plan.parameters.triangleCount);
+    EXPECT_EQ(sections.geometry.spheres.size(), plan.parameters.sphereCount);
+    EXPECT_EQ(sections.geometry.planes.size(), plan.parameters.planeCount);
+    EXPECT_EQ(sections.geometry.rectangles.size(), plan.parameters.rectangleCount);
+    EXPECT_EQ(sections.geometry.disks.size(), plan.parameters.diskCount);
+    EXPECT_EQ(sections.geometry.openCylinders.size(), plan.parameters.openCylinderCount);
+    EXPECT_EQ(sections.geometry.tori.size(), plan.parameters.torusCount);
     EXPECT_EQ(sections.geometry.transforms.size(), plan.parameters.transformCount);
+
+    std::uint32_t geometryOffset = layouts[0].byteOffset;
+    const auto expectGeometryRange = [&geometryOffset](std::uint32_t actualOffset,
+                                                       std::size_t count, std::size_t recordSize) {
+      EXPECT_EQ(geometryOffset, actualOffset);
+      geometryOffset += static_cast<std::uint32_t>(count * recordSize);
+    };
+    expectGeometryRange(plan.parameters.bvhByteOffset, sections.geometry.bvh.size(),
+                        sizeof(GpuIntersectionBvhNode));
+    expectGeometryRange(plan.parameters.primitiveByteOffset, sections.geometry.primitives.size(),
+                        sizeof(GpuIntersectionPrimitiveRecord));
+    expectGeometryRange(plan.parameters.triangleByteOffset, sections.geometry.triangles.size(),
+                        sizeof(GpuIntersectionTrianglePayload));
+    expectGeometryRange(plan.parameters.sphereByteOffset, sections.geometry.spheres.size(),
+                        sizeof(GpuIntersectionSpherePayload));
+    expectGeometryRange(plan.parameters.planeByteOffset, sections.geometry.planes.size(),
+                        sizeof(GpuIntersectionPlanePayload));
+    expectGeometryRange(plan.parameters.rectangleByteOffset, sections.geometry.rectangles.size(),
+                        sizeof(GpuIntersectionRectanglePayload));
+    expectGeometryRange(plan.parameters.diskByteOffset, sections.geometry.disks.size(),
+                        sizeof(GpuIntersectionDiskPayload));
+    expectGeometryRange(plan.parameters.openCylinderByteOffset,
+                        sections.geometry.openCylinders.size(),
+                        sizeof(GpuIntersectionOpenCylinderPayload));
+    expectGeometryRange(plan.parameters.torusByteOffset, sections.geometry.tori.size(),
+                        sizeof(GpuIntersectionTorusPayload));
+    expectGeometryRange(plan.parameters.transformByteOffset, sections.geometry.transforms.size(),
+                        sizeof(GpuIntersectionTransformPayload));
+    EXPECT_EQ(layouts[0].byteOffset + layouts[0].byteCount, geometryOffset);
 
     EXPECT_EQ(sections.uploadByteCount(), plan.buffers.sceneUploadBytes);
     EXPECT_EQ(sections.uploadBytes(), plan.sceneUpload);
@@ -1563,8 +1599,26 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(plan.parameters.environmentByteOffset, result.echoedParameters.environmentByteOffset);
     EXPECT_EQ(plan.parameters.debugIdByteOffset, result.echoedParameters.debugIdByteOffset);
     EXPECT_EQ(plan.parameters.sceneUploadBytes, result.echoedParameters.sceneUploadBytes);
+    EXPECT_EQ(plan.parameters.bvhByteOffset, result.echoedParameters.bvhByteOffset);
+    EXPECT_EQ(plan.parameters.primitiveByteOffset, result.echoedParameters.primitiveByteOffset);
+    EXPECT_EQ(plan.parameters.triangleByteOffset, result.echoedParameters.triangleByteOffset);
+    EXPECT_EQ(plan.parameters.sphereByteOffset, result.echoedParameters.sphereByteOffset);
+    EXPECT_EQ(plan.parameters.planeByteOffset, result.echoedParameters.planeByteOffset);
+    EXPECT_EQ(plan.parameters.rectangleByteOffset, result.echoedParameters.rectangleByteOffset);
+    EXPECT_EQ(plan.parameters.diskByteOffset, result.echoedParameters.diskByteOffset);
+    EXPECT_EQ(plan.parameters.openCylinderByteOffset,
+              result.echoedParameters.openCylinderByteOffset);
+    EXPECT_EQ(plan.parameters.torusByteOffset, result.echoedParameters.torusByteOffset);
+    EXPECT_EQ(plan.parameters.transformByteOffset, result.echoedParameters.transformByteOffset);
     EXPECT_EQ(plan.parameters.bvhNodeCount, result.echoedParameters.bvhNodeCount);
     EXPECT_EQ(plan.parameters.primitiveCount, result.echoedParameters.primitiveCount);
+    EXPECT_EQ(plan.parameters.triangleCount, result.echoedParameters.triangleCount);
+    EXPECT_EQ(plan.parameters.sphereCount, result.echoedParameters.sphereCount);
+    EXPECT_EQ(plan.parameters.planeCount, result.echoedParameters.planeCount);
+    EXPECT_EQ(plan.parameters.rectangleCount, result.echoedParameters.rectangleCount);
+    EXPECT_EQ(plan.parameters.diskCount, result.echoedParameters.diskCount);
+    EXPECT_EQ(plan.parameters.openCylinderCount, result.echoedParameters.openCylinderCount);
+    EXPECT_EQ(plan.parameters.torusCount, result.echoedParameters.torusCount);
     EXPECT_EQ(plan.parameters.transformCount, result.echoedParameters.transformCount);
     EXPECT_EQ(plan.buffers.totalUploadBytes, result.bufferSizes.totalUploadBytes);
     EXPECT_EQ(plan.buffers.totalResidentBytes, result.bufferSizes.totalResidentBytes);

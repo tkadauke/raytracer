@@ -20,7 +20,7 @@ namespace render {
   namespace {
     static_assert(std::is_standard_layout_v<GpuDiffusePathLoopLaunchParameters>,
                   "Metal diffuse path-loop launch parameters must stay shader ABI friendly");
-    static_assert(sizeof(GpuDiffusePathLoopLaunchParameters) == 96);
+    static_assert(sizeof(GpuDiffusePathLoopLaunchParameters) == 160);
     static_assert(alignof(GpuDiffusePathLoopLaunchParameters) == 16);
     static_assert(sizeof(GpuDiffusePathStateRecord) == 160);
     static_assert(alignof(GpuDiffusePathStateRecord) == 16);
@@ -79,10 +79,26 @@ namespace render {
               "  uint debugIdByteOffset;\n"
               "  uint sceneUploadBytes;\n"
               "  uint reserved0;\n"
+              "  uint bvhByteOffset;\n"
+              "  uint primitiveByteOffset;\n"
+              "  uint triangleByteOffset;\n"
+              "  uint sphereByteOffset;\n"
+              "  uint planeByteOffset;\n"
+              "  uint rectangleByteOffset;\n"
+              "  uint diskByteOffset;\n"
+              "  uint openCylinderByteOffset;\n"
+              "  uint torusByteOffset;\n"
+              "  uint transformByteOffset;\n"
               "  uint bvhNodeCount;\n"
               "  uint primitiveCount;\n"
+              "  uint triangleCount;\n"
+              "  uint sphereCount;\n"
+              "  uint planeCount;\n"
+              "  uint rectangleCount;\n"
+              "  uint diskCount;\n"
+              "  uint openCylinderCount;\n"
+              "  uint torusCount;\n"
               "  uint transformCount;\n"
-              "  uint reserved1;\n"
               "};\n"
               "struct GpuIntersectionRay {\n"
               "  float4 origin;\n"

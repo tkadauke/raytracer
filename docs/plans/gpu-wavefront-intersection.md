@@ -47,10 +47,11 @@
 > E15 now has a launch descriptor for the scene, path-state, step-record,
 > retained-index, and accumulation buffers that the future platform kernels
 > will consume, including serialized compiled-scene upload bytes and section
-> offsets, plus a Metal launch-probe kernel that binds those buffers through a
-> command buffer and copies initial path-state records into GPU-owned
-> active/next buffers while writing probe step records. The Metal path-loop
-> probe can also resolve empty-scene background/environment misses into
+> offsets plus geometry subrange offsets/counts, plus a Metal launch-probe
+> kernel that binds those buffers through a command buffer and copies initial
+> path-state records into GPU-owned active/next buffers while writing probe
+> step records. The Metal path-loop probe can also resolve empty-scene
+> background/environment misses into
 > terminated GPU path-state records and write the matching accumulation
 > color/count planes for unique active pixel targets, without advertising full
 > GPU path tracing yet.

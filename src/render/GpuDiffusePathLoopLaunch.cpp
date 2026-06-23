@@ -38,6 +38,18 @@ namespace render {
     std::uint64_t pathStateBytes(std::uint64_t pathCount, const char* label) {
       return checkedProduct(pathCount, sizeof(GpuDiffusePathStateRecord), label);
     }
+
+    template<typename Record>
+    std::uint32_t assignGeometryRange(std::uint64_t& byteOffset, std::size_t count,
+                                      std::uint32_t& countField, const char* label) {
+      const std::string offsetLabel = std::string(label) + " byte offset";
+      const std::string countLabel = std::string(label) + " count";
+      const std::uint32_t result = checkedU32(byteOffset, offsetLabel.c_str());
+      countField = checkedU32(count, countLabel.c_str());
+      byteOffset =
+        checkedAdd(byteOffset, checkedProduct(count, sizeof(Record), label), "geometry section");
+      return result;
+    }
   }
 
   GpuDiffusePathLoopLaunchPlan GpuDiffusePathLoopLaunchPlanner::plan(
@@ -75,11 +87,32 @@ namespace render {
     plan.parameters.lightByteOffset = sectionLayouts[3].byteOffset;
     plan.parameters.environmentByteOffset = sectionLayouts[4].byteOffset;
     plan.parameters.debugIdByteOffset = sectionLayouts[5].byteOffset;
-    plan.parameters.bvhNodeCount = checkedU32(scene.geometry.bvh.size(), "BVH node count");
-    plan.parameters.primitiveCount =
-      checkedU32(scene.geometry.primitives.size(), "primitive count");
-    plan.parameters.transformCount =
-      checkedU32(scene.geometry.transforms.size(), "transform count");
+    std::uint64_t geometryOffset = plan.parameters.geometryByteOffset;
+    plan.parameters.bvhByteOffset = assignGeometryRange<GpuIntersectionBvhNode>(
+      geometryOffset, scene.geometry.bvh.size(), plan.parameters.bvhNodeCount, "BVH nodes");
+    plan.parameters.primitiveByteOffset = assignGeometryRange<GpuIntersectionPrimitiveRecord>(
+      geometryOffset, scene.geometry.primitives.size(), plan.parameters.primitiveCount,
+      "primitive records");
+    plan.parameters.triangleByteOffset = assignGeometryRange<GpuIntersectionTrianglePayload>(
+      geometryOffset, scene.geometry.triangles.size(), plan.parameters.triangleCount, "triangles");
+    plan.parameters.sphereByteOffset = assignGeometryRange<GpuIntersectionSpherePayload>(
+      geometryOffset, scene.geometry.spheres.size(), plan.parameters.sphereCount, "spheres");
+    plan.parameters.planeByteOffset = assignGeometryRange<GpuIntersectionPlanePayload>(
+      geometryOffset, scene.geometry.planes.size(), plan.parameters.planeCount, "planes");
+    plan.parameters.rectangleByteOffset = assignGeometryRange<GpuIntersectionRectanglePayload>(
+      geometryOffset, scene.geometry.rectangles.size(), plan.parameters.rectangleCount,
+      "rectangles");
+    plan.parameters.diskByteOffset = assignGeometryRange<GpuIntersectionDiskPayload>(
+      geometryOffset, scene.geometry.disks.size(), plan.parameters.diskCount, "disks");
+    plan.parameters.openCylinderByteOffset =
+      assignGeometryRange<GpuIntersectionOpenCylinderPayload>(
+        geometryOffset, scene.geometry.openCylinders.size(), plan.parameters.openCylinderCount,
+        "open cylinders");
+    plan.parameters.torusByteOffset = assignGeometryRange<GpuIntersectionTorusPayload>(
+      geometryOffset, scene.geometry.tori.size(), plan.parameters.torusCount, "tori");
+    plan.parameters.transformByteOffset = assignGeometryRange<GpuIntersectionTransformPayload>(
+      geometryOffset, scene.geometry.transforms.size(), plan.parameters.transformCount,
+      "transforms");
 
     plan.sceneUpload = scene.uploadBytes();
     plan.buffers.sceneUploadBytes = plan.sceneUpload.size();
