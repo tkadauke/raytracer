@@ -17,6 +17,9 @@ namespace render {
   public:
     virtual ~GpuDiffusePathLoopBackend() = default;
 
+    [[nodiscard]] static std::shared_ptr<const GpuDiffusePathLoopBackend>
+    defaultBackendForGpuRequest();
+
     virtual const char* name() const = 0;
 
     [[nodiscard]] virtual GpuDiffusePathLoopResult

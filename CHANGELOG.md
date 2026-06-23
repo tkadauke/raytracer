@@ -63,6 +63,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   service, reporting those renders as hybrid execution with compaction timing
   instead of hiding the GPU service behind the CPU-reference loop label. —
   GPT-5 Codex
+- Select an available Metal/Vulkan compiled diffuse path-loop frontier
+  compaction backend automatically for GPU-requested graph renders, falling
+  back to the CPU reference backend when no platform compactor is available. —
+  GPT-5 Codex
 
 ### Fixed
 

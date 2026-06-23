@@ -1,9 +1,37 @@
 #include "render/GpuDiffusePathLoopBackend.h"
 
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+#include "render/MetalGpuDiffusePathFrontierCompactionBackend.h"
+#endif
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+#include "render/VulkanGpuDiffusePathFrontierCompactionBackend.h"
+#endif
+
 #include <stdexcept>
 #include <utility>
 
 namespace render {
+  std::shared_ptr<const GpuDiffusePathLoopBackend>
+  GpuDiffusePathLoopBackend::defaultBackendForGpuRequest() {
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    {
+      auto compactionBackend = std::make_shared<MetalGpuDiffusePathFrontierCompactionBackend>();
+      if (compactionBackend->compactionPathAvailable()) {
+        return std::make_shared<CompactingGpuDiffusePathLoopBackend>(compactionBackend);
+      }
+    }
+#endif
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    {
+      auto compactionBackend = std::make_shared<VulkanGpuDiffusePathFrontierCompactionBackend>();
+      if (compactionBackend->compactionPathAvailable()) {
+        return std::make_shared<CompactingGpuDiffusePathLoopBackend>(compactionBackend);
+      }
+    }
+#endif
+    return CpuReferenceGpuDiffusePathLoopBackend::sharedInstance();
+  }
+
   std::shared_ptr<const CpuReferenceGpuDiffusePathLoopBackend>
   CpuReferenceGpuDiffusePathLoopBackend::sharedInstance() {
     static const std::shared_ptr<const CpuReferenceGpuDiffusePathLoopBackend> instance =

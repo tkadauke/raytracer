@@ -83,6 +83,10 @@ end state for GPU tracing.
   graph path. rendercli, Modeler preview, and the render dialog all report
   that execution honestly as `compiled_cpu_reference` until a platform
   full-GPU path-loop kernel exists.
+- GPU-requested compiled diffuse path-loop renders automatically use an
+  available Metal or Vulkan frontier-compaction backend for the live
+  `GpuDiffusePathStateRecord` frontier, reporting that middle step as hybrid
+  execution while the overall loop remains the CPU reference implementation.
 - CPU reference tracing accumulation, the current CPU wavefront tile
   accumulator, optional Metal accumulation buffers, and optional Vulkan
   synthetic accumulation results expose resource residency, byte,
@@ -2097,7 +2101,10 @@ diffuse path tracer for the first supported subset.
      graph traces classify that middle state as hybrid execution when a Metal
      or Vulkan compaction path participates, while still reporting the overall
      path loop as `compiled_cpu_reference` until a full platform path-loop
-     kernel exists.
+     kernel exists. The graph engine now selects that platform compaction path
+     automatically for GPU-requested compiled diffuse path-loop renders when
+     Metal or Vulkan support is built and the compaction backend is available,
+     falling back to the plain CPU-reference loop otherwise.
 
 3. **~~Loop over depth with max-depth and Russian roulette.~~** ✅ **Done.**
    Added `loopResidentDiffusePaths` as the CPU-reference resident path-state

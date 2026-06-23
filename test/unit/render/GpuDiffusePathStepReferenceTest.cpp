@@ -1392,6 +1392,38 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_DOUBLE_EQ(0.06, result.frontierCompactionReadbackWorkerSeconds);
   }
 
+  TEST(GpuDiffusePathLoopBackend, DefaultGpuRequestBackendRunsCompiledLoop) {
+    Scene scene;
+    auto matte =
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::white()));
+    matte->setDiffuseCoefficient(1.0);
+    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    receiver->setMaterial(matte);
+    scene.add(receiver);
+    GpuTracingSceneSections sections = sectionsFor(scene);
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 2;
+    settings.russianRouletteDepth = 10;
+    const std::shared_ptr<const GpuDiffusePathLoopBackend> backend =
+      GpuDiffusePathLoopBackend::defaultBackendForGpuRequest();
+
+    ASSERT_NE(nullptr, backend);
+    const GpuDiffusePathLoopResult result = backend->run(sections, {activePath()}, settings);
+
+    EXPECT_EQ("compiled_cpu_reference", result.executionPath);
+    EXPECT_FALSE(result.frontierCompactionExecutionPath.empty());
+    EXPECT_FALSE(result.frontierCompactionPathStateResidency.empty());
+    if (std::string(backend->name()) == "compiled_cpu_reference") {
+      EXPECT_EQ("cpu_diffuse_frontier_compaction", result.frontierCompactionExecutionPath);
+      EXPECT_EQ("cpu_host", result.frontierCompactionPathStateResidency);
+    } else {
+      EXPECT_EQ("compiled_cpu_reference_with_compaction_backend", std::string(backend->name()));
+      EXPECT_NE("cpu_diffuse_frontier_compaction", result.frontierCompactionExecutionPath);
+      EXPECT_NE("cpu_host", result.frontierCompactionPathStateResidency);
+    }
+  }
+
   TEST(CompactingGpuDiffusePathLoopBackend, RejectsMissingCompactionBackend) {
     EXPECT_THROW(CompactingGpuDiffusePathLoopBackend(nullptr), std::invalid_argument);
   }

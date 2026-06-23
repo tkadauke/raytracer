@@ -978,8 +978,7 @@ namespace engine::graph {
       std::make_shared<RenderGraphArtifactCache>()};
     std::shared_ptr<engine::raster::RasterVisibilitySceneCache> rasterVisibilitySceneCache{
       std::make_shared<engine::raster::RasterVisibilitySceneCache>()};
-    std::shared_ptr<const render::GpuDiffusePathLoopBackend> gpuDiffusePathLoopBackend{
-      render::CpuReferenceGpuDiffusePathLoopBackend::sharedInstance()};
+    std::shared_ptr<const render::GpuDiffusePathLoopBackend> gpuDiffusePathLoopBackend;
     std::shared_ptr<std::atomic<std::uint64_t>> nextExecutionGeneration{
       std::make_shared<std::atomic<std::uint64_t>>(1)};
     std::atomic<bool> executionTraceEnabled{false};
@@ -1285,7 +1284,10 @@ namespace engine::graph {
 
   std::shared_ptr<const render::GpuDiffusePathLoopBackend>
   GraphRenderEngine::gpuDiffusePathLoopBackend() const {
-    return p->gpuDiffusePathLoopBackend;
+    if (p->gpuDiffusePathLoopBackend) {
+      return p->gpuDiffusePathLoopBackend;
+    }
+    return render::GpuDiffusePathLoopBackend::defaultBackendForGpuRequest();
   }
 
   void GraphRenderEngine::render(Buffer<Colord>& buffer) {

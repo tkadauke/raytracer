@@ -1103,6 +1103,12 @@ Progress:
   plus the packed ray payload after construction. That matches the platform
   frontier shape more closely and removes the last original-query-vector
   dependency from the prepared host fallback path.
+- GPU-requested compiled diffuse path-loop renders now select an available
+  Metal or Vulkan `GpuDiffusePathStateRecord` frontier-compaction backend from
+  the production graph path instead of requiring a test-only injected backend.
+  This remains a hybrid middle step: platform compaction can run on the GPU,
+  but the path loop itself still reports `compiled_cpu_reference` until a full
+  platform path-loop kernel exists in the parent tracing execution plan.
 - Backend-owned frontiers now also report retained state-handle byte counts.
   Host frontiers report zero because their state pointers are part of the
   original query vector, while `packed_host` and platform frontiers report the
