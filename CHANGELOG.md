@@ -46,6 +46,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Add a graph-owned compiled diffuse path-loop backend seam so future
   Metal/Vulkan full-GPU path-loop implementations can replace the CPU-reference
   loop without changing render graph payload code. — GPT-5 Codex
+- Add a resident path-state compaction backend seam and classify the current
+  CPU-reference compaction path as `cpu_resident_path_compaction` instead of
+  reporting it as GPU execution. — GPT-5 Codex
 
 ### Fixed
 

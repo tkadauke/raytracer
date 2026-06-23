@@ -2076,6 +2076,10 @@ diffuse path tracer for the first supported subset.
      32-bit retained indices and resident path-state byte accounting for
      issue #613, while the host path-state frontier rejects compaction results
      whose declared input path count does not match the active frontier.
+     `ResidentPathCompactionBackend` now gives the resident path loop an
+     explicit compaction dispatch point, with the default CPU backend reporting
+     `cpu_resident_path_compaction` so metrics no longer classify host
+     compaction as GPU execution.
 
 3. **~~Loop over depth with max-depth and Russian roulette.~~** ✅ **Done.**
    Added `loopResidentDiffusePaths` as the CPU-reference resident path-state

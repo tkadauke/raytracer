@@ -22,6 +22,35 @@ namespace TracingPathStateBufferTest {
     return record;
   }
 
+  class MarkingResidentPathCompactionBackend final : public ResidentPathCompactionBackend {
+  public:
+    const char* name() const override {
+      return "test_device_path_compaction";
+    }
+
+    const char* pathStateResidency() const override {
+      return "test_device";
+    }
+
+    ResidentPathCompactionResult
+    compact(const std::vector<GpuPathStateRecord>& sourceRecords,
+            const std::vector<std::uint32_t>& retainedPathIndices) const override {
+      ResidentPathCompactionResult result;
+      result.contract = ResidentPathCompactionContract::fromRetainedIndices(
+        sourceRecords.size(), retainedPathIndices, name(), sizeof(GpuPathStateRecord));
+      result.retainedRecords.reserve(retainedPathIndices.size());
+      for (const std::uint32_t index : retainedPathIndices) {
+        GpuPathStateRecord record = sourceRecords[index];
+        record.origin[0] = 42.0f;
+        result.retainedRecords.push_back(record);
+      }
+      ++calls;
+      return result;
+    }
+
+    mutable std::uint32_t calls{0};
+  };
+
   TEST(TracingPathStateLayout, DefinesActiveAndNextGpuPathStateBuffers) {
     const TracingPathStateLayout layout = TracingPathStateLayout::pathCapacity(128);
 
@@ -212,6 +241,35 @@ namespace TracingPathStateBufferTest {
                  std::invalid_argument);
   }
 
+  TEST(CpuResidentPathCompactionBackend, CompactsRetainedPathRecordsInOrder) {
+    const Rayd ray(Vector4d(0.0, 0.0, 0.0, 1.0), Vector3d(0.0, 0.0, 1.0));
+    std::vector<GpuPathStateRecord> sourceRecords;
+    sourceRecords.push_back(makeGpuPathStateRecord(ray, Colord::white(), Colord::black(),
+                                                   /*pixelIndex=*/10, /*sampleIndex=*/0,
+                                                   /*depth=*/0));
+    sourceRecords.push_back(makeGpuPathStateRecord(ray, Colord::white(), Colord::black(),
+                                                   /*pixelIndex=*/11, /*sampleIndex=*/0,
+                                                   /*depth=*/0));
+    sourceRecords.push_back(makeGpuPathStateRecord(ray, Colord::white(), Colord::black(),
+                                                   /*pixelIndex=*/12, /*sampleIndex=*/0,
+                                                   /*depth=*/0));
+
+    const ResidentPathCompactionResult result =
+      CpuResidentPathCompactionBackend::instance().compact(sourceRecords, {0u, 2u});
+
+    EXPECT_EQ("cpu_resident_path_compaction",
+              std::string(CpuResidentPathCompactionBackend::instance().name()));
+    EXPECT_EQ("cpu_host",
+              std::string(CpuResidentPathCompactionBackend::instance().pathStateResidency()));
+    ASSERT_EQ(2u, result.retainedRecords.size());
+    EXPECT_EQ(10u, result.retainedRecords[0].pixelIndex);
+    EXPECT_EQ(12u, result.retainedRecords[1].pixelIndex);
+    EXPECT_EQ(3u, result.contract.inputPathCount());
+    EXPECT_EQ(2u, result.contract.retainedPathCount());
+    EXPECT_EQ(1u, result.contract.removedPathCount());
+    EXPECT_EQ("cpu_resident_path_compaction", result.contract.executionPath());
+  }
+
   TEST(ResidentDiffusePathLoop, ExecutesMultipleDepthsAndTerminatesAtMaxDepth) {
     TracingPathStateBuffers buffers(1);
     const Rayd ray(Vector4d(0.0, 0.0, 0.0, 1.0), Vector3d(0.0, 0.0, 1.0));
@@ -242,6 +300,41 @@ namespace TracingPathStateBufferTest {
     EXPECT_FALSE(hasFlag(diagnostics.resolvedRecords[0], GpuPathStateFlags::Active));
     EXPECT_EQ(0u, diagnostics.finalActiveCount);
     EXPECT_EQ(3u, diagnostics.buffers.swapOperations);
+  }
+
+  TEST(ResidentDiffusePathLoop, DispatchesNextFrontierThroughCompactionBackend) {
+    TracingPathStateBuffers buffers(2);
+    const Rayd ray(Vector4d(0.0, 0.0, 0.0, 1.0), Vector3d(0.0, 0.0, 1.0));
+    buffers.appendActive(makeGpuPathStateRecord(ray, Colord::white(), Colord::black(),
+                                                /*pixelIndex=*/0, /*sampleIndex=*/0,
+                                                /*depth=*/0));
+    buffers.appendActive(makeGpuPathStateRecord(ray, Colord::white(), Colord::black(),
+                                                /*pixelIndex=*/1, /*sampleIndex=*/0,
+                                                /*depth=*/0));
+
+    ResidentPathLoopSettings settings;
+    settings.maxDepth = 3;
+    settings.russianRouletteDepth = 10;
+    MarkingResidentPathCompactionBackend backend;
+    const ResidentPathLoopDiagnostics diagnostics = loopResidentDiffusePaths(
+      buffers, settings,
+      [](const GpuPathStateRecord& record, std::uint32_t depth) {
+        if (depth != 0 || record.pixelIndex == 1) {
+          return std::optional<GpuPathStateRecord>();
+        }
+        GpuPathStateRecord next = record;
+        next.origin[0] = 1.0f;
+        return std::optional<GpuPathStateRecord>(next);
+      },
+      backend);
+
+    EXPECT_EQ(2u, backend.calls);
+    ASSERT_EQ(2u, diagnostics.depths.size());
+    EXPECT_EQ("test_device_path_compaction", diagnostics.depths[0].compaction.executionPath());
+    ASSERT_EQ(1u, diagnostics.depths[0].retainedRecords.size());
+    EXPECT_FLOAT_EQ(42.0f, diagnostics.depths[0].retainedRecords[0].origin[0]);
+    ASSERT_EQ(2u, diagnostics.resolvedRecords.size());
+    EXPECT_FLOAT_EQ(42.0f, diagnostics.resolvedRecords[1].origin[0]);
   }
 
   TEST(ResidentDiffusePathLoop, AppliesRussianRouletteWithGpuSampleStreamCoordinates) {

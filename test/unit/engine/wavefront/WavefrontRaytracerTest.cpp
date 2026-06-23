@@ -2716,7 +2716,7 @@ namespace WavefrontRaytracerTest {
 
     metrics.batching.addIntegratorMetrics(batch);
     const QJsonObject batching = metrics.toJson().value("batching").toObject();
-    EXPECT_EQ("gpu_resident_path_loop",
+    EXPECT_EQ("cpu_resident_path_compaction",
               batching.value("residentPathLoopExecutionPath").toString().toStdString());
     EXPECT_EQ("cpu_host", batching.value("residentPathLoopResidency").toString().toStdString());
     EXPECT_EQ(2.0, batching.value("residentPathLoopDepths").toDouble());
@@ -2732,7 +2732,8 @@ namespace WavefrontRaytracerTest {
     const auto capabilities = metrics.batching.tracingExecutionCapabilities();
     EXPECT_EQ("cpu_host", capabilities.pathState.residency.executionPath);
     EXPECT_EQ(render::TracingExecutionDevice::CPU, capabilities.pathState.residency.resolvedDevice);
-    EXPECT_EQ("gpu_resident_path_loop", capabilities.pathState.frontierCompaction.executionPath);
+    EXPECT_EQ("cpu_resident_path_compaction",
+              capabilities.pathState.frontierCompaction.executionPath);
     EXPECT_EQ(render::TracingExecutionDevice::CPU,
               capabilities.pathState.frontierCompaction.resolvedDevice);
 
@@ -2746,7 +2747,7 @@ namespace WavefrontRaytracerTest {
     const QJsonObject frontierCompactionCapability = tracingCapabilities.at(16).toObject();
     EXPECT_EQ("state.frontier_compaction",
               frontierCompactionCapability.value("name").toString().toStdString());
-    EXPECT_EQ("gpu_resident_path_loop",
+    EXPECT_EQ("cpu_resident_path_compaction",
               frontierCompactionCapability.value("executionPath").toString().toStdString());
     EXPECT_EQ("cpu", frontierCompactionCapability.value("resolvedDevice").toString().toStdString());
   }

@@ -874,7 +874,7 @@ namespace IntegratorTest {
     target.reset(/*scalarFallback=*/false);
     target.recordResidentPathLoopExecution(diagnostics, /*roundTrips=*/1);
 
-    EXPECT_EQ("gpu_resident_path_loop", target.residentPathLoopExecutionPath);
+    EXPECT_EQ("cpu_resident_path_compaction", target.residentPathLoopExecutionPath);
     EXPECT_EQ("cpu_host", target.residentPathLoopResidency);
     EXPECT_EQ(3u, target.residentPathLoopDepths);
     EXPECT_EQ(4u, target.residentPathLoopInputPaths);

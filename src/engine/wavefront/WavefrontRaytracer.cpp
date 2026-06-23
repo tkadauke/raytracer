@@ -92,7 +92,8 @@ namespace engine::wavefront {
       }
       if (label == "cpu" || label == "runtime_scene" || label == "compiled_cpu" ||
           label == "compiled_cpu_reference" || label == "packed_cpu" || label == "packed_host" ||
-          label == "host" || label == "host_cpu" || label == "cpu_host") {
+          label == "host" || label == "host_cpu" || label == "cpu_host" ||
+          label == "cpu_resident_path_compaction" || label == "cpu_reference") {
         return render::TracingExecutionDevice::CPU;
       }
       return render::TracingExecutionDevice::Unsupported;
@@ -946,10 +947,7 @@ namespace engine::wavefront {
       residentLoopCompactionReported
         ? (residentPathLoopExecutionPath.empty() ? "host" : residentPathLoopExecutionPath)
         : (frontierCompactionExecutionPath.empty() ? "host" : frontierCompactionExecutionPath);
-    const Device compactionDevice =
-      residentLoopCompactionReported && !residentPathLoopResidency.empty()
-        ? executionDeviceForLabel(residentPathLoopResidency)
-        : executionDeviceForLabel(compactionPath);
+    const Device compactionDevice = executionDeviceForLabel(compactionPath);
     if (gpuPathStateRequested && !intersectionBackendSupportsGpuFrontierCompaction &&
         compactionDevice == Device::CPU) {
       const std::string reason = intersectionBackendGpuFrontierCompactionUnavailableReason.empty()

@@ -162,7 +162,7 @@ namespace render {
     std::uint64_t inputPathCount{0};
     std::vector<GpuPathStateRecord> retainedRecords;
     ResidentPathCompactionContract compaction =
-      ResidentPathCompactionContract::fromRetainedIndices(0, {}, "gpu_resident_path_loop");
+      ResidentPathCompactionContract::fromRetainedIndices(0, {}, "cpu_resident_path_compaction");
   };
 
   struct ResidentPathLoopDiagnostics {
@@ -175,10 +175,41 @@ namespace render {
   using ResidentDiffusePathStep = std::function<std::optional<GpuPathStateRecord>(
     const GpuPathStateRecord& record, std::uint32_t depth)>;
 
+  struct ResidentPathCompactionResult {
+    std::vector<GpuPathStateRecord> retainedRecords;
+    ResidentPathCompactionContract contract =
+      ResidentPathCompactionContract::fromRetainedIndices(0, {}, "cpu_resident_path_compaction");
+  };
+
+  class ResidentPathCompactionBackend {
+  public:
+    virtual ~ResidentPathCompactionBackend() = default;
+
+    [[nodiscard]] virtual const char* name() const = 0;
+    [[nodiscard]] virtual const char* pathStateResidency() const = 0;
+    [[nodiscard]] virtual ResidentPathCompactionResult
+    compact(const std::vector<GpuPathStateRecord>& sourceRecords,
+            const std::vector<std::uint32_t>& retainedPathIndices) const = 0;
+  };
+
+  class CpuResidentPathCompactionBackend final : public ResidentPathCompactionBackend {
+  public:
+    [[nodiscard]] static const CpuResidentPathCompactionBackend& instance();
+
+    [[nodiscard]] const char* name() const override;
+    [[nodiscard]] const char* pathStateResidency() const override;
+    [[nodiscard]] ResidentPathCompactionResult
+    compact(const std::vector<GpuPathStateRecord>& sourceRecords,
+            const std::vector<std::uint32_t>& retainedPathIndices) const override;
+  };
+
   [[nodiscard]] ResidentPathLoopDiagnostics
   loopResidentDiffusePaths(TracingPathStateBuffers& buffers,
                            const ResidentPathLoopSettings& settings,
                            const ResidentDiffusePathStep& step);
+  [[nodiscard]] ResidentPathLoopDiagnostics loopResidentDiffusePaths(
+    TracingPathStateBuffers& buffers, const ResidentPathLoopSettings& settings,
+    const ResidentDiffusePathStep& step, const ResidentPathCompactionBackend& compactionBackend);
 
   [[nodiscard]] TracingAccumulationDiagnostics
   resolveResidentPathLoopImage(const std::vector<GpuPathStateRecord>& records,

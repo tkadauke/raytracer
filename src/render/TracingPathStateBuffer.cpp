@@ -56,6 +56,10 @@ namespace render {
       return label.empty() ? "unknown" : std::move(label);
     }
 
+    std::uint64_t pathCountFor(std::size_t size) {
+      return static_cast<std::uint64_t>(size);
+    }
+
     GpuPathStateRecord resolvedPathState(GpuPathStateRecord record) {
       record.flags &= ~flagValue(GpuPathStateFlags::Active);
       return record;
@@ -322,9 +326,42 @@ namespace render {
     }
   }
 
+  const CpuResidentPathCompactionBackend& CpuResidentPathCompactionBackend::instance() {
+    static const CpuResidentPathCompactionBackend backend;
+    return backend;
+  }
+
+  const char* CpuResidentPathCompactionBackend::name() const {
+    return "cpu_resident_path_compaction";
+  }
+
+  const char* CpuResidentPathCompactionBackend::pathStateResidency() const {
+    return "cpu_host";
+  }
+
+  ResidentPathCompactionResult CpuResidentPathCompactionBackend::compact(
+    const std::vector<GpuPathStateRecord>& sourceRecords,
+    const std::vector<std::uint32_t>& retainedPathIndices) const {
+    ResidentPathCompactionResult result;
+    result.contract = ResidentPathCompactionContract::fromRetainedIndices(
+      pathCountFor(sourceRecords.size()), retainedPathIndices, name(), sizeof(GpuPathStateRecord));
+    result.retainedRecords.reserve(retainedPathIndices.size());
+    for (const std::uint32_t index : retainedPathIndices) {
+      result.retainedRecords.push_back(sourceRecords[index]);
+    }
+    return result;
+  }
+
   ResidentPathLoopDiagnostics loopResidentDiffusePaths(TracingPathStateBuffers& buffers,
                                                        const ResidentPathLoopSettings& settings,
                                                        const ResidentDiffusePathStep& step) {
+    return loopResidentDiffusePaths(buffers, settings, step,
+                                    CpuResidentPathCompactionBackend::instance());
+  }
+
+  ResidentPathLoopDiagnostics loopResidentDiffusePaths(
+    TracingPathStateBuffers& buffers, const ResidentPathLoopSettings& settings,
+    const ResidentDiffusePathStep& step, const ResidentPathCompactionBackend& compactionBackend) {
     if (!step) {
       throw std::invalid_argument("resident diffuse path loop requires a path-step callback");
     }
@@ -342,8 +379,7 @@ namespace render {
       }
       std::vector<std::uint32_t> retainedPathIndices;
       retainedPathIndices.reserve(buffers.active().size());
-      std::vector<GpuPathStateRecord> retainedRecords;
-      retainedRecords.reserve(buffers.active().size());
+      std::vector<GpuPathStateRecord> nextCandidates(buffers.active().size());
       buffers.clearNext();
 
       const std::vector<GpuPathStateRecord> active = buffers.active();
@@ -383,18 +419,29 @@ namespace render {
         }
 
         setFlag(*next, GpuPathStateFlags::Active, true);
-        buffers.appendNext(*next);
+        nextCandidates[pathIndex] = *next;
         retainedPathIndices.push_back(static_cast<std::uint32_t>(pathIndex));
-        retainedRecords.push_back(*next);
+      }
+
+      const ResidentPathCompactionResult compaction =
+        compactionBackend.compact(nextCandidates, retainedPathIndices);
+      if (compaction.contract.inputPathCount() != inputPathCount) {
+        throw std::runtime_error(
+          "resident path compaction backend returned a mismatched input path count");
+      }
+      if (compaction.retainedRecords.size() != compaction.contract.retainedPathCount()) {
+        throw std::runtime_error(
+          "resident path compaction backend returned a mismatched retained record count");
+      }
+      for (const GpuPathStateRecord& retainedRecord : compaction.retainedRecords) {
+        buffers.appendNext(retainedRecord);
       }
 
       ResidentPathLoopDepthDiagnostics depthDiagnostics;
       depthDiagnostics.depth = depth;
       depthDiagnostics.inputPathCount = inputPathCount;
-      depthDiagnostics.retainedRecords = std::move(retainedRecords);
-      depthDiagnostics.compaction = ResidentPathCompactionContract::fromRetainedIndices(
-        inputPathCount, std::move(retainedPathIndices), "gpu_resident_path_loop",
-        sizeof(GpuPathStateRecord));
+      depthDiagnostics.retainedRecords = compaction.retainedRecords;
+      depthDiagnostics.compaction = compaction.contract;
       diagnostics.depths.push_back(std::move(depthDiagnostics));
 
       buffers.swapActiveAndNext();

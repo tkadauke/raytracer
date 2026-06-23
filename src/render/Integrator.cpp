@@ -495,7 +495,9 @@ namespace render {
 
   void IntegratorBatchMetrics::recordResidentPathLoopExecution(
     const ResidentPathLoopDiagnostics& diagnostics, std::uint64_t roundTrips) {
-    mergeLabel(residentPathLoopExecutionPath, "gpu_resident_path_loop");
+    if (diagnostics.depths.empty()) {
+      mergeLabel(residentPathLoopExecutionPath, diagnostics.buffers.backend);
+    }
     mergeLabel(residentPathLoopResidency, diagnostics.buffers.residency);
     residentPathLoopDepths += diagnostics.depths.size();
     residentPathLoopResidentPathStateBytes =
