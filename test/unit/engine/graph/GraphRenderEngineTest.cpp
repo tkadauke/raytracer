@@ -2333,7 +2333,7 @@ namespace GraphRenderEngineTest {
     const RaytracerBeautyPassState* state = RaytracerBeautyPassState::fromPass(plan.passes()[0]);
     ASSERT_NE(nullptr, state);
     ASSERT_TRUE(state->predictedTracingExecution());
-    EXPECT_EQ(TracingExecutionPreference::GPU, *state->predictedTracingExecution());
+    EXPECT_EQ(TracingExecutionPreference::Hybrid, *state->predictedTracingExecution());
 
     GraphRenderEngine engine(camera(), scene);
     engine.setExecutionTraceEnabled(true);
@@ -2350,7 +2350,7 @@ namespace GraphRenderEngineTest {
     const QJsonObject metadata = wavefront->metadata();
     const QJsonObject tracingExecution = metadata.value("tracingExecution").toObject();
     EXPECT_EQ("gpu", tracingExecution.value("requestedMode").toString().toStdString());
-    EXPECT_EQ("gpu", tracingExecution.value("predictedMode").toString().toStdString());
+    EXPECT_EQ("hybrid", tracingExecution.value("predictedMode").toString().toStdString());
     EXPECT_EQ("cpu", tracingExecution.value("actualMode").toString().toStdString());
     EXPECT_NE(std::string::npos, tracingExecution.value("actualFallbackReason")
                                    .toString()
@@ -2478,7 +2478,7 @@ namespace GraphRenderEngineTest {
     const QJsonObject metadata = wavefront->metadata();
     const QJsonObject tracingExecution = metadata.value("tracingExecution").toObject();
     EXPECT_EQ("gpu", tracingExecution.value("requestedMode").toString().toStdString());
-    EXPECT_EQ("gpu", tracingExecution.value("predictedMode").toString().toStdString());
+    EXPECT_EQ("hybrid", tracingExecution.value("predictedMode").toString().toStdString());
     EXPECT_EQ("gpu", tracingExecution.value("actualMode").toString().toStdString());
     EXPECT_TRUE(tracingExecution.value("actualFallbackReason").toString().isEmpty());
 
@@ -2564,7 +2564,7 @@ namespace GraphRenderEngineTest {
     const QJsonObject metadata = wavefront->metadata();
     const QJsonObject tracingExecution = metadata.value("tracingExecution").toObject();
     EXPECT_EQ("gpu", tracingExecution.value("requestedMode").toString().toStdString());
-    EXPECT_EQ("gpu", tracingExecution.value("predictedMode").toString().toStdString());
+    EXPECT_EQ("hybrid", tracingExecution.value("predictedMode").toString().toStdString());
     EXPECT_EQ("hybrid", tracingExecution.value("actualMode").toString().toStdString());
     EXPECT_NE(std::string::npos, tracingExecution.value("actualFallbackReason")
                                    .toString()
@@ -2598,7 +2598,7 @@ namespace GraphRenderEngineTest {
     EXPECT_TRUE(compaction.value("fallback").toObject().value("reason").toString().isEmpty());
   }
 
-  TEST(GraphRenderEngine, ReportsAutoTracingRequestForAutoSelectedCompiledDiffusePathLoop) {
+  TEST(GraphRenderEngine, ReportsAutoTracingRequestAsCpuWhenFullGpuBackendIsUnavailable) {
     const Colord background(0.125, 0.25, 0.5);
     auto scene = std::make_shared<render::Scene>();
     scene->setBackground(background);
@@ -2624,7 +2624,7 @@ namespace GraphRenderEngineTest {
     ASSERT_NE(nullptr, state);
     EXPECT_FALSE(state->tracingExecution());
     ASSERT_TRUE(state->predictedTracingExecution());
-    EXPECT_EQ(TracingExecutionPreference::GPU, *state->predictedTracingExecution());
+    EXPECT_EQ(TracingExecutionPreference::CPU, *state->predictedTracingExecution());
 
     GraphRenderEngine engine(camera(), scene);
     engine.setExecutionTraceEnabled(true);
@@ -2641,18 +2641,9 @@ namespace GraphRenderEngineTest {
     const QJsonObject metadata = wavefront->metadata();
     const QJsonObject tracingExecution = metadata.value("tracingExecution").toObject();
     EXPECT_EQ("auto", tracingExecution.value("requestedMode").toString().toStdString());
-    EXPECT_EQ("gpu", tracingExecution.value("predictedMode").toString().toStdString());
+    EXPECT_EQ("cpu", tracingExecution.value("predictedMode").toString().toStdString());
     EXPECT_EQ("cpu", tracingExecution.value("actualMode").toString().toStdString());
-
-    const QJsonObject batching = metadata.value("batching").toObject();
-    EXPECT_EQ("compiled_diffuse_path_loop",
-              batching.value("executionMode").toString().toStdString());
-    EXPECT_EQ("auto", batching.value("tracingBackendRequest").toString().toStdString());
-    EXPECT_EQ("cpu", batching.value("tracingBackend").toString().toStdString());
-    EXPECT_EQ("compiled_cpu_reference",
-              batching.value("tracingBackendMode").toString().toStdString());
-    EXPECT_EQ(20, batching.value("tracingBackendCapabilities").toArray().size());
-    EXPECT_TRUE(batching.value("tracingBackendFallback").toObject().value("active").toBool());
+    EXPECT_TRUE(metadata.value("compiledDiffusePathLoop").isUndefined());
   }
 
   TEST(GraphRenderEngine, CompilePlanUsesSceneAnalysisAndClonesIt) {

@@ -38,8 +38,10 @@
 > GPU-requested diffuse path-tracing scenes now also route through the compiled
 > diffuse path-loop CPU reference from the live graph path and report that
 > execution honestly as `compiled_cpu_reference`; platform full-GPU path-loop
-> kernels remain part of the parent tracing execution backend plan. This is a
-> follow-up to
+> kernels remain part of the parent tracing execution backend plan. Automatic
+> tracing execution does not promote that CPU-reference loop to a full GPU
+> prediction, while explicit GPU requests can still run it for diagnostics.
+> This is a follow-up to
 > `docs/plans/wavefront-and-path-tracing.md` Phase 7+ and is now a child slice
 > of `docs/plans/tracing-execution-backends.md`. It should not replace the CPU
 > wavefront renderer, and it should not attempt a full GPU path tracer in this
@@ -1586,7 +1588,10 @@ Progress:
   `compiled_cpu_reference`, which keeps the boundary explicit: the graph is no
   longer bypassing the compiled loop, but platform Metal/Vulkan path-loop
   kernels and scheduler-owned GPU path state still belong to the parent tracing
-  execution backend plan.
+  execution backend plan. Automatic tracing execution stays on CPU/hybrid mode
+  until a platform full-GPU path-loop backend is available; explicit GPU
+  requests still run the compiled-reference loop so diagnostics stay
+  inspectable.
 - Batch progress publication and convergence-stop accounting now live on
   `IntegratorBatchSettings` instead of duplicated Whitted/path-tracing scheduler
   blocks. Progress snapshots, observer-provided convergence RMS overrides,

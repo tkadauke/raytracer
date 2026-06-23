@@ -1,9 +1,20 @@
 #include <gtest/gtest.h>
 
 #include "engine/graph/RenderSceneAnalysis.h"
+#include "render/materials/MatteMaterial.h"
+#include "render/primitives/Rectangle.h"
+#include "render/primitives/Scene.h"
+#include "render/textures/ConstantColorTexture.h"
+
+#include <memory>
 
 namespace RenderSceneAnalysisTest {
   using namespace engine::graph;
+
+  std::shared_ptr<render::Material> matte(const Colord& color) {
+    return std::make_shared<render::MatteMaterial>(
+      std::make_shared<render::ConstantColorTexture>(color));
+  }
 
   TEST(RenderSceneAnalysis, StartsAsKnownEmptyScene) {
     RenderSceneAnalysis analysis;
@@ -79,8 +90,8 @@ namespace RenderSceneAnalysisTest {
   TEST(RenderSceneAnalysis, RecordsSelectableObjectTagAndLayerSubsets) {
     RenderSceneAnalysis analysis;
 
-    analysis.recordSelectableObject("sphere-1", "Hero Sphere", {"hero", "matte"},
-                                    {"foreground"}, "Hero Sphere");
+    analysis.recordSelectableObject("sphere-1", "Hero Sphere", {"hero", "matte"}, {"foreground"},
+                                    "Hero Sphere");
 
     const auto& subsets = analysis.selectableSubsets();
     ASSERT_EQ(5u, subsets.size());
@@ -145,5 +156,21 @@ namespace RenderSceneAnalysisTest {
     litScene.recordVisibleLight();
     EXPECT_TRUE(litScene.shouldCompileRasterPreviewShadows(RenderExecutorKind::Rasterizer, intent));
     EXPECT_FALSE(litScene.shouldCompileRasterPreviewShadows(RenderExecutorKind::Raytracer, intent));
+  }
+
+  TEST(RenderSceneAnalysis, SceneGpuTracingSupportDoesNotImplyPlatformPathLoopBackend) {
+    render::Scene scene;
+    auto receiver = std::make_shared<render::Rectangle>(
+      Vector3d(-1.0, -1.0, 0.0), Vector3d(2.0, 0.0, 0.0), Vector3d(0.0, 2.0, 0.0));
+    receiver->setMaterial(matte(Colord(0.8, 0.8, 0.8)));
+    scene.add(receiver);
+
+    RenderSceneAnalysis analysis;
+    analysis.setFullGpuTracingSupportFromScene(scene);
+
+    EXPECT_TRUE(analysis.fullGpuTracingSupported());
+    EXPECT_FALSE(analysis.fullGpuTracingBackendAvailable());
+    EXPECT_EQ("platform full-GPU path-loop kernel is not available yet",
+              analysis.fullGpuTracingBackendUnavailableReason());
   }
 }

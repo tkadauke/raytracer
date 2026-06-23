@@ -124,7 +124,8 @@ namespace engine::graph {
     const render::GpuDiffusePathLoopSupport support =
       render::gpuDiffusePathLoopSupport(compilation, scene);
     setFullGpuTracingSupported(support.supported, support.reason);
-    setFullGpuTracingBackendAvailable(true);
+    setFullGpuTracingBackendAvailable(false,
+                                      "platform full-GPU path-loop kernel is not available yet");
   }
 
   bool RenderSceneAnalysis::hasKnownVisibleSurfaceCount() const {

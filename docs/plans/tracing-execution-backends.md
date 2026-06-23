@@ -83,6 +83,10 @@ end state for GPU tracing.
   graph path. rendercli, Modeler preview, and the render dialog all report
   that execution honestly as `compiled_cpu_reference` until a platform
   full-GPU path-loop kernel exists.
+- Automatic tracing execution does not select that CPU-reference path-loop as
+  a full GPU backend. `auto` stays on CPU/hybrid execution until scene analysis
+  can prove that a platform path-loop kernel is available; explicit GPU
+  requests can still exercise the compiled CPU-reference loop for diagnostics.
 - GPU-requested compiled diffuse path-loop renders automatically use an
   available Metal or Vulkan frontier-compaction backend for the live
   `GpuDiffusePathStateRecord` frontier, reporting that middle step as hybrid
@@ -121,8 +125,9 @@ end state for GPU tracing.
 - Full platform GPU Whitted loop.
 - Hardware ray tracing backends.
 - A render graph compiler model that can synthesize platform full-GPU tracing
-  plans after those kernels exist; the current compiler can predict and report
-  the supported compiled-reference GPU subset.
+  plans after those kernels exist; the current compiler can report explicit
+  GPU requests, hybrid fallbacks, and compiled-reference diagnostics without
+  treating the CPU-reference path-loop as automatic full GPU execution.
 
 ---
 

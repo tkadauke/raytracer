@@ -870,11 +870,17 @@ namespace engine::graph {
              *state.predictedTracingExecution() == TracingExecutionPreference::GPU;
     }
 
+    bool requestedOrPredictedGpuTracing(const RaytracerBeautyPassState& state) {
+      return predictedGpuTracing(state) ||
+             (state.tracingExecution() &&
+              *state.tracingExecution() == TracingExecutionPreference::GPU);
+    }
+
     std::optional<std::string>
     compiledDiffusePathLoopFallbackReason(const RaytracerBeautyPassState& state,
                                           const GraphRenderEngine& graph) {
-      if (!predictedGpuTracing(state)) {
-        return "compiled diffuse path loop requires predicted GPU tracing execution";
+      if (!requestedOrPredictedGpuTracing(state)) {
+        return "compiled diffuse path loop requires requested or predicted GPU tracing execution";
       }
       if (state.integrator().value_or("whitted") != "pathtracer") {
         return "compiled diffuse path loop currently supports only the pathtracer integrator";
@@ -1041,7 +1047,7 @@ namespace engine::graph {
                                              std::string& fallbackReason) const {
         const RaytracerBeautyPassState state =
           RaytracerBeautyPassState::valueFromPass(context.pass());
-        if (!predictedGpuTracing(state)) {
+        if (!requestedOrPredictedGpuTracing(state)) {
           return false;
         }
 

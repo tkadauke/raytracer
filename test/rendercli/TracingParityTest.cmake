@@ -379,7 +379,7 @@ function(tracing_parity_render_compiled_gpu_execution category scene_file depth 
   tracing_parity_assert_matches(
     "tracing parity ${category} compiled GPU execution compaction summary"
     "${gpu_execution_stdout}"
-    "frontier_compaction_execution=compiled_cpu_reference.*frontier_compaction_path_state_residency=cpu_host")
+    "frontier_compaction_execution=cpu_diffuse_frontier_compaction.*frontier_compaction_path_state_residency=cpu_host")
   tracing_parity_assert_matches(
     "tracing parity ${category} compiled GPU execution direct-light fallback"
     "${gpu_execution_stdout}"
@@ -404,7 +404,7 @@ function(tracing_parity_render_compiled_gpu_execution category scene_file depth 
           "\"tracingBackendMode\"[ \r\n]*:[ \r\n]*\"compiled_cpu_reference\""
           "\"tracingBackendPlatform\"[ \r\n]*:[ \r\n]*\"none\""
           "\"directLightContributionFallbackReason\"[ \r\n]*:[ \r\n]*\"compiled CPU-reference path loop evaluates direct-light contribution on the host\""
-          "\"frontierCompactionExecutionPath\"[ \r\n]*:[ \r\n]*\"compiled_cpu_reference\""
+          "\"frontierCompactionExecutionPath\"[ \r\n]*:[ \r\n]*\"cpu_diffuse_frontier_compaction\""
           "\"frontierCompactionPathStateResidency\"[ \r\n]*:[ \r\n]*\"cpu_host\""
           "\"intersectionBackendResidentDirectLightBatchesUnavailableReason\"[ \r\n]*:[ \r\n]*\"compiled CPU-reference path loop resolves direct-light visibility on the host\""
           "\"tracingSceneCompiled\"[ \r\n]*:[ \r\n]*true"
@@ -417,7 +417,7 @@ function(tracing_parity_render_compiled_gpu_execution category scene_file depth 
           "\"platformName\"[ \r\n]*:[ \r\n]*\"none\""
           "\"fullPlatformGpuKernel\"[ \r\n]*:[ \r\n]*false"
           "\"requestedMode\"[ \r\n]*:[ \r\n]*\"gpu\""
-          "\"predictedMode\"[ \r\n]*:[ \r\n]*\"gpu\""
+          "\"predictedMode\"[ \r\n]*:[ \r\n]*\"hybrid\""
           "\"actualMode\"[ \r\n]*:[ \r\n]*\"cpu\""
           "\"actualFallbackReason\"[ \r\n]*:[ \r\n]*\"GPU tracing request executed by compiled CPU-reference diffuse path loop")
     tracing_parity_assert_json_matches(

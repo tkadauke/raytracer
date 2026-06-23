@@ -70,6 +70,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Keep automatic tracing execution from predicting full GPU mode for the
+  compiled diffuse CPU-reference path-loop before a platform path-loop kernel
+  exists; explicit GPU requests still expose the compiled-reference diagnostics.
+  — GPT-5 Codex
 - Route Metal/Vulkan compiled-scene batch intersection entry points through
   backend-owned frontier handles, matching the renderer and benchmark path used
   for future resident frontier work. — GPT-5 Codex
