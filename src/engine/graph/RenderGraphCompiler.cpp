@@ -196,10 +196,6 @@ namespace engine::graph {
         } else {
           decision.predicted = TracingExecutionPreference::CPU;
         }
-      } else if (canUseFullGpuTracing(sceneAnalysis) && canUseHybridTracing(executor)) {
-        decision.predicted = TracingExecutionPreference::GPU;
-        decision.intersectionBackend = render::WavefrontIntersectionBackendChoice::gpu();
-        decision.overrideIntersectionBackend = true;
       } else {
         decision.predicted = TracingExecutionPreference::CPU;
       }

@@ -906,6 +906,32 @@ namespace engine::graph {
       return std::nullopt;
     }
 
+    std::shared_ptr<const render::GpuDiffusePathLoopBackend>
+    selectGpuDiffusePathLoopBackend(const GraphRenderEngine& graph,
+                                    const RaytracerBeautyPassState& state,
+                                    const render::GpuTracingSceneSections& sections,
+                                    const render::GpuDiffusePathLoopSettings& settings) {
+      const std::shared_ptr<const render::GpuDiffusePathLoopBackend> configuredBackend =
+        graph.gpuDiffusePathLoopBackend();
+      if (graph.hasGpuDiffusePathLoopBackendOverride()) {
+        return configuredBackend;
+      }
+
+      if (requestedOrPredictedGpuTracing(state)) {
+        const std::shared_ptr<const render::GpuDiffusePathLoopBackend> fullGpuBackend =
+          render::GpuDiffusePathLoopBackend::defaultFullGpuBackendForGpuRequest();
+        if (fullGpuBackend && fullGpuBackend->fullGpuPathLoopAvailable()) {
+          const render::GpuDiffusePathLoopBackendSupport support =
+            fullGpuBackend->fullGpuPathLoopSupport(sections, settings);
+          if (support.supported) {
+            return fullGpuBackend;
+          }
+        }
+      }
+
+      return configuredBackend;
+    }
+
     void packColorBuffer(const Buffer<Colord>& source, Buffer<unsigned int>& destination,
                          const std::shared_ptr<render::Tonemap>& tonemap) {
       requireMatchingSize(source, destination, "compiled diffuse path-loop color pack");
@@ -1109,7 +1135,7 @@ namespace engine::graph {
         settings.directLightSamples =
           static_cast<std::uint32_t>(std::max(1, state.directLightSamples().value_or(1)));
         const std::shared_ptr<const render::GpuDiffusePathLoopBackend> pathLoopBackend =
-          context.graph().gpuDiffusePathLoopBackend();
+          selectGpuDiffusePathLoopBackend(context.graph(), state, compilation.sections, settings);
         if (!pathLoopBackend) {
           fallbackReason = "compiled diffuse path loop requires an execution backend";
           return false;

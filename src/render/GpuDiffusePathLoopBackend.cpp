@@ -40,7 +40,11 @@ namespace render {
 
   std::shared_ptr<const GpuDiffusePathLoopBackend>
   GpuDiffusePathLoopBackend::defaultFullGpuBackendForGpuRequest() {
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    return MetalGpuDiffusePathLoopBackend::sharedInstance();
+#else
     return {};
+#endif
   }
 
   bool GpuDiffusePathLoopBackend::fullGpuPathLoopAvailable() const {

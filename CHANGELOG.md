@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Route explicit GPU diffuse path-loop requests through an available
+  scene-supported platform full-GPU backend, while keeping automatic selection
+  on CPU/hybrid until parity and performance gates pass. — GPT-5 Codex
 - Add a restricted Metal diffuse path-loop backend surface for one-depth
   empty-scene and sphere Matte/Emissive probe execution, while keeping
   automatic full-GPU graph selection disabled until a multi-depth platform loop

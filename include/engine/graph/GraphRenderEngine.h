@@ -240,6 +240,11 @@ namespace engine::graph {
     setGpuDiffusePathLoopBackend(std::shared_ptr<const render::GpuDiffusePathLoopBackend> backend);
 
     /**
+      * @returns true when a caller installed a compiled diffuse path-loop backend.
+      */
+    bool hasGpuDiffusePathLoopBackendOverride() const;
+
+    /**
       * @returns the backend used for compiled diffuse path-loop execution.
       */
     std::shared_ptr<const render::GpuDiffusePathLoopBackend> gpuDiffusePathLoopBackend() const;

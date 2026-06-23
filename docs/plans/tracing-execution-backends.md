@@ -79,10 +79,10 @@ end state for GPU tracing.
 - `render::GpuSampleStream` provides the CPU reference for deterministic
   GPU-style sampling dimensions with fixed-vector coverage.
 - Supported diffuse path-tracing scenes can route GPU execution requests
-  through the compiled diffuse path-loop CPU reference from the live render
-  graph path. rendercli, Modeler preview, and the render dialog all report
-  that execution honestly as `compiled_cpu_reference` until a platform
-  full-GPU path-loop kernel exists.
+  through the compiled diffuse path-loop path from the live render graph path.
+  rendercli, Modeler preview, and the render dialog report whether that
+  execution used the CPU reference path, hybrid frontier compaction, or a
+  supported platform full-GPU subset.
 - Automatic tracing execution does not select that CPU-reference path-loop as
   a full GPU backend. `auto` stays on CPU/hybrid execution until scene analysis
   can prove that a platform path-loop kernel is available; explicit GPU
@@ -90,8 +90,10 @@ end state for GPU tracing.
 - The compiled path-loop backend interface now separates the diagnostic
   GPU-request backend from the platform full-GPU backend selection point:
   `defaultBackendForGpuRequest()` may return the CPU-reference or hybrid
-  compaction path, while `defaultFullGpuBackendForGpuRequest()` remains empty
-  until a real Metal/Vulkan path-loop backend can own the full loop.
+  compaction path, while `defaultFullGpuBackendForGpuRequest()` returns a
+  platform backend only when that build has a real path-loop backend hook.
+  Metal-enabled builds can expose the restricted Metal backend for explicit GPU
+  requests; ordinary builds still return no full-GPU backend.
 - Metal diffuse path-loop probes now publish GPU-generated retained frontier
   indices through the shader-facing retained-index buffer. The ABI is
   count-prefixed so the same buffer can become a device-side compacted frontier
@@ -118,13 +120,15 @@ end state for GPU tracing.
 
 - Platform GPU-owned path state.
 - Platform GPU-side path/frontier compaction for scheduler-owned path records.
-- Platform full-GPU path-loop kernels for the normal render path. A restricted
-  Metal path-loop kernel can advance empty-scene and sphere/Matte/Emissive
-  paths across multiple depths for backend tests, but graph auto-selection still
-  waits for platform parity, broader scene support, and performance gates.
-- Platform full-GPU path-loop backend selection. The factory hook exists, but
-  it intentionally returns no backend until a Metal/Vulkan path-loop kernel can
-  execute the supported subset without CPU-reference shading.
+- Broad platform full-GPU path-loop kernels for the normal render path. A
+  restricted Metal path-loop kernel can advance empty-scene and
+  sphere/Matte/Emissive paths across multiple depths for backend tests and
+  explicit GPU graph requests, but graph auto-selection still waits for Vulkan
+  parity, broader scene support, and performance gates.
+- Platform full-GPU path-loop backend selection beyond that restricted Metal
+  subset. The factory hook can return the Metal backend in Metal-enabled
+  builds, but ordinary builds and unsupported scenes still fall back to the
+  CPU-reference or hybrid diagnostic backend.
 - GPU material records beyond the current Matte, Emissive, Phong, and
   Reflective subset.
 - GPU texture records beyond ConstantColor.
@@ -2548,7 +2552,12 @@ scene is large enough to amortize upload/readback costs.
    - Depends on: jobs 2 and 3.
    - Output: `auto` can select full GPU only when scene support, platform
      backend availability, benchmark policy, and render-path capability all
-     pass; explicit GPU still reports precise fallback reasons.
+     pass; explicit GPU still reports precise fallback reasons. ✅ **Started.**
+     Explicit GPU graph requests now ask the platform full-GPU backend hook for
+     a scene/settings-supported backend and prefer it over the diagnostic
+     CPU-reference backend when available. Caller-injected test backends still
+     win, and `auto` deliberately stays on CPU/hybrid until Vulkan parity,
+     broader scene support, and performance policy gates are in place.
 
 5. **Add parity and performance gates.**
    - Depends on: jobs 2, 3, and 4.

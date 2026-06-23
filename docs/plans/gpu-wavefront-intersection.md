@@ -79,9 +79,12 @@
 > tests can exercise the result contract directly when Metal is available. Its
 > first real path-loop dispatch can advance supported paths across multiple
 > depths inside one Metal command buffer for that narrow subset; the live render
-> path still stays on CPU-reference/hybrid execution until parity, support, and
-> performance gates justify automatic full GPU selection.
-> This restricted backend does not advertise full GPU path tracing yet.
+> path can use that restricted platform backend for explicit GPU graph requests
+> when the scene/settings are supported. Automatic selection still stays on
+> CPU-reference/hybrid execution until parity, support, and performance gates
+> justify full GPU selection by default.
+> This restricted backend is not broad enough to advertise general full GPU path
+> tracing yet.
 > This is a follow-up to
 > `docs/plans/wavefront-and-path-tracing.md` Phase 7+ and is now a child slice
 > of `docs/plans/tracing-execution-backends.md`. It should not replace the CPU

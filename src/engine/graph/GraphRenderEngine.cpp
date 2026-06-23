@@ -1282,6 +1282,10 @@ namespace engine::graph {
     p->gpuDiffusePathLoopBackend = std::move(backend);
   }
 
+  bool GraphRenderEngine::hasGpuDiffusePathLoopBackendOverride() const {
+    return static_cast<bool>(p->gpuDiffusePathLoopBackend);
+  }
+
   std::shared_ptr<const render::GpuDiffusePathLoopBackend>
   GraphRenderEngine::gpuDiffusePathLoopBackend() const {
     if (p->gpuDiffusePathLoopBackend) {

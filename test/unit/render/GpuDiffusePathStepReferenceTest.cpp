@@ -1497,8 +1497,16 @@ namespace GpuDiffusePathStepReferenceTest {
     }
   }
 
-  TEST(GpuDiffusePathLoopBackend, DefaultFullGpuBackendIsUnavailableUntilPlatformLoopExists) {
-    EXPECT_EQ(nullptr, GpuDiffusePathLoopBackend::defaultFullGpuBackendForGpuRequest());
+  TEST(GpuDiffusePathLoopBackend, DefaultFullGpuBackendNamesPlatformBackendWhenBuilt) {
+    const std::shared_ptr<const GpuDiffusePathLoopBackend> backend =
+      GpuDiffusePathLoopBackend::defaultFullGpuBackendForGpuRequest();
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    ASSERT_NE(nullptr, backend);
+    EXPECT_STREQ("metal_diffuse_path_loop", backend->name());
+    EXPECT_STREQ("metal", backend->platformName());
+#else
+    EXPECT_EQ(nullptr, backend);
+#endif
   }
 
   TEST(MetalGpuDiffusePathLoopBackend, ReportsUnavailableWhenBuildOrDeviceCannotRunMetal) {
