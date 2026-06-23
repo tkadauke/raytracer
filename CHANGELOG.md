@@ -54,6 +54,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Add an explicit compiled diffuse path-loop frontier compaction backend seam,
   with graph trace metadata now reporting compaction execution separately from
   the overall CPU-reference path loop. — GPT-5 Codex
+- Add a Metal compiled diffuse path-loop frontier compaction backend for the
+  `GpuDiffusePathStateRecord` layout used by graph-backed diffuse path renders.
+  — GPT-5 Codex
 
 ### Fixed
 

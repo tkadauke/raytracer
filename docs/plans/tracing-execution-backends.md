@@ -2086,7 +2086,9 @@ diffuse path tracer for the first supported subset.
      own `GpuDiffusePathFrontierCompactionBackend` seam for the
      `GpuDiffusePathStateRecord` representation actually used by graph-backed
      renders, and trace metadata reports that compaction execution separately
-     from the overall CPU-reference path-loop execution.
+     from the overall CPU-reference path-loop execution. Metal-enabled builds
+     now also have `MetalGpuDiffusePathFrontierCompactionBackend`, a compute
+     kernel that compacts the live diffuse path-loop state-record layout.
 
 3. **~~Loop over depth with max-depth and Russian roulette.~~** ✅ **Done.**
    Added `loopResidentDiffusePaths` as the CPU-reference resident path-state

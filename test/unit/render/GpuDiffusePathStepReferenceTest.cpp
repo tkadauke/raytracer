@@ -7,6 +7,9 @@
 
 #include "render/GpuDiffusePathStepReference.h"
 #include "render/IntersectionSceneCompiler.h"
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+#include "render/MetalGpuDiffusePathFrontierCompactionBackend.h"
+#endif
 #include "render/cameras/PinholeCamera.h"
 #include "render/lights/PointLight.h"
 #include "render/materials/EmissiveMaterial.h"
@@ -1211,6 +1214,38 @@ namespace GpuDiffusePathStepReferenceTest {
     ASSERT_EQ(2u, result.retainedRecords.size());
     EXPECT_EQ(10u, result.retainedRecords[0].pixelIndex);
     EXPECT_EQ(12u, result.retainedRecords[1].pixelIndex);
+  }
+
+  TEST(MetalGpuDiffusePathFrontierCompactionBackend, CompactsRetainedPathsWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    MetalGpuDiffusePathFrontierCompactionBackend backend;
+    if (!backend.compactionPathAvailable()) {
+      GTEST_SKIP() << backend.compactionPathUnavailableReason();
+    }
+
+    std::vector<GpuDiffusePathStateRecord> source{activePath(20), activePath(21), activePath(22)};
+    source[0].pixelIndex = 100;
+    source[1].pixelIndex = 101;
+    source[2].pixelIndex = 102;
+    source[1].sampleSeed = 9001;
+    source[2].depth = 3;
+    source[2].previousBsdfPdf = 0.25f;
+
+    const GpuDiffusePathFrontierCompactionResult result = backend.compact(source, {1u, 2u});
+
+    EXPECT_EQ("metal_diffuse_frontier_compaction", result.executionPath);
+    EXPECT_EQ("metal_shared_diffuse_path_state", result.pathStateResidency);
+    EXPECT_EQ(3u, result.inputPathCount);
+    ASSERT_EQ(2u, result.retainedRecords.size());
+    EXPECT_EQ(101u, result.retainedRecords[0].pixelIndex);
+    EXPECT_EQ(9001u, result.retainedRecords[0].sampleSeed);
+    EXPECT_EQ(21u, result.retainedRecords[0].ray.rayIndex);
+    EXPECT_EQ(102u, result.retainedRecords[1].pixelIndex);
+    EXPECT_EQ(3u, result.retainedRecords[1].depth);
+    EXPECT_FLOAT_EQ(0.25f, result.retainedRecords[1].previousBsdfPdf);
+#else
+    GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
+#endif
   }
 
   TEST(GpuDiffusePathLoop, DispatchesSurvivingFrontierThroughCompactionBackend) {
