@@ -57,6 +57,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Add a Metal compiled diffuse path-loop frontier compaction backend for the
   `GpuDiffusePathStateRecord` layout used by graph-backed diffuse path renders.
   — GPT-5 Codex
+- Add a Vulkan compiled diffuse path-loop frontier compaction backend for the
+  same graph-backed `GpuDiffusePathStateRecord` layout. — GPT-5 Codex
 - Allow compiled diffuse path-loop backends to inject a GPU frontier-compaction
   service, reporting those renders as hybrid execution with compaction timing
   instead of hiding the GPU service behind the CPU-reference loop label. —

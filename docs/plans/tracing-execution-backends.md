@@ -2089,6 +2089,9 @@ diffuse path tracer for the first supported subset.
      from the overall CPU-reference path-loop execution. Metal-enabled builds
      now also have `MetalGpuDiffusePathFrontierCompactionBackend`, a compute
      kernel that compacts the live diffuse path-loop state-record layout.
+     Vulkan-enabled Linux builds now also have
+     `VulkanGpuDiffusePathFrontierCompactionBackend`, using the same retained
+     index contract and live diffuse path-loop state-record layout.
      `CompactingGpuDiffusePathLoopBackend` can now run the compiled
      CPU-reference loop through an injected frontier-compaction service, so
      graph traces classify that middle state as hybrid execution when a Metal

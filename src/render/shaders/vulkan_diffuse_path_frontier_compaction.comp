@@ -1,0 +1,55 @@
+#version 450
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+struct GpuIntersectionRay {
+  vec4 origin;
+  vec4 direction;
+  float minDistance;
+  float maxDistance;
+  float timeSample;
+  uint flags;
+  uint rayIndex;
+  uint reserved0;
+  uint reserved1;
+  uint reserved2;
+};
+
+struct GpuDiffusePathStateRecord {
+  GpuIntersectionRay ray;
+  vec4 throughput;
+  vec4 accumulatedRadiance;
+  uint pixelIndex;
+  uint primarySampleIndex;
+  uint depth;
+  uint sampleSeed;
+  uint sampleDimensionBase;
+  uint sampleDimensionStride;
+  uint flags;
+  uint reserved0;
+  float previousBsdfPdf;
+  float previousLightPdf;
+  uint previousMaterial;
+  uint previousEventFlags;
+  uint reserved1;
+  uint reserved2;
+  uint reserved3;
+  uint reserved4;
+};
+
+layout(std430, binding = 0) readonly buffer SourcePathStates {
+  GpuDiffusePathStateRecord sourcePathStates[];
+};
+
+layout(std430, binding = 1) readonly buffer RetainedPathIndices {
+  uint retainedPathIndices[];
+};
+
+layout(std430, binding = 2) writeonly buffer CompactedPathStates {
+  GpuDiffusePathStateRecord compactedPathStates[];
+};
+
+void main() {
+  const uint destinationIndex = gl_GlobalInvocationID.x;
+  compactedPathStates[destinationIndex] = sourcePathStates[retainedPathIndices[destinationIndex]];
+}

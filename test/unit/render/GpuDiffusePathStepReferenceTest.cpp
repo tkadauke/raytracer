@@ -11,6 +11,9 @@
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
 #include "render/MetalGpuDiffusePathFrontierCompactionBackend.h"
 #endif
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+#include "render/VulkanGpuDiffusePathFrontierCompactionBackend.h"
+#endif
 #include "render/cameras/PinholeCamera.h"
 #include "render/lights/PointLight.h"
 #include "render/materials/EmissiveMaterial.h"
@@ -1284,6 +1287,41 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_GT(result.readbackWorkerSeconds, 0.0);
 #else
     GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
+#endif
+  }
+
+  TEST(VulkanGpuDiffusePathFrontierCompactionBackend, CompactsRetainedPathsWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    VulkanGpuDiffusePathFrontierCompactionBackend backend;
+    if (!backend.compactionPathAvailable()) {
+      GTEST_SKIP() << backend.compactionPathUnavailableReason();
+    }
+
+    std::vector<GpuDiffusePathStateRecord> source{activePath(30), activePath(31), activePath(32)};
+    source[0].pixelIndex = 200;
+    source[1].pixelIndex = 201;
+    source[2].pixelIndex = 202;
+    source[1].sampleSeed = 7001;
+    source[2].depth = 4;
+    source[2].previousLightPdf = 0.125f;
+
+    const GpuDiffusePathFrontierCompactionResult result = backend.compact(source, {1u, 2u});
+
+    EXPECT_EQ("vulkan_diffuse_frontier_compaction", result.executionPath);
+    EXPECT_EQ("vulkan_host_visible_diffuse_path_state", result.pathStateResidency);
+    EXPECT_EQ(3u, result.inputPathCount);
+    ASSERT_EQ(2u, result.retainedRecords.size());
+    EXPECT_EQ(201u, result.retainedRecords[0].pixelIndex);
+    EXPECT_EQ(7001u, result.retainedRecords[0].sampleSeed);
+    EXPECT_EQ(31u, result.retainedRecords[0].ray.rayIndex);
+    EXPECT_EQ(202u, result.retainedRecords[1].pixelIndex);
+    EXPECT_EQ(4u, result.retainedRecords[1].depth);
+    EXPECT_FLOAT_EQ(0.125f, result.retainedRecords[1].previousLightPdf);
+    EXPECT_GT(result.uploadWorkerSeconds, 0.0);
+    EXPECT_GT(result.kernelWorkerSeconds, 0.0);
+    EXPECT_GT(result.readbackWorkerSeconds, 0.0);
+#else
+    GTEST_SKIP() << "Vulkan wavefront support is not enabled in this build";
 #endif
   }
 
