@@ -332,6 +332,7 @@ namespace render {
               "constant float pathLoopInvPi = 0.31830988618379067154f;\n"
               "constant float pathLoopTau = 6.28318530717958647692f;\n"
               "constant float pathLoopRayEpsilon = 1.0e-7f;\n"
+              "constant float pathLoopMinimumHitDistance = 1.0e-4f;\n"
               "constant float pathLoopMinimumContinuationProbability = 0.05f;\n"
               "float finiteInfinity() {\n"
               "  return 3.4028234663852886e+38f;\n"
@@ -1444,7 +1445,7 @@ namespace render {
               "  GpuIntersectionRay ray;\n"
               "  ray.origin = float4(point + sample.direction * pathLoopRayEpsilon, 1.0f);\n"
               "  ray.direction = float4(sample.direction, 0.0f);\n"
-              "  ray.minDistance = 0.0f;\n"
+              "  ray.minDistance = pathLoopMinimumHitDistance;\n"
               "  ray.maxDistance = sample.distance;\n"
               "  ray.timeSample = 0.0f;\n"
               "  ray.flags = 0u;\n"
@@ -1453,6 +1454,16 @@ namespace render {
               "  ray.reserved1 = 0u;\n"
               "  ray.reserved2 = 0u;\n"
               "  return ray;\n"
+              "}\n"
+              "bool hitOccludesLight(GpuIntersectionHitRecord hit, float lightDistance) {\n"
+              "  if (hit.hit == 0u) {\n"
+              "    return false;\n"
+              "  }\n"
+              "  if (isinf(lightDistance)) {\n"
+              "    return true;\n"
+              "  }\n"
+              "  const float occlusionLimit = max(0.0f, lightDistance - pathLoopRayEpsilon * 4.0f);\n"
+              "  return hit.distance < occlusionLimit;\n"
               "}\n"
               "float4 directLightRadiance(\n"
               "    constant GpuDiffusePathLoopLaunchParameters& parameters,\n"
@@ -1487,7 +1498,9 @@ namespace render {
               "      continue;\n"
               "    }\n"
               "    const GpuIntersectionRay visibilityRay = shadowRayFor(point, light);\n"
-              "    if (closestSupportedHit(parameters, sceneUpload, visibilityRay).hit != 0u) {\n"
+              "    const GpuIntersectionHitRecord visibilityHit =\n"
+              "        closestSupportedHit(parameters, sceneUpload, visibilityRay);\n"
+              "    if (hitOccludesLight(visibilityHit, light.distance)) {\n"
               "      continue;\n"
               "    }\n"
               "    const float4 contribution = path.throughput * bsdfValue * light.radiance *\n"
@@ -1502,7 +1515,7 @@ namespace render {
               "  GpuIntersectionRay ray = path.ray;\n"
               "  ray.origin = float4(hit.point.xyz + direction * pathLoopRayEpsilon, 1.0f);\n"
               "  ray.direction = float4(direction, 0.0f);\n"
-              "  ray.minDistance = 0.0f;\n"
+              "  ray.minDistance = pathLoopMinimumHitDistance;\n"
               "  ray.maxDistance = rayInfinity();\n"
               "  ray.timeSample = 0.0f;\n"
               "  return ray;\n"
@@ -2100,19 +2113,15 @@ namespace render {
       const GpuDiffusePathLoopLaunchParameters& parameters = plan.parameters;
       if (parameters.primitiveCount == 0u || parameters.bvhNodeCount == 0u) {
         throw std::invalid_argument(
-          "Metal diffuse path-loop closest-hit probe requires compiled sphere geometry");
+          "Metal diffuse path-loop closest-hit probe requires compiled geometry");
       }
-      if (parameters.triangleCount != 0u || parameters.planeCount != 0u ||
-          parameters.rectangleCount != 0u || parameters.diskCount != 0u ||
-          parameters.openCylinderCount != 0u || parameters.torusCount != 0u ||
-          parameters.transformCount != 0u) {
+      const std::uint32_t supportedPrimitiveCount =
+        parameters.triangleCount + parameters.sphereCount + parameters.planeCount +
+        parameters.rectangleCount + parameters.diskCount + parameters.openCylinderCount +
+        parameters.torusCount;
+      if (supportedPrimitiveCount != parameters.primitiveCount) {
         throw std::invalid_argument(
-          "Metal diffuse path-loop closest-hit probe currently supports only untransformed "
-          "sphere geometry");
-      }
-      if (parameters.sphereCount != parameters.primitiveCount) {
-        throw std::invalid_argument(
-          "Metal diffuse path-loop closest-hit probe requires one sphere payload per primitive");
+          "Metal diffuse path-loop closest-hit probe requires one supported payload per primitive");
       }
     }
 

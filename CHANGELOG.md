@@ -161,6 +161,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Let explicit Metal full-GPU diffuse path-loop renders accept compiled scenes
+  with the default unused material slot, avoid immediate self-hits on spawned
+  GPU rays, and reject rectangular area lights until their GPU direct-light path
+  is complete. — GPT-5 Codex
 - Keep automatic tracing execution from predicting full GPU mode for the
   compiled diffuse CPU-reference path-loop before a platform path-loop kernel
   exists; explicit GPU requests still expose the compiled-reference diagnostics.

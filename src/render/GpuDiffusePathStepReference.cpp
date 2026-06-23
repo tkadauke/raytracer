@@ -25,6 +25,7 @@ namespace {
   constexpr std::uint32_t kBsdfSampleDimensionOffset = 0;
   constexpr std::uint32_t kContinuationDimensionOffset = 3;
   constexpr double kLightTolerance = 1e-9;
+  const double kPackedRayMinimumDistance = Ray<float>::epsilon;
   constexpr const char* kPackedCpuExecutionPath = "packed_cpu";
   constexpr const char* kCpuRecordExecutionPath = "cpu_record";
   constexpr const char* kFullGpuPathLoopExecutionPath = "full_gpu_subset";
@@ -1058,7 +1059,7 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
           const std::uint32_t shadowRayIndex =
             static_cast<std::uint32_t>(result.directLightShadowRays.size());
           const GpuIntersectionRay packedShadowRay =
-            packRay(shadowRay, shadowRayIndex, /*minDistance=*/0.0, light.distance);
+            packRay(shadowRay, shadowRayIndex, kPackedRayMinimumDistance, light.distance);
           const bool occluded = intersector.intersectAny(scene.geometry, packedShadowRay);
           result.directLightShadowRays.push_back(packedShadowRay);
           result.directLightOcclusionRecords.push_back(
@@ -1111,7 +1112,7 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
     }
 
     pathState.ray = packRay(Rayd(Vector4d(hit.point), wo).epsilonShifted(), pathState.ray.rayIndex,
-                            /*minDistance=*/0.0, std::numeric_limits<double>::infinity());
+                            kPackedRayMinimumDistance, std::numeric_limits<double>::infinity());
     pathState.throughput = nextThroughput.toFloat4(0.0f);
     pathState.accumulatedRadiance = accumulated.toFloat4(0.0f);
     pathState.depth += 1u;

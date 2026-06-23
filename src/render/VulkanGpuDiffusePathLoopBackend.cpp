@@ -39,12 +39,19 @@ namespace render {
     }
 
     [[nodiscard]] bool supportedMaterials(const GpuTracingSceneSections& scene) {
-      return std::all_of(scene.materials.begin(), scene.materials.end(),
-                         [](const GpuTracingMaterialRecord& material) {
-                           const auto kind = static_cast<GpuTracingMaterialKind>(material.kind);
-                           return kind == GpuTracingMaterialKind::Matte ||
-                                  kind == GpuTracingMaterialKind::Emissive;
-                         });
+      for (std::size_t index = 0; index != scene.materials.size(); ++index) {
+        const auto kind = static_cast<GpuTracingMaterialKind>(scene.materials[index].kind);
+        if (kind == GpuTracingMaterialKind::Unsupported) {
+          if (index == 0u) {
+            continue;
+          }
+          return false;
+        }
+        if (kind != GpuTracingMaterialKind::Matte && kind != GpuTracingMaterialKind::Emissive) {
+          return false;
+        }
+      }
+      return true;
     }
 
     [[nodiscard]] bool supportedTextures(const GpuTracingSceneSections& scene) {

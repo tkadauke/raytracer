@@ -1682,6 +1682,19 @@ namespace GpuDiffusePathStepReferenceTest {
 
     EXPECT_TRUE(support.supported);
     EXPECT_TRUE(support.reason.empty());
+
+    Scene unsupportedMaterialScene;
+    auto unsupportedMaterialSphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    unsupportedMaterialSphere->setMaterial(std::make_shared<UnsupportedGpuTracingMaterial>());
+    unsupportedMaterialScene.add(unsupportedMaterialSphere);
+    const GpuTracingSceneSections unsupportedMaterialSections =
+      sectionsFor(unsupportedMaterialScene);
+    const GpuDiffusePathLoopBackendSupport unsupportedMaterialSupport =
+      backend.fullGpuPathLoopSupport(unsupportedMaterialSections, settings);
+    EXPECT_FALSE(unsupportedMaterialSupport.supported);
+    EXPECT_EQ("Metal diffuse path-loop backend currently supports Matte, Phong diffuse, and "
+              "Emissive materials only",
+              unsupportedMaterialSupport.reason);
 #else
     GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
 #endif
@@ -2705,7 +2718,7 @@ namespace GpuDiffusePathStepReferenceTest {
     const std::vector<GpuDiffusePathStateRecord> paths{activePath()};
     GpuDiffusePathLoopLaunchPlan plan = GpuDiffusePathLoopLaunchPlanner().plan(
       sections, paths, TracingAccumulationLayout::image(1, 1), settings);
-    plan.parameters.triangleCount = 1;
+    plan.parameters.sphereCount = 0;
 
     EXPECT_THROW((void)MetalGpuDiffusePathLoopKernel().runClosestHitProbe(plan, paths),
                  std::invalid_argument);
@@ -2933,13 +2946,9 @@ namespace GpuDiffusePathStepReferenceTest {
 #endif
   }
 
-  TEST(MetalGpuDiffusePathLoopKernel,
-       MatteContinuationProbeAddsRectangularAreaLightContributionWhenEnabled) {
+  TEST(MetalGpuDiffusePathLoopBackend, RejectsRectangularAreaLightsUntilDirectLightGpuPathIsReady) {
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
-    MetalGpuDiffusePathLoopKernel kernel;
-    if (!kernel.launchPathAvailable()) {
-      GTEST_SKIP() << kernel.launchPathUnavailableReason();
-    }
+    const MetalGpuDiffusePathLoopBackend backend;
 
     Scene scene;
     auto matte =
@@ -2949,7 +2958,7 @@ namespace GpuDiffusePathStepReferenceTest {
     receiver->setMaterial(matte);
     scene.add(receiver);
     scene.addLight(
-      std::make_shared<RectangularAreaLight>(Vector3d(0.0, 0.0, -3.0), Vector3d(2.0, 0.0, 0.0),
+      std::make_shared<RectangularAreaLight>(Vector3d(0.0, 2.0, -3.0), Vector3d(2.0, 0.0, 0.0),
                                              Vector3d(0.0, 2.0, 0.0), Colord(0.8, 0.6, 0.4)));
     const GpuTracingSceneSections sections = sectionsFor(scene);
 
@@ -2957,27 +2966,14 @@ namespace GpuDiffusePathStepReferenceTest {
     settings.maxDepth = 2;
     settings.russianRouletteDepth = 10;
     settings.directLightSamples = 1;
-    const TracingAccumulationLayout accumulationLayout = TracingAccumulationLayout::image(2, 2);
-    std::vector<GpuDiffusePathStateRecord> paths{activePath()};
-    paths[0].pixelIndex = 0;
-    paths[0].sampleSeed = 12347;
-    paths[0].throughput = {0.5f, 0.25f, 0.125f, 0.0f};
-    const GpuDiffusePathLoopLaunchPlan plan =
-      GpuDiffusePathLoopLaunchPlanner().plan(sections, paths, accumulationLayout, settings);
-    const GpuDiffusePathStepResult expected = GpuDiffusePathStepReference().step(
-      sections, paths, closestHitsFor(sections, paths), settings);
-    ASSERT_EQ(1u, expected.pathStates.size());
 
-    const MetalGpuDiffusePathLoopKernelResult result =
-      kernel.runMatteContinuationProbe(plan, paths);
+    const GpuDiffusePathLoopBackendSupport support =
+      backend.fullGpuPathLoopSupport(sections, settings);
 
-    ASSERT_EQ(paths.size(), result.stepRecords.size());
-    ASSERT_EQ(paths.size(), result.nextPathStates.size());
-    expectFloat4Near(result.stepRecords[0].directLightRadiance,
-                     expected.stepRecords[0].directLightRadiance, 1e-4);
-    expectFloat4Near(result.nextPathStates[0].accumulatedRadiance,
-                     expected.pathStates[0].accumulatedRadiance, 1e-4);
-    expectPathStateNear(result.nextPathStates[0], expected.pathStates[0], 1e-4);
+    EXPECT_FALSE(support.supported);
+    EXPECT_EQ(
+      "Metal diffuse path-loop backend currently supports point and directional lights only",
+      support.reason);
 #else
     GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
 #endif

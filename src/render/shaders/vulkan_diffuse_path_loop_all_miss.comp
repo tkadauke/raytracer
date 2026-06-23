@@ -21,6 +21,7 @@ const uint gpuSampleCoordinateStep = 0x9e3779b9u;
 const float pathLoopInvPi = 0.31830988618379067154;
 const float pathLoopTau = 6.28318530717958647692;
 const float pathLoopRayEpsilon = 1.0e-7;
+const float pathLoopMinimumHitDistance = 1.0e-4;
 const float pathLoopMinimumContinuationProbability = 0.05;
 
 struct GpuDiffusePathLoopLaunchParameters {
@@ -706,7 +707,7 @@ GpuIntersectionRay continuationRay(GpuIntersectionHitRecord hit, GpuDiffusePathS
   GpuIntersectionRay ray = path.ray;
   ray.origin = vec4(hit.point.xyz + direction * pathLoopRayEpsilon, 1.0);
   ray.direction = vec4(direction, 0.0);
-  ray.minDistance = 0.0;
+  ray.minDistance = pathLoopMinimumHitDistance;
   ray.maxDistance = rayInfinity();
   ray.timeSample = 0.0;
   return ray;

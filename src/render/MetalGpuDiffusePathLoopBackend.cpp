@@ -54,13 +54,20 @@ namespace render {
     }
 
     [[nodiscard]] bool supportedMaterials(const GpuTracingSceneSections& scene) {
-      return std::all_of(scene.materials.begin(), scene.materials.end(),
-                         [](const GpuTracingMaterialRecord& material) {
-                           const auto kind = static_cast<GpuTracingMaterialKind>(material.kind);
-                           return kind == GpuTracingMaterialKind::Matte ||
-                                  kind == GpuTracingMaterialKind::Phong ||
-                                  kind == GpuTracingMaterialKind::Emissive;
-                         });
+      for (std::size_t index = 0; index != scene.materials.size(); ++index) {
+        const auto kind = static_cast<GpuTracingMaterialKind>(scene.materials[index].kind);
+        if (kind == GpuTracingMaterialKind::Unsupported) {
+          if (index == 0u) {
+            continue;
+          }
+          return false;
+        }
+        if (kind != GpuTracingMaterialKind::Matte && kind != GpuTracingMaterialKind::Phong &&
+            kind != GpuTracingMaterialKind::Emissive) {
+          return false;
+        }
+      }
+      return true;
     }
 
     [[nodiscard]] bool supportedTexture(const GpuTracingSceneSections& scene,
@@ -131,8 +138,7 @@ namespace render {
       return std::all_of(
         scene.lights.begin(), scene.lights.end(), [](const GpuTracingLightRecord& light) {
           const auto kind = static_cast<GpuTracingLightKind>(light.kind);
-          return kind == GpuTracingLightKind::Point || kind == GpuTracingLightKind::Directional ||
-                 kind == GpuTracingLightKind::RectangularArea;
+          return kind == GpuTracingLightKind::Point || kind == GpuTracingLightKind::Directional;
         });
     }
 
@@ -349,8 +355,8 @@ namespace render {
                      "CheckerBoard, and nearest ImageTexture textures only"};
     }
     if (!supportedLights(scene)) {
-      return {false, "Metal diffuse path-loop backend currently supports point, directional, and "
-                     "rectangular area lights only"};
+      return {false, "Metal diffuse path-loop backend currently supports point and directional "
+                     "lights only"};
     }
     return {true, {}};
 #else
