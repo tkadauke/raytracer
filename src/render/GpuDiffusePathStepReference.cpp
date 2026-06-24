@@ -405,9 +405,29 @@ namespace {
     return (tangent * x + bitangent * y + normal * z).normalized();
   }
 
+  Vector3d phongLobeDirection(const Vector3d& axis, const Vector2d& sample, double exponent) {
+    const double u0 = std::clamp(sample.x(), 0.0, 1.0);
+    const double u1 = std::clamp(sample.y(), 0.0, 1.0);
+    const double cosTheta = std::pow(u0, 1.0 / (exponent + 1.0));
+    const double sinTheta = std::sqrt(std::max(0.0, 1.0 - cosTheta * cosTheta));
+    const double phi = TAU * u1;
+    const Vector3d tangent = tangentFor(axis);
+    const Vector3d bitangent = axis ^ tangent;
+    return (tangent * (sinTheta * std::cos(phi)) + bitangent * (sinTheta * std::sin(phi)) +
+            axis * cosTheta)
+      .normalized();
+  }
+
   double cosineHemispherePdf(const Vector3d& normal, const Vector3d& direction) {
     const double normalDotDirection = normal * direction;
     return normalDotDirection <= 0.0 ? 0.0 : normalDotDirection * invPI;
+  }
+
+  double diffuseSamplingWeight(const GpuTracingMaterialRecord& material) {
+    const double diffuse = std::max(0.0f, material.parameters[1]);
+    const double specular = std::max(0.0f, material.parameters[2]);
+    const double total = diffuse + specular;
+    return total <= 0.0 ? 1.0 : diffuse / total;
   }
 
   bool isPathLoopSurfaceMaterial(GpuTracingMaterialKind kind) {
@@ -418,6 +438,74 @@ namespace {
   Colord diffuseBsdf(const GpuTracingSceneSections& scene, const GpuTracingMaterialRecord& material,
                      const GpuIntersectionHitRecord& hit) {
     return textureColor(scene, material.albedoTexture, hit) * material.parameters[1] * invPI;
+  }
+
+  Colord glossyPhongBsdf(const GpuTracingMaterialRecord& material, const Vector3d& normal,
+                         const Vector3d& wi, const Vector3d& wo) {
+    if (normal * wi < 0.0 || normal * wo < 0.0) {
+      return Colord::black();
+    }
+    const Vector3d lobeAxis = (-wi).reflect(normal).normalized();
+    const double lobeDotOut = lobeAxis * wo.normalized();
+    if (lobeDotOut <= 0.0) {
+      return Colord::black();
+    }
+    return Colord(material.continuationParameters) * material.parameters[2] *
+           std::pow(lobeDotOut, material.parameters[3]);
+  }
+
+  Colord finiteBsdf(const GpuTracingSceneSections& scene, const GpuTracingMaterialRecord& material,
+                    const GpuIntersectionHitRecord& hit, const Vector3d& normal, const Vector3d& wi,
+                    const Vector3d& wo) {
+    Colord value = diffuseBsdf(scene, material, hit);
+    if (static_cast<GpuTracingMaterialKind>(material.kind) == GpuTracingMaterialKind::Phong) {
+      value += glossyPhongBsdf(material, normal, wi, wo);
+    }
+    return value;
+  }
+
+  double phongLobePdf(const GpuTracingMaterialRecord& material, const Vector3d& normal,
+                      const Vector3d& wi, const Vector3d& wo) {
+    if (normal * wi < 0.0 || normal * wo < 0.0) {
+      return 0.0;
+    }
+    const Vector3d lobeAxis = (-wi).reflect(normal).normalized();
+    const double lobeDotOut = lobeAxis * wo.normalized();
+    if (lobeDotOut <= 0.0) {
+      return 0.0;
+    }
+    return ((material.parameters[3] + 1.0) * invTAU) * std::pow(lobeDotOut, material.parameters[3]);
+  }
+
+  double finiteBsdfPdf(const GpuTracingMaterialRecord& material, const Vector3d& normal,
+                       const Vector3d& wi, const Vector3d& wo) {
+    if (static_cast<GpuTracingMaterialKind>(material.kind) != GpuTracingMaterialKind::Phong) {
+      return cosineHemispherePdf(normal, wo);
+    }
+    const double diffuseWeight = diffuseSamplingWeight(material);
+    const double specularWeight = 1.0 - diffuseWeight;
+    return diffuseWeight * cosineHemispherePdf(normal, wo) +
+           specularWeight * phongLobePdf(material, normal, wi, wo);
+  }
+
+  Vector3d sampleFiniteBsdfDirection(const GpuTracingMaterialRecord& material,
+                                     const Vector3d& normal, const Vector3d& wi,
+                                     const Vector2d& sample) {
+    if (static_cast<GpuTracingMaterialKind>(material.kind) != GpuTracingMaterialKind::Phong) {
+      return cosineHemisphereDirection(normal, sample);
+    }
+    const double diffuseWeight = diffuseSamplingWeight(material);
+    const double selector = std::clamp(sample.x(), 0.0, 1.0);
+    const double y = std::clamp(sample.y(), 0.0, 1.0);
+    if (diffuseWeight >= 1.0 || selector < diffuseWeight) {
+      const double remappedX = diffuseWeight > 0.0 ? selector / diffuseWeight : selector;
+      return cosineHemisphereDirection(normal, Vector2d(remappedX, y));
+    }
+    const double specularWeight = 1.0 - diffuseWeight;
+    const double remappedX =
+      specularWeight > 0.0 ? (selector - diffuseWeight) / specularWeight : selector;
+    return phongLobeDirection((-wi).reflect(normal).normalized(), Vector2d(remappedX, y),
+                              material.parameters[3]);
   }
 
   Colord mirrorReflectance(const GpuTracingMaterialRecord& material) {
@@ -1268,7 +1356,6 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
       continue;
     }
 
-    const Colord bsdf = diffuseBsdf(scene, material, hit);
     if (!scene.lights.empty()) {
       Colord directLightRadiance = Colord::black();
       const std::uint32_t configuredDirectLightSamples = directLightSampleCount(settings);
@@ -1301,7 +1388,9 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
             ++result.metrics.directLightOccludedSamples;
           } else {
             ++result.metrics.directLightContributionEvaluations;
-            const double bsdfPdf = light.delta ? 0.0 : cosineHemispherePdf(normal, light.direction);
+            const Colord bsdf = finiteBsdf(scene, material, hit, normal, wi, light.direction);
+            const double bsdfPdf =
+              light.delta ? 0.0 : finiteBsdfPdf(material, normal, wi, light.direction);
             const Colord lightContribution =
               mis::estimateDirectLightingFromLightSample(
                 bsdf, light.radiance, normal * light.direction, light.pdf, bsdfPdf, light.delta) /
@@ -1354,9 +1443,10 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
 
     const Vector2d bsdfSample =
       sample2D(pathState, sampleDimension(pathState, kBsdfSampleDimensionOffset));
-    const Vector3d wo = cosineHemisphereDirection(normal, bsdfSample);
-    const double pdf = cosineHemispherePdf(normal, wo);
+    const Vector3d wo = sampleFiniteBsdfDirection(material, normal, wi, bsdfSample);
+    const double pdf = finiteBsdfPdf(material, normal, wi, wo);
     const double normalDotOut = normal * wo;
+    const Colord bsdf = finiteBsdf(scene, material, hit, normal, wi, wo);
     Colord nextThroughput =
       pdf <= 0.0 ? Colord::black() : throughput * (bsdf * (normalDotOut / pdf));
     if (pathState.depth >= settings.russianRouletteDepth) {

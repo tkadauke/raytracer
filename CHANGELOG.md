@@ -40,8 +40,12 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   GPU-owned path-loop traversal and shading. — GPT-5 Codex
 - Extend the restricted Metal full-GPU diffuse path-loop subset to execute the
   diffuse lobe of `PhongMaterial`, allowing common Phong scenes to stay on the
-  GPU-owned path loop while glossy/specular transport remains outside this
-  subset. — GPT-5 Codex
+  GPU-owned path loop as the first Phong material transport slice. —
+  GPT-5 Codex
+- Extend the restricted Metal full-GPU diffuse path-loop subset and CPU
+  compiled path-loop evaluator to evaluate and sample `PhongMaterial`'s finite
+  glossy lobe, including serialized specular color and mixture PDFs. —
+  GPT-5 Codex
 - Extend the restricted Metal full-GPU diffuse path-loop subset to sample
   simple planar/UV CheckerBoard textures over ConstantColor child textures,
   letting common checker-textured matte/emissive scenes stay in the GPU-owned

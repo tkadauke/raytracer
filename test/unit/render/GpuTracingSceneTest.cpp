@@ -431,6 +431,7 @@ namespace GpuTracingSceneTest {
     PhongMaterial material;
     material.setAmbientCoefficient(0.125);
     material.setDiffuseCoefficient(0.25);
+    material.setSpecularColor(Colord(0.75, 0.5, 0.25));
     material.setSpecularCoefficient(0.5);
     material.setExponent(32.0);
 
@@ -441,7 +442,7 @@ namespace GpuTracingSceneTest {
     EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingMaterialKind::Phong), record->kind);
     EXPECT_EQ(4u, record->albedoTexture);
     expectFloat4(record->parameters, 0.125f, 0.25f, 0.5f, 32.0f);
-    expectFloat4(record->continuationParameters, 0.0f, 0.0f, 0.0f, 0.0f);
+    expectFloat4(record->continuationParameters, 0.75f, 0.5f, 0.25f, 0.0f);
   }
 
   TEST(GpuTracingScene, ReflectiveMaterialPacksMirrorContinuationParameters) {

@@ -432,8 +432,8 @@ namespace render {
                      "triangle/sphere/plane/rectangle/disk/open-cylinder/torus geometry only"};
     }
     if (!supportedMaterials(scene)) {
-      return {false, "Metal diffuse path-loop backend currently supports Matte, Phong diffuse, "
-                     "Reflective mirror, and Emissive materials only"};
+      return {false, "Metal diffuse path-loop backend currently supports Matte, Phong finite "
+                     "glossy, Reflective mirror, and Emissive materials only"};
     }
     if (!supportedTextures(scene)) {
       return {false, "Metal diffuse path-loop backend currently supports ConstantColor, simple "

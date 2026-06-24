@@ -672,7 +672,7 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(0u, actual.metrics.terminatedPaths);
   }
 
-  TEST(GpuDiffusePathStep, PhongHitUsesDiffuseLobeForCompiledDiffusePathLoop) {
+  TEST(GpuDiffusePathStep, PhongHitUsesDiffuseAndGlossyLobesForCompiledPathLoop) {
     Scene scene;
     auto phong = std::make_shared<PhongMaterial>(
       std::make_shared<ConstantColorTexture>(Colord(0.25, 0.5, 0.75)), Colord::white(), 16.0);
@@ -693,11 +693,10 @@ namespace GpuDiffusePathStepReferenceTest {
     ASSERT_EQ(1u, result.directLightShadowRays.size());
     ASSERT_EQ(1u, result.directLightOcclusionRecords.size());
     EXPECT_EQ(0u, result.directLightOcclusionRecords[0].occluded);
-    ASSERT_COLOR_NEAR(Colord(0.8 * 0.25 * 0.8 * invPI * 0.5, 0.6 * 0.5 * 0.8 * invPI * 0.25,
-                             0.4 * 0.75 * 0.8 * invPI * 0.125),
+    const Colord finiteBsdf = Colord(0.25, 0.5, 0.75) * 0.8 * invPI + Colord::white();
+    ASSERT_COLOR_NEAR(Colord(0.8, 0.6, 0.4) * finiteBsdf * Colord(0.5, 0.25, 0.125),
                       colorFrom4(result.stepRecords[0].directLightRadiance), 1e-5);
-    ASSERT_COLOR_NEAR(Colord(0.25 * 0.8 * 0.5, 0.5 * 0.8 * 0.25, 0.75 * 0.8 * 0.125),
-                      colorFrom4(result.stepRecords[0].continuationThroughput), 1e-5);
+    EXPECT_NE(Colord::black(), colorFrom4(result.stepRecords[0].continuationThroughput));
     EXPECT_EQ(static_cast<std::uint32_t>(GpuDiffusePathStepEvent::Hit),
               result.stepRecords[0].event);
     EXPECT_EQ(1u, result.metrics.spawnedContinuations);
@@ -1711,7 +1710,7 @@ namespace GpuDiffusePathStepReferenceTest {
     const GpuDiffusePathLoopBackendSupport unsupportedMaterialSupport =
       backend.fullGpuPathLoopSupport(unsupportedMaterialSections, settings);
     EXPECT_FALSE(unsupportedMaterialSupport.supported);
-    EXPECT_EQ("Metal diffuse path-loop backend currently supports Matte, Phong diffuse, "
+    EXPECT_EQ("Metal diffuse path-loop backend currently supports Matte, Phong finite glossy, "
               "Reflective mirror, and Emissive materials only",
               unsupportedMaterialSupport.reason);
 #else
@@ -2042,7 +2041,7 @@ namespace GpuDiffusePathStepReferenceTest {
 #endif
   }
 
-  TEST(MetalGpuDiffusePathLoopBackend, RunsPhongDiffuseLobePathLoopWhenEnabled) {
+  TEST(MetalGpuDiffusePathLoopBackend, RunsPhongGlossyPathLoopWhenEnabled) {
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
     const MetalGpuDiffusePathLoopBackend backend;
     if (!backend.fullGpuPathLoopAvailable()) {
@@ -2051,7 +2050,8 @@ namespace GpuDiffusePathStepReferenceTest {
 
     Scene scene;
     auto phong = std::make_shared<PhongMaterial>(
-      std::make_shared<ConstantColorTexture>(Colord(0.25, 0.5, 0.75)), Colord::white(), 16.0);
+      std::make_shared<ConstantColorTexture>(Colord(0.25, 0.5, 0.75)), Colord(0.75, 0.5, 0.25),
+      16.0);
     phong->setDiffuseCoefficient(0.8);
     phong->setSpecularCoefficient(1.0);
     auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);

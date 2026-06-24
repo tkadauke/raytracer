@@ -140,6 +140,13 @@ namespace {
                          static_cast<float>(material.exponent())};
   }
 
+  void packPhongSpecularParameters(const PhongMaterial& material,
+                                   GpuTracingMaterialRecord& record) {
+    record.continuationParameters = {static_cast<float>(material.specularColor().r()),
+                                     static_cast<float>(material.specularColor().g()),
+                                     static_cast<float>(material.specularColor().b()), 0.0f};
+  }
+
   void packMirrorContinuationParameters(const ReflectiveMaterial& material,
                                         GpuTracingMaterialRecord& record) {
     record.continuationParameters = {static_cast<float>(material.reflectionColor().r()),
@@ -307,6 +314,7 @@ namespace {
       record.kind = static_cast<std::uint32_t>(GpuTracingMaterialKind::Phong);
       record.albedoTexture = resources.textureIdFor(m_material.diffuseTexture());
       packLocalPhongParameters(m_material, record);
+      packPhongSpecularParameters(m_material, record);
       return record;
     }
 
@@ -734,8 +742,9 @@ render::gpuDiffusePathLoopSupport(const GpuTracingSceneCompilation& compilation,
       static_cast<GpuTracingMaterialKind>(compilation.sections.materials[materialId].kind);
     if (kind != GpuTracingMaterialKind::Matte && kind != GpuTracingMaterialKind::Phong &&
         kind != GpuTracingMaterialKind::Reflective && kind != GpuTracingMaterialKind::Emissive) {
-      return {false, "GPU diffuse path loop supports only matte, Phong diffuse, reflective, and "
-                     "emissive materials"};
+      return {false,
+              "GPU diffuse path loop supports only matte, Phong finite glossy, reflective, and "
+              "emissive materials"};
     }
   }
 
