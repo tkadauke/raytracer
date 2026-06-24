@@ -9,14 +9,6 @@
 #include <algorithm>
 
 namespace {
-  QJsonArray vectorToJson(const Vector3d& vector) {
-    return core::json::vector3ToJsonArray(vector);
-  }
-
-  Vector3d vectorFromJson(const QJsonValue& value) {
-    return core::json::vector3FromJsonArray(value.toArray());
-  }
-
   QJsonValue attributeToJson(const core::Curve::AttributeValue& value) {
     if (const auto* boolValue = std::get_if<bool>(&value))
       return *boolValue;
@@ -27,7 +19,7 @@ namespace {
     if (const auto* stringValue = std::get_if<std::string>(&value))
       return QString::fromStdString(*stringValue);
     if (const auto* vectorValue = std::get_if<Vector3d>(&value))
-      return vectorToJson(*vectorValue);
+      return core::json::vector3ToJsonArray(*vectorValue);
     return QJsonValue();
   }
 
@@ -42,7 +34,7 @@ namespace {
       return numeric;
     }
     if (value.isArray())
-      return vectorFromJson(value);
+      return core::json::vector3FromJsonArray(value.toArray());
     return value.toString().toStdString();
   }
 
@@ -110,7 +102,7 @@ void Curve::read(const QJsonObject& json) {
 
   std::vector<Vector3d> points;
   for (const auto& pointValue : json["points"].toArray())
-    points.push_back(vectorFromJson(pointValue));
+    points.push_back(core::json::vector3FromJsonArray(pointValue.toArray()));
 
   core::Polyline polyline(points);
   readAttributes(polyline, json["curveAttributes"].toObject());
@@ -127,7 +119,7 @@ void Curve::write(QJsonObject& json) {
 
   QJsonArray points;
   for (const auto& point : m_polyline.points())
-    points.append(vectorToJson(point));
+    points.append(core::json::vector3ToJsonArray(point));
   json["points"] = points;
 
   const auto curveAttributes = attributesToJson(m_polyline.attributes());

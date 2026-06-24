@@ -1,4 +1,5 @@
 #include "core/formats/gltf/GltfReader.h"
+#include "core/json/JsonValue.h"
 
 #include <QByteArray>
 #include <QJsonArray>
@@ -132,26 +133,18 @@ namespace core::gltf {
       const QJsonValue value = object.value(name);
       if (value.isUndefined())
         return false;
-      if (!value.isArray()) {
-        diagnostics.error(DiagnosticCode::InvalidPropertyType, path + "." + name,
-                          "Expected an array");
-        return false;
-      }
 
-      const QJsonArray array = value.toArray();
-      if (array.size() != static_cast<int>(Size)) {
-        diagnostics.error(DiagnosticCode::InvalidPropertyType, path + "." + name,
-                          "Unexpected array length");
-        return false;
-      }
-      for (int i = 0; i < array.size(); ++i) {
-        if (!array.at(i).isDouble()) {
+      const auto values = core::json::requireNumberArray<Size>(
+        value, "Expected an array", "Unexpected array length", "Expected a number",
+        [&](std::optional<int> index, const char* message) {
           diagnostics.error(DiagnosticCode::InvalidPropertyType,
-                            path + "." + name + "[" + std::to_string(i) + "]", "Expected a number");
-          return false;
-        }
-        (*result)[static_cast<std::size_t>(i)] = array.at(i).toDouble();
-      }
+                            index ? path + "." + name + "[" + std::to_string(*index) + "]"
+                                  : path + "." + name,
+                            message);
+        });
+      if (!values)
+        return false;
+      *result = *values;
       return true;
     }
 
