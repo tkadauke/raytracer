@@ -41,6 +41,19 @@ TEST(JsonValueTest, RequiresNumberArrayWithExpectedSize) {
   EXPECT_DOUBLE_EQ(3.0, result[2].toDouble());
 }
 
+TEST(JsonValueTest, RequiresTypedNumberArrayWithExpectedSize) {
+  const QJsonValue value(QJsonArray{1.0, 2.0, 3.0});
+
+  const auto result = core::json::requireNumberArray<3>(
+    value, "not-array", "wrong-size", "not-number",
+    [](std::optional<int>, const char*) { throw std::runtime_error("unexpected error"); });
+
+  ASSERT_TRUE(result.has_value());
+  EXPECT_DOUBLE_EQ(1.0, result->at(0));
+  EXPECT_DOUBLE_EQ(2.0, result->at(1));
+  EXPECT_DOUBLE_EQ(3.0, result->at(2));
+}
+
 TEST(JsonValueTest, ReportsNonNumericArrayIndex) {
   const QJsonValue value(QJsonArray{1.0, "two", 3.0});
   std::optional<int> failedIndex;

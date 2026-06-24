@@ -6,6 +6,7 @@
 #include <QJsonArray>
 #include <QJsonValue>
 
+#include <array>
 #include <optional>
 #include <utility>
 
@@ -34,6 +35,25 @@ namespace core::json {
     }
 
     return array;
+  }
+
+  template<std::size_t Size>
+  inline std::array<double, Size> numberArrayFromJsonArray(const QJsonArray& array) {
+    std::array<double, Size> result{};
+    for (std::size_t i = 0; i != Size; ++i)
+      result[i] = array.at(static_cast<int>(i)).toDouble();
+    return result;
+  }
+
+  template<std::size_t Size, class Message, class ErrorHandler>
+  inline std::optional<std::array<double, Size>>
+  requireNumberArray(const QJsonValue& value, Message arrayMessage, Message sizeMessage,
+                     Message numberMessage, ErrorHandler&& error) {
+    const auto array = requireNumberArray(value, static_cast<int>(Size), arrayMessage, sizeMessage,
+                                          numberMessage, std::forward<ErrorHandler>(error));
+    if (array.size() != static_cast<int>(Size))
+      return std::nullopt;
+    return numberArrayFromJsonArray<Size>(array);
   }
 
   inline QJsonArray vector3ToJsonArray(const Vector3d& value) {
