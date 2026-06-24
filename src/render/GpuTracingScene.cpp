@@ -733,9 +733,9 @@ render::gpuDiffusePathLoopSupport(const GpuTracingSceneCompilation& compilation,
     const auto kind =
       static_cast<GpuTracingMaterialKind>(compilation.sections.materials[materialId].kind);
     if (kind != GpuTracingMaterialKind::Matte && kind != GpuTracingMaterialKind::Phong &&
-        kind != GpuTracingMaterialKind::Emissive) {
-      return {false,
-              "GPU diffuse path loop supports only matte, Phong diffuse, and emissive materials"};
+        kind != GpuTracingMaterialKind::Reflective && kind != GpuTracingMaterialKind::Emissive) {
+      return {false, "GPU diffuse path loop supports only matte, Phong diffuse, reflective, and "
+                     "emissive materials"};
     }
   }
 

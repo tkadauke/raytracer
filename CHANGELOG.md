@@ -50,6 +50,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   reference path-loop evaluator to sample nearest `ImageTexture` records by
   serializing texels into the GPU scene upload, allowing basic image-textured
   imported assets to enter the GPU-owned path-loop subset. — GPT-5 Codex
+- Extend the restricted Metal full-GPU diffuse path-loop subset and CPU
+  compiled path-loop evaluator to support `ReflectiveMaterial` mirror
+  continuations, allowing simple mirror scenes to stay in the GPU-owned path
+  loop while broader path-tracing parity remains gated. — GPT-5 Codex
 - Add a scene-specific full-GPU diffuse path-loop support query so future
   Metal/Vulkan path-loop backends can reject narrower compiled-scene subsets
   without making graph predictions overclaim full GPU execution. — GPT-5 Codex

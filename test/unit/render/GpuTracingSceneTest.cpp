@@ -697,7 +697,7 @@ namespace GpuTracingSceneTest {
     EXPECT_TRUE(supportsGpuDiffusePathLoop(compilation, scene));
   }
 
-  TEST(GpuTracingScene, DiffusePathLoopSupportRejectsNonDiffuseMaterials) {
+  TEST(GpuTracingScene, DiffusePathLoopSupportAcceptsReflectiveMaterials) {
     auto reflective = std::make_shared<ReflectiveMaterial>(
       std::make_shared<ConstantColorTexture>(Colord(0.25, 0.5, 0.75)));
     auto sphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
@@ -711,10 +711,9 @@ namespace GpuTracingSceneTest {
     ASSERT_TRUE(compilation.supported());
     const GpuDiffusePathLoopSupport support = gpuDiffusePathLoopSupport(compilation, scene);
 
-    EXPECT_FALSE(support.supported);
-    EXPECT_EQ("GPU diffuse path loop supports only matte, Phong diffuse, and emissive materials",
-              support.reason);
-    EXPECT_EQ(support.reason, gpuDiffusePathLoopUnsupportedReason(compilation, scene));
+    EXPECT_TRUE(support.supported);
+    EXPECT_TRUE(support.reason.empty());
+    EXPECT_TRUE(gpuDiffusePathLoopUnsupportedReason(compilation, scene).empty());
   }
 
   TEST(GpuTracingScene, DiffusePathLoopSupportAllowsDifferentBackgroundAndEnvironment) {

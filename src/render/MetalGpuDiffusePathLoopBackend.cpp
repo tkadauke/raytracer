@@ -63,6 +63,7 @@ namespace render {
           return false;
         }
         if (kind != GpuTracingMaterialKind::Matte && kind != GpuTracingMaterialKind::Phong &&
+            kind != GpuTracingMaterialKind::Reflective &&
             kind != GpuTracingMaterialKind::Emissive) {
           return false;
         }
@@ -431,8 +432,8 @@ namespace render {
                      "triangle/sphere/plane/rectangle/disk/open-cylinder/torus geometry only"};
     }
     if (!supportedMaterials(scene)) {
-      return {false, "Metal diffuse path-loop backend currently supports Matte, Phong diffuse, and "
-                     "Emissive materials only"};
+      return {false, "Metal diffuse path-loop backend currently supports Matte, Phong diffuse, "
+                     "Reflective mirror, and Emissive materials only"};
     }
     if (!supportedTextures(scene)) {
       return {false, "Metal diffuse path-loop backend currently supports ConstantColor, simple "

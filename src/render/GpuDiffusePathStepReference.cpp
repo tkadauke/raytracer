@@ -410,13 +410,22 @@ namespace {
     return normalDotDirection <= 0.0 ? 0.0 : normalDotDirection * invPI;
   }
 
-  bool isDiffusePathLoopMaterial(GpuTracingMaterialKind kind) {
-    return kind == GpuTracingMaterialKind::Matte || kind == GpuTracingMaterialKind::Phong;
+  bool isPathLoopSurfaceMaterial(GpuTracingMaterialKind kind) {
+    return kind == GpuTracingMaterialKind::Matte || kind == GpuTracingMaterialKind::Phong ||
+           kind == GpuTracingMaterialKind::Reflective;
   }
 
   Colord diffuseBsdf(const GpuTracingSceneSections& scene, const GpuTracingMaterialRecord& material,
                      const GpuIntersectionHitRecord& hit) {
     return textureColor(scene, material.albedoTexture, hit) * material.parameters[1] * invPI;
+  }
+
+  Colord mirrorReflectance(const GpuTracingMaterialRecord& material) {
+    return Colord(material.continuationParameters) * material.continuationParameters[3];
+  }
+
+  Vector3d mirrorContinuationDirection(const Vector3d& wi, const Vector3d& normal) {
+    return (-wi).reflect(normal).normalized();
   }
 
   void terminate(GpuDiffusePathStateRecord& pathState) {
@@ -1075,9 +1084,8 @@ TracingExecutionCapabilityRecords GpuDiffusePathLoopResult::tracingCapabilities(
 
     records.bsdf.eval = gpuRecord(Domain::BSDF, "shading.bsdf_eval", pathLoopExecution);
     records.bsdf.sample = gpuRecord(Domain::BSDF, "shading.bsdf_sample", pathLoopExecution);
-    records.bsdf.deltaBranches = TracingCapabilityRecord::unsupported(
-      Domain::BSDF, "shading.delta_branches",
-      "compiled diffuse path loop supports diffuse continuation only");
+    records.bsdf.deltaBranches =
+      gpuRecord(Domain::BSDF, "shading.delta_branches", pathLoopExecution);
 
     records.pathState.residency =
       gpuRecord(Domain::PathState, "state.path_state_residency", pathStatePath);
@@ -1128,9 +1136,8 @@ TracingExecutionCapabilityRecords GpuDiffusePathLoopResult::tracingCapabilities(
   records.bsdf.sample =
     fallbackWithReason(Domain::BSDF, "shading.bsdf_sample", kCpuRecordExecutionPath,
                        compiledDiffusePathLoopBsdfSampleFallbackReason());
-  records.bsdf.deltaBranches = TracingCapabilityRecord::unsupported(
-    Domain::BSDF, "shading.delta_branches",
-    "compiled diffuse path loop supports diffuse continuation only");
+  records.bsdf.deltaBranches =
+    TracingCapabilityRecord::cpu(Domain::BSDF, "shading.delta_branches", kCpuRecordExecutionPath);
 
   records.pathState.residency =
     fallbackWithReason(Domain::PathState, "state.path_state_residency", pathStatePath,
@@ -1251,7 +1258,7 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
       continue;
     }
 
-    if (!isDiffusePathLoopMaterial(materialKind)) {
+    if (!isPathLoopSurfaceMaterial(materialKind)) {
       markUnsupported(pathState);
       stepRecord.event = static_cast<std::uint32_t>(GpuDiffusePathStepEvent::Unsupported);
       stepRecord.flags = pathState.flags;
@@ -1311,6 +1318,38 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
       directLightRadiance = directLightRadiance / static_cast<double>(configuredDirectLightSamples);
       accumulated += directLightRadiance;
       stepRecord.directLightRadiance = directLightRadiance.toFloat4(0.0f);
+    }
+
+    if (materialKind == GpuTracingMaterialKind::Reflective) {
+      Colord nextThroughput = throughput * mirrorReflectance(material);
+      if (nextThroughput == Colord::black()) {
+        pathState.accumulatedRadiance = accumulated.toFloat4(0.0f);
+        terminate(pathState);
+        stepRecord.flags = pathState.flags;
+        result.terminatedPathStates.push_back(pathState);
+        ++result.metrics.terminatedPaths;
+        continue;
+      }
+
+      const Vector3d wo = mirrorContinuationDirection(wi, normal);
+      pathState.ray =
+        packRay(Rayd(Vector4d(hit.point), wo).epsilonShifted(), pathState.ray.rayIndex,
+                kPackedRayMinimumDistance, std::numeric_limits<double>::infinity());
+      pathState.throughput = nextThroughput.toFloat4(0.0f);
+      pathState.accumulatedRadiance = accumulated.toFloat4(0.0f);
+      pathState.depth += 1u;
+      pathState.previousBsdfPdf = 1.0f;
+      pathState.previousLightPdf = 0.0f;
+      pathState.previousMaterial = hit.material;
+      pathState.previousEventFlags =
+        gpuDiffusePathStateSampledFromBsdfFlag | gpuDiffusePathStateBsdfSampleDeltaFlag;
+      pathState.flags |= gpuDiffusePathStateActiveFlag;
+      pathState.flags &= ~gpuDiffusePathStateTerminatedFlag;
+      stepRecord.continuationThroughput = pathState.throughput;
+      stepRecord.flags = pathState.flags;
+      result.pathStates.push_back(pathState);
+      ++result.metrics.spawnedContinuations;
+      continue;
     }
 
     const Vector2d bsdfSample =
