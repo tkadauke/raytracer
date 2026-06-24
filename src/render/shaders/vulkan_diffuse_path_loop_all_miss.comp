@@ -628,8 +628,18 @@ vec4 environmentColor(uint environmentIndex) {
   return readVec4(wordOffset + 4u);
 }
 
+bool usesAmbientEnvironmentLayout() {
+  return parameters.environmentCount >= 3u;
+}
+
+vec4 sceneAmbientRadiance() {
+  return usesAmbientEnvironmentLayout() ? environmentColor(0u) : vec4(0.0);
+}
+
 vec4 missRadiance(GpuDiffusePathStateRecord path) {
-  const uint environmentIndex = path.depth == 0u ? 0u : parameters.environmentCount - 1u;
+  const uint environmentIndex =
+      path.depth == 0u ? (usesAmbientEnvironmentLayout() ? 1u : 0u) :
+                         parameters.environmentCount - 1u;
   return environmentColor(environmentIndex);
 }
 
@@ -660,6 +670,24 @@ bool matteReflectance(GpuIntersectionHitRecord hit, out vec4 reflectance) {
     return false;
   }
   reflectance = albedo * material.parameters.y;
+  return true;
+}
+
+bool matteAmbientRadiance(GpuIntersectionHitRecord hit, GpuDiffusePathStateRecord path,
+                          out vec4 ambient) {
+  ambient = vec4(0.0);
+  if (hit.material >= parameters.materialCount) {
+    return false;
+  }
+  const GpuTracingMaterialRecord material = readMaterial(hit.material);
+  if (material.kind != gpuTracingMatteMaterialKind) {
+    return false;
+  }
+  vec4 albedo;
+  if (!constantTextureColor(material.albedoTexture, albedo)) {
+    return false;
+  }
+  ambient = path.throughput * albedo * material.parameters.x * sceneAmbientRadiance();
   return true;
 }
 
@@ -805,8 +833,15 @@ GpuDiffusePathStepRecord pathStep(uint pathIndex, GpuDiffusePathStateRecord path
 
   vec4 reflectance;
   if (matteReflectance(hit, reflectance)) {
+    vec4 ambient;
+    if (!matteAmbientRadiance(hit, path, ambient)) {
+      step.event = gpuDiffusePathStepEventUnsupported;
+      next.flags = unsupportedPathFlags(path.flags);
+      step.flags = next.flags;
+      return step;
+    }
     const vec4 directLight = directLightRadiance(hit, path, reflectance);
-    const vec4 accumulatedRadiance = path.accumulatedRadiance + directLight;
+    const vec4 accumulatedRadiance = path.accumulatedRadiance + ambient + directLight;
     const vec4 continuation = path.throughput * reflectance;
     bool spawned = false;
     next = matteContinuationPath(hit, path, continuation, accumulatedRadiance, spawned);

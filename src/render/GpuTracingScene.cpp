@@ -808,11 +808,10 @@ render::compileGpuTracingScene(const CompiledIntersectionScene& intersectionScen
   compilation.sections.materials = compilation.materials.records;
   compilation.sections.textures = compilation.materials.textures.records;
   compilation.sections.lights = compilation.lights.records;
+  compilation.sections.environment.push_back(makeGpuTracingConstantEnvironment(scene.ambient()));
   compilation.sections.environment.push_back(makeGpuTracingConstantEnvironment(scene.background()));
-  if (scene.environmentRadiance() != scene.background()) {
-    compilation.sections.environment.push_back(
-      makeGpuTracingConstantEnvironment(scene.environmentRadiance()));
-  }
+  compilation.sections.environment.push_back(
+    makeGpuTracingConstantEnvironment(scene.environmentRadiance()));
 
   compilation.diagnostics.compiled = true;
   compilation.diagnostics.materials = compilation.sections.materials.size();

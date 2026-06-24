@@ -629,7 +629,7 @@ namespace GpuTracingSceneTest {
     EXPECT_EQ(3u, diagnostics.materials);
     EXPECT_EQ(2u, diagnostics.textures);
     EXPECT_EQ(1u, diagnostics.lights);
-    EXPECT_EQ(2u, diagnostics.environment);
+    EXPECT_EQ(3u, diagnostics.environment);
     EXPECT_EQ(0u, diagnostics.debugIds);
     EXPECT_EQ(1u, diagnostics.unsupportedMaterials);
     EXPECT_EQ(1u, diagnostics.unsupportedTextures);
@@ -664,7 +664,7 @@ namespace GpuTracingSceneTest {
     EXPECT_EQ(intersection.spheres().size(), compilation.sections.geometry.spheres.size());
     EXPECT_EQ(intersection.materials().size(), compilation.sections.materials.size());
     EXPECT_EQ(1u, compilation.sections.lights.size());
-    EXPECT_EQ(2u, compilation.sections.environment.size());
+    EXPECT_EQ(3u, compilation.sections.environment.size());
     EXPECT_EQ(compilation.sections.materials.size(), compilation.diagnostics.materials);
     EXPECT_EQ(compilation.sections.textures.size(), compilation.diagnostics.textures);
     EXPECT_EQ(compilation.sections.lights.size(), compilation.diagnostics.lights);
@@ -758,6 +758,7 @@ namespace GpuTracingSceneTest {
 
   TEST(GpuTracingScene, DiffusePathLoopSupportAllowsDifferentBackgroundAndEnvironment) {
     Scene scene;
+    scene.setAmbient(Colord(0.7, 0.8, 0.9));
     scene.setBackground(Colord(0.1, 0.2, 0.3));
     scene.setEnvironmentRadiance(Colord(0.4, 0.5, 0.6));
 
@@ -765,9 +766,10 @@ namespace GpuTracingSceneTest {
     const GpuDiffusePathLoopSupport support = gpuDiffusePathLoopSupport(compilation, scene);
 
     EXPECT_TRUE(support.supported);
-    ASSERT_EQ(2u, compilation.sections.environment.size());
-    expectFloat4(compilation.sections.environment[0].color, 0.1f, 0.2f, 0.3f, 1.0f);
-    expectFloat4(compilation.sections.environment[1].color, 0.4f, 0.5f, 0.6f, 1.0f);
+    ASSERT_EQ(3u, compilation.sections.environment.size());
+    expectFloat4(compilation.sections.environment[0].color, 0.7f, 0.8f, 0.9f, 1.0f);
+    expectFloat4(compilation.sections.environment[1].color, 0.1f, 0.2f, 0.3f, 1.0f);
+    expectFloat4(compilation.sections.environment[2].color, 0.4f, 0.5f, 0.6f, 1.0f);
   }
 
   TEST(GpuTracingScene, PointLightPacksPositionAndColor) {

@@ -2576,7 +2576,10 @@ scene is large enough to amortize upload/readback costs.
      to sample-slot platform accumulation and resolving the averaged final
      image from the Metal accumulation planes. The compiled path loop also
      carries `ReflectiveMaterial` and `TransparentMaterial` delta continuations
-     through the CPU reference evaluator and the Metal full-GPU subset. Broader
+     through the CPU reference evaluator and the Metal full-GPU subset, and the
+     compiled environment records now carry scene ambient separately from
+     visible background and bounced environment radiance so supported surface
+     hits match the scalar path tracer's base ambient term. Broader
      primitive traversal, full material shading, full direct-light coverage,
      device-side compacted wavefront scheduling, Vulkan parity, performance
      gates, and render-graph auto-selection still need to land before it can be

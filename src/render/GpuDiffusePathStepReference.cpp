@@ -241,8 +241,16 @@ namespace {
                                             : Colord::black();
   }
 
+  bool usesAmbientEnvironmentLayout(const GpuTracingSceneSections& scene) {
+    return scene.environment.size() >= 3u;
+  }
+
+  Colord sceneAmbientRadiance(const GpuTracingSceneSections& scene) {
+    return usesAmbientEnvironmentLayout(scene) ? environmentRecordColor(scene, 0) : Colord::black();
+  }
+
   Colord visibleBackgroundRadiance(const GpuTracingSceneSections& scene) {
-    return environmentRecordColor(scene, 0);
+    return environmentRecordColor(scene, usesAmbientEnvironmentLayout(scene) ? 1u : 0u);
   }
 
   Colord environmentRadiance(const GpuTracingSceneSections& scene) {
@@ -439,6 +447,13 @@ namespace {
   Colord diffuseBsdf(const GpuTracingSceneSections& scene, const GpuTracingMaterialRecord& material,
                      const GpuIntersectionHitRecord& hit) {
     return textureColor(scene, material.albedoTexture, hit) * material.parameters[1] * invPI;
+  }
+
+  Colord ambientRadiance(const GpuTracingSceneSections& scene,
+                         const GpuTracingMaterialRecord& material,
+                         const GpuIntersectionHitRecord& hit) {
+    return textureColor(scene, material.albedoTexture, hit) * material.parameters[0] *
+           sceneAmbientRadiance(scene);
   }
 
   bool hasFinitePhongLobes(GpuTracingMaterialKind kind) {
@@ -1425,6 +1440,8 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
       ++result.metrics.terminatedPaths;
       continue;
     }
+
+    accumulated += throughput * ambientRadiance(scene, material, hit);
 
     if (!scene.lights.empty()) {
       Colord directLightRadiance = Colord::black();
