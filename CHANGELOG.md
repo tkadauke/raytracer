@@ -58,6 +58,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   compiled path-loop evaluator to support `ReflectiveMaterial` mirror
   continuations, allowing simple mirror scenes to stay in the GPU-owned path
   loop while broader path-tracing parity remains gated. — GPT-5 Codex
+- Extend the restricted Metal full-GPU diffuse path-loop subset and CPU
+  compiled path-loop evaluator to support `TransparentMaterial` perfect
+  reflection/refraction delta continuations, allowing simple glass scenes to
+  stay in the GPU-owned path loop. — GPT-5 Codex
 - Add a scene-specific full-GPU diffuse path-loop support query so future
   Metal/Vulkan path-loop backends can reject narrower compiled-scene subsets
   without making graph predictions overclaim full GPU execution. — GPT-5 Codex

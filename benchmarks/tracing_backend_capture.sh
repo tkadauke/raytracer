@@ -20,7 +20,7 @@ Scenes:
   large_mesh            generated supported triangle-grid workload
   visibility_heavy      any-hit/direct-light visibility workload
   indirect_diffuse      multi-depth diffuse path-tracing workload
-  unsupported_fallback  transparent-material GPU fallback workload
+  transparent_glass     transparent-material packed/GPU intersection workload
   all                   run every scene above
 
 Environment:
@@ -33,9 +33,8 @@ Environment:
   TRACING_BACKEND_DEPTH            max path depth
   TRACING_BACKEND_LARGE_MESH_SIDE  generated mesh grid width/height
 
-Each supported scene captures CPU, auto, and explicit GPU-request modes. The
-unsupported fallback scene captures an explicit GPU request so metrics show the
-fallback reason and runtime CPU execution path.
+Each scene captures CPU, auto, and explicit GPU-request modes so metrics show
+runtime, packed-CPU, and available platform GPU intersection paths.
 USAGE
 }
 
@@ -161,7 +160,7 @@ scene_path() {
     small_primitive) echo "${repo_root}/test/fixtures/tracing_parity/matte_direct_light.json" ;;
     visibility_heavy) echo "${repo_root}/test/fixtures/tracing_parity/visibility_heavy.json" ;;
     indirect_diffuse) echo "${repo_root}/test/fixtures/tracing_parity/indirect_bounce.json" ;;
-    unsupported_fallback) echo "${repo_root}/test/fixtures/tracing_parity/transparent_fallback.json" ;;
+    transparent_glass) echo "${repo_root}/test/fixtures/tracing_parity/transparent_fallback.json" ;;
     large_mesh)
       local fixture_dir="${out_root}/fixtures"
       mkdir -p "${fixture_dir}"
@@ -174,10 +173,7 @@ scene_path() {
 }
 
 scene_modes() {
-  case "$1" in
-    unsupported_fallback) echo "gpu" ;;
-    *) echo "cpu auto gpu" ;;
-  esac
+  echo "cpu auto gpu"
 }
 
 run_mode() {
@@ -232,11 +228,11 @@ main() {
   require_rendercli
   case "$1" in
     all)
-      for scene in small_primitive large_mesh visibility_heavy indirect_diffuse unsupported_fallback; do
+      for scene in small_primitive large_mesh visibility_heavy indirect_diffuse transparent_glass; do
         run_scene "${scene}"
       done
       ;;
-    small_primitive|large_mesh|visibility_heavy|indirect_diffuse|unsupported_fallback)
+    small_primitive|large_mesh|visibility_heavy|indirect_diffuse|transparent_glass)
       run_scene "$1"
       ;;
     *)

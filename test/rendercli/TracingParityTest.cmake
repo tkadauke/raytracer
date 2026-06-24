@@ -109,83 +109,6 @@ function(render_whitted_gpu_parity category scene depth)
   endif()
 endfunction()
 
-function(render_whitted_fallback_parity category scene depth)
-  set(cpu_render "${TEST_OUTPUT_DIR}/whitted-${category}-cpu.png")
-  set(gpu_request_render "${TEST_OUTPUT_DIR}/whitted-${category}-gpu-request.png")
-  set(gpu_request_metrics "${TEST_OUTPUT_DIR}/whitted-${category}-gpu-request-metrics.json")
-  set(common_whitted_args
-      --engine wavefront
-      --integrator whitted
-      --width 32
-      --height 24
-      --sampler Regular
-      --samples_per_pixel 1
-      --sampling_seed 1337
-      --wavefront_denoiser none
-      --depth "${depth}")
-
-  rendercli_run(
-    NAME "rendercli Whitted tracing parity ${category} CPU fallback baseline"
-    COMMAND
-      "${RENDERCLI}" ${common_whitted_args}
-      --wavefront_intersection_backend cpu
-      "${scene}" "${cpu_render}"
-  )
-  rendercli_assert_image_dimensions(
-    "${cpu_render}" 32 24 NAME "Whitted tracing parity ${category} CPU fallback dimensions")
-  rendercli_assert_image_nonempty("${cpu_render}"
-                                  NAME "Whitted tracing parity ${category} CPU fallback pixels")
-
-  rendercli_run(
-    NAME "rendercli Whitted tracing parity ${category} GPU-requested fallback"
-    OUTPUT_VARIABLE whitted_fallback_stdout
-    COMMAND
-      "${RENDERCLI}" ${common_whitted_args}
-      --wavefront_intersection_backend gpu
-      --wavefront_metrics_out "${gpu_request_metrics}"
-      --wavefront_metrics_summary
-      "${scene}" "${gpu_request_render}"
-  )
-  rendercli_assert_image_dimensions(
-    "${gpu_request_render}" 32 24
-    NAME "Whitted tracing parity ${category} GPU-requested fallback dimensions")
-  rendercli_assert_image_nonempty(
-    "${gpu_request_render}" NAME "Whitted tracing parity ${category} GPU-requested fallback pixels")
-  rendercli_assert_image_rms_at_most(
-    "${cpu_render}" "${gpu_request_render}" 0.001
-    NAME "Whitted tracing parity ${category} GPU-requested fallback RMS matches CPU")
-
-  foreach(expectation
-          "integrator=whitted"
-          "execution=depth_major_whitted"
-          "intersection_backend_request=gpu"
-          "intersection_backend=cpu"
-          "intersection_backend_availability=fallback"
-          "intersection_backend_fallback=GPU_intersection_scene_unsupported"
-          "intersection_backend_execution=runtime_scene"
-          "closest_hit_execution=runtime_scene"
-          "intersection_scene_compiled=true"
-          "intersection_scene_unsupported=[1-9][0-9]*"
-          "intersection_scene_unsupported_by_reason=transparent_material_requires_runtime_intersection_for_Whitted_continuation_precision:[1-9][0-9]*")
-    tracing_parity_assert_matches("Whitted tracing parity ${category} fallback ${expectation}"
-                                  "${whitted_fallback_stdout}" "${expectation}")
-  endforeach()
-
-  foreach(expectation
-          "\"intersectionBackendRequest\"[ \r\n]*:[ \r\n]*\"gpu\""
-          "\"intersectionBackend\"[ \r\n]*:[ \r\n]*\"cpu\""
-          "\"intersectionBackendAvailability\"[ \r\n]*:[ \r\n]*\"fallback\""
-          "\"intersectionBackendFallbackReason\"[ \r\n]*:[ \r\n]*\"GPU intersection scene unsupported"
-          "\"intersectionBackendExecutionPath\"[ \r\n]*:[ \r\n]*\"runtime_scene\""
-          "\"intersectionBackendClosestHitExecutionPath\"[ \r\n]*:[ \r\n]*\"runtime_scene\""
-          "\"intersectionSceneCompiled\"[ \r\n]*:[ \r\n]*true"
-          "\"intersectionSceneUnsupportedPrimitives\"[ \r\n]*:[ \r\n]*[1-9][0-9]*")
-    tracing_parity_assert_json_matches(
-      "Whitted tracing parity ${category} fallback metrics ${expectation}"
-      "${gpu_request_metrics}" "${expectation}")
-  endforeach()
-endfunction()
-
 if(NOT DEFINED TEST_OUTPUT_DIR)
   message(FATAL_ERROR "TEST_OUTPUT_DIR is required")
 endif()
@@ -426,78 +349,6 @@ function(tracing_parity_render_compiled_gpu_execution category scene_file depth 
   endforeach()
 endfunction()
 
-function(tracing_parity_render_unsupported category scene_file depth samples)
-  tracing_parity_slug(slug "${category}")
-  set(scene_path "${tracing_parity_fixture_dir}/${scene_file}")
-  set(cpu_render "${TEST_OUTPUT_DIR}/${slug}-cpu.png")
-  set(cpu_metrics "${TEST_OUTPUT_DIR}/${slug}-cpu-metrics.json")
-  set(gpu_request_render "${TEST_OUTPUT_DIR}/${slug}-gpu-request.png")
-  set(gpu_request_metrics "${TEST_OUTPUT_DIR}/${slug}-gpu-request-metrics.json")
-
-  set(common_render_args
-      --engine wavefront
-      --integrator pathtracer
-      --width 32
-      --height 24
-      --sampler Regular
-      --samples_per_pixel "${samples}"
-      --sampling_seed 1337
-      --pathtracer_direct_light_samples 1
-      --wavefront_denoiser none
-      --depth "${depth}")
-
-  rendercli_run(
-    NAME "rendercli tracing parity ${category} CPU baseline"
-    COMMAND
-      "${RENDERCLI}" ${common_render_args}
-      --wavefront_intersection_backend cpu
-      --wavefront_metrics_out "${cpu_metrics}"
-      --wavefront_metrics_summary
-      "${scene_path}" "${cpu_render}"
-  )
-  rendercli_assert_image_dimensions("${cpu_render}" 32 24
-                                    NAME "tracing parity ${category} CPU dimensions")
-  rendercli_assert_image_nonempty("${cpu_render}"
-                                  NAME "tracing parity ${category} CPU pixels")
-
-  rendercli_run(
-    NAME "rendercli tracing parity ${category} explicit GPU fallback"
-    OUTPUT_VARIABLE gpu_request_stdout
-    STDOUT_MATCHES
-      "wavefront_metrics.*integrator=pathtracer.*execution=depth_major_paths.*tracing_backend=cpu.*tracing_backend_mode=wavefront_intersection.*tracing_backend_fallback=GPU_intersection_scene_unsupported.*intersection_backend_request=gpu.*intersection_backend=cpu.*intersection_backend_availability=fallback.*intersection_backend_fallback=GPU_intersection_scene_unsupported.*intersection_backend_execution=runtime_scene.*closest_hit_execution=runtime_scene.*intersection_scene_compiled=true.*intersection_scene_unsupported=[1-9][0-9]*.*intersection_scene_unsupported_by_reason=.*transparent_material_requires_runtime_intersection_for_Whitted_continuation_precision"
-    COMMAND
-      "${RENDERCLI}" ${common_render_args}
-      --wavefront_intersection_backend gpu
-      --wavefront_metrics_out "${gpu_request_metrics}"
-      --wavefront_metrics_summary
-      "${scene_path}" "${gpu_request_render}"
-  )
-  rendercli_assert_image_dimensions("${gpu_request_render}" 32 24
-                                    NAME "tracing parity ${category} fallback dimensions")
-  rendercli_assert_image_nonempty("${gpu_request_render}"
-                                  NAME "tracing parity ${category} fallback pixels")
-  rendercli_assert_image_rms_at_most(
-    "${cpu_render}" "${gpu_request_render}" 0.001
-    NAME "tracing parity ${category} fallback image RMS matches CPU")
-
-  foreach(expectation
-          "\"intersectionBackendRequest\"[ \r\n]*:[ \r\n]*\"gpu\""
-          "\"intersectionBackend\"[ \r\n]*:[ \r\n]*\"cpu\""
-          "\"intersectionBackendAvailability\"[ \r\n]*:[ \r\n]*\"fallback\""
-          "\"intersectionBackendFallbackReason\"[ \r\n]*:[ \r\n]*\"GPU intersection scene unsupported: .*transparent material requires runtime intersection for Whitted continuation precision\""
-          "\"intersectionBackendExecutionPath\"[ \r\n]*:[ \r\n]*\"runtime_scene\""
-          "\"intersectionSceneUnsupportedPrimitives\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
-          "\"tracingBackend\"[ \r\n]*:[ \r\n]*\"cpu\""
-          "\"tracingBackendMode\"[ \r\n]*:[ \r\n]*\"wavefront_intersection\""
-          "\"tracingBackendFallback\"[ \r\n]*:[ \r\n]*\\{"
-          "\"tracingSceneUnsupportedMaterials\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
-          "\"tracingSceneUnsupportedTextures\"[ \r\n]*:[ \r\n]*[1-9][0-9]*")
-    tracing_parity_assert_json_matches(
-      "tracing parity ${category} fallback metrics ${expectation}"
-      "${gpu_request_metrics}" "${expectation}")
-  endforeach()
-endfunction()
-
 tracing_parity_render_supported(
   "matte_direct_light" "matte_direct_light.json" 1 1 0.001
   "direct_light_samples=[1-9][0-9]*")
@@ -509,14 +360,18 @@ tracing_parity_render_compiled_gpu_execution(
 tracing_parity_render_supported(
   "environment_miss" "environment_miss.json" 2 1 0.001
   "tracing_scene_environment=[1-9][0-9]*.*miss_luminance=[1-9]")
-tracing_parity_render_unsupported(
-  "transparent_fallback" "transparent_fallback.json" 4 1)
+tracing_parity_render_supported(
+  "transparent_glass" "transparent_fallback.json" 4 1 0.05
+  "tracing_scene_materials=[1-9][0-9]*")
+tracing_parity_render_compiled_gpu_execution(
+  "transparent_glass" "transparent_fallback.json" 4 1)
 render_whitted_gpu_parity(
   "matte-direct-light" "${PROJECT_SOURCE_DIR}/test/fixtures/tracing_parity/matte_direct_light.json"
   2)
 render_whitted_gpu_parity(
   "reflection" "${PROJECT_SOURCE_DIR}/test/fixtures/tracing_parity/whitted_reflection.json" 3
   0.01)
-render_whitted_fallback_parity(
+render_whitted_gpu_parity(
   "transparent-fallback"
-  "${PROJECT_SOURCE_DIR}/test/fixtures/tracing_parity/transparent_fallback.json" 4)
+  "${PROJECT_SOURCE_DIR}/test/fixtures/tracing_parity/transparent_fallback.json" 4
+  0.02)

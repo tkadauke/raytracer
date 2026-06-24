@@ -1046,7 +1046,7 @@ namespace GpuIntersectionSceneTest {
       buffers, GpuIntersectionScenePacker().packRay(nearSurfaceRay, 0, Ray<float>::epsilon, 10.0)));
   }
 
-  TEST(GpuIntersectionScene, TransparentMaterialLeavesArePackedIneligible) {
+  TEST(GpuIntersectionScene, TransparentMaterialLeavesArePackedEligible) {
     auto sphere = std::make_shared<Sphere>(Vector3d(0, 0, 3), 1.0);
     sphere->setMaterial(std::make_shared<TransparentMaterial>());
     Scene scene;
@@ -1055,13 +1055,14 @@ namespace GpuIntersectionSceneTest {
     const GpuIntersectionSceneBuffers buffers = GpuIntersectionScenePacker().packScene(compiled);
     const Rayd ray(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1));
 
-    EXPECT_FALSE(compiled.fullySupported());
-    ASSERT_EQ(1u, compiled.unsupportedPrimitives().size());
-    const std::string unsupportedReason = compiled.unsupportedPrimitives().front().reason;
-    EXPECT_NE(std::string::npos, unsupportedReason.find("transparent material requires runtime"));
-    EXPECT_FALSE(buffers.basicHitKernelEligible());
-    EXPECT_FALSE(buffers.packedClosestHitKernelEligible());
-    EXPECT_FALSE(buffers.packedAnyHitKernelEligible());
+    EXPECT_TRUE(compiled.fullySupported());
+    EXPECT_TRUE(compiled.unsupportedPrimitives().empty());
+    ASSERT_EQ(1u, compiled.spheres().size());
+    EXPECT_TRUE(buffers.basicHitKernelEligible());
+    EXPECT_TRUE(buffers.packedClosestHitKernelEligible());
+    EXPECT_TRUE(buffers.packedAnyHitKernelEligible());
+    EXPECT_TRUE(GpuIntersectionIntersector().intersectAny(
+      buffers, GpuIntersectionScenePacker().packRay(ray, 0, 0.0, 10.0)));
 
     State sceneState;
     EXPECT_TRUE(scene.occludes(ray, sceneState, 3.0));

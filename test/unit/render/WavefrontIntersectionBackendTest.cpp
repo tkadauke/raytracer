@@ -2710,7 +2710,7 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ(0u, backend->estimatedAnyHitReadbackBytes(4));
   }
 
-  TEST(WavefrontIntersectionBackend, GpuChoiceFallsBackForTransparentMaterialScene) {
+  TEST(WavefrontIntersectionBackend, GpuChoiceRetainsTransparentMaterialScene) {
     auto sphere = std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0);
     sphere->setName("glass sphere");
     sphere->setMaterial(std::make_shared<TransparentMaterial>());
@@ -2721,33 +2721,28 @@ namespace WavefrontIntersectionBackendTest {
       WavefrontIntersectionBackendChoice::gpu().createBackendForScene(scene);
 
     EXPECT_STREQ("gpu", backend->requestedName());
-    EXPECT_STREQ("cpu", backend->name());
-    EXPECT_STREQ("fallback", backend->availability());
-    EXPECT_STREQ("runtime_scene", backend->executionPath());
-    EXPECT_EQ(nullptr, backend->compiledScene());
-    EXPECT_EQ(nullptr, backend->gpuIntersectionSceneBuffers());
-    const std::string reason = backend->fallbackReason();
-    EXPECT_EQ(
-      "GPU intersection scene unsupported: glass sphere: transparent material requires runtime "
-      "intersection for Whitted continuation precision",
-      reason);
+    ASSERT_NE(nullptr, backend->compiledScene());
+    ASSERT_NE(nullptr, backend->gpuIntersectionSceneBuffers());
+    EXPECT_TRUE(backend->compiledScene()->fullySupported());
+    EXPECT_EQ(1u, backend->compiledScene()->primitives().size());
+    EXPECT_EQ(1u, backend->compiledScene()->spheres().size());
+    EXPECT_TRUE(backend->compiledScene()->unsupportedPrimitives().empty());
 
     const WavefrontIntersectionSceneDiagnostics diagnostics = backend->compiledSceneDiagnostics();
     EXPECT_TRUE(diagnostics.compiled);
     EXPECT_EQ(1u, diagnostics.primitives);
-    EXPECT_EQ(1u, diagnostics.unsupportedPrimitives);
-    ASSERT_EQ(1u, diagnostics.unsupportedReasons.size());
-    EXPECT_EQ(1u, diagnostics.unsupportedReasons.at(
-                    "transparent material requires runtime intersection for Whitted continuation "
-                    "precision"));
-    EXPECT_EQ(0u, diagnostics.uploadBytes);
-    EXPECT_FALSE(diagnostics.basicHitKernelEligible);
-    EXPECT_FALSE(diagnostics.packedClosestHitKernelEligible);
-    EXPECT_FALSE(diagnostics.packedAnyHitKernelEligible);
-    EXPECT_EQ(0u, backend->estimatedClosestHitRayUploadBytes(4));
-    EXPECT_EQ(0u, backend->estimatedClosestHitReadbackBytes(4));
-    EXPECT_EQ(0u, backend->estimatedAnyHitRayUploadBytes(4));
-    EXPECT_EQ(0u, backend->estimatedAnyHitReadbackBytes(4));
+    EXPECT_EQ(1u, diagnostics.spheres);
+    EXPECT_EQ(0u, diagnostics.unsupportedPrimitives);
+    EXPECT_TRUE(diagnostics.unsupportedReasons.empty());
+    EXPECT_EQ(backend->gpuIntersectionSceneBuffers()->uploadByteCount(), diagnostics.uploadBytes);
+    EXPECT_FALSE(diagnostics.triangleClosestHitKernelEligible);
+    EXPECT_TRUE(diagnostics.basicHitKernelEligible);
+    EXPECT_TRUE(diagnostics.packedClosestHitKernelEligible);
+    EXPECT_TRUE(diagnostics.packedAnyHitKernelEligible);
+    EXPECT_GT(backend->estimatedClosestHitRayUploadBytes(4), 0u);
+    EXPECT_GT(backend->estimatedClosestHitReadbackBytes(4), 0u);
+    EXPECT_GT(backend->estimatedAnyHitRayUploadBytes(4), 0u);
+    EXPECT_GT(backend->estimatedAnyHitReadbackBytes(4), 0u);
   }
 
   TEST(WavefrontIntersectionBackend, GpuChoiceReportsEmptyInstanceUnsupportedReason) {

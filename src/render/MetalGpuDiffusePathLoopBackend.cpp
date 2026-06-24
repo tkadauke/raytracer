@@ -64,6 +64,7 @@ namespace render {
         }
         if (kind != GpuTracingMaterialKind::Matte && kind != GpuTracingMaterialKind::Phong &&
             kind != GpuTracingMaterialKind::Reflective &&
+            kind != GpuTracingMaterialKind::Transparent &&
             kind != GpuTracingMaterialKind::Emissive) {
           return false;
         }
@@ -433,7 +434,8 @@ namespace render {
     }
     if (!supportedMaterials(scene)) {
       return {false, "Metal diffuse path-loop backend currently supports Matte, Phong finite "
-                     "glossy, Reflective mirror, and Emissive materials only"};
+                     "glossy, Reflective mirror, Transparent refraction, and Emissive materials "
+                     "only"};
     }
     if (!supportedTextures(scene)) {
       return {false, "Metal diffuse path-loop backend currently supports ConstantColor, simple "

@@ -26,10 +26,10 @@
       "workloads": ["cpu", "hybrid", "gpu"]
     },
     {
-      "id": "unsupported_fallback",
+      "id": "transparent_glass",
       "path": "../../test/fixtures/tracing_parity/transparent_fallback.json",
-      "description": "Transparent-material scene expected to report an explicit runtime CPU fallback for GPU requests.",
-      "workloads": ["fallback"]
+      "description": "Transparent-material scene for packed/GPU intersection and compiled path-loop glass transport checks.",
+      "workloads": ["cpu", "hybrid", "gpu"]
     }
   ]
 }

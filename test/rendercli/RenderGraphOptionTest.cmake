@@ -4053,7 +4053,7 @@ rendercli_assert_image_nonempty("${wavefront_glass_backend_cpu_render}"
                                 NAME "CPU wavefront glass backend baseline pixels")
 
 rendercli_run(
-  NAME "rendercli reports transparent wavefront GPU request runtime fallback"
+  NAME "rendercli reports transparent wavefront GPU request packed intersection"
   OUTPUT_VARIABLE wavefront_glass_backend_gpu_stdout
   COMMAND
     "${RENDERCLI}" --engine wavefront --width 24 --height 24 --depth 4
@@ -4063,22 +4063,19 @@ rendercli_run(
 rendercli_assert_image_nonempty("${wavefront_glass_backend_gpu_render}"
                                 NAME "GPU-requested wavefront glass backend pixels")
 rendercli_assert_image_rms_at_most("${wavefront_glass_backend_cpu_render}"
-                                   "${wavefront_glass_backend_gpu_render}" 0.001
+                                   "${wavefront_glass_backend_gpu_render}" 0.05
                                    NAME
-                                     "wavefront transparent GPU-request fallback matches CPU")
+                                     "wavefront transparent GPU-request packed path matches CPU")
 foreach(expectation
-        "tracing_backend=cpu"
+        "tracing_backend=(cpu|metal|vulkan)"
         "tracing_backend_mode=wavefront_intersection"
-        "tracing_backend_fallback=GPU_intersection_scene_unsupported"
-        "tracing_backend_capabilities=20"
         "intersection_backend_request=gpu"
-        "intersection_backend=cpu"
-        "intersection_backend_availability=fallback"
-        "intersection_backend_fallback=GPU_intersection_scene_unsupported"
-        "intersection_backend_execution=runtime_scene"
+        "intersection_backend=(cpu|metal|vulkan)"
+        "intersection_backend_availability=(available|fallback)"
+        "intersection_backend_execution=(packed_cpu|metal|vulkan)"
+        "closest_hit_execution=(packed_cpu|metal|vulkan)"
         "intersection_scene_compiled=true"
-        "intersection_scene_unsupported=[1-9][0-9]*"
-        "intersection_scene_unsupported_by_reason=transparent_material_requires_runtime_intersection_for_Whitted_continuation_precision:[1-9][0-9]*")
+        "intersection_scene_unsupported=0")
   if(NOT wavefront_glass_backend_gpu_stdout MATCHES "${expectation}")
     _rendercli_fail("rendercli transparent wavefront backend summary ${expectation}"
                     "transparent wavefront backend summary did not match ${expectation}"

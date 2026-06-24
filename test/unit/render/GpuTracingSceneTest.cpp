@@ -442,13 +442,15 @@ namespace GpuTracingSceneTest {
     EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingMaterialKind::Phong), record->kind);
     EXPECT_EQ(4u, record->albedoTexture);
     expectFloat4(record->parameters, 0.125f, 0.25f, 0.5f, 32.0f);
-    expectFloat4(record->continuationParameters, 0.75f, 0.5f, 0.25f, 0.0f);
+    expectFloat4(record->specularParameters, 0.75f, 0.5f, 0.25f, 0.0f);
+    expectFloat4(record->continuationParameters, 0.0f, 0.0f, 0.0f, 0.0f);
   }
 
   TEST(GpuTracingScene, ReflectiveMaterialPacksMirrorContinuationParameters) {
     ReflectiveMaterial material;
     material.setAmbientCoefficient(0.125);
     material.setDiffuseCoefficient(0.25);
+    material.setSpecularColor(Colord(0.25, 0.5, 0.75));
     material.setSpecularCoefficient(0.5);
     material.setExponent(32.0);
     material.setReflectionColor(Colord(0.75, 0.5, 0.25));
@@ -461,18 +463,32 @@ namespace GpuTracingSceneTest {
     EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingMaterialKind::Reflective), record->kind);
     EXPECT_EQ(4u, record->albedoTexture);
     expectFloat4(record->parameters, 0.125f, 0.25f, 0.5f, 32.0f);
+    expectFloat4(record->specularParameters, 0.25f, 0.5f, 0.75f, 0.0f);
     expectFloat4(record->continuationParameters, 0.75f, 0.5f, 0.25f, 0.375f);
   }
 
-  TEST(GpuTracingScene, TransparentMaterialReportsExplicitRefractionUnsupportedReason) {
-    const TransparentMaterial material;
-    std::string reason;
+  TEST(GpuTracingScene, TransparentMaterialPacksLocalReflectionAndTransmissionParameters) {
+    TransparentMaterial material;
+    material.setAmbientCoefficient(0.125);
+    material.setDiffuseCoefficient(0.25);
+    material.setSpecularColor(Colord(0.2, 0.4, 0.8));
+    material.setSpecularCoefficient(0.5);
+    material.setExponent(32.0);
+    material.setReflectionColor(Colord(0.75, 0.5, 0.25));
+    material.setReflectionCoefficient(0.375);
+    material.setTransmissionCoefficient(0.625);
+    material.setRefractionIndex(1.5);
 
     const std::optional<GpuTracingMaterialRecord> record =
-      makeGpuTracingMaterialRecord(material, 0, 0, &reason);
+      makeGpuTracingMaterialRecord(material, 4, 0);
 
-    EXPECT_FALSE(record.has_value());
-    EXPECT_EQ("transparent/refraction materials are not supported by GPU Whitted v1", reason);
+    ASSERT_TRUE(record.has_value());
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingMaterialKind::Transparent), record->kind);
+    EXPECT_EQ(4u, record->albedoTexture);
+    expectFloat4(record->parameters, 0.125f, 0.25f, 0.5f, 32.0f);
+    expectFloat4(record->specularParameters, 0.2f, 0.4f, 0.8f, 0.0f);
+    expectFloat4(record->continuationParameters, 0.75f, 0.5f, 0.25f, 0.375f);
+    expectFloat4(record->transmissionParameters, 0.625f, 1.5f, 0.0f, 0.0f);
   }
 
   TEST(GpuTracingScene, CompilesMaterialAndTextureRecordsAtRuntimeIds) {
@@ -656,7 +672,7 @@ namespace GpuTracingSceneTest {
     EXPECT_EQ(compilation.sections.uploadByteCount(), compilation.diagnostics.uploadBytes);
   }
 
-  TEST(GpuTracingScene, CombinedCompilationReportsUnsupportedPrimitives) {
+  TEST(GpuTracingScene, CombinedCompilationSupportsTransparentMaterials) {
     auto sphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
     sphere->setMaterial(std::make_shared<TransparentMaterial>());
     Scene scene;
@@ -664,11 +680,15 @@ namespace GpuTracingSceneTest {
 
     const GpuTracingSceneCompilation compilation = compileGpuTracingScene(scene);
 
-    EXPECT_FALSE(compilation.supported());
-    EXPECT_EQ(1u, compilation.diagnostics.unsupportedPrimitives);
-    EXPECT_EQ(1u, compilation.diagnostics.unsupportedPrimitiveReasons.at(
-                    "transparent material requires runtime intersection for Whitted continuation "
-                    "precision"));
+    EXPECT_TRUE(compilation.supported());
+    EXPECT_EQ(0u, compilation.diagnostics.unsupportedPrimitives);
+    EXPECT_TRUE(compilation.diagnostics.unsupportedPrimitiveReasons.empty());
+    const auto transparentKind = static_cast<std::uint32_t>(GpuTracingMaterialKind::Transparent);
+    bool foundTransparentMaterial = false;
+    for (const GpuTracingMaterialRecord& material : compilation.sections.materials) {
+      foundTransparentMaterial = foundTransparentMaterial || material.kind == transparentKind;
+    }
+    EXPECT_TRUE(foundTransparentMaterial);
   }
 
   TEST(GpuTracingScene, DiffusePathLoopSupportAcceptsMattePhongAndEmissiveScenes) {
@@ -703,6 +723,25 @@ namespace GpuTracingSceneTest {
       std::make_shared<ConstantColorTexture>(Colord(0.25, 0.5, 0.75)));
     auto sphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
     sphere->setMaterial(reflective);
+    Scene scene;
+    scene.setBackground(Colord(0.1, 0.2, 0.3));
+    scene.setEnvironmentRadiance(Colord(0.1, 0.2, 0.3));
+    scene.add(sphere);
+
+    const GpuTracingSceneCompilation compilation = compileGpuTracingScene(scene);
+    ASSERT_TRUE(compilation.supported());
+    const GpuDiffusePathLoopSupport support = gpuDiffusePathLoopSupport(compilation, scene);
+
+    EXPECT_TRUE(support.supported);
+    EXPECT_TRUE(support.reason.empty());
+    EXPECT_TRUE(gpuDiffusePathLoopUnsupportedReason(compilation, scene).empty());
+  }
+
+  TEST(GpuTracingScene, DiffusePathLoopSupportAcceptsTransparentMaterials) {
+    auto transparent = std::make_shared<TransparentMaterial>(
+      std::make_shared<ConstantColorTexture>(Colord(0.25, 0.5, 0.75)));
+    auto sphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    sphere->setMaterial(transparent);
     Scene scene;
     scene.setBackground(Colord(0.1, 0.2, 0.3));
     scene.setEnvironmentRadiance(Colord(0.1, 0.2, 0.3));

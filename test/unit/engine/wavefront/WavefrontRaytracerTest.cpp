@@ -2377,7 +2377,7 @@ namespace WavefrontRaytracerTest {
              .toDouble());
   }
 
-  TEST(WavefrontRaytracer, RecordsTransparentIntersectionSceneFallbackMetrics) {
+  TEST(WavefrontRaytracer, RecordsTransparentIntersectionScenePackedMetrics) {
     auto scene = std::make_shared<render::Scene>(Colord::black());
     auto sphere = std::make_shared<render::Sphere>(Vector3d(0, 0, 0), 1.0);
     sphere->setName("glass sphere");
@@ -2394,34 +2394,33 @@ namespace WavefrontRaytracerTest {
 
     const auto metrics = renderer->lastMetrics();
     EXPECT_EQ("gpu", metrics.batching.intersectionBackendRequest);
-    EXPECT_EQ("cpu", metrics.batching.intersectionBackend);
-    EXPECT_EQ("fallback", metrics.batching.intersectionBackendAvailability);
-    EXPECT_EQ("GPU intersection scene unsupported: glass sphere: transparent material requires "
-              "runtime intersection for Whitted continuation precision",
-              metrics.batching.intersectionBackendFallbackReason);
-    EXPECT_EQ("runtime_scene", metrics.batching.intersectionBackendExecutionPath);
+    if (usedPlatformClosestHit(metrics)) {
+      EXPECT_EQ(metrics.batching.intersectionBackendExecutionPath,
+                metrics.batching.intersectionBackend);
+      EXPECT_EQ("available", metrics.batching.intersectionBackendAvailability);
+      EXPECT_TRUE(metrics.batching.intersectionBackendFallbackReason.empty());
+    } else {
+      EXPECT_EQ("cpu", metrics.batching.intersectionBackend);
+      EXPECT_EQ("fallback", metrics.batching.intersectionBackendAvailability);
+      expectPlatformGpuFallbackReason(metrics.batching.intersectionBackendFallbackReason);
+      EXPECT_EQ("packed_cpu", metrics.batching.intersectionBackendExecutionPath);
+    }
     EXPECT_TRUE(metrics.batching.intersectionSceneCompiled);
     EXPECT_EQ(1u, metrics.batching.intersectionScenePrimitives);
-    EXPECT_EQ(1u, metrics.batching.intersectionSceneUnsupportedPrimitives);
-    ASSERT_EQ(1u, metrics.batching.intersectionSceneUnsupportedReasons.size());
-    EXPECT_EQ(1u, metrics.batching.intersectionSceneUnsupportedReasons.at(
-                    "transparent material requires runtime intersection for Whitted continuation "
-                    "precision"));
-    EXPECT_EQ(0u, metrics.batching.intersectionSceneUploadBytes);
-    EXPECT_FALSE(metrics.batching.intersectionSceneBasicHitEligible);
-    EXPECT_FALSE(metrics.batching.intersectionScenePackedClosestHitEligible);
-    EXPECT_FALSE(metrics.batching.intersectionScenePackedAnyHitEligible);
+    EXPECT_EQ(1u, metrics.batching.intersectionSceneSpheres);
+    EXPECT_EQ(0u, metrics.batching.intersectionSceneUnsupportedPrimitives);
+    EXPECT_TRUE(metrics.batching.intersectionSceneUnsupportedReasons.empty());
+    EXPECT_GT(metrics.batching.intersectionSceneUploadBytes, 0u);
+    EXPECT_TRUE(metrics.batching.intersectionSceneBasicHitEligible);
+    EXPECT_TRUE(metrics.batching.intersectionScenePackedClosestHitEligible);
+    EXPECT_TRUE(metrics.batching.intersectionScenePackedAnyHitEligible);
 
     const QJsonObject batching = metrics.toJson().value("batching").toObject();
     const QJsonObject unsupportedReasons =
       batching.value("intersectionSceneUnsupportedReasons").toObject();
-    EXPECT_EQ("GPU intersection scene unsupported: glass sphere: transparent material requires "
-              "runtime intersection for Whitted continuation precision",
-              batching.value("intersectionBackendFallbackReason").toString().toStdString());
-    EXPECT_EQ(1.0, unsupportedReasons
-                     .value("transparent material requires runtime intersection for Whitted "
-                            "continuation precision")
-                     .toDouble());
+    EXPECT_TRUE(unsupportedReasons.isEmpty());
+    EXPECT_EQ(0.0, batching.value("intersectionSceneUnsupportedPrimitives").toDouble());
+    EXPECT_EQ(true, batching.value("intersectionScenePackedClosestHitEligible").toBool());
   }
 
   TEST(WavefrontRaytracer, SerializesEmitterHitMetrics) {

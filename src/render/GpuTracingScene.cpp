@@ -142,9 +142,9 @@ namespace {
 
   void packPhongSpecularParameters(const PhongMaterial& material,
                                    GpuTracingMaterialRecord& record) {
-    record.continuationParameters = {static_cast<float>(material.specularColor().r()),
-                                     static_cast<float>(material.specularColor().g()),
-                                     static_cast<float>(material.specularColor().b()), 0.0f};
+    record.specularParameters = {static_cast<float>(material.specularColor().r()),
+                                 static_cast<float>(material.specularColor().g()),
+                                 static_cast<float>(material.specularColor().b()), 0.0f};
   }
 
   void packMirrorContinuationParameters(const ReflectiveMaterial& material,
@@ -153,6 +153,16 @@ namespace {
                                      static_cast<float>(material.reflectionColor().g()),
                                      static_cast<float>(material.reflectionColor().b()),
                                      static_cast<float>(material.reflectionCoefficient())};
+  }
+
+  void packTransparentParameters(const TransparentMaterial& material,
+                                 GpuTracingMaterialRecord& record) {
+    record.continuationParameters = {static_cast<float>(material.reflectionColor().r()),
+                                     static_cast<float>(material.reflectionColor().g()),
+                                     static_cast<float>(material.reflectionColor().b()),
+                                     static_cast<float>(material.reflectionCoefficient())};
+    record.transmissionParameters = {static_cast<float>(material.transmissionCoefficient()),
+                                     static_cast<float>(material.refractionIndex()), 0.0f, 0.0f};
   }
 
   std::optional<std::uint32_t> mappingFlagsFor(const TextureMapping2D* mapping,
@@ -338,12 +348,38 @@ namespace {
       record.kind = static_cast<std::uint32_t>(GpuTracingMaterialKind::Reflective);
       record.albedoTexture = resources.textureIdFor(m_material.diffuseTexture());
       packLocalPhongParameters(m_material, record);
+      packPhongSpecularParameters(m_material, record);
       packMirrorContinuationParameters(m_material, record);
       return record;
     }
 
   private:
     const ReflectiveMaterial& m_material;
+  };
+
+  class GpuTracingTransparentMaterialModel final : public GpuTracingMaterialModel {
+  public:
+    explicit GpuTracingTransparentMaterialModel(const TransparentMaterial& material)
+        : m_material(material) {
+    }
+
+    std::optional<GpuTracingMaterialRecord> record(GpuTracingMaterialResourceContext& resources,
+                                                   std::string* unsupportedReason) const override {
+      if (rejectNormalTexture(m_material, unsupportedReason)) {
+        return std::nullopt;
+      }
+
+      GpuTracingMaterialRecord record;
+      record.kind = static_cast<std::uint32_t>(GpuTracingMaterialKind::Transparent);
+      record.albedoTexture = resources.textureIdFor(m_material.diffuseTexture());
+      packLocalPhongParameters(m_material, record);
+      packPhongSpecularParameters(m_material, record);
+      packTransparentParameters(m_material, record);
+      return record;
+    }
+
+  private:
+    const TransparentMaterial& m_material;
   };
 
   class GpuTracingEmissiveMaterialModel final : public GpuTracingMaterialModel {
@@ -383,9 +419,8 @@ namespace {
       m_model = std::make_unique<GpuTracingReflectiveMaterialModel>(material);
     }
 
-    void visit(const TransparentMaterial&) override {
-      m_unsupportedReason = "transparent/refraction materials are not supported by GPU Whitted v1";
-      m_model.reset();
+    void visit(const TransparentMaterial& material) override {
+      m_model = std::make_unique<GpuTracingTransparentMaterialModel>(material);
     }
 
     void visit(const EmissiveMaterial& material) override {
@@ -741,10 +776,10 @@ render::gpuDiffusePathLoopSupport(const GpuTracingSceneCompilation& compilation,
     const auto kind =
       static_cast<GpuTracingMaterialKind>(compilation.sections.materials[materialId].kind);
     if (kind != GpuTracingMaterialKind::Matte && kind != GpuTracingMaterialKind::Phong &&
-        kind != GpuTracingMaterialKind::Reflective && kind != GpuTracingMaterialKind::Emissive) {
-      return {false,
-              "GPU diffuse path loop supports only matte, Phong finite glossy, reflective, and "
-              "emissive materials"};
+        kind != GpuTracingMaterialKind::Reflective && kind != GpuTracingMaterialKind::Transparent &&
+        kind != GpuTracingMaterialKind::Emissive) {
+      return {false, "GPU diffuse path loop supports only matte, Phong finite glossy, reflective, "
+                     "transparent, and emissive materials"};
     }
   }
 

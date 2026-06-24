@@ -306,7 +306,7 @@ namespace IntersectionSceneCompilerTest {
               compiled.unsupportedPrimitives()[0].reason);
   }
 
-  TEST(IntersectionSceneCompiler, RecordsUnsupportedMaterialReasonsBeforePayloads) {
+  TEST(IntersectionSceneCompiler, TransparentMaterialsCompileIntoPackedScene) {
     auto sphere = std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0);
     sphere->setName("glass sphere");
     sphere->setMaterial(std::make_shared<TransparentMaterial>());
@@ -316,15 +316,10 @@ namespace IntersectionSceneCompilerTest {
     const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
 
     ASSERT_EQ(1u, compiled.primitives().size());
-    ASSERT_EQ(1u, compiled.unsupportedPrimitives().size());
-    EXPECT_FALSE(compiled.fullySupported());
-    EXPECT_TRUE(compiled.spheres().empty());
-    EXPECT_EQ(IntersectionPrimitiveKind::Unsupported, compiled.primitives()[0].kind);
-    EXPECT_EQ(compiled.primitives()[0].object, compiled.unsupportedPrimitives()[0].object);
-    EXPECT_EQ("glass sphere", compiled.unsupportedPrimitives()[0].primitiveName);
-    EXPECT_EQ("transparent material requires runtime intersection for Whitted continuation "
-              "precision",
-              compiled.unsupportedPrimitives()[0].reason);
+    ASSERT_EQ(1u, compiled.spheres().size());
+    EXPECT_TRUE(compiled.unsupportedPrimitives().empty());
+    EXPECT_TRUE(compiled.fullySupported());
+    EXPECT_EQ(IntersectionPrimitiveKind::Sphere, compiled.primitives()[0].kind);
   }
 
   TEST(IntersectionSceneCompiler, CountsUnsupportedPrimitiveReasonsInFirstSeenOrder) {

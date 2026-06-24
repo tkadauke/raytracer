@@ -432,12 +432,18 @@ namespace {
 
   bool isPathLoopSurfaceMaterial(GpuTracingMaterialKind kind) {
     return kind == GpuTracingMaterialKind::Matte || kind == GpuTracingMaterialKind::Phong ||
-           kind == GpuTracingMaterialKind::Reflective;
+           kind == GpuTracingMaterialKind::Reflective ||
+           kind == GpuTracingMaterialKind::Transparent;
   }
 
   Colord diffuseBsdf(const GpuTracingSceneSections& scene, const GpuTracingMaterialRecord& material,
                      const GpuIntersectionHitRecord& hit) {
     return textureColor(scene, material.albedoTexture, hit) * material.parameters[1] * invPI;
+  }
+
+  bool hasFinitePhongLobes(GpuTracingMaterialKind kind) {
+    return kind == GpuTracingMaterialKind::Phong || kind == GpuTracingMaterialKind::Reflective ||
+           kind == GpuTracingMaterialKind::Transparent;
   }
 
   Colord glossyPhongBsdf(const GpuTracingMaterialRecord& material, const Vector3d& normal,
@@ -450,7 +456,7 @@ namespace {
     if (lobeDotOut <= 0.0) {
       return Colord::black();
     }
-    return Colord(material.continuationParameters) * material.parameters[2] *
+    return Colord(material.specularParameters) * material.parameters[2] *
            std::pow(lobeDotOut, material.parameters[3]);
   }
 
@@ -458,7 +464,7 @@ namespace {
                     const GpuIntersectionHitRecord& hit, const Vector3d& normal, const Vector3d& wi,
                     const Vector3d& wo) {
     Colord value = diffuseBsdf(scene, material, hit);
-    if (static_cast<GpuTracingMaterialKind>(material.kind) == GpuTracingMaterialKind::Phong) {
+    if (hasFinitePhongLobes(static_cast<GpuTracingMaterialKind>(material.kind))) {
       value += glossyPhongBsdf(material, normal, wi, wo);
     }
     return value;
@@ -479,13 +485,17 @@ namespace {
 
   double finiteBsdfPdf(const GpuTracingMaterialRecord& material, const Vector3d& normal,
                        const Vector3d& wi, const Vector3d& wo) {
-    if (static_cast<GpuTracingMaterialKind>(material.kind) != GpuTracingMaterialKind::Phong) {
+    const auto kind = static_cast<GpuTracingMaterialKind>(material.kind);
+    if (kind == GpuTracingMaterialKind::Matte) {
       return cosineHemispherePdf(normal, wo);
     }
-    const double diffuseWeight = diffuseSamplingWeight(material);
-    const double specularWeight = 1.0 - diffuseWeight;
-    return diffuseWeight * cosineHemispherePdf(normal, wo) +
-           specularWeight * phongLobePdf(material, normal, wi, wo);
+    if (kind == GpuTracingMaterialKind::Phong) {
+      const double diffuseWeight = diffuseSamplingWeight(material);
+      const double specularWeight = 1.0 - diffuseWeight;
+      return diffuseWeight * cosineHemispherePdf(normal, wo) +
+             specularWeight * phongLobePdf(material, normal, wi, wo);
+    }
+    return 0.0;
   }
 
   Vector3d sampleFiniteBsdfDirection(const GpuTracingMaterialRecord& material,
@@ -514,6 +524,66 @@ namespace {
 
   Vector3d mirrorContinuationDirection(const Vector3d& wi, const Vector3d& normal) {
     return (-wi).reflect(normal).normalized();
+  }
+
+  double transparentEta(const GpuTracingMaterialRecord& material, const Vector3d& wi,
+                        const Vector3d& normal) {
+    const double ior = material.transmissionParameters[1];
+    return (normal * wi) < 0.0 ? 1.0 / ior : ior;
+  }
+
+  bool transparentTotalInternalReflection(const GpuTracingMaterialRecord& material,
+                                          const Vector3d& wi, const Vector3d& normal) {
+    const double cosTheta = normal * wi;
+    const double eta = transparentEta(material, wi, normal);
+    return 1.0 - (1.0 - cosTheta * cosTheta) / (eta * eta) < 0.0;
+  }
+
+  Vector3d transparentTransmissionDirection(const GpuTracingMaterialRecord& material,
+                                            const Vector3d& wi, const Vector3d& normal) {
+    Vector3d orientedNormal = normal;
+    double eta = material.transmissionParameters[1];
+    if ((orientedNormal * wi) < 0.0) {
+      orientedNormal = -orientedNormal;
+      eta = 1.0 / eta;
+    }
+    return wi.refract(orientedNormal, eta).normalized();
+  }
+
+  struct DeltaContinuation {
+    Vector3d direction{Vector3d::null};
+    Colord weight{Colord::black()};
+  };
+
+  DeltaContinuation transparentContinuation(const GpuTracingMaterialRecord& material,
+                                            const Vector3d& wi, const Vector3d& normal,
+                                            double selector) {
+    if (transparentTotalInternalReflection(material, wi, normal)) {
+      return {mirrorContinuationDirection(wi, normal), Colord::white()};
+    }
+
+    const double reflection = std::max(0.0f, material.continuationParameters[3]);
+    const double transmission = std::max(0.0f, material.transmissionParameters[0]);
+    const double total = reflection + transmission;
+    if (total <= 0.0) {
+      return {};
+    }
+
+    const double reflectionWeight = reflection / total;
+    if (reflectionWeight > 0.0 && selector < reflectionWeight) {
+      return {mirrorContinuationDirection(wi, normal),
+              mirrorReflectance(material) / reflectionWeight};
+    }
+
+    const double transmissionWeight = 1.0 - reflectionWeight;
+    if (transmissionWeight <= 0.0) {
+      return {};
+    }
+    const double eta = transparentEta(material, wi, normal);
+    const Colord transmissionWeightColor =
+      Colord::white() *
+      (static_cast<double>(material.transmissionParameters[0]) / (eta * eta) / transmissionWeight);
+    return {transparentTransmissionDirection(material, wi, normal), transmissionWeightColor};
   }
 
   void terminate(GpuDiffusePathStateRecord& pathState) {
@@ -1423,6 +1493,41 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
       const Vector3d wo = mirrorContinuationDirection(wi, normal);
       pathState.ray =
         packRay(Rayd(Vector4d(hit.point), wo).epsilonShifted(), pathState.ray.rayIndex,
+                kPackedRayMinimumDistance, std::numeric_limits<double>::infinity());
+      pathState.throughput = nextThroughput.toFloat4(0.0f);
+      pathState.accumulatedRadiance = accumulated.toFloat4(0.0f);
+      pathState.depth += 1u;
+      pathState.previousBsdfPdf = 1.0f;
+      pathState.previousLightPdf = 0.0f;
+      pathState.previousMaterial = hit.material;
+      pathState.previousEventFlags =
+        gpuDiffusePathStateSampledFromBsdfFlag | gpuDiffusePathStateBsdfSampleDeltaFlag;
+      pathState.flags |= gpuDiffusePathStateActiveFlag;
+      pathState.flags &= ~gpuDiffusePathStateTerminatedFlag;
+      stepRecord.continuationThroughput = pathState.throughput;
+      stepRecord.flags = pathState.flags;
+      result.pathStates.push_back(pathState);
+      ++result.metrics.spawnedContinuations;
+      continue;
+    }
+
+    if (materialKind == GpuTracingMaterialKind::Transparent) {
+      const Vector2d bsdfSample =
+        sample2D(pathState, sampleDimension(pathState, kBsdfSampleDimensionOffset));
+      const DeltaContinuation delta =
+        transparentContinuation(material, wi, normal, std::clamp(bsdfSample.x(), 0.0, 1.0));
+      Colord nextThroughput = throughput * delta.weight;
+      if (delta.direction == Vector3d::null || nextThroughput == Colord::black()) {
+        pathState.accumulatedRadiance = accumulated.toFloat4(0.0f);
+        terminate(pathState);
+        stepRecord.flags = pathState.flags;
+        result.terminatedPathStates.push_back(pathState);
+        ++result.metrics.terminatedPaths;
+        continue;
+      }
+
+      pathState.ray =
+        packRay(Rayd(Vector4d(hit.point), delta.direction).epsilonShifted(), pathState.ray.rayIndex,
                 kPackedRayMinimumDistance, std::numeric_limits<double>::infinity());
       pathState.throughput = nextThroughput.toFloat4(0.0f);
       pathState.accumulatedRadiance = accumulated.toFloat4(0.0f);

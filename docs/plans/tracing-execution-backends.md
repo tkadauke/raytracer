@@ -75,8 +75,10 @@ end state for GPU tracing.
 - `render::GpuTracingSceneSections` and diagnostics compile GPU-readable
   material, texture, light, environment, and debug-id records for the initial
   supported shading subset: Matte materials, Phong finite diffuse/glossy shading,
-  Emissive materials, ConstantColor, simple CheckerBoard, and nearest
-  ImageTexture records, PointLight, DirectionalLight, and RectangularAreaLight.
+  Reflective mirror continuations, Transparent perfect reflection/refraction
+  continuations, Emissive materials, ConstantColor, simple CheckerBoard, and
+  nearest ImageTexture records, PointLight, DirectionalLight, and
+  RectangularAreaLight.
 - `render::GpuSampleStream` provides the CPU reference for deterministic
   GPU-style sampling dimensions with fixed-vector coverage.
 - Supported diffuse path-tracing scenes can route GPU execution requests
@@ -124,10 +126,10 @@ end state for GPU tracing.
 - Broad platform full-GPU path-loop kernels for the normal render path. A
   restricted Metal path-loop kernel can advance empty-scene and
   optionally transformed triangle/sphere/plane/rectangle/disk/open-cylinder/
-  torus paths with Matte, Phong finite diffuse/glossy, Reflective mirror, or Emissive
-  materials across multiple depths for backend tests and explicit GPU graph
-  requests when the light set is empty or uses point, directional, or
-  rectangular area lights. A
+  torus paths with Matte, Phong finite diffuse/glossy, Reflective mirror,
+  Transparent perfect reflection/refraction, or Emissive materials across
+  multiple depths for backend tests and explicit GPU graph requests when the
+  light set is empty or uses point, directional, or rectangular area lights. A
   restricted Vulkan path-loop backend can execute empty-scene all-miss paths and
   a first one-depth shaded one-sphere subset with Matte/Emissive ConstantColor
   materials and zero or one point light when Vulkan is built and available.
@@ -138,8 +140,8 @@ end state for GPU tracing.
   can return Metal or Vulkan platform backends in platform-enabled builds, but
   ordinary builds and unsupported scenes still fall back to the CPU-reference or
   hybrid diagnostic backend.
-- GPU material records beyond the current Matte, Emissive, Phong, and
-  Reflective subset.
+- GPU material records beyond the current Matte, Emissive, Phong, Reflective,
+  and Transparent subset.
 - GPU texture records beyond ConstantColor, the first simple CheckerBoard
   subset, and nearest ImageTexture records.
 - GPU light records beyond PointLight, DirectionalLight, and
@@ -728,7 +730,8 @@ diagnostics should use the capability model.
 - CPU/packed/GPU closest-hit record parity.
 - CPU/packed/GPU any-hit parity.
 - Rendered image RMS parity for deterministic supported scenes.
-- Explicit fallback test for transparent/glass scene.
+- Transparent/glass packed-intersection eligibility, plus explicit fallback
+  tests for genuinely unsupported scene features.
 - rendercli summary shows the actual execution path.
 - Benchmarks capture large supported scenes before enabling `auto` GPU
   selection by default.
@@ -804,8 +807,11 @@ for material/light records.
     now carries `ReflectiveMaterial` local Phong coefficients plus mirror
     reflection color/coefficient continuation parameters for GPU Whitted v1
     record consumers.
-  - transparent/glass explicitly unsupported for first GPU path-tracing subset
-    unless the continuation contract is ready.
+  - ~~transparent/glass explicitly unsupported for first GPU path-tracing subset
+    unless the continuation contract is ready~~ ✅ **Done.** The restricted
+    compiled path-loop subset now lowers `TransparentMaterial` local Phong
+    state plus reflection/transmission continuation coefficients and samples one
+    perfect delta branch per path state.
 - Start with a restricted texture subset:
   - constant color;
   - checkerboard if UV/local-coordinate payloads are ready;
@@ -1066,7 +1072,7 @@ scene subset.
 - Constant-color texture.
 - Point/directional/rectangular area lights.
 - Environment/miss color.
-- No transparent/glass.
+- Transparent perfect reflection/refraction delta continuations.
 - No procedural textures except explicit first subset.
 - No motion blur.
 - No DOF until lens sampling is included.
@@ -1174,12 +1180,13 @@ The explicit unsupported list for v1 is:
 - partial per-object GPU fallback inside one render. A scene is GPU Whitted
   eligible only when every required record and backend service is supported.
 
-Transparent/glass is intentionally out of GPU Whitted v1. Unsupported glass
-must produce an explicit capability/fallback reason and run through the CPU
-Whitted path instead of approximating refraction as opacity, alpha blending, or
-mirror reflection. Glass can be reconsidered only after hit metadata,
-inside/outside medium state, nested IOR handling, and transparent any-hit
-semantics are represented in the shared tracing records.
+Transparent/glass full-GPU Whitted shading is intentionally out of GPU Whitted
+v1. Transparent scenes may still use the shared compiled/packed intersection
+service, but continuation and refraction shading stay CPU-owned instead of
+being approximated as opacity, alpha blending, or mirror reflection. Full GPU
+glass shading can be reconsidered only after hit metadata, inside/outside
+medium state, nested IOR handling, and transparent any-hit semantics are
+represented in the shared tracing records.
 
 The recursion policy is iterative rather than device call-stack recursive. The
 GPU schedule may be wavefront/depth-major or use an explicit bounded stack, but
@@ -1215,7 +1222,8 @@ surface.
 **Tests/gates:**
 
 - CPU Whitted vs GPU Whitted image parity on supported deterministic scenes.
-- Fallback tests for TransparentMaterial until supported.
+- Packed-intersection eligibility tests for `TransparentMaterial`, plus
+  full-GPU Whitted fallback tests until transparent shading is supported there.
 - Reflection depth behavior matches CPU.
 
 **Syrus-ready:** future. Not first.
@@ -1627,9 +1635,10 @@ for tracing, shadows, visibility, and graph passes.
      parity tests for triangle, mesh triangle, sphere, plane, rectangle, disk,
      OpenCylinder, Torus, and static transforms.
 
-3. ~~**Stabilize explicit fallback behavior.**~~ ✅ **Done.** Issue #571 pins
-   deterministic GPU-intersection unsupported-scene fallback reasons for
-   transparent/glass and generic unsupported scenes in backend and metrics tests.
+3. ~~**Stabilize explicit fallback behavior.**~~ ✅ **Done.** Issue #571 pinned
+   deterministic GPU-intersection fallback reasons; transparent/glass now has
+   packed-intersection eligibility tests, while generic unsupported scenes still
+   prove fallback behavior in backend and metrics tests.
    - Depends on: job 1.
    - Output: ~~tests for transparent/glass and unsupported scene features
      proving they fall back before rendering or report why they cannot use the
@@ -2431,9 +2440,9 @@ infrastructure exists.
 **Jobs:**
 
 1. ~~**Define supported Whitted subset.**~~ ✅ **Done.** The GPU Whitted v1
-   supported materials, lights, recursion policy, transparent/glass exclusion,
-   and shared-service requirements are documented in Milestone 11 for issue
-   #638.
+   supported materials, lights, recursion policy, full-shading
+   transparent/glass exclusion, and shared-service requirements are documented
+   in Milestone 11 for issue #638.
    - Depends on: none.
    - Output: supported materials, lights, recursion/iteration policy, and
      explicit transparent/glass decision.
@@ -2507,9 +2516,9 @@ scene is large enough to amortize upload/readback costs.
    - Output: supported initial path states, compiled scene records, fixed GPU
      sample stream dimensions, diffuse continuation, direct light sampling,
      any-hit visibility, path-state compaction, and accumulation execute inside
-     one Metal backend for Matte, Phong finite diffuse/glossy, Reflective mirror, or
-     Emissive scenes using ConstantColor, simple CheckerBoard, or nearest
-     ImageTexture records.
+     one Metal backend for Matte, Phong finite diffuse/glossy, Reflective
+     mirror, Transparent perfect reflection/refraction, or Emissive scenes
+     using ConstantColor, simple CheckerBoard, or nearest ImageTexture records.
      ✅ **Started.**
      `MetalGpuDiffusePathLoopKernel` now compiles and dispatches a Metal
      launch-probe kernel that binds the shader-facing path-loop descriptor plus
@@ -2553,8 +2562,9 @@ scene is large enough to amortize upload/readback costs.
      path-loop kernel. A restricted `MetalGpuDiffusePathLoopBackend` now wraps
      the empty-scene and optionally transformed
      triangle/sphere/plane/rectangle/disk/open-cylinder/torus Matte,
-     Phong finite diffuse/glossy, Reflective-mirror, and Emissive paths with empty, point-light,
-     directional-light, or rectangular-area-light scenes behind the platform
+     Phong finite diffuse/glossy, Reflective-mirror, Transparent refraction,
+     and Emissive paths with empty, point-light, directional-light, or
+     rectangular-area-light scenes behind the platform
      backend interface, including scene/settings support rejection and
      full-GPU result metadata for backend tests. Its first real path-loop
      dispatch can advance supported paths across multiple depths inside one
@@ -2565,12 +2575,12 @@ scene is large enough to amortize upload/readback costs.
      on the Metal path-loop kernel by switching duplicate output-pixel samples
      to sample-slot platform accumulation and resolving the averaged final
      image from the Metal accumulation planes. The compiled path loop also
-     carries `ReflectiveMaterial` delta continuations through the CPU reference
-     evaluator and the Metal full-GPU subset. Broader primitive traversal, full
-     material shading, full direct-light coverage, device-side compacted
-     wavefront scheduling, Vulkan parity, performance gates, and render-graph
-     auto-selection still need to land before it can be used as the automatic
-     full GPU tracing path.
+     carries `ReflectiveMaterial` and `TransparentMaterial` delta continuations
+     through the CPU reference evaluator and the Metal full-GPU subset. Broader
+     primitive traversal, full material shading, full direct-light coverage,
+     device-side compacted wavefront scheduling, Vulkan parity, performance
+     gates, and render-graph auto-selection still need to land before it can be
+     used as the automatic full GPU tracing path.
 
 3. **Add a minimal Vulkan path-loop kernel.**
    - Depends on: job 1.

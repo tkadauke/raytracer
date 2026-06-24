@@ -143,7 +143,9 @@ struct GpuTracingMaterialRecord {
   uint emissionTexture;
   uint flags;
   vec4 parameters;
+  vec4 specularParameters;
   vec4 continuationParameters;
+  vec4 transmissionParameters;
 };
 
 struct GpuTracingTextureRecord {
@@ -388,14 +390,16 @@ GpuIntersectionSpherePayload readSphere(uint index) {
 }
 
 GpuTracingMaterialRecord readMaterial(uint materialId) {
-  const uint wordOffset = byteOffsetWords(parameters.materialByteOffset) + materialId * 12u;
+  const uint wordOffset = byteOffsetWords(parameters.materialByteOffset) + materialId * 20u;
   GpuTracingMaterialRecord material;
   material.kind = sceneWords[wordOffset + 0u];
   material.albedoTexture = sceneWords[wordOffset + 1u];
   material.emissionTexture = sceneWords[wordOffset + 2u];
   material.flags = sceneWords[wordOffset + 3u];
   material.parameters = readVec4(wordOffset + 4u);
-  material.continuationParameters = readVec4(wordOffset + 8u);
+  material.specularParameters = readVec4(wordOffset + 8u);
+  material.continuationParameters = readVec4(wordOffset + 12u);
+  material.transmissionParameters = readVec4(wordOffset + 16u);
   return material;
 }
 

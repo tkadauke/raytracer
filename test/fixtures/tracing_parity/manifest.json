@@ -27,7 +27,7 @@
       "description": "SourceAsset-backed STL mesh import that compiles to triangle geometry."
     },
     {
-      "category": "transparent_fallback",
+      "category": "transparent_glass",
       "path": "transparent_fallback.json",
       "description": "Transparent material scene expected to fall back to runtime CPU intersection."
     },
