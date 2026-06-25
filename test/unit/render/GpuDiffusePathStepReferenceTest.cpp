@@ -1883,7 +1883,7 @@ namespace GpuDiffusePathStepReferenceTest {
 #endif
   }
 
-  TEST(VulkanGpuDiffusePathLoopBackend, SupportsEmptyAndSingleAnalyticGeometryWhenEnabled) {
+  TEST(VulkanGpuDiffusePathLoopBackend, SupportsUntransformedAnalyticGeometryWhenEnabled) {
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
     const VulkanGpuDiffusePathLoopBackend backend;
     if (!backend.fullGpuPathLoopAvailable()) {
@@ -1926,6 +1926,19 @@ namespace GpuDiffusePathStepReferenceTest {
       backend.fullGpuPathLoopSupport(sectionsFor(planeScene), settings);
     EXPECT_TRUE(planeSupport.supported);
     EXPECT_TRUE(planeSupport.reason.empty());
+
+    Scene rectangleAndDiskScene;
+    auto rectangle = std::make_shared<Rectangle>(Vector3d(-3.0, -1.0, 0.0), Vector3d(2.0, 0.0, 0.0),
+                                                 Vector3d(0.0, 2.0, 0.0));
+    rectangle->setMaterial(matte);
+    rectangleAndDiskScene.add(rectangle);
+    auto disk = std::make_shared<Disk>(Vector3d(2.0, 0.0, 0.0), Vector3d(0.0, 0.0, 1.0), 0.75);
+    disk->setMaterial(matte);
+    rectangleAndDiskScene.add(disk);
+    const GpuDiffusePathLoopBackendSupport rectangleAndDiskSupport =
+      backend.fullGpuPathLoopSupport(sectionsFor(rectangleAndDiskScene), settings);
+    EXPECT_TRUE(rectangleAndDiskSupport.supported);
+    EXPECT_TRUE(rectangleAndDiskSupport.reason.empty());
 
     Scene phongScene;
     auto phong = std::make_shared<PhongMaterial>(
@@ -2019,14 +2032,13 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_TRUE(areaLightSupport.reason.empty());
 
     Scene unsupportedScene;
-    unsupportedScene.add(std::make_shared<Rectangle>(
-      Vector3d(-1.0, -1.0, 0.0), Vector3d(2.0, 0.0, 0.0), Vector3d(0.0, 2.0, 0.0)));
+    unsupportedScene.add(std::make_shared<Torus>(0.25, 1.0));
     const GpuTracingSceneSections unsupportedSections = sectionsFor(unsupportedScene);
     const GpuDiffusePathLoopBackendSupport unsupportedSupport =
       backend.fullGpuPathLoopSupport(unsupportedSections, settings);
     EXPECT_FALSE(unsupportedSupport.supported);
-    EXPECT_EQ("Vulkan diffuse path-loop backend currently supports empty geometry or one "
-              "untransformed sphere or plane only",
+    EXPECT_EQ("Vulkan diffuse path-loop backend currently supports empty geometry or "
+              "untransformed sphere, plane, rectangle, or disk primitives only",
               unsupportedSupport.reason);
 
     Scene unsupportedMaterialScene;
@@ -2241,6 +2253,54 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(expected.maxDepthTerminatedPaths, result.maxDepthTerminatedPaths);
     ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
     expectPathStateNear(result.resolvedPathStates[0], expected.resolvedPathStates[0], 1e-4);
+#else
+    GTEST_SKIP() << "Vulkan wavefront support is not enabled in this build";
+#endif
+  }
+
+  TEST(VulkanGpuDiffusePathLoopBackend, RunsRectangleAndDiskDiffusePathLoopWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    const VulkanGpuDiffusePathLoopBackend backend;
+    if (!backend.fullGpuPathLoopAvailable()) {
+      GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
+    }
+
+    Scene scene;
+    scene.setEnvironmentRadiance(Colord(0.1, 0.2, 0.3));
+    auto material = std::make_shared<MatteMaterial>(
+      std::make_shared<ConstantColorTexture>(Colord(0.6, 0.5, 0.4)));
+    material->setDiffuseCoefficient(0.9);
+    auto rectangle = std::make_shared<Rectangle>(Vector3d(-3.0, -1.0, 0.0), Vector3d(2.0, 0.0, 0.0),
+                                                 Vector3d(0.0, 2.0, 0.0));
+    rectangle->setMaterial(material);
+    scene.add(rectangle);
+    auto disk = std::make_shared<Disk>(Vector3d(2.0, 0.0, 0.0), Vector3d(0.0, 0.0, 1.0), 0.75);
+    disk->setMaterial(material);
+    scene.add(disk);
+    scene.addLight(std::make_shared<PointLight>(Vector3d(0.0, 0.0, 3.0), Colord(0.8, 0.6, 0.4)));
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+    GpuDiffusePathStateRecord rectanglePath =
+      activePath(Rayd(Vector4d(-2.0, 0.0, -4.0, 1.0), Vector3d(0.0, 0.0, 1.0)), 17);
+    rectanglePath.pixelIndex = 0;
+    GpuDiffusePathStateRecord diskPath =
+      activePath(Rayd(Vector4d(2.0, 0.0, -4.0, 1.0), Vector3d(0.0, 0.0, 1.0)), 18);
+    diskPath.pixelIndex = 1;
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 1;
+    settings.russianRouletteDepth = 10;
+    settings.directLightSamples = 1;
+    const std::vector<GpuDiffusePathStateRecord> paths{rectanglePath, diskPath};
+
+    const GpuDiffusePathLoopResult expected = GpuDiffusePathLoop().run(sections, paths, settings);
+    const GpuDiffusePathLoopResult result = backend.run(sections, paths, settings);
+
+    EXPECT_TRUE(result.fullGpuPathLoopSupported());
+    EXPECT_EQ(expected.depthCount, result.depthCount);
+    EXPECT_EQ(expected.maxDepthTerminatedPaths, result.maxDepthTerminatedPaths);
+    ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
+    expectPathStateNear(result.resolvedPathStates[0], expected.resolvedPathStates[0], 1e-4);
+    expectPathStateNear(result.resolvedPathStates[1], expected.resolvedPathStates[1], 1e-4);
 #else
     GTEST_SKIP() << "Vulkan wavefront support is not enabled in this build";
 #endif

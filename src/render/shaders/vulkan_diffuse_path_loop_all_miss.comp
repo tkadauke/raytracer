@@ -5,6 +5,8 @@ layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 const uint gpuIntersectionLeafNodeFlag = 1u;
 const uint gpuIntersectionSpherePrimitiveKind = 2u;
 const uint gpuIntersectionPlanePrimitiveKind = 3u;
+const uint gpuIntersectionRectanglePrimitiveKind = 4u;
+const uint gpuIntersectionDiskPrimitiveKind = 5u;
 const uint gpuTracingMatteMaterialKind = 1u;
 const uint gpuTracingEmissiveMaterialKind = 2u;
 const uint gpuTracingPhongMaterialKind = 3u;
@@ -113,6 +115,18 @@ struct GpuIntersectionSpherePayload {
 
 struct GpuIntersectionPlanePayload {
   vec4 normalDistance;
+};
+
+struct GpuIntersectionRectanglePayload {
+  vec4 corner;
+  vec4 leg1;
+  vec4 leg2;
+  vec4 normal;
+};
+
+struct GpuIntersectionDiskPayload {
+  vec4 centerRadius;
+  vec4 normalMinimumHitDistance;
 };
 
 struct GpuIntersectionRay {
@@ -452,6 +466,24 @@ GpuIntersectionPlanePayload readPlane(uint index) {
   return plane;
 }
 
+GpuIntersectionRectanglePayload readRectangle(uint index) {
+  const uint wordOffset = byteOffsetWords(parameters.rectangleByteOffset) + index * 16u;
+  GpuIntersectionRectanglePayload rectangle;
+  rectangle.corner = readVec4(wordOffset);
+  rectangle.leg1 = readVec4(wordOffset + 4u);
+  rectangle.leg2 = readVec4(wordOffset + 8u);
+  rectangle.normal = readVec4(wordOffset + 12u);
+  return rectangle;
+}
+
+GpuIntersectionDiskPayload readDisk(uint index) {
+  const uint wordOffset = byteOffsetWords(parameters.diskByteOffset) + index * 8u;
+  GpuIntersectionDiskPayload disk;
+  disk.centerRadius = readVec4(wordOffset);
+  disk.normalMinimumHitDistance = readVec4(wordOffset + 4u);
+  return disk;
+}
+
 GpuTracingMaterialRecord readMaterial(uint materialId) {
   const uint wordOffset = byteOffsetWords(parameters.materialByteOffset) + materialId * 20u;
   GpuTracingMaterialRecord material;
@@ -592,6 +624,67 @@ LocalPrimitiveHit intersectPlane(GpuIntersectionRay ray, GpuIntersectionPlanePay
   return result;
 }
 
+LocalPrimitiveHit intersectRectangle(GpuIntersectionRay ray,
+                                     GpuIntersectionRectanglePayload rectangle,
+                                     float maxHitDistance) {
+  LocalPrimitiveHit result = emptyPrimitiveHit(maxHitDistance);
+  const vec3 normal = rectangle.normal.xyz;
+  const float denominator = dot(ray.direction.xyz, normal);
+  if (denominator == 0.0) {
+    return result;
+  }
+  const float distance = dot(rectangle.corner.xyz - ray.origin.xyz, normal) / denominator;
+  if (!isfinite(distance) || distance < 0.0 || distance < ray.minDistance ||
+      distance > ray.maxDistance || distance >= maxHitDistance) {
+    return result;
+  }
+  const vec3 point = ray.origin.xyz + ray.direction.xyz * distance;
+  const vec3 difference = point - rectangle.corner.xyz;
+  const float dot1 = dot(difference, rectangle.leg1.xyz);
+  const float squaredLength1 = dot(rectangle.leg1.xyz, rectangle.leg1.xyz);
+  if (dot1 < 0.0 || dot1 > squaredLength1) {
+    return result;
+  }
+  const float dot2 = dot(difference, rectangle.leg2.xyz);
+  const float squaredLength2 = dot(rectangle.leg2.xyz, rectangle.leg2.xyz);
+  if (dot2 < 0.0 || dot2 > squaredLength2) {
+    return result;
+  }
+  result.hit = true;
+  result.distance = distance;
+  result.point = vec4(point, 1.0);
+  result.normal = vec4(normal, 0.0);
+  return result;
+}
+
+LocalPrimitiveHit intersectDisk(GpuIntersectionRay ray, GpuIntersectionDiskPayload disk,
+                                float maxHitDistance) {
+  LocalPrimitiveHit result = emptyPrimitiveHit(maxHitDistance);
+  const vec3 center = disk.centerRadius.xyz;
+  const float radius = disk.centerRadius.w;
+  const vec3 normal = disk.normalMinimumHitDistance.xyz;
+  const float minimumHitDistance = disk.normalMinimumHitDistance.w;
+  const float denominator = dot(ray.direction.xyz, normal);
+  if (denominator == 0.0) {
+    return result;
+  }
+  const float distance = dot(center - ray.origin.xyz, normal) / denominator;
+  if (!isfinite(distance) || distance < minimumHitDistance || distance < ray.minDistance ||
+      distance > ray.maxDistance || distance >= maxHitDistance) {
+    return result;
+  }
+  const vec3 point = ray.origin.xyz + ray.direction.xyz * distance;
+  const vec3 hitOffset = point - center;
+  if (!(dot(hitOffset, hitOffset) < radius * radius)) {
+    return result;
+  }
+  result.hit = true;
+  result.distance = distance;
+  result.point = vec4(point, 1.0);
+  result.normal = vec4(normal, 0.0);
+  return result;
+}
+
 LocalPrimitiveHit intersectSupportedPrimitive(GpuIntersectionRay ray,
                                               GpuIntersectionPrimitiveRecord primitive,
                                               float maxHitDistance) {
@@ -609,6 +702,18 @@ LocalPrimitiveHit intersectSupportedPrimitive(GpuIntersectionRay ray,
       return emptyPrimitiveHit(maxHitDistance);
     }
     return intersectPlane(ray, readPlane(primitive.payloadOffset), maxHitDistance);
+  }
+  if (primitive.kind == gpuIntersectionRectanglePrimitiveKind) {
+    if (primitive.payloadOffset >= parameters.rectangleCount) {
+      return emptyPrimitiveHit(maxHitDistance);
+    }
+    return intersectRectangle(ray, readRectangle(primitive.payloadOffset), maxHitDistance);
+  }
+  if (primitive.kind == gpuIntersectionDiskPrimitiveKind) {
+    if (primitive.payloadOffset >= parameters.diskCount) {
+      return emptyPrimitiveHit(maxHitDistance);
+    }
+    return intersectDisk(ray, readDisk(primitive.payloadOffset), maxHitDistance);
   }
   return emptyPrimitiveHit(maxHitDistance);
 }
@@ -661,7 +766,8 @@ GpuIntersectionHitRecord hitRecordForPrimitive(GpuIntersectionRay ray,
 GpuIntersectionHitRecord closestSupportedHit(GpuIntersectionRay ray) {
   GpuIntersectionHitRecord closest = missHitRecord(ray);
   if (parameters.primitiveCount == 0u ||
-      (parameters.sphereCount == 0u && parameters.planeCount == 0u)) {
+      (parameters.sphereCount == 0u && parameters.planeCount == 0u &&
+       parameters.rectangleCount == 0u && parameters.diskCount == 0u)) {
     return closest;
   }
 
