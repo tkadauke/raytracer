@@ -698,8 +698,7 @@ namespace GpuDiffusePathStepReferenceTest {
                       Colord(actual.pathStates[0].throughput), 1e-6);
     ASSERT_COLOR_NEAR(Colord(actual.pathStates[0].throughput),
                       Colord(actual.stepRecords[0].continuationThroughput), 1e-6);
-    ASSERT_VECTOR_NEAR(Vector3d(0.0, 0.0, 1.0), Vector3d(actual.pathStates[0].ray.direction),
-                       1e-6);
+    ASSERT_VECTOR_NEAR(Vector3d(0.0, 0.0, 1.0), Vector3d(actual.pathStates[0].ray.direction), 1e-6);
     EXPECT_EQ(1u, actual.pathStates[0].depth);
     EXPECT_FLOAT_EQ(1.0f, actual.pathStates[0].previousBsdfPdf);
     EXPECT_FLOAT_EQ(0.0f, actual.pathStates[0].previousLightPdf);
@@ -758,8 +757,7 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_TRUE(gpuDiffusePathStateIsTerminated(result.terminatedPathStates[0]));
     ASSERT_COLOR_NEAR(Colord(0.5, 1.5, 3.0),
                       Colord(result.terminatedPathStates[0].accumulatedRadiance), 1e-5);
-    ASSERT_COLOR_NEAR(Colord(0.5, 1.5, 3.0), Colord(result.stepRecords[0].emittedRadiance),
-                      1e-5);
+    ASSERT_COLOR_NEAR(Colord(0.5, 1.5, 3.0), Colord(result.stepRecords[0].emittedRadiance), 1e-5);
     EXPECT_EQ("packed_cpu", result.metrics.closestHitExecutionPath);
     EXPECT_EQ("cpu_record", result.metrics.emissionExecutionPath);
     EXPECT_EQ(1u, result.metrics.emissiveHits);
@@ -928,8 +926,7 @@ namespace GpuDiffusePathStepReferenceTest {
       GpuDiffusePathStepReference().step(sections, {path}, {hitRecord(7, material)});
 
     EXPECT_TRUE(result.pathStates.empty());
-    ASSERT_COLOR_NEAR(Colord(0.5, 1.5, 3.0), Colord(result.stepRecords[0].emittedRadiance),
-                      1e-6);
+    ASSERT_COLOR_NEAR(Colord(0.5, 1.5, 3.0), Colord(result.stepRecords[0].emittedRadiance), 1e-6);
     EXPECT_EQ(1u, result.metrics.emissiveHits);
   }
 
@@ -1073,10 +1070,8 @@ namespace GpuDiffusePathStepReferenceTest {
     ASSERT_EQ(2u, result.pathStates.size());
     ASSERT_COLOR_NEAR(Colord::red(), Colord(result.pathStates[0].throughput), 1e-6);
     ASSERT_COLOR_NEAR(Colord::blue(), Colord(result.pathStates[1].throughput), 1e-6);
-    ASSERT_COLOR_NEAR(Colord::red(), Colord(result.stepRecords[0].continuationThroughput),
-                      1e-6);
-    ASSERT_COLOR_NEAR(Colord::blue(), Colord(result.stepRecords[1].continuationThroughput),
-                      1e-6);
+    ASSERT_COLOR_NEAR(Colord::red(), Colord(result.stepRecords[0].continuationThroughput), 1e-6);
+    ASSERT_COLOR_NEAR(Colord::blue(), Colord(result.stepRecords[1].continuationThroughput), 1e-6);
   }
 
   TEST(GpuDiffusePathStepReference, MatteHitSamplesNearestImageTexture) {
@@ -1113,12 +1108,9 @@ namespace GpuDiffusePathStepReferenceTest {
     ASSERT_COLOR_NEAR(Colord::red(), Colord(result.pathStates[0].throughput), 1e-6);
     ASSERT_COLOR_NEAR(Colord::green(), Colord(result.pathStates[1].throughput), 1e-6);
     ASSERT_COLOR_NEAR(Colord::blue(), Colord(result.pathStates[2].throughput), 1e-6);
-    ASSERT_COLOR_NEAR(Colord::red(), Colord(result.stepRecords[0].continuationThroughput),
-                      1e-6);
-    ASSERT_COLOR_NEAR(Colord::green(), Colord(result.stepRecords[1].continuationThroughput),
-                      1e-6);
-    ASSERT_COLOR_NEAR(Colord::blue(), Colord(result.stepRecords[2].continuationThroughput),
-                      1e-6);
+    ASSERT_COLOR_NEAR(Colord::red(), Colord(result.stepRecords[0].continuationThroughput), 1e-6);
+    ASSERT_COLOR_NEAR(Colord::green(), Colord(result.stepRecords[1].continuationThroughput), 1e-6);
+    ASSERT_COLOR_NEAR(Colord::blue(), Colord(result.stepRecords[2].continuationThroughput), 1e-6);
   }
 
   TEST(GpuDiffusePathStepReference, DirectLightOcclusionSuppressesContribution) {
@@ -1226,8 +1218,7 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(0u, result.metrics.spawnedContinuations);
     EXPECT_EQ(1u, result.metrics.terminatedPaths);
     EXPECT_NE(0u, result.stepRecords[0].flags & gpuDiffusePathStateTerminatedFlag);
-    ASSERT_COLOR_NEAR(Colord::black(), Colord(result.stepRecords[0].continuationThroughput),
-                      1e-6);
+    ASSERT_COLOR_NEAR(Colord::black(), Colord(result.stepRecords[0].continuationThroughput), 1e-6);
   }
 
   TEST(GpuDiffusePathLoop, ResolvesMissedPathsIntoImage) {
@@ -1920,6 +1911,12 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_TRUE(sphereSupport.supported);
     EXPECT_TRUE(sphereSupport.reason.empty());
 
+    settings.maxDepth = 2;
+    const GpuDiffusePathLoopBackendSupport multiDepthSphereSupport =
+      backend.fullGpuPathLoopSupport(sphereSections, settings);
+    EXPECT_TRUE(multiDepthSphereSupport.supported);
+    EXPECT_TRUE(multiDepthSphereSupport.reason.empty());
+
     Scene unsupportedScene;
     unsupportedScene.add(std::make_shared<Plane>(Vector3d(0.0, 0.0, 1.0), 0.0));
     const GpuTracingSceneSections unsupportedSections = sectionsFor(unsupportedScene);
@@ -2014,6 +2011,47 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ("vulkan_host_visible_diffuse_path_state", result.pathStateResidency);
     EXPECT_EQ(1u, result.depthCount);
     EXPECT_EQ(1u, result.maxDepthTerminatedPaths);
+    ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
+    expectPathStateNear(result.resolvedPathStates[0], expected.resolvedPathStates[0], 1e-4);
+#else
+    GTEST_SKIP() << "Vulkan wavefront support is not enabled in this build";
+#endif
+  }
+
+  TEST(VulkanGpuDiffusePathLoopBackend, RunsMultiDepthSphereDiffusePathLoopWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    const VulkanGpuDiffusePathLoopBackend backend;
+    if (!backend.fullGpuPathLoopAvailable()) {
+      GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
+    }
+
+    Scene scene;
+    scene.setEnvironmentRadiance(Colord(0.1, 0.2, 0.3));
+    auto matte = std::make_shared<MatteMaterial>(
+      std::make_shared<ConstantColorTexture>(Colord(0.25, 0.5, 0.75)));
+    matte->setDiffuseCoefficient(0.8);
+    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    receiver->setMaterial(matte);
+    scene.add(receiver);
+    scene.addLight(std::make_shared<PointLight>(Vector3d(0.0, 0.0, -3.0), Colord(0.8, 0.6, 0.4)));
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+    GpuDiffusePathStateRecord path = activePath();
+    path.pixelIndex = 0;
+    path.sampleSeed = 12347;
+    path.throughput = {0.5f, 0.25f, 0.125f, 0.0f};
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 2;
+    settings.russianRouletteDepth = 10;
+    settings.directLightSamples = 1;
+    const std::vector<GpuDiffusePathStateRecord> paths{path};
+
+    const GpuDiffusePathLoopResult expected = GpuDiffusePathLoop().run(sections, paths, settings);
+    const GpuDiffusePathLoopResult result = backend.run(sections, paths, settings);
+
+    EXPECT_TRUE(result.fullGpuPathLoopSupported());
+    EXPECT_EQ(expected.depthCount, result.depthCount);
+    EXPECT_EQ(expected.maxDepthTerminatedPaths, result.maxDepthTerminatedPaths);
     ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
     expectPathStateNear(result.resolvedPathStates[0], expected.resolvedPathStates[0], 1e-4);
 #else
@@ -2831,10 +2869,8 @@ namespace GpuDiffusePathStepReferenceTest {
 
     ASSERT_EQ(4u, result.accumulationColorSums.size());
     ASSERT_EQ(4u, result.accumulationSampleCounts.size());
-    ASSERT_COLOR_NEAR(Colord(0.125, 0.125, 0.09375), Colord(result.accumulationColorSums[0]),
-                      1e-6);
-    ASSERT_COLOR_NEAR(Colord(0.375, 0.125, 0.03125), Colord(result.accumulationColorSums[1]),
-                      1e-6);
+    ASSERT_COLOR_NEAR(Colord(0.125, 0.125, 0.09375), Colord(result.accumulationColorSums[0]), 1e-6);
+    ASSERT_COLOR_NEAR(Colord(0.375, 0.125, 0.03125), Colord(result.accumulationColorSums[1]), 1e-6);
     ASSERT_COLOR_NEAR(Colord::black(), Colord(result.accumulationColorSums[2]), 1e-6);
     ASSERT_COLOR_NEAR(Colord::black(), Colord(result.accumulationColorSums[3]), 1e-6);
     EXPECT_EQ(1u, result.accumulationSampleCounts[0]);

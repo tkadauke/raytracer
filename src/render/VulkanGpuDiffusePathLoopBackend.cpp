@@ -268,10 +268,6 @@ namespace render {
     if (sceneHasNoGeometry(scene)) {
       return {true, {}};
     }
-    if (settings.maxDepth != 1u) {
-      return {false, "Vulkan diffuse path-loop backend currently supports non-empty scenes only at "
-                     "maxDepth=1"};
-    }
     if (!sceneHasSingleUntransformedSphere(scene)) {
       return {false, "Vulkan diffuse path-loop backend currently supports empty geometry or one "
                      "untransformed sphere only"};

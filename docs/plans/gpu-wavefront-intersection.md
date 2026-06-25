@@ -83,10 +83,10 @@
 > when the scene/settings are supported. Automatic selection still stays on
 > CPU-reference/hybrid execution until parity, support, and performance gates
 > justify full GPU selection by default. Vulkan-enabled builds now also have a
-> restricted all-miss diffuse path-loop backend that owns empty-scene
-> path-state, step-record, retained-index, and accumulation buffers through a
-> Vulkan compute dispatch; it is intentionally narrower than the Metal shaded
-> subset and still rejects non-empty compiled geometry.
+> restricted diffuse path-loop backend that owns path-state, step-record,
+> retained-index, and accumulation buffers through a Vulkan compute dispatch
+> for empty scenes and a multi-depth one-sphere Matte/Emissive ConstantColor
+> subset; it remains intentionally narrower than the Metal shaded subset.
 > This restricted backend is not broad enough to advertise general full GPU path
 > tracing yet.
 > This is a follow-up to

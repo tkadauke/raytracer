@@ -131,12 +131,12 @@ end state for GPU tracing.
   multiple depths for backend tests and explicit GPU graph requests when the
   light set is empty or uses point, directional, or rectangular area lights. A
   restricted Vulkan path-loop backend can execute empty-scene all-miss paths and
-  a first one-depth shaded one-sphere subset with Matte/Emissive ConstantColor
+  a multi-depth shaded one-sphere subset with Matte/Emissive ConstantColor
   materials and zero or one point light when Vulkan is built and available.
   Graph auto-selection still waits for Vulkan shaded-path parity, broader scene
   support, and performance gates.
 - Platform full-GPU path-loop backend selection beyond that restricted Metal
-  subset and the restricted Vulkan one-depth sphere subset. The factory hook
+  subset and the restricted Vulkan multi-depth sphere subset. The factory hook
   can return Metal or Vulkan platform backends in platform-enabled builds, but
   ordinary builds and unsupported scenes still fall back to the CPU-reference or
   hybrid diagnostic backend.
@@ -2596,13 +2596,12 @@ scene is large enough to amortize upload/readback costs.
      or no device is available. ✅ **Started.** Vulkan-enabled builds now
      compile an embedded diffuse path-loop compute shader and expose a
      restricted `VulkanGpuDiffusePathLoopBackend` that can execute empty
-     all-miss paths and a first one-depth shaded one-sphere subset with
+     all-miss paths and a multi-depth shaded one-sphere subset with
      Matte/Emissive ConstantColor materials and zero or one point light. It
      writes Vulkan-owned active/next path-state, step-record, retained-index,
      and accumulation buffers, reports platform path-state residency, and
      now dispatches that shader in 64-wide workgroups instead of one invocation
-     per workgroup. It still cleanly rejects deeper or broader compiled
-     geometry until the
+     per workgroup. It still cleanly rejects broader compiled geometry until the
      Matte/Phong finite-lobe/Emissive subset reaches parity with Metal.
 
 4. **Wire graph auto-selection to platform backend availability.**

@@ -192,9 +192,10 @@ namespace render {
         buffers.buffers.push_back(createStorageBuffer(
           device, selection.device, byteCount<GpuDiffusePathStateRecord>(initialPathStates.size()),
           nullptr));
-        buffers.buffers.push_back(createStorageBuffer(
-          device, selection.device, byteCount<GpuDiffusePathStepRecord>(initialPathStates.size()),
-          nullptr));
+        std::vector<std::uint8_t> stepRecordBytes(
+          static_cast<std::size_t>(plan.buffers.stepRecordBytes), 0u);
+        buffers.buffers.push_back(
+          createStorageBufferFromBytes(device, selection.device, stepRecordBytes));
         std::vector<std::uint32_t> retainedIndices(initialPathStates.size() + 1u, 0u);
         buffers.buffers.push_back(
           createStorageBufferFromVector(device, selection.device, retainedIndices));
@@ -267,10 +268,19 @@ namespace render {
           device, buffers.buffers[5].memory,
           byteCount<GpuDiffusePathStateRecord>(initialPathStates.size()), initialPathStates.size(),
           "Vulkan diffuse path-loop next path-state output mapping");
-        result.stepRecords = readBackRecords<GpuDiffusePathStepRecord>(
-          device, buffers.buffers[6].memory,
-          byteCount<GpuDiffusePathStepRecord>(initialPathStates.size()), initialPathStates.size(),
-          "Vulkan diffuse path-loop step-record output mapping");
+        const std::size_t rawStepCount =
+          initialPathStates.size() * static_cast<std::size_t>(plan.parameters.maxDepth);
+        const std::vector<GpuDiffusePathStepRecord> rawStepRecords =
+          readBackRecords<GpuDiffusePathStepRecord>(
+            device, buffers.buffers[6].memory, byteCount<GpuDiffusePathStepRecord>(rawStepCount),
+            rawStepCount, "Vulkan diffuse path-loop step-record output mapping");
+        result.stepRecords.reserve(rawStepRecords.size());
+        for (const GpuDiffusePathStepRecord& step : rawStepRecords) {
+          if (static_cast<GpuDiffusePathStepEvent>(step.event) !=
+              GpuDiffusePathStepEvent::Inactive) {
+            result.stepRecords.push_back(step);
+          }
+        }
         const std::vector<std::uint32_t> retainedOutput = readBackRecords<std::uint32_t>(
           device, buffers.buffers[7].memory, byteCount<std::uint32_t>(retainedIndices.size()),
           retainedIndices.size(), "Vulkan diffuse path-loop retained-index output mapping");

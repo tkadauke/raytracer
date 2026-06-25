@@ -891,17 +891,32 @@ void main() {
     return;
   }
 
-  const GpuDiffusePathStateRecord path = initialPathStates[id];
-  GpuDiffusePathStateRecord next;
-  const GpuDiffusePathStepRecord step = pathStep(id, path, next);
-  GpuDiffusePathStateRecord resolved = next;
-  if (pathStateIsActive(resolved) && resolved.depth >= parameters.maxDepth) {
-    resolved.flags = terminatedPathFlags(resolved.flags);
+  GpuDiffusePathStateRecord path = initialPathStates[id];
+  if (pathStateIsActive(path) && path.depth >= parameters.maxDepth) {
+    path.flags = terminatedPathFlags(path.flags);
+    writeAccumulation(path.pixelIndex, path.accumulatedRadiance);
   }
-  if ((resolved.flags & gpuDiffusePathStateTerminatedFlag) != 0u) {
-    writeAccumulation(resolved.pixelIndex, resolved.accumulatedRadiance);
+
+  for (uint depthIndex = 0u; depthIndex != parameters.maxDepth; ++depthIndex) {
+    if (!pathStateIsActive(path) || path.depth >= parameters.maxDepth) {
+      break;
+    }
+
+    GpuDiffusePathStateRecord next;
+    const GpuDiffusePathStepRecord step = pathStep(id, path, next);
+    stepRecords[id * parameters.maxDepth + depthIndex] = step;
+
+    if (pathStateIsActive(path) &&
+        (next.flags & gpuDiffusePathStateTerminatedFlag) != 0u) {
+      writeAccumulation(next.pixelIndex, next.accumulatedRadiance);
+    }
+    if (pathStateIsActive(next) && next.depth >= parameters.maxDepth) {
+      next.flags = terminatedPathFlags(next.flags);
+      writeAccumulation(next.pixelIndex, next.accumulatedRadiance);
+    }
+    path = next;
   }
-  activePathStates[id] = resolved;
-  nextPathStates[id] = next;
-  stepRecords[id] = step;
+
+  activePathStates[id] = path;
+  nextPathStates[id] = path;
 }

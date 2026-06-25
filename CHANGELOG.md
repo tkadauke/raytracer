@@ -20,6 +20,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Extend the restricted Vulkan diffuse path-loop backend from empty all-miss
   execution to a first one-depth shaded sphere subset with Matte/Emissive
   ConstantColor materials and zero or one point light. — GPT-5 Codex
+- Extend the restricted Vulkan diffuse path-loop backend to execute that
+  shaded one-sphere subset across multiple path depths in one GPU dispatch,
+  removing its non-empty `maxDepth=1` restriction. — GPT-5 Codex
 - Add a restricted Metal diffuse path-loop backend surface for one-depth
   empty-scene and sphere Matte/Emissive probe execution, while keeping
   automatic full-GPU graph selection disabled until a multi-depth platform loop
