@@ -49,13 +49,68 @@ namespace render {
       return true;
     }
 
+    [[nodiscard]] bool supportedTexture(const GpuTracingSceneSections& scene,
+                                        std::size_t textureIndex) {
+      const GpuTracingTextureRecord& texture = scene.textures[textureIndex];
+      const auto kind = static_cast<GpuTracingTextureKind>(texture.kind);
+      if (kind == GpuTracingTextureKind::Unsupported) {
+        return textureIndex == 0u;
+      }
+      if (kind == GpuTracingTextureKind::ConstantColor) {
+        return true;
+      }
+      if (kind == GpuTracingTextureKind::CheckerBoard) {
+        const auto mapping =
+          static_cast<GpuTracingTextureMappingKind>(texture.flags & gpuTracingTextureMappingMask);
+        if (mapping != GpuTracingTextureMappingKind::Planar &&
+            mapping != GpuTracingTextureMappingKind::UV) {
+          return false;
+        }
+        if (texture.payloadOffset >= scene.textures.size() ||
+            texture.payloadCount >= scene.textures.size()) {
+          return false;
+        }
+        return static_cast<GpuTracingTextureKind>(scene.textures[texture.payloadOffset].kind) ==
+                 GpuTracingTextureKind::ConstantColor &&
+               static_cast<GpuTracingTextureKind>(scene.textures[texture.payloadCount].kind) ==
+                 GpuTracingTextureKind::ConstantColor;
+      }
+      if (kind == GpuTracingTextureKind::Image) {
+        const auto mapping =
+          static_cast<GpuTracingTextureMappingKind>(texture.flags & gpuTracingTextureMappingMask);
+        if (mapping != GpuTracingTextureMappingKind::Planar &&
+            mapping != GpuTracingTextureMappingKind::UV) {
+          return false;
+        }
+        const std::uint32_t width = static_cast<std::uint32_t>(std::round(texture.parameters[2]));
+        const std::uint32_t height = static_cast<std::uint32_t>(std::round(texture.parameters[3]));
+        const std::uint64_t texelCount =
+          static_cast<std::uint64_t>(width) * static_cast<std::uint64_t>(height);
+        if (width == 0u || height == 0u || texture.payloadCount != texelCount ||
+            texture.payloadOffset >= scene.textures.size() ||
+            static_cast<std::uint64_t>(texture.payloadOffset) + texture.payloadCount >
+              scene.textures.size()) {
+          return false;
+        }
+        for (std::uint32_t offset = 0; offset != texture.payloadCount; ++offset) {
+          if (static_cast<GpuTracingTextureKind>(
+                scene.textures[texture.payloadOffset + offset].kind) !=
+              GpuTracingTextureKind::ConstantColor) {
+            return false;
+          }
+        }
+        return true;
+      }
+      return false;
+    }
+
     [[nodiscard]] bool supportedTextures(const GpuTracingSceneSections& scene) {
-      return std::all_of(scene.textures.begin(), scene.textures.end(),
-                         [](const GpuTracingTextureRecord& texture) {
-                           const auto kind = static_cast<GpuTracingTextureKind>(texture.kind);
-                           return kind == GpuTracingTextureKind::Unsupported ||
-                                  kind == GpuTracingTextureKind::ConstantColor;
-                         });
+      for (std::size_t index = 0; index != scene.textures.size(); ++index) {
+        if (!supportedTexture(scene, index)) {
+          return false;
+        }
+      }
+      return true;
     }
 
     [[nodiscard]] bool supportedLights(const GpuTracingSceneSections& scene) {
@@ -361,8 +416,8 @@ namespace render {
               "only"};
     }
     if (!supportedTextures(scene)) {
-      return {false,
-              "Vulkan diffuse path-loop backend currently supports ConstantColor textures only"};
+      return {false, "Vulkan diffuse path-loop backend currently supports ConstantColor, simple "
+                     "CheckerBoard, and nearest ImageTexture textures only"};
     }
     if (!supportedLights(scene)) {
       return {false,

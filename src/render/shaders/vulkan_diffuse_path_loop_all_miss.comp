@@ -7,6 +7,12 @@ const uint gpuIntersectionSpherePrimitiveKind = 2u;
 const uint gpuTracingMatteMaterialKind = 1u;
 const uint gpuTracingEmissiveMaterialKind = 2u;
 const uint gpuTracingConstantColorTextureKind = 1u;
+const uint gpuTracingCheckerBoardTextureKind = 2u;
+const uint gpuTracingImageTextureKind = 3u;
+const uint gpuTracingPlanarTextureMappingKind = 1u;
+const uint gpuTracingUvTextureMappingKind = 2u;
+const uint gpuTracingTextureMappingMask = 0xffu;
+const uint gpuTracingTextureWrapClampFlag = 256u;
 const uint gpuTracingPointLightKind = 1u;
 const uint gpuDiffusePathLoopAccumulationTargetPath = 1u;
 const uint gpuDiffusePathLoopAccumulationTargetSampleSlot = 2u;
@@ -658,6 +664,76 @@ bool constantTextureColor(uint textureId, out vec4 color) {
   return true;
 }
 
+vec2 textureCoordinates(GpuTracingTextureRecord texture, GpuIntersectionHitRecord hit) {
+  const uint mapping = texture.flags & gpuTracingTextureMappingMask;
+  if (mapping == gpuTracingUvTextureMappingKind) {
+    return vec2(hit.uv.x * texture.parameters.x, hit.uv.y * texture.parameters.y);
+  }
+  if (mapping == gpuTracingPlanarTextureMappingKind) {
+    return vec2(hit.point.x, hit.point.z);
+  }
+  return vec2(0.0);
+}
+
+float normalizedTextureCoordinate(GpuTracingTextureRecord texture, float coordinate) {
+  if ((texture.flags & gpuTracingTextureWrapClampFlag) != 0u) {
+    return clamp(coordinate, 0.0, 1.0);
+  }
+  return coordinate - floor(coordinate);
+}
+
+int imageTextureCoordinate(GpuTracingTextureRecord texture, float coordinate, int size) {
+  const int result = int(floor(normalizedTextureCoordinate(texture, coordinate) *
+                               float(size)));
+  if ((texture.flags & gpuTracingTextureWrapClampFlag) != 0u) {
+    return clamp(result, 0, size - 1);
+  }
+  int wrapped = result % size;
+  return wrapped < 0 ? wrapped + size : wrapped;
+}
+
+bool textureColor(uint textureId, GpuIntersectionHitRecord hit, out vec4 color) {
+  color = vec4(0.0);
+  if (textureId >= parameters.textureCount) {
+    return false;
+  }
+  const GpuTracingTextureRecord texture = readTexture(textureId);
+  if (texture.kind == gpuTracingConstantColorTextureKind) {
+    color = texture.parameters;
+    return true;
+  }
+  if (texture.kind == gpuTracingCheckerBoardTextureKind) {
+    const uint mapping = texture.flags & gpuTracingTextureMappingMask;
+    if ((mapping != gpuTracingPlanarTextureMappingKind &&
+         mapping != gpuTracingUvTextureMappingKind) ||
+        texture.payloadOffset >= parameters.textureCount ||
+        texture.payloadCount >= parameters.textureCount) {
+      return false;
+    }
+    const vec2 st = textureCoordinates(texture, hit);
+    const int parity = int(floor(st.x)) + int(floor(st.y));
+    const uint childTextureId = parity % 2 == 0 ?
+        texture.payloadOffset : texture.payloadCount;
+    return constantTextureColor(childTextureId, color);
+  }
+  if (texture.kind == gpuTracingImageTextureKind) {
+    const int width = int(round(texture.parameters.z));
+    const int height = int(round(texture.parameters.w));
+    if (width <= 0 || height <= 0 ||
+        texture.payloadOffset >= parameters.textureCount ||
+        texture.payloadCount != uint(width * height) ||
+        texture.payloadOffset + texture.payloadCount > parameters.textureCount) {
+      return false;
+    }
+    const vec2 st = textureCoordinates(texture, hit);
+    const int x = imageTextureCoordinate(texture, st.x, width);
+    const int y = imageTextureCoordinate(texture, st.y, height);
+    const uint texelTextureId = texture.payloadOffset + uint(y * width + x);
+    return constantTextureColor(texelTextureId, color);
+  }
+  return false;
+}
+
 bool matteReflectance(GpuIntersectionHitRecord hit, out vec4 reflectance) {
   reflectance = vec4(0.0);
   if (hit.material >= parameters.materialCount) {
@@ -668,7 +744,7 @@ bool matteReflectance(GpuIntersectionHitRecord hit, out vec4 reflectance) {
     return false;
   }
   vec4 albedo;
-  if (!constantTextureColor(material.albedoTexture, albedo)) {
+  if (!textureColor(material.albedoTexture, hit, albedo)) {
     return false;
   }
   reflectance = albedo * material.parameters.y;
@@ -686,7 +762,7 @@ bool matteAmbientRadiance(GpuIntersectionHitRecord hit, GpuDiffusePathStateRecor
     return false;
   }
   vec4 albedo;
-  if (!constantTextureColor(material.albedoTexture, albedo)) {
+  if (!textureColor(material.albedoTexture, hit, albedo)) {
     return false;
   }
   ambient = path.throughput * albedo * material.parameters.x * sceneAmbientRadiance();
@@ -704,7 +780,7 @@ bool emissiveContribution(GpuIntersectionHitRecord hit, GpuDiffusePathStateRecor
     return false;
   }
   vec4 emission;
-  if (!constantTextureColor(material.emissionTexture, emission)) {
+  if (!textureColor(material.emissionTexture, hit, emission)) {
     return false;
   }
   const vec3 normal = normalize(hit.normal.xyz);
