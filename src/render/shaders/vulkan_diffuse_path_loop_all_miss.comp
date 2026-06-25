@@ -6,6 +6,7 @@ const uint gpuIntersectionLeafNodeFlag = 1u;
 const uint gpuIntersectionSpherePrimitiveKind = 2u;
 const uint gpuTracingMatteMaterialKind = 1u;
 const uint gpuTracingEmissiveMaterialKind = 2u;
+const uint gpuTracingPhongMaterialKind = 3u;
 const uint gpuTracingConstantColorTextureKind = 1u;
 const uint gpuTracingCheckerBoardTextureKind = 2u;
 const uint gpuTracingImageTextureKind = 3u;
@@ -365,6 +366,18 @@ vec3 cosineHemisphereDirection(vec3 normal, vec2 sample) {
   const vec3 tangent = tangentFor(normal);
   const vec3 bitangent = cross(normal, tangent);
   return normalize(tangent * x + bitangent * y + normal * z);
+}
+
+vec3 phongLobeDirection(vec3 axis, vec2 sample, float exponent) {
+  const float u0 = clamp(sample.x, 0.0, 1.0);
+  const float u1 = clamp(sample.y, 0.0, 1.0);
+  const float cosTheta = pow(u0, 1.0 / (exponent + 1.0));
+  const float sinTheta = sqrt(max(0.0, 1.0 - cosTheta * cosTheta));
+  const float phi = pathLoopTau * u1;
+  const vec3 tangent = tangentFor(axis);
+  const vec3 bitangent = cross(axis, tangent);
+  return normalize(tangent * (sinTheta * cos(phi)) +
+                   bitangent * (sinTheta * sin(phi)) + axis * cosTheta);
 }
 
 float cosineHemispherePdf(vec3 normal, vec3 direction) {
@@ -761,13 +774,27 @@ bool textureColor(uint textureId, GpuIntersectionHitRecord hit, out vec4 color) 
   return false;
 }
 
-bool matteReflectance(GpuIntersectionHitRecord hit, out vec4 reflectance) {
-  reflectance = vec4(0.0);
+bool surfaceMaterial(GpuIntersectionHitRecord hit, out GpuTracingMaterialRecord material) {
+  material.kind = 0u;
+  material.albedoTexture = 0u;
+  material.emissionTexture = 0u;
+  material.flags = 0u;
+  material.parameters = vec4(0.0);
+  material.specularParameters = vec4(0.0);
+  material.continuationParameters = vec4(0.0);
+  material.transmissionParameters = vec4(0.0);
   if (hit.material >= parameters.materialCount) {
     return false;
   }
-  const GpuTracingMaterialRecord material = readMaterial(hit.material);
-  if (material.kind != gpuTracingMatteMaterialKind) {
+  material = readMaterial(hit.material);
+  return material.kind == gpuTracingMatteMaterialKind ||
+         material.kind == gpuTracingPhongMaterialKind;
+}
+
+bool diffuseReflectance(GpuIntersectionHitRecord hit, out vec4 reflectance) {
+  reflectance = vec4(0.0);
+  GpuTracingMaterialRecord material;
+  if (!surfaceMaterial(hit, material)) {
     return false;
   }
   vec4 albedo;
@@ -778,14 +805,84 @@ bool matteReflectance(GpuIntersectionHitRecord hit, out vec4 reflectance) {
   return true;
 }
 
+float diffuseSamplingWeight(GpuTracingMaterialRecord material) {
+  const float diffuse = max(0.0, material.parameters.y);
+  const float specular = max(0.0, material.parameters.z);
+  const float total = diffuse + specular;
+  return total <= 0.0 ? 1.0 : diffuse / total;
+}
+
+vec4 glossyPhongBsdf(GpuTracingMaterialRecord material, vec3 normal, vec3 wi, vec3 wo) {
+  if (dot(normal, wi) < 0.0 || dot(normal, wo) < 0.0) {
+    return vec4(0.0);
+  }
+  const vec3 lobeAxis = normalize(reflect(-wi, normal));
+  const float lobeDotOut = dot(lobeAxis, normalize(wo));
+  if (lobeDotOut <= 0.0) {
+    return vec4(0.0);
+  }
+  return vec4(material.specularParameters.xyz * material.parameters.z *
+              pow(lobeDotOut, material.parameters.w), 0.0);
+}
+
+vec4 finiteBsdf(vec4 diffuseReflectance, GpuTracingMaterialRecord material,
+                vec3 normal, vec3 wi, vec3 wo) {
+  vec4 value = diffuseReflectance * pathLoopInvPi;
+  if (material.kind == gpuTracingPhongMaterialKind) {
+    value += glossyPhongBsdf(material, normal, wi, wo);
+  }
+  return value;
+}
+
+float phongLobePdf(GpuTracingMaterialRecord material, vec3 normal, vec3 wi, vec3 wo) {
+  if (dot(normal, wi) < 0.0 || dot(normal, wo) < 0.0) {
+    return 0.0;
+  }
+  const vec3 lobeAxis = normalize(reflect(-wi, normal));
+  const float lobeDotOut = dot(lobeAxis, normalize(wo));
+  if (lobeDotOut <= 0.0) {
+    return 0.0;
+  }
+  return ((material.parameters.w + 1.0) / pathLoopTau) *
+         pow(lobeDotOut, material.parameters.w);
+}
+
+float finiteBsdfPdf(GpuTracingMaterialRecord material, vec3 normal, vec3 wi, vec3 wo) {
+  if (material.kind == gpuTracingMatteMaterialKind) {
+    return cosineHemispherePdf(normal, wo);
+  }
+  if (material.kind != gpuTracingPhongMaterialKind) {
+    return 0.0;
+  }
+  const float diffuseWeight = diffuseSamplingWeight(material);
+  return diffuseWeight * cosineHemispherePdf(normal, wo) +
+         (1.0 - diffuseWeight) * phongLobePdf(material, normal, wi, wo);
+}
+
+vec3 sampleFiniteBsdfDirection(GpuTracingMaterialRecord material, vec3 normal, vec3 wi,
+                               vec2 sample) {
+  if (material.kind != gpuTracingPhongMaterialKind) {
+    return cosineHemisphereDirection(normal, sample);
+  }
+  const float diffuseWeight = diffuseSamplingWeight(material);
+  const float selector = clamp(sample.x, 0.0, 1.0);
+  const float y = clamp(sample.y, 0.0, 1.0);
+  if (diffuseWeight >= 1.0 || selector < diffuseWeight) {
+    const float remappedX = diffuseWeight > 0.0 ? selector / diffuseWeight : selector;
+    return cosineHemisphereDirection(normal, vec2(remappedX, y));
+  }
+  const float specularWeight = 1.0 - diffuseWeight;
+  const float remappedX =
+      specularWeight > 0.0 ? (selector - diffuseWeight) / specularWeight : selector;
+  return phongLobeDirection(normalize(reflect(-wi, normal)), vec2(remappedX, y),
+                            material.parameters.w);
+}
+
 bool matteAmbientRadiance(GpuIntersectionHitRecord hit, GpuDiffusePathStateRecord path,
                           out vec4 ambient) {
   ambient = vec4(0.0);
-  if (hit.material >= parameters.materialCount) {
-    return false;
-  }
-  const GpuTracingMaterialRecord material = readMaterial(hit.material);
-  if (material.kind != gpuTracingMatteMaterialKind) {
+  GpuTracingMaterialRecord material;
+  if (!surfaceMaterial(hit, material)) {
     return false;
   }
   vec4 albedo;
@@ -927,7 +1024,7 @@ bool hitOccludesLight(GpuIntersectionHitRecord hit, float lightDistance) {
 }
 
 vec4 directLightRadiance(GpuIntersectionHitRecord hit, GpuDiffusePathStateRecord path,
-                         vec4 reflectance) {
+                         GpuTracingMaterialRecord material, vec4 reflectance) {
   if (parameters.lightCount != 1u) {
     return vec4(0.0);
   }
@@ -940,7 +1037,7 @@ vec4 directLightRadiance(GpuIntersectionHitRecord hit, GpuDiffusePathStateRecord
   const uint sampleCount = max(parameters.directLightSamples, 1u);
   const vec3 point = hit.point.xyz;
   const vec3 normal = normalize(hit.normal.xyz);
-  const vec4 bsdfValue = reflectance * pathLoopInvPi;
+  const vec3 wi = -normalize(path.ray.direction.xyz);
   vec4 radiance = vec4(0.0);
   for (uint sampleIndex = 0u; sampleIndex != sampleCount; ++sampleIndex) {
     const vec2 lightSample = sample2D(path, lightSurfaceDimension(path, 0u, sampleIndex));
@@ -954,8 +1051,9 @@ vec4 directLightRadiance(GpuIntersectionHitRecord hit, GpuDiffusePathStateRecord
     if (hitOccludesLight(visibilityHit, directLight.distance)) {
       continue;
     }
+    const vec4 bsdfValue = finiteBsdf(reflectance, material, normal, wi, directLight.direction);
     const float bsdfPdf = directLight.delta != 0u ? 0.0 :
-        cosineHemispherePdf(normal, directLight.direction);
+        finiteBsdfPdf(material, normal, wi, directLight.direction);
     const float misWeight = directLight.delta != 0u ? 1.0 :
         (directLight.pdf * directLight.pdf) /
         (directLight.pdf * directLight.pdf + bsdfPdf * bsdfPdf);
@@ -967,18 +1065,24 @@ vec4 directLightRadiance(GpuIntersectionHitRecord hit, GpuDiffusePathStateRecord
 
 GpuDiffusePathStateRecord matteContinuationPath(GpuIntersectionHitRecord hit,
                                                 GpuDiffusePathStateRecord path,
-                                                vec4 continuationThroughput,
+                                                GpuTracingMaterialRecord material,
+                                                vec4 reflectance,
                                                 vec4 accumulatedRadiance,
                                                 out bool spawned) {
   spawned = false;
   GpuDiffusePathStateRecord next = path;
   next.accumulatedRadiance = accumulatedRadiance;
   const vec3 normal = normalize(hit.normal.xyz);
+  const vec3 wi = -normalize(path.ray.direction.xyz);
   const vec2 bsdfSample = sample2D(path, sampleDimension(path, 0u));
-  const vec3 direction = cosineHemisphereDirection(normal, bsdfSample);
-  const float pdf = cosineHemispherePdf(normal, direction);
-  if (pdf <= 0.0) {
-    continuationThroughput = vec4(0.0);
+  const vec3 direction = sampleFiniteBsdfDirection(material, normal, wi, bsdfSample);
+  const float pdf = finiteBsdfPdf(material, normal, wi, direction);
+  const float normalDotOut = dot(normal, direction);
+  vec4 continuationThroughput = vec4(0.0);
+  if (pdf > 0.0 && normalDotOut > 0.0) {
+    continuationThroughput =
+        path.throughput * finiteBsdf(reflectance, material, normal, wi, direction) *
+        (normalDotOut / pdf);
   }
   if (path.depth >= parameters.russianRouletteDepth) {
     const float probability = continuationProbability(continuationThroughput);
@@ -1051,8 +1155,9 @@ GpuDiffusePathStepRecord pathStep(uint pathIndex, GpuDiffusePathStateRecord path
   step.material = hit.material;
   step.object = hit.object;
 
+  GpuTracingMaterialRecord material;
   vec4 reflectance;
-  if (matteReflectance(hit, reflectance)) {
+  if (surfaceMaterial(hit, material) && diffuseReflectance(hit, reflectance)) {
     vec4 ambient;
     if (!matteAmbientRadiance(hit, path, ambient)) {
       step.event = gpuDiffusePathStepEventUnsupported;
@@ -1060,11 +1165,10 @@ GpuDiffusePathStepRecord pathStep(uint pathIndex, GpuDiffusePathStateRecord path
       step.flags = next.flags;
       return step;
     }
-    const vec4 directLight = directLightRadiance(hit, path, reflectance);
+    const vec4 directLight = directLightRadiance(hit, path, material, reflectance);
     const vec4 accumulatedRadiance = path.accumulatedRadiance + ambient + directLight;
-    const vec4 continuation = path.throughput * reflectance;
     bool spawned = false;
-    next = matteContinuationPath(hit, path, continuation, accumulatedRadiance, spawned);
+    next = matteContinuationPath(hit, path, material, reflectance, accumulatedRadiance, spawned);
     step.directLightRadiance = directLight;
     step.continuationThroughput = spawned ? next.throughput : vec4(0.0);
     step.flags = next.flags;

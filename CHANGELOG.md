@@ -34,6 +34,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   point-light-only direct lighting to one point, directional, or rectangular
   area light with shader-side light sampling and supported-sphere visibility.
   — GPT-5 Codex
+- Extend the restricted Vulkan full-GPU diffuse path-loop backend from
+  Matte/Emissive-only surfaces to Phong finite diffuse/glossy material records
+  for its supported one-sphere subset. — GPT-5 Codex
 - Add a restricted Metal diffuse path-loop backend surface for one-depth
   empty-scene and sphere Matte/Emissive probe execution, while keeping
   automatic full-GPU graph selection disabled until a multi-depth platform loop

@@ -131,7 +131,8 @@ end state for GPU tracing.
   multiple depths for backend tests and explicit GPU graph requests when the
   light set is empty or uses point, directional, or rectangular area lights. A
   restricted Vulkan path-loop backend can execute empty-scene all-miss paths and
-  a multi-depth shaded one-sphere subset with Matte/Emissive materials,
+  a multi-depth shaded one-sphere subset with
+  Matte/Phong-finite-glossy/Emissive materials,
   ConstantColor/simple CheckerBoard/nearest ImageTexture records, and zero or
   one point, directional, or rectangular area light when Vulkan is built and
   available, including sample-slot accumulation for duplicate active pixel
@@ -2600,16 +2601,17 @@ scene is large enough to amortize upload/readback costs.
      compile an embedded diffuse path-loop compute shader and expose a
      restricted `VulkanGpuDiffusePathLoopBackend` that can execute empty
      all-miss paths and a multi-depth shaded one-sphere subset with
-     Matte/Emissive materials, ConstantColor/simple CheckerBoard/nearest
-     ImageTexture records, and zero or one point, directional, or rectangular
-     area light. It writes Vulkan-owned active/next path-state, step-record,
+     Matte/Phong-finite-glossy/Emissive materials,
+     ConstantColor/simple CheckerBoard/nearest ImageTexture records, and zero
+     or one point, directional, or rectangular area light. It writes
+     Vulkan-owned active/next path-state, step-record,
      retained-index, and accumulation buffers, reports platform path-state
      residency, and now dispatches that shader in 64-wide workgroups instead
      of one invocation per workgroup. It also uses platform sample-slot/path
      accumulation when duplicate active pixel targets would otherwise collide
      and evaluates direct-light sampling plus supported-sphere visibility in
-     the shader. It still cleanly rejects broader compiled geometry until the
-     Matte/Phong finite-lobe/Emissive subset reaches parity with Metal.
+     the shader. It still cleanly rejects broader compiled geometry and delta
+     materials until the platform subset reaches parity with Metal.
 
 4. **Wire graph auto-selection to platform backend availability.**
    - Depends on: jobs 2 and 3.

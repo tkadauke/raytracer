@@ -1918,6 +1918,17 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_TRUE(multiDepthSphereSupport.supported);
     EXPECT_TRUE(multiDepthSphereSupport.reason.empty());
 
+    Scene phongScene;
+    auto phong = std::make_shared<PhongMaterial>(
+      std::make_shared<ConstantColorTexture>(Colord(0.25, 0.5, 0.75)), Colord::white(), 16.0);
+    auto phongSphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    phongSphere->setMaterial(phong);
+    phongScene.add(phongSphere);
+    const GpuDiffusePathLoopBackendSupport phongSupport =
+      backend.fullGpuPathLoopSupport(sectionsFor(phongScene), settings);
+    EXPECT_TRUE(phongSupport.supported);
+    EXPECT_TRUE(phongSupport.reason.empty());
+
     Scene checkerScene;
     auto checker = std::make_shared<CheckerBoardTexture>(
       new PlanarMapping2D(2.0, 2.0), std::make_shared<ConstantColorTexture>(Colord::red()),
@@ -1987,8 +1998,8 @@ namespace GpuDiffusePathStepReferenceTest {
     const GpuDiffusePathLoopBackendSupport unsupportedMaterialSupport =
       backend.fullGpuPathLoopSupport(unsupportedMaterialSections, settings);
     EXPECT_FALSE(unsupportedMaterialSupport.supported);
-    EXPECT_EQ("Vulkan diffuse path-loop backend currently supports Matte and Emissive materials "
-              "only",
+    EXPECT_EQ("Vulkan diffuse path-loop backend currently supports Matte, Phong finite glossy, "
+              "and Emissive materials only",
               unsupportedMaterialSupport.reason);
 
     Scene unsupportedTextureScene;
@@ -2229,6 +2240,51 @@ namespace GpuDiffusePathStepReferenceTest {
     const GpuDiffusePathLoopResult result = backend.run(sections, paths, settings);
 
     EXPECT_TRUE(result.fullGpuPathLoopSupported());
+    ASSERT_EQ(expected.stepRecords.size(), result.stepRecords.size());
+    expectFloat4Near(result.stepRecords[0].directLightRadiance,
+                     expected.stepRecords[0].directLightRadiance, 1e-4);
+    ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
+    expectPathStateNear(result.resolvedPathStates[0], expected.resolvedPathStates[0], 1e-4);
+#else
+    GTEST_SKIP() << "Vulkan wavefront support is not enabled in this build";
+#endif
+  }
+
+  TEST(VulkanGpuDiffusePathLoopBackend, RunsPhongGlossyPathLoopWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    const VulkanGpuDiffusePathLoopBackend backend;
+    if (!backend.fullGpuPathLoopAvailable()) {
+      GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
+    }
+
+    Scene scene;
+    auto phong = std::make_shared<PhongMaterial>(
+      std::make_shared<ConstantColorTexture>(Colord(0.25, 0.5, 0.75)), Colord(0.75, 0.5, 0.25),
+      16.0);
+    phong->setDiffuseCoefficient(0.8);
+    phong->setSpecularCoefficient(1.0);
+    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    receiver->setMaterial(phong);
+    scene.add(receiver);
+    scene.addLight(std::make_shared<PointLight>(Vector3d(0.0, 0.0, -3.0), Colord(0.8, 0.6, 0.4)));
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+    GpuDiffusePathStateRecord path = activePath();
+    path.pixelIndex = 0;
+    path.sampleSeed = 12347;
+    path.throughput = {0.5f, 0.25f, 0.125f, 0.0f};
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 1;
+    settings.russianRouletteDepth = 10;
+    settings.directLightSamples = 1;
+    const std::vector<GpuDiffusePathStateRecord> paths{path};
+
+    const GpuDiffusePathLoopResult expected = GpuDiffusePathLoop().run(sections, paths, settings);
+    const GpuDiffusePathLoopResult result = backend.run(sections, paths, settings);
+
+    EXPECT_TRUE(result.fullGpuPathLoopSupported());
+    EXPECT_EQ(1u, result.depthCount);
+    EXPECT_EQ(1u, result.maxDepthTerminatedPaths);
     ASSERT_EQ(expected.stepRecords.size(), result.stepRecords.size());
     expectFloat4Near(result.stepRecords[0].directLightRadiance,
                      expected.stepRecords[0].directLightRadiance, 1e-4);
