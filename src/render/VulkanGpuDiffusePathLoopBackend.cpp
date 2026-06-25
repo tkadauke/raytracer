@@ -43,6 +43,7 @@ namespace render {
           return false;
         }
         if (kind != GpuTracingMaterialKind::Matte && kind != GpuTracingMaterialKind::Phong &&
+            kind != GpuTracingMaterialKind::Reflective &&
             kind != GpuTracingMaterialKind::Emissive) {
           return false;
         }
@@ -415,8 +416,9 @@ namespace render {
                      "untransformed sphere only"};
     }
     if (!supportedMaterials(scene)) {
-      return {false, "Vulkan diffuse path-loop backend currently supports Matte, Phong finite "
-                     "glossy, and Emissive materials only"};
+      return {false,
+              "Vulkan diffuse path-loop backend currently supports Matte, Phong finite glossy, "
+              "Reflective mirror, and Emissive materials only"};
     }
     if (!supportedTextures(scene)) {
       return {false, "Vulkan diffuse path-loop backend currently supports ConstantColor, simple "

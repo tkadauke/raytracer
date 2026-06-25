@@ -1929,6 +1929,20 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_TRUE(phongSupport.supported);
     EXPECT_TRUE(phongSupport.reason.empty());
 
+    Scene reflectiveScene;
+    auto reflective =
+      std::make_shared<ReflectiveMaterial>(std::make_shared<ConstantColorTexture>(Colord::black()));
+    reflective->setDiffuseCoefficient(0.0);
+    reflective->setReflectionColor(Colord(0.75, 0.5, 0.25));
+    reflective->setReflectionCoefficient(0.5);
+    auto reflectiveSphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    reflectiveSphere->setMaterial(reflective);
+    reflectiveScene.add(reflectiveSphere);
+    const GpuDiffusePathLoopBackendSupport reflectiveSupport =
+      backend.fullGpuPathLoopSupport(sectionsFor(reflectiveScene), settings);
+    EXPECT_TRUE(reflectiveSupport.supported);
+    EXPECT_TRUE(reflectiveSupport.reason.empty());
+
     Scene checkerScene;
     auto checker = std::make_shared<CheckerBoardTexture>(
       new PlanarMapping2D(2.0, 2.0), std::make_shared<ConstantColorTexture>(Colord::red()),
@@ -1999,7 +2013,7 @@ namespace GpuDiffusePathStepReferenceTest {
       backend.fullGpuPathLoopSupport(unsupportedMaterialSections, settings);
     EXPECT_FALSE(unsupportedMaterialSupport.supported);
     EXPECT_EQ("Vulkan diffuse path-loop backend currently supports Matte, Phong finite glossy, "
-              "and Emissive materials only",
+              "Reflective mirror, and Emissive materials only",
               unsupportedMaterialSupport.reason);
 
     Scene unsupportedTextureScene;
@@ -2290,6 +2304,50 @@ namespace GpuDiffusePathStepReferenceTest {
                      expected.stepRecords[0].directLightRadiance, 1e-4);
     ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
     expectPathStateNear(result.resolvedPathStates[0], expected.resolvedPathStates[0], 1e-4);
+#else
+    GTEST_SKIP() << "Vulkan wavefront support is not enabled in this build";
+#endif
+  }
+
+  TEST(VulkanGpuDiffusePathLoopBackend, RunsReflectiveMirrorPathLoopWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    const VulkanGpuDiffusePathLoopBackend backend;
+    if (!backend.fullGpuPathLoopAvailable()) {
+      GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
+    }
+
+    Scene scene;
+    scene.setEnvironmentRadiance(Colord(0.1, 0.2, 0.3));
+    auto reflective =
+      std::make_shared<ReflectiveMaterial>(std::make_shared<ConstantColorTexture>(Colord::black()));
+    reflective->setDiffuseCoefficient(0.0);
+    reflective->setReflectionColor(Colord(0.75, 0.5, 0.25));
+    reflective->setReflectionCoefficient(0.5);
+    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    receiver->setMaterial(reflective);
+    scene.add(receiver);
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+    GpuDiffusePathStateRecord path = activePath();
+    path.pixelIndex = 0;
+    path.sampleSeed = 12347;
+    path.throughput = {0.5f, 0.25f, 0.125f, 0.0f};
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 2;
+    settings.russianRouletteDepth = 10;
+    settings.directLightSamples = 1;
+    const std::vector<GpuDiffusePathStateRecord> paths{path};
+
+    const GpuDiffusePathLoopResult expected = GpuDiffusePathLoop().run(sections, paths, settings);
+    const GpuDiffusePathLoopResult result = backend.run(sections, paths, settings);
+
+    EXPECT_TRUE(result.fullGpuPathLoopSupported());
+    EXPECT_EQ(expected.depthCount, result.depthCount);
+    EXPECT_EQ(expected.maxDepthTerminatedPaths, result.maxDepthTerminatedPaths);
+    ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
+    expectPathStateNear(result.resolvedPathStates[0], expected.resolvedPathStates[0], 1e-4);
+    EXPECT_EQ(gpuDiffusePathStateSampledFromBsdfFlag | gpuDiffusePathStateBsdfSampleDeltaFlag,
+              result.resolvedPathStates[0].previousEventFlags);
 #else
     GTEST_SKIP() << "Vulkan wavefront support is not enabled in this build";
 #endif
