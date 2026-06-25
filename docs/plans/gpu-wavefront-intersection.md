@@ -85,7 +85,7 @@
 > justify full GPU selection by default. Vulkan-enabled builds now also have a
 > restricted diffuse path-loop backend that owns path-state, step-record,
 > retained-index, and accumulation buffers through a Vulkan compute dispatch
-> for empty scenes and a multi-depth one-sphere
+> for empty scenes and a multi-depth one-untransformed-sphere-or-plane
 > Matte/Phong-finite-glossy/Reflective-mirror/Transparent-refraction/Emissive
 > subset, including duplicate-pixel sample-slot accumulation. It now also
 > samples the simple planar/UV CheckerBoard and nearest ImageTexture subset used

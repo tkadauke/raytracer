@@ -19,18 +19,29 @@ namespace render {
       return geometry.primitives.empty() && geometry.bvh.empty();
     }
 
-    [[nodiscard]] bool sceneHasSingleUntransformedSphere(const GpuTracingSceneSections& scene) {
+    [[nodiscard]] bool onlySupportedPayloadIsPresent(const GpuIntersectionSceneBuffers& geometry,
+                                                     GpuIntersectionPrimitiveKind kind) {
+      return geometry.triangles.empty() &&
+             (kind == GpuIntersectionPrimitiveKind::Sphere ? geometry.spheres.size() == 1u
+                                                           : geometry.spheres.empty()) &&
+             (kind == GpuIntersectionPrimitiveKind::Plane ? geometry.planes.size() == 1u
+                                                          : geometry.planes.empty()) &&
+             geometry.rectangles.empty() && geometry.disks.empty() &&
+             geometry.openCylinders.empty() && geometry.tori.empty();
+    }
+
+    [[nodiscard]] bool
+    sceneHasSingleSupportedUntransformedPrimitive(const GpuTracingSceneSections& scene) {
       const GpuIntersectionSceneBuffers& geometry = scene.geometry;
-      if (geometry.primitives.size() != 1u || geometry.spheres.size() != 1u ||
-          !geometry.triangles.empty() || !geometry.planes.empty() || !geometry.rectangles.empty() ||
-          !geometry.disks.empty() || !geometry.openCylinders.empty() || !geometry.tori.empty() ||
-          !geometry.transforms.empty()) {
+      if (geometry.primitives.size() != 1u || !geometry.transforms.empty()) {
         return false;
       }
       const GpuIntersectionPrimitiveRecord& primitive = geometry.primitives.front();
-      return static_cast<GpuIntersectionPrimitiveKind>(primitive.kind) ==
-               GpuIntersectionPrimitiveKind::Sphere &&
-             primitive.transform == 0u && primitive.payloadOffset == 0u;
+      const auto kind = static_cast<GpuIntersectionPrimitiveKind>(primitive.kind);
+      return (kind == GpuIntersectionPrimitiveKind::Sphere ||
+              kind == GpuIntersectionPrimitiveKind::Plane) &&
+             primitive.transform == 0u && primitive.payloadOffset == 0u &&
+             onlySupportedPayloadIsPresent(geometry, kind);
     }
 
     [[nodiscard]] bool supportedMaterials(const GpuTracingSceneSections& scene) {
@@ -412,9 +423,9 @@ namespace render {
     if (sceneHasNoGeometry(scene)) {
       return {true, {}};
     }
-    if (!sceneHasSingleUntransformedSphere(scene)) {
+    if (!sceneHasSingleSupportedUntransformedPrimitive(scene)) {
       return {false, "Vulkan diffuse path-loop backend currently supports empty geometry or one "
-                     "untransformed sphere only"};
+                     "untransformed sphere or plane only"};
     }
     if (!supportedMaterials(scene)) {
       return {false,

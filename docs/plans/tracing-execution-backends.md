@@ -131,7 +131,7 @@ end state for GPU tracing.
   multiple depths for backend tests and explicit GPU graph requests when the
   light set is empty or uses point, directional, or rectangular area lights. A
   restricted Vulkan path-loop backend can execute empty-scene all-miss paths and
-  a multi-depth shaded one-sphere subset with
+  a multi-depth shaded one-untransformed-sphere-or-plane subset with
   Matte/Phong-finite-glossy/Reflective-mirror/Transparent-refraction/Emissive
   materials,
   ConstantColor/simple CheckerBoard/nearest ImageTexture records, and zero or
@@ -2601,7 +2601,8 @@ scene is large enough to amortize upload/readback costs.
      or no device is available. ✅ **Started.** Vulkan-enabled builds now
      compile an embedded diffuse path-loop compute shader and expose a
      restricted `VulkanGpuDiffusePathLoopBackend` that can execute empty
-     all-miss paths and a multi-depth shaded one-sphere subset with
+     all-miss paths and a multi-depth shaded one-untransformed-sphere-or-plane
+     subset with
      Matte/Phong-finite-glossy/Reflective-mirror/Transparent-refraction/Emissive
      materials,
      ConstantColor/simple CheckerBoard/nearest ImageTexture records, and zero
@@ -2611,9 +2612,10 @@ scene is large enough to amortize upload/readback costs.
      residency, and now dispatches that shader in 64-wide workgroups instead
      of one invocation per workgroup. It also uses platform sample-slot/path
      accumulation when duplicate active pixel targets would otherwise collide
-     and evaluates direct-light sampling plus supported-sphere visibility in
+     and evaluates direct-light sampling plus supported geometry visibility in
      the shader. It also carries Reflective mirror and Transparent refraction
-     materials as exact delta continuations. It still cleanly rejects broader
+     materials as exact delta continuations and can intersect an untransformed
+     Plane as its first non-sphere geometry. It still cleanly rejects broader
      compiled geometry until the platform subset reaches parity with Metal.
 
 4. **Wire graph auto-selection to platform backend availability.**

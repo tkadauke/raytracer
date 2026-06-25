@@ -4,6 +4,7 @@ layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
 const uint gpuIntersectionLeafNodeFlag = 1u;
 const uint gpuIntersectionSpherePrimitiveKind = 2u;
+const uint gpuIntersectionPlanePrimitiveKind = 3u;
 const uint gpuTracingMatteMaterialKind = 1u;
 const uint gpuTracingEmissiveMaterialKind = 2u;
 const uint gpuTracingPhongMaterialKind = 3u;
@@ -108,6 +109,10 @@ struct GpuIntersectionPrimitiveRecord {
 
 struct GpuIntersectionSpherePayload {
   vec4 centerRadius;
+};
+
+struct GpuIntersectionPlanePayload {
+  vec4 normalDistance;
 };
 
 struct GpuIntersectionRay {
@@ -440,6 +445,13 @@ GpuIntersectionSpherePayload readSphere(uint index) {
   return sphere;
 }
 
+GpuIntersectionPlanePayload readPlane(uint index) {
+  const uint wordOffset = byteOffsetWords(parameters.planeByteOffset) + index * 4u;
+  GpuIntersectionPlanePayload plane;
+  plane.normalDistance = readVec4(wordOffset);
+  return plane;
+}
+
 GpuTracingMaterialRecord readMaterial(uint materialId) {
   const uint wordOffset = byteOffsetWords(parameters.materialByteOffset) + materialId * 20u;
   GpuTracingMaterialRecord material;
@@ -559,6 +571,48 @@ LocalPrimitiveHit intersectSphere(GpuIntersectionRay ray, GpuIntersectionSphereP
   return result;
 }
 
+LocalPrimitiveHit intersectPlane(GpuIntersectionRay ray, GpuIntersectionPlanePayload plane,
+                                 float maxHitDistance) {
+  LocalPrimitiveHit result = emptyPrimitiveHit(maxHitDistance);
+  const vec3 normal = plane.normalDistance.xyz;
+  const float planeDistance = plane.normalDistance.w;
+  const float angle = dot(normal, ray.direction.xyz);
+  if (abs(angle) <= 1.1920928955078125e-7) {
+    return result;
+  }
+  const float distance = -(dot(normal, ray.origin.xyz) + planeDistance) / angle;
+  if (distance <= 0.0 || distance < ray.minDistance || distance > ray.maxDistance ||
+      distance >= maxHitDistance) {
+    return result;
+  }
+  result.hit = true;
+  result.distance = distance;
+  result.point = vec4(ray.origin.xyz + ray.direction.xyz * distance, 1.0);
+  result.normal = vec4(normal, 0.0);
+  return result;
+}
+
+LocalPrimitiveHit intersectSupportedPrimitive(GpuIntersectionRay ray,
+                                              GpuIntersectionPrimitiveRecord primitive,
+                                              float maxHitDistance) {
+  if (primitive.transform != 0u) {
+    return emptyPrimitiveHit(maxHitDistance);
+  }
+  if (primitive.kind == gpuIntersectionSpherePrimitiveKind) {
+    if (primitive.payloadOffset >= parameters.sphereCount) {
+      return emptyPrimitiveHit(maxHitDistance);
+    }
+    return intersectSphere(ray, readSphere(primitive.payloadOffset), maxHitDistance);
+  }
+  if (primitive.kind == gpuIntersectionPlanePrimitiveKind) {
+    if (primitive.payloadOffset >= parameters.planeCount) {
+      return emptyPrimitiveHit(maxHitDistance);
+    }
+    return intersectPlane(ray, readPlane(primitive.payloadOffset), maxHitDistance);
+  }
+  return emptyPrimitiveHit(maxHitDistance);
+}
+
 GpuIntersectionHitRecord missHitRecord(GpuIntersectionRay ray) {
   GpuIntersectionHitRecord record;
   record.hit = 0u;
@@ -606,22 +660,21 @@ GpuIntersectionHitRecord hitRecordForPrimitive(GpuIntersectionRay ray,
 
 GpuIntersectionHitRecord closestSupportedHit(GpuIntersectionRay ray) {
   GpuIntersectionHitRecord closest = missHitRecord(ray);
-  if (parameters.primitiveCount == 0u || parameters.sphereCount == 0u) {
+  if (parameters.primitiveCount == 0u ||
+      (parameters.sphereCount == 0u && parameters.planeCount == 0u)) {
     return closest;
   }
 
   if (parameters.bvhNodeCount == 0u) {
     for (uint primitiveIndex = 0u; primitiveIndex != parameters.primitiveCount; ++primitiveIndex) {
       const GpuIntersectionPrimitiveRecord primitive = readPrimitive(primitiveIndex);
-      if (primitive.kind != gpuIntersectionSpherePrimitiveKind || primitive.transform != 0u ||
-          primitive.payloadOffset >= parameters.sphereCount ||
-          !boundsIntersectsRay(primitive.bounds, ray, closest.distance)) {
+      if (!boundsIntersectsRay(primitive.bounds, ray, closest.distance)) {
         continue;
       }
-      const LocalPrimitiveHit sphereHit =
-          intersectSphere(ray, readSphere(primitive.payloadOffset), closest.distance);
-      if (sphereHit.hit) {
-        closest = hitRecordForPrimitive(ray, primitive, primitiveIndex, sphereHit);
+      const LocalPrimitiveHit primitiveHit =
+          intersectSupportedPrimitive(ray, primitive, closest.distance);
+      if (primitiveHit.hit) {
+        closest = hitRecordForPrimitive(ray, primitive, primitiveIndex, primitiveHit);
       }
     }
     return closest;
@@ -652,15 +705,13 @@ GpuIntersectionHitRecord closestSupportedHit(GpuIntersectionRay ray) {
         continue;
       }
       const GpuIntersectionPrimitiveRecord primitive = readPrimitive(primitiveIndex);
-      if (primitive.kind != gpuIntersectionSpherePrimitiveKind || primitive.transform != 0u ||
-          primitive.payloadOffset >= parameters.sphereCount ||
-          !boundsIntersectsRay(primitive.bounds, ray, closest.distance)) {
+      if (!boundsIntersectsRay(primitive.bounds, ray, closest.distance)) {
         continue;
       }
-      const LocalPrimitiveHit sphereHit =
-          intersectSphere(ray, readSphere(primitive.payloadOffset), closest.distance);
-      if (sphereHit.hit) {
-        closest = hitRecordForPrimitive(ray, primitive, primitiveIndex, sphereHit);
+      const LocalPrimitiveHit primitiveHit =
+          intersectSupportedPrimitive(ray, primitive, closest.distance);
+      if (primitiveHit.hit) {
+        closest = hitRecordForPrimitive(ray, primitive, primitiveIndex, primitiveHit);
       }
     }
   }
