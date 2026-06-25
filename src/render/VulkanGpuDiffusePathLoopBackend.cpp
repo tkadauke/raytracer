@@ -33,7 +33,7 @@ namespace render {
     primitiveUsesSupportedGeometry(const GpuIntersectionPrimitiveRecord& primitive,
                                    const GpuIntersectionSceneBuffers& geometry,
                                    SupportedGeometryCounts& counts) {
-      if (primitive.transform != 0u) {
+      if (primitive.transform != 0u && primitive.transform >= geometry.transforms.size()) {
         return false;
       }
       switch (static_cast<GpuIntersectionPrimitiveKind>(primitive.kind)) {
@@ -85,10 +85,9 @@ namespace render {
       return false;
     }
 
-    [[nodiscard]] bool
-    sceneHasSupportedUntransformedGeometry(const GpuTracingSceneSections& scene) {
+    [[nodiscard]] bool sceneHasSupportedStaticGeometry(const GpuTracingSceneSections& scene) {
       const GpuIntersectionSceneBuffers& geometry = scene.geometry;
-      if (geometry.primitives.empty() || !geometry.transforms.empty()) {
+      if (geometry.primitives.empty()) {
         return false;
       }
       SupportedGeometryCounts counts;
@@ -484,10 +483,10 @@ namespace render {
     if (sceneHasNoGeometry(scene)) {
       return {true, {}};
     }
-    if (!sceneHasSupportedUntransformedGeometry(scene)) {
+    if (!sceneHasSupportedStaticGeometry(scene)) {
       return {false, "Vulkan diffuse path-loop backend currently supports empty geometry or "
-                     "untransformed triangle, sphere, plane, rectangle, disk, open-cylinder, "
-                     "or torus primitives only"};
+                     "triangle, sphere, plane, rectangle, disk, open-cylinder, or torus "
+                     "primitives with static transforms only"};
     }
     if (!supportedMaterials(scene)) {
       return {false,

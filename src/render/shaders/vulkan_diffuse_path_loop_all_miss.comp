@@ -153,6 +153,25 @@ struct GpuIntersectionTorusPayload {
   vec4 sweptTubeRadius;
 };
 
+struct GpuIntersectionTransformPayload {
+  vec4 pointMatrix0;
+  vec4 pointMatrix1;
+  vec4 pointMatrix2;
+  vec4 pointMatrix3;
+  vec4 normalMatrix0;
+  vec4 normalMatrix1;
+  vec4 normalMatrix2;
+  vec4 normalMatrix3;
+  vec4 inversePointMatrix0;
+  vec4 inversePointMatrix1;
+  vec4 inversePointMatrix2;
+  vec4 inversePointMatrix3;
+  vec4 inverseDirectionMatrix0;
+  vec4 inverseDirectionMatrix1;
+  vec4 inverseDirectionMatrix2;
+  vec4 inverseDirectionMatrix3;
+};
+
 struct GpuIntersectionRay {
   vec4 origin;
   vec4 direction;
@@ -542,6 +561,28 @@ GpuIntersectionTorusPayload readTorus(uint index) {
   return torus;
 }
 
+GpuIntersectionTransformPayload readTransform(uint index) {
+  const uint wordOffset = byteOffsetWords(parameters.transformByteOffset) + index * 64u;
+  GpuIntersectionTransformPayload transform;
+  transform.pointMatrix0 = readVec4(wordOffset);
+  transform.pointMatrix1 = readVec4(wordOffset + 4u);
+  transform.pointMatrix2 = readVec4(wordOffset + 8u);
+  transform.pointMatrix3 = readVec4(wordOffset + 12u);
+  transform.normalMatrix0 = readVec4(wordOffset + 16u);
+  transform.normalMatrix1 = readVec4(wordOffset + 20u);
+  transform.normalMatrix2 = readVec4(wordOffset + 24u);
+  transform.normalMatrix3 = readVec4(wordOffset + 28u);
+  transform.inversePointMatrix0 = readVec4(wordOffset + 32u);
+  transform.inversePointMatrix1 = readVec4(wordOffset + 36u);
+  transform.inversePointMatrix2 = readVec4(wordOffset + 40u);
+  transform.inversePointMatrix3 = readVec4(wordOffset + 44u);
+  transform.inverseDirectionMatrix0 = readVec4(wordOffset + 48u);
+  transform.inverseDirectionMatrix1 = readVec4(wordOffset + 52u);
+  transform.inverseDirectionMatrix2 = readVec4(wordOffset + 56u);
+  transform.inverseDirectionMatrix3 = readVec4(wordOffset + 60u);
+  return transform;
+}
+
 GpuTracingMaterialRecord readMaterial(uint materialId) {
   const uint wordOffset = byteOffsetWords(parameters.materialByteOffset) + materialId * 20u;
   GpuTracingMaterialRecord material;
@@ -614,6 +655,50 @@ bool boundsIntersectsRay(GpuIntersectionBounds bounds, GpuIntersectionRay ray,
     }
   }
   return true;
+}
+
+vec4 normalize3(vec4 value) {
+  const float lengthSquared = dot(value.xyz, value.xyz);
+  if (lengthSquared <= pathLoopRayEpsilon) {
+    return vec4(0.0);
+  }
+  return vec4(value.xyz * inversesqrt(lengthSquared), 0.0);
+}
+
+vec4 transformPoint(vec4 row0, vec4 row1, vec4 row2, vec4 row3, vec4 point) {
+  return vec4(dot(row0, point), dot(row1, point), dot(row2, point), dot(row3, point));
+}
+
+vec4 transformDirection(vec4 row0, vec4 row1, vec4 row2, vec4 direction) {
+  return vec4(dot(row0.xyz, direction.xyz), dot(row1.xyz, direction.xyz),
+              dot(row2.xyz, direction.xyz), 0.0);
+}
+
+GpuIntersectionRay transformRay(GpuIntersectionRay ray,
+                                GpuIntersectionTransformPayload transform) {
+  GpuIntersectionRay result = ray;
+  result.origin = transformPoint(transform.inversePointMatrix0,
+                                 transform.inversePointMatrix1,
+                                 transform.inversePointMatrix2,
+                                 transform.inversePointMatrix3,
+                                 ray.origin);
+  result.direction = transformDirection(transform.inverseDirectionMatrix0,
+                                        transform.inverseDirectionMatrix1,
+                                        transform.inverseDirectionMatrix2,
+                                        ray.direction);
+  return result;
+}
+
+LocalPrimitiveHit transformHit(LocalPrimitiveHit hit,
+                               GpuIntersectionTransformPayload transform) {
+  if (!hit.hit) {
+    return hit;
+  }
+  hit.point = transformPoint(transform.pointMatrix0, transform.pointMatrix1,
+                             transform.pointMatrix2, transform.pointMatrix3, hit.point);
+  hit.normal = normalize3(transformDirection(transform.normalMatrix0, transform.normalMatrix1,
+                                             transform.normalMatrix2, hit.normal));
+  return hit;
 }
 
 LocalPrimitiveHit emptyPrimitiveHit(float maxHitDistance) {
@@ -1038,50 +1123,93 @@ LocalPrimitiveHit intersectTorus(GpuIntersectionRay ray,
 LocalPrimitiveHit intersectSupportedPrimitive(GpuIntersectionRay ray,
                                               GpuIntersectionPrimitiveRecord primitive,
                                               float maxHitDistance) {
-  if (primitive.transform != 0u) {
-    return emptyPrimitiveHit(maxHitDistance);
+  GpuIntersectionRay primitiveRay = ray;
+  bool hasTransform = primitive.transform != 0u;
+  GpuIntersectionTransformPayload transform;
+  if (hasTransform) {
+    if (primitive.transform >= parameters.transformCount) {
+      return emptyPrimitiveHit(maxHitDistance);
+    }
+    transform = readTransform(primitive.transform);
+    primitiveRay = transformRay(ray, transform);
   }
   if (primitive.kind == gpuIntersectionTrianglePrimitiveKind) {
     if (primitive.payloadOffset >= parameters.triangleCount) {
       return emptyPrimitiveHit(maxHitDistance);
     }
-    return intersectTriangle(ray, readTriangle(primitive.payloadOffset), maxHitDistance);
+    LocalPrimitiveHit triangleHit =
+        intersectTriangle(primitiveRay, readTriangle(primitive.payloadOffset), maxHitDistance);
+    if (hasTransform) {
+      triangleHit = transformHit(triangleHit, transform);
+    }
+    return triangleHit;
   }
   if (primitive.kind == gpuIntersectionSpherePrimitiveKind) {
     if (primitive.payloadOffset >= parameters.sphereCount) {
       return emptyPrimitiveHit(maxHitDistance);
     }
-    return intersectSphere(ray, readSphere(primitive.payloadOffset), maxHitDistance);
+    LocalPrimitiveHit sphereHit =
+        intersectSphere(primitiveRay, readSphere(primitive.payloadOffset), maxHitDistance);
+    if (hasTransform) {
+      sphereHit = transformHit(sphereHit, transform);
+    }
+    return sphereHit;
   }
   if (primitive.kind == gpuIntersectionPlanePrimitiveKind) {
     if (primitive.payloadOffset >= parameters.planeCount) {
       return emptyPrimitiveHit(maxHitDistance);
     }
-    return intersectPlane(ray, readPlane(primitive.payloadOffset), maxHitDistance);
+    LocalPrimitiveHit planeHit =
+        intersectPlane(primitiveRay, readPlane(primitive.payloadOffset), maxHitDistance);
+    if (hasTransform) {
+      planeHit = transformHit(planeHit, transform);
+    }
+    return planeHit;
   }
   if (primitive.kind == gpuIntersectionRectanglePrimitiveKind) {
     if (primitive.payloadOffset >= parameters.rectangleCount) {
       return emptyPrimitiveHit(maxHitDistance);
     }
-    return intersectRectangle(ray, readRectangle(primitive.payloadOffset), maxHitDistance);
+    LocalPrimitiveHit rectangleHit =
+        intersectRectangle(primitiveRay, readRectangle(primitive.payloadOffset), maxHitDistance);
+    if (hasTransform) {
+      rectangleHit = transformHit(rectangleHit, transform);
+    }
+    return rectangleHit;
   }
   if (primitive.kind == gpuIntersectionDiskPrimitiveKind) {
     if (primitive.payloadOffset >= parameters.diskCount) {
       return emptyPrimitiveHit(maxHitDistance);
     }
-    return intersectDisk(ray, readDisk(primitive.payloadOffset), maxHitDistance);
+    LocalPrimitiveHit diskHit =
+        intersectDisk(primitiveRay, readDisk(primitive.payloadOffset), maxHitDistance);
+    if (hasTransform) {
+      diskHit = transformHit(diskHit, transform);
+    }
+    return diskHit;
   }
   if (primitive.kind == gpuIntersectionOpenCylinderPrimitiveKind) {
     if (primitive.payloadOffset >= parameters.openCylinderCount) {
       return emptyPrimitiveHit(maxHitDistance);
     }
-    return intersectOpenCylinder(ray, readOpenCylinder(primitive.payloadOffset), maxHitDistance);
+    LocalPrimitiveHit openCylinderHit =
+        intersectOpenCylinder(primitiveRay, readOpenCylinder(primitive.payloadOffset),
+                              maxHitDistance);
+    if (hasTransform) {
+      openCylinderHit = transformHit(openCylinderHit, transform);
+    }
+    return openCylinderHit;
   }
   if (primitive.kind == gpuIntersectionTorusPrimitiveKind) {
     if (primitive.payloadOffset >= parameters.torusCount) {
       return emptyPrimitiveHit(maxHitDistance);
     }
-    return intersectTorus(ray, readTorus(primitive.payloadOffset), maxHitDistance);
+    LocalPrimitiveHit torusHit =
+        intersectTorus(primitiveRay, readTorus(primitive.payloadOffset), maxHitDistance);
+    if (hasTransform) {
+      torusHit = transformHit(torusHit, transform);
+    }
+    return torusHit;
   }
   return emptyPrimitiveHit(maxHitDistance);
 }

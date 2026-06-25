@@ -2,6 +2,7 @@
 
 #include "core/Buffer.h"
 #include "core/Color.h"
+#include "core/geometry/Polyline.h"
 #include "core/math/Constants.h"
 #include "core/math/Matrix.h"
 #include "test/helpers/ColorTestHelper.h"
@@ -30,6 +31,7 @@
 #include "render/materials/PhongMaterial.h"
 #include "render/materials/ReflectiveMaterial.h"
 #include "render/materials/TransparentMaterial.h"
+#include "render/primitives/Curve.h"
 #include "render/primitives/Disk.h"
 #include "render/primitives/Instance.h"
 #include "render/primitives/OpenCylinder.h"
@@ -1968,6 +1970,17 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_TRUE(torusSupport.supported);
     EXPECT_TRUE(torusSupport.reason.empty());
 
+    Scene transformedScene;
+    auto transformedSphere =
+      std::make_shared<Instance>(std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0));
+    transformedSphere->setMatrix(Matrix4d::translate(1.0, 0.0, 0.0));
+    transformedSphere->setMaterial(matte);
+    transformedScene.add(transformedSphere);
+    const GpuDiffusePathLoopBackendSupport transformedSupport =
+      backend.fullGpuPathLoopSupport(sectionsFor(transformedScene), settings);
+    EXPECT_TRUE(transformedSupport.supported);
+    EXPECT_TRUE(transformedSupport.reason.empty());
+
     Scene phongScene;
     auto phong = std::make_shared<PhongMaterial>(
       std::make_shared<ConstantColorTexture>(Colord(0.25, 0.5, 0.75)), Colord::white(), 16.0);
@@ -2060,17 +2073,15 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_TRUE(areaLightSupport.reason.empty());
 
     Scene unsupportedScene;
-    auto transformedSphere =
-      std::make_shared<Instance>(std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0));
-    transformedSphere->setMatrix(Matrix4d::translate(1.0, 0.0, 0.0));
-    unsupportedScene.add(transformedSphere);
+    unsupportedScene.add(std::make_shared<Curve>(
+      core::Polyline({Vector3d(0.0, 0.0, 0.0), Vector3d(1.0, 0.0, 0.0)}), 0.1));
     const GpuTracingSceneSections unsupportedSections = sectionsFor(unsupportedScene);
     const GpuDiffusePathLoopBackendSupport unsupportedSupport =
       backend.fullGpuPathLoopSupport(unsupportedSections, settings);
     EXPECT_FALSE(unsupportedSupport.supported);
     EXPECT_EQ("Vulkan diffuse path-loop backend currently supports empty geometry or "
-              "untransformed triangle, sphere, plane, rectangle, disk, open-cylinder, "
-              "or torus primitives only",
+              "triangle, sphere, plane, rectangle, disk, open-cylinder, or torus "
+              "primitives with static transforms only",
               unsupportedSupport.reason);
 
     Scene unsupportedMaterialScene;
@@ -2438,6 +2449,51 @@ namespace GpuDiffusePathStepReferenceTest {
     const GpuTracingSceneSections sections = sectionsFor(scene);
     GpuDiffusePathStateRecord path =
       activePath(Rayd(Vector4d(0.0, 0.0, -3.0, 1.0), Vector3d(0.0, 0.0, 1.0)), 20);
+    path.pixelIndex = 0;
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 1;
+    settings.russianRouletteDepth = 10;
+    settings.directLightSamples = 1;
+    const std::vector<GpuDiffusePathStateRecord> paths{path};
+
+    const GpuDiffusePathLoopResult expected = GpuDiffusePathLoop().run(sections, paths, settings);
+    const GpuDiffusePathLoopResult result = backend.run(sections, paths, settings);
+
+    EXPECT_TRUE(result.fullGpuPathLoopSupported());
+    EXPECT_EQ(expected.depthCount, result.depthCount);
+    EXPECT_EQ(expected.maxDepthTerminatedPaths, result.maxDepthTerminatedPaths);
+    ASSERT_EQ(expected.stepRecords.size(), result.stepRecords.size());
+    expectFloat4Near(result.stepRecords[0].continuationThroughput,
+                     expected.stepRecords[0].continuationThroughput, 1e-4);
+    ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
+    expectPathStateNear(result.resolvedPathStates[0], expected.resolvedPathStates[0], 1e-4);
+#else
+    GTEST_SKIP() << "Vulkan wavefront support is not enabled in this build";
+#endif
+  }
+
+  TEST(VulkanGpuDiffusePathLoopBackend, RunsTransformedSphereDiffusePathLoopWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    const VulkanGpuDiffusePathLoopBackend backend;
+    if (!backend.fullGpuPathLoopAvailable()) {
+      GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
+    }
+
+    Scene scene;
+    scene.setEnvironmentRadiance(Colord(0.1, 0.2, 0.3));
+    auto material = std::make_shared<MatteMaterial>(
+      std::make_shared<ConstantColorTexture>(Colord(0.25, 0.5, 0.75)));
+    material->setDiffuseCoefficient(0.8);
+    auto sphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    sphere->setMaterial(material);
+    auto instance = std::make_shared<Instance>(sphere);
+    instance->setMatrix(Matrix4d::translate(0.0, 0.0, 2.0) * Matrix4d(Matrix3d::scale(1.5)));
+    scene.add(instance);
+    scene.addLight(std::make_shared<PointLight>(Vector3d(0.0, 3.0, -2.0), Colord::white()));
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+    GpuDiffusePathStateRecord path =
+      activePath(Rayd(Vector4d(0.0, 0.0, -3.0, 1.0), Vector3d(0.0, 0.0, 1.0)), 21);
     path.pixelIndex = 0;
 
     GpuDiffusePathLoopSettings settings;

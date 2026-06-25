@@ -131,7 +131,7 @@ end state for GPU tracing.
   multiple depths for backend tests and explicit GPU graph requests when the
   light set is empty or uses point, directional, or rectangular area lights. A
   restricted Vulkan path-loop backend can execute empty-scene all-miss paths and
-  a multi-depth shaded untransformed
+  a multi-depth shaded static-transform
   triangle/sphere/plane/rectangle/disk/open-cylinder/torus subset with
   Matte/Phong-finite-glossy/Reflective-mirror/Transparent-refraction/Emissive
   materials,
@@ -2602,7 +2602,7 @@ scene is large enough to amortize upload/readback costs.
      or no device is available. ✅ **Started.** Vulkan-enabled builds now
      compile an embedded diffuse path-loop compute shader and expose a
      restricted `VulkanGpuDiffusePathLoopBackend` that can execute empty
-     all-miss paths and a multi-depth shaded untransformed
+     all-miss paths and a multi-depth shaded static-transform
      triangle/sphere/plane/rectangle/disk/open-cylinder/torus subset with
      Matte/Phong-finite-glossy/Reflective-mirror/Transparent-refraction/Emissive
      materials,
@@ -2615,8 +2615,9 @@ scene is large enough to amortize upload/readback costs.
      accumulation when duplicate active pixel targets would otherwise collide
      and evaluates direct-light sampling plus supported geometry visibility in
      the shader. It also carries Reflective mirror and Transparent refraction
-     materials as exact delta continuations and can intersect untransformed
-     Triangle, Plane, Rectangle, and Disk records in addition to spheres. It
+     materials as exact delta continuations and can intersect transformed or
+     untransformed Triangle, Plane, Rectangle, Disk, OpenCylinder, and Torus
+     records in addition to spheres. It
      still cleanly rejects broader compiled geometry until the platform subset
      reaches parity with Metal.
 
