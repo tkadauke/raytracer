@@ -1976,6 +1976,61 @@ namespace GpuDiffusePathStepReferenceTest {
 #endif
   }
 
+  TEST(VulkanGpuDiffusePathLoopBackend, RunsDuplicatePixelSamplesWithSampleSlotAccumulation) {
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    const VulkanGpuDiffusePathLoopBackend backend;
+    if (!backend.fullGpuPathLoopAvailable()) {
+      GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
+    }
+
+    Scene scene;
+    scene.setBackground(Colord(0.2, 0.4, 0.6));
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+
+    std::vector<GpuDiffusePathStateRecord> paths{activePath(40), activePath(41)};
+    paths[0].pixelIndex = 0;
+    paths[0].primarySampleIndex = 0;
+    paths[0].throughput = {1.0f, 1.0f, 1.0f, 0.0f};
+    paths[1].pixelIndex = 0;
+    paths[1].primarySampleIndex = 1;
+    paths[1].throughput = {0.5f, 0.25f, 0.125f, 0.0f};
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 1;
+    settings.russianRouletteDepth = 10;
+
+    const GpuDiffusePathLoopResult expected = GpuDiffusePathLoop().run(sections, paths, settings);
+    const GpuDiffusePathLoopResult result = backend.run(sections, paths, settings);
+
+    EXPECT_TRUE(result.fullGpuPathLoopSupported());
+    EXPECT_EQ("vulkan", result.platformName);
+    ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
+    expectPathStateNear(result.resolvedPathStates[0], expected.resolvedPathStates[0], 1e-4);
+    expectPathStateNear(result.resolvedPathStates[1], expected.resolvedPathStates[1], 1e-4);
+    ASSERT_EQ(paths.size(), result.platformAccumulationColorSums.size());
+    ASSERT_EQ(paths.size(), result.platformAccumulationSampleCounts.size());
+    EXPECT_EQ(gpuDiffusePathLoopAccumulationTargetSampleSlot,
+              result.platformAccumulationTargetMode);
+    EXPECT_EQ(1u, result.platformAccumulationWidth);
+    EXPECT_EQ(2u, result.platformAccumulationHeight);
+    EXPECT_EQ(1u, result.platformAccumulationSampleCounts[0]);
+    EXPECT_EQ(1u, result.platformAccumulationSampleCounts[1]);
+
+    const TracingAccumulationLayout layout = TracingAccumulationLayout::image(1, 1);
+    Buffer<Colord> expectedResolved(1, 1);
+    Buffer<Colord> resolved(1, 1);
+    (void)resolveGpuDiffusePathLoopImage(expected, layout, expectedResolved);
+    const TracingAccumulationDiagnostics diagnostics =
+      resolveGpuDiffusePathLoopImage(result, layout, resolved);
+
+    ASSERT_COLOR_NEAR(expectedResolved[0][0], resolved[0][0], 1e-4);
+    EXPECT_EQ("vulkan_diffuse_path_loop", diagnostics.backend);
+    EXPECT_EQ("vulkan_accumulation_buffer", diagnostics.residency);
+#else
+    GTEST_SKIP() << "Vulkan wavefront support is not enabled in this build";
+#endif
+  }
+
   TEST(VulkanGpuDiffusePathLoopBackend, RunsOneDepthSphereDiffusePathLoopWhenEnabled) {
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
     const VulkanGpuDiffusePathLoopBackend backend;

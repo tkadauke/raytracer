@@ -86,7 +86,8 @@
 > restricted diffuse path-loop backend that owns path-state, step-record,
 > retained-index, and accumulation buffers through a Vulkan compute dispatch
 > for empty scenes and a multi-depth one-sphere Matte/Emissive ConstantColor
-> subset; it remains intentionally narrower than the Metal shaded subset.
+> subset, including duplicate-pixel sample-slot accumulation; it remains
+> intentionally narrower than the Metal shaded subset.
 > This restricted backend is not broad enough to advertise general full GPU path
 > tracing yet.
 > This is a follow-up to

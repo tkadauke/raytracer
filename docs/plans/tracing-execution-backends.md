@@ -132,7 +132,8 @@ end state for GPU tracing.
   light set is empty or uses point, directional, or rectangular area lights. A
   restricted Vulkan path-loop backend can execute empty-scene all-miss paths and
   a multi-depth shaded one-sphere subset with Matte/Emissive ConstantColor
-  materials and zero or one point light when Vulkan is built and available.
+  materials and zero or one point light when Vulkan is built and available,
+  including sample-slot accumulation for duplicate active pixel targets.
   Graph auto-selection still waits for Vulkan shaded-path parity, broader scene
   support, and performance gates.
 - Platform full-GPU path-loop backend selection beyond that restricted Metal
@@ -2601,7 +2602,9 @@ scene is large enough to amortize upload/readback costs.
      writes Vulkan-owned active/next path-state, step-record, retained-index,
      and accumulation buffers, reports platform path-state residency, and
      now dispatches that shader in 64-wide workgroups instead of one invocation
-     per workgroup. It still cleanly rejects broader compiled geometry until the
+     per workgroup. It also uses platform sample-slot/path accumulation when
+     duplicate active pixel targets would otherwise collide. It still cleanly
+     rejects broader compiled geometry until the
      Matte/Phong finite-lobe/Emissive subset reaches parity with Metal.
 
 4. **Wire graph auto-selection to platform backend availability.**

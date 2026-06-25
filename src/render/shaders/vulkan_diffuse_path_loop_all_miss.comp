@@ -8,6 +8,8 @@ const uint gpuTracingMatteMaterialKind = 1u;
 const uint gpuTracingEmissiveMaterialKind = 2u;
 const uint gpuTracingConstantColorTextureKind = 1u;
 const uint gpuTracingPointLightKind = 1u;
+const uint gpuDiffusePathLoopAccumulationTargetPath = 1u;
+const uint gpuDiffusePathLoopAccumulationTargetSampleSlot = 2u;
 const uint gpuDiffusePathStateActiveFlag = 1u;
 const uint gpuDiffusePathStateTerminatedFlag = 2u;
 const uint gpuDiffusePathStateSampledFromBsdfFlag = 4u;
@@ -869,16 +871,28 @@ uint pixelCount() {
   return parameters.imageWidth * parameters.imageHeight;
 }
 
-void writeAccumulation(uint pixelIndex, vec4 color) {
-  if (pixelIndex >= pixelCount()) {
+uint accumulationIndexFor(uint pathIndex, GpuDiffusePathStateRecord path) {
+  if (parameters.accumulationTargetMode == gpuDiffusePathLoopAccumulationTargetPath) {
+    return pathIndex;
+  }
+  if (parameters.accumulationTargetMode == gpuDiffusePathLoopAccumulationTargetSampleSlot) {
+    return path.pixelIndex * parameters.imageHeight + path.primarySampleIndex;
+  }
+  return path.pixelIndex;
+}
+
+void writeAccumulation(uint pathIndex, GpuDiffusePathStateRecord path) {
+  const uint accumulationIndex = accumulationIndexFor(pathIndex, path);
+  if (accumulationIndex >= pixelCount()) {
     return;
   }
-  const uint colorWordOffset = pixelIndex * 4u;
+  const vec4 color = path.accumulatedRadiance;
+  const uint colorWordOffset = accumulationIndex * 4u;
   accumulationWords[colorWordOffset + 0u] = floatBitsToUint(color.x);
   accumulationWords[colorWordOffset + 1u] = floatBitsToUint(color.y);
   accumulationWords[colorWordOffset + 2u] = floatBitsToUint(color.z);
   accumulationWords[colorWordOffset + 3u] = floatBitsToUint(color.w);
-  accumulationWords[pixelCount() * 4u + pixelIndex] = 1u;
+  accumulationWords[pixelCount() * 4u + accumulationIndex] = 1u;
 }
 
 void main() {
@@ -894,7 +908,7 @@ void main() {
   GpuDiffusePathStateRecord path = initialPathStates[id];
   if (pathStateIsActive(path) && path.depth >= parameters.maxDepth) {
     path.flags = terminatedPathFlags(path.flags);
-    writeAccumulation(path.pixelIndex, path.accumulatedRadiance);
+    writeAccumulation(id, path);
   }
 
   for (uint depthIndex = 0u; depthIndex != parameters.maxDepth; ++depthIndex) {
@@ -908,11 +922,11 @@ void main() {
 
     if (pathStateIsActive(path) &&
         (next.flags & gpuDiffusePathStateTerminatedFlag) != 0u) {
-      writeAccumulation(next.pixelIndex, next.accumulatedRadiance);
+      writeAccumulation(id, next);
     }
     if (pathStateIsActive(next) && next.depth >= parameters.maxDepth) {
       next.flags = terminatedPathFlags(next.flags);
-      writeAccumulation(next.pixelIndex, next.accumulatedRadiance);
+      writeAccumulation(id, next);
     }
     path = next;
   }
