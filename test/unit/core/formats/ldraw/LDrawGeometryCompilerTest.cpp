@@ -20,6 +20,7 @@
 #include "render/primitives/Scene.h"
 #include "render/textures/ConstantColorTexture.h"
 #include "render/textures/ImageTexture.h"
+#include "test/helpers/BufferTestHelper.h"
 #include "test/helpers/ColorTestHelper.h"
 
 #include <fstream>
@@ -35,6 +36,7 @@ using namespace std;
 
 namespace LDrawGeometryCompilerTest {
   using namespace render;
+  using test::helpers::countPixels;
 
   LDrawColorTable colorTable() {
     LDrawColorTable table;
@@ -88,15 +90,6 @@ namespace LDrawGeometryCompilerTest {
     auto primitive = dynamic_pointer_cast<MeshPrimitive>(composite->primitives().front());
     EXPECT_NE(nullptr, primitive);
     return primitive;
-  }
-
-  int countPixels(const Buffer<Colord>& buffer, const Colord& color) {
-    int count = 0;
-    for (int y = 0; y < buffer.height(); ++y)
-      for (int x = 0; x < buffer.width(); ++x)
-        if (buffer[y][x] == color)
-          ++count;
-    return count;
   }
 
   string metadataValue(const Primitive& primitive, const string& key) {

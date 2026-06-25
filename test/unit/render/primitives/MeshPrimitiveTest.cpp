@@ -18,12 +18,15 @@
 #include "render/primitives/Scene.h"
 #include "render/primitives/SmoothMeshTriangle.h"
 #include "render/textures/ConstantColorTexture.h"
+#include "test/helpers/BufferTestHelper.h"
 
 #include <memory>
 
 namespace MeshPrimitiveTest {
   using namespace ::testing;
   using namespace render;
+  using test::helpers::countPixels;
+  using test::helpers::countPixelsNotEqualTo;
 
   Mesh makeQuadMesh() {
     Mesh mesh;
@@ -70,19 +73,6 @@ namespace MeshPrimitiveTest {
 
   std::shared_ptr<MatteMaterial> matte(const Colord& color) {
     return std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(color));
-  }
-
-  int countPixels(const Buffer<Colord>& buffer, const Colord& color) {
-    int count = 0;
-    for (int y = 0; y < buffer.height(); ++y)
-      for (int x = 0; x < buffer.width(); ++x)
-        if (buffer[y][x] == color)
-          ++count;
-    return count;
-  }
-
-  int countNonBackground(const Buffer<Colord>& buffer, const Colord& background) {
-    return buffer.width() * buffer.height() - countPixels(buffer, background);
   }
 
   std::shared_ptr<Scene> sceneWithPrimitive(std::shared_ptr<Primitive> primitive) {
@@ -426,7 +416,7 @@ namespace MeshPrimitiveTest {
 
     rasterizer.render(buffer);
 
-    EXPECT_GT(countNonBackground(buffer, Colord::black()), 0);
+    EXPECT_GT(countPixelsNotEqualTo(buffer, Colord::black()), 0);
   }
 
   TEST(MeshPrimitive, RasterizerPreservesNestedMaterialThroughInstance) {
