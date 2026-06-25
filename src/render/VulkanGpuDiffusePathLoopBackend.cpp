@@ -117,9 +117,12 @@ namespace render {
       if (scene.lights.empty()) {
         return true;
       }
-      return scene.lights.size() == 1u &&
-             static_cast<GpuTracingLightKind>(scene.lights.front().kind) ==
-               GpuTracingLightKind::Point;
+      if (scene.lights.size() != 1u) {
+        return false;
+      }
+      const auto kind = static_cast<GpuTracingLightKind>(scene.lights.front().kind);
+      return kind == GpuTracingLightKind::Point || kind == GpuTracingLightKind::Directional ||
+             kind == GpuTracingLightKind::RectangularArea;
     }
 
     struct ActiveAccumulationTargetShape {
@@ -420,8 +423,8 @@ namespace render {
                      "CheckerBoard, and nearest ImageTexture textures only"};
     }
     if (!supportedLights(scene)) {
-      return {false,
-              "Vulkan diffuse path-loop backend currently supports zero or one point light only"};
+      return {false, "Vulkan diffuse path-loop backend currently supports zero or one point, "
+                     "directional, or rectangular area light only"};
     }
     return {true, {}};
 #else

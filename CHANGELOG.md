@@ -30,6 +30,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Extend the restricted Vulkan full-GPU diffuse path-loop backend to sample
   simple planar/UV CheckerBoard textures and nearest ImageTexture records for
   its one-sphere Matte/Emissive subset. — GPT-5 Codex
+- Extend the restricted Vulkan full-GPU diffuse path-loop backend from
+  point-light-only direct lighting to one point, directional, or rectangular
+  area light with shader-side light sampling and supported-sphere visibility.
+  — GPT-5 Codex
 - Add a restricted Metal diffuse path-loop backend surface for one-depth
   empty-scene and sphere Matte/Emissive probe execution, while keeping
   automatic full-GPU graph selection disabled until a multi-depth platform loop

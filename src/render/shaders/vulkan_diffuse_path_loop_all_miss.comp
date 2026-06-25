@@ -14,6 +14,8 @@ const uint gpuTracingUvTextureMappingKind = 2u;
 const uint gpuTracingTextureMappingMask = 0xffu;
 const uint gpuTracingTextureWrapClampFlag = 256u;
 const uint gpuTracingPointLightKind = 1u;
+const uint gpuTracingDirectionalLightKind = 2u;
+const uint gpuTracingRectangularAreaLightKind = 3u;
 const uint gpuDiffusePathLoopAccumulationTargetPath = 1u;
 const uint gpuDiffusePathLoopAccumulationTargetSampleSlot = 2u;
 const uint gpuDiffusePathStateActiveFlag = 1u;
@@ -175,6 +177,15 @@ struct GpuTracingLightRecord {
   vec4 parameters;
 };
 
+struct DirectLightSample {
+  uint valid;
+  uint delta;
+  vec3 direction;
+  vec4 radiance;
+  float distance;
+  float pdf;
+};
+
 struct GpuDiffusePathStateRecord {
   GpuIntersectionRay ray;
   vec4 throughput;
@@ -315,6 +326,22 @@ float sample1D(GpuDiffusePathStateRecord path, uint dimension, uint component) {
 
 vec2 sample2D(GpuDiffusePathStateRecord path, uint dimension) {
   return vec2(sample1D(path, dimension, 0u), sample1D(path, dimension, 1u));
+}
+
+uint lightSelectionSampleIndex(uint bounce, uint directSampleIndex) {
+  const uint sum = bounce + directSampleIndex;
+  return sum * (sum + 1u) / 2u + directSampleIndex;
+}
+
+uint lightSampleIndex(uint bounce, uint lightIndex, uint directSampleIndex) {
+  const uint effectiveBounce = lightSelectionSampleIndex(bounce, directSampleIndex);
+  const uint sum = effectiveBounce + lightIndex;
+  return sum * (sum + 1u) / 2u + lightIndex;
+}
+
+uint lightSurfaceDimension(GpuDiffusePathStateRecord path, uint lightIndex,
+                           uint directSampleIndex) {
+  return 4u + lightSampleIndex(path.depth, lightIndex, directSampleIndex) * 4u;
 }
 
 float maxColor(vec4 color) {
@@ -789,29 +816,6 @@ bool emissiveContribution(GpuIntersectionHitRecord hit, GpuDiffusePathStateRecor
   return true;
 }
 
-vec4 directLightRadiance(GpuIntersectionHitRecord hit, GpuDiffusePathStateRecord path,
-                         vec4 reflectance) {
-  if (parameters.lightCount != 1u) {
-    return vec4(0.0);
-  }
-  const GpuTracingLightRecord light = readLight(0u);
-  if (light.kind != gpuTracingPointLightKind) {
-    return vec4(0.0);
-  }
-  const vec3 offset = light.positionOrDirection.xyz - hit.point.xyz;
-  const float distance = length(offset);
-  if (distance <= pathLoopRayEpsilon) {
-    return vec4(0.0);
-  }
-  const vec3 direction = offset / distance;
-  const float normalDotLight = dot(normalize(hit.normal.xyz), direction);
-  if (normalDotLight <= 0.0) {
-    return vec4(0.0);
-  }
-  const vec4 bsdfValue = reflectance * pathLoopInvPi;
-  return path.throughput * bsdfValue * light.parameters * normalDotLight;
-}
-
 GpuIntersectionRay continuationRay(GpuIntersectionHitRecord hit, GpuDiffusePathStateRecord path,
                                    vec3 direction) {
   GpuIntersectionRay ray = path.ray;
@@ -821,6 +825,144 @@ GpuIntersectionRay continuationRay(GpuIntersectionHitRecord hit, GpuDiffusePathS
   ray.maxDistance = rayInfinity();
   ray.timeSample = 0.0;
   return ray;
+}
+
+DirectLightSample emptyDirectLightSample() {
+  DirectLightSample sample;
+  sample.valid = 0u;
+  sample.delta = 0u;
+  sample.direction = vec3(0.0);
+  sample.radiance = vec4(0.0);
+  sample.distance = 0.0;
+  sample.pdf = 0.0;
+  return sample;
+}
+
+DirectLightSample sampleDirectLight(GpuTracingLightRecord light, vec3 point,
+                                    vec2 surfaceSample) {
+  DirectLightSample sample = emptyDirectLightSample();
+  if (light.kind == gpuTracingPointLightKind) {
+    const vec3 offset = light.positionOrDirection.xyz - point;
+    const float distance = length(offset);
+    if (distance <= pathLoopRayEpsilon) {
+      return sample;
+    }
+    sample.valid = 1u;
+    sample.delta = 1u;
+    sample.direction = offset / distance;
+    sample.radiance = light.parameters;
+    sample.distance = distance;
+    sample.pdf = 1.0;
+    return sample;
+  }
+  if (light.kind == gpuTracingDirectionalLightKind) {
+    const float lengthDirection = length(light.positionOrDirection.xyz);
+    if (lengthDirection <= pathLoopRayEpsilon) {
+      return sample;
+    }
+    sample.valid = 1u;
+    sample.delta = 1u;
+    sample.direction = light.positionOrDirection.xyz / lengthDirection;
+    sample.radiance = light.parameters;
+    sample.distance = rayInfinity();
+    sample.pdf = 1.0;
+    return sample;
+  }
+  if (light.kind == gpuTracingRectangularAreaLightKind) {
+    const vec3 crossEdges = cross(light.u.xyz, light.v.xyz);
+    const float area = length(crossEdges);
+    if (area <= pathLoopRayEpsilon) {
+      return sample;
+    }
+    const vec3 lightNormal = crossEdges / area;
+    const vec3 lightPoint = light.positionOrDirection.xyz +
+                            light.u.xyz * (surfaceSample.x - 0.5) +
+                            light.v.xyz * (surfaceSample.y - 0.5);
+    const vec3 offset = lightPoint - point;
+    const float distance = length(offset);
+    if (distance <= pathLoopRayEpsilon) {
+      return sample;
+    }
+    const vec3 direction = offset / distance;
+    const float lightCosine = max(0.0, dot(lightNormal, -direction));
+    if (lightCosine <= pathLoopRayEpsilon) {
+      return sample;
+    }
+    sample.valid = 1u;
+    sample.delta = 0u;
+    sample.direction = direction;
+    sample.radiance = light.parameters;
+    sample.distance = distance;
+    sample.pdf = (distance * distance) / (lightCosine * area);
+    return sample;
+  }
+  return sample;
+}
+
+GpuIntersectionRay shadowRayFor(vec3 point, DirectLightSample sample) {
+  GpuIntersectionRay ray;
+  ray.origin = vec4(point + sample.direction * pathLoopRayEpsilon, 1.0);
+  ray.direction = vec4(sample.direction, 0.0);
+  ray.minDistance = pathLoopMinimumHitDistance;
+  ray.maxDistance = sample.distance;
+  ray.timeSample = 0.0;
+  ray.flags = 0u;
+  ray.rayIndex = 0u;
+  ray.reserved0 = 0u;
+  ray.reserved1 = 0u;
+  ray.reserved2 = 0u;
+  return ray;
+}
+
+bool hitOccludesLight(GpuIntersectionHitRecord hit, float lightDistance) {
+  if (hit.hit == 0u) {
+    return false;
+  }
+  if (isinf(lightDistance)) {
+    return true;
+  }
+  const float endpointTolerance = max(pathLoopMinimumHitDistance, lightDistance * 1.0e-5);
+  const float occlusionLimit = max(0.0, lightDistance - endpointTolerance);
+  return hit.distance < occlusionLimit;
+}
+
+vec4 directLightRadiance(GpuIntersectionHitRecord hit, GpuDiffusePathStateRecord path,
+                         vec4 reflectance) {
+  if (parameters.lightCount != 1u) {
+    return vec4(0.0);
+  }
+  const GpuTracingLightRecord light = readLight(0u);
+  if (light.kind != gpuTracingPointLightKind &&
+      light.kind != gpuTracingDirectionalLightKind &&
+      light.kind != gpuTracingRectangularAreaLightKind) {
+    return vec4(0.0);
+  }
+  const uint sampleCount = max(parameters.directLightSamples, 1u);
+  const vec3 point = hit.point.xyz;
+  const vec3 normal = normalize(hit.normal.xyz);
+  const vec4 bsdfValue = reflectance * pathLoopInvPi;
+  vec4 radiance = vec4(0.0);
+  for (uint sampleIndex = 0u; sampleIndex != sampleCount; ++sampleIndex) {
+    const vec2 lightSample = sample2D(path, lightSurfaceDimension(path, 0u, sampleIndex));
+    const DirectLightSample directLight = sampleDirectLight(light, point, lightSample);
+    const float normalDotLight = dot(normal, directLight.direction);
+    if (directLight.valid == 0u || directLight.pdf <= 0.0 || normalDotLight <= 0.0) {
+      continue;
+    }
+    const GpuIntersectionRay visibilityRay = shadowRayFor(point, directLight);
+    const GpuIntersectionHitRecord visibilityHit = closestSupportedHit(visibilityRay);
+    if (hitOccludesLight(visibilityHit, directLight.distance)) {
+      continue;
+    }
+    const float bsdfPdf = directLight.delta != 0u ? 0.0 :
+        cosineHemispherePdf(normal, directLight.direction);
+    const float misWeight = directLight.delta != 0u ? 1.0 :
+        (directLight.pdf * directLight.pdf) /
+        (directLight.pdf * directLight.pdf + bsdfPdf * bsdfPdf);
+    radiance += path.throughput * bsdfValue * directLight.radiance *
+                (misWeight * normalDotLight / directLight.pdf);
+  }
+  return radiance / float(sampleCount);
 }
 
 GpuDiffusePathStateRecord matteContinuationPath(GpuIntersectionHitRecord hit,

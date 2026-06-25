@@ -88,8 +88,10 @@
 > for empty scenes and a multi-depth one-sphere Matte/Emissive ConstantColor
 > subset, including duplicate-pixel sample-slot accumulation. It now also
 > samples the simple planar/UV CheckerBoard and nearest ImageTexture subset
-> used by the Metal backend, but remains intentionally narrower than the Metal
-> shaded subset overall.
+> used by the Metal backend, and evaluates one point, directional, or
+> rectangular area light with shader-side light sampling and supported-sphere
+> visibility. It remains intentionally narrower than the Metal shaded subset
+> overall.
 > This restricted backend is not broad enough to advertise general full GPU path
 > tracing yet.
 > This is a follow-up to
