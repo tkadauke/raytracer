@@ -10,12 +10,14 @@
 #include "render/primitives/Primitive.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
+#include "test/helpers/BufferTestHelper.h"
 
 #include <memory>
 
 namespace WireframeTest {
   using namespace render;
   using namespace engine::wireframe;
+  using test::helpers::countPixels;
 
   class NearPlaneTrianglePrimitive : public Primitive {
   public:
@@ -37,17 +39,6 @@ namespace WireframeTest {
       return BoundingBoxd(Vector3d(-1, 0, -6), Vector3d(1, 0, 0));
     }
   };
-
-  // Helper: count pixels that match a given colour. Background
-  // counting / edge counting both go through this.
-  static int countPixels(const Buffer<Colord>& buffer, const Colord& color) {
-    int count = 0;
-    for (int y = 0; y < buffer.height(); ++y)
-      for (int x = 0; x < buffer.width(); ++x)
-        if (buffer[y][x] == color)
-          ++count;
-    return count;
-  }
 
   // Helper: build a scene with one centered axis-aligned box.
   static std::shared_ptr<render::Scene> sceneWithBox() {

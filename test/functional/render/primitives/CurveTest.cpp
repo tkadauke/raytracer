@@ -11,6 +11,7 @@
 #include "render/primitives/Curve.h"
 #include "render/primitives/Scene.h"
 #include "render/textures/ConstantColorTexture.h"
+#include "test/helpers/BufferTestHelper.h"
 
 #include <QFile>
 #include <QJsonArray>
@@ -24,6 +25,8 @@
 
 namespace CurveFunctionalTest {
   using namespace render;
+  using test::helpers::countPixels;
+  using test::helpers::countPixelsNotEqualTo;
 
   core::Curve::AttributeValue attributeValueFromJson(const QJsonValue& value) {
     if (value.isBool())
@@ -98,19 +101,6 @@ namespace CurveFunctionalTest {
     return std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(color));
   }
 
-  int countPixels(const Buffer<Colord>& buffer, const Colord& color) {
-    int count = 0;
-    for (int y = 0; y < buffer.height(); ++y)
-      for (int x = 0; x < buffer.width(); ++x)
-        if (buffer[y][x] == color)
-          ++count;
-    return count;
-  }
-
-  int countNonBackground(const Buffer<Colord>& buffer, const Colord& background) {
-    return buffer.width() * buffer.height() - countPixels(buffer, background);
-  }
-
   std::shared_ptr<Scene> sceneWithCurve(std::shared_ptr<Curve> curve) {
     auto scene = std::make_shared<Scene>(Colord::white());
     scene->setBackground(Colord::black());
@@ -154,7 +144,7 @@ namespace CurveFunctionalTest {
 
     engine.render(buffer);
 
-    EXPECT_GT(countNonBackground(buffer, Colord::black()), 0);
+    EXPECT_GT(countPixelsNotEqualTo(buffer, Colord::black()), 0);
   }
 
   TEST(CurveRenderSmoke, RasterizerRendersAttributedFixtureAsColoredTube) {
@@ -168,7 +158,7 @@ namespace CurveFunctionalTest {
 
     engine.render(buffer);
 
-    EXPECT_GT(countNonBackground(buffer, Colord::black()), 0);
+    EXPECT_GT(countPixelsNotEqualTo(buffer, Colord::black()), 0);
   }
 
   TEST(CurveRenderSmoke, WireframeOverlayRendersZeroWidthAttributedFixture) {
@@ -187,7 +177,7 @@ namespace CurveFunctionalTest {
 
     engine.render(buffer);
 
-    EXPECT_GT(countNonBackground(buffer, Colord::black()), 0);
+    EXPECT_GT(countPixelsNotEqualTo(buffer, Colord::black()), 0);
     EXPECT_GT(countPixels(buffer, Colord::blue()), 0);
     EXPECT_GT(countPixels(buffer, Colord::green()), 0);
     EXPECT_GT(countPixels(buffer, Colord::red()), 0);

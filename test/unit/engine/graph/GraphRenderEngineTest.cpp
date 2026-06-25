@@ -25,6 +25,7 @@
 #include "render/primitives/Triangle.h"
 #include "render/textures/ConstantColorTexture.h"
 #include "render/tonemap/ReinhardTonemap.h"
+#include "test/helpers/BufferTestHelper.h"
 #include "test/helpers/ColorTestHelper.h"
 #include "test/helpers/VectorTestHelper.h"
 
@@ -46,6 +47,7 @@
 
 namespace GraphRenderEngineTest {
   using namespace engine::graph;
+  using test::helpers::countPixels;
 
   std::shared_ptr<render::Camera> camera() {
     return std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
@@ -417,18 +419,6 @@ namespace GraphRenderEngineTest {
     std::vector<std::string> m_events;
     std::vector<std::set<RenderPassId>> m_activeSnapshots;
   };
-
-  int countPixels(const Buffer<Colord>& buffer, const Colord& color) {
-    int count = 0;
-    for (int y = 0; y != buffer.height(); ++y) {
-      for (int x = 0; x != buffer.width(); ++x) {
-        if (buffer[y][x] == color) {
-          ++count;
-        }
-      }
-    }
-    return count;
-  }
 
   int countDifferingPixels(const Buffer<unsigned int>& first, const Buffer<unsigned int>& second) {
     int count = 0;

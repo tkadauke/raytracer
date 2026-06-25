@@ -18,6 +18,7 @@
 #include "render/primitives/Instance.h"
 #include "render/primitives/Primitive.h"
 #include "render/primitives/Scene.h"
+#include "test/helpers/BufferTestHelper.h"
 
 #include <memory>
 #include <QJsonArray>
@@ -25,21 +26,6 @@
 
 namespace GroupTest {
   namespace {
-    int countPixels(const Buffer<Colord>& buffer, const Colord& color) {
-      int count = 0;
-      for (int y = 0; y < buffer.height(); ++y) {
-        for (int x = 0; x < buffer.width(); ++x) {
-          if (buffer[y][x] == color)
-            ++count;
-        }
-      }
-      return count;
-    }
-
-    int countNonBackground(const Buffer<Colord>& buffer, const Colord& background) {
-      return buffer.width() * buffer.height() - countPixels(buffer, background);
-    }
-
     int countLeaves(const render::Scene& scene) {
       int count = 0;
       scene.forEachLeaf([&](const render::Primitive*, std::shared_ptr<render::Material>) {
@@ -97,7 +83,7 @@ namespace GroupTest {
       auto engine = std::make_shared<Engine>(camera(), scene);
       Buffer<Colord> buffer(64, 64);
       engine->render(buffer);
-      return countNonBackground(buffer, Colord::black());
+      return test::helpers::countPixelsNotEqualTo(buffer, Colord::black());
     }
   }
 

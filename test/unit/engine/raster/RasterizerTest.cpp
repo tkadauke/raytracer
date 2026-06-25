@@ -35,6 +35,7 @@
 #include "render/textures/UVColorTexture.h"
 #include "render/textures/mappings/PlanarMapping2D.h"
 #include "render/textures/mappings/UVMapping2D.h"
+#include "test/helpers/BufferTestHelper.h"
 
 #include <QThreadPool>
 
@@ -51,6 +52,8 @@ namespace RasterizerTest {
   using namespace ::testing;
   using namespace render;
   using namespace engine::raster;
+  using test::helpers::countPixels;
+  using test::helpers::countPixelsNotEqualTo;
 
   class HitPointUVTexture : public Texturec {
   public:
@@ -207,29 +210,6 @@ namespace RasterizerTest {
     std::shared_ptr<Triangle> triangle;
     std::shared_ptr<MatteMaterial> material;
   };
-
-  // Counter helper — total pixels in the buffer matching `color`.
-  static int countPixels(const Buffer<Colord>& buffer, const Colord& color) {
-    int count = 0;
-    for (int y = 0; y < buffer.height(); ++y)
-      for (int x = 0; x < buffer.width(); ++x)
-        if (buffer[y][x] == color)
-          ++count;
-    return count;
-  }
-
-  // Counter helper — total pixels in the buffer NOT matching the
-  // background color. The rasterizer shades from material albedo
-  // when available and falls back to a face hash otherwise; these
-  // tests only need to know that something painted *some* pixels.
-  static int countNonBackground(const Buffer<Colord>& buffer, const Colord& bg) {
-    int count = 0;
-    for (int y = 0; y < buffer.height(); ++y)
-      for (int x = 0; x < buffer.width(); ++x)
-        if (!(buffer[y][x] == bg))
-          ++count;
-    return count;
-  }
 
   static void expectBuffersEqual(const Buffer<Colord>& expected, const Buffer<Colord>& actual) {
     ASSERT_EQ(expected.width(), actual.width());
@@ -666,7 +646,7 @@ namespace RasterizerTest {
     Buffer<Colord> buffer(128, 128);
     engine.render(buffer);
 
-    const int filled = countNonBackground(buffer, Colord::black());
+    const int filled = countPixelsNotEqualTo(buffer, Colord::black());
     EXPECT_GT(filled, 0);
     // Filled region should be substantially larger than the
     // wireframe-engine output for the same scene — a filled box
@@ -685,7 +665,7 @@ namespace RasterizerTest {
     Buffer<Colord> buffer(128, 128);
     engine.render(buffer);
 
-    const int filled = countNonBackground(buffer, Colord::black());
+    const int filled = countPixelsNotEqualTo(buffer, Colord::black());
     // 128×128 framebuffer with a unit sphere viewed from (2,2,-5)
     // produces a small silhouette disk (≈π·8² = 200 pixels). The
     // claim is "the interior is filled" — much larger than what an
@@ -699,7 +679,7 @@ namespace RasterizerTest {
 
     engine.render(buffer);
 
-    EXPECT_GT(countNonBackground(buffer, Colord::black()), 0);
+    EXPECT_GT(countPixelsNotEqualTo(buffer, Colord::black()), 0);
   }
 
   TEST(Rasterizer, ThinLensCameraFallsBackToPinholeProjection) {
@@ -710,7 +690,7 @@ namespace RasterizerTest {
     Buffer<Colord> buffer(128, 128);
     engine.render(buffer);
 
-    const int filled = countNonBackground(buffer, Colord::black());
+    const int filled = countPixelsNotEqualTo(buffer, Colord::black());
     EXPECT_GT(filled, 150);
   }
 
@@ -738,13 +718,13 @@ namespace RasterizerTest {
     engineLow.setLod(0);
     Buffer<Colord> bufferLow(256, 256);
     engineLow.render(bufferLow);
-    const int filledLow = countNonBackground(bufferLow, Colord::black());
+    const int filledLow = countPixelsNotEqualTo(bufferLow, Colord::black());
 
     Rasterizer engineHigh(camera(), scene);
     engineHigh.setLod(2);
     Buffer<Colord> bufferHigh(256, 256);
     engineHigh.render(bufferHigh);
-    const int filledHigh = countNonBackground(bufferHigh, Colord::black());
+    const int filledHigh = countPixelsNotEqualTo(bufferHigh, Colord::black());
 
     EXPECT_GE(filledHigh, filledLow);
   }
@@ -1962,7 +1942,7 @@ namespace RasterizerTest {
 
     engine.render(buffer);
 
-    EXPECT_EQ(0, countNonBackground(buffer, Colord::black()));
+    EXPECT_EQ(0, countPixelsNotEqualTo(buffer, Colord::black()));
   }
 
   TEST(Rasterizer, FarClipDepthCanClipGeometryBeforeRasterization) {
@@ -1973,7 +1953,7 @@ namespace RasterizerTest {
 
     engine.render(buffer);
 
-    EXPECT_EQ(0, countNonBackground(buffer, Colord::black()));
+    EXPECT_EQ(0, countPixelsNotEqualTo(buffer, Colord::black()));
   }
 
   TEST(Rasterizer, DepthFuncNeverRejectsFragments) {
@@ -1984,7 +1964,7 @@ namespace RasterizerTest {
 
     engine.render(buffer);
 
-    EXPECT_EQ(0, countNonBackground(buffer, Colord::black()));
+    EXPECT_EQ(0, countPixelsNotEqualTo(buffer, Colord::black()));
   }
 
   TEST(Rasterizer, PositiveDepthBiasPushesFragmentsFartherBeforeDepthTest) {
@@ -2792,7 +2772,7 @@ namespace RasterizerTest {
 
     engine.render(buffer);
 
-    EXPECT_EQ(0, countNonBackground(buffer, Colord::black()));
+    EXPECT_EQ(0, countPixelsNotEqualTo(buffer, Colord::black()));
   }
 
   TEST(Rasterizer, CullModeDefaultsToBothSides) {
@@ -2803,7 +2783,7 @@ namespace RasterizerTest {
     Buffer<Colord> buffer(64, 64);
     engine.render(buffer);
 
-    EXPECT_GT(countNonBackground(buffer, Colord::black()), 0);
+    EXPECT_GT(countPixelsNotEqualTo(buffer, Colord::black()), 0);
   }
 
   TEST(Rasterizer, FrontSidedMaterialDefaultsToBackfaceCulling) {
@@ -2817,7 +2797,7 @@ namespace RasterizerTest {
 
     engine.render(buffer);
 
-    EXPECT_EQ(0, countNonBackground(buffer, Colord::black()));
+    EXPECT_EQ(0, countPixelsNotEqualTo(buffer, Colord::black()));
     EXPECT_EQ(1u, engine.lastMetrics().tessellation.trianglesRejectedByCulling);
   }
 
@@ -2833,7 +2813,7 @@ namespace RasterizerTest {
 
     engine.render(buffer);
 
-    EXPECT_GT(countNonBackground(buffer, Colord::black()), 0);
+    EXPECT_GT(countPixelsNotEqualTo(buffer, Colord::black()), 0);
     EXPECT_EQ(0u, engine.lastMetrics().tessellation.trianglesRejectedByCulling);
   }
 
@@ -2849,7 +2829,7 @@ namespace RasterizerTest {
 
     engine.render(buffer);
 
-    EXPECT_GT(countNonBackground(buffer, Colord::black()), 0);
+    EXPECT_GT(countPixelsNotEqualTo(buffer, Colord::black()), 0);
     EXPECT_EQ(0u, engine.lastMetrics().tessellation.trianglesRejectedByCulling);
   }
 
@@ -2866,7 +2846,7 @@ namespace RasterizerTest {
 
     engine.render(buffer);
 
-    EXPECT_EQ(0, countNonBackground(buffer, Colord::black()));
+    EXPECT_EQ(0, countPixelsNotEqualTo(buffer, Colord::black()));
     EXPECT_EQ(1u, engine.lastMetrics().tessellation.trianglesRejectedByCulling);
   }
 
@@ -2881,7 +2861,7 @@ namespace RasterizerTest {
 
     engine.render(buffer);
 
-    EXPECT_EQ(0, countNonBackground(buffer, Colord::black()));
+    EXPECT_EQ(0, countPixelsNotEqualTo(buffer, Colord::black()));
   }
 
   TEST(Rasterizer, TwoSidedMaterialDefaultsToNoCulling) {
@@ -2895,7 +2875,7 @@ namespace RasterizerTest {
 
     engine.render(buffer);
 
-    EXPECT_GT(countNonBackground(buffer, Colord::black()), 0);
+    EXPECT_GT(countPixelsNotEqualTo(buffer, Colord::black()), 0);
   }
 
   TEST(Rasterizer, ExplicitCullModeOverridesMaterialSidednessDefault) {
@@ -2911,7 +2891,7 @@ namespace RasterizerTest {
     engine.render(buffer);
 
     EXPECT_TRUE(engine.hasCullModeOverride());
-    EXPECT_GT(countNonBackground(buffer, Colord::black()), 0);
+    EXPECT_GT(countPixelsNotEqualTo(buffer, Colord::black()), 0);
   }
 
   TEST(Rasterizer, MetricsCountDegenerateProjectedTriangles) {
@@ -2938,7 +2918,7 @@ namespace RasterizerTest {
 
     engine.render(buffer);
 
-    EXPECT_EQ(0, countNonBackground(buffer, Colord::black()));
+    EXPECT_EQ(0, countPixelsNotEqualTo(buffer, Colord::black()));
   }
 
   TEST(Rasterizer, BackfaceCullingKeepsFrontFacingTriangles) {
@@ -2948,7 +2928,7 @@ namespace RasterizerTest {
 
     engine.render(buffer);
 
-    EXPECT_GT(countNonBackground(buffer, Colord::black()), 0);
+    EXPECT_GT(countPixelsNotEqualTo(buffer, Colord::black()), 0);
   }
 
   TEST(Rasterizer, FrontfaceCullingSkipsFrontFacingTriangles) {
@@ -2959,7 +2939,7 @@ namespace RasterizerTest {
 
     engine.render(buffer);
 
-    EXPECT_EQ(0, countNonBackground(buffer, Colord::black()));
+    EXPECT_EQ(0, countPixelsNotEqualTo(buffer, Colord::black()));
   }
 
   TEST(Rasterizer, BackfaceCullingAppliesToTiledPath) {
@@ -2972,7 +2952,7 @@ namespace RasterizerTest {
 
     engine.render(buffer);
 
-    EXPECT_EQ(0, countNonBackground(buffer, Colord::black()));
+    EXPECT_EQ(0, countPixelsNotEqualTo(buffer, Colord::black()));
   }
 
   TEST(Rasterizer, ViewportClippedGeometryFillsFramebuffer) {
@@ -2981,7 +2961,7 @@ namespace RasterizerTest {
 
     engine.render(buffer);
 
-    EXPECT_EQ(64 * 64, countNonBackground(buffer, Colord::black()));
+    EXPECT_EQ(64 * 64, countPixelsNotEqualTo(buffer, Colord::black()));
   }
 
   TEST(Rasterizer, ViewportRectMapsClipSpaceIntoFramebufferSubrect) {
@@ -2992,7 +2972,7 @@ namespace RasterizerTest {
 
     engine.render(buffer);
 
-    EXPECT_EQ(32 * 24, countNonBackground(buffer, Colord::black()));
+    EXPECT_EQ(32 * 24, countPixelsNotEqualTo(buffer, Colord::black()));
     EXPECT_EQ(Colord::black(), buffer[20][8]);
     EXPECT_NE(Colord::black(), buffer[20][32]);
   }
@@ -3019,7 +2999,7 @@ namespace RasterizerTest {
 
     engine.render(buffer);
 
-    EXPECT_EQ(24 * 32, countNonBackground(buffer, Colord::black()));
+    EXPECT_EQ(24 * 32, countPixelsNotEqualTo(buffer, Colord::black()));
     EXPECT_EQ(Colord::black(), buffer[20][8]);
     EXPECT_NE(Colord::black(), buffer[20][32]);
   }
@@ -3187,8 +3167,8 @@ namespace RasterizerTest {
     beforeSamplePoint.render(before);
     afterSamplePoint.render(after);
 
-    EXPECT_LT(countNonBackground(before, Colord::black()),
-              countNonBackground(after, Colord::black()));
+    EXPECT_LT(countPixelsNotEqualTo(before, Colord::black()),
+              countPixelsNotEqualTo(after, Colord::black()));
   }
 
   TEST(Rasterizer, TiledRenderMatchesSingleTileRenderWithSubpixelVertices) {
@@ -3379,6 +3359,6 @@ namespace RasterizerTest {
     engine.uncancel();
     engine.render(buffer);
 
-    EXPECT_GT(countNonBackground(buffer, Colord::black()), 0);
+    EXPECT_GT(countPixelsNotEqualTo(buffer, Colord::black()), 0);
   }
 }
