@@ -52,6 +52,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Extend the restricted Vulkan full-GPU diffuse path-loop backend to accept
   untransformed triangle primitives, opening the supported geometry subset to
   packed mesh triangles. — GPT-5 Codex
+- Extend the restricted Vulkan full-GPU diffuse path-loop backend to accept
+  untransformed OpenCylinder and Torus primitives, matching the remaining
+  packed analytic geometry from the Metal subset. — GPT-5 Codex
 - Add a restricted Metal diffuse path-loop backend surface for one-depth
   empty-scene and sphere Matte/Emissive probe execution, while keeping
   automatic full-GPU graph selection disabled until a multi-depth platform loop

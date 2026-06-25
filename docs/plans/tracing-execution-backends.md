@@ -131,8 +131,8 @@ end state for GPU tracing.
   multiple depths for backend tests and explicit GPU graph requests when the
   light set is empty or uses point, directional, or rectangular area lights. A
   restricted Vulkan path-loop backend can execute empty-scene all-miss paths and
-  a multi-depth shaded untransformed triangle/sphere/plane/rectangle/disk
-  subset with
+  a multi-depth shaded untransformed
+  triangle/sphere/plane/rectangle/disk/open-cylinder/torus subset with
   Matte/Phong-finite-glossy/Reflective-mirror/Transparent-refraction/Emissive
   materials,
   ConstantColor/simple CheckerBoard/nearest ImageTexture records, and zero or
@@ -2603,7 +2603,7 @@ scene is large enough to amortize upload/readback costs.
      compile an embedded diffuse path-loop compute shader and expose a
      restricted `VulkanGpuDiffusePathLoopBackend` that can execute empty
      all-miss paths and a multi-depth shaded untransformed
-     triangle/sphere/plane/rectangle/disk subset with
+     triangle/sphere/plane/rectangle/disk/open-cylinder/torus subset with
      Matte/Phong-finite-glossy/Reflective-mirror/Transparent-refraction/Emissive
      materials,
      ConstantColor/simple CheckerBoard/nearest ImageTexture records, and zero

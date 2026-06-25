@@ -8,6 +8,8 @@ const uint gpuIntersectionSpherePrimitiveKind = 2u;
 const uint gpuIntersectionPlanePrimitiveKind = 3u;
 const uint gpuIntersectionRectanglePrimitiveKind = 4u;
 const uint gpuIntersectionDiskPrimitiveKind = 5u;
+const uint gpuIntersectionOpenCylinderPrimitiveKind = 6u;
+const uint gpuIntersectionTorusPrimitiveKind = 7u;
 const uint gpuTracingMatteMaterialKind = 1u;
 const uint gpuTracingEmissiveMaterialKind = 2u;
 const uint gpuTracingPhongMaterialKind = 3u;
@@ -141,6 +143,14 @@ struct GpuIntersectionRectanglePayload {
 struct GpuIntersectionDiskPayload {
   vec4 centerRadius;
   vec4 normalMinimumHitDistance;
+};
+
+struct GpuIntersectionOpenCylinderPayload {
+  vec4 radiusHalfHeight;
+};
+
+struct GpuIntersectionTorusPayload {
+  vec4 sweptTubeRadius;
 };
 
 struct GpuIntersectionRay {
@@ -298,6 +308,10 @@ layout(std430, binding = 8) buffer Accumulation {
 
 float rayInfinity() {
   return uintBitsToFloat(0x7f800000u);
+}
+
+bool finiteFloat(float value) {
+  return !isnan(value) && !isinf(value);
 }
 
 uint byteOffsetWords(uint byteOffset) {
@@ -514,6 +528,20 @@ GpuIntersectionDiskPayload readDisk(uint index) {
   return disk;
 }
 
+GpuIntersectionOpenCylinderPayload readOpenCylinder(uint index) {
+  const uint wordOffset = byteOffsetWords(parameters.openCylinderByteOffset) + index * 4u;
+  GpuIntersectionOpenCylinderPayload openCylinder;
+  openCylinder.radiusHalfHeight = readVec4(wordOffset);
+  return openCylinder;
+}
+
+GpuIntersectionTorusPayload readTorus(uint index) {
+  const uint wordOffset = byteOffsetWords(parameters.torusByteOffset) + index * 4u;
+  GpuIntersectionTorusPayload torus;
+  torus.sweptTubeRadius = readVec4(wordOffset);
+  return torus;
+}
+
 GpuTracingMaterialRecord readMaterial(uint materialId) {
   const uint wordOffset = byteOffsetWords(parameters.materialByteOffset) + materialId * 20u;
   GpuTracingMaterialRecord material;
@@ -716,7 +744,7 @@ LocalPrimitiveHit intersectRectangle(GpuIntersectionRay ray,
     return result;
   }
   const float distance = dot(rectangle.corner.xyz - ray.origin.xyz, normal) / denominator;
-  if (!isfinite(distance) || distance < 0.0 || distance < ray.minDistance ||
+  if (!finiteFloat(distance) || distance < 0.0 || distance < ray.minDistance ||
       distance > ray.maxDistance || distance >= maxHitDistance) {
     return result;
   }
@@ -751,7 +779,7 @@ LocalPrimitiveHit intersectDisk(GpuIntersectionRay ray, GpuIntersectionDiskPaylo
     return result;
   }
   const float distance = dot(center - ray.origin.xyz, normal) / denominator;
-  if (!isfinite(distance) || distance < minimumHitDistance || distance < ray.minDistance ||
+  if (!finiteFloat(distance) || distance < minimumHitDistance || distance < ray.minDistance ||
       distance > ray.maxDistance || distance >= maxHitDistance) {
     return result;
   }
@@ -764,6 +792,246 @@ LocalPrimitiveHit intersectDisk(GpuIntersectionRay ray, GpuIntersectionDiskPaylo
   result.distance = distance;
   result.point = vec4(point, 1.0);
   result.normal = vec4(normal, 0.0);
+  return result;
+}
+
+LocalPrimitiveHit intersectOpenCylinder(GpuIntersectionRay ray,
+                                        GpuIntersectionOpenCylinderPayload openCylinder,
+                                        float maxHitDistance) {
+  LocalPrimitiveHit result = emptyPrimitiveHit(maxHitDistance);
+  const float radius = openCylinder.radiusHalfHeight.x;
+  const float halfHeight = openCylinder.radiusHalfHeight.y;
+  const float inverseRadius = openCylinder.radiusHalfHeight.z;
+  const float a = ray.direction.x * ray.direction.x + ray.direction.z * ray.direction.z;
+  if (abs(a) <= pathLoopRayEpsilon) {
+    return result;
+  }
+  const float b = 2.0 * (ray.origin.x * ray.direction.x +
+                         ray.origin.z * ray.direction.z);
+  const float c = ray.origin.x * ray.origin.x + ray.origin.z * ray.origin.z -
+                  radius * radius;
+  const float determinant = b * b - 4.0 * a * c;
+  if (determinant <= pathLoopRayEpsilon) {
+    return result;
+  }
+  const float determinantRoot = sqrt(determinant);
+  const float denominator = 2.0 * a;
+  const float distances[2] = float[2]((-determinantRoot - b) / denominator,
+                                      (determinantRoot - b) / denominator);
+  float bestDistance = rayInfinity();
+  for (uint index = 0u; index != 2u; ++index) {
+    const float distance = distances[index];
+    if (distance <= 0.0 || distance < ray.minDistance ||
+        distance > ray.maxDistance || distance >= bestDistance ||
+        distance >= maxHitDistance) {
+      continue;
+    }
+    const float y = ray.origin.y + ray.direction.y * distance;
+    if (y < -halfHeight || y > halfHeight) {
+      continue;
+    }
+    bestDistance = distance;
+  }
+  if (!finiteFloat(bestDistance)) {
+    return result;
+  }
+  result.hit = true;
+  result.distance = bestDistance;
+  result.point = vec4(ray.origin.xyz + ray.direction.xyz * bestDistance, 1.0);
+  result.normal = vec4(result.point.x * inverseRadius, 0.0,
+                       result.point.z * inverseRadius, 0.0);
+  float u = atan(result.point.z, result.point.x) / pathLoopTau;
+  if (u < 0.0) {
+    u += 1.0;
+  }
+  const float height = 2.0 * halfHeight;
+  const float v = height == 0.0 ? 0.0 : (result.point.y + halfHeight) / height;
+  result.uv = vec4(u, v, 0.0, 0.0);
+  return result;
+}
+
+bool almostZero(float value) {
+  return abs(value) <= pathLoopRayEpsilon * 10.0;
+}
+
+float cubeRoot(float value) {
+  return value < 0.0 ? -pow(-value, 1.0 / 3.0) : pow(value, 1.0 / 3.0);
+}
+
+uint solveQuadric(float a, float b, float c, inout float roots[4]) {
+  if (almostZero(a)) {
+    if (almostZero(b)) {
+      return 0u;
+    }
+    roots[0] = -c / b;
+    return 1u;
+  }
+  const float determinant = b * b - 4.0 * a * c;
+  if (almostZero(determinant)) {
+    roots[0] = -b / (2.0 * a);
+    return 1u;
+  }
+  if (determinant > 0.0) {
+    const float determinantRoot = sqrt(determinant);
+    roots[0] = (-determinantRoot - b) / (2.0 * a);
+    roots[1] = (determinantRoot - b) / (2.0 * a);
+    return 2u;
+  }
+  return 0u;
+}
+
+uint solveCubic(float a, float b, float c, float d, inout float roots[4]) {
+  if (almostZero(a)) {
+    return solveQuadric(b, c, d, roots);
+  }
+  const float normA = b / a;
+  const float normB = c / a;
+  const float normC = d / a;
+  const float normASquared = normA * normA;
+  const float p = (-(1.0 / 3.0) * normASquared + normB) / 3.0;
+  const float q = (2.0 / 27.0 * normA * normASquared -
+                   (1.0 / 3.0) * normA * normB + normC) / 2.0;
+  const float pCube = p * p * p;
+  const float determinant = q * q + pCube;
+  uint count = 0u;
+  if (almostZero(determinant)) {
+    if (almostZero(q)) {
+      roots[0] = 0.0;
+      count = 1u;
+    } else {
+      const float root = cubeRoot(-q);
+      roots[0] = 2.0 * root;
+      roots[1] = -root;
+      count = 2u;
+    }
+  } else if (determinant < 0.0) {
+    const float pi = 3.14159265358979323846;
+    const float phi = acos(clamp(-q / sqrt(-pCube), -1.0, 1.0)) / 3.0;
+    const float t = 2.0 * sqrt(-p);
+    roots[0] = t * cos(phi);
+    roots[1] = -t * cos(phi + pi / 3.0);
+    roots[2] = -t * cos(phi - pi / 3.0);
+    count = 3u;
+  } else {
+    const float determinantRoot = sqrt(determinant);
+    roots[0] = cubeRoot(determinantRoot - q) - cubeRoot(determinantRoot + q);
+    count = 1u;
+  }
+  const float sub = normA / 3.0;
+  for (uint index = 0u; index != count; ++index) {
+    roots[index] -= sub;
+  }
+  return count;
+}
+
+uint solveQuartic(float a, float b, float c, float d, float e, inout float roots[4]) {
+  if (almostZero(a)) {
+    return solveCubic(b, c, d, e, roots);
+  }
+  const float normA = b / a;
+  const float normB = c / a;
+  const float normC = d / a;
+  const float normD = e / a;
+  const float normASquared = normA * normA;
+  const float p = -3.0 / 8.0 * normASquared + normB;
+  const float q = 1.0 / 8.0 * normASquared * normA -
+                  0.5 * normA * normB + normC;
+  const float r = -3.0 / 256.0 * normASquared * normASquared +
+                  1.0 / 16.0 * normASquared * normB -
+                  0.25 * normA * normC + normD;
+  uint count = 0u;
+  if (almostZero(r)) {
+    float cubicRoots[4];
+    const uint cubicCount = solveCubic(1.0, 0.0, p, q, cubicRoots);
+    for (uint index = 0u; index != cubicCount; ++index) {
+      roots[count++] = cubicRoots[index];
+    }
+  } else {
+    float cubicRoots[4];
+    const uint cubicCount = solveCubic(1.0, -0.5 * p, -r,
+                                       0.5 * r * p - 0.125 * q * q,
+                                       cubicRoots);
+    if (cubicCount == 0u) {
+      return 0u;
+    }
+    const float z = cubicRoots[0];
+    float u = z * z - r;
+    float v = 2.0 * z - p;
+    const float uTol = pathLoopRayEpsilon * 16.0 * (1.0 + abs(z * z) + abs(r));
+    const float vTol = pathLoopRayEpsilon * 16.0 * (1.0 + abs(2.0 * z) + abs(p));
+    if (u < -uTol || v < -vTol) {
+      return 0u;
+    }
+    u = u <= 0.0 ? 0.0 : sqrt(u);
+    v = v <= 0.0 ? 0.0 : sqrt(v);
+    float quadRoots[4];
+    uint quadCount = solveQuadric(1.0, q < 0.0 ? -v : v, z - u, quadRoots);
+    for (uint index = 0u; index != quadCount; ++index) {
+      roots[count++] = quadRoots[index];
+    }
+    quadCount = solveQuadric(1.0, q < 0.0 ? v : -v, z + u, quadRoots);
+    for (uint index = 0u; index != quadCount; ++index) {
+      roots[count++] = quadRoots[index];
+    }
+  }
+  const float sub = 0.25 * normA;
+  for (uint index = 0u; index != count; ++index) {
+    roots[index] -= sub;
+  }
+  for (uint i = 1u; i < count; ++i) {
+    const float value = roots[i];
+    uint j = i;
+    while (j > 0u && roots[j - 1u] > value) {
+      roots[j] = roots[j - 1u];
+      --j;
+    }
+    roots[j] = value;
+  }
+  return count;
+}
+
+LocalPrimitiveHit intersectTorus(GpuIntersectionRay ray,
+                                 GpuIntersectionTorusPayload torus,
+                                 float maxHitDistance) {
+  LocalPrimitiveHit result = emptyPrimitiveHit(maxHitDistance);
+  const float sweptRadius = torus.sweptTubeRadius.x;
+  const float tubeRadius = torus.sweptTubeRadius.y;
+  const float dd = dot(ray.direction.xyz, ray.direction.xyz);
+  const float oorr = dot(ray.origin.xyz, ray.origin.xyz) -
+                     sweptRadius * sweptRadius - tubeRadius * tubeRadius;
+  const float od = dot(ray.origin.xyz, ray.direction.xyz);
+  const float fourRR = 4.0 * sweptRadius * sweptRadius;
+  float roots[4];
+  const uint rootCount = solveQuartic(
+    dd * dd,
+    4.0 * dd * od,
+    2.0 * dd * oorr + 4.0 * od * od + fourRR * ray.direction.y * ray.direction.y,
+    4.0 * od * oorr + 2.0 * fourRR * ray.origin.y * ray.direction.y,
+    oorr * oorr - fourRR * (tubeRadius * tubeRadius - ray.origin.y * ray.origin.y),
+    roots);
+  float bestDistance = rayInfinity();
+  for (uint index = 0u; index != rootCount; ++index) {
+    const float distance = roots[index];
+    if (distance <= 0.0 || distance < ray.minDistance ||
+        distance > ray.maxDistance || distance >= bestDistance ||
+        distance >= maxHitDistance) {
+      continue;
+    }
+    bestDistance = distance;
+  }
+  if (!finiteFloat(bestDistance)) {
+    return result;
+  }
+  result.hit = true;
+  result.distance = bestDistance;
+  result.point = vec4(ray.origin.xyz + ray.direction.xyz * bestDistance, 1.0);
+  const float paramSquared = sweptRadius * sweptRadius + tubeRadius * tubeRadius;
+  const float sumSquared = dot(result.point.xyz, result.point.xyz);
+  result.normal = vec4(normalize(vec3(
+    4.0 * result.point.x * (sumSquared - paramSquared),
+    4.0 * result.point.y *
+      (sumSquared - paramSquared + 2.0 * sweptRadius * sweptRadius),
+    4.0 * result.point.z * (sumSquared - paramSquared))), 0.0);
   return result;
 }
 
@@ -802,6 +1070,18 @@ LocalPrimitiveHit intersectSupportedPrimitive(GpuIntersectionRay ray,
       return emptyPrimitiveHit(maxHitDistance);
     }
     return intersectDisk(ray, readDisk(primitive.payloadOffset), maxHitDistance);
+  }
+  if (primitive.kind == gpuIntersectionOpenCylinderPrimitiveKind) {
+    if (primitive.payloadOffset >= parameters.openCylinderCount) {
+      return emptyPrimitiveHit(maxHitDistance);
+    }
+    return intersectOpenCylinder(ray, readOpenCylinder(primitive.payloadOffset), maxHitDistance);
+  }
+  if (primitive.kind == gpuIntersectionTorusPrimitiveKind) {
+    if (primitive.payloadOffset >= parameters.torusCount) {
+      return emptyPrimitiveHit(maxHitDistance);
+    }
+    return intersectTorus(ray, readTorus(primitive.payloadOffset), maxHitDistance);
   }
   return emptyPrimitiveHit(maxHitDistance);
 }
@@ -856,7 +1136,8 @@ GpuIntersectionHitRecord closestSupportedHit(GpuIntersectionRay ray) {
   if (parameters.primitiveCount == 0u ||
       (parameters.triangleCount == 0u && parameters.sphereCount == 0u &&
        parameters.planeCount == 0u && parameters.rectangleCount == 0u &&
-       parameters.diskCount == 0u)) {
+       parameters.diskCount == 0u && parameters.openCylinderCount == 0u &&
+       parameters.torusCount == 0u)) {
     return closest;
   }
 

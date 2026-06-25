@@ -85,7 +85,8 @@
 > justify full GPU selection by default. Vulkan-enabled builds now also have a
 > restricted diffuse path-loop backend that owns path-state, step-record,
 > retained-index, and accumulation buffers through a Vulkan compute dispatch
-> for empty scenes and a multi-depth untransformed triangle/sphere/plane/rectangle/disk
+> for empty scenes and a multi-depth untransformed
+> triangle/sphere/plane/rectangle/disk/open-cylinder/torus
 > Matte/Phong-finite-glossy/Reflective-mirror/Transparent-refraction/Emissive
 > subset, including duplicate-pixel sample-slot accumulation. It now also
 > samples the simple planar/UV CheckerBoard and nearest ImageTexture subset used
@@ -560,8 +561,8 @@ Progress:
   packed CPU, Metal, and Vulkan basic-kernel ABI instead of being treated like
   generic zero-minimum triangles.
 - `GpuIntersectionScenePacker` now converts compiled BVH nodes, primitive
-  records, triangle/sphere/plane/rectangle/disk payloads, exact OpenCylinder
-  payloads, static transform payloads, ray work items, and miss records into
+  records, triangle/sphere/plane/rectangle/disk/OpenCylinder/Torus payloads,
+  static transform payloads, ray work items, and miss records into
   16-byte-aligned POD buffers. It marks whether a compiled scene is eligible for
   the first basic hit kernel: all primitive records must be triangle, sphere,
   plane, rectangle, disk, OpenCylinder, or Torus records with either no
