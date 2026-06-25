@@ -3,6 +3,7 @@
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
 const uint gpuIntersectionLeafNodeFlag = 1u;
+const uint gpuIntersectionTrianglePrimitiveKind = 1u;
 const uint gpuIntersectionSpherePrimitiveKind = 2u;
 const uint gpuIntersectionPlanePrimitiveKind = 3u;
 const uint gpuIntersectionRectanglePrimitiveKind = 4u;
@@ -107,6 +108,19 @@ struct GpuIntersectionPrimitiveRecord {
   uint payloadCount;
   uint reserved0;
   uint reserved1;
+};
+
+struct GpuIntersectionTrianglePayload {
+  vec4 point0;
+  vec4 point1;
+  vec4 point2;
+  vec4 normal0;
+  vec4 normal1;
+  vec4 normal2;
+  vec4 uv0;
+  vec4 uv1;
+  vec4 uv2;
+  vec4 minimumHitDistance;
 };
 
 struct GpuIntersectionSpherePayload {
@@ -452,6 +466,22 @@ GpuIntersectionPrimitiveRecord readPrimitive(uint index) {
   return primitive;
 }
 
+GpuIntersectionTrianglePayload readTriangle(uint index) {
+  const uint wordOffset = byteOffsetWords(parameters.triangleByteOffset) + index * 40u;
+  GpuIntersectionTrianglePayload triangle;
+  triangle.point0 = readVec4(wordOffset);
+  triangle.point1 = readVec4(wordOffset + 4u);
+  triangle.point2 = readVec4(wordOffset + 8u);
+  triangle.normal0 = readVec4(wordOffset + 12u);
+  triangle.normal1 = readVec4(wordOffset + 16u);
+  triangle.normal2 = readVec4(wordOffset + 20u);
+  triangle.uv0 = readVec4(wordOffset + 24u);
+  triangle.uv1 = readVec4(wordOffset + 28u);
+  triangle.uv2 = readVec4(wordOffset + 32u);
+  triangle.minimumHitDistance = readVec4(wordOffset + 36u);
+  return triangle;
+}
+
 GpuIntersectionSpherePayload readSphere(uint index) {
   const uint wordOffset = byteOffsetWords(parameters.sphereByteOffset) + index * 4u;
   GpuIntersectionSpherePayload sphere;
@@ -566,6 +596,58 @@ LocalPrimitiveHit emptyPrimitiveHit(float maxHitDistance) {
   result.normal = vec4(0.0);
   result.uv = vec4(0.0);
   result.barycentric = vec4(0.0);
+  return result;
+}
+
+LocalPrimitiveHit intersectTriangle(GpuIntersectionRay ray, GpuIntersectionTrianglePayload triangle,
+                                    float maxHitDistance) {
+  LocalPrimitiveHit result = emptyPrimitiveHit(maxHitDistance);
+  const float a = triangle.point0.x - triangle.point1.x;
+  const float b = triangle.point0.x - triangle.point2.x;
+  const float c = ray.direction.x;
+  const float d = triangle.point0.x - ray.origin.x;
+  const float e = triangle.point0.y - triangle.point1.y;
+  const float f = triangle.point0.y - triangle.point2.y;
+  const float g = ray.direction.y;
+  const float h = triangle.point0.y - ray.origin.y;
+  const float i = triangle.point0.z - triangle.point1.z;
+  const float j = triangle.point0.z - triangle.point2.z;
+  const float k = ray.direction.z;
+  const float l = triangle.point0.z - ray.origin.z;
+  const float m = f * k - g * j;
+  const float n = h * k - g * l;
+  const float p = f * l - h * j;
+  const float q = g * i - e * k;
+  const float r = e * l - h * i;
+  const float s = e * j - f * i;
+  const float denominator = a * m + b * q + c * s;
+  if (denominator == 0.0) {
+    return result;
+  }
+  const float inverseDenominator = 1.0 / denominator;
+  const float beta = (d * m - b * n - c * p) * inverseDenominator;
+  if (beta < 0.0 || beta > 1.0) {
+    return result;
+  }
+  const float gamma = (a * n + d * q + c * r) * inverseDenominator;
+  if (gamma < 0.0 || gamma > 1.0 || beta + gamma > 1.0) {
+    return result;
+  }
+  const float distance = (a * p - b * r + d * s) * inverseDenominator;
+  const float minimumDistance = max(ray.minDistance, triangle.minimumHitDistance.x);
+  if (distance < minimumDistance || distance > ray.maxDistance ||
+      distance >= maxHitDistance) {
+    return result;
+  }
+  const float alpha = 1.0 - beta - gamma;
+  result.hit = true;
+  result.distance = distance;
+  result.point = vec4(ray.origin.xyz + ray.direction.xyz * distance, 1.0);
+  result.normal = vec4(normalize(triangle.normal0.xyz * alpha +
+                                 triangle.normal1.xyz * beta +
+                                 triangle.normal2.xyz * gamma), 0.0);
+  result.uv = triangle.uv0 * alpha + triangle.uv1 * beta + triangle.uv2 * gamma;
+  result.barycentric = vec4(alpha, beta, gamma, 0.0);
   return result;
 }
 
@@ -691,6 +773,12 @@ LocalPrimitiveHit intersectSupportedPrimitive(GpuIntersectionRay ray,
   if (primitive.transform != 0u) {
     return emptyPrimitiveHit(maxHitDistance);
   }
+  if (primitive.kind == gpuIntersectionTrianglePrimitiveKind) {
+    if (primitive.payloadOffset >= parameters.triangleCount) {
+      return emptyPrimitiveHit(maxHitDistance);
+    }
+    return intersectTriangle(ray, readTriangle(primitive.payloadOffset), maxHitDistance);
+  }
   if (primitive.kind == gpuIntersectionSpherePrimitiveKind) {
     if (primitive.payloadOffset >= parameters.sphereCount) {
       return emptyPrimitiveHit(maxHitDistance);
@@ -766,8 +854,9 @@ GpuIntersectionHitRecord hitRecordForPrimitive(GpuIntersectionRay ray,
 GpuIntersectionHitRecord closestSupportedHit(GpuIntersectionRay ray) {
   GpuIntersectionHitRecord closest = missHitRecord(ray);
   if (parameters.primitiveCount == 0u ||
-      (parameters.sphereCount == 0u && parameters.planeCount == 0u &&
-       parameters.rectangleCount == 0u && parameters.diskCount == 0u)) {
+      (parameters.triangleCount == 0u && parameters.sphereCount == 0u &&
+       parameters.planeCount == 0u && parameters.rectangleCount == 0u &&
+       parameters.diskCount == 0u)) {
     return closest;
   }
 

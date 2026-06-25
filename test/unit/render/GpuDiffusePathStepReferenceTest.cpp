@@ -1940,6 +1940,16 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_TRUE(rectangleAndDiskSupport.supported);
     EXPECT_TRUE(rectangleAndDiskSupport.reason.empty());
 
+    Scene triangleScene;
+    auto triangle = std::make_shared<Triangle>(Vector3d(-1.0, -1.0, 0.0), Vector3d(1.0, -1.0, 0.0),
+                                               Vector3d(0.0, 1.0, 0.0));
+    triangle->setMaterial(matte);
+    triangleScene.add(triangle);
+    const GpuDiffusePathLoopBackendSupport triangleSupport =
+      backend.fullGpuPathLoopSupport(sectionsFor(triangleScene), settings);
+    EXPECT_TRUE(triangleSupport.supported);
+    EXPECT_TRUE(triangleSupport.reason.empty());
+
     Scene phongScene;
     auto phong = std::make_shared<PhongMaterial>(
       std::make_shared<ConstantColorTexture>(Colord(0.25, 0.5, 0.75)), Colord::white(), 16.0);
@@ -2038,7 +2048,7 @@ namespace GpuDiffusePathStepReferenceTest {
       backend.fullGpuPathLoopSupport(unsupportedSections, settings);
     EXPECT_FALSE(unsupportedSupport.supported);
     EXPECT_EQ("Vulkan diffuse path-loop backend currently supports empty geometry or "
-              "untransformed sphere, plane, rectangle, or disk primitives only",
+              "untransformed triangle, sphere, plane, rectangle, or disk primitives only",
               unsupportedSupport.reason);
 
     Scene unsupportedMaterialScene;
@@ -2301,6 +2311,48 @@ namespace GpuDiffusePathStepReferenceTest {
     ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
     expectPathStateNear(result.resolvedPathStates[0], expected.resolvedPathStates[0], 1e-4);
     expectPathStateNear(result.resolvedPathStates[1], expected.resolvedPathStates[1], 1e-4);
+#else
+    GTEST_SKIP() << "Vulkan wavefront support is not enabled in this build";
+#endif
+  }
+
+  TEST(VulkanGpuDiffusePathLoopBackend, RunsTriangleDiffusePathLoopWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    const VulkanGpuDiffusePathLoopBackend backend;
+    if (!backend.fullGpuPathLoopAvailable()) {
+      GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
+    }
+
+    Scene scene;
+    scene.setEnvironmentRadiance(Colord(0.1, 0.2, 0.3));
+    auto material = std::make_shared<MatteMaterial>(
+      std::make_shared<ConstantColorTexture>(Colord(0.6, 0.5, 0.4)));
+    material->setDiffuseCoefficient(0.9);
+    auto receiver = std::make_shared<Triangle>(Vector3d(-1.0, -1.0, 0.0), Vector3d(1.0, -1.0, 0.0),
+                                               Vector3d(0.0, 1.0, 0.0));
+    receiver->setMaterial(material);
+    scene.add(receiver);
+    scene.addLight(std::make_shared<PointLight>(Vector3d(0.0, 0.0, 3.0), Colord(0.8, 0.6, 0.4)));
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+    GpuDiffusePathStateRecord path = activePath();
+    path.pixelIndex = 0;
+    path.sampleSeed = 12347;
+    path.throughput = {0.5f, 0.25f, 0.125f, 0.0f};
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 2;
+    settings.russianRouletteDepth = 10;
+    settings.directLightSamples = 1;
+    const std::vector<GpuDiffusePathStateRecord> paths{path};
+
+    const GpuDiffusePathLoopResult expected = GpuDiffusePathLoop().run(sections, paths, settings);
+    const GpuDiffusePathLoopResult result = backend.run(sections, paths, settings);
+
+    EXPECT_TRUE(result.fullGpuPathLoopSupported());
+    EXPECT_EQ(expected.depthCount, result.depthCount);
+    EXPECT_EQ(expected.maxDepthTerminatedPaths, result.maxDepthTerminatedPaths);
+    ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
+    expectPathStateNear(result.resolvedPathStates[0], expected.resolvedPathStates[0], 1e-4);
 #else
     GTEST_SKIP() << "Vulkan wavefront support is not enabled in this build";
 #endif

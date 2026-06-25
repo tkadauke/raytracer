@@ -20,6 +20,7 @@ namespace render {
     }
 
     struct SupportedGeometryCounts {
+      std::size_t triangles{0};
       std::size_t spheres{0};
       std::size_t planes{0};
       std::size_t rectangles{0};
@@ -34,6 +35,12 @@ namespace render {
         return false;
       }
       switch (static_cast<GpuIntersectionPrimitiveKind>(primitive.kind)) {
+      case GpuIntersectionPrimitiveKind::Triangle:
+        if (primitive.payloadOffset >= geometry.triangles.size()) {
+          return false;
+        }
+        ++counts.triangles;
+        return true;
       case GpuIntersectionPrimitiveKind::Sphere:
         if (primitive.payloadOffset >= geometry.spheres.size()) {
           return false;
@@ -59,7 +66,6 @@ namespace render {
         ++counts.disks;
         return true;
       case GpuIntersectionPrimitiveKind::Unsupported:
-      case GpuIntersectionPrimitiveKind::Triangle:
       case GpuIntersectionPrimitiveKind::OpenCylinder:
       case GpuIntersectionPrimitiveKind::Torus:
         return false;
@@ -71,8 +77,7 @@ namespace render {
     sceneHasSupportedUntransformedGeometry(const GpuTracingSceneSections& scene) {
       const GpuIntersectionSceneBuffers& geometry = scene.geometry;
       if (geometry.primitives.empty() || !geometry.transforms.empty() ||
-          !geometry.triangles.empty() || !geometry.openCylinders.empty() ||
-          !geometry.tori.empty()) {
+          !geometry.openCylinders.empty() || !geometry.tori.empty()) {
         return false;
       }
       SupportedGeometryCounts counts;
@@ -81,7 +86,8 @@ namespace render {
           return false;
         }
       }
-      return counts.spheres == geometry.spheres.size() && counts.planes == geometry.planes.size() &&
+      return counts.triangles == geometry.triangles.size() &&
+             counts.spheres == geometry.spheres.size() && counts.planes == geometry.planes.size() &&
              counts.rectangles == geometry.rectangles.size() &&
              counts.disks == geometry.disks.size();
     }
@@ -467,7 +473,7 @@ namespace render {
     }
     if (!sceneHasSupportedUntransformedGeometry(scene)) {
       return {false, "Vulkan diffuse path-loop backend currently supports empty geometry or "
-                     "untransformed sphere, plane, rectangle, or disk primitives only"};
+                     "untransformed triangle, sphere, plane, rectangle, or disk primitives only"};
     }
     if (!supportedMaterials(scene)) {
       return {false,
