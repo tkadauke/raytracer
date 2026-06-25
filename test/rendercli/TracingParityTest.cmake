@@ -418,11 +418,15 @@ tracing_parity_render_compiled_gpu_execution(
 tracing_parity_render_supported(
   "environment_miss" "environment_miss.json" 2 1 0.001
   "tracing_scene_environment=[1-9][0-9]*.*miss_luminance=[1-9]")
+tracing_parity_render_compiled_gpu_execution(
+  "imported_mesh" "imported_mesh.json" 1 1)
 tracing_parity_render_supported(
   "transparent_glass" "transparent_fallback.json" 4 1 0.05
   "tracing_scene_materials=[1-9][0-9]*")
 tracing_parity_render_compiled_gpu_execution(
   "transparent_glass" "transparent_fallback.json" 4 1)
+tracing_parity_render_compiled_gpu_execution(
+  "visibility_heavy" "visibility_heavy.json" 2 1)
 render_whitted_gpu_parity(
   "matte-direct-light" "${PROJECT_SOURCE_DIR}/test/fixtures/tracing_parity/matte_direct_light.json"
   2)

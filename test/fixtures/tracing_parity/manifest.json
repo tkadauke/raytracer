@@ -29,7 +29,7 @@
     {
       "category": "transparent_glass",
       "path": "transparent_fallback.json",
-      "description": "Transparent material scene expected to fall back to runtime CPU intersection."
+      "description": "Transparent material scene that compiles into the restricted GPU tracing path-loop subset."
     },
     {
       "category": "visibility_heavy",
