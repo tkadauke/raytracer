@@ -2112,20 +2112,20 @@ namespace GpuDiffusePathStepReferenceTest {
               "CheckerBoard, and nearest ImageTexture textures only",
               unsupportedTextureSupport.reason);
 
-    Scene unsupportedLightScene;
-    auto unsupportedLightSphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
-    unsupportedLightSphere->setMaterial(matte);
-    unsupportedLightScene.add(unsupportedLightSphere);
-    unsupportedLightScene.addLight(
+    Scene multiLightScene;
+    auto multiLightSphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    multiLightSphere->setMaterial(matte);
+    multiLightScene.add(multiLightSphere);
+    multiLightScene.addLight(
       std::make_shared<PointLight>(Vector3d(0.0, 0.0, -3.0), Colord::white()));
-    unsupportedLightScene.addLight(
+    multiLightScene.addLight(
       std::make_shared<DirectionalLight>(Vector3d(0.0, 0.0, -1.0), Colord::white()));
-    const GpuDiffusePathLoopBackendSupport unsupportedLightSupport =
-      backend.fullGpuPathLoopSupport(sectionsFor(unsupportedLightScene), settings);
-    EXPECT_FALSE(unsupportedLightSupport.supported);
-    EXPECT_EQ("Vulkan diffuse path-loop backend currently supports zero or one point, "
-              "directional, or rectangular area light only",
-              unsupportedLightSupport.reason);
+    multiLightScene.addLight(std::make_shared<RectangularAreaLight>(
+      Vector3d(0.0, 2.0, -3.0), Vector3d(2.0, 0.0, 0.0), Vector3d(0.0, 2.0, 0.0), Colord::white()));
+    const GpuDiffusePathLoopBackendSupport multiLightSupport =
+      backend.fullGpuPathLoopSupport(sectionsFor(multiLightScene), settings);
+    EXPECT_TRUE(multiLightSupport.supported);
+    EXPECT_TRUE(multiLightSupport.reason.empty());
 #else
     GTEST_SKIP() << "Vulkan wavefront support is not enabled in this build";
 #endif
@@ -2587,6 +2587,52 @@ namespace GpuDiffusePathStepReferenceTest {
     settings.maxDepth = 1;
     settings.russianRouletteDepth = 10;
     settings.directLightSamples = 1;
+    const std::vector<GpuDiffusePathStateRecord> paths{path};
+
+    const GpuDiffusePathLoopResult expected = GpuDiffusePathLoop().run(sections, paths, settings);
+    const GpuDiffusePathLoopResult result = backend.run(sections, paths, settings);
+
+    EXPECT_TRUE(result.fullGpuPathLoopSupported());
+    ASSERT_EQ(expected.stepRecords.size(), result.stepRecords.size());
+    expectFloat4Near(result.stepRecords[0].directLightRadiance,
+                     expected.stepRecords[0].directLightRadiance, 1e-4);
+    ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
+    expectPathStateNear(result.resolvedPathStates[0], expected.resolvedPathStates[0], 1e-4);
+#else
+    GTEST_SKIP() << "Vulkan wavefront support is not enabled in this build";
+#endif
+  }
+
+  TEST(VulkanGpuDiffusePathLoopBackend, RunsMultipleLightPathLoopWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    const VulkanGpuDiffusePathLoopBackend backend;
+    if (!backend.fullGpuPathLoopAvailable()) {
+      GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
+    }
+
+    Scene scene;
+    auto matte =
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::white()));
+    matte->setDiffuseCoefficient(1.0);
+    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    receiver->setMaterial(matte);
+    scene.add(receiver);
+    scene.addLight(std::make_shared<PointLight>(Vector3d(0.0, 0.0, -3.0), Colord(0.8, 0.2, 0.1)));
+    scene.addLight(
+      std::make_shared<DirectionalLight>(Vector3d(0.0, 0.0, -1.0), Colord(0.1, 0.7, 0.2)));
+    scene.addLight(
+      std::make_shared<RectangularAreaLight>(Vector3d(0.0, 2.0, -3.0), Vector3d(2.0, 0.0, 0.0),
+                                             Vector3d(0.0, 2.0, 0.0), Colord(0.3, 0.4, 0.9)));
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+    GpuDiffusePathStateRecord path = activePath();
+    path.pixelIndex = 0;
+    path.sampleSeed = 12347;
+    path.throughput = {0.5f, 0.25f, 0.125f, 0.0f};
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 1;
+    settings.russianRouletteDepth = 10;
+    settings.directLightSamples = 4;
     const std::vector<GpuDiffusePathStateRecord> paths{path};
 
     const GpuDiffusePathLoopResult expected = GpuDiffusePathLoop().run(sections, paths, settings);

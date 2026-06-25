@@ -243,6 +243,12 @@ struct GpuTracingLightRecord {
   vec4 parameters;
 };
 
+struct DirectLightSelection {
+  uint valid;
+  uint lightIndex;
+  float pdf;
+};
+
 struct DirectLightSample {
   uint valid;
   uint delta;
@@ -407,6 +413,10 @@ uint lightSampleIndex(uint bounce, uint lightIndex, uint directSampleIndex) {
   const uint effectiveBounce = lightSelectionSampleIndex(bounce, directSampleIndex);
   const uint sum = effectiveBounce + lightIndex;
   return sum * (sum + 1u) / 2u + lightIndex;
+}
+
+uint lightSelectionDimension(GpuDiffusePathStateRecord path, uint directSampleIndex) {
+  return 5u + lightSelectionSampleIndex(path.depth, directSampleIndex) * 4u;
 }
 
 uint lightSurfaceDimension(GpuDiffusePathStateRecord path, uint lightIndex,
@@ -1601,6 +1611,60 @@ DirectLightSample emptyDirectLightSample() {
   return sample;
 }
 
+DirectLightSelection emptyDirectLightSelection() {
+  DirectLightSelection selection;
+  selection.valid = 0u;
+  selection.lightIndex = 0u;
+  selection.pdf = 0.0;
+  return selection;
+}
+
+float compiledLightSelectionWeight(GpuTracingLightRecord light) {
+  if (light.kind == gpuTracingPointLightKind || light.kind == gpuTracingDirectionalLightKind) {
+    return maxColor(light.parameters);
+  }
+  if (light.kind == gpuTracingRectangularAreaLightKind) {
+    return maxColor(light.parameters) * length(cross(light.u.xyz, light.v.xyz)) *
+           (pathLoopTau * 0.5);
+  }
+  return 0.0;
+}
+
+DirectLightSelection selectDirectLight(GpuDiffusePathStateRecord path, uint directSampleIndex) {
+  DirectLightSelection selection = emptyDirectLightSelection();
+  if (parameters.lightCount == 0u) {
+    return selection;
+  }
+
+  float totalWeight = 0.0;
+  for (uint lightIndex = 0u; lightIndex != parameters.lightCount; ++lightIndex) {
+    totalWeight += compiledLightSelectionWeight(readLight(lightIndex));
+  }
+  const bool useUniformWeights = totalWeight <= 0.0;
+  if (useUniformWeights) {
+    totalWeight = float(parameters.lightCount);
+  }
+
+  const float unitSample = clamp(sample1D(path, lightSelectionDimension(path, directSampleIndex),
+                                          0u),
+                                 0.0, 0.9999999403953552);
+  const float target = unitSample * totalWeight;
+  float cumulative = 0.0;
+  for (uint lightIndex = 0u; lightIndex != parameters.lightCount; ++lightIndex) {
+    const float weight =
+        useUniformWeights ? 1.0 : compiledLightSelectionWeight(readLight(lightIndex));
+    cumulative += weight;
+    if (target < cumulative) {
+      selection.valid = 1u;
+      selection.lightIndex = lightIndex;
+      selection.pdf = weight / totalWeight;
+      return selection;
+    }
+  }
+
+  return selection;
+}
+
 DirectLightSample sampleDirectLight(GpuTracingLightRecord light, vec3 point,
                                     vec2 surfaceSample) {
   DirectLightSample sample = emptyDirectLightSample();
@@ -1691,13 +1755,7 @@ bool hitOccludesLight(GpuIntersectionHitRecord hit, float lightDistance) {
 
 vec4 directLightRadiance(GpuIntersectionHitRecord hit, GpuDiffusePathStateRecord path,
                          GpuTracingMaterialRecord material, vec4 reflectance) {
-  if (parameters.lightCount != 1u) {
-    return vec4(0.0);
-  }
-  const GpuTracingLightRecord light = readLight(0u);
-  if (light.kind != gpuTracingPointLightKind &&
-      light.kind != gpuTracingDirectionalLightKind &&
-      light.kind != gpuTracingRectangularAreaLightKind) {
+  if (parameters.lightCount == 0u) {
     return vec4(0.0);
   }
   const uint sampleCount = max(parameters.directLightSamples, 1u);
@@ -1706,7 +1764,14 @@ vec4 directLightRadiance(GpuIntersectionHitRecord hit, GpuDiffusePathStateRecord
   const vec3 wi = -normalize(path.ray.direction.xyz);
   vec4 radiance = vec4(0.0);
   for (uint sampleIndex = 0u; sampleIndex != sampleCount; ++sampleIndex) {
-    const vec2 lightSample = sample2D(path, lightSurfaceDimension(path, 0u, sampleIndex));
+    const DirectLightSelection selectedLight = selectDirectLight(path, sampleIndex);
+    if (selectedLight.valid == 0u || selectedLight.lightIndex >= parameters.lightCount ||
+        selectedLight.pdf <= 0.0) {
+      continue;
+    }
+    const vec2 lightSample =
+        sample2D(path, lightSurfaceDimension(path, selectedLight.lightIndex, sampleIndex));
+    const GpuTracingLightRecord light = readLight(selectedLight.lightIndex);
     const DirectLightSample directLight = sampleDirectLight(light, point, lightSample);
     const float normalDotLight = dot(normal, directLight.direction);
     if (directLight.valid == 0u || directLight.pdf <= 0.0 || normalDotLight <= 0.0) {
@@ -1724,7 +1789,7 @@ vec4 directLightRadiance(GpuIntersectionHitRecord hit, GpuDiffusePathStateRecord
         (directLight.pdf * directLight.pdf) /
         (directLight.pdf * directLight.pdf + bsdfPdf * bsdfPdf);
     radiance += path.throughput * bsdfValue * directLight.radiance *
-                (misWeight * normalDotLight / directLight.pdf);
+                (misWeight * normalDotLight / (directLight.pdf * selectedLight.pdf));
   }
   return radiance / float(sampleCount);
 }

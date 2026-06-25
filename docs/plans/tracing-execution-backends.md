@@ -136,7 +136,7 @@ end state for GPU tracing.
   Matte/Phong-finite-glossy/Reflective-mirror/Transparent-refraction/Emissive
   materials,
   ConstantColor/simple CheckerBoard/nearest ImageTexture records, and zero or
-  one point, directional, or rectangular area light when Vulkan is built and
+  more point, directional, or rectangular area lights when Vulkan is built and
   available, including sample-slot accumulation for duplicate active pixel
   targets.
   Graph auto-selection still waits for Vulkan shaded-path parity, broader scene
@@ -2607,7 +2607,7 @@ scene is large enough to amortize upload/readback costs.
      Matte/Phong-finite-glossy/Reflective-mirror/Transparent-refraction/Emissive
      materials,
      ConstantColor/simple CheckerBoard/nearest ImageTexture records, and zero
-     or one point, directional, or rectangular area light. It writes
+     or more point, directional, or rectangular area lights. It writes
      Vulkan-owned active/next path-state, step-record,
      retained-index, and accumulation buffers, reports platform path-state
      residency, and now dispatches that shader in 64-wide workgroups instead

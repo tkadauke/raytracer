@@ -3,6 +3,7 @@
 #include "core/Buffer.h"
 #include "core/math/Constants.h"
 #include "core/math/Ray.h"
+#include "render/GpuCompiledLightSampler.h"
 #include "render/MIS.h"
 #include "render/PathTermination.h"
 #include "render/TracingAccumulationReference.h"
@@ -1445,18 +1446,24 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
 
     if (!scene.lights.empty()) {
       Colord directLightRadiance = Colord::black();
+      GpuDirectLightSelectionRecord lightSelection;
+      lightSelection.lightBegin = 0u;
+      lightSelection.lightCount = static_cast<std::uint32_t>(scene.lights.size());
       const std::uint32_t configuredDirectLightSamples = directLightSampleCount(settings);
       for (std::uint32_t sampleIndex = 0; sampleIndex != configuredDirectLightSamples;
            ++sampleIndex) {
         const double selectionSample =
           sample1D(pathState, directLightSelectionDimension(pathState, sampleIndex));
-        std::uint32_t lightIndex =
-          std::min(static_cast<std::uint32_t>(selectionSample * scene.lights.size()),
-                   static_cast<std::uint32_t>(scene.lights.size() - 1));
-        const double selectionPdf = 1.0 / static_cast<double>(scene.lights.size());
+        const GpuCompiledLightSelection selectedLight =
+          selectGpuCompiledLight(scene, lightSelection, selectionSample);
+        if (!selectedLight.valid || selectedLight.lightIndex >= scene.lights.size() ||
+            selectedLight.pdf <= 0.0) {
+          continue;
+        }
         const LightSampleRecord light = sampleLight(
-          scene.lights[lightIndex], point,
-          sample2D(pathState, directLightSurfaceDimension(pathState, lightIndex, sampleIndex)));
+          scene.lights[selectedLight.lightIndex], point,
+          sample2D(pathState,
+                   directLightSurfaceDimension(pathState, selectedLight.lightIndex, sampleIndex)));
         if (light.valid) {
           result.metrics.directLightVisibilityExecutionPath = kPackedCpuExecutionPath;
           result.metrics.directLightContributionExecutionPath = kCpuRecordExecutionPath;
@@ -1481,7 +1488,7 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
             const Colord lightContribution =
               mis::estimateDirectLightingFromLightSample(
                 bsdf, light.radiance, normal * light.direction, light.pdf, bsdfPdf, light.delta) /
-              selectionPdf;
+              selectedLight.pdf;
             const Colord contribution = throughput * lightContribution;
             if (contribution != Colord::black()) {
               ++result.metrics.directLightContributingSamples;

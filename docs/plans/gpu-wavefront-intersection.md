@@ -90,8 +90,9 @@
 > Matte/Phong-finite-glossy/Reflective-mirror/Transparent-refraction/Emissive
 > subset, including duplicate-pixel sample-slot accumulation. It now also
 > samples the simple planar/UV CheckerBoard and nearest ImageTexture subset used
-> by the Metal backend, and evaluates one point, directional, or rectangular
-> area light with shader-side light sampling and supported-sphere visibility. It
+> by the Metal backend, and evaluates multiple point, directional, or
+> rectangular area lights with shader-side light selection and supported-scene
+> visibility. It
 > remains intentionally narrower than the Metal shaded subset overall.
 > This restricted backend is not broad enough to advertise general full GPU path
 > tracing yet.

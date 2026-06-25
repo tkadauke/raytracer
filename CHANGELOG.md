@@ -59,6 +59,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   static transforms around its supported analytic primitive subset, matching
   the transform ABI already used by packed intersection kernels. —
   GPT-5 Codex
+- Extend the restricted Vulkan full-GPU diffuse path-loop backend to select and
+  evaluate multiple supported point, directional, and rectangular area lights
+  in one path-loop dispatch. — GPT-5 Codex
 - Add a restricted Metal diffuse path-loop backend surface for one-depth
   empty-scene and sphere Matte/Emissive probe execution, while keeping
   automatic full-GPU graph selection disabled until a multi-depth platform loop
