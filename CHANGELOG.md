@@ -40,6 +40,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Extend the restricted Vulkan full-GPU diffuse path-loop backend to carry
   Reflective mirror materials as exact delta continuations for its supported
   one-sphere subset. — GPT-5 Codex
+- Extend the restricted Vulkan full-GPU diffuse path-loop backend to carry
+  Transparent refraction materials as exact delta continuations for its
+  supported one-sphere subset. — GPT-5 Codex
 - Add a restricted Metal diffuse path-loop backend surface for one-depth
   empty-scene and sphere Matte/Emissive probe execution, while keeping
   automatic full-GPU graph selection disabled until a multi-depth platform loop

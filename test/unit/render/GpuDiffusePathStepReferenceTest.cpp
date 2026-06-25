@@ -1943,6 +1943,22 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_TRUE(reflectiveSupport.supported);
     EXPECT_TRUE(reflectiveSupport.reason.empty());
 
+    Scene transparentScene;
+    auto transparent = std::make_shared<TransparentMaterial>(
+      std::make_shared<ConstantColorTexture>(Colord::black()));
+    transparent->setDiffuseCoefficient(0.0);
+    transparent->setSpecularCoefficient(0.0);
+    transparent->setReflectionCoefficient(0.0);
+    transparent->setTransmissionCoefficient(1.0);
+    transparent->setRefractionIndex(1.5);
+    auto transparentSphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    transparentSphere->setMaterial(transparent);
+    transparentScene.add(transparentSphere);
+    const GpuDiffusePathLoopBackendSupport transparentSupport =
+      backend.fullGpuPathLoopSupport(sectionsFor(transparentScene), settings);
+    EXPECT_TRUE(transparentSupport.supported);
+    EXPECT_TRUE(transparentSupport.reason.empty());
+
     Scene checkerScene;
     auto checker = std::make_shared<CheckerBoardTexture>(
       new PlanarMapping2D(2.0, 2.0), std::make_shared<ConstantColorTexture>(Colord::red()),
@@ -2013,7 +2029,7 @@ namespace GpuDiffusePathStepReferenceTest {
       backend.fullGpuPathLoopSupport(unsupportedMaterialSections, settings);
     EXPECT_FALSE(unsupportedMaterialSupport.supported);
     EXPECT_EQ("Vulkan diffuse path-loop backend currently supports Matte, Phong finite glossy, "
-              "Reflective mirror, and Emissive materials only",
+              "Reflective mirror, Transparent refraction, and Emissive materials only",
               unsupportedMaterialSupport.reason);
 
     Scene unsupportedTextureScene;
@@ -2325,6 +2341,52 @@ namespace GpuDiffusePathStepReferenceTest {
     reflective->setReflectionCoefficient(0.5);
     auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
     receiver->setMaterial(reflective);
+    scene.add(receiver);
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+    GpuDiffusePathStateRecord path = activePath();
+    path.pixelIndex = 0;
+    path.sampleSeed = 12347;
+    path.throughput = {0.5f, 0.25f, 0.125f, 0.0f};
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 2;
+    settings.russianRouletteDepth = 10;
+    settings.directLightSamples = 1;
+    const std::vector<GpuDiffusePathStateRecord> paths{path};
+
+    const GpuDiffusePathLoopResult expected = GpuDiffusePathLoop().run(sections, paths, settings);
+    const GpuDiffusePathLoopResult result = backend.run(sections, paths, settings);
+
+    EXPECT_TRUE(result.fullGpuPathLoopSupported());
+    EXPECT_EQ(expected.depthCount, result.depthCount);
+    EXPECT_EQ(expected.maxDepthTerminatedPaths, result.maxDepthTerminatedPaths);
+    ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
+    expectPathStateNear(result.resolvedPathStates[0], expected.resolvedPathStates[0], 1e-4);
+    EXPECT_EQ(gpuDiffusePathStateSampledFromBsdfFlag | gpuDiffusePathStateBsdfSampleDeltaFlag,
+              result.resolvedPathStates[0].previousEventFlags);
+#else
+    GTEST_SKIP() << "Vulkan wavefront support is not enabled in this build";
+#endif
+  }
+
+  TEST(VulkanGpuDiffusePathLoopBackend, RunsTransparentTransmissionPathLoopWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    const VulkanGpuDiffusePathLoopBackend backend;
+    if (!backend.fullGpuPathLoopAvailable()) {
+      GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
+    }
+
+    Scene scene;
+    scene.setEnvironmentRadiance(Colord(0.1, 0.2, 0.3));
+    auto transparent = std::make_shared<TransparentMaterial>(
+      std::make_shared<ConstantColorTexture>(Colord::black()));
+    transparent->setDiffuseCoefficient(0.0);
+    transparent->setSpecularCoefficient(0.0);
+    transparent->setReflectionCoefficient(0.0);
+    transparent->setTransmissionCoefficient(1.0);
+    transparent->setRefractionIndex(1.5);
+    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    receiver->setMaterial(transparent);
     scene.add(receiver);
     const GpuTracingSceneSections sections = sectionsFor(scene);
     GpuDiffusePathStateRecord path = activePath();

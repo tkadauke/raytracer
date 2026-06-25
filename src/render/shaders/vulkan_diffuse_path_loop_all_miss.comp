@@ -8,6 +8,7 @@ const uint gpuTracingMatteMaterialKind = 1u;
 const uint gpuTracingEmissiveMaterialKind = 2u;
 const uint gpuTracingPhongMaterialKind = 3u;
 const uint gpuTracingReflectiveMaterialKind = 4u;
+const uint gpuTracingTransparentMaterialKind = 5u;
 const uint gpuTracingConstantColorTextureKind = 1u;
 const uint gpuTracingCheckerBoardTextureKind = 2u;
 const uint gpuTracingImageTextureKind = 3u;
@@ -791,7 +792,8 @@ bool surfaceMaterial(GpuIntersectionHitRecord hit, out GpuTracingMaterialRecord 
   material = readMaterial(hit.material);
   return material.kind == gpuTracingMatteMaterialKind ||
          material.kind == gpuTracingPhongMaterialKind ||
-         material.kind == gpuTracingReflectiveMaterialKind;
+         material.kind == gpuTracingReflectiveMaterialKind ||
+         material.kind == gpuTracingTransparentMaterialKind;
 }
 
 bool diffuseReflectance(GpuIntersectionHitRecord hit, out vec4 reflectance) {
@@ -832,7 +834,8 @@ vec4 finiteBsdf(vec4 diffuseReflectance, GpuTracingMaterialRecord material,
                 vec3 normal, vec3 wi, vec3 wo) {
   vec4 value = diffuseReflectance * pathLoopInvPi;
   if (material.kind == gpuTracingPhongMaterialKind ||
-      material.kind == gpuTracingReflectiveMaterialKind) {
+      material.kind == gpuTracingReflectiveMaterialKind ||
+      material.kind == gpuTracingTransparentMaterialKind) {
     value += glossyPhongBsdf(material, normal, wi, wo);
   }
   return value;
@@ -1144,6 +1147,93 @@ GpuDiffusePathStateRecord reflectiveContinuationPath(GpuIntersectionHitRecord hi
   return next;
 }
 
+float transparentEta(GpuTracingMaterialRecord material, vec3 wi, vec3 normal) {
+  const float ior = material.transmissionParameters.y;
+  return dot(normal, wi) < 0.0 ? 1.0 / ior : ior;
+}
+
+bool transparentTotalInternalReflection(GpuTracingMaterialRecord material, vec3 wi,
+                                        vec3 normal) {
+  const float cosTheta = dot(normal, wi);
+  const float eta = transparentEta(material, wi, normal);
+  return 1.0 - (1.0 - cosTheta * cosTheta) / (eta * eta) < 0.0;
+}
+
+vec3 transparentRefract(vec3 incident, vec3 normal, float eta) {
+  const float cosTheta = dot(incident, normal);
+  const float cosTheta2 =
+      sqrt(max(0.0, 1.0 - (1.0 - cosTheta * cosTheta) / (eta * eta)));
+  return normalize(-(incident / eta) - normal * (cosTheta2 - cosTheta / eta));
+}
+
+vec3 transparentTransmissionDirection(GpuTracingMaterialRecord material, vec3 wi,
+                                      vec3 normal) {
+  vec3 orientedNormal = normal;
+  float eta = material.transmissionParameters.y;
+  if (dot(orientedNormal, wi) < 0.0) {
+    orientedNormal = -orientedNormal;
+    eta = 1.0 / eta;
+  }
+  return transparentRefract(wi, orientedNormal, eta);
+}
+
+GpuDiffusePathStateRecord transparentContinuationPath(GpuIntersectionHitRecord hit,
+                                                      GpuDiffusePathStateRecord path,
+                                                      GpuTracingMaterialRecord material,
+                                                      vec4 accumulatedRadiance,
+                                                      out bool spawned) {
+  spawned = false;
+  GpuDiffusePathStateRecord next = path;
+  next.accumulatedRadiance = accumulatedRadiance;
+  const vec3 normal = normalize(hit.normal.xyz);
+  const vec3 wi = -normalize(path.ray.direction.xyz);
+  vec3 direction = normalize(reflect(normalize(path.ray.direction.xyz), normal));
+  vec4 branchWeight = vec4(1.0);
+  if (!transparentTotalInternalReflection(material, wi, normal)) {
+    const float reflection = max(0.0, material.continuationParameters.w);
+    const float transmission = max(0.0, material.transmissionParameters.x);
+    const float total = reflection + transmission;
+    if (total <= 0.0) {
+      next.flags = terminatedPathFlags(path.flags);
+      next.throughput = vec4(0.0);
+      return next;
+    }
+    const float reflectionWeight = reflection / total;
+    const float selector = clamp(sample2D(path, sampleDimension(path, 0u)).x, 0.0, 1.0);
+    if (reflectionWeight > 0.0 && selector < reflectionWeight) {
+      branchWeight = mirrorReflectance(material) * (1.0 / reflectionWeight);
+    } else {
+      const float transmissionWeight = 1.0 - reflectionWeight;
+      if (transmissionWeight <= 0.0) {
+        next.flags = terminatedPathFlags(path.flags);
+        next.throughput = vec4(0.0);
+        return next;
+      }
+      const float eta = transparentEta(material, wi, normal);
+      direction = transparentTransmissionDirection(material, wi, normal);
+      branchWeight = vec4(material.transmissionParameters.x /
+                          (eta * eta * transmissionWeight));
+    }
+  }
+  const vec4 continuationThroughput = path.throughput * branchWeight;
+  if (throughputIsBlack(continuationThroughput)) {
+    next.flags = terminatedPathFlags(path.flags);
+    next.throughput = vec4(0.0);
+    return next;
+  }
+  next.ray = continuationRay(hit, path, direction);
+  next.throughput = continuationThroughput;
+  next.depth = path.depth + 1u;
+  next.previousBsdfPdf = 1.0;
+  next.previousLightPdf = 0.0;
+  next.previousMaterial = hit.material;
+  next.previousEventFlags = gpuDiffusePathStateSampledFromBsdfFlag |
+                            gpuDiffusePathStateBsdfSampleDeltaFlag;
+  next.flags = activePathFlags(path.flags);
+  spawned = true;
+  return next;
+}
+
 GpuDiffusePathStepRecord inactiveStep(uint pathIndex, GpuDiffusePathStateRecord path) {
   GpuDiffusePathStepRecord step;
   step.event = gpuDiffusePathStepEventInactive;
@@ -1207,6 +1297,8 @@ GpuDiffusePathStepRecord pathStep(uint pathIndex, GpuDiffusePathStateRecord path
     if (material.kind == gpuTracingReflectiveMaterialKind) {
       next = reflectiveContinuationPath(hit, path, path.throughput * mirrorReflectance(material),
                                         accumulatedRadiance, spawned);
+    } else if (material.kind == gpuTracingTransparentMaterialKind) {
+      next = transparentContinuationPath(hit, path, material, accumulatedRadiance, spawned);
     } else {
       next = matteContinuationPath(hit, path, material, reflectance, accumulatedRadiance, spawned);
     }
