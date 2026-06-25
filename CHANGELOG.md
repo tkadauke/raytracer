@@ -485,6 +485,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- Dispatch the Vulkan diffuse path-loop shader in 64-wide workgroups instead
+  of one invocation per workgroup, matching the full-GPU path tracer's
+  platform-kernel occupancy work on Metal. — GPT-5 Codex
 - Dispatch Metal diffuse path-loop kernels with pipeline-derived threadgroup
   widths instead of one thread per threadgroup, improving the explicit
   full-GPU path tracer's occupancy without changing rendered output.

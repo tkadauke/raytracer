@@ -27,6 +27,8 @@ namespace render {
     static_assert(alignof(GpuTracingEnvironmentRecord) == 16);
 
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    constexpr std::uint32_t kDiffusePathLoopLocalSizeX = 64u;
+
     std::uint64_t pixelCount(const GpuDiffusePathLoopLaunchParameters& parameters) {
       return static_cast<std::uint64_t>(parameters.imageWidth) *
              static_cast<std::uint64_t>(parameters.imageHeight);
@@ -714,7 +716,9 @@ namespace render {
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1,
                                 &descriptorSet, 0, nullptr);
-        vkCmdDispatch(commandBuffer, pathCount, 1, 1);
+        const std::uint32_t groupCount =
+          std::max(1u, (pathCount + kDiffusePathLoopLocalSizeX - 1u) / kDiffusePathLoopLocalSizeX);
+        vkCmdDispatch(commandBuffer, groupCount, 1, 1);
         check(vkEndCommandBuffer(commandBuffer), "Vulkan diffuse path-loop command buffer end");
       }
 

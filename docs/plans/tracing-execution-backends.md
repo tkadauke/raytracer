@@ -2600,7 +2600,9 @@ scene is large enough to amortize upload/readback costs.
      Matte/Emissive ConstantColor materials and zero or one point light. It
      writes Vulkan-owned active/next path-state, step-record, retained-index,
      and accumulation buffers, reports platform path-state residency, and
-     cleanly rejects deeper or broader compiled geometry until the
+     now dispatches that shader in 64-wide workgroups instead of one invocation
+     per workgroup. It still cleanly rejects deeper or broader compiled
+     geometry until the
      Matte/Phong finite-lobe/Emissive subset reaches parity with Metal.
 
 4. **Wire graph auto-selection to platform backend availability.**
