@@ -279,7 +279,7 @@ function(tracing_parity_render_compiled_gpu_execution category scene_file depth 
     NAME "rendercli tracing parity ${category} compiled GPU execution metrics"
     OUTPUT_VARIABLE gpu_execution_stdout
     STDOUT_MATCHES
-      "wavefront_metrics.*integrator=pathtracer.*execution=compiled_diffuse_path_loop.*tracing_backend_request=gpu.*tracing_backend=cpu.*tracing_backend_mode=compiled_cpu_reference.*tracing_backend_platform=none.*tracing_backend_fallback=platform_full-GPU_path-loop_kernel_is_not_available_yet.*tracing_backend_capabilities=[1-9][0-9]*.*tracing_scene_compiled=true.*tracing_scene_materials=[1-9][0-9]*.*resident_path_loop_execution=compiled_cpu_reference.*resident_path_loop_residency=cpu_host.*resident_path_loop_platform=none.*resident_path_loop_depths=[1-9][0-9]*.*resident_path_loop_active_paths_per_depth=[1-9][0-9]*(,[0-9]+)*.*resident_path_loop_submitted_intersection_rays=[1-9][0-9]*.*resident_path_loop_full_platform_gpu_kernel=false.*samples=[1-9][0-9]*.*accumulation_backend=gpu_diffuse_path_loop"
+      "wavefront_metrics.*integrator=pathtracer.*execution=compiled_diffuse_path_loop.*tracing_backend_request=gpu.*tracing_backend=(cpu|gpu).*tracing_backend_mode=(compiled_cpu_reference|full_gpu_subset).*tracing_backend_platform=(none|metal|vulkan).*tracing_backend_fallback=(platform_full-GPU_path-loop_kernel_is_not_available_yet|none).*tracing_backend_capabilities=[1-9][0-9]*.*tracing_scene_compiled=true.*tracing_scene_materials=[1-9][0-9]*.*resident_path_loop_execution=(compiled_cpu_reference|full_gpu_subset).*resident_path_loop_residency=(cpu_host|metal_shared_diffuse_path_state|vulkan_host_visible_diffuse_path_state).*resident_path_loop_platform=(none|metal|vulkan).*resident_path_loop_depths=[1-9][0-9]*.*resident_path_loop_active_paths_per_depth=[1-9][0-9]*(,[0-9]+)*.*resident_path_loop_submitted_intersection_rays=[1-9][0-9]*.*resident_path_loop_full_platform_gpu_kernel=(false|true).*samples=[1-9][0-9]*.*accumulation_backend=(gpu_diffuse_path_loop|metal_diffuse_path_loop|vulkan_diffuse_path_loop)"
     COMMAND
       "${RENDERCLI}" --engine pathtracer --tracing_execution gpu
       --width 32 --height 24
@@ -299,54 +299,112 @@ function(tracing_parity_render_compiled_gpu_execution category scene_file depth 
   rendercli_assert_image_nonempty(
     "${gpu_execution_render}"
     NAME "tracing parity ${category} compiled GPU execution pixels")
-  tracing_parity_assert_matches(
-    "tracing parity ${category} compiled GPU execution compaction summary"
-    "${gpu_execution_stdout}"
-    "frontier_compaction_execution=cpu_diffuse_frontier_compaction.*frontier_compaction_path_state_residency=cpu_host")
-  tracing_parity_assert_matches(
-    "tracing parity ${category} compiled GPU execution direct-light fallback"
-    "${gpu_execution_stdout}"
-    "resident_direct_light_batches_unavailable_reason=compiled_CPU-reference_path_loop_resolves_direct-light_visibility_on_the_host.*direct_light_contribution_execution=cpu_record.*direct_light_contribution_fallback=compiled_CPU-reference_path_loop_evaluates_direct-light_contribution_on_the_host")
-  tracing_parity_assert_matches(
-    "tracing parity ${category} compiled GPU execution fallback capabilities summary"
-    "${gpu_execution_stdout}"
-    "tracing_backend_fallback_capabilities=[1-9][0-9]*:.*lighting\\.direct_light_contribution=gpu->cpu:compiled_CPU-reference_path_loop_evaluates_direct-light_contribution_on_the_host.*state\\.frontier_compaction=gpu->cpu:compiled_CPU-reference_path_loop_compacts_path_state_on_the_host.*state\\.path_state_residency=gpu->cpu:compiled_CPU-reference_path_loop_keeps_path_state_on_the_host")
-  tracing_parity_assert_matches(
-    "tracing parity ${category} compiled GPU execution restricted capabilities summary"
-    "${gpu_execution_stdout}"
-    "tracing_backend_restricted_capabilities=[1-9][0-9]*:.*sampling\\.gpu_rng=cpu:gpu_sample_stream_cpu_reference")
 
   foreach(expectation
           "\"compiledDiffusePathLoop\""
-          "\"backend\"[ \r\n]*:[ \r\n]*\"compiled_cpu_reference\""
           "\"executionMode\"[ \r\n]*:[ \r\n]*\"compiled_diffuse_path_loop\""
           "\"tracingBackendCapabilities\""
           "\"capability\"[ \r\n]*:[ \r\n]*\"geometry.closest_hit\""
           "\"tracingBackendRequest\"[ \r\n]*:[ \r\n]*\"gpu\""
-          "\"tracingBackend\"[ \r\n]*:[ \r\n]*\"cpu\""
-          "\"tracingBackendMode\"[ \r\n]*:[ \r\n]*\"compiled_cpu_reference\""
-          "\"tracingBackendPlatform\"[ \r\n]*:[ \r\n]*\"none\""
-          "\"directLightContributionFallbackReason\"[ \r\n]*:[ \r\n]*\"compiled CPU-reference path loop evaluates direct-light contribution on the host\""
-          "\"frontierCompactionExecutionPath\"[ \r\n]*:[ \r\n]*\"cpu_diffuse_frontier_compaction\""
-          "\"frontierCompactionPathStateResidency\"[ \r\n]*:[ \r\n]*\"cpu_host\""
-          "\"intersectionBackendResidentDirectLightBatchesUnavailableReason\"[ \r\n]*:[ \r\n]*\"compiled CPU-reference path loop resolves direct-light visibility on the host\""
           "\"tracingSceneCompiled\"[ \r\n]*:[ \r\n]*true"
-          "\"residentPathLoopExecutionPath\"[ \r\n]*:[ \r\n]*\"compiled_cpu_reference\""
-          "\"residentPathLoopResidency\"[ \r\n]*:[ \r\n]*\"cpu_host\""
-          "\"residentPathLoopPlatformName\"[ \r\n]*:[ \r\n]*\"none\""
           "\"residentPathLoopSubmittedIntersectionRays\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
-          "\"residentPathLoopFullPlatformGpuKernel\"[ \r\n]*:[ \r\n]*false"
           "\"submittedIntersectionRays\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
-          "\"platformName\"[ \r\n]*:[ \r\n]*\"none\""
-          "\"fullPlatformGpuKernel\"[ \r\n]*:[ \r\n]*false"
-          "\"requestedMode\"[ \r\n]*:[ \r\n]*\"gpu\""
-          "\"predictedMode\"[ \r\n]*:[ \r\n]*\"hybrid\""
-          "\"actualMode\"[ \r\n]*:[ \r\n]*\"cpu\""
-          "\"actualFallbackReason\"[ \r\n]*:[ \r\n]*\"GPU tracing request executed by compiled CPU-reference diffuse path loop")
+          "\"requestedMode\"[ \r\n]*:[ \r\n]*\"gpu\"")
     tracing_parity_assert_json_matches(
       "tracing parity ${category} compiled GPU execution metrics ${expectation}"
       "${gpu_execution_metrics}" "${expectation}")
   endforeach()
+
+  if(gpu_execution_stdout MATCHES "tracing_backend_mode=full_gpu_subset")
+    tracing_parity_assert_matches(
+      "tracing parity ${category} compiled GPU execution platform path"
+      "${gpu_execution_stdout}"
+      "tracing_backend=gpu.*tracing_backend_platform=(metal|vulkan).*tracing_backend_fallback=none")
+    tracing_parity_assert_matches(
+      "tracing parity ${category} compiled GPU execution resident path state"
+      "${gpu_execution_stdout}"
+      "resident_path_loop_execution=full_gpu_subset.*resident_path_loop_residency=(metal_shared_diffuse_path_state|vulkan_host_visible_diffuse_path_state).*resident_path_loop_platform=(metal|vulkan).*resident_path_loop_full_platform_gpu_kernel=true")
+    tracing_parity_assert_matches(
+      "tracing parity ${category} compiled GPU execution compaction summary"
+      "${gpu_execution_stdout}"
+      "frontier_compaction_execution=(metal_diffuse_path_loop|vulkan_diffuse_path_loop).*frontier_compaction_path_state_residency=(metal_shared_diffuse_path_state|vulkan_host_visible_diffuse_path_state)")
+    tracing_parity_assert_matches(
+      "tracing parity ${category} compiled GPU execution direct-light platform path"
+      "${gpu_execution_stdout}"
+      "resident_direct_light_batches_unavailable_reason=none.*direct_light_contribution_execution=full_gpu_subset.*direct_light_contribution_fallback=none")
+    tracing_parity_assert_matches(
+      "tracing parity ${category} compiled GPU execution supported capabilities summary"
+      "${gpu_execution_stdout}"
+      "tracing_backend_fallback_capabilities=0:none.*tracing_backend_restricted_capabilities=0:none")
+
+    foreach(expectation
+            "\"backend\"[ \r\n]*:[ \r\n]*\"full_gpu_subset\""
+            "\"tracingBackend\"[ \r\n]*:[ \r\n]*\"gpu\""
+            "\"tracingBackendMode\"[ \r\n]*:[ \r\n]*\"full_gpu_subset\""
+            "\"tracingBackendPlatform\"[ \r\n]*:[ \r\n]*\"(metal|vulkan)\""
+            "\"directLightContributionExecutionPath\"[ \r\n]*:[ \r\n]*\"full_gpu_subset\""
+            "\"directLightContributionFallbackReason\"[ \r\n]*:[ \r\n]*\"\""
+            "\"frontierCompactionExecutionPath\"[ \r\n]*:[ \r\n]*\"(metal_diffuse_path_loop|vulkan_diffuse_path_loop)\""
+            "\"frontierCompactionPathStateResidency\"[ \r\n]*:[ \r\n]*\"(metal_shared_diffuse_path_state|vulkan_host_visible_diffuse_path_state)\""
+            "\"intersectionBackendResidentDirectLightBatchesUnavailableReason\"[ \r\n]*:[ \r\n]*\"\""
+            "\"residentPathLoopExecutionPath\"[ \r\n]*:[ \r\n]*\"full_gpu_subset\""
+            "\"residentPathLoopResidency\"[ \r\n]*:[ \r\n]*\"(metal_shared_diffuse_path_state|vulkan_host_visible_diffuse_path_state)\""
+            "\"residentPathLoopPlatformName\"[ \r\n]*:[ \r\n]*\"(metal|vulkan)\""
+            "\"residentPathLoopFullPlatformGpuKernel\"[ \r\n]*:[ \r\n]*true"
+            "\"platformName\"[ \r\n]*:[ \r\n]*\"(metal|vulkan)\""
+            "\"fullPlatformGpuKernel\"[ \r\n]*:[ \r\n]*true"
+            "\"predictedMode\"[ \r\n]*:[ \r\n]*\"gpu\""
+            "\"actualMode\"[ \r\n]*:[ \r\n]*\"gpu\""
+            "\"actualFallbackReason\"[ \r\n]*:[ \r\n]*\"\"")
+      tracing_parity_assert_json_matches(
+        "tracing parity ${category} compiled GPU execution metrics ${expectation}"
+        "${gpu_execution_metrics}" "${expectation}")
+    endforeach()
+  else()
+    tracing_parity_assert_matches(
+      "tracing parity ${category} compiled GPU execution fallback path"
+      "${gpu_execution_stdout}"
+      "tracing_backend=cpu.*tracing_backend_platform=none.*tracing_backend_fallback=platform_full-GPU_path-loop_kernel_is_not_available_yet")
+    tracing_parity_assert_matches(
+      "tracing parity ${category} compiled GPU execution compaction summary"
+      "${gpu_execution_stdout}"
+      "frontier_compaction_execution=cpu_diffuse_frontier_compaction.*frontier_compaction_path_state_residency=cpu_host")
+    tracing_parity_assert_matches(
+      "tracing parity ${category} compiled GPU execution direct-light fallback"
+      "${gpu_execution_stdout}"
+      "resident_direct_light_batches_unavailable_reason=compiled_CPU-reference_path_loop_resolves_direct-light_visibility_on_the_host.*direct_light_contribution_execution=cpu_record.*direct_light_contribution_fallback=compiled_CPU-reference_path_loop_evaluates_direct-light_contribution_on_the_host")
+    tracing_parity_assert_matches(
+      "tracing parity ${category} compiled GPU execution fallback capabilities summary"
+      "${gpu_execution_stdout}"
+      "tracing_backend_fallback_capabilities=[1-9][0-9]*:.*lighting\\.direct_light_contribution=gpu->cpu:compiled_CPU-reference_path_loop_evaluates_direct-light_contribution_on_the_host.*state\\.frontier_compaction=gpu->cpu:compiled_CPU-reference_path_loop_compacts_path_state_on_the_host.*state\\.path_state_residency=gpu->cpu:compiled_CPU-reference_path_loop_keeps_path_state_on_the_host")
+    tracing_parity_assert_matches(
+      "tracing parity ${category} compiled GPU execution restricted capabilities summary"
+      "${gpu_execution_stdout}"
+      "tracing_backend_restricted_capabilities=[1-9][0-9]*:.*sampling\\.gpu_rng=cpu:gpu_sample_stream_cpu_reference")
+
+    foreach(expectation
+            "\"backend\"[ \r\n]*:[ \r\n]*\"compiled_cpu_reference\""
+            "\"tracingBackend\"[ \r\n]*:[ \r\n]*\"cpu\""
+            "\"tracingBackendMode\"[ \r\n]*:[ \r\n]*\"compiled_cpu_reference\""
+            "\"tracingBackendPlatform\"[ \r\n]*:[ \r\n]*\"none\""
+            "\"directLightContributionFallbackReason\"[ \r\n]*:[ \r\n]*\"compiled CPU-reference path loop evaluates direct-light contribution on the host\""
+            "\"frontierCompactionExecutionPath\"[ \r\n]*:[ \r\n]*\"cpu_diffuse_frontier_compaction\""
+            "\"frontierCompactionPathStateResidency\"[ \r\n]*:[ \r\n]*\"cpu_host\""
+            "\"intersectionBackendResidentDirectLightBatchesUnavailableReason\"[ \r\n]*:[ \r\n]*\"compiled CPU-reference path loop resolves direct-light visibility on the host\""
+            "\"residentPathLoopExecutionPath\"[ \r\n]*:[ \r\n]*\"compiled_cpu_reference\""
+            "\"residentPathLoopResidency\"[ \r\n]*:[ \r\n]*\"cpu_host\""
+            "\"residentPathLoopPlatformName\"[ \r\n]*:[ \r\n]*\"none\""
+            "\"residentPathLoopFullPlatformGpuKernel\"[ \r\n]*:[ \r\n]*false"
+            "\"platformName\"[ \r\n]*:[ \r\n]*\"none\""
+            "\"fullPlatformGpuKernel\"[ \r\n]*:[ \r\n]*false"
+            "\"predictedMode\"[ \r\n]*:[ \r\n]*\"hybrid\""
+            "\"actualMode\"[ \r\n]*:[ \r\n]*\"cpu\""
+            "\"actualFallbackReason\"[ \r\n]*:[ \r\n]*\"GPU tracing request executed by compiled CPU-reference diffuse path loop")
+      tracing_parity_assert_json_matches(
+        "tracing parity ${category} compiled GPU execution metrics ${expectation}"
+        "${gpu_execution_metrics}" "${expectation}")
+    endforeach()
+  endif()
 endfunction()
 
 tracing_parity_render_supported(
