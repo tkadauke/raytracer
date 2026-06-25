@@ -2579,7 +2579,11 @@ scene is large enough to amortize upload/readback costs.
      through the CPU reference evaluator and the Metal full-GPU subset, and the
      compiled environment records now carry scene ambient separately from
      visible background and bounced environment radiance so supported surface
-     hits match the scalar path tracer's base ambient term. Broader
+     hits match the scalar path tracer's base ambient term. The Metal path-loop
+     dispatch now uses pipeline-derived threadgroup widths instead of one
+     thread per threadgroup, moving the explicit full-GPU path tracer closer to
+     the E15 performance gate without changing its supported-scene contract.
+     Broader
      primitive traversal, full material shading, full direct-light coverage,
      device-side compacted wavefront scheduling, Vulkan parity, performance
      gates, and render-graph auto-selection still need to land before it can be

@@ -63,6 +63,28 @@ namespace render {
       return std::chrono::duration<double>(end - start).count();
     }
 
+    NSUInteger threadgroupWidthFor(id<MTLComputePipelineState> pipeline, NSUInteger threadCount) {
+      if (threadCount == 0) {
+        return 1;
+      }
+      NSUInteger width = pipeline.threadExecutionWidth;
+      if (width == 0) {
+        width = 64;
+      }
+      const NSUInteger maximumWidth = pipeline.maxTotalThreadsPerThreadgroup;
+      if (maximumWidth != 0) {
+        width = std::min(width, maximumWidth);
+      }
+      return std::max<NSUInteger>(1, std::min(width, threadCount));
+    }
+
+    void dispatch1D(id<MTLComputeCommandEncoder> encoder, id<MTLComputePipelineState> pipeline,
+                    NSUInteger threadCount) {
+      const NSUInteger threads = std::max<NSUInteger>(1, threadCount);
+      [encoder dispatchThreads:MTLSizeMake(threads, 1, 1)
+         threadsPerThreadgroup:MTLSizeMake(threadgroupWidthFor(pipeline, threads), 1, 1)];
+    }
+
     NSString* diffusePathLoopKernelSourcePrefix() {
       return @"#include <metal_stdlib>\n"
               "using namespace metal;\n"
@@ -2573,8 +2595,7 @@ namespace render {
       [encoder setBuffer:stepRecordBuffer offset:0 atIndex:6];
       [encoder setBuffer:retainedIndexBuffer offset:0 atIndex:7];
       [encoder setBuffer:accumulationBuffer offset:0 atIndex:8];
-      [encoder dispatchThreads:MTLSizeMake(std::max<std::size_t>(1, initialPathStates.size()), 1, 1)
-         threadsPerThreadgroup:MTLSizeMake(1, 1, 1)];
+      dispatch1D(encoder, pipeline, static_cast<NSUInteger>(initialPathStates.size()));
       [encoder endEncoding];
 
       const auto kernelStart = std::chrono::steady_clock::now();
@@ -2704,8 +2725,7 @@ namespace render {
       [encoder setComputePipelineState:clearPipeline];
       [encoder setBuffer:parameterBuffer offset:0 atIndex:0];
       [encoder setBuffer:accumulationBuffer offset:0 atIndex:1];
-      [encoder dispatchThreads:MTLSizeMake(std::max<NSUInteger>(1, pixels), 1, 1)
-         threadsPerThreadgroup:MTLSizeMake(1, 1, 1)];
+      dispatch1D(encoder, clearPipeline, pixels);
 
       [encoder setComputePipelineState:pipeline];
       [encoder setBuffer:parameterBuffer offset:0 atIndex:0];
@@ -2717,8 +2737,7 @@ namespace render {
       [encoder setBuffer:stepRecordBuffer offset:0 atIndex:6];
       [encoder setBuffer:retainedIndexBuffer offset:0 atIndex:7];
       [encoder setBuffer:accumulationBuffer offset:0 atIndex:8];
-      [encoder dispatchThreads:MTLSizeMake(std::max<std::size_t>(1, initialPathStates.size()), 1, 1)
-         threadsPerThreadgroup:MTLSizeMake(1, 1, 1)];
+      dispatch1D(encoder, pipeline, static_cast<NSUInteger>(initialPathStates.size()));
       [encoder endEncoding];
 
       const auto kernelStart = std::chrono::steady_clock::now();
@@ -2867,8 +2886,7 @@ namespace render {
       [encoder setBuffer:retainedIndexBuffer offset:0 atIndex:7];
       [encoder setBuffer:accumulationBuffer offset:0 atIndex:8];
       [encoder setBuffer:closestHitBuffer offset:0 atIndex:9];
-      [encoder dispatchThreads:MTLSizeMake(std::max<std::size_t>(1, initialPathStates.size()), 1, 1)
-         threadsPerThreadgroup:MTLSizeMake(1, 1, 1)];
+      dispatch1D(encoder, pipeline, static_cast<NSUInteger>(initialPathStates.size()));
       [encoder endEncoding];
 
       const auto kernelStart = std::chrono::steady_clock::now();
@@ -3009,8 +3027,7 @@ namespace render {
       [encoder setBuffer:retainedIndexBuffer offset:0 atIndex:7];
       [encoder setBuffer:accumulationBuffer offset:0 atIndex:8];
       [encoder setBuffer:closestHitBuffer offset:0 atIndex:9];
-      [encoder dispatchThreads:MTLSizeMake(std::max<std::size_t>(1, initialPathStates.size()), 1, 1)
-         threadsPerThreadgroup:MTLSizeMake(1, 1, 1)];
+      dispatch1D(encoder, pipeline, static_cast<NSUInteger>(initialPathStates.size()));
       [encoder endEncoding];
 
       const auto kernelStart = std::chrono::steady_clock::now();
@@ -3150,8 +3167,7 @@ namespace render {
       [encoder setComputePipelineState:clearPipeline];
       [encoder setBuffer:parameterBuffer offset:0 atIndex:0];
       [encoder setBuffer:accumulationBuffer offset:0 atIndex:1];
-      [encoder dispatchThreads:MTLSizeMake(std::max<NSUInteger>(1, pixels), 1, 1)
-         threadsPerThreadgroup:MTLSizeMake(1, 1, 1)];
+      dispatch1D(encoder, clearPipeline, pixels);
 
       [encoder setComputePipelineState:pipeline];
       [encoder setBuffer:parameterBuffer offset:0 atIndex:0];
@@ -3164,8 +3180,7 @@ namespace render {
       [encoder setBuffer:retainedIndexBuffer offset:0 atIndex:7];
       [encoder setBuffer:accumulationBuffer offset:0 atIndex:8];
       [encoder setBuffer:closestHitBuffer offset:0 atIndex:9];
-      [encoder dispatchThreads:MTLSizeMake(std::max<std::size_t>(1, initialPathStates.size()), 1, 1)
-         threadsPerThreadgroup:MTLSizeMake(1, 1, 1)];
+      dispatch1D(encoder, pipeline, static_cast<NSUInteger>(initialPathStates.size()));
       [encoder endEncoding];
 
       const auto kernelStart = std::chrono::steady_clock::now();
@@ -3323,8 +3338,7 @@ namespace render {
       [encoder setComputePipelineState:clearPipeline];
       [encoder setBuffer:parameterBuffer offset:0 atIndex:0];
       [encoder setBuffer:accumulationBuffer offset:0 atIndex:1];
-      [encoder dispatchThreads:MTLSizeMake(std::max<NSUInteger>(1, pixels), 1, 1)
-         threadsPerThreadgroup:MTLSizeMake(1, 1, 1)];
+      dispatch1D(encoder, clearPipeline, pixels);
 
       [encoder setComputePipelineState:pipeline];
       [encoder setBuffer:parameterBuffer offset:0 atIndex:0];
@@ -3337,8 +3351,7 @@ namespace render {
       [encoder setBuffer:retainedIndexBuffer offset:0 atIndex:7];
       [encoder setBuffer:accumulationBuffer offset:0 atIndex:8];
       [encoder setBuffer:closestHitBuffer offset:0 atIndex:9];
-      [encoder dispatchThreads:MTLSizeMake(std::max<std::size_t>(1, initialPathStates.size()), 1, 1)
-         threadsPerThreadgroup:MTLSizeMake(1, 1, 1)];
+      dispatch1D(encoder, pipeline, static_cast<NSUInteger>(initialPathStates.size()));
       [encoder endEncoding];
 
       const auto kernelStart = std::chrono::steady_clock::now();

@@ -485,6 +485,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- Dispatch Metal diffuse path-loop kernels with pipeline-derived threadgroup
+  widths instead of one thread per threadgroup, improving the explicit
+  full-GPU path tracer's occupancy without changing rendered output.
+  — GPT-5 Codex
 - Changed `IntersectionService` vector batch APIs to take ownership of query
   vectors, letting graph passes and direct-light CPU-reference paths move
   batches directly into backend-owned frontiers instead of copying them first.
