@@ -2731,7 +2731,10 @@ scene is large enough to amortize upload/readback costs.
      Execution metadata now preserves the full-GPU selection fallback reason,
      so graph traces distinguish missing platform builds, unavailable
      Metal/Vulkan devices or kernels, unsupported scene/settings subsets, and
-     explicit caller-selected CPU/hybrid backends.
+     explicit caller-selected CPU/hybrid backends. The Modeler render graph
+     inspector also shows auto-selected tracing execution predictions before a
+     render runs, with `Auto` request, predicted CPU/hybrid/GPU execution, and
+     `none` when there is no fallback reason.
 
 5. **Add parity and performance gates.**
    - Depends on: jobs 2, 3, and 4.

@@ -1254,6 +1254,29 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_TRUE(rowValue(rows, QStringLiteral("Actual tracing execution")).isEmpty());
   }
 
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldShowAutoPredictedTracingExecutionBeforeTrace) {
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::PathTracer;
+    intent.engineOptions.raytracer().setIntegrator("pathtracer");
+    intent.engineOptions.raytracer().setSampleStreamMode("gpu_sample_stream");
+
+    RenderSceneAnalysis analysis;
+    analysis.setFullGpuTracingSupported(true);
+    analysis.setFullGpuTracingBackendAvailable(true);
+    RenderGraphCompiler compiler;
+
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(compiler.compile({24, 24, 1}, intent, analysis));
+
+    const auto rows = widget.passDetailRows(QStringLiteral("wavefront_beauty"));
+
+    EXPECT_EQ(QStringLiteral("Auto"),
+              rowValue(rows, QStringLiteral("Requested tracing execution")));
+    EXPECT_EQ(QStringLiteral("GPU"), rowValue(rows, QStringLiteral("Predicted tracing execution")));
+    EXPECT_EQ(QStringLiteral("none"), rowValue(rows, QStringLiteral("Predicted tracing fallback")));
+    EXPECT_TRUE(rowValue(rows, QStringLiteral("Actual tracing execution")).isEmpty());
+  }
+
   TEST_F(RenderGraphInspectorWidgetTest,
          ShouldExposeWavefrontIntersectionBackendRowsForSelectedPass) {
     auto trace = wavefrontGpuTrace();

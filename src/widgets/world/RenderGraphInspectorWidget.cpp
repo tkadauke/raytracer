@@ -816,17 +816,21 @@ void RenderGraphInspectorWidget::Private::addDetailMillisecondsMetadataRow(
 void RenderGraphInspectorWidget::Private::addPredictedTracingExecutionRows(
   DetailRows& rows, const RenderPassNode& pass) const {
   const auto* state = RaytracerBeautyPassState::fromPass(pass);
-  if (!state || !state->tracingExecution() || !state->predictedTracingExecution())
+  if (!state || !state->predictedTracingExecution())
     return;
 
-  addDetailRow(rows, QStringLiteral("Requested tracing execution"),
-               tracingExecutionModeText(
-                 QString::fromLatin1(tracingExecutionPreferenceName(*state->tracingExecution()))));
+  const TracingExecutionPreference requested =
+    state->tracingExecution().value_or(TracingExecutionPreference::Auto);
+  addDetailRow(
+    rows, QStringLiteral("Requested tracing execution"),
+    tracingExecutionModeText(QString::fromLatin1(tracingExecutionPreferenceName(requested))));
   addDetailRow(rows, QStringLiteral("Predicted tracing execution"),
                tracingExecutionModeText(QString::fromLatin1(
                  tracingExecutionPreferenceName(*state->predictedTracingExecution()))));
-  addDetailRow(rows, QStringLiteral("Predicted tracing fallback"),
-               QString::fromStdString(state->tracingExecutionFallbackReason()));
+  QString fallback = QString::fromStdString(state->tracingExecutionFallbackReason());
+  if (fallback.isEmpty())
+    fallback = QStringLiteral("none");
+  addDetailRow(rows, QStringLiteral("Predicted tracing fallback"), fallback);
 }
 
 void RenderGraphInspectorWidget::Private::addActualTracingExecutionRows(
