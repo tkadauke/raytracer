@@ -1,10 +1,10 @@
 #include "render/VulkanGpuDiffusePathLoopBackend.h"
 
+#include "render/GpuFloat4.h"
 #include "render/TracingAccumulationLayout.h"
 #include "render/VulkanGpuDiffusePathLoopKernel.h"
 
 #include <algorithm>
-#include <cmath>
 #include <limits>
 #include <stdexcept>
 
@@ -13,11 +13,6 @@ namespace render {
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
     constexpr const char* kFullGpuSubsetExecutionPath = "full_gpu_subset";
     constexpr const char* kVulkanPathStateResidency = "vulkan_host_visible_diffuse_path_state";
-
-    [[nodiscard]] bool arrayHasValue(const std::array<float, 4>& value) {
-      return std::any_of(value.begin(), value.end(),
-                         [](float component) { return std::fabs(component) > 1.0e-8f; });
-    }
 
     [[nodiscard]] bool sceneHasNoGeometry(const GpuTracingSceneSections& scene) {
       const GpuIntersectionSceneBuffers& geometry = scene.geometry;
@@ -122,7 +117,7 @@ namespace render {
     }
 
     [[nodiscard]] bool stepHasContinuation(const GpuDiffusePathStepRecord& step) {
-      return arrayHasValue(step.continuationThroughput);
+      return gpuFloat4HasValue(step.continuationThroughput);
     }
 
     void mergeStepMetrics(GpuDiffusePathLoopResult& loop,
@@ -143,11 +138,11 @@ namespace render {
           ++loop.metrics.misses;
         } else if (event == GpuDiffusePathStepEvent::Hit) {
           ++loop.metrics.hits;
-          if (arrayHasValue(step.emittedRadiance)) {
+          if (gpuFloat4HasValue(step.emittedRadiance)) {
             ++loop.metrics.emissiveHits;
             ++loop.metrics.emissionContributionEvaluations;
           }
-          if (arrayHasValue(step.directLightRadiance)) {
+          if (gpuFloat4HasValue(step.directLightRadiance)) {
             loop.metrics.directLightSamples +=
               std::max<std::uint32_t>(1u, settings.directLightSamples);
             ++loop.metrics.directLightContributionEvaluations;
