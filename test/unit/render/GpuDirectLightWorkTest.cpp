@@ -7,8 +7,8 @@
 #include "render/GpuDirectLightCpuReference.h"
 #include "render/GpuDirectLightWork.h"
 #include "render/GpuIntersectionScene.h"
-#include "render/IntersectionService.h"
 #include "render/GpuTracingScene.h"
+#include "render/IntersectionService.h"
 #include "render/lights/DirectionalLight.h"
 #include "render/lights/LightSampler.h"
 #include "render/lights/PointLight.h"
@@ -58,6 +58,7 @@ namespace GpuDirectLightWorkTest {
       work.surface.pathIndex = 7u;
       work.surface.point = {0.0f, 0.0f, 0.0f, 1.0f};
       work.surface.normal = {0.0f, 1.0f, 0.0f, 0.0f};
+      work.surface.uv = {0.25f, 0.25f, 0.0f, 0.0f};
       work.surface.incomingDirection = {0.0f, 1.0f, 0.0f, 0.0f};
       work.surface.throughput = {0.25f, 0.5f, 1.0f, 1.0f};
       work.sample = makeGpuDirectLightSampleState(/*seed=*/42, /*pixelIndex=*/19,
@@ -136,6 +137,7 @@ namespace GpuDirectLightWorkTest {
     surface.pathIndex = 21;
     surface.point = {1.0f, 2.0f, 3.0f, 1.0f};
     surface.normal = {0.0f, 1.0f, 0.0f, 0.0f};
+    surface.uv = {0.25f, 0.75f, 0.0f, 0.0f};
     surface.incomingDirection = {0.0f, 0.0f, -1.0f, 0.0f};
     surface.throughput = {0.4f, 0.5f, 0.6f, 1.0f};
 
@@ -145,6 +147,8 @@ namespace GpuDirectLightWorkTest {
     EXPECT_EQ(21u, surface.pathIndex);
     EXPECT_FLOAT_EQ(1.0f, surface.point[0]);
     EXPECT_FLOAT_EQ(1.0f, surface.normal[1]);
+    EXPECT_FLOAT_EQ(0.25f, surface.uv[0]);
+    EXPECT_FLOAT_EQ(0.75f, surface.uv[1]);
     EXPECT_FLOAT_EQ(-1.0f, surface.incomingDirection[2]);
     EXPECT_FLOAT_EQ(0.6f, surface.throughput[2]);
   }
@@ -376,6 +380,51 @@ namespace GpuDirectLightWorkTest {
     EXPECT_NEAR(expected.g(), contribution.contribution[1], 1e-7);
     EXPECT_NEAR(expected.b(), contribution.contribution[2], 1e-7);
     EXPECT_FLOAT_EQ(1.0f, contribution.contribution[3]);
+  }
+
+  TEST(GpuDirectLightCpuReference, EvaluatesCompiledTextureGraphAtSurfaceUv) {
+    GpuTracingSceneSections scene = oneMattePointLightScene();
+    scene.textures.resize(4);
+    scene.textures[1].kind = static_cast<std::uint32_t>(GpuTracingTextureKind::CheckerBoard);
+    scene.textures[1].payloadOffset = 2u;
+    scene.textures[1].payloadCount = 3u;
+    scene.textures[1].flags = static_cast<std::uint32_t>(GpuTracingTextureMappingKind::UV);
+    scene.textures[1].parameters = {1.0f, 1.0f, 0.0f, 0.0f};
+    scene.textures[2].kind = static_cast<std::uint32_t>(GpuTracingTextureKind::ConstantColor);
+    scene.textures[2].parameters = {0.2f, 0.4f, 0.6f, 1.0f};
+    scene.textures[3].kind = static_cast<std::uint32_t>(GpuTracingTextureKind::ConstantColor);
+    scene.textures[3].parameters = {0.8f, 0.1f, 0.3f, 1.0f};
+    scene.materials[1].albedoTexture = 1u;
+
+    GpuDirectLightWorkRecord brightWork = oneMattePointLightWork();
+    brightWork.surface.uv = {0.25f, 0.25f, 0.0f, 0.0f};
+    const GpuDirectLightVisibilityRecord brightVisibility =
+      makeGpuDirectLightCpuVisibilityRecord(scene, brightWork, /*workIndex=*/0u);
+    const GpuDirectLightContributionRecord brightContribution =
+      makeGpuDirectLightCpuContributionRecord(scene, brightWork, brightVisibility);
+
+    GpuDirectLightWorkRecord darkWork = brightWork;
+    darkWork.surface.uv = {1.25f, 0.25f, 0.0f, 0.0f};
+    const GpuDirectLightVisibilityRecord darkVisibility =
+      makeGpuDirectLightCpuVisibilityRecord(scene, darkWork, /*workIndex=*/1u);
+    const GpuDirectLightContributionRecord darkContribution =
+      makeGpuDirectLightCpuContributionRecord(scene, darkWork, darkVisibility);
+
+    const Colord brightExpected = Colord(0.2, 0.4, 0.6) * 0.8 * invPI * Colord(2.0, 3.0, 4.0) *
+                                  Colord(brightWork.surface.throughput);
+    const Colord darkExpected = Colord(0.8, 0.1, 0.3) * 0.8 * invPI * Colord(2.0, 3.0, 4.0) *
+                                Colord(darkWork.surface.throughput);
+
+    EXPECT_EQ(gpuDirectLightContributionValid | gpuDirectLightContributionContributing,
+              brightContribution.flags);
+    EXPECT_EQ(gpuDirectLightContributionValid | gpuDirectLightContributionContributing,
+              darkContribution.flags);
+    EXPECT_NEAR(brightExpected.r(), brightContribution.contribution[0], 1e-7);
+    EXPECT_NEAR(brightExpected.g(), brightContribution.contribution[1], 1e-7);
+    EXPECT_NEAR(brightExpected.b(), brightContribution.contribution[2], 1e-7);
+    EXPECT_NEAR(darkExpected.r(), darkContribution.contribution[0], 1e-7);
+    EXPECT_NEAR(darkExpected.g(), darkContribution.contribution[1], 1e-7);
+    EXPECT_NEAR(darkExpected.b(), darkContribution.contribution[2], 1e-7);
   }
 
   TEST(GpuDirectLightCpuReference, InvalidLightPdfDoesNotContribute) {

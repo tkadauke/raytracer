@@ -822,7 +822,13 @@ for material/light records.
     perfect delta branch per path state.
 - Start with a restricted texture subset:
   - constant color;
-  - checkerboard if UV/local-coordinate payloads are ready;
+  - ~~checkerboard if UV/local-coordinate payloads are ready~~ ✅ **Done.**
+    Compiled texture records now cover planar/UV checker graphs, UV color,
+    nearest/bilinear image records, and bounded tinted wrapper chains for the
+    path-loop subset. The direct-light CPU-reference work record also carries
+    surface UVs and shares the compiled texture evaluator with the diffuse
+    path-step reference, keeping fallback/direct-light diagnostics aligned with
+    those texture records.
   - unsupported fallback for procedural or complex textures.
 - Start with a restricted light subset:
   - point light;

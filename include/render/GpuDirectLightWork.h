@@ -6,7 +6,7 @@
 #include <cstdint>
 
 namespace render {
-  inline constexpr std::uint32_t gpuDirectLightWorkLayoutVersion = 1u;
+  inline constexpr std::uint32_t gpuDirectLightWorkLayoutVersion = 2u;
 
   /**
     * One surface point that is eligible for GPU diffuse direct-light work.
@@ -23,6 +23,7 @@ namespace render {
     std::uint32_t pathIndex{0};
     std::array<float, 4> point{};
     std::array<float, 4> normal{};
+    std::array<float, 4> uv{};
     std::array<float, 4> incomingDirection{};
     std::array<float, 4> throughput{};
   };

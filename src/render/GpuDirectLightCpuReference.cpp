@@ -3,6 +3,7 @@
 #include "core/math/Constants.h"
 #include "core/math/Ray.h"
 #include "render/GpuCompiledLightSampler.h"
+#include "render/GpuTracingTextureEvaluator.h"
 #include "render/IntersectionService.h"
 #include "render/MIS.h"
 #include "render/State.h"
@@ -86,30 +87,22 @@ namespace render {
       return visibility;
     }
 
-    Colord textureColor(const GpuTracingSceneSections& scene, std::uint32_t textureIndex,
-                        std::uint32_t depth = 0) {
-      constexpr std::uint32_t maxTextureEvaluationDepth = 8;
-      if (textureIndex >= scene.textures.size()) {
-        return Colord::black();
-      }
-      if (depth >= maxTextureEvaluationDepth) {
-        return Colord::black();
-      }
-      const GpuTracingTextureRecord& texture = scene.textures[textureIndex];
-      const auto kind = static_cast<GpuTracingTextureKind>(texture.kind);
-      if (kind == GpuTracingTextureKind::ConstantColor) {
-        return Colord(texture.parameters);
-      }
-      if (kind == GpuTracingTextureKind::Tinted) {
-        return textureColor(scene, texture.payloadOffset, depth + 1) * Colord(texture.parameters);
-      }
-      return Colord::black();
-    }
-
     Rayd visibilityRay(const GpuDirectLightVisibilityRecord& visibility) {
       return Rayd(Vector4d(visibility.rayOrigin[0], visibility.rayOrigin[1],
                            visibility.rayOrigin[2], visibility.rayOrigin[3]),
                   Vector3d(visibility.rayDirection));
+    }
+
+    GpuIntersectionHitRecord surfaceHitRecord(const GpuDirectLightSurfaceRecord& surface) {
+      GpuIntersectionHitRecord hit;
+      hit.material = surface.material;
+      hit.object = surface.object;
+      hit.primitiveRecord = surface.primitiveRecord;
+      hit.rayIndex = surface.pathIndex;
+      hit.point = surface.point;
+      hit.normal = surface.normal;
+      hit.uv = surface.uv;
+      return hit;
     }
 
   }
@@ -204,7 +197,8 @@ namespace render {
       return result;
     }
 
-    const Colord albedo = textureColor(scene, material.albedoTexture);
+    const Colord albedo = GpuTracingTextureEvaluator(scene).evaluate(
+      material.albedoTexture, surfaceHitRecord(work.surface));
     const double diffuseCoefficient = material.parameters[1];
     const Colord bsdfValue = albedo * diffuseCoefficient * invPI;
     if (bsdfValue == Colord::black()) {

@@ -248,6 +248,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Evaluate compiled checker/image/UV/tinted texture graphs in GPU direct-light
+  CPU-reference contribution records, with UVs carried in the surface work
+  payload, so diagnostics and fallbacks match the compiled path-loop texture
+  subset more closely. — GPT-5 Codex
 - Compile null diffuse material textures as a real black ConstantColor GPU
   texture record, so platform full-GPU path-loop renders do not sample the
   unsupported sentinel for default/no-texture materials. — GPT-5 Codex
