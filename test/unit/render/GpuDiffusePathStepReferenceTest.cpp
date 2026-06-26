@@ -4316,6 +4316,7 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(3u, plan.parameters.maxDepth);
     EXPECT_EQ(2u, plan.parameters.russianRouletteDepth);
     EXPECT_EQ(4u, plan.parameters.directLightSamples);
+    EXPECT_EQ(1u, plan.parameters.captureDiagnostics);
     EXPECT_EQ(2u, plan.parameters.initialPathCount);
     EXPECT_EQ(3u, plan.parameters.imageWidth);
     EXPECT_EQ(2u, plan.parameters.imageHeight);
@@ -4388,6 +4389,15 @@ namespace GpuDiffusePathStepReferenceTest {
               plan.buffers.totalResidentBytes);
   }
 
+  TEST(GpuDiffusePathLoopLaunchPlanner, CanDisableDiagnosticReadbackCapture) {
+    GpuDiffusePathLoopSettings settings;
+    settings.captureDiagnostics = false;
+    const GpuDiffusePathLoopLaunchPlan plan = GpuDiffusePathLoopLaunchPlanner().plan(
+      GpuTracingSceneSections(), {activePath()}, TracingAccumulationLayout::image(1, 1), settings);
+
+    EXPECT_EQ(0u, plan.parameters.captureDiagnostics);
+  }
+
   TEST(GpuDiffusePathLoopLaunchPlanner, RejectsInvalidSettingsAndLayout) {
     GpuDiffusePathLoopSettings settings;
     settings.maxDepth = 0;
@@ -4442,6 +4452,7 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(plan.parameters.maxDepth, result.echoedParameters.maxDepth);
     EXPECT_EQ(plan.parameters.russianRouletteDepth, result.echoedParameters.russianRouletteDepth);
     EXPECT_EQ(plan.parameters.directLightSamples, result.echoedParameters.directLightSamples);
+    EXPECT_EQ(plan.parameters.captureDiagnostics, result.echoedParameters.captureDiagnostics);
     EXPECT_EQ(plan.parameters.initialPathCount, result.echoedParameters.initialPathCount);
     EXPECT_EQ(plan.parameters.imageWidth, result.echoedParameters.imageWidth);
     EXPECT_EQ(plan.parameters.imageHeight, result.echoedParameters.imageHeight);
@@ -5382,6 +5393,25 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(2u, diagnostics.addOperations);
     EXPECT_EQ(3u, diagnostics.addedSamples);
     EXPECT_EQ(1u, diagnostics.resolveOperations);
+    EXPECT_EQ(1u, diagnostics.readbackOperations);
+    EXPECT_EQ(layout.accumulationBytes(), diagnostics.readbackBytes);
+  }
+
+  TEST(GpuDiffusePathLoop, ResolvesPlatformAccumulationWithoutDiagnosticPathStates) {
+    GpuDiffusePathLoopResult result;
+    result.platformAccumulationBackend = "metal_diffuse_path_loop";
+    result.platformAccumulationResidency = "metal_accumulation_buffer";
+    result.platformAccumulationColorSums = {{{0.25f, 0.5f, 0.75f, 0.0f}}};
+    result.platformAccumulationSampleCounts = {1u};
+
+    Buffer<Colord> resolved(1, 1);
+    const TracingAccumulationLayout layout = TracingAccumulationLayout::image(1, 1);
+    const TracingAccumulationDiagnostics diagnostics =
+      resolveGpuDiffusePathLoopImage(result, layout, resolved);
+
+    ASSERT_COLOR_NEAR(Colord(0.25, 0.5, 0.75), resolved[0][0], 1e-12);
+    EXPECT_TRUE(result.resolvedPathStates.empty());
+    EXPECT_EQ("metal_diffuse_path_loop", diagnostics.backend);
     EXPECT_EQ(1u, diagnostics.readbackOperations);
     EXPECT_EQ(layout.accumulationBytes(), diagnostics.readbackBytes);
   }

@@ -378,6 +378,10 @@ namespace render {
       recordDepthCounts(loop, metalResult, settings);
       mergeStepMetrics(loop, initialPathStates, metalResult, settings);
 
+      if (!settings.captureDiagnostics) {
+        return loop;
+      }
+
       std::vector<GpuDiffusePathStateRecord> nextPathStates = metalResult.nextPathStates.empty()
                                                                 ? metalResult.resolvedPathStates
                                                                 : metalResult.nextPathStates;

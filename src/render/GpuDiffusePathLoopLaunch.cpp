@@ -70,6 +70,7 @@ namespace render {
     plan.parameters.maxDepth = settings.maxDepth;
     plan.parameters.russianRouletteDepth = settings.russianRouletteDepth;
     plan.parameters.directLightSamples = settings.directLightSamples;
+    plan.parameters.captureDiagnostics = settings.captureDiagnostics ? 1u : 0u;
     plan.parameters.initialPathCount = checkedU32(initialPathCount, "initial path count");
     plan.parameters.imageWidth =
       checkedU32(static_cast<std::uint64_t>(accumulationLayout.width), "image width");

@@ -431,6 +431,10 @@ namespace render {
       recordDepthCounts(loop, vulkanResult, settings);
       mergeStepMetrics(loop, vulkanResult, settings);
 
+      if (!settings.captureDiagnostics) {
+        return loop;
+      }
+
       std::vector<GpuDiffusePathStateRecord> nextPathStates = vulkanResult.nextPathStates.empty()
                                                                 ? vulkanResult.resolvedPathStates
                                                                 : vulkanResult.nextPathStates;

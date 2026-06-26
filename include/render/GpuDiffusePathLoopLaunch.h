@@ -7,13 +7,14 @@
 #include <vector>
 
 namespace render {
-  inline constexpr std::uint32_t gpuDiffusePathLoopLaunchLayoutVersion = 5u;
+  inline constexpr std::uint32_t gpuDiffusePathLoopLaunchLayoutVersion = 6u;
 
   struct alignas(16) GpuDiffusePathLoopLaunchParameters {
     std::uint32_t layoutVersion{gpuDiffusePathLoopLaunchLayoutVersion};
     std::uint32_t maxDepth{0};
     std::uint32_t russianRouletteDepth{0};
     std::uint32_t directLightSamples{0};
+    std::uint32_t captureDiagnostics{1};
     std::uint32_t initialPathCount{0};
     std::uint32_t imageWidth{0};
     std::uint32_t imageHeight{0};
@@ -50,6 +51,9 @@ namespace render {
     std::uint32_t openCylinderCount{0};
     std::uint32_t torusCount{0};
     std::uint32_t transformCount{0};
+    std::uint32_t reserved0{0};
+    std::uint32_t reserved1{0};
+    std::uint32_t reserved2{0};
   };
 
   struct GpuDiffusePathLoopLaunchBufferSizes {

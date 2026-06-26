@@ -2602,7 +2602,11 @@ scene is large enough to amortize upload/readback costs.
      from terminal path states. Multi-sample explicit GPU renders can now stay
      on the Metal path-loop kernel by switching duplicate output-pixel samples
      to sample-slot platform accumulation and resolving the averaged final
-     image from the Metal accumulation planes. The compiled path loop also
+     image from the Metal accumulation planes. The launch contract now also
+     carries an explicit diagnostic-capture flag so render graph execution can
+     request image-only platform readback when graph trace capture is disabled,
+     while backend tests and trace-enabled runs keep step/path-state
+     diagnostics available. The compiled path loop also
      carries `ReflectiveMaterial` and `TransparentMaterial` delta continuations
      through the CPU reference evaluator and the Metal full-GPU subset, and the
      compiled environment records now carry scene ambient separately from

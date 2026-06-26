@@ -257,6 +257,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   reflective, and transparent local surface lighting to contribute consistently
   before platform GPU direct-light contribution kernels take over. —
   GPT-5 Codex
+- Let render graph full-GPU diffuse path-loop renders skip platform
+  path-state, step-record, retained-index, and hit-record diagnostic readbacks
+  when graph trace capture is disabled, while still reading back the final
+  accumulation image. — GPT-5 Codex
 - Compile null diffuse material textures as a real black ConstantColor GPU
   texture record, so platform full-GPU path-loop renders do not sample the
   unsupported sentinel for default/no-texture materials. — GPT-5 Codex

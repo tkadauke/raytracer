@@ -1116,6 +1116,7 @@ namespace engine::graph {
           static_cast<std::uint32_t>(state.russianRouletteDepth().value_or(3));
         settings.directLightSamples =
           static_cast<std::uint32_t>(std::max(1, state.directLightSamples().value_or(1)));
+        settings.captureDiagnostics = context.graph().executionTraceEnabled();
         const std::shared_ptr<const render::GpuDiffusePathLoopBackend> pathLoopBackend =
           selectGpuDiffusePathLoopBackend(context.graph(), state, compilation.sections, settings);
         if (!pathLoopBackend) {

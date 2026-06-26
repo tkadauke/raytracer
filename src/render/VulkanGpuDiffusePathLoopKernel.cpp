@@ -17,7 +17,7 @@
 
 namespace render {
   namespace {
-    static_assert(sizeof(GpuDiffusePathLoopLaunchParameters) == 160);
+    static_assert(sizeof(GpuDiffusePathLoopLaunchParameters) == 176);
     static_assert(alignof(GpuDiffusePathLoopLaunchParameters) == 16);
     static_assert(sizeof(GpuDiffusePathStateRecord) == 160);
     static_assert(alignof(GpuDiffusePathStateRecord) == 16);
@@ -260,32 +260,34 @@ namespace render {
         result.kernelWorkerSeconds = secondsBetween(kernelStart, kernelEnd);
         result.echoedParameters = readBackOne<GpuDiffusePathLoopLaunchParameters>(
           device, buffers.buffers[1].memory, "Vulkan diffuse path-loop echoed parameters mapping");
-        result.resolvedPathStates = readBackRecords<GpuDiffusePathStateRecord>(
-          device, buffers.buffers[4].memory,
-          byteCount<GpuDiffusePathStateRecord>(initialPathStates.size()), initialPathStates.size(),
-          "Vulkan diffuse path-loop active path-state output mapping");
-        result.nextPathStates = readBackRecords<GpuDiffusePathStateRecord>(
-          device, buffers.buffers[5].memory,
-          byteCount<GpuDiffusePathStateRecord>(initialPathStates.size()), initialPathStates.size(),
-          "Vulkan diffuse path-loop next path-state output mapping");
-        const std::size_t rawStepCount =
-          initialPathStates.size() * static_cast<std::size_t>(plan.parameters.maxDepth);
-        const std::vector<GpuDiffusePathStepRecord> rawStepRecords =
-          readBackRecords<GpuDiffusePathStepRecord>(
-            device, buffers.buffers[6].memory, byteCount<GpuDiffusePathStepRecord>(rawStepCount),
-            rawStepCount, "Vulkan diffuse path-loop step-record output mapping");
-        result.stepRecords.reserve(rawStepRecords.size());
-        for (const GpuDiffusePathStepRecord& step : rawStepRecords) {
-          if (static_cast<GpuDiffusePathStepEvent>(step.event) !=
-              GpuDiffusePathStepEvent::Inactive) {
-            result.stepRecords.push_back(step);
+        if (plan.parameters.captureDiagnostics != 0u) {
+          result.resolvedPathStates = readBackRecords<GpuDiffusePathStateRecord>(
+            device, buffers.buffers[4].memory,
+            byteCount<GpuDiffusePathStateRecord>(initialPathStates.size()),
+            initialPathStates.size(), "Vulkan diffuse path-loop active path-state output mapping");
+          result.nextPathStates = readBackRecords<GpuDiffusePathStateRecord>(
+            device, buffers.buffers[5].memory,
+            byteCount<GpuDiffusePathStateRecord>(initialPathStates.size()),
+            initialPathStates.size(), "Vulkan diffuse path-loop next path-state output mapping");
+          const std::size_t rawStepCount =
+            initialPathStates.size() * static_cast<std::size_t>(plan.parameters.maxDepth);
+          const std::vector<GpuDiffusePathStepRecord> rawStepRecords =
+            readBackRecords<GpuDiffusePathStepRecord>(
+              device, buffers.buffers[6].memory, byteCount<GpuDiffusePathStepRecord>(rawStepCount),
+              rawStepCount, "Vulkan diffuse path-loop step-record output mapping");
+          result.stepRecords.reserve(rawStepRecords.size());
+          for (const GpuDiffusePathStepRecord& step : rawStepRecords) {
+            if (static_cast<GpuDiffusePathStepEvent>(step.event) !=
+                GpuDiffusePathStepEvent::Inactive) {
+              result.stepRecords.push_back(step);
+            }
           }
+          const std::vector<std::uint32_t> retainedOutput = readBackRecords<std::uint32_t>(
+            device, buffers.buffers[7].memory, byteCount<std::uint32_t>(retainedIndices.size()),
+            retainedIndices.size(), "Vulkan diffuse path-loop retained-index output mapping");
+          result.retainedPathIndices =
+            retainedPathIndicesFromBuffer(retainedOutput, initialPathStates.size());
         }
-        const std::vector<std::uint32_t> retainedOutput = readBackRecords<std::uint32_t>(
-          device, buffers.buffers[7].memory, byteCount<std::uint32_t>(retainedIndices.size()),
-          retainedIndices.size(), "Vulkan diffuse path-loop retained-index output mapping");
-        result.retainedPathIndices =
-          retainedPathIndicesFromBuffer(retainedOutput, initialPathStates.size());
         result.accumulationColorSums = readBackRecords<std::array<float, 4>>(
           device, buffers.buffers[8].memory, byteCount<std::array<float, 4>>(pixels), pixels,
           "Vulkan diffuse path-loop accumulation color output mapping");

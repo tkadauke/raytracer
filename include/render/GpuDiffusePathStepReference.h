@@ -95,6 +95,7 @@ namespace render {
     std::uint32_t maxDepth{8};
     std::uint32_t russianRouletteDepth{3};
     std::uint32_t directLightSamples{1};
+    bool captureDiagnostics{true};
   };
 
   inline constexpr std::uint32_t gpuDiffusePathLoopAccumulationTargetPixel = 0u;

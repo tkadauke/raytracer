@@ -20,7 +20,7 @@ namespace render {
   namespace {
     static_assert(std::is_standard_layout_v<GpuDiffusePathLoopLaunchParameters>,
                   "Metal diffuse path-loop launch parameters must stay shader ABI friendly");
-    static_assert(sizeof(GpuDiffusePathLoopLaunchParameters) == 160);
+    static_assert(sizeof(GpuDiffusePathLoopLaunchParameters) == 176);
     static_assert(alignof(GpuDiffusePathLoopLaunchParameters) == 16);
     static_assert(sizeof(GpuDiffusePathStateRecord) == 160);
     static_assert(alignof(GpuDiffusePathStateRecord) == 16);
@@ -93,6 +93,7 @@ namespace render {
               "  uint maxDepth;\n"
               "  uint russianRouletteDepth;\n"
               "  uint directLightSamples;\n"
+              "  uint captureDiagnostics;\n"
               "  uint initialPathCount;\n"
               "  uint imageWidth;\n"
               "  uint imageHeight;\n"
@@ -129,6 +130,9 @@ namespace render {
               "  uint openCylinderCount;\n"
               "  uint torusCount;\n"
               "  uint transformCount;\n"
+              "  uint reserved0;\n"
+              "  uint reserved1;\n"
+              "  uint reserved2;\n"
               "};\n"
               "struct GpuIntersectionRay {\n"
               "  float4 origin;\n"
@@ -3592,39 +3596,41 @@ namespace render {
       const auto readbackStart = std::chrono::steady_clock::now();
       std::memcpy(&result.echoedParameters, [echoedParameterBuffer contents],
                   sizeof(result.echoedParameters));
-      result.copiedInitialPathStates.resize(initialPathStates.size());
-      if (!result.copiedInitialPathStates.empty()) {
-        std::memcpy(result.copiedInitialPathStates.data(), [activePathBuffer contents],
-                    result.copiedInitialPathStates.size() * sizeof(GpuDiffusePathStateRecord));
-      }
-      result.nextPathStates.resize(initialPathStates.size());
-      if (!result.nextPathStates.empty()) {
-        std::memcpy(result.nextPathStates.data(), [nextPathBuffer contents],
-                    result.nextPathStates.size() * sizeof(GpuDiffusePathStateRecord));
-      }
-      result.closestHitRecords.resize(initialPathStates.size());
-      if (!result.closestHitRecords.empty()) {
-        std::memcpy(result.closestHitRecords.data(), [closestHitBuffer contents],
-                    result.closestHitRecords.size() * sizeof(GpuIntersectionHitRecord));
-      }
-
-      const std::size_t rawStepCount =
-        initialPathStates.size() * static_cast<std::size_t>(plan.parameters.maxDepth);
-      std::vector<GpuDiffusePathStepRecord> rawStepRecords(rawStepCount);
-      if (!rawStepRecords.empty()) {
-        std::memcpy(rawStepRecords.data(), [stepRecordBuffer contents],
-                    rawStepRecords.size() * sizeof(GpuDiffusePathStepRecord));
-      }
-      result.stepRecords.reserve(rawStepRecords.size());
-      for (const GpuDiffusePathStepRecord& step : rawStepRecords) {
-        if (static_cast<GpuDiffusePathStepEvent>(step.event) !=
-            GpuDiffusePathStepEvent::Inactive) {
-          result.stepRecords.push_back(step);
+      if (plan.parameters.captureDiagnostics != 0u) {
+        result.copiedInitialPathStates.resize(initialPathStates.size());
+        if (!result.copiedInitialPathStates.empty()) {
+          std::memcpy(result.copiedInitialPathStates.data(), [activePathBuffer contents],
+                      result.copiedInitialPathStates.size() * sizeof(GpuDiffusePathStateRecord));
         }
-      }
+        result.nextPathStates.resize(initialPathStates.size());
+        if (!result.nextPathStates.empty()) {
+          std::memcpy(result.nextPathStates.data(), [nextPathBuffer contents],
+                      result.nextPathStates.size() * sizeof(GpuDiffusePathStateRecord));
+        }
+        result.closestHitRecords.resize(initialPathStates.size());
+        if (!result.closestHitRecords.empty()) {
+          std::memcpy(result.closestHitRecords.data(), [closestHitBuffer contents],
+                      result.closestHitRecords.size() * sizeof(GpuIntersectionHitRecord));
+        }
 
-      result.retainedPathIndices =
-        retainedPathIndicesFromBuffer(retainedIndexBuffer, initialPathStates.size());
+        const std::size_t rawStepCount =
+          initialPathStates.size() * static_cast<std::size_t>(plan.parameters.maxDepth);
+        std::vector<GpuDiffusePathStepRecord> rawStepRecords(rawStepCount);
+        if (!rawStepRecords.empty()) {
+          std::memcpy(rawStepRecords.data(), [stepRecordBuffer contents],
+                      rawStepRecords.size() * sizeof(GpuDiffusePathStepRecord));
+        }
+        result.stepRecords.reserve(rawStepRecords.size());
+        for (const GpuDiffusePathStepRecord& step : rawStepRecords) {
+          if (static_cast<GpuDiffusePathStepEvent>(step.event) !=
+              GpuDiffusePathStepEvent::Inactive) {
+            result.stepRecords.push_back(step);
+          }
+        }
+
+        result.retainedPathIndices =
+          retainedPathIndicesFromBuffer(retainedIndexBuffer, initialPathStates.size());
+      }
       result.accumulationColorSums.resize(pixelCount(plan.parameters));
       if (!result.accumulationColorSums.empty()) {
         std::memcpy(result.accumulationColorSums.data(), [accumulationBuffer contents],

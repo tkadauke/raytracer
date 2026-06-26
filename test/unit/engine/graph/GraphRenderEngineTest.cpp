@@ -220,6 +220,8 @@ namespace GraphRenderEngineTest {
     run(const render::GpuTracingSceneSections& scene,
         const std::vector<render::GpuDiffusePathStateRecord>& initialPathStates,
         const render::GpuDiffusePathLoopSettings& settings) const override {
+      m_hasLastCaptureDiagnostics = true;
+      m_lastCaptureDiagnostics = settings.captureDiagnostics;
       render::GpuDiffusePathLoopResult result =
         render::CpuReferenceGpuDiffusePathLoopBackend::sharedInstance()->run(
           scene, initialPathStates, settings);
@@ -236,6 +238,18 @@ namespace GraphRenderEngineTest {
       result.savedHostReadbackBytes = result.inputPathStateBytes();
       return result;
     }
+
+    bool hasLastCaptureDiagnostics() const {
+      return m_hasLastCaptureDiagnostics;
+    }
+
+    bool lastCaptureDiagnostics() const {
+      return m_lastCaptureDiagnostics;
+    }
+
+  private:
+    mutable bool m_hasLastCaptureDiagnostics{false};
+    mutable bool m_lastCaptureDiagnostics{false};
   };
 
   class ReportingMetalFrontierCompactionBackend final
@@ -2463,10 +2477,14 @@ namespace GraphRenderEngineTest {
     GraphRenderEngine engine(camera(), scene);
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(plan);
-    engine.setGpuDiffusePathLoopBackend(std::make_shared<ReportingFullGpuDiffusePathLoopBackend>());
+    auto pathLoopBackend = std::make_shared<ReportingFullGpuDiffusePathLoopBackend>();
+    engine.setGpuDiffusePathLoopBackend(pathLoopBackend);
 
     Buffer<Colord> buffer(8, 8);
     engine.render(buffer);
+
+    EXPECT_TRUE(pathLoopBackend->hasLastCaptureDiagnostics());
+    EXPECT_TRUE(pathLoopBackend->lastCaptureDiagnostics());
 
     const auto trace = engine.lastExecutionTrace();
     ASSERT_TRUE(trace);
@@ -2519,6 +2537,43 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ("metal_path_state", loop.value("residency").toString().toStdString());
     EXPECT_EQ("metal", loop.value("platformName").toString().toStdString());
     EXPECT_TRUE(loop.value("fullPlatformGpuKernel").toBool());
+  }
+
+  TEST(GraphRenderEngine, DisablesCompiledGpuDiagnosticReadbackWhenTraceIsDisabled) {
+    const Colord background(0.125, 0.25, 0.5);
+    auto scene = std::make_shared<render::Scene>();
+    scene->setBackground(background);
+    scene->setEnvironmentRadiance(background);
+    auto receiver = std::make_shared<render::Rectangle>(
+      Vector3d(-20.0, -20.0, 0.0), Vector3d(40.0, 0.0, 0.0), Vector3d(0.0, 40.0, 0.0));
+    receiver->setMaterial(matte(Colord(0.8, 0.8, 0.8)));
+    scene->add(receiver);
+    scene->addLight(
+      std::make_shared<render::PointLight>(Vector3d(0.0, 0.0, -3.0), Colord(0.5, 0.5, 0.5)));
+
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Wavefront;
+    intent.engineOptions.raytracer().setIntegrator("pathtracer");
+    intent.engineOptions.raytracer().setTracingExecution(TracingExecutionPreference::GPU);
+    intent.engineOptions.raytracer().setSamplesPerPixel(1);
+    intent.engineOptions.raytracer().setMaximumRecursionDepth(2);
+    intent.engineOptions.raytracer().setDirectLightSamples(1);
+    intent.engineOptions.raytracer().setSampleStreamMode("gpu_sample_stream");
+
+    RenderSceneAnalysis analysis;
+    analysis.setFullGpuTracingSupportFromScene(*scene);
+    const RenderPlan plan = RenderGraphCompiler().compile({8, 8, 1}, intent, analysis);
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setPlan(plan);
+    auto pathLoopBackend = std::make_shared<ReportingFullGpuDiffusePathLoopBackend>();
+    engine.setGpuDiffusePathLoopBackend(pathLoopBackend);
+
+    Buffer<Colord> buffer(8, 8);
+    engine.render(buffer);
+
+    EXPECT_TRUE(pathLoopBackend->hasLastCaptureDiagnostics());
+    EXPECT_FALSE(pathLoopBackend->lastCaptureDiagnostics());
   }
 
   TEST(GraphRenderEngine, UsesInjectedGpuDiffusePathLoopBackendForAutoEligiblePathTracer) {

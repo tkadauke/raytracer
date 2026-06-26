@@ -53,6 +53,7 @@ struct GpuDiffusePathLoopLaunchParameters {
   uint maxDepth;
   uint russianRouletteDepth;
   uint directLightSamples;
+  uint captureDiagnostics;
   uint initialPathCount;
   uint imageWidth;
   uint imageHeight;
@@ -89,6 +90,9 @@ struct GpuDiffusePathLoopLaunchParameters {
   uint openCylinderCount;
   uint torusCount;
   uint transformCount;
+  uint reserved0;
+  uint reserved1;
+  uint reserved2;
 };
 
 struct GpuIntersectionBounds {
