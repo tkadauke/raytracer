@@ -15,6 +15,7 @@
 #include "render/primitives/Disk.h"
 #include "render/primitives/FlatMeshTriangle.h"
 #include "render/primitives/Instance.h"
+#include "render/primitives/MeshPrimitive.h"
 #include "render/primitives/OpenCylinder.h"
 #include "render/primitives/Plane.h"
 #include "render/primitives/Rectangle.h"
@@ -83,6 +84,15 @@ namespace IntersectionSceneCompilerTest {
 
     std::unique_ptr<Mesh> triangleMesh() {
       auto mesh = std::make_unique<Mesh>();
+      mesh->addVertex(Vector3d(0, 0, 0), Vector3d(0, 0, 1), Vector2d(0, 0));
+      mesh->addVertex(Vector3d(1, 0, 0), Vector3d(0, 0, 1), Vector2d(1, 0));
+      mesh->addVertex(Vector3d(0, 1, 0), Vector3d(0, 0, 1), Vector2d(0, 1));
+      mesh->addFace({0, 1, 2});
+      return mesh;
+    }
+
+    std::shared_ptr<Mesh> sharedTriangleMesh() {
+      auto mesh = std::make_shared<Mesh>();
       mesh->addVertex(Vector3d(0, 0, 0), Vector3d(0, 0, 1), Vector2d(0, 0));
       mesh->addVertex(Vector3d(1, 0, 0), Vector3d(0, 0, 1), Vector2d(1, 0));
       mesh->addVertex(Vector3d(0, 1, 0), Vector3d(0, 0, 1), Vector2d(0, 1));
@@ -179,6 +189,28 @@ namespace IntersectionSceneCompilerTest {
     ASSERT_EQ(1u, compiled.primitives().size());
     ASSERT_EQ(1u, compiled.triangles().size());
     EXPECT_EQ(IntersectionPrimitiveKind::Triangle, compiled.primitives()[0].kind);
+    EXPECT_EQ(Vector3d(1, 0, 0), compiled.triangles()[0].point1);
+    EXPECT_EQ(Vector2d(0, 1), compiled.triangles()[0].uv2);
+  }
+
+  TEST(IntersectionSceneCompiler, CompilesMeshPrimitiveAsTrianglePayloads) {
+    auto mesh = sharedTriangleMesh();
+    auto meshPrimitive = std::make_shared<MeshPrimitive>(mesh, MeshPrimitive::NormalMode::Smooth);
+    meshPrimitive->setMaterial(material(Colord(0.2, 0.4, 0.6)));
+    Scene scene;
+    scene.add(meshPrimitive);
+
+    const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
+
+    ASSERT_EQ(1u, compiled.primitives().size());
+    ASSERT_EQ(1u, compiled.triangles().size());
+    EXPECT_TRUE(compiled.fullySupported());
+    const IntersectionPrimitiveRecord& primitive = compiled.primitives()[0];
+    EXPECT_EQ(IntersectionPrimitiveKind::Triangle, primitive.kind);
+    ASSERT_GT(compiled.objects().size(), primitive.object);
+    EXPECT_EQ(meshPrimitive.get(), compiled.objects()[primitive.object]);
+    ASSERT_GT(compiled.materials().size(), primitive.material);
+    EXPECT_EQ(meshPrimitive->material().get(), compiled.materials()[primitive.material].get());
     EXPECT_EQ(Vector3d(1, 0, 0), compiled.triangles()[0].point1);
     EXPECT_EQ(Vector2d(0, 1), compiled.triangles()[0].uv2);
   }

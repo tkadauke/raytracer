@@ -53,7 +53,8 @@ end state for GPU tracing.
 - `--wavefront_intersection_backend auto|cpu|gpu` is a graph-visible intent
   field.
 - A restricted compiled intersection scene exists for supported geometry:
-  triangle/mesh triangles, sphere, plane, rectangle, disk, OpenCylinder,
+  triangle/mesh triangles, imported/static `MeshPrimitive` geometry that
+  flattens to mesh triangles, sphere, plane, rectangle, disk, OpenCylinder,
   Torus, and static transforms.
 - The packed CPU intersection path uses the same GPU-style ray, hit, occlusion,
   BVH, primitive, payload, and transform records as the platform backend
@@ -172,14 +173,16 @@ end state for GPU tracing.
 - Platform GPU-side path/frontier compaction for scheduler-owned path records.
 - Broad platform full-GPU path-loop kernels for the normal render path. A
   restricted Metal path-loop kernel can advance empty-scene and
-  optionally transformed triangle/sphere/plane/rectangle/disk/open-cylinder/
-  torus paths with Matte, Phong finite diffuse/glossy, Reflective mirror,
+  optionally transformed triangle/`MeshPrimitive` mesh-triangle/sphere/plane/
+  rectangle/disk/open-cylinder/torus paths with Matte, Phong finite
+  diffuse/glossy, Reflective mirror,
   Transparent perfect reflection/refraction, or Emissive materials across
   multiple depths for backend tests and explicit GPU graph requests when the
   light set is empty or uses point, directional, or rectangular area lights. A
   restricted Vulkan path-loop backend can execute empty-scene all-miss paths and
   a multi-depth shaded static-transform
-  triangle/sphere/plane/rectangle/disk/open-cylinder/torus subset with
+  triangle/`MeshPrimitive` mesh-triangle/sphere/plane/rectangle/disk/
+  open-cylinder/torus subset with
   Matte/Phong-finite-glossy/Reflective-mirror/Transparent-refraction/Emissive
   materials, ConstantColor/planar-or-UV CheckerBoard texture graphs/
   nearest-or-bilinear ImageTexture/UVColor records, bounded Tinted wrapper

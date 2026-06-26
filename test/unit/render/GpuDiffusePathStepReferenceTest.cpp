@@ -2,6 +2,7 @@
 
 #include "core/Buffer.h"
 #include "core/Color.h"
+#include "core/geometry/Mesh.h"
 #include "core/geometry/Polyline.h"
 #include "core/math/Constants.h"
 #include "core/math/Matrix.h"
@@ -42,6 +43,7 @@
 #include "render/primitives/Curve.h"
 #include "render/primitives/Disk.h"
 #include "render/primitives/Instance.h"
+#include "render/primitives/MeshPrimitive.h"
 #include "render/primitives/OpenCylinder.h"
 #include "render/primitives/Plane.h"
 #include "render/primitives/Rectangle.h"
@@ -202,6 +204,15 @@ namespace GpuDiffusePathStepReferenceTest {
           makeGpuTracingConstantEnvironment(scene.environmentRadiance()));
       }
       return sections;
+    }
+
+    [[maybe_unused]] std::shared_ptr<Mesh> triangleMesh() {
+      auto mesh = std::make_shared<Mesh>();
+      mesh->addVertex(Vector3d(0.0, 0.0, 0.0), Vector3d(0.0, 0.0, 1.0), Vector2d(0.0, 0.0));
+      mesh->addVertex(Vector3d(1.0, 0.0, 0.0), Vector3d(0.0, 0.0, 1.0), Vector2d(1.0, 0.0));
+      mesh->addVertex(Vector3d(0.0, 1.0, 0.0), Vector3d(0.0, 0.0, 1.0), Vector2d(0.0, 1.0));
+      mesh->addFace({0, 1, 2});
+      return mesh;
     }
 
     std::uint32_t firstMaterialId(const GpuTracingSceneSections& sections,
@@ -2629,6 +2640,16 @@ namespace GpuDiffusePathStepReferenceTest {
       backend.fullGpuPathLoopSupport(sectionsFor(uvColorScene), settings);
     EXPECT_TRUE(uvColorSupport.supported);
     EXPECT_TRUE(uvColorSupport.reason.empty());
+
+    Scene meshPrimitiveScene;
+    auto meshPrimitive =
+      std::make_shared<MeshPrimitive>(triangleMesh(), MeshPrimitive::NormalMode::Smooth);
+    meshPrimitive->setMaterial(matte);
+    meshPrimitiveScene.add(meshPrimitive);
+    const GpuDiffusePathLoopBackendSupport meshPrimitiveSupport =
+      backend.fullGpuPathLoopSupport(sectionsFor(meshPrimitiveScene), settings);
+    EXPECT_TRUE(meshPrimitiveSupport.supported) << meshPrimitiveSupport.reason;
+    EXPECT_TRUE(meshPrimitiveSupport.reason.empty());
 #else
     GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
 #endif
@@ -3071,6 +3092,16 @@ namespace GpuDiffusePathStepReferenceTest {
       backend.fullGpuPathLoopSupport(sectionsFor(triangleScene), settings);
     EXPECT_TRUE(triangleSupport.supported);
     EXPECT_TRUE(triangleSupport.reason.empty());
+
+    Scene meshPrimitiveScene;
+    auto meshPrimitive =
+      std::make_shared<MeshPrimitive>(triangleMesh(), MeshPrimitive::NormalMode::Smooth);
+    meshPrimitive->setMaterial(matte);
+    meshPrimitiveScene.add(meshPrimitive);
+    const GpuDiffusePathLoopBackendSupport meshPrimitiveSupport =
+      backend.fullGpuPathLoopSupport(sectionsFor(meshPrimitiveScene), settings);
+    EXPECT_TRUE(meshPrimitiveSupport.supported) << meshPrimitiveSupport.reason;
+    EXPECT_TRUE(meshPrimitiveSupport.reason.empty());
 
     Scene openCylinderScene;
     auto openCylinder = std::make_shared<OpenCylinder>(1.0, 2.0);
