@@ -535,6 +535,24 @@ namespace GpuTracingSceneTest {
     EXPECT_FLOAT_EQ(0.75f, record->parameters[1]);
   }
 
+  TEST(GpuTracingScene, MatteMaterialIgnoresRasterOnlyNormalTextureForPathTracing) {
+    MatteMaterial material;
+    material.setAmbientCoefficient(0.25);
+    material.setDiffuseCoefficient(0.75);
+    material.setNormalTexture(std::make_shared<UnsupportedTexture>());
+    std::string reason;
+
+    const std::optional<GpuTracingMaterialRecord> record =
+      makeGpuTracingMaterialRecord(material, 4, 0, &reason);
+
+    ASSERT_TRUE(record.has_value());
+    EXPECT_TRUE(reason.empty());
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingMaterialKind::Matte), record->kind);
+    EXPECT_EQ(4u, record->albedoTexture);
+    EXPECT_FLOAT_EQ(0.25f, record->parameters[0]);
+    EXPECT_FLOAT_EQ(0.75f, record->parameters[1]);
+  }
+
   TEST(GpuTracingScene, EmissiveMaterialPacksEmissionTextureId) {
     const EmissiveMaterial material(Colord(0.8, 0.6, 0.4));
 
@@ -564,6 +582,27 @@ namespace GpuTracingSceneTest {
     expectFloat4(record->parameters, 0.125f, 0.25f, 0.5f, 32.0f);
     expectFloat4(record->specularParameters, 0.75f, 0.5f, 0.25f, 0.0f);
     expectFloat4(record->continuationParameters, 0.0f, 0.0f, 0.0f, 0.0f);
+  }
+
+  TEST(GpuTracingScene, PhongMaterialIgnoresRasterOnlyNormalTextureForPathTracing) {
+    PhongMaterial material;
+    material.setAmbientCoefficient(0.125);
+    material.setDiffuseCoefficient(0.25);
+    material.setSpecularColor(Colord(0.75, 0.5, 0.25));
+    material.setSpecularCoefficient(0.5);
+    material.setExponent(32.0);
+    material.setNormalTexture(std::make_shared<UnsupportedTexture>());
+    std::string reason;
+
+    const std::optional<GpuTracingMaterialRecord> record =
+      makeGpuTracingMaterialRecord(material, 4, 0, &reason);
+
+    ASSERT_TRUE(record.has_value());
+    EXPECT_TRUE(reason.empty());
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingMaterialKind::Phong), record->kind);
+    EXPECT_EQ(4u, record->albedoTexture);
+    expectFloat4(record->parameters, 0.125f, 0.25f, 0.5f, 32.0f);
+    expectFloat4(record->specularParameters, 0.75f, 0.5f, 0.25f, 0.0f);
   }
 
   TEST(GpuTracingScene, ReflectiveMaterialPacksMirrorContinuationParameters) {
@@ -677,6 +716,29 @@ namespace GpuTracingSceneTest {
     EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingTextureKind::ConstantColor),
               fallbackTexture.kind);
     expectFloat4(fallbackTexture.parameters, 0.0f, 0.0f, 0.0f, 1.0f);
+  }
+
+  TEST(GpuTracingScene, CompilesNormalTextureMaterialsWithoutCollectingNormalTexture) {
+    auto albedo = std::make_shared<ConstantColorTexture>(Colord(0.8, 0.1, 0.2));
+    auto matte = std::make_shared<MatteMaterial>(albedo);
+    matte->setNormalTexture(std::make_shared<UnsupportedTexture>());
+    auto sphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    sphere->setMaterial(matte);
+    Scene scene;
+    scene.add(sphere);
+    const CompiledIntersectionScene intersection = IntersectionSceneCompiler().compile(scene);
+
+    const GpuTracingMaterialCompilation compilation = compileGpuTracingMaterials(intersection);
+
+    EXPECT_TRUE(compilation.supported());
+    EXPECT_TRUE(compilation.unsupportedMaterials.empty());
+    EXPECT_TRUE(compilation.textures.unsupportedTextures.empty());
+    ASSERT_EQ(2u, compilation.records.size());
+    ASSERT_EQ(2u, compilation.textures.records.size());
+    EXPECT_EQ(1u, compilation.records[1].albedoTexture);
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingTextureKind::ConstantColor),
+              compilation.textures.records[1].kind);
+    expectFloat4(compilation.textures.records[1].parameters, 0.8f, 0.1f, 0.2f, 1.0f);
   }
 
   TEST(GpuTracingScene, RecordsFirstUnsupportedMaterialReasonAndGroupedCounts) {

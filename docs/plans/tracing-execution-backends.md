@@ -80,6 +80,10 @@ end state for GPU tracing.
   texture graphs, nearest-or-bilinear ImageTexture, UVColorTexture, and bounded
   Tinted wrapper chains over those supported base texture records, PointLight,
   DirectionalLight, and RectangularAreaLight.
+- Raster-only material normal maps no longer reject GPU tracing material
+  compilation. The compiled path-tracing subset ignores `normalTexture()` just
+  like the scalar CPU path tracer currently does, so unsupported normal-map
+  texture types do not poison otherwise supported path-tracing materials.
 - `render::GpuSampleStream` provides the CPU reference for deterministic
   GPU-style sampling dimensions with fixed-vector coverage.
 - Static `PinholeCamera`, `OrthographicCamera`, `ThinLensCamera`,
@@ -2647,6 +2651,9 @@ scene is large enough to amortize upload/readback costs.
      dispatch now uses pipeline-derived threadgroup widths instead of one
      thread per threadgroup, moving the explicit full-GPU path tracer closer to
      the E15 performance gate without changing its supported-scene contract.
+     Raster-only material normal maps no longer make those materials
+     unsupported by the compiled path-loop subset; they remain ignored by path
+     tracing, matching the scalar CPU integrator.
      Broader
      primitive traversal, full material shading, full direct-light coverage,
      device-side compacted wavefront scheduling, Vulkan parity, and performance

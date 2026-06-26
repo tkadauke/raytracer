@@ -126,15 +126,6 @@ namespace {
     }
   }
 
-  bool rejectNormalTexture(const MatteMaterial& material, std::string* unsupportedReason) {
-    if (material.normalTexture()) {
-      setUnsupportedReason(unsupportedReason,
-                           "normal textures are not supported by GPU tracing scene compiler");
-      return true;
-    }
-    return false;
-  }
-
   void packLocalPhongParameters(const PhongMaterial& material, GpuTracingMaterialRecord& record) {
     record.parameters = {static_cast<float>(material.ambientCoefficient()),
                          static_cast<float>(material.diffuseCoefficient()),
@@ -294,9 +285,7 @@ namespace {
 
     std::optional<GpuTracingMaterialRecord> record(GpuTracingMaterialResourceContext& resources,
                                                    std::string* unsupportedReason) const override {
-      if (rejectNormalTexture(m_material, unsupportedReason)) {
-        return std::nullopt;
-      }
+      (void)unsupportedReason;
 
       GpuTracingMaterialRecord record;
       record.kind = static_cast<std::uint32_t>(GpuTracingMaterialKind::Matte);
@@ -318,9 +307,7 @@ namespace {
 
     std::optional<GpuTracingMaterialRecord> record(GpuTracingMaterialResourceContext& resources,
                                                    std::string* unsupportedReason) const override {
-      if (rejectNormalTexture(m_material, unsupportedReason)) {
-        return std::nullopt;
-      }
+      (void)unsupportedReason;
 
       GpuTracingMaterialRecord record;
       record.kind = static_cast<std::uint32_t>(GpuTracingMaterialKind::Phong);
@@ -342,9 +329,7 @@ namespace {
 
     std::optional<GpuTracingMaterialRecord> record(GpuTracingMaterialResourceContext& resources,
                                                    std::string* unsupportedReason) const override {
-      if (rejectNormalTexture(m_material, unsupportedReason)) {
-        return std::nullopt;
-      }
+      (void)unsupportedReason;
 
       GpuTracingMaterialRecord record;
       record.kind = static_cast<std::uint32_t>(GpuTracingMaterialKind::Reflective);
@@ -367,9 +352,7 @@ namespace {
 
     std::optional<GpuTracingMaterialRecord> record(GpuTracingMaterialResourceContext& resources,
                                                    std::string* unsupportedReason) const override {
-      if (rejectNormalTexture(m_material, unsupportedReason)) {
-        return std::nullopt;
-      }
+      (void)unsupportedReason;
 
       GpuTracingMaterialRecord record;
       record.kind = static_cast<std::uint32_t>(GpuTracingMaterialKind::Transparent);

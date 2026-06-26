@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Allow raster-only material normal maps on otherwise supported GPU
+  path-tracing materials by ignoring `normalTexture()` during compiled
+  path-loop material lowering, matching the scalar CPU path tracer's current
+  behavior. — GPT-5 Codex
 - Route explicit GPU diffuse path-loop requests, and eligible automatic
   path-tracer renders, through an available scene-supported platform full-GPU
   backend while retaining CPU/hybrid fallback for incompatible pass settings.

@@ -100,7 +100,8 @@ namespace render {
       * decodes RGB as `(x, y, z) = color * 2 - 1` and transforms the result
       * through the triangle's UV-derived tangent frame. When a triangle has no
       * usable UV tangent frame, raster shading falls back to the interpolated
-      * geometric normal.
+      * geometric normal. Ray and path tracing currently ignore this raster-only
+      * normal map and shade with the geometric hit normal.
       *
       * <table><tr>
       * <td>@image html rasterizer_normal_map_flat.png "flat normals"</td>
