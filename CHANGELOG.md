@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Let Vulkan full-GPU diffuse path-loop renders resolve packed LDR display
+  pixels on the GPU for trace-disabled linear-tonemap display paths, while
+  graph renders that still need HDR resources keep accumulation readback
+  enabled alongside the display resolve. — GPT-5 Codex
 - Let trace-disabled Metal full-GPU diffuse path-loop display-only renders with
   linear tonemapping resolve packed LDR pixels on the GPU and read back the
   display buffer instead of the HDR accumulation planes. — GPT-5 Codex

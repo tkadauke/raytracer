@@ -523,6 +523,8 @@ namespace render {
       loop.frontierCompactionReadbackWorkerSeconds = vulkanResult.readbackWorkerSeconds;
       loop.platformAccumulationColorSums = vulkanResult.accumulationColorSums;
       loop.platformAccumulationSampleCounts = vulkanResult.accumulationSampleCounts;
+      loop.platformResolvedDisplayPixels = vulkanResult.resolvedDisplayPixels;
+      loop.platformAccumulationAddedSamples = initialPathCount;
       loop.platformAccumulationBackend = "vulkan_diffuse_path_loop";
       loop.platformAccumulationResidency = "vulkan_accumulation_buffer";
       loop.platformAccumulationTargetMode = vulkanResult.echoedParameters.accumulationTargetMode;
@@ -661,7 +663,9 @@ namespace render {
       scene, initialPathStates, accumulation.layout, settings);
     plan.parameters.accumulationTargetMode = accumulation.targetMode;
     const VulkanGpuDiffusePathLoopKernelResult vulkanResult =
-      VulkanGpuDiffusePathLoopKernel().runAllMissPathLoop(plan, initialPathStates);
+      VulkanGpuDiffusePathLoopKernel().runAllMissPathLoop(plan, initialPathStates,
+                                                          settings.capturePlatformAccumulation,
+                                                          settings.captureResolvedDisplay);
     return makeLoopResult(initialPathStates, settings, vulkanResult);
 #else
     (void)scene;
@@ -687,7 +691,9 @@ namespace render {
       scene, primaryPathGeneration, accumulation.layout, settings);
     plan.parameters.accumulationTargetMode = accumulation.targetMode;
     const VulkanGpuDiffusePathLoopKernelResult vulkanResult =
-      VulkanGpuDiffusePathLoopKernel().runAllMissPathLoop(plan, initialPathStates);
+      VulkanGpuDiffusePathLoopKernel().runAllMissPathLoop(plan, initialPathStates,
+                                                          settings.capturePlatformAccumulation,
+                                                          settings.captureResolvedDisplay);
     return makeLoopResult(plan.parameters.initialPathCount, settings, vulkanResult);
 #else
     (void)scene;

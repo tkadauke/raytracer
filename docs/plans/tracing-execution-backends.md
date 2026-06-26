@@ -2703,7 +2703,12 @@ scene is large enough to amortize upload/readback costs.
      the shader. It also carries Reflective mirror and Transparent refraction
      materials as exact delta continuations and can intersect transformed or
      untransformed Triangle, Plane, Rectangle, Disk, OpenCylinder, and Torus
-     records in addition to spheres. It
+     records in addition to spheres. Trace-disabled Vulkan path-loop renders
+     with linear tonemapping can now resolve packed display pixels in a second
+     compute dispatch after the path-loop dispatch. Display-only callers can
+     skip HDR accumulation-plane readback, while graph renders that still need
+     HDR resources can request the packed display buffer and accumulation
+     readback together. It
      still cleanly rejects broader compiled geometry until the platform subset
      reaches parity with Metal.
 

@@ -1269,7 +1269,7 @@ namespace engine::graph {
         settings.captureDiagnostics = context.graph().executionTraceEnabled();
         settings.captureDenoiserFeatures = denoiserFeatureRequest.any();
         const bool wantsPlatformDisplayResolve =
-          displayTarget && !hdrTarget && !denoiser && !settings.captureDiagnostics &&
+          displayTarget && !denoiser && !settings.captureDiagnostics &&
           supportsPlatformLinearDisplayResolve(wavefront.tonemap());
         const GpuDiffusePathLoopBackendSelection pathLoopBackendSelection =
           selectGpuDiffusePathLoopBackend(context.graph(), state, compilation.sections, settings);
@@ -1290,7 +1290,8 @@ namespace engine::graph {
         settings.captureResolvedDisplay = wantsPlatformDisplayResolve &&
                                           generation.canGeneratePrimaryPathsOnDevice() &&
                                           generation.pathStates.empty();
-        settings.capturePlatformAccumulation = !settings.captureResolvedDisplay;
+        settings.capturePlatformAccumulation =
+          hdrTarget || denoiser || settings.captureDiagnostics || !settings.captureResolvedDisplay;
         const render::GpuDiffusePathLoopResult loop =
           pathLoopBackend->run(compilation.sections, generation, settings);
         const render::TracingAccumulationLayout layout =
@@ -1319,7 +1320,13 @@ namespace engine::graph {
           denoise =
             applyPostPathLoopDenoiser(denoiser, *hdrTarget, featureBuffers, denoiserFeatureSeconds);
           if (displayTarget) {
-            packColorBuffer(*hdrTarget, *displayTarget, wavefront.tonemap());
+            if (settings.captureResolvedDisplay) {
+              const render::TracingAccumulationDiagnostics displayResolve =
+                render::resolveGpuDiffusePathLoopImage(loop, layout, *displayTarget, nullptr);
+              (void)displayResolve;
+            } else {
+              packColorBuffer(*hdrTarget, *displayTarget, wavefront.tonemap());
+            }
           }
         } else if (denoiser) {
           Buffer<Colord> hdrBuffer(width, height);

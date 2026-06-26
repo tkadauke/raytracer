@@ -1,0 +1,145 @@
+#version 450
+
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+const uint gpuDiffusePathLoopAccumulationTargetPath = 1u;
+const uint gpuDiffusePathLoopAccumulationTargetSampleSlot = 2u;
+
+struct GpuDiffusePathLoopLaunchParameters {
+  uint layoutVersion;
+  uint maxDepth;
+  uint russianRouletteDepth;
+  uint directLightSamples;
+  uint captureDiagnostics;
+  uint initialPathCount;
+  uint imageWidth;
+  uint imageHeight;
+  uint materialCount;
+  uint textureCount;
+  uint lightCount;
+  uint environmentCount;
+  uint debugIdCount;
+  uint geometryByteOffset;
+  uint materialByteOffset;
+  uint textureByteOffset;
+  uint lightByteOffset;
+  uint environmentByteOffset;
+  uint debugIdByteOffset;
+  uint sceneUploadBytes;
+  uint accumulationTargetMode;
+  uint bvhByteOffset;
+  uint primitiveByteOffset;
+  uint triangleByteOffset;
+  uint sphereByteOffset;
+  uint planeByteOffset;
+  uint rectangleByteOffset;
+  uint diskByteOffset;
+  uint openCylinderByteOffset;
+  uint torusByteOffset;
+  uint transformByteOffset;
+  uint bvhNodeCount;
+  uint primitiveCount;
+  uint triangleCount;
+  uint sphereCount;
+  uint planeCount;
+  uint rectangleCount;
+  uint diskCount;
+  uint openCylinderCount;
+  uint torusCount;
+  uint transformCount;
+  uint primaryPathGenerationMode;
+  uint primaryPathSamplesPerPixel;
+  uint primaryPathSampleSeed;
+  uint primaryPathRequestedWidth;
+  int primaryPathRequestedLeft;
+  int primaryPathRequestedTop;
+  uint primaryPathRequestedHeight;
+  uint primaryPathActualWidth;
+  int primaryPathActualLeft;
+  int primaryPathActualTop;
+  uint primaryPathActualHeight;
+  uint captureDenoiserFeatures;
+  uint reserved1;
+  uint reserved2;
+  uint reserved3;
+  vec4 primaryPathOrigin;
+  vec4 primaryPathTopLeft;
+  vec4 primaryPathRight;
+  vec4 primaryPathDown;
+  vec4 primaryPathLensRight;
+  vec4 primaryPathLensUp;
+  vec4 primaryPathForward;
+  vec4 primaryPathLensParameters;
+};
+
+layout(std430, binding = 0) readonly buffer PathLoopParameters {
+  GpuDiffusePathLoopLaunchParameters parameters;
+};
+
+layout(std430, binding = 8) readonly buffer Accumulation {
+  uint accumulationWords[];
+};
+
+layout(std430, binding = 11) writeonly buffer ResolvedDisplay {
+  uint resolvedDisplayPixels[];
+};
+
+uint accumulationSlotCount() {
+  return parameters.imageWidth * parameters.imageHeight;
+}
+
+uint displayPixelCount() {
+  if (parameters.accumulationTargetMode == gpuDiffusePathLoopAccumulationTargetPath) {
+    return 0u;
+  }
+  if (parameters.accumulationTargetMode == gpuDiffusePathLoopAccumulationTargetSampleSlot) {
+    return parameters.imageWidth;
+  }
+  return accumulationSlotCount();
+}
+
+vec4 accumulationColorSum(uint slot) {
+  const uint colorWordOffset = slot * 4u;
+  return vec4(uintBitsToFloat(accumulationWords[colorWordOffset + 0u]),
+              uintBitsToFloat(accumulationWords[colorWordOffset + 1u]),
+              uintBitsToFloat(accumulationWords[colorWordOffset + 2u]),
+              uintBitsToFloat(accumulationWords[colorWordOffset + 3u]));
+}
+
+uint accumulationSampleCount(uint slot) {
+  return accumulationWords[accumulationSlotCount() * 4u + slot];
+}
+
+uint quantize(float value) {
+  return uint(clamp(value, 0.0, 1.0) * 255.0);
+}
+
+void main() {
+  const uint id = gl_GlobalInvocationID.x;
+  if (id >= displayPixelCount()) {
+    return;
+  }
+
+  vec3 colorSum = vec3(0.0);
+  uint sampleCount = 0u;
+  if (parameters.accumulationTargetMode == gpuDiffusePathLoopAccumulationTargetSampleSlot) {
+    for (uint sampleSlot = 0u; sampleSlot != parameters.imageHeight; ++sampleSlot) {
+      const uint slot = id * parameters.imageHeight + sampleSlot;
+      colorSum += accumulationColorSum(slot).rgb;
+      sampleCount += accumulationSampleCount(slot);
+    }
+  } else {
+    colorSum = accumulationColorSum(id).rgb;
+    sampleCount = accumulationSampleCount(id);
+  }
+
+  vec3 color = vec3(0.0);
+  if (sampleCount != 0u) {
+    color = colorSum / float(sampleCount);
+  }
+
+  const uint r = quantize(color.r);
+  const uint g = quantize(color.g);
+  const uint b = quantize(color.b);
+  resolvedDisplayPixels[id] = (r << 16) | (g << 8) | b;
+}
