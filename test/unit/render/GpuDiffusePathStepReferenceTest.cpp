@@ -2485,7 +2485,22 @@ namespace GpuDiffusePathStepReferenceTest {
   TEST(GpuDiffusePathLoopBackend, DefaultFullGpuBackendNamesPlatformBackendWhenBuilt) {
     const std::shared_ptr<const GpuDiffusePathLoopBackend> backend =
       GpuDiffusePathLoopBackend::defaultFullGpuBackendForGpuRequest();
-#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT) && defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    const MetalGpuDiffusePathLoopBackend metalBackend;
+    const VulkanGpuDiffusePathLoopBackend vulkanBackend;
+
+    ASSERT_NE(nullptr, backend);
+    if (metalBackend.fullGpuPathLoopAvailable()) {
+      EXPECT_STREQ("metal_diffuse_path_loop", backend->name());
+      EXPECT_STREQ("metal", backend->platformName());
+    } else if (vulkanBackend.fullGpuPathLoopAvailable()) {
+      EXPECT_STREQ("vulkan_diffuse_path_loop", backend->name());
+      EXPECT_STREQ("vulkan", backend->platformName());
+    } else {
+      EXPECT_STREQ("metal_diffuse_path_loop", backend->name());
+      EXPECT_STREQ("metal", backend->platformName());
+    }
+#elif defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
     ASSERT_NE(nullptr, backend);
     EXPECT_STREQ("metal_diffuse_path_loop", backend->name());
     EXPECT_STREQ("metal", backend->platformName());

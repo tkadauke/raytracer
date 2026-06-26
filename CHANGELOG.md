@@ -14,6 +14,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Add a saved Render Settings Sample Stream property, so Modeler scene intent
   can opt into GPU sample streams and clears stale sampler overrides when doing
   so. — GPT-5 Codex
+- Prefer an available platform full-GPU path-loop backend when a build contains
+  more than one GPU path-tracing backend, while keeping fallback diagnostics
+  from a compiled platform backend when none can launch. — GPT-5 Codex
 - Add rendercli `--sample_stream_mode sampler|gpu_sample_stream`, so
   command-line graph renders can explicitly request the GPU sample stream
   without using a sampler-backed path-tracer intent. — GPT-5 Codex

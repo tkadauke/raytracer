@@ -16,6 +16,21 @@ namespace render {
   namespace {
     constexpr const char* kNoPlatformPathLoopReason =
       "platform full-GPU path-loop kernel is not available yet";
+
+    std::shared_ptr<const GpuDiffusePathLoopBackend> firstAvailableFullGpuBackend(
+      const std::vector<std::shared_ptr<const GpuDiffusePathLoopBackend>>& backends) {
+      for (const auto& backend : backends) {
+        if (backend && backend->fullGpuPathLoopAvailable()) {
+          return backend;
+        }
+      }
+      for (const auto& backend : backends) {
+        if (backend) {
+          return backend;
+        }
+      }
+      return {};
+    }
   }
 
   std::shared_ptr<const GpuDiffusePathLoopBackend>
@@ -41,13 +56,14 @@ namespace render {
 
   std::shared_ptr<const GpuDiffusePathLoopBackend>
   GpuDiffusePathLoopBackend::defaultFullGpuBackendForGpuRequest() {
+    std::vector<std::shared_ptr<const GpuDiffusePathLoopBackend>> backends;
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
-    return MetalGpuDiffusePathLoopBackend::sharedInstance();
-#elif defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
-    return VulkanGpuDiffusePathLoopBackend::sharedInstance();
-#else
-    return {};
+    backends.push_back(MetalGpuDiffusePathLoopBackend::sharedInstance());
 #endif
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    backends.push_back(VulkanGpuDiffusePathLoopBackend::sharedInstance());
+#endif
+    return firstAvailableFullGpuBackend(backends);
   }
 
   bool GpuDiffusePathLoopBackend::fullGpuPathLoopAvailable() const {

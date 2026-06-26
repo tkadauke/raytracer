@@ -126,9 +126,12 @@ end state for GPU tracing.
   GPU-request backend from the platform full-GPU backend selection point:
   `defaultBackendForGpuRequest()` may return the CPU-reference or hybrid
   compaction path, while `defaultFullGpuBackendForGpuRequest()` returns a
-  platform backend only when that build has a real path-loop backend hook.
-  Metal-enabled builds can expose the restricted Metal backend for explicit GPU
-  requests; ordinary builds still return no full-GPU backend.
+  platform backend only when that build has a real path-loop backend hook. When
+  a build contains multiple platform backends, the selector now prefers one
+  whose launch path is currently available before falling back to a compiled
+  backend for diagnostics. Metal-enabled builds can expose the restricted Metal
+  backend for explicit GPU requests; ordinary builds still return no full-GPU
+  backend.
 - Metal diffuse path-loop probes now publish GPU-generated retained frontier
   indices through the shader-facing retained-index buffer. The ABI is
   count-prefixed so the same buffer can become a device-side compacted frontier
