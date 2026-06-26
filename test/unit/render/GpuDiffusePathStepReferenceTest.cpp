@@ -2399,6 +2399,58 @@ namespace GpuDiffusePathStepReferenceTest {
 #endif
   }
 
+  TEST(MetalGpuDiffusePathLoopBackend, RunsThinLensDescriptorOnlyPrimaryPathLoopWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    const MetalGpuDiffusePathLoopBackend backend;
+    if (!backend.fullGpuPathLoopAvailable()) {
+      GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
+    }
+
+    Scene scene;
+    scene.setBackground(Colord(0.25, 0.5, 0.75));
+    scene.setEnvironmentRadiance(Colord(0.1, 0.2, 0.3));
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+
+    ThinLensCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
+    camera.setApertureRadius(0.2);
+    camera.setFocalDistance(6.0);
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 2, 2));
+    camera.viewPlane()->sampler()->setup(1, 4, 42);
+
+    GpuDiffusePrimaryPathStateGenerationOptions descriptorOnlyOptions;
+    descriptorOnlyOptions.materializeHostPathStates = false;
+    const GpuDiffusePrimaryPathStateGeneration descriptorOnly =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 2, 2), 99, 1234,
+                                                     descriptorOnlyOptions);
+    ASSERT_TRUE(descriptorOnly.canGeneratePrimaryPathsOnDevice());
+    ASSERT_TRUE(descriptorOnly.pathStates.empty());
+    ASSERT_TRUE(descriptorOnly.primaryPathDescriptor.has_value());
+    EXPECT_EQ(gpuPrimaryPathGenerationModeThinLens, descriptorOnly.primaryPathDescriptor->mode);
+
+    const GpuDiffusePrimaryPathStateGeneration materialized =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 2, 2), 99, 1234);
+    ASSERT_EQ(4u, materialized.pathStates.size());
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 1;
+    settings.russianRouletteDepth = 10;
+    const GpuDiffusePathLoopResult expected =
+      GpuDiffusePathLoop().run(sections, materialized.pathStates, settings);
+    const GpuDiffusePathLoopResult result = backend.run(sections, descriptorOnly, settings);
+
+    EXPECT_TRUE(result.fullGpuPathLoopSupported());
+    EXPECT_EQ("metal", result.platformName);
+    EXPECT_EQ(4u, result.initialPathCount);
+    ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
+    for (std::size_t index = 0; index != expected.resolvedPathStates.size(); ++index) {
+      expectPathStateNear(result.resolvedPathStates[index], expected.resolvedPathStates[index],
+                          1e-4);
+    }
+#else
+    GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
+#endif
+  }
+
   TEST(VulkanGpuDiffusePathLoopBackend, ReportsUnavailableWhenBuildOrDeviceCannotRunVulkan) {
     const VulkanGpuDiffusePathLoopBackend backend;
     GpuDiffusePathLoopSettings settings;
@@ -2788,6 +2840,58 @@ namespace GpuDiffusePathStepReferenceTest {
                                                      descriptorOnlyOptions);
     ASSERT_TRUE(descriptorOnly.canGeneratePrimaryPathsOnDevice());
     ASSERT_TRUE(descriptorOnly.pathStates.empty());
+
+    const GpuDiffusePrimaryPathStateGeneration materialized =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 2, 2), 99, 1234);
+    ASSERT_EQ(4u, materialized.pathStates.size());
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 1;
+    settings.russianRouletteDepth = 10;
+    const GpuDiffusePathLoopResult expected =
+      GpuDiffusePathLoop().run(sections, materialized.pathStates, settings);
+    const GpuDiffusePathLoopResult result = backend.run(sections, descriptorOnly, settings);
+
+    EXPECT_TRUE(result.fullGpuPathLoopSupported());
+    EXPECT_EQ("vulkan", result.platformName);
+    EXPECT_EQ(4u, result.initialPathCount);
+    ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
+    for (std::size_t index = 0; index != expected.resolvedPathStates.size(); ++index) {
+      expectPathStateNear(result.resolvedPathStates[index], expected.resolvedPathStates[index],
+                          1e-4);
+    }
+#else
+    GTEST_SKIP() << "Vulkan wavefront support is not enabled in this build";
+#endif
+  }
+
+  TEST(VulkanGpuDiffusePathLoopBackend, RunsThinLensDescriptorOnlyPrimaryPathLoopWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    const VulkanGpuDiffusePathLoopBackend backend;
+    if (!backend.fullGpuPathLoopAvailable()) {
+      GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
+    }
+
+    Scene scene;
+    scene.setBackground(Colord(0.25, 0.5, 0.75));
+    scene.setEnvironmentRadiance(Colord(0.1, 0.2, 0.3));
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+
+    ThinLensCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
+    camera.setApertureRadius(0.2);
+    camera.setFocalDistance(6.0);
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 2, 2));
+    camera.viewPlane()->sampler()->setup(1, 4, 42);
+
+    GpuDiffusePrimaryPathStateGenerationOptions descriptorOnlyOptions;
+    descriptorOnlyOptions.materializeHostPathStates = false;
+    const GpuDiffusePrimaryPathStateGeneration descriptorOnly =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 2, 2), 99, 1234,
+                                                     descriptorOnlyOptions);
+    ASSERT_TRUE(descriptorOnly.canGeneratePrimaryPathsOnDevice());
+    ASSERT_TRUE(descriptorOnly.pathStates.empty());
+    ASSERT_TRUE(descriptorOnly.primaryPathDescriptor.has_value());
+    EXPECT_EQ(gpuPrimaryPathGenerationModeThinLens, descriptorOnly.primaryPathDescriptor->mode);
 
     const GpuDiffusePrimaryPathStateGeneration materialized =
       GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 2, 2), 99, 1234);

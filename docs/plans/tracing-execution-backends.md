@@ -90,8 +90,10 @@ end state for GPU tracing.
   kernel synthesize primary path records from the descriptor. Trace-disabled
   full-GPU graph launches can also keep those primary records descriptor-only
   on the host, with platform kernels dispatching by descriptor path count
-  instead of the host vector size; trace and CPU-reference paths still
-  materialize records for inspection and parity.
+  instead of the host vector size; the platform backends size accumulation for
+  descriptor-only pinhole, orthographic, and thin-lens launches from the same
+  descriptor metadata. Trace and CPU-reference paths still materialize records
+  for inspection and parity.
   Trace-disabled platform full-GPU launches now also size path-state, step,
   retained-index, and Metal closest-hit diagnostic storage to zero logical bytes
   while retaining the final accumulation image readback.

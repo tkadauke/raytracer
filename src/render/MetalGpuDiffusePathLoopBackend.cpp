@@ -207,7 +207,8 @@ namespace render {
     [[nodiscard]] ActiveAccumulationTargetShape
     activeAccumulationTargetShapeFor(const GpuPrimaryPathDescriptor& descriptor) {
       if (descriptor.mode != gpuPrimaryPathGenerationModePinhole &&
-          descriptor.mode != gpuPrimaryPathGenerationModeOrthographic) {
+          descriptor.mode != gpuPrimaryPathGenerationModeOrthographic &&
+          descriptor.mode != gpuPrimaryPathGenerationModeThinLens) {
         throw std::invalid_argument(
           "Metal diffuse path-loop backend requires a supported primary path descriptor");
       }
