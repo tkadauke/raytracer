@@ -2652,7 +2652,11 @@ scene is large enough to amortize upload/readback costs.
      keep tiny device-written per-depth active-path counters resident even when
      trace diagnostics are disabled, so compact execution metrics and
      `activePathsPerDepth` do not depend on diagnostic step-record readback.
-     The compiled path loop also
+     Trace-disabled Metal display-only path-loop renders with linear tonemapping
+     can also resolve packed display pixels on the GPU and skip HDR
+     accumulation-plane readback; HDR, denoiser, graph trace, and non-linear
+     tonemap paths still keep the accumulation planes available for CPU
+     consumers. The compiled path loop also
      carries `ReflectiveMaterial` and `TransparentMaterial` delta continuations
      through the CPU reference evaluator and the Metal full-GPU subset, and the
      compiled environment records now carry scene ambient separately from

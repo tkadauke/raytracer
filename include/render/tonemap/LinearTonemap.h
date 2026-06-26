@@ -24,5 +24,9 @@ namespace render {
     inline const char* fingerprintType() const override {
       return "LinearTonemap";
     }
+
+    inline GpuDisplayResolveTonemap gpuDisplayResolveTonemap() const override {
+      return GpuDisplayResolveTonemap::Linear;
+    }
   };
 }

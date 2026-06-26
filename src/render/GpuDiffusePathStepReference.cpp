@@ -848,6 +848,12 @@ namespace {
            slotCount == result.platformAccumulationColorSums.size();
   }
 
+  bool platformResolvedDisplayMatchesLayout(const GpuDiffusePathLoopResult& result,
+                                            const TracingAccumulationLayout& layout) {
+    return result.hasPlatformResolvedDisplay() &&
+           result.platformResolvedDisplayPixels.size() == layout.pixelCount();
+  }
+
   Colord resolvedPlatformAccumulationColor(const GpuDiffusePathLoopResult& result,
                                            std::uint64_t pixelIndex) {
     const std::uint32_t count = result.platformAccumulationSampleCounts[pixelIndex];
@@ -913,6 +919,11 @@ namespace {
       }
       ++addOperations;
       addedSamples += count;
+    }
+    if (result.platformAccumulationSampleCounts.empty() &&
+        result.platformAccumulationAddedSamples != 0u) {
+      addOperations = 1u;
+      addedSamples = result.platformAccumulationAddedSamples;
     }
     diagnostics.recordAdd(addedSamples, addOperations);
     return diagnostics;
@@ -989,6 +1000,31 @@ namespace {
     }
     diagnostics.recordResolve();
     diagnostics.recordReadback(diagnosticsLayout.accumulationBytes());
+    return diagnostics;
+  }
+
+  TracingAccumulationDiagnostics
+  resolvePlatformResolvedDisplayImage(const GpuDiffusePathLoopResult& result,
+                                      const TracingAccumulationLayout& layout,
+                                      Buffer<unsigned int>& target) {
+    if (target.width() != layout.width || target.height() != layout.height) {
+      throw std::invalid_argument(
+        "gpu diffuse path-loop display target dimensions do not match layout");
+    }
+    if (!platformResolvedDisplayMatchesLayout(result, layout)) {
+      throw std::invalid_argument(
+        "gpu diffuse path-loop resolved display pixels do not match layout");
+    }
+
+    TracingAccumulationDiagnostics diagnostics = platformAccumulationDiagnostics(result, layout);
+    std::size_t index = 0;
+    for (int y = 0; y != layout.height; ++y) {
+      for (int x = 0; x != layout.width; ++x) {
+        target[y][x] = result.platformResolvedDisplayPixels[index++];
+      }
+    }
+    diagnostics.recordResolve();
+    diagnostics.recordReadback(layout.resolveBytes());
     return diagnostics;
   }
 
@@ -1269,6 +1305,10 @@ bool GpuDiffusePathLoopResult::fullGpuPathLoopUnavailable() const {
 
 bool GpuDiffusePathLoopResult::hasPlatformAccumulation() const {
   return !platformAccumulationColorSums.empty() || !platformAccumulationSampleCounts.empty();
+}
+
+bool GpuDiffusePathLoopResult::hasPlatformResolvedDisplay() const {
+  return !platformResolvedDisplayPixels.empty();
 }
 
 std::string GpuDiffusePathLoopResult::platformLabel() const {
@@ -1872,6 +1912,9 @@ TracingAccumulationDiagnostics
 render::resolveGpuDiffusePathLoopImage(const GpuDiffusePathLoopResult& result,
                                        const TracingAccumulationLayout& layout,
                                        Buffer<unsigned int>& target, const Tonemap* tonemap) {
+  if (tonemap == nullptr && platformResolvedDisplayMatchesLayout(result, layout)) {
+    return resolvePlatformResolvedDisplayImage(result, layout, target);
+  }
   if (platformAccumulationMatchesLayout(result, layout)) {
     return resolvePlatformAccumulationImage(result, layout, target, tonemap);
   }

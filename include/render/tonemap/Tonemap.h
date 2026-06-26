@@ -4,6 +4,8 @@
 #include "render/Object.h"
 
 namespace render {
+  enum class GpuDisplayResolveTonemap { Unsupported, Linear };
+
   /**
     * @brief HDR-to-LDR tone-mapping operator.
     *
@@ -79,5 +81,15 @@ namespace render {
 
     /// Stable type name for deterministic fingerprints and diagnostics.
     virtual const char* fingerprintType() const = 0;
+
+    /**
+      * Return the platform display-resolve implementation this tonemap can use.
+      *
+      * The default is unsupported because a GPU path-loop backend must not
+      * silently bypass a CPU tonemap with different transfer behavior.
+      */
+    virtual GpuDisplayResolveTonemap gpuDisplayResolveTonemap() const {
+      return GpuDisplayResolveTonemap::Unsupported;
+    }
   };
 }

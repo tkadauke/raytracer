@@ -1059,6 +1059,11 @@ namespace engine::graph {
              reason;
     }
 
+    bool supportsPlatformLinearDisplayResolve(const std::shared_ptr<render::Tonemap>& tonemap) {
+      return !tonemap ||
+             tonemap->gpuDisplayResolveTonemap() == render::GpuDisplayResolveTonemap::Linear;
+    }
+
     void packColorBuffer(const Buffer<Colord>& source, Buffer<unsigned int>& destination,
                          const std::shared_ptr<render::Tonemap>& tonemap) {
       requireMatchingSize(source, destination, "compiled diffuse path-loop color pack");
@@ -1263,6 +1268,9 @@ namespace engine::graph {
           denoiser ? denoiser->requestedFeatures() : render::DenoiserFeatureRequest{};
         settings.captureDiagnostics = context.graph().executionTraceEnabled();
         settings.captureDenoiserFeatures = denoiserFeatureRequest.any();
+        const bool wantsPlatformDisplayResolve =
+          displayTarget && !hdrTarget && !denoiser && !settings.captureDiagnostics &&
+          supportsPlatformLinearDisplayResolve(wavefront.tonemap());
         const GpuDiffusePathLoopBackendSelection pathLoopBackendSelection =
           selectGpuDiffusePathLoopBackend(context.graph(), state, compilation.sections, settings);
         const std::shared_ptr<const render::GpuDiffusePathLoopBackend>& pathLoopBackend =
@@ -1279,6 +1287,10 @@ namespace engine::graph {
         const render::GpuDiffusePrimaryPathStateGeneration generation =
           render::GpuDiffusePrimaryPathStateGenerator().generate(*camera, targetRect, samplingSeed,
                                                                  sampleSeed, generationOptions);
+        settings.captureResolvedDisplay = wantsPlatformDisplayResolve &&
+                                          generation.canGeneratePrimaryPathsOnDevice() &&
+                                          generation.pathStates.empty();
+        settings.capturePlatformAccumulation = !settings.captureResolvedDisplay;
         const render::GpuDiffusePathLoopResult loop =
           pathLoopBackend->run(compilation.sections, generation, settings);
         const render::TracingAccumulationLayout layout =
@@ -1316,8 +1328,9 @@ namespace engine::graph {
             applyPostPathLoopDenoiser(denoiser, hdrBuffer, featureBuffers, denoiserFeatureSeconds);
           packColorBuffer(hdrBuffer, *displayTarget, wavefront.tonemap());
         } else {
-          accumulation = render::resolveGpuDiffusePathLoopImage(loop, layout, *displayTarget,
-                                                                wavefront.tonemap().get());
+          accumulation = render::resolveGpuDiffusePathLoopImage(
+            loop, layout, *displayTarget,
+            settings.captureResolvedDisplay ? nullptr : wavefront.tonemap().get());
         }
 
         const bool frontierCompactionUsesGpu =

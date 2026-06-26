@@ -2860,6 +2860,50 @@ namespace render {
               "  accumulationColorSums(parameters, accumulation)[id] = float4(0.0f);\n"
               "  accumulationSampleCounts(parameters, accumulation)[id] = 0u;\n"
               "}\n"
+              "uint diffusePathLoopDisplayPixelCount(\n"
+              "    constant GpuDiffusePathLoopLaunchParameters& parameters) {\n"
+              "  if (parameters.accumulationTargetMode == gpuDiffusePathLoopAccumulationTargetPath) {\n"
+              "    return 0u;\n"
+              "  }\n"
+              "  if (parameters.accumulationTargetMode == gpuDiffusePathLoopAccumulationTargetSampleSlot) {\n"
+              "    return parameters.imageWidth;\n"
+              "  }\n"
+              "  return parameters.imageWidth * parameters.imageHeight;\n"
+              "}\n"
+              "uint packResolvedChannel(float value) {\n"
+              "  return min(uint(max(value, 0.0f) * 255.0f), 255u);\n"
+              "}\n"
+              "kernel void resolveDiffusePathLoopDisplay(\n"
+              "    constant GpuDiffusePathLoopLaunchParameters& parameters [[buffer(0)]],\n"
+              "    device uchar* accumulation [[buffer(1)]],\n"
+              "    device uint* resolved [[buffer(2)]],\n"
+              "    uint id [[thread_position_in_grid]]) {\n"
+              "  const uint displayPixelCount = diffusePathLoopDisplayPixelCount(parameters);\n"
+              "  if (id >= displayPixelCount) {\n"
+              "    return;\n"
+              "  }\n"
+              "  float3 colorSum = float3(0.0f);\n"
+              "  uint sampleCount = 0u;\n"
+              "  if (parameters.accumulationTargetMode == gpuDiffusePathLoopAccumulationTargetSampleSlot) {\n"
+              "    for (uint sampleSlot = 0u; sampleSlot != parameters.imageHeight; ++sampleSlot) {\n"
+              "      const uint slot = id * parameters.imageHeight + sampleSlot;\n"
+              "      const uint slotCount = accumulationSampleCounts(parameters, accumulation)[slot];\n"
+              "      colorSum += accumulationColorSums(parameters, accumulation)[slot].rgb;\n"
+              "      sampleCount += slotCount;\n"
+              "    }\n"
+              "  } else {\n"
+              "    sampleCount = accumulationSampleCounts(parameters, accumulation)[id];\n"
+              "    colorSum = accumulationColorSums(parameters, accumulation)[id].rgb;\n"
+              "  }\n"
+              "  if (sampleCount == 0u) {\n"
+              "    resolved[id] = 0u;\n"
+              "    return;\n"
+              "  }\n"
+              "  const float3 color = colorSum / float(sampleCount);\n"
+              "  resolved[id] = (packResolvedChannel(color.r) << 16u) |\n"
+              "                 (packResolvedChannel(color.g) << 8u) |\n"
+              "                 packResolvedChannel(color.b);\n"
+              "}\n"
               "kernel void probeDiffusePathLoopLaunch(\n"
               "    constant GpuDiffusePathLoopLaunchParameters& parameters [[buffer(0)]],\n"
               "    device GpuDiffusePathLoopLaunchParameters* echoedParameters [[buffer(1)]],\n"
@@ -3181,6 +3225,14 @@ namespace render {
       return pipeline;
     }
 
+    id<MTLComputePipelineState> sharedResolveDisplayPipeline() {
+      static id<MTLComputePipelineState> pipeline = [] {
+        id<MTLDevice> device = sharedMetalDevice();
+        return device ? newPipeline(device, @"resolveDiffusePathLoopDisplay") : nil;
+      }();
+      return pipeline;
+    }
+
     NSUInteger bufferLength(std::uint64_t requestedBytes) {
       return static_cast<NSUInteger>(std::max<std::uint64_t>(1, requestedBytes));
     }
@@ -3188,6 +3240,16 @@ namespace render {
     std::uint64_t pixelCount(const GpuDiffusePathLoopLaunchParameters& parameters) {
       return static_cast<std::uint64_t>(parameters.imageWidth) *
              static_cast<std::uint64_t>(parameters.imageHeight);
+    }
+
+    std::uint64_t displayPixelCount(const GpuDiffusePathLoopLaunchParameters& parameters) {
+      if (parameters.accumulationTargetMode == gpuDiffusePathLoopAccumulationTargetPath) {
+        return 0;
+      }
+      if (parameters.accumulationTargetMode == gpuDiffusePathLoopAccumulationTargetSampleSlot) {
+        return parameters.imageWidth;
+      }
+      return pixelCount(parameters);
     }
 
     void clearRetainedIndexBuffer(id<MTLBuffer> retainedIndexBuffer, std::uint64_t bytes) {
@@ -4083,7 +4145,9 @@ namespace render {
 
   MetalGpuDiffusePathLoopKernelResult MetalGpuDiffusePathLoopKernel::runMattePathLoop(
     const GpuDiffusePathLoopLaunchPlan& plan,
-    const std::vector<GpuDiffusePathStateRecord>& initialPathStates) const {
+    const std::vector<GpuDiffusePathStateRecord>& initialPathStates,
+    bool capturePlatformAccumulation,
+    bool captureResolvedDisplay) const {
     const std::size_t launchPathCount =
       static_cast<std::size_t>(plan.parameters.initialPathCount);
     if (plan.parameters.layoutVersion != gpuDiffusePathLoopLaunchLayoutVersion) {
@@ -4113,6 +4177,8 @@ namespace render {
       id<MTLCommandQueue> queue = sharedCommandQueue();
       id<MTLComputePipelineState> pipeline = sharedMattePathLoopPipeline();
       id<MTLComputePipelineState> clearPipeline = sharedClearAccumulationPipeline();
+      id<MTLComputePipelineState> resolvePipeline =
+        captureResolvedDisplay ? sharedResolveDisplayPipeline() : nil;
       if (!pipeline) {
         throw std::runtime_error("Metal diffuse path-loop pipeline was not created");
       }
@@ -4120,8 +4186,20 @@ namespace render {
         throw std::runtime_error(
           "Metal diffuse path-loop accumulation clear pipeline was not created");
       }
+      if (captureResolvedDisplay && !resolvePipeline) {
+        throw std::runtime_error(
+          "Metal diffuse path-loop display resolve pipeline was not created");
+      }
 
       const auto uploadStart = std::chrono::steady_clock::now();
+      const std::uint64_t resolvedDisplayPixels =
+        captureResolvedDisplay ? displayPixelCount(plan.parameters) : 0u;
+      if (captureResolvedDisplay && resolvedDisplayPixels == 0u) {
+        throw std::invalid_argument(
+          "Metal diffuse path-loop display resolve requires pixel or sample-slot accumulation");
+      }
+      const std::uint64_t resolvedDisplayBytes =
+        resolvedDisplayPixels * static_cast<std::uint64_t>(sizeof(unsigned int));
       id<MTLBuffer> parameterBuffer =
         [device newBufferWithBytes:&plan.parameters
                             length:sizeof(GpuDiffusePathLoopLaunchParameters)
@@ -4162,6 +4240,9 @@ namespace render {
       id<MTLBuffer> activePathCountBuffer =
         [device newBufferWithLength:bufferLength(plan.buffers.activePathCountBytes)
                             options:MTLResourceStorageModeShared];
+      id<MTLBuffer> resolvedDisplayBuffer =
+        [device newBufferWithLength:bufferLength(resolvedDisplayBytes)
+                            options:MTLResourceStorageModeShared];
       const std::uint64_t closestHitBytes =
         plan.parameters.captureDiagnostics != 0u
           ? launchPathCount * static_cast<std::uint64_t>(sizeof(GpuIntersectionHitRecord))
@@ -4172,7 +4253,7 @@ namespace render {
       if (!parameterBuffer || !echoedParameterBuffer || !sceneUploadBuffer || !initialPathBuffer ||
           !activePathBuffer || !nextPathBuffer || !stepRecordBuffer || !retainedIndexBuffer ||
           !accumulationBuffer || !denoiserFeatureBuffer || !activePathCountBuffer ||
-          !closestHitBuffer) {
+          !resolvedDisplayBuffer || !closestHitBuffer) {
         throw std::runtime_error("Metal diffuse path-loop buffer allocation failed");
       }
       clearRetainedIndexBuffer(retainedIndexBuffer, plan.buffers.retainedIndexBytes);
@@ -4219,6 +4300,13 @@ namespace render {
       [encoder setBuffer:denoiserFeatureBuffer offset:0 atIndex:10];
       [encoder setBuffer:activePathCountBuffer offset:0 atIndex:11];
       dispatch1D(encoder, pipeline, static_cast<NSUInteger>(launchPathCount));
+      if (captureResolvedDisplay) {
+        [encoder setComputePipelineState:resolvePipeline];
+        [encoder setBuffer:parameterBuffer offset:0 atIndex:0];
+        [encoder setBuffer:accumulationBuffer offset:0 atIndex:1];
+        [encoder setBuffer:resolvedDisplayBuffer offset:0 atIndex:2];
+        dispatch1D(encoder, resolvePipeline, static_cast<NSUInteger>(resolvedDisplayPixels));
+      }
       [encoder endEncoding];
 
       const auto kernelStart = std::chrono::steady_clock::now();
@@ -4272,19 +4360,28 @@ namespace render {
         result.retainedPathIndices =
           retainedPathIndicesFromBuffer(retainedIndexBuffer, launchPathCount);
       }
-      result.accumulationColorSums.resize(pixelCount(plan.parameters));
-      if (!result.accumulationColorSums.empty()) {
-        std::memcpy(result.accumulationColorSums.data(), [accumulationBuffer contents],
-                    result.accumulationColorSums.size() * sizeof(std::array<float, 4>));
+      if (captureResolvedDisplay) {
+        result.resolvedDisplayPixels.resize(static_cast<std::size_t>(resolvedDisplayPixels));
+        if (!result.resolvedDisplayPixels.empty()) {
+          std::memcpy(result.resolvedDisplayPixels.data(), [resolvedDisplayBuffer contents],
+                      result.resolvedDisplayPixels.size() * sizeof(unsigned int));
+        }
       }
-      result.accumulationSampleCounts.resize(pixelCount(plan.parameters));
-      if (!result.accumulationSampleCounts.empty()) {
-        const std::uint64_t colorBytes =
-          result.accumulationColorSums.size() * sizeof(std::array<float, 4>);
-        const auto* sampleCountBytes =
-          static_cast<const std::uint8_t*>([accumulationBuffer contents]) + colorBytes;
-        std::memcpy(result.accumulationSampleCounts.data(), sampleCountBytes,
-                    result.accumulationSampleCounts.size() * sizeof(std::uint32_t));
+      if (capturePlatformAccumulation) {
+        result.accumulationColorSums.resize(pixelCount(plan.parameters));
+        if (!result.accumulationColorSums.empty()) {
+          std::memcpy(result.accumulationColorSums.data(), [accumulationBuffer contents],
+                      result.accumulationColorSums.size() * sizeof(std::array<float, 4>));
+        }
+        result.accumulationSampleCounts.resize(pixelCount(plan.parameters));
+        if (!result.accumulationSampleCounts.empty()) {
+          const std::uint64_t colorBytes =
+            result.accumulationColorSums.size() * sizeof(std::array<float, 4>);
+          const auto* sampleCountBytes =
+            static_cast<const std::uint8_t*>([accumulationBuffer contents]) + colorBytes;
+          std::memcpy(result.accumulationSampleCounts.data(), sampleCountBytes,
+                      result.accumulationSampleCounts.size() * sizeof(std::uint32_t));
+        }
       }
       if (plan.parameters.captureDenoiserFeatures != 0u) {
         result.denoiserFeatureRecords.resize(pixelCount(plan.parameters));

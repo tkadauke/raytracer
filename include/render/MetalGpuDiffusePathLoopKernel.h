@@ -20,6 +20,7 @@ namespace render {
     std::vector<std::uint32_t> activePathCountsPerDepth;
     std::vector<std::array<float, 4>> accumulationColorSums;
     std::vector<std::uint32_t> accumulationSampleCounts;
+    std::vector<unsigned int> resolvedDisplayPixels;
     std::string executionPath{"metal_diffuse_path_loop_launch_probe"};
     std::string pathStateResidency{"metal_shared_diffuse_path_state"};
     double uploadWorkerSeconds{0.0};
@@ -56,6 +57,8 @@ namespace render {
 
     [[nodiscard]] MetalGpuDiffusePathLoopKernelResult
     runMattePathLoop(const GpuDiffusePathLoopLaunchPlan& plan,
-                     const std::vector<GpuDiffusePathStateRecord>& initialPathStates) const;
+                     const std::vector<GpuDiffusePathStateRecord>& initialPathStates,
+                     bool capturePlatformAccumulation = true,
+                     bool captureResolvedDisplay = false) const;
   };
 }

@@ -112,6 +112,8 @@ namespace render {
     std::uint32_t directLightSamples{1};
     bool captureDiagnostics{true};
     bool captureDenoiserFeatures{false};
+    bool capturePlatformAccumulation{true};
+    bool captureResolvedDisplay{false};
   };
 
   inline constexpr std::uint32_t gpuDiffusePathLoopAccumulationTargetPixel = 0u;
@@ -142,6 +144,8 @@ namespace render {
     double frontierCompactionReadbackWorkerSeconds{0.0};
     std::vector<std::array<float, 4>> platformAccumulationColorSums;
     std::vector<std::uint32_t> platformAccumulationSampleCounts;
+    std::vector<unsigned int> platformResolvedDisplayPixels;
+    std::uint64_t platformAccumulationAddedSamples{0};
     std::string platformAccumulationBackend;
     std::string platformAccumulationResidency;
     std::uint32_t platformAccumulationTargetMode{gpuDiffusePathLoopAccumulationTargetPixel};
@@ -165,6 +169,7 @@ namespace render {
     [[nodiscard]] bool fullGpuPathLoopSupported() const;
     [[nodiscard]] bool fullGpuPathLoopUnavailable() const;
     [[nodiscard]] bool hasPlatformAccumulation() const;
+    [[nodiscard]] bool hasPlatformResolvedDisplay() const;
     [[nodiscard]] std::string platformLabel() const;
     [[nodiscard]] TracingExecutionCapabilityRecords
     tracingCapabilities(const TracingAccumulationDiagnostics& accumulation) const;

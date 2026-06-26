@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Let trace-disabled Metal full-GPU diffuse path-loop display-only renders with
+  linear tonemapping resolve packed LDR pixels on the GPU and read back the
+  display buffer instead of the HDR accumulation planes. — GPT-5 Codex
 - Emit first-hit albedo, normal, and depth denoiser feature records from the
   Metal and Vulkan full-GPU diffuse path-loop kernels when feature-guided
   denoising requests them, allowing bilateral denoising to stay on the platform

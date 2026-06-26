@@ -7041,6 +7041,35 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(layout.accumulationBytes(), diagnostics.readbackBytes);
   }
 
+  TEST(GpuDiffusePathLoop, UsesPlatformResolvedDisplayPixelsWithoutAccumulationReadback) {
+    GpuDiffusePathLoopResult result;
+    result.platformAccumulationBackend = "metal_diffuse_path_loop";
+    result.platformAccumulationResidency = "metal_accumulation_buffer";
+    result.platformAccumulationTargetMode = gpuDiffusePathLoopAccumulationTargetSampleSlot;
+    result.platformAccumulationWidth = 2u;
+    result.platformAccumulationHeight = 3u;
+    result.platformAccumulationAddedSamples = 5u;
+    result.platformResolvedDisplayPixels = {Colord(0.5, 0.375, 0.125).rgb(),
+                                            Colord(0.5, 1.0 / 3.0, 0.25).rgb()};
+
+    Buffer<unsigned int> resolved(2, 1);
+    const TracingAccumulationLayout layout = TracingAccumulationLayout::image(2, 1);
+    const TracingAccumulationDiagnostics diagnostics =
+      resolveGpuDiffusePathLoopImage(result, layout, resolved);
+
+    EXPECT_EQ(result.platformResolvedDisplayPixels[0], resolved[0][0]);
+    EXPECT_EQ(result.platformResolvedDisplayPixels[1], resolved[0][1]);
+    EXPECT_EQ("metal_diffuse_path_loop", diagnostics.backend);
+    EXPECT_EQ("metal_accumulation_buffer", diagnostics.residency);
+    EXPECT_EQ(TracingAccumulationLayout::image(2, 3).totalBytes(), diagnostics.residentBytes);
+    EXPECT_EQ(1u, diagnostics.clearOperations);
+    EXPECT_EQ(1u, diagnostics.addOperations);
+    EXPECT_EQ(5u, diagnostics.addedSamples);
+    EXPECT_EQ(1u, diagnostics.resolveOperations);
+    EXPECT_EQ(1u, diagnostics.readbackOperations);
+    EXPECT_EQ(layout.resolveBytes(), diagnostics.readbackBytes);
+  }
+
   TEST(GpuDiffusePathLoop, ResolvesSampleSlotPlatformAccumulationIntoHdrImage) {
     GpuDiffusePathStateRecord fallback = makeTerminatedGpuDiffusePathState();
     fallback.pixelIndex = 0;
