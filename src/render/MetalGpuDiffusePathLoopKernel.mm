@@ -3642,9 +3642,12 @@ namespace render {
       id<MTLBuffer> accumulationBuffer =
         [device newBufferWithLength:bufferLength(plan.buffers.accumulationBytes)
                             options:MTLResourceStorageModeShared];
+      const std::uint64_t closestHitBytes =
+        plan.parameters.captureDiagnostics != 0u
+          ? launchPathCount * static_cast<std::uint64_t>(sizeof(GpuIntersectionHitRecord))
+          : 0u;
       id<MTLBuffer> closestHitBuffer =
-        [device newBufferWithLength:bufferLength(launchPathCount *
-                                                sizeof(GpuIntersectionHitRecord))
+        [device newBufferWithLength:bufferLength(closestHitBytes)
                             options:MTLResourceStorageModeShared];
       if (!parameterBuffer || !echoedParameterBuffer || !sceneUploadBuffer || !initialPathBuffer ||
           !activePathBuffer || !nextPathBuffer || !stepRecordBuffer || !retainedIndexBuffer ||

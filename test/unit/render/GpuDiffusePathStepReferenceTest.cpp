@@ -4590,6 +4590,57 @@ namespace GpuDiffusePathStepReferenceTest {
       GpuTracingSceneSections(), {activePath()}, TracingAccumulationLayout::image(1, 1), settings);
 
     EXPECT_EQ(0u, plan.parameters.captureDiagnostics);
+    EXPECT_EQ(sizeof(GpuDiffusePathStateRecord), plan.buffers.initialPathStateBytes);
+    EXPECT_EQ(0u, plan.buffers.activePathStateBytes);
+    EXPECT_EQ(0u, plan.buffers.nextPathStateBytes);
+    EXPECT_EQ(0u, plan.buffers.stepRecordBytes);
+    EXPECT_EQ(0u, plan.buffers.retainedIndexBytes);
+    EXPECT_EQ(plan.buffers.sceneUploadBytes + plan.buffers.initialPathStateBytes,
+              plan.buffers.totalUploadBytes);
+    EXPECT_EQ(plan.buffers.sceneUploadBytes + plan.buffers.accumulationBytes,
+              plan.buffers.totalResidentBytes);
+  }
+
+  TEST(GpuDiffusePathLoopLaunchPlanner,
+       SkipsHostAndDiagnosticBuffersForTraceDisabledDescriptorLaunch) {
+    Scene scene;
+    auto matte =
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::white()));
+    matte->setDiffuseCoefficient(1.0);
+    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    receiver->setMaterial(matte);
+    scene.add(receiver);
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+
+    PinholeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 3, 2));
+    camera.viewPlane()->sampler()->setup(4, 8, 42);
+    GpuDiffusePrimaryPathStateGenerationOptions options;
+    options.materializeHostPathStates = false;
+    const GpuDiffusePrimaryPathStateGeneration generation =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 3, 2), 99, 1234, options);
+    ASSERT_TRUE(generation.canGeneratePrimaryPathsOnDevice());
+    ASSERT_TRUE(generation.pathStates.empty());
+
+    GpuDiffusePathLoopSettings settings;
+    settings.captureDiagnostics = false;
+    settings.maxDepth = 3;
+    const TracingAccumulationLayout accumulationLayout = TracingAccumulationLayout::image(3, 2);
+
+    const GpuDiffusePathLoopLaunchPlan plan =
+      GpuDiffusePathLoopLaunchPlanner().plan(sections, generation, accumulationLayout, settings);
+
+    EXPECT_TRUE(plan.generatesPrimaryPathsOnDevice());
+    EXPECT_EQ(0u, plan.parameters.captureDiagnostics);
+    EXPECT_EQ(24u, plan.parameters.initialPathCount);
+    EXPECT_EQ(0u, plan.buffers.initialPathStateBytes);
+    EXPECT_EQ(0u, plan.buffers.activePathStateBytes);
+    EXPECT_EQ(0u, plan.buffers.nextPathStateBytes);
+    EXPECT_EQ(0u, plan.buffers.stepRecordBytes);
+    EXPECT_EQ(0u, plan.buffers.retainedIndexBytes);
+    EXPECT_EQ(plan.buffers.sceneUploadBytes, plan.buffers.totalUploadBytes);
+    EXPECT_EQ(plan.buffers.sceneUploadBytes + plan.buffers.accumulationBytes,
+              plan.buffers.totalResidentBytes);
   }
 
   TEST(GpuDiffusePathLoopLaunchPlanner, RejectsInvalidSettingsAndLayout) {

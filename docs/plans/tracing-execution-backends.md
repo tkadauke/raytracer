@@ -91,6 +91,9 @@ end state for GPU tracing.
   primary records descriptor-only on the host, with platform kernels dispatching
   by descriptor path count instead of the host vector size; trace and
   CPU-reference paths still materialize records for inspection and parity.
+  Trace-disabled platform full-GPU launches now also size path-state, step,
+  retained-index, and Metal closest-hit diagnostic storage to zero logical bytes
+  while retaining the final accumulation image readback.
 - Supported diffuse path-tracing scenes can route GPU execution requests
   through the compiled diffuse path-loop path from the live render graph path.
   rendercli, Modeler preview, and the render dialog report whether that
@@ -2623,8 +2626,8 @@ scene is large enough to amortize upload/readback costs.
      request image-only platform readback when graph trace capture is disabled,
      while backend tests and trace-enabled runs keep step/path-state
      diagnostics available. The full path-loop kernels also skip those
-     diagnostic buffer writes on the trace-disabled final-image path. The
-     compiled path loop also
+     diagnostic buffer writes and zero the logical diagnostic buffer residency
+     on the trace-disabled final-image path. The compiled path loop also
      carries `ReflectiveMaterial` and `TransparentMaterial` delta continuations
      through the CPU reference evaluator and the Metal full-GPU subset, and the
      compiled environment records now carry scene ambient separately from

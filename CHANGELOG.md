@@ -275,6 +275,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Avoid shader-side step-record, retained-index, closest-hit, and path-state
   diagnostic writes in platform full-GPU diffuse path-loop kernels when graph
   trace capture is disabled. — GPT-5 Codex
+- Size trace-disabled platform full-GPU diffuse path-loop diagnostic buffers to
+  zero logical bytes, keeping only API-required placeholder descriptors while
+  preserving final accumulation readback. — GPT-5 Codex
 - Compile null diffuse material textures as a real black ConstantColor GPU
   texture record, so platform full-GPU path-loop renders do not sample the
   unsupported sentinel for default/no-texture materials. — GPT-5 Codex

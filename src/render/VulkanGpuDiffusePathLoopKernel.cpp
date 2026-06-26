@@ -193,17 +193,18 @@ namespace render {
           plan.generatesPrimaryPathsOnDevice()
             ? createStorageBuffer(device, selection.device, 1u, nullptr)
             : createStorageBufferFromVector(device, selection.device, initialPathStates));
+        buffers.buffers.push_back(createStorageBuffer(
+          device, selection.device, static_cast<VkDeviceSize>(plan.buffers.activePathStateBytes),
+          nullptr));
         buffers.buffers.push_back(
           createStorageBuffer(device, selection.device,
-                              byteCount<GpuDiffusePathStateRecord>(launchPathCount), nullptr));
-        buffers.buffers.push_back(
-          createStorageBuffer(device, selection.device,
-                              byteCount<GpuDiffusePathStateRecord>(launchPathCount), nullptr));
+                              static_cast<VkDeviceSize>(plan.buffers.nextPathStateBytes), nullptr));
         std::vector<std::uint8_t> stepRecordBytes(
           static_cast<std::size_t>(plan.buffers.stepRecordBytes), 0u);
         buffers.buffers.push_back(
           createStorageBufferFromBytes(device, selection.device, stepRecordBytes));
-        std::vector<std::uint32_t> retainedIndices(launchPathCount + 1u, 0u);
+        std::vector<std::uint32_t> retainedIndices(
+          plan.parameters.captureDiagnostics != 0u ? launchPathCount + 1u : 0u, 0u);
         buffers.buffers.push_back(
           createStorageBufferFromVector(device, selection.device, retainedIndices));
         std::vector<std::uint8_t> accumulationBytes(

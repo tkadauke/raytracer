@@ -111,15 +111,17 @@ namespace render {
       plan.parameters.sceneUploadBytes = checkedU32(plan.sceneUpload.size(), "scene upload bytes");
       plan.buffers.initialPathStateBytes =
         uploadInitialPathStates ? pathStateBytes(initialPathCount, "initial path state") : 0u;
-      plan.buffers.activePathStateBytes = pathStateBytes(initialPathCount, "active path state");
-      plan.buffers.nextPathStateBytes = pathStateBytes(initialPathCount, "next path state");
-      plan.buffers.stepRecordBytes =
-        checkedProduct(checkedProduct(initialPathCount, maxDepth, "path-step record count"),
-                       sizeof(GpuDiffusePathStepRecord), "path-step record");
-      const std::uint64_t retainedIndexCount =
-        checkedAdd(initialPathCount, 1u, "retained path index count");
-      plan.buffers.retainedIndexBytes =
-        checkedProduct(retainedIndexCount, sizeof(std::uint32_t), "retained path index");
+      if (settings.captureDiagnostics) {
+        plan.buffers.activePathStateBytes = pathStateBytes(initialPathCount, "active path state");
+        plan.buffers.nextPathStateBytes = pathStateBytes(initialPathCount, "next path state");
+        plan.buffers.stepRecordBytes =
+          checkedProduct(checkedProduct(initialPathCount, maxDepth, "path-step record count"),
+                         sizeof(GpuDiffusePathStepRecord), "path-step record");
+        const std::uint64_t retainedIndexCount =
+          checkedAdd(initialPathCount, 1u, "retained path index count");
+        plan.buffers.retainedIndexBytes =
+          checkedProduct(retainedIndexCount, sizeof(std::uint32_t), "retained path index");
+      }
       plan.buffers.accumulationBytes = accumulationLayout.totalBytes();
 
       plan.buffers.totalUploadBytes =
