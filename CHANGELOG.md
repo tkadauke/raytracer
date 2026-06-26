@@ -452,6 +452,12 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Preserve mixed closest-hit and any-hit execution-path diagnostics in the
   reusable intersection service. — GPT-5 Codex
 
+### Changed
+
+- Enable the Metal wavefront/full-GPU path-loop backend by default in macOS
+  builds, so the normal `release` preset can exercise platform GPU path tracing
+  without requiring the separate Metal preset. — GPT-5 Codex
+
 ### Added
 
 - Report retained host packed-ray staging bytes separately from prepared

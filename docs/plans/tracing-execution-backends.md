@@ -2734,7 +2734,10 @@ scene is large enough to amortize upload/readback costs.
      explicit caller-selected CPU/hybrid backends. The Modeler render graph
      inspector also shows auto-selected tracing execution predictions before a
      render runs, with `Auto` request, predicted CPU/hybrid/GPU execution, and
-     `none` when there is no fallback reason.
+     `none` when there is no fallback reason. The default macOS release build
+     now enables the Metal wavefront/full-GPU path-loop backend so the normal
+     Modeler/rendercli build can exercise platform GPU execution without using
+     a separate preset.
 
 5. **Add parity and performance gates.**
    - Depends on: jobs 2, 3, and 4.

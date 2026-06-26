@@ -44,15 +44,17 @@ depth, tonemap operator, and per-engine knobs such as [LOD](../appendix/a-glossa
 [MSAA](../appendix/a-glossary.md#m), queue size, and thread count.
 
 For repeatable tracing-backend inspection, build the default release preset
-first:
+first. On macOS this includes the Metal wavefront/full-GPU path-loop backend by
+default; on Linux the default release preset remains CPU-only unless Vulkan is
+explicitly enabled:
 
 ```sh
 $ cmake --preset release
 $ cmake --build --preset release --target rendercli
 ```
 
-The default release preset is CPU-only. Platform backend presets opt into the
-available GPU wavefront intersection service for the host platform:
+Platform backend presets are still available as explicit host-platform
+spellings:
 
 ```sh
 $ cmake --preset release-metal-wavefront

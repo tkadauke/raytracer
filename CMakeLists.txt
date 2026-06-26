@@ -26,10 +26,16 @@ option(RAYTRACER_ENABLE_COVERAGE   "Build with gcov instrumentation" OFF)
 option(RAYTRACER_ENABLE_FUZZING    "Build LibFuzzer harnesses (needs Clang)" OFF)
 option(RAYTRACER_ENABLE_STATS      "Per-render performance counters (modernize.md §3.7)" OFF)
 option(RAYTRACER_ENABLE_MUTATION   "Build with the mull mutation-testing pass plugin (closes #28)" OFF)
+if(APPLE)
+  set(_RAYTRACER_METAL_WAVEFRONT_DEFAULT ON)
+else()
+  set(_RAYTRACER_METAL_WAVEFRONT_DEFAULT OFF)
+endif()
 option(RAYTRACER_ENABLE_METAL_WAVEFRONT
-       "Enable experimental Metal wavefront-intersection backend plumbing (macOS only)" OFF)
+       "Enable Metal wavefront and full-GPU path-loop backend plumbing (macOS only)"
+       ${_RAYTRACER_METAL_WAVEFRONT_DEFAULT})
 option(RAYTRACER_ENABLE_VULKAN_WAVEFRONT
-       "Enable experimental Vulkan wavefront-intersection backend plumbing (Linux only)" OFF)
+       "Enable Vulkan wavefront and full-GPU path-loop backend plumbing (Linux only)" OFF)
 
 if(DEFINED ENV{GITHUB_ACTIONS})
   set(_RAYTRACER_NATIVE_TUNING_DEFAULT OFF)
