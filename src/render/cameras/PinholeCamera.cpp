@@ -3,9 +3,13 @@
 #include "render/cameras/PinholeCamera.h"
 #include "PinholeProjection.h"
 #include "core/math/Ray.h"
+#include "render/samplers/Sampler.h"
 #include "render/viewplanes/ViewPlane.h"
 
+#include <limits>
 #include <optional>
+#include <stdexcept>
+#include <string>
 #include <utility>
 
 using namespace render;
@@ -20,6 +24,20 @@ std::shared_ptr<Camera> PinholeCamera::clone() const {
 
 const char* PinholeCamera::fingerprintType() const {
   return "PinholeCamera";
+}
+
+namespace {
+  std::uint32_t checkedU32(std::uint64_t value, const char* label) {
+    if (value > std::numeric_limits<std::uint32_t>::max()) {
+      throw std::overflow_error(std::string(label) + " exceeds GPU 32-bit count range");
+    }
+    return static_cast<std::uint32_t>(value);
+  }
+
+  std::array<float, 4> vector4(const Vector3d& value, float w) {
+    return {static_cast<float>(value.x()), static_cast<float>(value.y()),
+            static_cast<float>(value.z()), w};
+  }
 }
 
 Vector3d PinholeCamera::rayOrigin() const {
@@ -39,8 +57,7 @@ std::unique_ptr<Camera::PrimaryRayGenerator> PinholeCamera::primaryRayGenerator(
   class PinholePrimaryRayGenerator final : public Camera::PrimaryRayGenerator {
   public:
     PinholePrimaryRayGenerator(std::shared_ptr<render::ViewPlane> plane,
-                               const PinholeCamera& camera,
-                               const Vector3d& origin)
+                               const PinholeCamera& camera, const Vector3d& origin)
         : m_plane(std::move(plane)),
           m_camera(camera),
           m_origin(origin) {
@@ -90,6 +107,55 @@ std::unique_ptr<Camera::PrimaryRayGenerator> PinholeCamera::primaryRayGenerator(
   };
 
   return std::make_unique<PinholePrimaryRayGenerator>(viewPlane(), *this, rayOrigin());
+}
+
+std::optional<GpuPrimaryPathDescriptor>
+PinholeCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampleSeed) const {
+  auto plane = viewPlane();
+  if (!plane || !plane->sampler() || plane->sampler()->numSamples() <= 0) {
+    return std::nullopt;
+  }
+  if (animationTrack("position") || animationTrack("target")) {
+    return std::nullopt;
+  }
+
+  const Recti actual = renderableRect(rect);
+  if (actual.width() <= 0 || actual.height() <= 0) {
+    return std::nullopt;
+  }
+
+  const std::uint64_t pixelCount =
+    static_cast<std::uint64_t>(actual.width()) * static_cast<std::uint64_t>(actual.height());
+  const std::uint64_t pathCount =
+    pixelCount * static_cast<std::uint64_t>(plane->sampler()->numSamples());
+  if (pixelCount != 0 &&
+      pathCount / pixelCount != static_cast<std::uint64_t>(plane->sampler()->numSamples())) {
+    throw std::overflow_error("GPU pinhole primary path count overflows");
+  }
+  (void)checkedU32(pathCount, "GPU pinhole primary path count");
+
+  GpuPrimaryPathDescriptor descriptor;
+  descriptor.mode = gpuPrimaryPathGenerationModePinhole;
+  descriptor.pinhole.origin = vector4(rayOrigin(), 1.0f);
+  descriptor.pinhole.topLeft = vector4(plane->pixelAt(0.0, 0.0), 1.0f);
+  descriptor.pinhole.right = vector4(plane->pixelAt(1.0, 0.0) - plane->pixelAt(0.0, 0.0), 0.0f);
+  descriptor.pinhole.down = vector4(plane->pixelAt(0.0, 1.0) - plane->pixelAt(0.0, 0.0), 0.0f);
+  descriptor.pinhole.requestedLeft = rect.left();
+  descriptor.pinhole.requestedTop = rect.top();
+  descriptor.pinhole.requestedWidth =
+    checkedU32(static_cast<std::uint64_t>(rect.width()), "GPU pinhole requested width");
+  descriptor.pinhole.requestedHeight =
+    checkedU32(static_cast<std::uint64_t>(rect.height()), "GPU pinhole requested height");
+  descriptor.pinhole.actualLeft = actual.left();
+  descriptor.pinhole.actualTop = actual.top();
+  descriptor.pinhole.actualWidth =
+    checkedU32(static_cast<std::uint64_t>(actual.width()), "GPU pinhole actual width");
+  descriptor.pinhole.actualHeight =
+    checkedU32(static_cast<std::uint64_t>(actual.height()), "GPU pinhole actual height");
+  descriptor.pinhole.samplesPerPixel = checkedU32(
+    static_cast<std::uint64_t>(plane->sampler()->numSamples()), "GPU pinhole samples per pixel");
+  descriptor.pinhole.sampleSeed = sampleSeed;
+  return descriptor;
 }
 
 Vector2d PinholeCamera::projectPoint(const Vector3d& worldPoint) const {

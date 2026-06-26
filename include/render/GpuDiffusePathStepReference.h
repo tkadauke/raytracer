@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/math/Rect.h"
+#include "render/GpuPrimaryPathDescriptor.h"
 #include "render/GpuTracingScene.h"
 #include "render/TracingAccumulationLayout.h"
 #include "render/TracingExecutionCapability.h"
@@ -156,10 +157,14 @@ namespace render {
 
   struct GpuDiffusePrimaryPathStateGeneration {
     std::vector<GpuDiffusePathStateRecord> pathStates;
+    std::optional<GpuPrimaryPathDescriptor> primaryPathDescriptor;
+    std::string primaryPathExecutionPath{"cpu_camera_primary_ray_generator"};
     Recti requestedRect;
     Recti actualRect;
     std::uint64_t generatedPrimarySamples{0};
     std::uint64_t skippedPrimarySamples{0};
+
+    [[nodiscard]] bool canGeneratePrimaryPathsOnDevice() const;
   };
 
   class GpuDiffusePrimaryPathStateGenerator {

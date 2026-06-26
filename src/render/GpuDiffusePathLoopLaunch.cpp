@@ -39,6 +39,30 @@ namespace render {
       return checkedProduct(pathCount, sizeof(GpuDiffusePathStateRecord), label);
     }
 
+    void copyPrimaryPathDescriptor(GpuDiffusePathLoopLaunchParameters& parameters,
+                                   const GpuPrimaryPathDescriptor& descriptor) {
+      if (descriptor.mode != gpuPrimaryPathGenerationModePinhole) {
+        return;
+      }
+
+      const GpuPinholePrimaryPathDescriptor& pinhole = descriptor.pinhole;
+      parameters.primaryPathGenerationMode = descriptor.mode;
+      parameters.primaryPathSamplesPerPixel = pinhole.samplesPerPixel;
+      parameters.primaryPathSampleSeed = pinhole.sampleSeed;
+      parameters.primaryPathRequestedWidth = pinhole.requestedWidth;
+      parameters.primaryPathRequestedLeft = pinhole.requestedLeft;
+      parameters.primaryPathRequestedTop = pinhole.requestedTop;
+      parameters.primaryPathRequestedHeight = pinhole.requestedHeight;
+      parameters.primaryPathActualWidth = pinhole.actualWidth;
+      parameters.primaryPathActualLeft = pinhole.actualLeft;
+      parameters.primaryPathActualTop = pinhole.actualTop;
+      parameters.primaryPathActualHeight = pinhole.actualHeight;
+      parameters.primaryPathOrigin = pinhole.origin;
+      parameters.primaryPathTopLeft = pinhole.topLeft;
+      parameters.primaryPathRight = pinhole.right;
+      parameters.primaryPathDown = pinhole.down;
+    }
+
     template<typename Record>
     std::uint32_t assignGeometryRange(std::uint64_t& byteOffset, std::size_t count,
                                       std::uint32_t& countField, const char* label) {
@@ -50,6 +74,10 @@ namespace render {
         checkedAdd(byteOffset, checkedProduct(count, sizeof(Record), label), "geometry section");
       return result;
     }
+  }
+
+  bool GpuDiffusePathLoopLaunchPlan::generatesPrimaryPathsOnDevice() const {
+    return parameters.primaryPathGenerationMode != gpuPrimaryPathGenerationModeHostPathStates;
   }
 
   GpuDiffusePathLoopLaunchPlan GpuDiffusePathLoopLaunchPlanner::plan(
@@ -118,7 +146,9 @@ namespace render {
     plan.sceneUpload = scene.uploadBytes();
     plan.buffers.sceneUploadBytes = plan.sceneUpload.size();
     plan.parameters.sceneUploadBytes = checkedU32(plan.sceneUpload.size(), "scene upload bytes");
-    plan.buffers.initialPathStateBytes = pathStateBytes(initialPathCount, "initial path state");
+    plan.buffers.initialPathStateBytes = plan.generatesPrimaryPathsOnDevice()
+                                           ? 0u
+                                           : pathStateBytes(initialPathCount, "initial path state");
     plan.buffers.activePathStateBytes = pathStateBytes(initialPathCount, "active path state");
     plan.buffers.nextPathStateBytes = pathStateBytes(initialPathCount, "next path state");
     plan.buffers.stepRecordBytes =
@@ -147,6 +177,21 @@ namespace render {
       checkedAdd(residentBytes, plan.buffers.accumulationBytes, "GPU diffuse path-loop resident");
     plan.buffers.totalResidentBytes = residentBytes;
 
+    return plan;
+  }
+
+  GpuDiffusePathLoopLaunchPlan GpuDiffusePathLoopLaunchPlanner::plan(
+    const GpuTracingSceneSections& scene,
+    const GpuDiffusePrimaryPathStateGeneration& primaryPathGeneration,
+    const TracingAccumulationLayout& accumulationLayout,
+    const GpuDiffusePathLoopSettings& settings) const {
+    GpuDiffusePathLoopLaunchPlan plan =
+      this->plan(scene, primaryPathGeneration.pathStates, accumulationLayout, settings);
+    if (primaryPathGeneration.canGeneratePrimaryPathsOnDevice()) {
+      copyPrimaryPathDescriptor(plan.parameters, *primaryPathGeneration.primaryPathDescriptor);
+      plan.buffers.initialPathStateBytes = 0u;
+      plan.buffers.totalUploadBytes = plan.buffers.sceneUploadBytes;
+    }
     return plan;
   }
 }

@@ -557,4 +557,30 @@ namespace render {
     throw std::runtime_error(fullGpuPathLoopUnavailableReason());
 #endif
   }
+
+  GpuDiffusePathLoopResult VulkanGpuDiffusePathLoopBackend::run(
+    const GpuTracingSceneSections& scene,
+    const GpuDiffusePrimaryPathStateGeneration& primaryPathGeneration,
+    const GpuDiffusePathLoopSettings& settings) const {
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    const GpuDiffusePathLoopBackendSupport support = fullGpuPathLoopSupport(scene, settings);
+    if (!support.supported) {
+      throw std::invalid_argument(support.reason);
+    }
+    const std::vector<GpuDiffusePathStateRecord>& initialPathStates =
+      primaryPathGeneration.pathStates;
+    const VulkanAccumulationPlan accumulation = accumulationPlanFor(initialPathStates);
+    GpuDiffusePathLoopLaunchPlan plan = GpuDiffusePathLoopLaunchPlanner().plan(
+      scene, primaryPathGeneration, accumulation.layout, settings);
+    plan.parameters.accumulationTargetMode = accumulation.targetMode;
+    const VulkanGpuDiffusePathLoopKernelResult vulkanResult =
+      VulkanGpuDiffusePathLoopKernel().runAllMissPathLoop(plan, initialPathStates);
+    return makeLoopResult(initialPathStates, settings, vulkanResult);
+#else
+    (void)scene;
+    (void)primaryPathGeneration;
+    (void)settings;
+    throw std::runtime_error(fullGpuPathLoopUnavailableReason());
+#endif
+  }
 }

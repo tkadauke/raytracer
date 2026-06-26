@@ -76,6 +76,13 @@ namespace render {
     return {true, {}};
   }
 
+  GpuDiffusePathLoopResult
+  GpuDiffusePathLoopBackend::run(const GpuTracingSceneSections& scene,
+                                 const GpuDiffusePrimaryPathStateGeneration& primaryPathGeneration,
+                                 const GpuDiffusePathLoopSettings& settings) const {
+    return run(scene, primaryPathGeneration.pathStates, settings);
+  }
+
   std::shared_ptr<const CpuReferenceGpuDiffusePathLoopBackend>
   CpuReferenceGpuDiffusePathLoopBackend::sharedInstance() {
     static const std::shared_ptr<const CpuReferenceGpuDiffusePathLoopBackend> instance =

@@ -42,6 +42,10 @@ namespace render {
     run(const GpuTracingSceneSections& scene,
         const std::vector<GpuDiffusePathStateRecord>& initialPathStates,
         const GpuDiffusePathLoopSettings& settings = {}) const = 0;
+    [[nodiscard]] virtual GpuDiffusePathLoopResult
+    run(const GpuTracingSceneSections& scene,
+        const GpuDiffusePrimaryPathStateGeneration& primaryPathGeneration,
+        const GpuDiffusePathLoopSettings& settings = {}) const;
   };
 
   class CpuReferenceGpuDiffusePathLoopBackend final : public GpuDiffusePathLoopBackend {

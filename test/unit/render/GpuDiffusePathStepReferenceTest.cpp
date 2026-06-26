@@ -449,6 +449,11 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(2, generation.actualRect.height());
     EXPECT_EQ(24u, generation.generatedPrimarySamples);
     EXPECT_EQ(0u, generation.skippedPrimarySamples);
+    EXPECT_TRUE(generation.canGeneratePrimaryPathsOnDevice());
+    EXPECT_EQ("gpu_pinhole_primary_descriptor", generation.primaryPathExecutionPath);
+    ASSERT_TRUE(generation.primaryPathDescriptor.has_value());
+    EXPECT_EQ(gpuPrimaryPathGenerationModePinhole, generation.primaryPathDescriptor->mode);
+    EXPECT_EQ(24u, generation.primaryPathDescriptor->pathCount());
     ASSERT_EQ(24u, generation.pathStates.size());
 
     std::size_t pathIndex = 0;
@@ -479,6 +484,45 @@ namespace GpuDiffusePathStepReferenceTest {
     }
   }
 
+  TEST(GpuDiffusePrimaryPathStateGenerator, PinholeDescriptorUsesGpuSampleStreamForPrimaryRay) {
+    PinholeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 3, 2));
+    camera.viewPlane()->sampler()->setup(4, 8, 42);
+
+    const GpuDiffusePrimaryPathStateGeneration generation =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 3, 2), 99, 1234);
+
+    ASSERT_TRUE(generation.primaryPathDescriptor.has_value());
+    const GpuPinholePrimaryPathDescriptor& descriptor = generation.primaryPathDescriptor->pinhole;
+    EXPECT_EQ(0, descriptor.requestedLeft);
+    EXPECT_EQ(0, descriptor.requestedTop);
+    EXPECT_EQ(3u, descriptor.requestedWidth);
+    EXPECT_EQ(2u, descriptor.requestedHeight);
+    EXPECT_EQ(0, descriptor.actualLeft);
+    EXPECT_EQ(0, descriptor.actualTop);
+    EXPECT_EQ(3u, descriptor.actualWidth);
+    EXPECT_EQ(2u, descriptor.actualHeight);
+    EXPECT_EQ(4u, descriptor.samplesPerPixel);
+    EXPECT_EQ(1234u, descriptor.sampleSeed);
+
+    ASSERT_FALSE(generation.pathStates.empty());
+    const Vector3d origin(descriptor.origin);
+    const Vector3d topLeft(descriptor.topLeft);
+    const Vector3d right(descriptor.right);
+    const Vector3d down(descriptor.down);
+    const Vector2d pixelSample =
+      GpuSampleStream::sample2D(/*seed=*/1234, /*pixelIndex=*/0, /*primarySampleIndex=*/0,
+                                /*dimension=*/0);
+    const double timeSample = GpuSampleStream::sample1D(GpuSampleCoordinate{
+      /*seed=*/1234, /*pixelIndex=*/0, /*primarySampleIndex=*/0, /*dimension=*/1,
+      /*component=*/0});
+    const Vector3d pixelPoint = topLeft + right * pixelSample.x() + down * pixelSample.y();
+    const GpuIntersectionRay expected = GpuIntersectionScenePacker().packRay(
+      Rayd(origin, (pixelPoint - origin).normalized()), /*rayIndex=*/0, /*minDistance=*/0.0,
+      std::numeric_limits<double>::infinity(), timeSample);
+    expectGpuRayNear(generation.pathStates.front().ray, expected);
+  }
+
   TEST(GpuDiffusePrimaryPathStateGenerator, UsesActualRenderableRectForFitExactCameras) {
     PinholeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
     camera.setAspectMode(AspectMode::FitExact);
@@ -497,6 +541,10 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(0, generation.actualRect.top());
     EXPECT_EQ(2, generation.actualRect.width());
     EXPECT_EQ(2, generation.actualRect.height());
+    EXPECT_TRUE(generation.canGeneratePrimaryPathsOnDevice());
+    ASSERT_TRUE(generation.primaryPathDescriptor.has_value());
+    EXPECT_EQ(1, generation.primaryPathDescriptor->actualRect().left());
+    EXPECT_EQ(2, generation.primaryPathDescriptor->actualRect().width());
     ASSERT_EQ(4u, generation.pathStates.size());
     EXPECT_EQ(1u, generation.pathStates[0].pixelIndex);
     EXPECT_EQ(2u, generation.pathStates[1].pixelIndex);
@@ -4318,6 +4366,9 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(4u, plan.parameters.directLightSamples);
     EXPECT_EQ(1u, plan.parameters.captureDiagnostics);
     EXPECT_EQ(2u, plan.parameters.initialPathCount);
+    EXPECT_EQ(gpuPrimaryPathGenerationModeHostPathStates,
+              plan.parameters.primaryPathGenerationMode);
+    EXPECT_FALSE(plan.generatesPrimaryPathsOnDevice());
     EXPECT_EQ(3u, plan.parameters.imageWidth);
     EXPECT_EQ(2u, plan.parameters.imageHeight);
     EXPECT_EQ(gpuDiffusePathLoopAccumulationTargetPixel, plan.parameters.accumulationTargetMode);
@@ -4389,6 +4440,48 @@ namespace GpuDiffusePathStepReferenceTest {
               plan.buffers.totalResidentBytes);
   }
 
+  TEST(GpuDiffusePathLoopLaunchPlanner, UsesGpuPrimaryDescriptorToSkipInitialPathUpload) {
+    Scene scene;
+    auto matte =
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::white()));
+    matte->setDiffuseCoefficient(1.0);
+    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    receiver->setMaterial(matte);
+    scene.add(receiver);
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+
+    PinholeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 3, 2));
+    camera.viewPlane()->sampler()->setup(4, 8, 42);
+    const GpuDiffusePrimaryPathStateGeneration generation =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 3, 2), 99, 1234);
+    ASSERT_TRUE(generation.canGeneratePrimaryPathsOnDevice());
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 3;
+    const TracingAccumulationLayout accumulationLayout = TracingAccumulationLayout::image(3, 2);
+
+    const GpuDiffusePathLoopLaunchPlan plan =
+      GpuDiffusePathLoopLaunchPlanner().plan(sections, generation, accumulationLayout, settings);
+
+    EXPECT_TRUE(plan.generatesPrimaryPathsOnDevice());
+    EXPECT_EQ(gpuPrimaryPathGenerationModePinhole, plan.parameters.primaryPathGenerationMode);
+    EXPECT_EQ(24u, plan.parameters.initialPathCount);
+    EXPECT_EQ(4u, plan.parameters.primaryPathSamplesPerPixel);
+    EXPECT_EQ(1234u, plan.parameters.primaryPathSampleSeed);
+    EXPECT_EQ(3u, plan.parameters.primaryPathRequestedWidth);
+    EXPECT_EQ(2u, plan.parameters.primaryPathRequestedHeight);
+    EXPECT_EQ(0, plan.parameters.primaryPathRequestedLeft);
+    EXPECT_EQ(0, plan.parameters.primaryPathRequestedTop);
+    EXPECT_EQ(3u, plan.parameters.primaryPathActualWidth);
+    EXPECT_EQ(2u, plan.parameters.primaryPathActualHeight);
+    EXPECT_EQ(0, plan.parameters.primaryPathActualLeft);
+    EXPECT_EQ(0, plan.parameters.primaryPathActualTop);
+    EXPECT_EQ(0u, plan.buffers.initialPathStateBytes);
+    EXPECT_EQ(plan.buffers.sceneUploadBytes, plan.buffers.totalUploadBytes);
+    EXPECT_EQ(24u * sizeof(GpuDiffusePathStateRecord), plan.buffers.activePathStateBytes);
+  }
+
   TEST(GpuDiffusePathLoopLaunchPlanner, CanDisableDiagnosticReadbackCapture) {
     GpuDiffusePathLoopSettings settings;
     settings.captureDiagnostics = false;
@@ -4402,15 +4495,17 @@ namespace GpuDiffusePathStepReferenceTest {
     GpuDiffusePathLoopSettings settings;
     settings.maxDepth = 0;
     EXPECT_THROW((void)GpuDiffusePathLoopLaunchPlanner().plan(
-                   GpuTracingSceneSections(), {}, TracingAccumulationLayout::image(1, 1), settings),
+                   GpuTracingSceneSections(), std::vector<GpuDiffusePathStateRecord>{},
+                   TracingAccumulationLayout::image(1, 1), settings),
                  std::invalid_argument);
 
     settings.maxDepth = 1;
     TracingAccumulationLayout invalidLayout;
     invalidLayout.width = 0;
     invalidLayout.height = 1;
-    EXPECT_THROW((void)GpuDiffusePathLoopLaunchPlanner().plan(GpuTracingSceneSections(), {},
-                                                              invalidLayout, settings),
+    EXPECT_THROW((void)GpuDiffusePathLoopLaunchPlanner().plan(
+                   GpuTracingSceneSections(), std::vector<GpuDiffusePathStateRecord>{},
+                   invalidLayout, settings),
                  std::invalid_argument);
   }
 

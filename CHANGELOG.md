@@ -15,6 +15,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   path-tracer renders, through an available scene-supported platform full-GPU
   backend while retaining CPU/hybrid fallback for incompatible pass settings.
   — GPT-5 Codex
+- Let static pinhole path-tracer launches describe primary rays to the
+  Metal/Vulkan diffuse path-loop kernels instead of uploading initial path
+  state records, with graph trace metadata reporting whether primary paths are
+  generated on device. — GPT-5 Codex
 - Extend compiled full-GPU path-loop image textures from nearest-only sampling
   to bilinear filtering, with mipmapped image textures using the same base-level
   bilinear behavior as ray/path-tracer texture evaluation. — GPT-5 Codex

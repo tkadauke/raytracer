@@ -688,6 +688,9 @@ namespace engine::graph {
       input["primarySamples"] = static_cast<double>(generation.generatedPrimarySamples);
       input["skippedPrimarySamples"] = static_cast<double>(generation.skippedPrimarySamples);
       input["sampleStreamMode"] = QStringLiteral("gpu_sample_stream");
+      input["primaryPathExecutionPath"] =
+        QString::fromStdString(generation.primaryPathExecutionPath);
+      input["primaryPathGeneratesOnDevice"] = generation.canGeneratePrimaryPathsOnDevice();
       input["requestedX"] = generation.requestedRect.x();
       input["requestedY"] = generation.requestedRect.y();
       input["requestedWidth"] = generation.requestedRect.width();
@@ -1124,7 +1127,7 @@ namespace engine::graph {
           return false;
         }
         const render::GpuDiffusePathLoopResult loop =
-          pathLoopBackend->run(compilation.sections, generation.pathStates, settings);
+          pathLoopBackend->run(compilation.sections, generation, settings);
         const render::TracingAccumulationLayout layout =
           render::TracingAccumulationLayout::image(width, height);
 

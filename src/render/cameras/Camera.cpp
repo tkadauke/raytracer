@@ -180,6 +180,11 @@ std::uint64_t Camera::primaryRayPixelHash(const render::ViewPlane::Iterator& pix
   return pixelHashFor(pixel, tileSeed);
 }
 
+std::optional<GpuPrimaryPathDescriptor> Camera::gpuPrimaryPathDescriptor(const Recti&,
+                                                                         std::uint32_t) const {
+  return std::nullopt;
+}
+
 void Camera::setAspectRatio(double ratio) {
   m_aspectRatio = ratio;
   if (m_viewPlane)

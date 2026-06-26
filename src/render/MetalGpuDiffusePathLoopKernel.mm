@@ -20,7 +20,7 @@ namespace render {
   namespace {
     static_assert(std::is_standard_layout_v<GpuDiffusePathLoopLaunchParameters>,
                   "Metal diffuse path-loop launch parameters must stay shader ABI friendly");
-    static_assert(sizeof(GpuDiffusePathLoopLaunchParameters) == 176);
+    static_assert(sizeof(GpuDiffusePathLoopLaunchParameters) == 288);
     static_assert(alignof(GpuDiffusePathLoopLaunchParameters) == 16);
     static_assert(sizeof(GpuDiffusePathStateRecord) == 160);
     static_assert(alignof(GpuDiffusePathStateRecord) == 16);
@@ -130,9 +130,25 @@ namespace render {
               "  uint openCylinderCount;\n"
               "  uint torusCount;\n"
               "  uint transformCount;\n"
+              "  uint primaryPathGenerationMode;\n"
+              "  uint primaryPathSamplesPerPixel;\n"
+              "  uint primaryPathSampleSeed;\n"
+              "  uint primaryPathRequestedWidth;\n"
+              "  int primaryPathRequestedLeft;\n"
+              "  int primaryPathRequestedTop;\n"
+              "  uint primaryPathRequestedHeight;\n"
+              "  uint primaryPathActualWidth;\n"
+              "  int primaryPathActualLeft;\n"
+              "  int primaryPathActualTop;\n"
+              "  uint primaryPathActualHeight;\n"
               "  uint reserved0;\n"
               "  uint reserved1;\n"
               "  uint reserved2;\n"
+              "  uint reserved3;\n"
+              "  float4 primaryPathOrigin;\n"
+              "  float4 primaryPathTopLeft;\n"
+              "  float4 primaryPathRight;\n"
+              "  float4 primaryPathDown;\n"
               "};\n"
               "struct GpuIntersectionRay {\n"
               "  float4 origin;\n"
@@ -352,6 +368,7 @@ namespace render {
               "constant uint gpuTracingPointLightKind = 1u;\n"
               "constant uint gpuTracingDirectionalLightKind = 2u;\n"
               "constant uint gpuTracingRectangularAreaLightKind = 3u;\n"
+              "constant uint gpuPrimaryPathGenerationModePinhole = 1u;\n"
               "constant uint gpuDiffusePathStateActiveFlag = 1u;\n"
               "constant uint gpuDiffusePathStateTerminatedFlag = 2u;\n"
               "constant uint gpuDiffusePathStateSampledFromBsdfFlag = 4u;\n"
@@ -365,6 +382,8 @@ namespace render {
               "constant uint gpuDiffusePathLoopAccumulationTargetSampleSlot = 2u;\n"
               "constant uint gpuSampleInitialCoordinateState = 0x811c9dc5u;\n"
               "constant uint gpuSampleCoordinateStep = 0x9e3779b9u;\n"
+              "constant uint gpuPrimaryPathSampleDimensionBase = 3u;\n"
+              "constant uint gpuPrimaryPathSampleDimensionStride = 4u;\n"
               "constant float pathLoopInvPi = 0.31830988618379067154f;\n"
               "constant float pathLoopTau = 6.28318530717958647692f;\n"
               "constant float pathLoopRayEpsilon = 1.0e-7f;\n"
@@ -421,6 +440,79 @@ namespace render {
               "}\n"
               "float2 sample2D(const GpuDiffusePathStateRecord path, uint dimension) {\n"
               "  return float2(sample1D(path, dimension, 0u), sample1D(path, dimension, 1u));\n"
+              "}\n"
+              "float sample1DCoordinate(uint seed, uint pixelIndex, uint primarySampleIndex,\n"
+              "                         uint dimension, uint component) {\n"
+              "  return float(sampleHash(seed, pixelIndex, primarySampleIndex,\n"
+              "                          dimension, component) >> 8u) *\n"
+              "         (1.0f / 16777216.0f);\n"
+              "}\n"
+              "float2 sample2DCoordinate(uint seed, uint pixelIndex, uint primarySampleIndex,\n"
+              "                          uint dimension) {\n"
+              "  return float2(sample1DCoordinate(seed, pixelIndex, primarySampleIndex,\n"
+              "                                  dimension, 0u),\n"
+              "                sample1DCoordinate(seed, pixelIndex, primarySampleIndex,\n"
+              "                                  dimension, 1u));\n"
+              "}\n"
+              "GpuDiffusePathStateRecord makePinholePrimaryPath(\n"
+              "    constant GpuDiffusePathLoopLaunchParameters& parameters, uint pathIndex) {\n"
+              "  const uint sampleIndex = pathIndex % parameters.primaryPathSamplesPerPixel;\n"
+              "  const uint pixelOrdinal = pathIndex / parameters.primaryPathSamplesPerPixel;\n"
+              "  const uint localX = pixelOrdinal % parameters.primaryPathActualWidth;\n"
+              "  const uint localY = pixelOrdinal / parameters.primaryPathActualWidth;\n"
+              "  const int column = parameters.primaryPathActualLeft + int(localX);\n"
+              "  const int row = parameters.primaryPathActualTop + int(localY);\n"
+              "  const uint pixelIndex = uint(\n"
+              "      (row - parameters.primaryPathRequestedTop) *\n"
+              "          int(parameters.primaryPathRequestedWidth) +\n"
+              "      (column - parameters.primaryPathRequestedLeft));\n"
+              "  const float2 pixelSample = sample2DCoordinate(\n"
+              "      parameters.primaryPathSampleSeed, pixelIndex, sampleIndex, 0u);\n"
+              "  const float timeSample = sample1DCoordinate(\n"
+              "      parameters.primaryPathSampleSeed, pixelIndex, sampleIndex, 1u, 0u);\n"
+              "  const float4 pixelPoint =\n"
+              "      parameters.primaryPathTopLeft +\n"
+              "      parameters.primaryPathRight * (float(column) + pixelSample.x) +\n"
+              "      parameters.primaryPathDown * (float(row) + pixelSample.y);\n"
+              "  GpuDiffusePathStateRecord path;\n"
+              "  path.ray.origin = parameters.primaryPathOrigin;\n"
+              "  path.ray.direction = float4(\n"
+              "      normalize(pixelPoint.xyz - parameters.primaryPathOrigin.xyz), 0.0f);\n"
+              "  path.ray.minDistance = 0.0f;\n"
+              "  path.ray.maxDistance = rayInfinity();\n"
+              "  path.ray.timeSample = timeSample;\n"
+              "  path.ray.flags = 0u;\n"
+              "  path.ray.rayIndex = pathIndex;\n"
+              "  path.ray.reserved0 = 0u;\n"
+              "  path.ray.reserved1 = 0u;\n"
+              "  path.ray.reserved2 = 0u;\n"
+              "  path.throughput = float4(1.0f, 1.0f, 1.0f, 0.0f);\n"
+              "  path.accumulatedRadiance = float4(0.0f);\n"
+              "  path.pixelIndex = pixelIndex;\n"
+              "  path.primarySampleIndex = sampleIndex;\n"
+              "  path.depth = 0u;\n"
+              "  path.sampleSeed = parameters.primaryPathSampleSeed;\n"
+              "  path.sampleDimensionBase = gpuPrimaryPathSampleDimensionBase;\n"
+              "  path.sampleDimensionStride = gpuPrimaryPathSampleDimensionStride;\n"
+              "  path.flags = gpuDiffusePathStateActiveFlag;\n"
+              "  path.reserved0 = 0u;\n"
+              "  path.previousBsdfPdf = 0.0f;\n"
+              "  path.previousLightPdf = 0.0f;\n"
+              "  path.previousMaterial = 0u;\n"
+              "  path.previousEventFlags = 0u;\n"
+              "  path.reserved1 = 0u;\n"
+              "  path.reserved2 = 0u;\n"
+              "  path.reserved3 = 0u;\n"
+              "  path.reserved4 = 0u;\n"
+              "  return path;\n"
+              "}\n"
+              "GpuDiffusePathStateRecord initialPathFor(\n"
+              "    constant GpuDiffusePathLoopLaunchParameters& parameters,\n"
+              "    device const GpuDiffusePathStateRecord* initialPathStates, uint pathIndex) {\n"
+              "  if (parameters.primaryPathGenerationMode == gpuPrimaryPathGenerationModePinhole) {\n"
+              "    return makePinholePrimaryPath(parameters, pathIndex);\n"
+              "  }\n"
+              "  return initialPathStates[pathIndex];\n"
               "}\n"
               "uint lightSelectionSampleIndex(uint bounce, uint directSampleIndex) {\n"
               "  const uint sum = bounce + directSampleIndex;\n"
@@ -2277,9 +2369,10 @@ namespace render {
               "  if (id >= parameters.initialPathCount) {\n"
               "    return;\n"
               "  }\n"
-              "  activePathStates[id] = initialPathStates[id];\n"
+              "  GpuDiffusePathStateRecord path = initialPathFor(parameters, initialPathStates, id);\n"
+              "  activePathStates[id] = path;\n"
               "  nextPathStates[id] = activePathStates[id];\n"
-              "  stepRecords[id] = inactiveStep(id, initialPathStates[id]);\n"
+              "  stepRecords[id] = inactiveStep(id, path);\n"
               "  recordRetainedActivePath(retainedIndices, id, activePathStates[id]);\n"
               "  (void)sceneUpload;\n"
               "}\n"
@@ -2300,7 +2393,7 @@ namespace render {
               "  if (id >= parameters.initialPathCount) {\n"
               "    return;\n"
               "  }\n"
-              "  GpuDiffusePathStateRecord path = initialPathStates[id];\n"
+              "  GpuDiffusePathStateRecord path = initialPathFor(parameters, initialPathStates, id);\n"
               "  GpuDiffusePathStepRecord step = inactiveStep(id, path);\n"
               "  if (pathStateIsActive(path)) {\n"
               "    float4 contribution = path.throughput * missRadiance(parameters, sceneUpload, path);\n"
@@ -2336,7 +2429,7 @@ namespace render {
               "  if (id >= parameters.initialPathCount) {\n"
               "    return;\n"
               "  }\n"
-              "  GpuDiffusePathStateRecord path = initialPathStates[id];\n"
+              "  GpuDiffusePathStateRecord path = initialPathFor(parameters, initialPathStates, id);\n"
               "  GpuDiffusePathStepRecord step = inactiveStep(id, path);\n"
               "  GpuIntersectionHitRecord hit = missHitRecord(path.ray);\n"
               "  if (pathStateIsActive(path)) {\n"
@@ -2376,7 +2469,7 @@ namespace render {
               "  if (id >= parameters.initialPathCount) {\n"
               "    return;\n"
               "  }\n"
-              "  GpuDiffusePathStateRecord path = initialPathStates[id];\n"
+              "  GpuDiffusePathStateRecord path = initialPathFor(parameters, initialPathStates, id);\n"
               "  GpuDiffusePathStateRecord next = path;\n"
               "  GpuIntersectionHitRecord hit = missHitRecord(path.ray);\n"
               "  const GpuDiffusePathStepRecord step = mattePathStep(\n"
@@ -2408,7 +2501,7 @@ namespace render {
               "  if (id >= parameters.initialPathCount) {\n"
               "    return;\n"
               "  }\n"
-              "  GpuDiffusePathStateRecord path = initialPathStates[id];\n"
+              "  GpuDiffusePathStateRecord path = initialPathFor(parameters, initialPathStates, id);\n"
               "  if (parameters.captureDiagnostics != 0u) {\n"
               "    activePathStates[id] = path;\n"
               "  }\n"
@@ -2462,7 +2555,7 @@ namespace render {
               "  if (id >= parameters.initialPathCount) {\n"
               "    return;\n"
               "  }\n"
-              "  GpuDiffusePathStateRecord path = initialPathStates[id];\n"
+              "  GpuDiffusePathStateRecord path = initialPathFor(parameters, initialPathStates, id);\n"
               "  GpuDiffusePathStepRecord step = inactiveStep(id, path);\n"
               "  GpuIntersectionHitRecord hit = missHitRecord(path.ray);\n"
               "  if (pathStateIsActive(path)) {\n"
@@ -2785,12 +2878,12 @@ namespace render {
           : [device newBufferWithBytes:plan.sceneUpload.data()
                                 length:plan.buffers.sceneUploadBytes
                                options:MTLResourceStorageModeShared];
-      id<MTLBuffer> initialPathBuffer = initialPathStates.empty()
-                                          ? [device newBufferWithLength:1
-                                                                options:MTLResourceStorageModeShared]
-                                          : [device newBufferWithBytes:initialPathStates.data()
-                                                                length:plan.buffers.initialPathStateBytes
-                                                               options:MTLResourceStorageModeShared];
+      id<MTLBuffer> initialPathBuffer =
+        plan.generatesPrimaryPathsOnDevice() || initialPathStates.empty()
+          ? [device newBufferWithLength:1 options:MTLResourceStorageModeShared]
+          : [device newBufferWithBytes:initialPathStates.data()
+                                length:plan.buffers.initialPathStateBytes
+                               options:MTLResourceStorageModeShared];
       id<MTLBuffer> activePathBuffer =
         [device newBufferWithLength:bufferLength(plan.buffers.activePathStateBytes)
                             options:MTLResourceStorageModeShared];
@@ -2920,12 +3013,12 @@ namespace render {
           : [device newBufferWithBytes:plan.sceneUpload.data()
                                 length:plan.buffers.sceneUploadBytes
                                options:MTLResourceStorageModeShared];
-      id<MTLBuffer> initialPathBuffer = initialPathStates.empty()
-                                          ? [device newBufferWithLength:1
-                                                                options:MTLResourceStorageModeShared]
-                                          : [device newBufferWithBytes:initialPathStates.data()
-                                                                length:plan.buffers.initialPathStateBytes
-                                                               options:MTLResourceStorageModeShared];
+      id<MTLBuffer> initialPathBuffer =
+        plan.generatesPrimaryPathsOnDevice() || initialPathStates.empty()
+          ? [device newBufferWithLength:1 options:MTLResourceStorageModeShared]
+          : [device newBufferWithBytes:initialPathStates.data()
+                                length:plan.buffers.initialPathStateBytes
+                               options:MTLResourceStorageModeShared];
       id<MTLBuffer> activePathBuffer =
         [device newBufferWithLength:bufferLength(plan.buffers.activePathStateBytes)
                             options:MTLResourceStorageModeShared];
@@ -3069,12 +3162,12 @@ namespace render {
           : [device newBufferWithBytes:plan.sceneUpload.data()
                                 length:plan.buffers.sceneUploadBytes
                                options:MTLResourceStorageModeShared];
-      id<MTLBuffer> initialPathBuffer = initialPathStates.empty()
-                                          ? [device newBufferWithLength:1
-                                                                options:MTLResourceStorageModeShared]
-                                          : [device newBufferWithBytes:initialPathStates.data()
-                                                                length:plan.buffers.initialPathStateBytes
-                                                               options:MTLResourceStorageModeShared];
+      id<MTLBuffer> initialPathBuffer =
+        plan.generatesPrimaryPathsOnDevice() || initialPathStates.empty()
+          ? [device newBufferWithLength:1 options:MTLResourceStorageModeShared]
+          : [device newBufferWithBytes:initialPathStates.data()
+                                length:plan.buffers.initialPathStateBytes
+                               options:MTLResourceStorageModeShared];
       id<MTLBuffer> activePathBuffer =
         [device newBufferWithLength:bufferLength(plan.buffers.activePathStateBytes)
                             options:MTLResourceStorageModeShared];
@@ -3209,12 +3302,12 @@ namespace render {
           : [device newBufferWithBytes:plan.sceneUpload.data()
                                 length:plan.buffers.sceneUploadBytes
                                options:MTLResourceStorageModeShared];
-      id<MTLBuffer> initialPathBuffer = initialPathStates.empty()
-                                          ? [device newBufferWithLength:1
-                                                                options:MTLResourceStorageModeShared]
-                                          : [device newBufferWithBytes:initialPathStates.data()
-                                                                length:plan.buffers.initialPathStateBytes
-                                                               options:MTLResourceStorageModeShared];
+      id<MTLBuffer> initialPathBuffer =
+        plan.generatesPrimaryPathsOnDevice() || initialPathStates.empty()
+          ? [device newBufferWithLength:1 options:MTLResourceStorageModeShared]
+          : [device newBufferWithBytes:initialPathStates.data()
+                                length:plan.buffers.initialPathStateBytes
+                               options:MTLResourceStorageModeShared];
       id<MTLBuffer> activePathBuffer =
         [device newBufferWithLength:bufferLength(plan.buffers.activePathStateBytes)
                             options:MTLResourceStorageModeShared];
@@ -3356,12 +3449,12 @@ namespace render {
           : [device newBufferWithBytes:plan.sceneUpload.data()
                                 length:plan.buffers.sceneUploadBytes
                                options:MTLResourceStorageModeShared];
-      id<MTLBuffer> initialPathBuffer = initialPathStates.empty()
-                                          ? [device newBufferWithLength:1
-                                                                options:MTLResourceStorageModeShared]
-                                          : [device newBufferWithBytes:initialPathStates.data()
-                                                                length:plan.buffers.initialPathStateBytes
-                                                               options:MTLResourceStorageModeShared];
+      id<MTLBuffer> initialPathBuffer =
+        plan.generatesPrimaryPathsOnDevice() || initialPathStates.empty()
+          ? [device newBufferWithLength:1 options:MTLResourceStorageModeShared]
+          : [device newBufferWithBytes:initialPathStates.data()
+                                length:plan.buffers.initialPathStateBytes
+                               options:MTLResourceStorageModeShared];
       id<MTLBuffer> activePathBuffer =
         [device newBufferWithLength:bufferLength(plan.buffers.activePathStateBytes)
                             options:MTLResourceStorageModeShared];
@@ -3525,12 +3618,12 @@ namespace render {
           : [device newBufferWithBytes:plan.sceneUpload.data()
                                 length:plan.buffers.sceneUploadBytes
                                options:MTLResourceStorageModeShared];
-      id<MTLBuffer> initialPathBuffer = initialPathStates.empty()
-                                          ? [device newBufferWithLength:1
-                                                                options:MTLResourceStorageModeShared]
-                                          : [device newBufferWithBytes:initialPathStates.data()
-                                                                length:plan.buffers.initialPathStateBytes
-                                                               options:MTLResourceStorageModeShared];
+      id<MTLBuffer> initialPathBuffer =
+        plan.generatesPrimaryPathsOnDevice() || initialPathStates.empty()
+          ? [device newBufferWithLength:1 options:MTLResourceStorageModeShared]
+          : [device newBufferWithBytes:initialPathStates.data()
+                                length:plan.buffers.initialPathStateBytes
+                               options:MTLResourceStorageModeShared];
       id<MTLBuffer> activePathBuffer =
         [device newBufferWithLength:bufferLength(plan.buffers.activePathStateBytes)
                             options:MTLResourceStorageModeShared];

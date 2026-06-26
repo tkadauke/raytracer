@@ -500,4 +500,30 @@ namespace render {
     throw std::runtime_error(fullGpuPathLoopUnavailableReason());
 #endif
   }
+
+  GpuDiffusePathLoopResult MetalGpuDiffusePathLoopBackend::run(
+    const GpuTracingSceneSections& scene,
+    const GpuDiffusePrimaryPathStateGeneration& primaryPathGeneration,
+    const GpuDiffusePathLoopSettings& settings) const {
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    const GpuDiffusePathLoopBackendSupport support = fullGpuPathLoopSupport(scene, settings);
+    if (!support.supported) {
+      throw std::invalid_argument(support.reason);
+    }
+    const std::vector<GpuDiffusePathStateRecord>& initialPathStates =
+      primaryPathGeneration.pathStates;
+    const MetalAccumulationPlan accumulation = accumulationPlanFor(initialPathStates);
+    GpuDiffusePathLoopLaunchPlan plan = GpuDiffusePathLoopLaunchPlanner().plan(
+      scene, primaryPathGeneration, accumulation.layout, settings);
+    plan.parameters.accumulationTargetMode = accumulation.targetMode;
+    const MetalGpuDiffusePathLoopKernelResult metalResult =
+      MetalGpuDiffusePathLoopKernel().runMattePathLoop(plan, initialPathStates);
+    return makeLoopResult(initialPathStates, settings, metalResult);
+#else
+    (void)scene;
+    (void)primaryPathGeneration;
+    (void)settings;
+    throw std::runtime_error(fullGpuPathLoopUnavailableReason());
+#endif
+  }
 }

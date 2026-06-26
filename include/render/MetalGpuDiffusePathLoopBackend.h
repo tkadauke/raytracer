@@ -20,5 +20,9 @@ namespace render {
     run(const GpuTracingSceneSections& scene,
         const std::vector<GpuDiffusePathStateRecord>& initialPathStates,
         const GpuDiffusePathLoopSettings& settings = {}) const override;
+    [[nodiscard]] GpuDiffusePathLoopResult
+    run(const GpuTracingSceneSections& scene,
+        const GpuDiffusePrimaryPathStateGeneration& primaryPathGeneration,
+        const GpuDiffusePathLoopSettings& settings = {}) const override;
   };
 }

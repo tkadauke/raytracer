@@ -83,6 +83,10 @@ namespace {
     return Rayd(Vector4d(ray.origin), Vector3d(ray.direction));
   }
 
+  Vector3d vector3FromArray(const std::array<float, 4>& value) {
+    return Vector3d(value[0], value[1], value[2]);
+  }
+
   GpuIntersectionRay packRay(const Rayd& ray, std::uint32_t rayIndex, double minDistance,
                              double maxDistance) {
     return GpuIntersectionScenePacker().packRay(ray, rayIndex, minDistance, maxDistance,
@@ -155,6 +159,67 @@ namespace {
   Vector2d sample2D(const GpuDiffusePathStateRecord& pathState, std::uint32_t dimension) {
     return GpuSampleStream::sample2D(pathState.sampleSeed, pathState.pixelIndex,
                                      pathState.primarySampleIndex, dimension);
+  }
+
+  GpuDiffusePathStateRecord makePrimaryPathState(const Rayd& ray, std::uint32_t rayIndex,
+                                                 std::uint32_t pixelIndex,
+                                                 std::uint32_t primarySampleIndex,
+                                                 std::uint32_t sampleSeed, double timeSample) {
+    GpuDiffusePathStateRecord pathState = makeActiveGpuDiffusePathState();
+    pathState.ray = GpuIntersectionScenePacker().packRay(
+      ray, rayIndex, /*minDistance=*/0.0, std::numeric_limits<double>::infinity(), timeSample);
+    pathState.pixelIndex = pixelIndex;
+    pathState.primarySampleIndex = primarySampleIndex;
+    pathState.sampleSeed = sampleSeed;
+    return pathState;
+  }
+
+  void generatePinholePrimaryPathStates(const GpuPinholePrimaryPathDescriptor& descriptor,
+                                        GpuDiffusePrimaryPathStateGeneration& result) {
+    const Vector3d origin = vector3FromArray(descriptor.origin);
+    const Vector3d topLeft = vector3FromArray(descriptor.topLeft);
+    const Vector3d right = vector3FromArray(descriptor.right);
+    const Vector3d down = vector3FromArray(descriptor.down);
+    const std::uint64_t estimatedPathCount = static_cast<std::uint64_t>(descriptor.actualWidth) *
+                                             static_cast<std::uint64_t>(descriptor.actualHeight) *
+                                             static_cast<std::uint64_t>(descriptor.samplesPerPixel);
+    if (estimatedPathCount > std::numeric_limits<std::uint32_t>::max()) {
+      throw std::overflow_error("gpu diffuse primary path-state count exceeds GPU ray index range");
+    }
+    result.pathStates.reserve(static_cast<std::size_t>(estimatedPathCount));
+
+    for (std::uint32_t localY = 0; localY != descriptor.actualHeight; ++localY) {
+      const std::int32_t row = descriptor.actualTop + static_cast<std::int32_t>(localY);
+      for (std::uint32_t localX = 0; localX != descriptor.actualWidth; ++localX) {
+        const std::int32_t column = descriptor.actualLeft + static_cast<std::int32_t>(localX);
+        const std::uint32_t pixelIndex =
+          static_cast<std::uint32_t>(static_cast<std::uint64_t>(row - descriptor.requestedTop) *
+                                       static_cast<std::uint64_t>(descriptor.requestedWidth) +
+                                     static_cast<std::uint64_t>(column - descriptor.requestedLeft));
+        for (std::uint32_t sampleIndex = 0; sampleIndex != descriptor.samplesPerPixel;
+             ++sampleIndex) {
+          const Vector2d pixelSample =
+            GpuSampleStream::sample2D(descriptor.sampleSeed, pixelIndex, sampleIndex,
+                                      /*dimension=*/0u);
+          const double timeSample = GpuSampleStream::sample1D(
+            GpuSampleCoordinate{descriptor.sampleSeed, pixelIndex, sampleIndex,
+                                /*dimension=*/1u, /*component=*/0u});
+          const Vector3d pixelPoint = topLeft +
+                                      right * (static_cast<double>(column) + pixelSample.x()) +
+                                      down * (static_cast<double>(row) + pixelSample.y());
+          const Rayd ray(origin, (pixelPoint - origin).normalized());
+          if (!ray.direction().isDefined()) {
+            ++result.skippedPrimarySamples;
+            continue;
+          }
+
+          result.pathStates.push_back(
+            makePrimaryPathState(ray, static_cast<std::uint32_t>(result.pathStates.size()),
+                                 pixelIndex, sampleIndex, descriptor.sampleSeed, timeSample));
+          ++result.generatedPrimarySamples;
+        }
+      }
+    }
   }
 
   Colord environmentRecordColor(const GpuTracingSceneSections& scene, std::size_t index) {
@@ -769,6 +834,17 @@ GpuDiffusePrimaryPathStateGenerator::generate(const Camera& camera, const Recti&
     return result;
   }
 
+  result.primaryPathDescriptor = camera.gpuPrimaryPathDescriptor(rect, sampleSeed);
+  if (result.primaryPathDescriptor && result.primaryPathDescriptor->generatesOnDevice()) {
+    result.requestedRect = result.primaryPathDescriptor->requestedRect();
+    result.actualRect = result.primaryPathDescriptor->actualRect();
+    result.primaryPathExecutionPath = "gpu_pinhole_primary_descriptor";
+    if (result.primaryPathDescriptor->mode == gpuPrimaryPathGenerationModePinhole) {
+      generatePinholePrimaryPathStates(result.primaryPathDescriptor->pinhole, result);
+      return result;
+    }
+  }
+
   auto plane = camera.viewPlane();
   if (!plane) {
     return result;
@@ -795,7 +871,6 @@ GpuDiffusePrimaryPathStateGenerator::generate(const Camera& camera, const Recti&
   SampleStreamStorage sampleStreams;
   sampleStreams.reserve(estimatedPathCount);
   const auto primaryRayGenerator = camera.primaryRayGenerator();
-  const GpuIntersectionScenePacker packer;
 
   for (ViewPlane::Iterator pixel = plane->pixelBegin(result.actualRect),
                            end = plane->end(result.actualRect);
@@ -815,19 +890,18 @@ GpuDiffusePrimaryPathStateGenerator::generate(const Camera& camera, const Recti&
         continue;
       }
 
-      GpuDiffusePathStateRecord pathState = makeActiveGpuDiffusePathState();
-      pathState.ray = packer.packRay(
-        primarySample->ray, static_cast<std::uint32_t>(result.pathStates.size()),
-        /*minDistance=*/0.0, std::numeric_limits<double>::infinity(), primarySample->timeSample);
-      pathState.pixelIndex = pixelIndex;
-      pathState.primarySampleIndex = static_cast<std::uint32_t>(sampleIndex);
-      pathState.sampleSeed = sampleSeed;
-      result.pathStates.push_back(pathState);
+      result.pathStates.push_back(makePrimaryPathState(
+        primarySample->ray, static_cast<std::uint32_t>(result.pathStates.size()), pixelIndex,
+        static_cast<std::uint32_t>(sampleIndex), sampleSeed, primarySample->timeSample));
       ++result.generatedPrimarySamples;
     }
   }
 
   return result;
+}
+
+bool GpuDiffusePrimaryPathStateGeneration::canGeneratePrimaryPathsOnDevice() const {
+  return primaryPathDescriptor && primaryPathDescriptor->generatesOnDevice();
 }
 
 void GpuDiffusePathStepMetrics::merge(const GpuDiffusePathStepMetrics& source) {

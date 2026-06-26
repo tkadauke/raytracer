@@ -12,6 +12,7 @@
 #include "core/math/Ray.h"
 #include "core/Color.h"
 #include "core/MemoizedValue.h"
+#include "render/GpuPrimaryPathDescriptor.h"
 #include "render/viewplanes/ViewPlane.h"
 #include "render/samplers/SampleStream.h"
 #include "render/Object.h"
@@ -147,6 +148,17 @@ namespace render {
 
     std::uint64_t primaryRayPixelHash(const render::ViewPlane::Iterator& pixel,
                                       std::optional<std::uint64_t> tileSeed) const;
+
+    /**
+      * Return a shader-facing primary-path descriptor when this camera can
+      * lower its primary rays to platform code for the requested render rect.
+      *
+      * Cameras that consume unsupported stochastic dimensions or animated
+      * camera transforms return `std::nullopt`; callers then keep using the
+      * CPU primary-ray generator as the compatibility path.
+      */
+    virtual std::optional<GpuPrimaryPathDescriptor>
+    gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampleSeed) const;
 
     void setAnimationFrame(double frame);
     double animationFrame() const;

@@ -3,11 +3,12 @@
 #include "render/GpuDiffusePathStepReference.h"
 #include "render/TracingAccumulationLayout.h"
 
+#include <array>
 #include <cstdint>
 #include <vector>
 
 namespace render {
-  inline constexpr std::uint32_t gpuDiffusePathLoopLaunchLayoutVersion = 6u;
+  inline constexpr std::uint32_t gpuDiffusePathLoopLaunchLayoutVersion = 7u;
 
   struct alignas(16) GpuDiffusePathLoopLaunchParameters {
     std::uint32_t layoutVersion{gpuDiffusePathLoopLaunchLayoutVersion};
@@ -51,9 +52,25 @@ namespace render {
     std::uint32_t openCylinderCount{0};
     std::uint32_t torusCount{0};
     std::uint32_t transformCount{0};
+    std::uint32_t primaryPathGenerationMode{gpuPrimaryPathGenerationModeHostPathStates};
+    std::uint32_t primaryPathSamplesPerPixel{0};
+    std::uint32_t primaryPathSampleSeed{0};
+    std::uint32_t primaryPathRequestedWidth{0};
+    std::int32_t primaryPathRequestedLeft{0};
+    std::int32_t primaryPathRequestedTop{0};
+    std::uint32_t primaryPathRequestedHeight{0};
+    std::uint32_t primaryPathActualWidth{0};
+    std::int32_t primaryPathActualLeft{0};
+    std::int32_t primaryPathActualTop{0};
+    std::uint32_t primaryPathActualHeight{0};
     std::uint32_t reserved0{0};
     std::uint32_t reserved1{0};
     std::uint32_t reserved2{0};
+    std::uint32_t reserved3{0};
+    std::array<float, 4> primaryPathOrigin{};
+    std::array<float, 4> primaryPathTopLeft{};
+    std::array<float, 4> primaryPathRight{};
+    std::array<float, 4> primaryPathDown{};
   };
 
   struct GpuDiffusePathLoopLaunchBufferSizes {
@@ -72,6 +89,8 @@ namespace render {
     GpuDiffusePathLoopLaunchParameters parameters;
     GpuDiffusePathLoopLaunchBufferSizes buffers;
     std::vector<std::uint8_t> sceneUpload;
+
+    [[nodiscard]] bool generatesPrimaryPathsOnDevice() const;
   };
 
   class GpuDiffusePathLoopLaunchPlanner {
@@ -79,6 +98,11 @@ namespace render {
     [[nodiscard]] GpuDiffusePathLoopLaunchPlan
     plan(const GpuTracingSceneSections& scene,
          const std::vector<GpuDiffusePathStateRecord>& initialPathStates,
+         const TracingAccumulationLayout& accumulationLayout,
+         const GpuDiffusePathLoopSettings& settings) const;
+    [[nodiscard]] GpuDiffusePathLoopLaunchPlan
+    plan(const GpuTracingSceneSections& scene,
+         const GpuDiffusePrimaryPathStateGeneration& primaryPathGeneration,
          const TracingAccumulationLayout& accumulationLayout,
          const GpuDiffusePathLoopSettings& settings) const;
   };

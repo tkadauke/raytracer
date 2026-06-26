@@ -82,6 +82,12 @@ end state for GPU tracing.
   DirectionalLight, and RectangularAreaLight.
 - `render::GpuSampleStream` provides the CPU reference for deterministic
   GPU-style sampling dimensions with fixed-vector coverage.
+- Static `PinholeCamera` primary-ray generation can be represented by a
+  shader-facing GPU primary-path descriptor. The CPU reference generator uses
+  the same descriptor and `GpuSampleStream` dimensions for parity, while
+  Metal/Vulkan diffuse path-loop launches can skip uploading initial path-state
+  records and let the kernel synthesize primary path records from the
+  descriptor.
 - Supported diffuse path-tracing scenes can route GPU execution requests
   through the compiled diffuse path-loop path from the live render graph path.
   rendercli, Modeler preview, and the render dialog report whether that
@@ -122,7 +128,10 @@ end state for GPU tracing.
 
 ### Not Yet Available
 
-- Platform GPU-owned path state.
+- General platform GPU-owned path state. Static pinhole primary paths can now
+  be generated from a shader-facing descriptor, but non-pinhole cameras,
+  animated cameras, later path-continuation records, and retained frontier
+  ownership still need broader platform path-state support.
 - Platform GPU-side path/frontier compaction for scheduler-owned path records.
 - Broad platform full-GPU path-loop kernels for the normal render path. A
   restricted Metal path-loop kernel can advance empty-scene and
@@ -473,7 +482,9 @@ The graph should eventually distinguish at least these modes:
 
 4. **Hybrid resident frontiers**
    GPU owns ray frontiers and compaction, but CPU may still own shading and
-   path semantics.
+   path semantics. Static pinhole primary-path descriptors are the first
+   device-generated path-state input, but the mode still needs resident
+   continuation frontiers to avoid CPU-owned path-state materialization.
 
 5. **GPU shading subset**
    GPU evaluates a restricted material/light subset and returns accumulated

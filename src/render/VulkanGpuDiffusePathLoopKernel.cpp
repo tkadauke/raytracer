@@ -17,7 +17,7 @@
 
 namespace render {
   namespace {
-    static_assert(sizeof(GpuDiffusePathLoopLaunchParameters) == 176);
+    static_assert(sizeof(GpuDiffusePathLoopLaunchParameters) == 288);
     static_assert(alignof(GpuDiffusePathLoopLaunchParameters) == 16);
     static_assert(sizeof(GpuDiffusePathStateRecord) == 160);
     static_assert(alignof(GpuDiffusePathStateRecord) == 16);
@@ -185,7 +185,9 @@ namespace render {
         buffers.buffers.push_back(
           createStorageBufferFromBytes(device, selection.device, plan.sceneUpload));
         buffers.buffers.push_back(
-          createStorageBufferFromVector(device, selection.device, initialPathStates));
+          plan.generatesPrimaryPathsOnDevice()
+            ? createStorageBuffer(device, selection.device, 1u, nullptr)
+            : createStorageBufferFromVector(device, selection.device, initialPathStates));
         buffers.buffers.push_back(createStorageBuffer(
           device, selection.device, byteCount<GpuDiffusePathStateRecord>(initialPathStates.size()),
           nullptr));
