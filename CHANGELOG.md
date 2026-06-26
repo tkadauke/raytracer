@@ -38,6 +38,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   reason on the platform full-GPU backend, so rendercli, tests, and benchmarks
   report device or pipeline failures instead of a generic launch-path message.
   — GPT-5 Codex
+- Surface the actual full-GPU diffuse path-loop selection fallback reason in
+  graph trace metadata, distinguishing missing platform builds, unavailable
+  devices/kernels, unsupported scene subsets, and explicit CPU/hybrid backend
+  overrides. — GPT-5 Codex
 - Let static equirectangular path-tracer launches use GPU primary-path
   descriptors, so supported Metal/Vulkan path-loop renders can synthesize
   panorama primary paths on device. — GPT-5 Codex

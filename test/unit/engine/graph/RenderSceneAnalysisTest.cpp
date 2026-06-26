@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "engine/graph/RenderSceneAnalysis.h"
+#include "render/GpuDiffusePathLoopBackend.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/primitives/Rectangle.h"
 #include "render/primitives/Scene.h"
@@ -14,6 +15,13 @@ namespace RenderSceneAnalysisTest {
   std::shared_ptr<render::Material> matte(const Colord& color) {
     return std::make_shared<render::MatteMaterial>(
       std::make_shared<render::ConstantColorTexture>(color));
+  }
+
+  std::string defaultFullGpuPathLoopUnavailableReason() {
+    const std::shared_ptr<const render::GpuDiffusePathLoopBackend> backend =
+      render::GpuDiffusePathLoopBackend::defaultFullGpuBackendForGpuRequest();
+    return backend ? backend->fullGpuPathLoopUnavailableReason()
+                   : "platform full-GPU path-loop backend is not enabled in this build";
   }
 
   TEST(RenderSceneAnalysis, StartsAsKnownEmptyScene) {
@@ -167,10 +175,15 @@ namespace RenderSceneAnalysisTest {
 
     RenderSceneAnalysis analysis;
     analysis.setFullGpuTracingSupportFromScene(scene);
+    const std::shared_ptr<const render::GpuDiffusePathLoopBackend> fullGpuBackend =
+      render::GpuDiffusePathLoopBackend::defaultFullGpuBackendForGpuRequest();
+    if (fullGpuBackend && fullGpuBackend->fullGpuPathLoopAvailable()) {
+      GTEST_SKIP() << "platform full-GPU path-loop backend is available";
+    }
 
     EXPECT_TRUE(analysis.fullGpuTracingSupported());
     EXPECT_FALSE(analysis.fullGpuTracingBackendAvailable());
-    EXPECT_EQ("platform full-GPU path-loop kernel is not available yet",
+    EXPECT_EQ(defaultFullGpuPathLoopUnavailableReason(),
               analysis.fullGpuTracingBackendUnavailableReason());
   }
 }

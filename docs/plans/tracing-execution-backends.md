@@ -2694,6 +2694,10 @@ scene is large enough to amortize upload/readback costs.
      and a platform backend are both available; incompatible settings such as
      denoising, adaptive sampling, convergence, and non-GPU sample streams
      remain CPU/hybrid until those paths have platform support.
+     Execution metadata now preserves the full-GPU selection fallback reason,
+     so graph traces distinguish missing platform builds, unavailable
+     Metal/Vulkan devices or kernels, unsupported scene/settings subsets, and
+     explicit caller-selected CPU/hybrid backends.
 
 5. **Add parity and performance gates.**
    - Depends on: jobs 2, 3, and 4.

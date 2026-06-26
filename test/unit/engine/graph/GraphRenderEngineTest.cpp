@@ -112,6 +112,13 @@ namespace GraphRenderEngineTest {
       .toStdString();
   }
 
+  std::string defaultFullGpuPathLoopUnavailableReason() {
+    const std::shared_ptr<const render::GpuDiffusePathLoopBackend> backend =
+      render::GpuDiffusePathLoopBackend::defaultFullGpuBackendForGpuRequest();
+    return backend ? backend->fullGpuPathLoopUnavailableReason()
+                   : "platform full-GPU path-loop backend is not enabled in this build";
+  }
+
   RenderResourceDescriptor objectIdResource(const std::string& id, RenderResourceLifetime lifetime,
                                             int width = 2, int height = 2) {
     RenderResourceDescriptor objectId;
@@ -2395,10 +2402,12 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ("gpu", tracingExecution.value("requestedMode").toString().toStdString());
     EXPECT_EQ("hybrid", tracingExecution.value("predictedMode").toString().toStdString());
     EXPECT_EQ("cpu", tracingExecution.value("actualMode").toString().toStdString());
-    EXPECT_NE(std::string::npos, tracingExecution.value("actualFallbackReason")
-                                   .toString()
-                                   .toStdString()
-                                   .find("compiled CPU-reference diffuse path loop"));
+    const std::string actualFallbackReason =
+      tracingExecution.value("actualFallbackReason").toString().toStdString();
+    EXPECT_NE(std::string::npos,
+              actualFallbackReason.find("compiled CPU-reference diffuse path loop"));
+    EXPECT_NE(std::string::npos,
+              actualFallbackReason.find(defaultFullGpuPathLoopUnavailableReason()));
 
     const QJsonObject batching = metadata.value("batching").toObject();
     EXPECT_EQ("compiled_diffuse_path_loop",
@@ -2720,7 +2729,8 @@ namespace GraphRenderEngineTest {
     EXPECT_NE(std::string::npos, tracingExecution.value("actualFallbackReason")
                                    .toString()
                                    .toStdString()
-                                   .find("platform full-GPU path-loop kernel"));
+                                   .find("selected backend does not execute a full platform "
+                                         "GPU path-loop"));
 
     const QJsonObject batching = metadata.value("batching").toObject();
     EXPECT_EQ("compiled_cpu_reference",

@@ -131,7 +131,8 @@ namespace engine::graph {
     const bool backendAvailable = fullGpuBackend && fullGpuBackend->fullGpuPathLoopAvailable();
     setFullGpuTracingBackendAvailable(
       backendAvailable, fullGpuBackend ? fullGpuBackend->fullGpuPathLoopUnavailableReason()
-                                       : "platform full-GPU path-loop kernel is not available yet");
+                                       : "platform full-GPU path-loop backend is not enabled in "
+                                         "this build");
     if (support.supported && backendAvailable) {
       const render::GpuDiffusePathLoopBackendSupport backendSupport =
         fullGpuBackend->fullGpuPathLoopSupport(compilation.sections);

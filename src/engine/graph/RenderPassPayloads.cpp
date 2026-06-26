@@ -891,7 +891,15 @@ namespace engine::graph {
       return state.compiledDiffusePathLoopFallbackReason();
     }
 
-    std::shared_ptr<const render::GpuDiffusePathLoopBackend>
+    constexpr const char* kNoPlatformFullGpuPathLoopBackendReason =
+      "platform full-GPU path-loop backend is not enabled in this build";
+
+    struct GpuDiffusePathLoopBackendSelection {
+      std::shared_ptr<const render::GpuDiffusePathLoopBackend> backend;
+      std::string fullGpuFallbackReason;
+    };
+
+    GpuDiffusePathLoopBackendSelection
     selectGpuDiffusePathLoopBackend(const GraphRenderEngine& graph,
                                     const RaytracerBeautyPassState& state,
                                     const render::GpuTracingSceneSections& sections,
@@ -899,22 +907,44 @@ namespace engine::graph {
       const std::shared_ptr<const render::GpuDiffusePathLoopBackend> configuredBackend =
         graph.gpuDiffusePathLoopBackend();
       if (graph.hasGpuDiffusePathLoopBackendOverride()) {
-        return configuredBackend;
+        return {configuredBackend, {}};
       }
 
       if (requestedOrPredictedGpuTracing(state)) {
         const std::shared_ptr<const render::GpuDiffusePathLoopBackend> fullGpuBackend =
           render::GpuDiffusePathLoopBackend::defaultFullGpuBackendForGpuRequest();
-        if (fullGpuBackend && fullGpuBackend->fullGpuPathLoopAvailable()) {
+        if (!fullGpuBackend) {
+          return {configuredBackend, kNoPlatformFullGpuPathLoopBackendReason};
+        }
+        if (!fullGpuBackend->fullGpuPathLoopAvailable()) {
+          return {configuredBackend, fullGpuBackend->fullGpuPathLoopUnavailableReason()};
+        }
+        {
           const render::GpuDiffusePathLoopBackendSupport support =
             fullGpuBackend->fullGpuPathLoopSupport(sections, settings);
           if (support.supported) {
-            return fullGpuBackend;
+            return {fullGpuBackend, {}};
           }
+          return {configuredBackend, support.reason};
         }
       }
 
-      return configuredBackend;
+      return {configuredBackend, {}};
+    }
+
+    QString actualCompiledDiffusePathLoopFallbackReason(
+      const render::GpuDiffusePathLoopResult& loop,
+      const GpuDiffusePathLoopBackendSelection& selection) {
+      if (loop.fullGpuPathLoopSupported()) {
+        return {};
+      }
+      QString reason = QString::fromStdString(selection.fullGpuFallbackReason);
+      if (reason.isEmpty()) {
+        reason = QStringLiteral("selected backend does not execute a full platform GPU path-loop");
+      }
+      return QStringLiteral(
+               "GPU tracing request executed by compiled CPU-reference diffuse path loop; ") +
+             reason;
     }
 
     void packColorBuffer(const Buffer<Colord>& source, Buffer<unsigned int>& destination,
@@ -1117,8 +1147,10 @@ namespace engine::graph {
         settings.directLightSamples =
           static_cast<std::uint32_t>(std::max(1, state.directLightSamples().value_or(1)));
         settings.captureDiagnostics = context.graph().executionTraceEnabled();
-        const std::shared_ptr<const render::GpuDiffusePathLoopBackend> pathLoopBackend =
+        const GpuDiffusePathLoopBackendSelection pathLoopBackendSelection =
           selectGpuDiffusePathLoopBackend(context.graph(), state, compilation.sections, settings);
+        const std::shared_ptr<const render::GpuDiffusePathLoopBackend>& pathLoopBackend =
+          pathLoopBackendSelection.backend;
         if (!pathLoopBackend) {
           fallbackReason = "compiled diffuse path loop requires an execution backend";
           return false;
@@ -1154,10 +1186,7 @@ namespace engine::graph {
             ? QStringLiteral("gpu")
             : (frontierCompactionUsesGpu ? QStringLiteral("hybrid") : QStringLiteral("cpu"));
         const QString actualTracingFallback =
-          loop.fullGpuPathLoopSupported()
-            ? QString()
-            : QStringLiteral("GPU tracing request executed by compiled CPU-reference diffuse "
-                             "path loop; platform full-GPU path-loop kernel is not available yet");
+          actualCompiledDiffusePathLoopFallbackReason(loop, pathLoopBackendSelection);
         context.recordTraceMessage(
           "compiled diffuse path loop rendered " +
           std::to_string(generation.generatedPrimarySamples) +
