@@ -123,12 +123,15 @@ namespace render {
       return true;
     }
 
+    [[nodiscard]] bool supportedTexture(const GpuTracingSceneSections& scene,
+                                        std::size_t textureIndex, std::uint32_t depth = 0u);
+
     [[nodiscard]] bool supportedUntintedTexture(const GpuTracingSceneSections& scene,
-                                                std::size_t textureIndex) {
+                                                std::size_t textureIndex, std::uint32_t depth) {
       const GpuTracingTextureRecord& texture = scene.textures[textureIndex];
       const auto kind = static_cast<GpuTracingTextureKind>(texture.kind);
       if (kind == GpuTracingTextureKind::Unsupported) {
-        return textureIndex == 0u;
+        return textureIndex == 0u && depth == 0u;
       }
       if (kind == GpuTracingTextureKind::ConstantColor) {
         return true;
@@ -147,10 +150,8 @@ namespace render {
             texture.payloadCount >= scene.textures.size()) {
           return false;
         }
-        return static_cast<GpuTracingTextureKind>(scene.textures[texture.payloadOffset].kind) ==
-                 GpuTracingTextureKind::ConstantColor &&
-               static_cast<GpuTracingTextureKind>(scene.textures[texture.payloadCount].kind) ==
-                 GpuTracingTextureKind::ConstantColor;
+        return supportedTexture(scene, texture.payloadOffset, depth + 1u) &&
+               supportedTexture(scene, texture.payloadCount, depth + 1u);
       }
       if (kind == GpuTracingTextureKind::Image) {
         const auto mapping =
@@ -182,7 +183,7 @@ namespace render {
     }
 
     [[nodiscard]] bool supportedTexture(const GpuTracingSceneSections& scene,
-                                        std::size_t textureIndex, std::uint32_t depth = 0u) {
+                                        std::size_t textureIndex, std::uint32_t depth) {
       constexpr std::uint32_t maxTextureEvaluationDepth = 8u;
       if (depth >= maxTextureEvaluationDepth) {
         return false;
@@ -196,7 +197,7 @@ namespace render {
         return texture.payloadOffset < scene.textures.size() &&
                supportedTexture(scene, texture.payloadOffset, depth + 1u);
       }
-      return supportedUntintedTexture(scene, textureIndex);
+      return supportedUntintedTexture(scene, textureIndex, depth);
     }
 
     [[nodiscard]] bool supportedTextures(const GpuTracingSceneSections& scene) {
@@ -512,9 +513,10 @@ namespace render {
               "Reflective mirror, Transparent refraction, and Emissive materials only"};
     }
     if (!supportedTextures(scene)) {
-      return {false, "Vulkan diffuse path-loop backend currently supports ConstantColor, simple "
-                     "CheckerBoard, nearest/bilinear ImageTexture, UVColorTexture, and bounded "
-                     "Tinted wrapper chains over those textures only"};
+      return {false, "Vulkan diffuse path-loop backend currently supports ConstantColor, "
+                     "CheckerBoard texture graphs, nearest/bilinear ImageTexture, "
+                     "UVColorTexture, and bounded Tinted wrapper chains over those textures "
+                     "only"};
     }
     if (!supportedLights(scene)) {
       return {false, "Vulkan diffuse path-loop backend currently supports point, directional, or "

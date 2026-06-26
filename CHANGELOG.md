@@ -24,6 +24,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Allow bounded nested `TintedTexture` wrapper chains in the compiled
   full-GPU path-loop texture subset for Metal/Vulkan-backed path-tracer
   renders. — GPT-5 Codex
+- Allow compiled full-GPU path-loop CheckerBoard textures to select supported
+  child texture graphs instead of requiring ConstantColor children. —
+  GPT-5 Codex
 - Add a restricted Vulkan diffuse path-loop backend for empty-scene all-miss
   execution when Vulkan wavefront support is built and available, giving Linux
   builds the first platform-owned path-loop result contract. — GPT-5 Codex
