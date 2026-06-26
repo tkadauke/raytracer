@@ -2676,6 +2676,8 @@ scene is large enough to amortize upload/readback costs.
      dispatch now uses pipeline-derived threadgroup widths instead of one
      thread per threadgroup, moving the explicit full-GPU path tracer closer to
      the E15 performance gate without changing its supported-scene contract.
+     Graph background-color overrides now update the compiled visible-background
+     record before backend dispatch instead of forcing scalar fallback.
      Raster-only material normal maps no longer make those materials
      unsupported by the compiled path-loop subset; they remain ignored by path
      tracing, matching the scalar CPU integrator.

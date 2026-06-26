@@ -2608,6 +2608,51 @@ namespace GraphRenderEngineTest {
     EXPECT_TRUE(loop.value("fullPlatformGpuKernel").toBool());
   }
 
+  TEST(GraphRenderEngine, CompiledDiffusePathLoopHonorsBackgroundColorOverride) {
+    const Colord sceneBackground(0.125, 0.25, 0.5);
+    const Colord graphBackground(0.75, 0.125, 0.25);
+    auto scene = std::make_shared<render::Scene>();
+    scene->setBackground(sceneBackground);
+    scene->setEnvironmentRadiance(Colord::black());
+
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Wavefront;
+    intent.engineOptions.raytracer().setIntegrator("pathtracer");
+    intent.engineOptions.raytracer().setTracingExecution(TracingExecutionPreference::GPU);
+    intent.engineOptions.raytracer().setSamplesPerPixel(1);
+    intent.engineOptions.raytracer().setMaximumRecursionDepth(1);
+    intent.engineOptions.raytracer().setSampleStreamMode("gpu_sample_stream");
+
+    RenderSceneAnalysis analysis;
+    analysis.setFullGpuTracingSupportFromScene(*scene);
+    const RenderPlan plan = RenderGraphCompiler().compile({4, 4, 1}, intent, analysis);
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(plan);
+    engine.setBackgroundColor(graphBackground);
+    auto pathLoopBackend = std::make_shared<ReportingFullGpuDiffusePathLoopBackend>();
+    engine.setGpuDiffusePathLoopBackend(pathLoopBackend);
+
+    Buffer<Colord> buffer(4, 4);
+    engine.render(buffer);
+
+    EXPECT_TRUE(pathLoopBackend->hasLastPrimaryGeneration());
+    for (int y = 0; y != buffer.height(); ++y) {
+      for (int x = 0; x != buffer.width(); ++x) {
+        ASSERT_COLOR_NEAR(graphBackground, buffer[y][x], 1e-6);
+      }
+    }
+
+    const auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const RenderPassTrace* wavefront = trace->findPass("wavefront_beauty");
+    ASSERT_NE(nullptr, wavefront);
+    const QJsonObject tracingExecution = wavefront->metadata().value("tracingExecution").toObject();
+    EXPECT_EQ("gpu", tracingExecution.value("actualMode").toString().toStdString());
+    EXPECT_TRUE(tracingExecution.value("actualFallbackReason").toString().isEmpty());
+  }
+
   TEST(GraphRenderEngine, RequestsPlatformDisplayResolveForTraceDisabledLinearLdrPathLoop) {
     const Colord background(0.125, 0.25, 0.5);
     auto scene = std::make_shared<render::Scene>();

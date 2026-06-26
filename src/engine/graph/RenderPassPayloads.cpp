@@ -992,15 +992,23 @@ namespace engine::graph {
     }
 
     std::optional<std::string>
-    compiledDiffusePathLoopFallbackReason(const RaytracerBeautyPassState& state,
-                                          const GraphRenderEngine& graph) {
+    compiledDiffusePathLoopFallbackReason(const RaytracerBeautyPassState& state) {
       if (!requestedOrPredictedGpuTracing(state)) {
         return "compiled diffuse path loop requires requested or predicted GPU tracing execution";
       }
-      if (graph.hasBackgroundColorOverride()) {
-        return "compiled diffuse path loop cannot apply graph background-color overrides yet";
-      }
       return state.compiledDiffusePathLoopFallbackReason();
+    }
+
+    void applyGraphBackgroundColorOverride(render::GpuTracingSceneCompilation& compilation,
+                                           const GraphRenderEngine& graph) {
+      if (!graph.hasBackgroundColorOverride() || compilation.sections.environment.empty()) {
+        return;
+      }
+
+      const std::size_t visibleBackgroundRecord =
+        compilation.sections.environment.size() >= 3u ? 1u : 0u;
+      compilation.sections.environment[visibleBackgroundRecord] =
+        render::makeGpuTracingConstantEnvironment(graph.backgroundColor());
     }
 
     constexpr const char* kNoPlatformFullGpuPathLoopBackendReason =
@@ -1209,7 +1217,7 @@ namespace engine::graph {
           return false;
         }
 
-        if (const auto reason = compiledDiffusePathLoopFallbackReason(state, context.graph())) {
+        if (const auto reason = compiledDiffusePathLoopFallbackReason(state)) {
           fallbackReason = *reason;
           return false;
         }
@@ -1242,8 +1250,8 @@ namespace engine::graph {
           return false;
         }
 
-        const render::GpuTracingSceneCompilation compilation =
-          render::compileGpuTracingScene(*scene);
+        render::GpuTracingSceneCompilation compilation = render::compileGpuTracingScene(*scene);
+        applyGraphBackgroundColorOverride(compilation, context.graph());
         const render::GpuDiffusePathLoopSupport support =
           render::gpuDiffusePathLoopSupport(compilation, *scene);
         if (!support.supported) {
