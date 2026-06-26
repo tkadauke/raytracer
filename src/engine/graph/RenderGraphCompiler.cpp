@@ -118,9 +118,18 @@ namespace engine::graph {
       return sceneAnalysis.fullGpuTracingUnsupportedReason();
     }
 
+    bool passCanUseCompiledFullGpuTracing(const RenderPassNode& pass) {
+      if (pass.kind != RenderPassKind::Beauty || pass.executor != RenderExecutorKind::Wavefront) {
+        return false;
+      }
+      const RaytracerBeautyPassState state = RaytracerBeautyPassState::valueFromPass(pass);
+      return !state.compiledDiffusePathLoopFallbackReason();
+    }
+
     TracingExecutionDecision resolveTracingExecution(const RenderIntent& intent,
-                                                     RenderExecutorKind executor,
+                                                     const RenderPassNode& pass,
                                                      const RenderSceneAnalysis& sceneAnalysis) {
+      const RenderExecutorKind executor = pass.executor;
       TracingExecutionDecision decision;
       const auto requested = intent.engineOptions.raytracer().tracingExecution();
       const auto intersectionBackend = intent.engineOptions.raytracer().intersectionBackend();
@@ -196,6 +205,10 @@ namespace engine::graph {
         } else {
           decision.predicted = TracingExecutionPreference::CPU;
         }
+      } else if (passCanUseCompiledFullGpuTracing(pass) && canUseFullGpuTracing(sceneAnalysis)) {
+        decision.predicted = TracingExecutionPreference::GPU;
+        decision.intersectionBackend = render::WavefrontIntersectionBackendChoice::gpu();
+        decision.overrideIntersectionBackend = true;
       } else {
         decision.predicted = TracingExecutionPreference::CPU;
       }
@@ -219,6 +232,11 @@ namespace engine::graph {
       if (!decision.fallbackReason.empty()) {
         pass.features.push_back("tracing_execution_fallback");
       }
+    }
+
+    void applyTracingExecutionDecision(RenderPassNode& pass, const RenderIntent& intent,
+                                       const RenderSceneAnalysis& sceneAnalysis) {
+      applyTracingExecutionDecision(pass, resolveTracingExecution(intent, pass, sceneAnalysis));
     }
 
     RenderPassNode aovProducerPass(const RenderAOVDefinition& aov, RenderExecutorKind executor,
@@ -253,8 +271,7 @@ namespace engine::graph {
         intent.engineOptions.raytracer().beautyPassState().writeTo(pass);
       }
       aov.configureProducerPass(pass);
-      applyTracingExecutionDecision(pass,
-                                    resolveTracingExecution(intent, pass.executor, sceneAnalysis));
+      applyTracingExecutionDecision(pass, intent, sceneAnalysis);
       return pass;
     }
   }
@@ -296,8 +313,7 @@ namespace engine::graph {
     pass.concurrency = RenderConcurrencyLimit::serial();
     pass.canRunConcurrently = pass.concurrency.allowsParallelExecution();
     executorDefinition.configureBeautyPassState(pass, target.sampleCount, intent);
-    applyTracingExecutionDecision(pass,
-                                  resolveTracingExecution(intent, pass.executor, sceneAnalysis));
+    applyTracingExecutionDecision(pass, intent, sceneAnalysis);
     return pass;
   }
 

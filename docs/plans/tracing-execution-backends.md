@@ -2597,9 +2597,9 @@ scene is large enough to amortize upload/readback costs.
      the E15 performance gate without changing its supported-scene contract.
      Broader
      primitive traversal, full material shading, full direct-light coverage,
-     device-side compacted wavefront scheduling, Vulkan parity, performance
-     gates, and render-graph auto-selection still need to land before it can be
-     used as the automatic full GPU tracing path.
+     device-side compacted wavefront scheduling, Vulkan parity, and performance
+     gates still need to land before it can be called a general full GPU
+     tracing path.
 
 3. **Add a minimal Vulkan path-loop kernel.**
    - Depends on: job 1.
@@ -2631,13 +2631,16 @@ scene is large enough to amortize upload/readback costs.
 4. **Wire graph auto-selection to platform backend availability.**
    - Depends on: jobs 2 and 3.
    - Output: `auto` can select full GPU only when scene support, platform
-     backend availability, benchmark policy, and render-path capability all
-     pass; explicit GPU still reports precise fallback reasons. ✅ **Started.**
+     backend availability, and render-path capability all pass; explicit GPU
+     still reports precise fallback reasons. ✅ **Started.**
      Explicit GPU graph requests now ask the platform full-GPU backend hook for
      a scene/settings-supported backend and prefer it over the diagnostic
      CPU-reference backend when available. Caller-injected test backends still
-     win, and `auto` deliberately stays on CPU/hybrid until Vulkan parity,
-     broader scene support, and performance policy gates are in place.
+     win. Eligible automatic path-tracer beauty passes now also predict full
+     GPU execution when the scene analysis proves the compiled full-GPU subset
+     and a platform backend are both available; incompatible settings such as
+     denoising, adaptive sampling, convergence, and non-GPU sample streams
+     remain CPU/hybrid until those paths have platform support.
 
 5. **Add parity and performance gates.**
    - Depends on: jobs 2, 3, and 4.

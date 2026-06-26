@@ -336,6 +336,29 @@ namespace engine::graph {
     return toJson().isEmpty();
   }
 
+  std::optional<std::string>
+  RaytracerBeautyPassState::compiledDiffusePathLoopFallbackReason() const {
+    if (integrator().value_or("whitted") != "pathtracer") {
+      return "compiled diffuse path loop currently supports only the pathtracer integrator";
+    }
+    if (sampleStreamMode() && *sampleStreamMode() != "gpu_sample_stream") {
+      return "compiled diffuse path loop requires the GPU sample stream";
+    }
+    if (convergenceEnabled().value_or(false)) {
+      return "compiled diffuse path loop does not support wavefront convergence yet";
+    }
+    if (adaptiveSamplingEnabled().value_or(false)) {
+      return "compiled diffuse path loop does not support adaptive sampling yet";
+    }
+    if (denoiser() && *denoiser() != "none") {
+      return "compiled diffuse path loop does not support denoising yet";
+    }
+    if (denoiseRadius() || denoiseColorSigma()) {
+      return "compiled diffuse path loop does not support denoising yet";
+    }
+    return std::nullopt;
+  }
+
   void RaytracerBeautyPassState::applyTo(Raytracer& raytracer) const {
     if (auto integrator = createIntegratorForPass())
       raytracer.setIntegrator(std::move(integrator));
@@ -428,15 +451,14 @@ namespace engine::graph {
 
   void RaytracerBeautyPassState::setTracingBackend(std::string backend) {
     try {
-      m_tracingBackend =
-        render::WavefrontIntersectionBackendChoice::fromString(std::move(backend));
+      m_tracingBackend = render::WavefrontIntersectionBackendChoice::fromString(std::move(backend));
     } catch (const std::invalid_argument&) {
       stateError("parameters.execution.tracingBackend", "expected auto, cpu, or gpu");
     }
   }
 
-  void RaytracerBeautyPassState::setTracingBackend(
-    render::WavefrontIntersectionBackendChoice backend) {
+  void
+  RaytracerBeautyPassState::setTracingBackend(render::WavefrontIntersectionBackendChoice backend) {
     m_tracingBackend = backend;
   }
 

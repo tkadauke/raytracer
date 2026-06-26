@@ -174,6 +174,33 @@ namespace RaytracerPassStateTest {
     }
   }
 
+  TEST(RaytracerBeautyPassState, ReportsCompiledDiffusePathLoopCompatibilityReason) {
+    RaytracerBeautyPassState compatible;
+    compatible.setIntegrator("pathtracer");
+    compatible.setSampleStreamMode("gpu_sample_stream");
+    EXPECT_FALSE(compatible.compiledDiffusePathLoopFallbackReason());
+
+    RaytracerBeautyPassState whitted;
+    whitted.setIntegrator("whitted");
+    ASSERT_TRUE(whitted.compiledDiffusePathLoopFallbackReason());
+    EXPECT_EQ("compiled diffuse path loop currently supports only the pathtracer integrator",
+              *whitted.compiledDiffusePathLoopFallbackReason());
+
+    RaytracerBeautyPassState samplerStream;
+    samplerStream.setIntegrator("pathtracer");
+    samplerStream.setSampleStreamMode("sampler");
+    ASSERT_TRUE(samplerStream.compiledDiffusePathLoopFallbackReason());
+    EXPECT_EQ("compiled diffuse path loop requires the GPU sample stream",
+              *samplerStream.compiledDiffusePathLoopFallbackReason());
+
+    RaytracerBeautyPassState denoised;
+    denoised.setIntegrator("pathtracer");
+    denoised.setDenoiser("box");
+    ASSERT_TRUE(denoised.compiledDiffusePathLoopFallbackReason());
+    EXPECT_EQ("compiled diffuse path loop does not support denoising yet",
+              *denoised.compiledDiffusePathLoopFallbackReason());
+  }
+
   TEST(RaytracerBeautyPassState, NormalizesSampleStreamModeDiagnostics) {
     RaytracerBeautyPassState state;
     state.setSampleStreamMode("gpu-sample-stream");

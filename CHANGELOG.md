@@ -11,9 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
-- Route explicit GPU diffuse path-loop requests through an available
-  scene-supported platform full-GPU backend, while keeping automatic selection
-  on CPU/hybrid until parity and performance gates pass. — GPT-5 Codex
+- Route explicit GPU diffuse path-loop requests, and eligible automatic
+  path-tracer renders, through an available scene-supported platform full-GPU
+  backend while retaining CPU/hybrid fallback for incompatible pass settings.
+  — GPT-5 Codex
 - Add a restricted Vulkan diffuse path-loop backend for empty-scene all-miss
   execution when Vulkan wavefront support is built and available, giving Linux
   builds the first platform-owned path-loop result contract. — GPT-5 Codex

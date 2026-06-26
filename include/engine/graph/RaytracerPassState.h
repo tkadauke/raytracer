@@ -48,6 +48,7 @@ namespace engine::graph {
     const RaytracerBeautyPassState* asRaytracerBeautyPassState() const override;
     QJsonObject toJson() const override;
     bool empty() const;
+    std::optional<std::string> compiledDiffusePathLoopFallbackReason() const;
     void applyTo(Raytracer& raytracer) const;
     void applyTo(WavefrontRaytracer& wavefront) const;
 

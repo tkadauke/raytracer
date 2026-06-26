@@ -882,28 +882,10 @@ namespace engine::graph {
       if (!requestedOrPredictedGpuTracing(state)) {
         return "compiled diffuse path loop requires requested or predicted GPU tracing execution";
       }
-      if (state.integrator().value_or("whitted") != "pathtracer") {
-        return "compiled diffuse path loop currently supports only the pathtracer integrator";
-      }
       if (graph.hasBackgroundColorOverride()) {
         return "compiled diffuse path loop cannot apply graph background-color overrides yet";
       }
-      if (state.sampleStreamMode() && *state.sampleStreamMode() != "gpu_sample_stream") {
-        return "compiled diffuse path loop requires the GPU sample stream";
-      }
-      if (state.convergenceEnabled().value_or(false)) {
-        return "compiled diffuse path loop does not support wavefront convergence yet";
-      }
-      if (state.adaptiveSamplingEnabled().value_or(false)) {
-        return "compiled diffuse path loop does not support adaptive sampling yet";
-      }
-      if (state.denoiser() && *state.denoiser() != "none") {
-        return "compiled diffuse path loop does not support denoising yet";
-      }
-      if (state.denoiseRadius() || state.denoiseColorSigma()) {
-        return "compiled diffuse path loop does not support denoising yet";
-      }
-      return std::nullopt;
+      return state.compiledDiffusePathLoopFallbackReason();
     }
 
     std::shared_ptr<const render::GpuDiffusePathLoopBackend>
