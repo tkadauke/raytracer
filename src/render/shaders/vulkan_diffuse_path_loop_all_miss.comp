@@ -23,6 +23,7 @@ const uint gpuTracingPlanarTextureMappingKind = 1u;
 const uint gpuTracingUvTextureMappingKind = 2u;
 const uint gpuTracingTextureMappingMask = 0xffu;
 const uint gpuTracingTextureWrapClampFlag = 256u;
+const uint gpuTracingTextureFilterBilinearFlag = 512u;
 const uint gpuTracingPointLightKind = 1u;
 const uint gpuTracingDirectionalLightKind = 2u;
 const uint gpuTracingRectangularAreaLightKind = 3u;
@@ -1391,14 +1392,27 @@ float normalizedTextureCoordinate(GpuTracingTextureRecord texture, float coordin
   return coordinate - floor(coordinate);
 }
 
+int imageTextureWrappedCoordinate(GpuTracingTextureRecord texture, int coordinate, int size) {
+  if ((texture.flags & gpuTracingTextureWrapClampFlag) != 0u) {
+    return clamp(coordinate, 0, size - 1);
+  }
+  int wrapped = coordinate % size;
+  return wrapped < 0 ? wrapped + size : wrapped;
+}
+
 int imageTextureCoordinate(GpuTracingTextureRecord texture, float coordinate, int size) {
   const int result = int(floor(normalizedTextureCoordinate(texture, coordinate) *
                                float(size)));
-  if ((texture.flags & gpuTracingTextureWrapClampFlag) != 0u) {
-    return clamp(result, 0, size - 1);
-  }
-  int wrapped = result % size;
-  return wrapped < 0 ? wrapped + size : wrapped;
+  return imageTextureWrappedCoordinate(texture, result, size);
+}
+
+bool imageTextureTexelColor(GpuTracingTextureRecord texture,
+                            int x,
+                            int y,
+                            int width,
+                            out vec4 color) {
+  const uint texelTextureId = texture.payloadOffset + uint(y * width + x);
+  return constantTextureColor(texelTextureId, color);
 }
 
 bool untintedTextureColor(uint textureId, GpuIntersectionHitRecord hit, out vec4 color) {
@@ -1435,10 +1449,45 @@ bool untintedTextureColor(uint textureId, GpuIntersectionHitRecord hit, out vec4
       return false;
     }
     const vec2 st = textureCoordinates(texture, hit);
+    if ((texture.flags & gpuTracingTextureFilterBilinearFlag) != 0u) {
+      const float x = normalizedTextureCoordinate(texture, st.x) * float(width) - 0.5;
+      const float y = normalizedTextureCoordinate(texture, st.y) * float(height) - 0.5;
+      const int x0 = int(floor(x));
+      const int y0 = int(floor(y));
+      const float tx = x - float(x0);
+      const float ty = y - float(y0);
+      vec4 c00;
+      vec4 c10;
+      vec4 c01;
+      vec4 c11;
+      if (!imageTextureTexelColor(texture,
+                                  imageTextureWrappedCoordinate(texture, x0, width),
+                                  imageTextureWrappedCoordinate(texture, y0, height),
+                                  width,
+                                  c00) ||
+          !imageTextureTexelColor(texture,
+                                  imageTextureWrappedCoordinate(texture, x0 + 1, width),
+                                  imageTextureWrappedCoordinate(texture, y0, height),
+                                  width,
+                                  c10) ||
+          !imageTextureTexelColor(texture,
+                                  imageTextureWrappedCoordinate(texture, x0, width),
+                                  imageTextureWrappedCoordinate(texture, y0 + 1, height),
+                                  width,
+                                  c01) ||
+          !imageTextureTexelColor(texture,
+                                  imageTextureWrappedCoordinate(texture, x0 + 1, width),
+                                  imageTextureWrappedCoordinate(texture, y0 + 1, height),
+                                  width,
+                                  c11)) {
+        return false;
+      }
+      color = mix(mix(c00, c10, tx), mix(c01, c11, tx), ty);
+      return true;
+    }
     const int x = imageTextureCoordinate(texture, st.x, width);
     const int y = imageTextureCoordinate(texture, st.y, height);
-    const uint texelTextureId = texture.payloadOffset + uint(y * width + x);
-    return constantTextureColor(texelTextureId, color);
+    return imageTextureTexelColor(texture, x, y, width, color);
   }
   return false;
 }

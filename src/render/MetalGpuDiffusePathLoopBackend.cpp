@@ -446,8 +446,8 @@ namespace render {
     }
     if (!supportedTextures(scene)) {
       return {false, "Metal diffuse path-loop backend currently supports ConstantColor, simple "
-                     "CheckerBoard, nearest ImageTexture, and Tinted wrappers over those textures "
-                     "only"};
+                     "CheckerBoard, nearest/bilinear ImageTexture, and Tinted wrappers over "
+                     "those textures only"};
     }
     if (!supportedLights(scene)) {
       return {false, "Metal diffuse path-loop backend currently supports point, directional, and "

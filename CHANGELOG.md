@@ -15,6 +15,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   path-tracer renders, through an available scene-supported platform full-GPU
   backend while retaining CPU/hybrid fallback for incompatible pass settings.
   — GPT-5 Codex
+- Extend compiled full-GPU path-loop image textures from nearest-only sampling
+  to bilinear filtering, with mipmapped image textures using the same base-level
+  bilinear behavior as ray/path-tracer texture evaluation. — GPT-5 Codex
 - Add a restricted Vulkan diffuse path-loop backend for empty-scene all-miss
   execution when Vulkan wavefront support is built and available, giving Linux
   builds the first platform-owned path-loop result contract. — GPT-5 Codex

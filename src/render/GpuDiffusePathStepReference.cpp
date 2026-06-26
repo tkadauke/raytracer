@@ -175,17 +175,37 @@ namespace {
     return coordinate - std::floor(coordinate);
   }
 
-  int imageTextureCoordinate(const GpuTracingTextureRecord& texture, double coordinate, int size) {
-    const int result =
-      static_cast<int>(std::floor(normalizedTextureCoordinate(texture, coordinate) * size));
+  int imageTextureWrappedCoordinate(const GpuTracingTextureRecord& texture, int coordinate,
+                                    int size) {
     if ((texture.flags & gpuTracingTextureWrapClampFlag) != 0u) {
-      return std::clamp(result, 0, size - 1);
+      return std::clamp(coordinate, 0, size - 1);
     }
-    int wrapped = result % size;
+    int wrapped = coordinate % size;
     if (wrapped < 0) {
       wrapped += size;
     }
     return wrapped;
+  }
+
+  int imageTextureCoordinate(const GpuTracingTextureRecord& texture, double coordinate, int size) {
+    const int result =
+      static_cast<int>(std::floor(normalizedTextureCoordinate(texture, coordinate) * size));
+    return imageTextureWrappedCoordinate(texture, result, size);
+  }
+
+  Colord lerpColor(const Colord& a, const Colord& b, double t) {
+    return a * (1.0 - t) + b * t;
+  }
+
+  Colord textureColor(const GpuTracingSceneSections& scene, std::uint32_t textureId,
+                      const GpuIntersectionHitRecord& hit, std::uint32_t depth);
+
+  Colord imageTextureTexelColor(const GpuTracingSceneSections& scene,
+                                const GpuTracingTextureRecord& texture, int x, int y, int width,
+                                const GpuIntersectionHitRecord& hit, std::uint32_t depth) {
+    const std::uint32_t texelTexture =
+      texture.payloadOffset + static_cast<std::uint32_t>(y * width + x);
+    return textureColor(scene, texelTexture, hit, depth + 1);
   }
 
   Colord textureColor(const GpuTracingSceneSections& scene, std::uint32_t textureId,
@@ -232,11 +252,32 @@ namespace {
         return Colord::black();
       }
       const Vector2d st = textureCoordinates(texture, hit);
+      if ((texture.flags & gpuTracingTextureFilterBilinearFlag) != 0u) {
+        const double x = normalizedTextureCoordinate(texture, st.x()) * width - 0.5;
+        const double y = normalizedTextureCoordinate(texture, st.y()) * height - 0.5;
+        const int x0 = static_cast<int>(std::floor(x));
+        const int y0 = static_cast<int>(std::floor(y));
+        const double tx = x - x0;
+        const double ty = y - y0;
+
+        const Colord c00 = imageTextureTexelColor(
+          scene, texture, imageTextureWrappedCoordinate(texture, x0, width),
+          imageTextureWrappedCoordinate(texture, y0, height), width, hit, depth);
+        const Colord c10 = imageTextureTexelColor(
+          scene, texture, imageTextureWrappedCoordinate(texture, x0 + 1, width),
+          imageTextureWrappedCoordinate(texture, y0, height), width, hit, depth);
+        const Colord c01 = imageTextureTexelColor(
+          scene, texture, imageTextureWrappedCoordinate(texture, x0, width),
+          imageTextureWrappedCoordinate(texture, y0 + 1, height), width, hit, depth);
+        const Colord c11 = imageTextureTexelColor(
+          scene, texture, imageTextureWrappedCoordinate(texture, x0 + 1, width),
+          imageTextureWrappedCoordinate(texture, y0 + 1, height), width, hit, depth);
+
+        return lerpColor(lerpColor(c00, c10, tx), lerpColor(c01, c11, tx), ty);
+      }
       const int x = imageTextureCoordinate(texture, st.x(), width);
       const int y = imageTextureCoordinate(texture, st.y(), height);
-      const std::uint32_t texelTexture =
-        texture.payloadOffset + static_cast<std::uint32_t>(y * width + x);
-      return textureColor(scene, texelTexture, hit, depth + 1);
+      return imageTextureTexelColor(scene, texture, x, y, width, hit, depth);
     }
 
     return Colord::black();

@@ -51,6 +51,7 @@ namespace render {
   enum class GpuTracingTextureMappingKind : std::uint32_t { None = 0, Planar = 1, UV = 2 };
   inline constexpr std::uint32_t gpuTracingTextureMappingMask = 0xffu;
   inline constexpr std::uint32_t gpuTracingTextureWrapClampFlag = 1u << 8u;
+  inline constexpr std::uint32_t gpuTracingTextureFilterBilinearFlag = 1u << 9u;
 
   enum class GpuTracingLightKind : std::uint32_t {
     Unsupported = 0,

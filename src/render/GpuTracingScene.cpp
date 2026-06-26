@@ -583,11 +583,6 @@ makeGpuTracingTextureRecordWithResources(const Texturec& texture,
   }
 
   if (const auto* image = dynamic_cast<const ImageTexture*>(&texture)) {
-    if (image->filter() != ImageTextureFilter::Nearest) {
-      setUnsupportedReason(unsupportedReason,
-                           "image texture filter is not supported by GPU tracing scene compiler");
-      return std::nullopt;
-    }
     if (image->pixels().size() > std::numeric_limits<std::uint32_t>::max()) {
       setUnsupportedReason(unsupportedReason,
                            "image texture is too large for GPU tracing scene compiler");
@@ -607,6 +602,10 @@ makeGpuTracingTextureRecordWithResources(const Texturec& texture,
     record.flags = *flags;
     if (image->wrap() == ImageTextureWrap::Clamp) {
       record.flags |= gpuTracingTextureWrapClampFlag;
+    }
+    if (image->filter() == ImageTextureFilter::Bilinear ||
+        image->filter() == ImageTextureFilter::Mipmap) {
+      record.flags |= gpuTracingTextureFilterBilinearFlag;
     }
     packTextureMappingParameters(mapping, record);
     record.parameters[2] = static_cast<float>(image->width());

@@ -403,6 +403,42 @@ namespace GpuTracingSceneTest {
     expectFloat4(compilation.textures.records[5].parameters, 1.0f, 1.0f, 1.0f, 1.0f);
   }
 
+  TEST(GpuTracingScene, CompilesFilteredImageTextureRecordsWithFilterFlag) {
+    std::vector<Colord> pixels{Colord::red(), Colord::green(), Colord::blue(), Colord::white()};
+
+    auto bilinearImage = std::make_shared<ImageTexture>(
+      new UVMapping2D, 2, 2, pixels, ImageTextureFilter::Bilinear, ImageTextureWrap::Repeat);
+    auto mipmapImage = std::make_shared<ImageTexture>(
+      new UVMapping2D, 2, 2, pixels, ImageTextureFilter::Mipmap, ImageTextureWrap::Clamp);
+    auto bilinearMatte = std::make_shared<MatteMaterial>(bilinearImage);
+    auto mipmapMatte = std::make_shared<MatteMaterial>(mipmapImage);
+    auto bilinearSphere = std::make_shared<Sphere>(Vector3d(-1.0, 0.0, 0.0), 0.5);
+    bilinearSphere->setMaterial(bilinearMatte);
+    auto mipmapSphere = std::make_shared<Sphere>(Vector3d(1.0, 0.0, 0.0), 0.5);
+    mipmapSphere->setMaterial(mipmapMatte);
+
+    Scene scene;
+    scene.add(bilinearSphere);
+    scene.add(mipmapSphere);
+
+    const CompiledIntersectionScene intersection = IntersectionSceneCompiler().compile(scene);
+    const GpuTracingMaterialCompilation compilation = compileGpuTracingMaterials(intersection);
+
+    EXPECT_TRUE(compilation.supported());
+    ASSERT_EQ(3u, compilation.records.size());
+    ASSERT_EQ(11u, compilation.textures.records.size());
+    const GpuTracingTextureRecord& bilinear = compilation.textures.records[1];
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingTextureKind::Image), bilinear.kind);
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingTextureMappingKind::UV) |
+                gpuTracingTextureFilterBilinearFlag,
+              bilinear.flags);
+    const GpuTracingTextureRecord& mipmap = compilation.textures.records[6];
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingTextureKind::Image), mipmap.kind);
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingTextureMappingKind::UV) |
+                gpuTracingTextureWrapClampFlag | gpuTracingTextureFilterBilinearFlag,
+              mipmap.flags);
+  }
+
   TEST(GpuTracingScene, CompilesTintedTextureRecordsWithChildTextureId) {
     auto childTexture = std::make_shared<ConstantColorTexture>(Colord(0.25, 0.5, 0.75));
     auto tintedTexture = std::make_shared<TintedTexture>(childTexture, Colord(0.5, 0.25, 0.125));
