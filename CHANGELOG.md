@@ -255,6 +255,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Dispatch Metal/Vulkan full-GPU diffuse path-loop kernels by launch-descriptor
+  path count when primary paths are generated on device, so trace-disabled
+  descriptor-only pinhole launches no longer depend on an uploaded host
+  path-state vector. — GPT-5 Codex
 - Evaluate compiled checker/image/UV/tinted texture graphs in GPU direct-light
   CPU-reference contribution records, with UVs carried in the surface work
   payload, so diagnostics and fallbacks match the compiled path-loop texture

@@ -42,7 +42,10 @@ namespace render {
       if (plan.parameters.maxDepth == 0u) {
         throw std::invalid_argument("Vulkan diffuse path-loop requires positive max depth");
       }
-      if (initialPathStates.size() != plan.parameters.initialPathCount) {
+      const std::size_t launchPathCount =
+        static_cast<std::size_t>(plan.parameters.initialPathCount);
+      if (initialPathStates.size() != launchPathCount &&
+          (!plan.generatesPrimaryPathsOnDevice() || !initialPathStates.empty())) {
         throw std::invalid_argument(
           "Vulkan diffuse path-loop initial path-state count does not match launch descriptor");
       }
@@ -157,6 +160,8 @@ namespace render {
       runAllMissPathLoop(const GpuDiffusePathLoopLaunchPlan& plan,
                          const std::vector<GpuDiffusePathStateRecord>& initialPathStates) const {
         validatePathLoopPlan(plan, initialPathStates);
+        const std::size_t launchPathCount =
+          static_cast<std::size_t>(plan.parameters.initialPathCount);
 
         const auto uploadStart = std::chrono::steady_clock::now();
         VkInstance instance = createInstance();
@@ -188,17 +193,17 @@ namespace render {
           plan.generatesPrimaryPathsOnDevice()
             ? createStorageBuffer(device, selection.device, 1u, nullptr)
             : createStorageBufferFromVector(device, selection.device, initialPathStates));
-        buffers.buffers.push_back(createStorageBuffer(
-          device, selection.device, byteCount<GpuDiffusePathStateRecord>(initialPathStates.size()),
-          nullptr));
-        buffers.buffers.push_back(createStorageBuffer(
-          device, selection.device, byteCount<GpuDiffusePathStateRecord>(initialPathStates.size()),
-          nullptr));
+        buffers.buffers.push_back(
+          createStorageBuffer(device, selection.device,
+                              byteCount<GpuDiffusePathStateRecord>(launchPathCount), nullptr));
+        buffers.buffers.push_back(
+          createStorageBuffer(device, selection.device,
+                              byteCount<GpuDiffusePathStateRecord>(launchPathCount), nullptr));
         std::vector<std::uint8_t> stepRecordBytes(
           static_cast<std::size_t>(plan.buffers.stepRecordBytes), 0u);
         buffers.buffers.push_back(
           createStorageBufferFromBytes(device, selection.device, stepRecordBytes));
-        std::vector<std::uint32_t> retainedIndices(initialPathStates.size() + 1u, 0u);
+        std::vector<std::uint32_t> retainedIndices(launchPathCount + 1u, 0u);
         buffers.buffers.push_back(
           createStorageBufferFromVector(device, selection.device, retainedIndices));
         std::vector<std::uint8_t> accumulationBytes(
@@ -244,9 +249,8 @@ namespace render {
         commandPoolGuard.pool = commandPool;
 
         VkCommandBuffer commandBuffer = allocateCommandBuffer(device, commandPool);
-        recordDispatch(
-          commandBuffer, pipeline, pipelineLayout, descriptorSet,
-          static_cast<std::uint32_t>(std::max<std::size_t>(1u, initialPathStates.size())));
+        recordDispatch(commandBuffer, pipeline, pipelineLayout, descriptorSet,
+                       static_cast<std::uint32_t>(std::max<std::size_t>(1u, launchPathCount)));
         const auto uploadEnd = std::chrono::steady_clock::now();
 
         const auto kernelStart = std::chrono::steady_clock::now();
@@ -265,14 +269,14 @@ namespace render {
         if (plan.parameters.captureDiagnostics != 0u) {
           result.resolvedPathStates = readBackRecords<GpuDiffusePathStateRecord>(
             device, buffers.buffers[4].memory,
-            byteCount<GpuDiffusePathStateRecord>(initialPathStates.size()),
-            initialPathStates.size(), "Vulkan diffuse path-loop active path-state output mapping");
+            byteCount<GpuDiffusePathStateRecord>(launchPathCount), launchPathCount,
+            "Vulkan diffuse path-loop active path-state output mapping");
           result.nextPathStates = readBackRecords<GpuDiffusePathStateRecord>(
             device, buffers.buffers[5].memory,
-            byteCount<GpuDiffusePathStateRecord>(initialPathStates.size()),
-            initialPathStates.size(), "Vulkan diffuse path-loop next path-state output mapping");
+            byteCount<GpuDiffusePathStateRecord>(launchPathCount), launchPathCount,
+            "Vulkan diffuse path-loop next path-state output mapping");
           const std::size_t rawStepCount =
-            initialPathStates.size() * static_cast<std::size_t>(plan.parameters.maxDepth);
+            launchPathCount * static_cast<std::size_t>(plan.parameters.maxDepth);
           const std::vector<GpuDiffusePathStepRecord> rawStepRecords =
             readBackRecords<GpuDiffusePathStepRecord>(
               device, buffers.buffers[6].memory, byteCount<GpuDiffusePathStepRecord>(rawStepCount),
@@ -288,7 +292,7 @@ namespace render {
             device, buffers.buffers[7].memory, byteCount<std::uint32_t>(retainedIndices.size()),
             retainedIndices.size(), "Vulkan diffuse path-loop retained-index output mapping");
           result.retainedPathIndices =
-            retainedPathIndicesFromBuffer(retainedOutput, initialPathStates.size());
+            retainedPathIndicesFromBuffer(retainedOutput, launchPathCount);
         }
         result.accumulationColorSums = readBackRecords<std::array<float, 4>>(
           device, buffers.buffers[8].memory, byteCount<std::array<float, 4>>(pixels), pixels,

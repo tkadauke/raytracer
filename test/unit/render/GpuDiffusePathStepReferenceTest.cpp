@@ -2140,7 +2140,7 @@ namespace GpuDiffusePathStepReferenceTest {
 
     Scene checkerGraphScene;
     auto checkerGraphMatte =
-      std::make_shared<MatteMaterial>(checkerTextureGraph(new PlanarMapping2D(2.0, 2.0)));
+      std::make_shared<MatteMaterial>(checkerTextureGraph(new PlanarMapping2D));
     auto checkerGraphSphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
     checkerGraphSphere->setMaterial(checkerGraphMatte);
     checkerGraphScene.add(checkerGraphSphere);
@@ -2424,7 +2424,7 @@ namespace GpuDiffusePathStepReferenceTest {
 
     Scene checkerScene;
     auto checker = std::make_shared<CheckerBoardTexture>(
-      new PlanarMapping2D(2.0, 2.0), std::make_shared<ConstantColorTexture>(Colord::red()),
+      new PlanarMapping2D, std::make_shared<ConstantColorTexture>(Colord::red()),
       std::make_shared<ConstantColorTexture>(Colord::blue()));
     auto checkerMatte = std::make_shared<MatteMaterial>(checker);
     auto checkerSphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
@@ -2496,7 +2496,7 @@ namespace GpuDiffusePathStepReferenceTest {
 
     Scene checkerGraphScene;
     auto checkerGraphMatte =
-      std::make_shared<MatteMaterial>(checkerTextureGraph(new PlanarMapping2D(2.0, 2.0)));
+      std::make_shared<MatteMaterial>(checkerTextureGraph(new PlanarMapping2D));
     auto checkerGraphSphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
     checkerGraphSphere->setMaterial(checkerGraphMatte);
     checkerGraphScene.add(checkerGraphSphere);
@@ -2624,6 +2624,54 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ("vulkan_host_visible_diffuse_path_state", result.pathStateResidency);
     ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
     expectPathStateNear(result.resolvedPathStates[0], expected.resolvedPathStates[0], 1e-4);
+#else
+    GTEST_SKIP() << "Vulkan wavefront support is not enabled in this build";
+#endif
+  }
+
+  TEST(VulkanGpuDiffusePathLoopBackend, RunsDescriptorOnlyPrimaryPathLoopWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    const VulkanGpuDiffusePathLoopBackend backend;
+    if (!backend.fullGpuPathLoopAvailable()) {
+      GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
+    }
+
+    Scene scene;
+    scene.setBackground(Colord(0.25, 0.5, 0.75));
+    scene.setEnvironmentRadiance(Colord(0.1, 0.2, 0.3));
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+
+    PinholeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 2, 2));
+    camera.viewPlane()->sampler()->setup(1, 4, 42);
+
+    GpuDiffusePrimaryPathStateGenerationOptions descriptorOnlyOptions;
+    descriptorOnlyOptions.materializeHostPathStates = false;
+    const GpuDiffusePrimaryPathStateGeneration descriptorOnly =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 2, 2), 99, 1234,
+                                                     descriptorOnlyOptions);
+    ASSERT_TRUE(descriptorOnly.canGeneratePrimaryPathsOnDevice());
+    ASSERT_TRUE(descriptorOnly.pathStates.empty());
+
+    const GpuDiffusePrimaryPathStateGeneration materialized =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 2, 2), 99, 1234);
+    ASSERT_EQ(4u, materialized.pathStates.size());
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 1;
+    settings.russianRouletteDepth = 10;
+    const GpuDiffusePathLoopResult expected =
+      GpuDiffusePathLoop().run(sections, materialized.pathStates, settings);
+    const GpuDiffusePathLoopResult result = backend.run(sections, descriptorOnly, settings);
+
+    EXPECT_TRUE(result.fullGpuPathLoopSupported());
+    EXPECT_EQ("vulkan", result.platformName);
+    EXPECT_EQ(4u, result.initialPathCount);
+    ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
+    for (std::size_t index = 0; index != expected.resolvedPathStates.size(); ++index) {
+      expectPathStateNear(result.resolvedPathStates[index], expected.resolvedPathStates[index],
+                          1e-4);
+    }
 #else
     GTEST_SKIP() << "Vulkan wavefront support is not enabled in this build";
 #endif
@@ -3300,7 +3348,7 @@ namespace GpuDiffusePathStepReferenceTest {
 
     Scene scene;
     auto checker = std::make_shared<CheckerBoardTexture>(
-      new PlanarMapping2D(2.0, 2.0), std::make_shared<ConstantColorTexture>(Colord::red()),
+      new PlanarMapping2D, std::make_shared<ConstantColorTexture>(Colord::red()),
       std::make_shared<ConstantColorTexture>(Colord::blue()));
     auto matte = std::make_shared<MatteMaterial>(checker);
     matte->setDiffuseCoefficient(1.0);
@@ -3336,8 +3384,7 @@ namespace GpuDiffusePathStepReferenceTest {
     }
 
     Scene scene;
-    auto material =
-      std::make_shared<MatteMaterial>(checkerTextureGraph(new PlanarMapping2D(1.0, 1.0)));
+    auto material = std::make_shared<MatteMaterial>(checkerTextureGraph(new PlanarMapping2D));
     material->setDiffuseCoefficient(1.0);
     auto floor = std::make_shared<Plane>(Vector3d(0.0, 0.0, -1.0), 0.0);
     floor->setMaterial(material);
@@ -3907,8 +3954,7 @@ namespace GpuDiffusePathStepReferenceTest {
     }
 
     Scene scene;
-    auto material =
-      std::make_shared<MatteMaterial>(checkerTextureGraph(new PlanarMapping2D(1.0, 1.0)));
+    auto material = std::make_shared<MatteMaterial>(checkerTextureGraph(new PlanarMapping2D));
     material->setDiffuseCoefficient(1.0);
     auto floor = std::make_shared<Plane>(Vector3d(0.0, 0.0, -1.0), 0.0);
     floor->setMaterial(material);
@@ -5282,6 +5328,70 @@ namespace GpuDiffusePathStepReferenceTest {
     ASSERT_EQ(expected.resolvedPathStates.size(), result.nextPathStates.size());
     expectPathStateNear(result.nextPathStates[0], expected.resolvedPathStates[0], 1e-4);
     EXPECT_TRUE(result.retainedPathIndices.empty());
+#else
+    GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
+#endif
+  }
+
+  TEST(MetalGpuDiffusePathLoopKernel,
+       MattePathLoopDispatchesDescriptorOnlyPrimaryPathsWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    MetalGpuDiffusePathLoopKernel kernel;
+    if (!kernel.launchPathAvailable()) {
+      GTEST_SKIP() << kernel.launchPathUnavailableReason();
+    }
+
+    Scene scene;
+    scene.setBackground(Colord(0.125, 0.25, 0.5));
+    scene.setEnvironmentRadiance(Colord(0.0625, 0.125, 0.25));
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+
+    PinholeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 2, 2));
+    camera.viewPlane()->sampler()->setup(1, 4, 42);
+
+    GpuDiffusePrimaryPathStateGenerationOptions descriptorOnlyOptions;
+    descriptorOnlyOptions.materializeHostPathStates = false;
+    const GpuDiffusePrimaryPathStateGeneration descriptorOnly =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 2, 2), 99, 1234,
+                                                     descriptorOnlyOptions);
+    ASSERT_TRUE(descriptorOnly.canGeneratePrimaryPathsOnDevice());
+    ASSERT_TRUE(descriptorOnly.pathStates.empty());
+
+    const GpuDiffusePrimaryPathStateGeneration materialized =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 2, 2), 99, 1234);
+    ASSERT_EQ(4u, materialized.pathStates.size());
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 1;
+    settings.russianRouletteDepth = 10;
+    settings.directLightSamples = 1;
+    const TracingAccumulationLayout accumulationLayout = TracingAccumulationLayout::image(2, 2);
+    const GpuDiffusePathLoopLaunchPlan plan = GpuDiffusePathLoopLaunchPlanner().plan(
+      sections, descriptorOnly, accumulationLayout, settings);
+    ASSERT_TRUE(plan.generatesPrimaryPathsOnDevice());
+    ASSERT_EQ(4u, plan.parameters.initialPathCount);
+
+    const GpuDiffusePathLoopResult expected =
+      GpuDiffusePathLoop().run(sections, materialized.pathStates, settings);
+    const MetalGpuDiffusePathLoopKernelResult result =
+      kernel.runMattePathLoop(plan, descriptorOnly.pathStates);
+
+    EXPECT_EQ("metal_diffuse_path_loop", result.executionPath);
+    ASSERT_EQ(expected.stepRecords.size(), result.stepRecords.size());
+    ASSERT_EQ(expected.resolvedPathStates.size(), result.nextPathStates.size());
+    for (std::size_t index = 0; index != expected.stepRecords.size(); ++index) {
+      EXPECT_EQ(expected.stepRecords[index].event, result.stepRecords[index].event);
+      EXPECT_EQ(expected.stepRecords[index].depth, result.stepRecords[index].depth);
+      expectFloat4Near(result.stepRecords[index].missRadiance,
+                       expected.stepRecords[index].missRadiance, 1e-5);
+      expectPathStateNear(result.nextPathStates[index], expected.resolvedPathStates[index], 1e-4);
+    }
+    ASSERT_EQ(4u, result.accumulationColorSums.size());
+    ASSERT_EQ(4u, result.accumulationSampleCounts.size());
+    for (std::size_t index = 0; index != result.accumulationSampleCounts.size(); ++index) {
+      EXPECT_EQ(1u, result.accumulationSampleCounts[index]);
+    }
 #else
     GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
 #endif

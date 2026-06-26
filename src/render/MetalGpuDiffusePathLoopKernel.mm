@@ -3570,13 +3570,16 @@ namespace render {
   MetalGpuDiffusePathLoopKernelResult MetalGpuDiffusePathLoopKernel::runMattePathLoop(
     const GpuDiffusePathLoopLaunchPlan& plan,
     const std::vector<GpuDiffusePathStateRecord>& initialPathStates) const {
+    const std::size_t launchPathCount =
+      static_cast<std::size_t>(plan.parameters.initialPathCount);
     if (plan.parameters.layoutVersion != gpuDiffusePathLoopLaunchLayoutVersion) {
       throw std::invalid_argument("Metal diffuse path-loop launch descriptor version mismatch");
     }
     if (plan.parameters.maxDepth == 0) {
       throw std::invalid_argument("Metal diffuse path-loop requires positive max depth");
     }
-    if (initialPathStates.size() != plan.parameters.initialPathCount) {
+    if (initialPathStates.size() != launchPathCount &&
+        (!plan.generatesPrimaryPathsOnDevice() || !initialPathStates.empty())) {
       throw std::invalid_argument(
         "Metal diffuse path-loop initial path-state count does not match launch descriptor");
     }
@@ -3640,7 +3643,7 @@ namespace render {
         [device newBufferWithLength:bufferLength(plan.buffers.accumulationBytes)
                             options:MTLResourceStorageModeShared];
       id<MTLBuffer> closestHitBuffer =
-        [device newBufferWithLength:bufferLength(initialPathStates.size() *
+        [device newBufferWithLength:bufferLength(launchPathCount *
                                                 sizeof(GpuIntersectionHitRecord))
                             options:MTLResourceStorageModeShared];
       if (!parameterBuffer || !echoedParameterBuffer || !sceneUploadBuffer || !initialPathBuffer ||
@@ -3681,7 +3684,7 @@ namespace render {
       [encoder setBuffer:retainedIndexBuffer offset:0 atIndex:7];
       [encoder setBuffer:accumulationBuffer offset:0 atIndex:8];
       [encoder setBuffer:closestHitBuffer offset:0 atIndex:9];
-      dispatch1D(encoder, pipeline, static_cast<NSUInteger>(initialPathStates.size()));
+      dispatch1D(encoder, pipeline, static_cast<NSUInteger>(launchPathCount));
       [encoder endEncoding];
 
       const auto kernelStart = std::chrono::steady_clock::now();
@@ -3696,24 +3699,24 @@ namespace render {
       std::memcpy(&result.echoedParameters, [echoedParameterBuffer contents],
                   sizeof(result.echoedParameters));
       if (plan.parameters.captureDiagnostics != 0u) {
-        result.copiedInitialPathStates.resize(initialPathStates.size());
+        result.copiedInitialPathStates.resize(launchPathCount);
         if (!result.copiedInitialPathStates.empty()) {
           std::memcpy(result.copiedInitialPathStates.data(), [activePathBuffer contents],
                       result.copiedInitialPathStates.size() * sizeof(GpuDiffusePathStateRecord));
         }
-        result.nextPathStates.resize(initialPathStates.size());
+        result.nextPathStates.resize(launchPathCount);
         if (!result.nextPathStates.empty()) {
           std::memcpy(result.nextPathStates.data(), [nextPathBuffer contents],
                       result.nextPathStates.size() * sizeof(GpuDiffusePathStateRecord));
         }
-        result.closestHitRecords.resize(initialPathStates.size());
+        result.closestHitRecords.resize(launchPathCount);
         if (!result.closestHitRecords.empty()) {
           std::memcpy(result.closestHitRecords.data(), [closestHitBuffer contents],
                       result.closestHitRecords.size() * sizeof(GpuIntersectionHitRecord));
         }
 
         const std::size_t rawStepCount =
-          initialPathStates.size() * static_cast<std::size_t>(plan.parameters.maxDepth);
+          launchPathCount * static_cast<std::size_t>(plan.parameters.maxDepth);
         std::vector<GpuDiffusePathStepRecord> rawStepRecords(rawStepCount);
         if (!rawStepRecords.empty()) {
           std::memcpy(rawStepRecords.data(), [stepRecordBuffer contents],
@@ -3728,7 +3731,7 @@ namespace render {
         }
 
         result.retainedPathIndices =
-          retainedPathIndicesFromBuffer(retainedIndexBuffer, initialPathStates.size());
+          retainedPathIndicesFromBuffer(retainedIndexBuffer, launchPathCount);
       }
       result.accumulationColorSums.resize(pixelCount(plan.parameters));
       if (!result.accumulationColorSums.empty()) {
