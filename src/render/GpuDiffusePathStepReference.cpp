@@ -213,6 +213,9 @@ namespace {
     if (mode == gpuPrimaryPathGenerationModeFishEye) {
       return "gpu_fisheye_primary_descriptor";
     }
+    if (mode == gpuPrimaryPathGenerationModeTiltShift) {
+      return "gpu_tilt_shift_primary_descriptor";
+    }
     return "host_primary_path_states";
   }
 
@@ -271,6 +274,34 @@ namespace {
                                         /*dimension=*/2u));
             const Vector3d focalPoint =
               originOrDirection + pinholeDirection * (focalPlaneDistance / denominator);
+            const Vector3d lensOrigin =
+              originOrDirection + lensRight * lensSample.x() + lensUp * lensSample.y();
+            ray = Rayd(lensOrigin, (focalPoint - lensOrigin).normalized());
+          } else if (mode == gpuPrimaryPathGenerationModeTiltShift) {
+            const Vector3d focalForward = forward.normalized();
+            const Vector3d rightBasis = right.normalized();
+            const Vector3d upBasis = down.normalized();
+            const double focalPlaneDistance = descriptor.lensParameters[0];
+            const double shiftX = descriptor.lensParameters[1];
+            const double shiftY = descriptor.lensParameters[2];
+            const double tiltRadians = descriptor.lensParameters[3];
+            const Vector3d shiftedPixelPoint = pixelPoint + rightBasis * shiftX + upBasis * shiftY;
+            const Vector3d pinholeDirection = (shiftedPixelPoint - originOrDirection).normalized();
+            const Vector3d tiltedNormal = focalForward * std::cos(tiltRadians) +
+                                          (rightBasis ^ focalForward) * std::sin(tiltRadians);
+            const double denominator = pinholeDirection * tiltedNormal;
+            if (!pinholeDirection.isDefined() || !focalForward.isDefined() ||
+                !rightBasis.isDefined() || !upBasis.isDefined() || !tiltedNormal.isDefined() ||
+                std::abs(denominator) <= std::numeric_limits<double>::epsilon()) {
+              ++result.skippedPrimarySamples;
+              continue;
+            }
+            const Vector2d lensSample = concentricMapToDisc(
+              GpuSampleStream::sample2D(descriptor.sampleSeed, pixelIndex, sampleIndex,
+                                        /*dimension=*/2u));
+            const Vector3d focalPoint =
+              originOrDirection +
+              pinholeDirection * (focalPlaneDistance * (focalForward * tiltedNormal) / denominator);
             const Vector3d lensOrigin =
               originOrDirection + lensRight * lensSample.x() + lensUp * lensSample.y();
             ray = Rayd(lensOrigin, (focalPoint - lensOrigin).normalized());
@@ -976,7 +1007,8 @@ GpuDiffusePrimaryPathStateGeneration GpuDiffusePrimaryPathStateGenerator::genera
         result.primaryPathDescriptor->mode == gpuPrimaryPathGenerationModeThinLens ||
         result.primaryPathDescriptor->mode == gpuPrimaryPathGenerationModeEquirectangular ||
         result.primaryPathDescriptor->mode == gpuPrimaryPathGenerationModeSpherical ||
-        result.primaryPathDescriptor->mode == gpuPrimaryPathGenerationModeFishEye) {
+        result.primaryPathDescriptor->mode == gpuPrimaryPathGenerationModeFishEye ||
+        result.primaryPathDescriptor->mode == gpuPrimaryPathGenerationModeTiltShift) {
       if (!options.materializeHostPathStates) {
         result.generatedPrimarySamples = result.primaryPathDescriptor->pathCount();
         return result;

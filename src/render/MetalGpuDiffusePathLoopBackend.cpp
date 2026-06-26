@@ -211,7 +211,8 @@ namespace render {
           descriptor.mode != gpuPrimaryPathGenerationModeThinLens &&
           descriptor.mode != gpuPrimaryPathGenerationModeEquirectangular &&
           descriptor.mode != gpuPrimaryPathGenerationModeSpherical &&
-          descriptor.mode != gpuPrimaryPathGenerationModeFishEye) {
+          descriptor.mode != gpuPrimaryPathGenerationModeFishEye &&
+          descriptor.mode != gpuPrimaryPathGenerationModeTiltShift) {
         throw std::invalid_argument(
           "Metal diffuse path-loop backend requires a supported primary path descriptor");
       }

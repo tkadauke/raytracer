@@ -4,9 +4,12 @@
 #include "render/cameras/TiltShiftCamera.h"
 #include "engine/raytracer/Raytracer.h"
 #include "render/primitives/Scene.h"
+#include "render/samplers/Sampler.h"
 
 #include "test/helpers/CameraTestHelper.h"
 #include "test/helpers/VectorTestHelper.h"
+
+#include <optional>
 
 namespace TiltShiftCameraTest {
   using namespace render;
@@ -141,13 +144,37 @@ namespace TiltShiftCameraTest {
     EXPECT_NEAR(pinhole.eyeRelativeDepth(point), camera.eyeRelativeDepth(point), 1e-9);
   }
 
-  TEST(TiltShiftCamera, ShouldNotUseThinLensGpuPrimaryDescriptor) {
+  TEST(TiltShiftCamera, ShouldExposeStaticGpuPrimaryPathDescriptor) {
     TiltShiftCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d::null);
     camera.setApertureRadius(0.25);
     camera.setFocalDistance(6.0);
     camera.setTilt(20_degrees);
+    camera.setShift(Vector2d(0.2, -0.1));
     setupViewPlane(camera, 3, 2);
+    camera.viewPlane()->sampler()->setup(4, 8, 42);
 
-    EXPECT_FALSE(camera.gpuPrimaryPathDescriptor(Recti(0, 0, 3, 2), 1234).has_value());
+    const std::optional<GpuPrimaryPathDescriptor> descriptor =
+      camera.gpuPrimaryPathDescriptor(Recti(0, 0, 3, 2), 1234);
+
+    ASSERT_TRUE(descriptor.has_value());
+    EXPECT_EQ(gpuPrimaryPathGenerationModeTiltShift, descriptor->mode);
+    EXPECT_TRUE(descriptor->generatesOnDevice());
+    EXPECT_EQ(24u, descriptor->pathCount());
+
+    const GpuRectilinearPrimaryPathDescriptor& rectilinear = descriptor->rectilinear;
+    EXPECT_EQ(0, rectilinear.requestedLeft);
+    EXPECT_EQ(0, rectilinear.requestedTop);
+    EXPECT_EQ(3u, rectilinear.requestedWidth);
+    EXPECT_EQ(2u, rectilinear.requestedHeight);
+    EXPECT_EQ(0, rectilinear.actualLeft);
+    EXPECT_EQ(0, rectilinear.actualTop);
+    EXPECT_EQ(3u, rectilinear.actualWidth);
+    EXPECT_EQ(2u, rectilinear.actualHeight);
+    EXPECT_EQ(4u, rectilinear.samplesPerPixel);
+    EXPECT_EQ(1234u, rectilinear.sampleSeed);
+    EXPECT_FLOAT_EQ(11.0f, rectilinear.lensParameters[0]);
+    EXPECT_FLOAT_EQ(0.2f, rectilinear.lensParameters[1]);
+    EXPECT_FLOAT_EQ(-0.1f, rectilinear.lensParameters[2]);
+    EXPECT_FLOAT_EQ(static_cast<float>((20_degrees).radians()), rectilinear.lensParameters[3]);
   }
 }

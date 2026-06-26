@@ -26,6 +26,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Let static thin-lens path-tracer launches use GPU primary-path descriptors,
   including lens-sample dimensions, so supported Metal/Vulkan path-loop renders
   can synthesize depth-of-field primary paths on device. — GPT-5 Codex
+- Let static tilt-shift path-tracer launches use GPU primary-path descriptors,
+  including shift and tilted focal-plane parameters, so supported Metal/Vulkan
+  path-loop renders can synthesize tilt-shift primary paths on device. —
+  GPT-5 Codex
 - Let static equirectangular path-tracer launches use GPU primary-path
   descriptors, so supported Metal/Vulkan path-loop renders can synthesize
   panorama primary paths on device. — GPT-5 Codex

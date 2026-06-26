@@ -36,6 +36,7 @@ const uint gpuPrimaryPathGenerationModeThinLens = 3u;
 const uint gpuPrimaryPathGenerationModeEquirectangular = 4u;
 const uint gpuPrimaryPathGenerationModeSpherical = 5u;
 const uint gpuPrimaryPathGenerationModeFishEye = 6u;
+const uint gpuPrimaryPathGenerationModeTiltShift = 7u;
 const uint gpuDiffusePathStateActiveFlag = 1u;
 const uint gpuDiffusePathStateTerminatedFlag = 2u;
 const uint gpuDiffusePathStateSampledFromBsdfFlag = 4u;
@@ -814,6 +815,79 @@ GpuDiffusePathStateRecord makeFishEyePrimaryPath(uint pathIndex) {
   return path;
 }
 
+GpuDiffusePathStateRecord makeTiltShiftPrimaryPath(uint pathIndex) {
+  const uint sampleIndex = pathIndex % parameters.primaryPathSamplesPerPixel;
+  const uint pixelOrdinal = pathIndex / parameters.primaryPathSamplesPerPixel;
+  const uint localX = pixelOrdinal % parameters.primaryPathActualWidth;
+  const uint localY = pixelOrdinal / parameters.primaryPathActualWidth;
+  const int column = parameters.primaryPathActualLeft + int(localX);
+  const int row = parameters.primaryPathActualTop + int(localY);
+  const uint pixelIndex =
+    uint((row - parameters.primaryPathRequestedTop) * int(parameters.primaryPathRequestedWidth) +
+         (column - parameters.primaryPathRequestedLeft));
+  const vec2 pixelSample =
+    sample2DCoordinate(parameters.primaryPathSampleSeed, pixelIndex, sampleIndex, 0u);
+  const float timeSample =
+    sample1DCoordinate(parameters.primaryPathSampleSeed, pixelIndex, sampleIndex, 1u, 0u);
+  const vec2 lensSample = concentricMapToDisc(
+    sample2DCoordinate(parameters.primaryPathSampleSeed, pixelIndex, sampleIndex, 2u));
+  const vec4 pixelPoint = parameters.primaryPathTopLeft +
+                          parameters.primaryPathRight * (float(column) + pixelSample.x) +
+                          parameters.primaryPathDown * (float(row) + pixelSample.y);
+  const vec3 rightBasis = normalize(parameters.primaryPathRight.xyz);
+  const vec3 upBasis = normalize(parameters.primaryPathDown.xyz);
+  const vec3 focalForward = normalize(parameters.primaryPathForward.xyz);
+  const vec3 shiftedPixelPoint =
+    pixelPoint.xyz + rightBasis * parameters.primaryPathLensParameters.y +
+    upBasis * parameters.primaryPathLensParameters.z;
+  const vec3 pinholeDirection = normalize(shiftedPixelPoint - parameters.primaryPathOrigin.xyz);
+  const float tilt = parameters.primaryPathLensParameters.w;
+  const vec3 tiltedNormal =
+    focalForward * cos(tilt) + cross(rightBasis, focalForward) * sin(tilt);
+  const float denominator = dot(pinholeDirection, tiltedNormal);
+  const bool valid = abs(denominator) > 1.0e-7;
+  vec3 focalPoint = parameters.primaryPathOrigin.xyz;
+  if (valid) {
+    const float numerator = parameters.primaryPathLensParameters.x * dot(focalForward, tiltedNormal);
+    focalPoint = parameters.primaryPathOrigin.xyz + pinholeDirection * (numerator / denominator);
+  }
+  const vec4 lensOrigin = parameters.primaryPathOrigin +
+                          parameters.primaryPathLensRight * lensSample.x +
+                          parameters.primaryPathLensUp * lensSample.y;
+  const vec3 rayDirection = valid ? normalize(focalPoint - lensOrigin.xyz) : focalForward;
+
+  GpuDiffusePathStateRecord path;
+  path.ray.origin = lensOrigin;
+  path.ray.direction = vec4(rayDirection, 0.0);
+  path.ray.minDistance = 0.0;
+  path.ray.maxDistance = uintBitsToFloat(0x7f800000u);
+  path.ray.timeSample = timeSample;
+  path.ray.flags = 0u;
+  path.ray.rayIndex = pathIndex;
+  path.ray.reserved0 = 0u;
+  path.ray.reserved1 = 0u;
+  path.ray.reserved2 = 0u;
+  path.throughput = vec4(1.0, 1.0, 1.0, 0.0);
+  path.accumulatedRadiance = vec4(0.0);
+  path.pixelIndex = pixelIndex;
+  path.primarySampleIndex = sampleIndex;
+  path.depth = 0u;
+  path.sampleSeed = parameters.primaryPathSampleSeed;
+  path.sampleDimensionBase = gpuPrimaryPathSampleDimensionBase;
+  path.sampleDimensionStride = gpuPrimaryPathSampleDimensionStride;
+  path.flags = valid ? gpuDiffusePathStateActiveFlag : gpuDiffusePathStateTerminatedFlag;
+  path.reserved0 = 0u;
+  path.previousBsdfPdf = 0.0;
+  path.previousLightPdf = 0.0;
+  path.previousMaterial = 0u;
+  path.previousEventFlags = 0u;
+  path.reserved1 = 0u;
+  path.reserved2 = 0u;
+  path.reserved3 = 0u;
+  path.reserved4 = 0u;
+  return path;
+}
+
 GpuDiffusePathStateRecord initialPathFor(uint pathIndex) {
   if (parameters.primaryPathGenerationMode == gpuPrimaryPathGenerationModePinhole) {
     return makePinholePrimaryPath(pathIndex);
@@ -832,6 +906,9 @@ GpuDiffusePathStateRecord initialPathFor(uint pathIndex) {
   }
   if (parameters.primaryPathGenerationMode == gpuPrimaryPathGenerationModeFishEye) {
     return makeFishEyePrimaryPath(pathIndex);
+  }
+  if (parameters.primaryPathGenerationMode == gpuPrimaryPathGenerationModeTiltShift) {
+    return makeTiltShiftPrimaryPath(pathIndex);
   }
   return initialPathStates[pathIndex];
 }

@@ -151,7 +151,8 @@ namespace render {
           descriptor.mode != gpuPrimaryPathGenerationModeThinLens &&
           descriptor.mode != gpuPrimaryPathGenerationModeEquirectangular &&
           descriptor.mode != gpuPrimaryPathGenerationModeSpherical &&
-          descriptor.mode != gpuPrimaryPathGenerationModeFishEye) {
+          descriptor.mode != gpuPrimaryPathGenerationModeFishEye &&
+          descriptor.mode != gpuPrimaryPathGenerationModeTiltShift) {
         return;
       }
 

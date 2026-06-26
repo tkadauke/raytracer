@@ -1,12 +1,37 @@
 #include "render/cameras/CameraFactory.h"
 #include "render/cameras/TiltShiftCamera.h"
 #include "core/math/Ray.h"
+#include "render/samplers/Sampler.h"
 #include "render/viewplanes/ViewPlane.h"
 
+#include <array>
 #include <cmath>
+#include <cstdint>
+#include <limits>
 #include <optional>
+#include <stdexcept>
+#include <string>
 
 using namespace render;
+
+namespace {
+  std::uint32_t checkedU32(std::uint64_t value, const char* label) {
+    if (value > std::numeric_limits<std::uint32_t>::max()) {
+      throw std::overflow_error(std::string(label) + " exceeds GPU 32-bit count range");
+    }
+    return static_cast<std::uint32_t>(value);
+  }
+
+  std::array<float, 4> vector4(const Vector3d& value, float w) {
+    return {static_cast<float>(value.x()), static_cast<float>(value.y()),
+            static_cast<float>(value.z()), w};
+  }
+
+  std::array<float, 4> parameters4(double x, double y, double z, double w) {
+    return {static_cast<float>(x), static_cast<float>(y), static_cast<float>(z),
+            static_cast<float>(w)};
+  }
+}
 
 std::shared_ptr<Camera> TiltShiftCamera::clone() const {
   auto result = std::make_shared<TiltShiftCamera>();
@@ -81,8 +106,65 @@ Rayd TiltShiftCamera::rayForPixelWithLens(double x, double y, double lensU, doub
 }
 
 std::optional<GpuPrimaryPathDescriptor>
-TiltShiftCamera::gpuPrimaryPathDescriptor(const Recti&, std::uint32_t) const {
-  return std::nullopt;
+TiltShiftCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampleSeed) const {
+  auto plane = viewPlane();
+  if (!plane || !plane->sampler() || plane->sampler()->numSamples() <= 0) {
+    return std::nullopt;
+  }
+  if (animationTrack("position") || animationTrack("target") || animationTrack("distance") ||
+      animationTrack("zoom") || animationTrack("apertureRadius") ||
+      animationTrack("focalDistance") || animationTrack("tilt") || animationTrack("shift")) {
+    return std::nullopt;
+  }
+
+  const Recti actual = renderableRect(rect);
+  if (actual.width() <= 0 || actual.height() <= 0) {
+    return std::nullopt;
+  }
+
+  const std::uint64_t pixelCount =
+    static_cast<std::uint64_t>(actual.width()) * static_cast<std::uint64_t>(actual.height());
+  const std::uint64_t pathCount =
+    pixelCount * static_cast<std::uint64_t>(plane->sampler()->numSamples());
+  if (pixelCount != 0 &&
+      pathCount / pixelCount != static_cast<std::uint64_t>(plane->sampler()->numSamples())) {
+    throw std::overflow_error("GPU tilt-shift primary path count overflows");
+  }
+  (void)checkedU32(pathCount, "GPU tilt-shift primary path count");
+
+  const Matrix4d& cameraMatrix = matrix();
+  const Vector3d eye = cameraMatrix * Vector4d(0, 0, -distance());
+  const Vector3d forward = cameraMatrix.transformDirection(Vector3d(0, 0, 1)).normalized();
+  const Vector3d right = cameraMatrix.transformDirection(Vector3d(1, 0, 0));
+  const Vector3d up = cameraMatrix.transformDirection(Vector3d(0, 1, 0));
+
+  GpuPrimaryPathDescriptor descriptor;
+  descriptor.mode = gpuPrimaryPathGenerationModeTiltShift;
+  descriptor.rectilinear.originOrDirection = vector4(eye, 1.0f);
+  descriptor.rectilinear.topLeft = vector4(plane->pixelAt(0.0, 0.0), 1.0f);
+  descriptor.rectilinear.right = vector4(plane->pixelAt(1.0, 0.0) - plane->pixelAt(0.0, 0.0), 0.0f);
+  descriptor.rectilinear.down = vector4(plane->pixelAt(0.0, 1.0) - plane->pixelAt(0.0, 0.0), 0.0f);
+  descriptor.rectilinear.lensRight = vector4(right * apertureRadius(), 0.0f);
+  descriptor.rectilinear.lensUp = vector4(up * apertureRadius(), 0.0f);
+  descriptor.rectilinear.forward = vector4(forward, 0.0f);
+  descriptor.rectilinear.lensParameters =
+    parameters4(distance() + focalDistance(), shift().x(), shift().y(), tilt().radians());
+  descriptor.rectilinear.requestedLeft = rect.left();
+  descriptor.rectilinear.requestedTop = rect.top();
+  descriptor.rectilinear.requestedWidth =
+    checkedU32(static_cast<std::uint64_t>(rect.width()), "GPU tilt-shift requested width");
+  descriptor.rectilinear.requestedHeight =
+    checkedU32(static_cast<std::uint64_t>(rect.height()), "GPU tilt-shift requested height");
+  descriptor.rectilinear.actualLeft = actual.left();
+  descriptor.rectilinear.actualTop = actual.top();
+  descriptor.rectilinear.actualWidth =
+    checkedU32(static_cast<std::uint64_t>(actual.width()), "GPU tilt-shift actual width");
+  descriptor.rectilinear.actualHeight =
+    checkedU32(static_cast<std::uint64_t>(actual.height()), "GPU tilt-shift actual height");
+  descriptor.rectilinear.samplesPerPixel = checkedU32(
+    static_cast<std::uint64_t>(plane->sampler()->numSamples()), "GPU tilt-shift samples per pixel");
+  descriptor.rectilinear.sampleSeed = sampleSeed;
+  return descriptor;
 }
 
 static bool dummy = CameraFactory::self().registerClass<TiltShiftCamera>("TiltShiftCamera");

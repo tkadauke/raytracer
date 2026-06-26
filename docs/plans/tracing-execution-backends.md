@@ -83,21 +83,23 @@ end state for GPU tracing.
 - `render::GpuSampleStream` provides the CPU reference for deterministic
   GPU-style sampling dimensions with fixed-vector coverage.
 - Static `PinholeCamera`, `OrthographicCamera`, `ThinLensCamera`,
-  `EquirectangularCamera`, `SphericalCamera`, and `FishEyeCamera` primary-ray
-  generation can be represented by shader-facing GPU primary-path descriptors.
-  The CPU reference generator uses the same descriptors and `GpuSampleStream`
-  dimensions for parity, while Metal/Vulkan diffuse path-loop launches can skip
-  uploading initial path-state records and let the kernel synthesize primary
-  path records from the descriptor. Fish-eye descriptors preserve the circular
-  image contract by generating active paths only for samples inside the unit
-  disc; platform kernels synthesize terminated inactive records for discarded
-  descriptor samples. Trace-disabled full-GPU graph launches can also keep those
-  primary records descriptor-only on the host, with platform kernels
-  dispatching by descriptor path count instead of the host vector size; the
-  platform backends size accumulation for descriptor-only pinhole,
-  orthographic, thin-lens, equirectangular, spherical, and fish-eye launches
-  from the same descriptor metadata. Trace and CPU-reference paths still
-  materialize records for inspection and parity.
+  `TiltShiftCamera`, `EquirectangularCamera`, `SphericalCamera`, and
+  `FishEyeCamera` primary-ray generation can be represented by shader-facing
+  GPU primary-path descriptors. The CPU reference generator uses the same
+  descriptors and `GpuSampleStream` dimensions for parity, while Metal/Vulkan
+  diffuse path-loop launches can skip uploading initial path-state records and
+  let the kernel synthesize primary path records from the descriptor. Fish-eye
+  descriptors preserve the circular image contract by generating active paths
+  only for samples inside the unit disc; platform kernels synthesize terminated
+  inactive records for discarded descriptor samples. Tilt-shift descriptors use
+  the thin-lens lens-sample dimensions while packing shift and tilted
+  focal-plane parameters into the descriptor. Trace-disabled full-GPU graph
+  launches can also keep those primary records descriptor-only on the host,
+  with platform kernels dispatching by descriptor path count instead of the host
+  vector size; the platform backends size accumulation for descriptor-only
+  pinhole, orthographic, thin-lens, tilt-shift, equirectangular, spherical, and
+  fish-eye launches from the same descriptor metadata. Trace and CPU-reference
+  paths still materialize records for inspection and parity.
   Trace-disabled platform full-GPU launches now also size path-state, step,
   retained-index, and Metal closest-hit diagnostic storage to zero logical bytes
   while retaining the final accumulation image readback.
@@ -142,13 +144,13 @@ end state for GPU tracing.
 ### Not Yet Available
 
 - General platform GPU-owned path state. Static pinhole, orthographic,
-  thin-lens, equirectangular, spherical, and fish-eye primary paths can now be
-  generated from shader-facing descriptors without host materialization for
-  trace-disabled full-GPU graph launches and platform kernels dispatch those
-  descriptor-only launches by descriptor path count, but tilt-shift, other
-  camera models without descriptors, animated cameras, later path-continuation
-  records, and retained frontier ownership still need broader platform
-  path-state support.
+  thin-lens, tilt-shift, equirectangular, spherical, and fish-eye primary paths
+  can now be generated from shader-facing descriptors without host
+  materialization for trace-disabled full-GPU graph launches and platform
+  kernels dispatch those descriptor-only launches by descriptor path count, but
+  other camera models without descriptors, animated cameras, later
+  path-continuation records, and retained frontier ownership still need broader
+  platform path-state support.
 - Platform GPU-side path/frontier compaction for scheduler-owned path records.
 - Broad platform full-GPU path-loop kernels for the normal render path. A
   restricted Metal path-loop kernel can advance empty-scene and
