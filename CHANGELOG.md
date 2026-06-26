@@ -262,6 +262,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Keep `TiltShiftCamera` on host primary-path generation instead of inheriting
+  `ThinLensCamera`'s GPU descriptor, avoiding incorrect perpendicular
+  focal-plane rays for tilted focal-plane renders. — GPT-5 Codex
 - Dispatch Metal/Vulkan full-GPU diffuse path-loop kernels by launch-descriptor
   path count when primary paths are generated on device, so trace-disabled
   descriptor-only pinhole launches no longer depend on an uploaded host

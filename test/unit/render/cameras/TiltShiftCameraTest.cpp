@@ -140,4 +140,14 @@ namespace TiltShiftCameraTest {
                        camera.projectPointToClipSpace(point), 1e-9);
     EXPECT_NEAR(pinhole.eyeRelativeDepth(point), camera.eyeRelativeDepth(point), 1e-9);
   }
+
+  TEST(TiltShiftCamera, ShouldNotUseThinLensGpuPrimaryDescriptor) {
+    TiltShiftCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d::null);
+    camera.setApertureRadius(0.25);
+    camera.setFocalDistance(6.0);
+    camera.setTilt(20_degrees);
+    setupViewPlane(camera, 3, 2);
+
+    EXPECT_FALSE(camera.gpuPrimaryPathDescriptor(Recti(0, 0, 3, 2), 1234).has_value());
+  }
 }

@@ -4,6 +4,7 @@
 #include "render/viewplanes/ViewPlane.h"
 
 #include <cmath>
+#include <optional>
 
 using namespace render;
 
@@ -77,6 +78,11 @@ Rayd TiltShiftCamera::rayForPixelWithLens(double x, double y, double lensU, doub
   Vector3d lensOrigin = eyeOrigin + lensOffset;
 
   return Rayd(lensOrigin, (focalPoint - lensOrigin).normalized());
+}
+
+std::optional<GpuPrimaryPathDescriptor>
+TiltShiftCamera::gpuPrimaryPathDescriptor(const Recti&, std::uint32_t) const {
+  return std::nullopt;
 }
 
 static bool dummy = CameraFactory::self().registerClass<TiltShiftCamera>("TiltShiftCamera");
