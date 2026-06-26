@@ -30,6 +30,7 @@
 #include <iomanip>
 #include <map>
 #include <mutex>
+#include <optional>
 #include <set>
 #include <sstream>
 #include <stdexcept>
@@ -528,10 +529,19 @@ namespace engine::graph {
       return std::make_shared<render::LinearTonemap>();
     }
 
-    void publishWritesForDisplay(const RenderPassNode& pass, const RenderPlan& plan,
-                                 RenderResourceStorage& storage, Buffer<unsigned int>& display,
-                                 const std::shared_ptr<render::Tonemap>& displayTonemap) {
+    bool supportsPlatformLinearDisplayResolve(const std::shared_ptr<render::Tonemap>& tonemap) {
+      return !tonemap ||
+             tonemap->gpuDisplayResolveTonemap() == render::GpuDisplayResolveTonemap::Linear;
+    }
+
+    std::optional<RenderResourceId>
+    publishWritesForDisplay(const RenderPassNode& pass, const RenderPlan& plan,
+                            RenderResourceStorage& storage, Buffer<unsigned int>& display,
+                            const std::shared_ptr<render::Tonemap>& displayTonemap,
+                            const std::optional<RenderResourceId>& currentDisplayResource,
+                            const std::optional<RenderResourceId>& alreadyCurrentResource) {
       const auto& output = plan.exportedColorResource();
+      std::optional<RenderResourceId> displayedResource;
       for (const auto& write : pass.writes) {
         if (!plan.resourceCanReach(write.resource, output.id)) {
           continue;
@@ -542,13 +552,26 @@ namespace engine::graph {
           continue;
         }
 
+        if (alreadyCurrentResource && write.resource == *alreadyCurrentResource) {
+          displayedResource = write.resource;
+          continue;
+        }
+        if (pass.kind == RenderPassKind::Tonemap && currentDisplayResource &&
+            pass.readsResource(*currentDisplayResource) &&
+            supportsPlatformLinearDisplayResolve(displayTonemap)) {
+          displayedResource = write.resource;
+          continue;
+        }
+
         const Buffer<Colord>& source = resource.color();
         if (write.resource == output.id) {
           packColorBuffer(source, display);
         } else if (pass.kind != RenderPassKind::Tonemap) {
           packColorBuffer(source, display, displayTonemap);
         }
+        displayedResource = write.resource;
       }
+      return displayedResource;
     }
 
     void requireMatchingOutputSize(const RenderPlan& plan, int width, int height) {
@@ -1409,6 +1432,9 @@ namespace engine::graph {
     storage.allocate(plan.resources());
     bindExternalInputs(storage, plan, p->externalResources);
     const auto displayTonemap = displayTonemapForPlan(plan, *this);
+    std::mutex displayStateMutex;
+    std::map<RenderPassId, RenderResourceId> directDisplayWrites;
+    std::optional<RenderResourceId> displayedResource;
 
     GraphExecutionRuntime runtime{p->cancelled, p->executionTraceRecorder,
                                   std::make_shared<ActivePassSet>()};
@@ -1452,6 +1478,10 @@ namespace engine::graph {
                           (pass.executor == RenderExecutorKind::Raytracer ||
                            pass.executor == RenderExecutorKind::Wavefront) &&
                           payload->executeDisplayAndStore(context, buffer, displayTonemap);
+                        if (executedForDisplay) {
+                          std::lock_guard<std::mutex> lock(displayStateMutex);
+                          directDisplayWrites[pass.id] = pass.singleWrite().resource;
+                        }
                         if (!executedForDisplay) {
                           payload->execute(context);
                         }
@@ -1464,13 +1494,25 @@ namespace engine::graph {
     };
     auto afterPass = [&](const RenderPassNode& pass, ScheduledPassResult result) {
       if (result != ScheduledPassResult::SkippedWithoutWrites) {
-        publishWritesForDisplay(pass, plan, storage, buffer, displayTonemap);
+        std::optional<RenderResourceId> alreadyCurrentResource;
+        std::lock_guard<std::mutex> lock(displayStateMutex);
+        const auto directWrite = directDisplayWrites.find(pass.id);
+        if (directWrite != directDisplayWrites.end()) {
+          alreadyCurrentResource = directWrite->second;
+        }
+        if (const auto published =
+              publishWritesForDisplay(pass, plan, storage, buffer, displayTonemap,
+                                      displayedResource, alreadyCurrentResource)) {
+          displayedResource = published;
+        }
       }
     };
 
     executeDependencyReadyPasses(runtime, plan, storage, traceSession, executePass, afterPass);
 
-    packColorBuffer(storage.color(plan.exportedColorResource().id), buffer);
+    if (!displayedResource || *displayedResource != plan.exportedColorResource().id) {
+      packColorBuffer(storage.color(plan.exportedColorResource().id), buffer);
+    }
   }
 
   void GraphRenderEngine::cancel() {

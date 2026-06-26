@@ -256,7 +256,15 @@ namespace GraphRenderEngineTest {
       m_hasLastPrimaryGeneration = true;
       m_lastPrimaryGeneratedSamples = primaryPathGeneration.generatedPrimarySamples;
       m_lastPrimaryGeneratesOnDevice = primaryPathGeneration.canGeneratePrimaryPathsOnDevice();
-      return run(scene, primaryPathGeneration.pathStates, settings);
+      render::GpuDiffusePathLoopResult result =
+        run(scene, primaryPathGeneration.pathStates, settings);
+      if (settings.captureResolvedDisplay) {
+        const std::size_t pixelCount =
+          static_cast<std::size_t>(primaryPathGeneration.actualRect.width()) *
+          static_cast<std::size_t>(primaryPathGeneration.actualRect.height());
+        result.platformResolvedDisplayPixels.assign(pixelCount, resolvedDisplaySentinel());
+      }
+      return result;
     }
 
     bool hasLastCaptureDiagnostics() const {
@@ -289,6 +297,10 @@ namespace GraphRenderEngineTest {
 
     bool lastPrimaryGeneratesOnDevice() const {
       return m_lastPrimaryGeneratesOnDevice;
+    }
+
+    static unsigned int resolvedDisplaySentinel() {
+      return Colord(0.25, 0.5, 0.75).rgb();
     }
 
   private:
@@ -2637,6 +2649,11 @@ namespace GraphRenderEngineTest {
     EXPECT_TRUE(pathLoopBackend->lastPrimaryGeneratesOnDevice());
     EXPECT_EQ(64u, pathLoopBackend->lastPrimaryGeneratedSamples());
     EXPECT_EQ(0u, pathLoopBackend->lastPrimaryHostPathStateCount());
+    for (int y = 0; y != buffer.height(); ++y) {
+      for (int x = 0; x != buffer.width(); ++x) {
+        EXPECT_EQ(ReportingFullGpuDiffusePathLoopBackend::resolvedDisplaySentinel(), buffer[y][x]);
+      }
+    }
   }
 
   TEST(GraphRenderEngine, UsesCompiledDiffusePathLoopBeforeBoxDenoising) {

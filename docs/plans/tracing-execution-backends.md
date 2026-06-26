@@ -2656,7 +2656,10 @@ scene is large enough to amortize upload/readback costs.
      can also resolve packed display pixels on the GPU and skip HDR
      accumulation-plane readback; HDR, denoiser, graph trace, and non-linear
      tonemap paths still keep the accumulation planes available for CPU
-     consumers. The compiled path loop also
+     consumers. When the live render graph receives such a platform-resolved
+     display buffer, compatible linear tonemap passes can propagate that display
+     resource as current without immediately CPU-repacking the HDR graph
+     resource. The compiled path loop also
      carries `ReflectiveMaterial` and `TransparentMaterial` delta continuations
      through the CPU reference evaluator and the Metal full-GPU subset, and the
      compiled environment records now carry scene ambient separately from
