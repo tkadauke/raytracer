@@ -69,6 +69,33 @@ namespace GpuDirectLightWorkTest {
       return work;
     }
 
+    void makeLocalPhongMaterial(GpuTracingMaterialRecord& material,
+                                GpuTracingMaterialKind materialKind) {
+      material.kind = static_cast<std::uint32_t>(materialKind);
+      material.albedoTexture = 1u;
+      material.parameters = {0.0f, 0.25f, 0.5f, 8.0f};
+      material.specularParameters = {0.2f, 0.4f, 0.8f, 0.0f};
+    }
+
+    GpuDirectLightVisibilityRecord frontFacingVisibility(std::uint32_t flags) {
+      GpuDirectLightVisibilityRecord visibility;
+      visibility.workIndex = 5u;
+      visibility.lightIndex = 3u;
+      visibility.flags = flags;
+      visibility.rayDirection = {0.0f, 1.0f, 0.0f, 0.0f};
+      visibility.lightRadiance = {3.0f, 2.0f, 1.0f, 1.0f};
+      visibility.lightPdf = 0.75f;
+      visibility.selectionPdf = 0.25f;
+      return visibility;
+    }
+
+    Colord localPhongBsdfValue(const GpuTracingMaterialRecord& material) {
+      const Colord albedo(0.5, 0.25, 1.0);
+      const Colord diffuse = albedo * material.parameters[1] * invPI;
+      const Colord glossy = Colord(material.specularParameters) * material.parameters[2];
+      return diffuse + glossy;
+    }
+
     void expectVectorNear(const Vector3d& actual, const Vector3d& expected) {
       EXPECT_NEAR(expected.x(), actual.x(), 1e-12);
       EXPECT_NEAR(expected.y(), actual.y(), 1e-12);
@@ -380,6 +407,59 @@ namespace GpuDirectLightWorkTest {
     EXPECT_NEAR(expected.g(), contribution.contribution[1], 1e-7);
     EXPECT_NEAR(expected.b(), contribution.contribution[2], 1e-7);
     EXPECT_FLOAT_EQ(1.0f, contribution.contribution[3]);
+  }
+
+  TEST(GpuDirectLightCpuReference, PhongContributionUsesFiniteBsdfPdfForPowerHeuristicMis) {
+    GpuTracingSceneSections scene = oneMattePointLightScene();
+    makeLocalPhongMaterial(scene.materials[1], GpuTracingMaterialKind::Phong);
+    GpuDirectLightWorkRecord work = oneMattePointLightWork();
+    work.surface.throughput = {1.0f, 1.0f, 1.0f, 1.0f};
+    const GpuDirectLightVisibilityRecord visibility =
+      frontFacingVisibility(gpuDirectLightVisibilityValid);
+
+    const GpuDirectLightContributionRecord contribution =
+      makeGpuDirectLightCpuContributionRecord(scene, work, visibility);
+
+    const double diffuseWeight = 0.25 / (0.25 + 0.5);
+    const double specularWeight = 1.0 - diffuseWeight;
+    const double bsdfPdf = diffuseWeight * invPI + specularWeight * ((8.0 + 1.0) * invTAU);
+    const double lightPdfSquared = visibility.lightPdf * visibility.lightPdf;
+    const double bsdfPdfSquared = bsdfPdf * bsdfPdf;
+    const double misWeight = lightPdfSquared / (lightPdfSquared + bsdfPdfSquared);
+    const double estimatorScale = misWeight / visibility.lightPdf;
+    const Colord expected = localPhongBsdfValue(scene.materials[1]) * Colord(3.0, 2.0, 1.0) *
+                            estimatorScale / visibility.selectionPdf;
+
+    EXPECT_EQ(gpuDirectLightContributionValid | gpuDirectLightContributionContributing,
+              contribution.flags);
+    EXPECT_NEAR(expected.r(), contribution.contribution[0], 1e-7);
+    EXPECT_NEAR(expected.g(), contribution.contribution[1], 1e-7);
+    EXPECT_NEAR(expected.b(), contribution.contribution[2], 1e-7);
+  }
+
+  TEST(GpuDirectLightCpuReference, ReflectiveAndTransparentUseLocalPhongDirectLightContribution) {
+    for (const GpuTracingMaterialKind materialKind :
+         {GpuTracingMaterialKind::Reflective, GpuTracingMaterialKind::Transparent}) {
+      GpuTracingSceneSections scene = oneMattePointLightScene();
+      makeLocalPhongMaterial(scene.materials[1], materialKind);
+      GpuDirectLightWorkRecord work = oneMattePointLightWork();
+      work.surface.throughput = {0.5f, 0.25f, 1.0f, 1.0f};
+      GpuDirectLightVisibilityRecord visibility =
+        frontFacingVisibility(gpuDirectLightVisibilityValid | gpuDirectLightVisibilityDeltaLight);
+      visibility.lightPdf = 1.0f;
+      visibility.selectionPdf = 1.0f;
+
+      const GpuDirectLightContributionRecord contribution =
+        makeGpuDirectLightCpuContributionRecord(scene, work, visibility);
+
+      const Colord expected = localPhongBsdfValue(scene.materials[1]) * Colord(3.0, 2.0, 1.0) *
+                              Colord(work.surface.throughput);
+      EXPECT_EQ(gpuDirectLightContributionValid | gpuDirectLightContributionContributing,
+                contribution.flags);
+      EXPECT_NEAR(expected.r(), contribution.contribution[0], 1e-7);
+      EXPECT_NEAR(expected.g(), contribution.contribution[1], 1e-7);
+      EXPECT_NEAR(expected.b(), contribution.contribution[2], 1e-7);
+    }
   }
 
   TEST(GpuDirectLightCpuReference, EvaluatesCompiledTextureGraphAtSurfaceUv) {

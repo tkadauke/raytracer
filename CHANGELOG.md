@@ -252,6 +252,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   CPU-reference contribution records, with UVs carried in the surface work
   payload, so diagnostics and fallbacks match the compiled path-loop texture
   subset more closely. — GPT-5 Codex
+- Share finite diffuse/Phong BSDF evaluation between compiled path-loop and
+  GPU direct-light CPU-reference contribution records, allowing Phong,
+  reflective, and transparent local surface lighting to contribute consistently
+  before platform GPU direct-light contribution kernels take over. —
+  GPT-5 Codex
 - Compile null diffuse material textures as a real black ConstantColor GPU
   texture record, so platform full-GPU path-loop renders do not sample the
   unsupported sentinel for default/no-texture materials. — GPT-5 Codex

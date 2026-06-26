@@ -829,6 +829,11 @@ for material/light records.
     surface UVs and shares the compiled texture evaluator with the diffuse
     path-step reference, keeping fallback/direct-light diagnostics aligned with
     those texture records.
+  - finite diffuse/Phong BSDF evaluation is now shared between the compiled
+    diffuse path-step reference and direct-light CPU-reference contribution
+    records, so Phong, Reflective, and Transparent local surface terms remain
+    aligned while platform direct-light contribution kernels are still being
+    filled in.
   - unsupported fallback for procedural or complex textures.
 - Start with a restricted light subset:
   - point light;

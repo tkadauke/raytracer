@@ -1,9 +1,8 @@
 #include "render/GpuDirectLightCpuReference.h"
 
-#include "core/math/Constants.h"
 #include "core/math/Ray.h"
 #include "render/GpuCompiledLightSampler.h"
-#include "render/GpuTracingTextureEvaluator.h"
+#include "render/GpuTracingBsdfEvaluator.h"
 #include "render/IntersectionService.h"
 #include "render/MIS.h"
 #include "render/State.h"
@@ -193,29 +192,25 @@ namespace render {
     }
 
     const GpuTracingMaterialRecord& material = scene.materials[work.surface.material];
-    if (static_cast<GpuTracingMaterialKind>(material.kind) != GpuTracingMaterialKind::Matte) {
-      return result;
-    }
-
-    const Colord albedo = GpuTracingTextureEvaluator(scene).evaluate(
-      material.albedoTexture, surfaceHitRecord(work.surface));
-    const double diffuseCoefficient = material.parameters[1];
-    const Colord bsdfValue = albedo * diffuseCoefficient * invPI;
-    if (bsdfValue == Colord::black()) {
+    const auto materialKind = static_cast<GpuTracingMaterialKind>(material.kind);
+    if (!GpuTracingBsdfEvaluator::isFiniteSurfaceMaterial(materialKind)) {
       return result;
     }
 
     const Vector3d wi = Vector3d(work.surface.incomingDirection).normalizedOrZero(tolerance);
     const Vector3d wo = Vector3d(visibility.rayDirection).normalizedOrZero(tolerance);
     const Vector3d normal = Vector3d(work.surface.normal).normalizedOrZero(tolerance);
-    const double normalDotOut = normal * wo;
-    double bsdfPdf = 0.0;
-    if (normal * wi >= 0.0 && normalDotOut > 0.0) {
-      bsdfPdf = normalDotOut * invPI;
+    const GpuIntersectionHitRecord hit = surfaceHitRecord(work.surface);
+    const Colord bsdfValue =
+      GpuTracingBsdfEvaluator(scene).finiteBsdf(material, hit, normal, wi, wo);
+    if (bsdfValue == Colord::black()) {
+      return result;
     }
 
+    const double normalDotOut = normal * wo;
     const bool deltaLight = (visibility.flags & gpuDirectLightVisibilityDeltaLight) != 0u;
-    const double otherPdf = deltaLight ? 0.0 : bsdfPdf;
+    const double otherPdf =
+      deltaLight ? 0.0 : GpuTracingBsdfEvaluator::finiteBsdfPdf(material, normal, wi, wo);
     Colord contribution = mis::estimateDirectLightingFromLightSample(
       bsdfValue, Colord(visibility.lightRadiance), normalDotOut, visibility.lightPdf, otherPdf,
       deltaLight);
