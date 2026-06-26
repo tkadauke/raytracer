@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Add rendercli `--sample_stream_mode sampler|gpu_sample_stream`, so
+  command-line graph renders can explicitly request the GPU sample stream
+  without using a sampler-backed path-tracer intent. — GPT-5 Codex
 - Keep platform-resolved GPU path-loop display pixels current through compatible
   graph linear-tonemap outputs, avoiding an immediate CPU display repack after
   the GPU already wrote the LDR display buffer. — GPT-5 Codex

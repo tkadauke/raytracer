@@ -5783,12 +5783,51 @@ if(NOT raytracer_state_graph MATCHES "maxRecursionDepth")
   message(FATAL_ERROR "raytracer state graph did not contain recursion depth: ${raytracer_state_graph}")
 endif()
 
+set(pathtracer_gpu_stream_plan "${TEST_OUTPUT_DIR}/pathtracer_gpu_stream_plan.json")
+rendercli_run(
+  NAME "rendercli writes GPU sample stream mode through graph intent"
+  COMMAND
+    "${RENDERCLI}" --engine pathtracer --render_graph_only --render_graph_format json
+    --width 32 --height 16 --sample_stream_mode gpu_sample_stream --samples_per_pixel 4
+    "${static_scene}" "${pathtracer_gpu_stream_plan}"
+)
+rendercli_assert_nonempty("${pathtracer_gpu_stream_plan}" NAME "graph GPU sample stream plan")
+file(READ "${pathtracer_gpu_stream_plan}" pathtracer_gpu_stream_graph)
+if(NOT pathtracer_gpu_stream_graph MATCHES "wavefront_beauty")
+  message(FATAL_ERROR
+          "pathtracer GPU sample stream graph did not contain wavefront_beauty: ${pathtracer_gpu_stream_graph}")
+endif()
+if(NOT pathtracer_gpu_stream_graph MATCHES "\"streamMode\"[ \r\n]*:[ \r\n]*\"gpu_sample_stream\"")
+  message(FATAL_ERROR
+          "pathtracer GPU sample stream graph did not contain GPU stream mode: ${pathtracer_gpu_stream_graph}")
+endif()
+if(pathtracer_gpu_stream_graph MATCHES "\"sampler\"")
+  message(FATAL_ERROR
+          "pathtracer GPU sample stream graph should not contain a sampler override: ${pathtracer_gpu_stream_graph}")
+endif()
+
 rendercli_expect_failure(
   NAME "rendercli rejects sampling seed outside exact JSON integer range"
   STDERR_MATCHES "Sampling seed must be a non-negative integer <= 9007199254740991"
   COMMAND
     "${RENDERCLI}" --engine raytracer --render_graph_only --render_graph_format json
     --sampling_seed 9007199254740992
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects unknown sample stream mode"
+  STDERR_MATCHES "Sample stream mode must be 'sampler' or 'gpu_sample_stream'"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --sample_stream_mode quantum
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects sampler with GPU sample stream mode"
+  STDERR_MATCHES "GPU sample stream mode is incompatible with --sampler"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --sample_stream_mode gpu_sample_stream --sampler Halton
     "${static_scene}" "${invalid_plan}"
 )
 

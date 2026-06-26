@@ -1925,6 +1925,8 @@ private:
   bool m_heightSet;
   QString m_sampler;
   bool m_samplerSet;
+  QString m_sampleStreamMode;
+  bool m_sampleStreamModeSet;
   int m_samplesPerPixel;
   bool m_samplesPerPixelSet;
   std::optional<std::uint64_t> m_samplingSeed;
@@ -2136,6 +2138,8 @@ Renderer::Renderer()
       m_heightSet(false),
       m_sampler("Regular"),
       m_samplerSet(false),
+      m_sampleStreamMode("sampler"),
+      m_sampleStreamModeSet(false),
       m_samplesPerPixel(1),
       m_samplesPerPixelSet(false),
       m_samplingSeed(),
@@ -2433,6 +2437,8 @@ engine::graph::RenderEngineOptions Renderer::commandLineEngineOptions() const {
     options.raytracer().setTracingExecution(m_tracingExecution.toStdString());
   if (m_samplerSet)
     options.raytracer().setSampler(m_sampler.toStdString());
+  if (m_sampleStreamModeSet)
+    options.raytracer().setSampleStreamMode(m_sampleStreamMode.toStdString());
   if (m_samplesPerPixelSet)
     options.raytracer().setSamplesPerPixel(m_samplesPerPixel);
   if (m_samplingSeed)
@@ -3682,6 +3688,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"ldraw_missing_part_policy", "Policy for unresolved LDraw subfiles (error, skip)", "policy"},
      {"ldraw-background-color", "Background color for direct LDraw imports (name or hex)", "color"},
      {"sampler", "Sampler type", "sampler"},
+     {"sample_stream_mode", "Sample stream mode (sampler, gpu_sample_stream)", "mode"},
      {"samples_per_pixel", "Samples per pixel", "samples"},
      {"sampling_seed", "Deterministic render sampling seed for ray-family engines", "seed"},
      {"pathtracer_russian_roulette_depth",
@@ -3970,6 +3977,24 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       return CommandLineError;
     }
     m_samplerSet = true;
+  }
+
+  if (parser.isSet("sample_stream_mode")) {
+    const QString mode = parser.value("sample_stream_mode").trimmed().toLower();
+    if (mode == "sampler" || mode == "sampler_backed") {
+      m_sampleStreamMode = QStringLiteral("sampler");
+    } else if (mode == "gpu" || mode == "gpu_sample_stream") {
+      m_sampleStreamMode = QStringLiteral("gpu_sample_stream");
+    } else {
+      *errorMessage = "Sample stream mode must be 'sampler' or 'gpu_sample_stream'";
+      return CommandLineError;
+    }
+    m_sampleStreamModeSet = true;
+  }
+
+  if (m_samplerSet && m_sampleStreamMode == QStringLiteral("gpu_sample_stream")) {
+    *errorMessage = "GPU sample stream mode is incompatible with --sampler";
+    return CommandLineError;
   }
 
   if (parser.isSet("samples_per_pixel")) {
@@ -5089,7 +5114,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
        m_renderGraphCurveOverlay || parser.isSet("disable_pass") ||
        parser.isSet("disable_pass_kind") || parser.isSet("disable_executor") ||
        parser.isSet("disable_feature") || parser.isSet("raster_culling") ||
-       parser.isSet("depth_prepass") || m_tracingExecutionSet)) {
+       parser.isSet("depth_prepass") || m_tracingExecutionSet || m_sampleStreamModeSet)) {
     *errorMessage = "Cannot combine --direct_engine with render graph options";
     return CommandLineError;
   }

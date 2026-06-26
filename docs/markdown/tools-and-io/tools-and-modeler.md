@@ -39,9 +39,10 @@ color-output state are compiled into typed raster beauty pass state, while
 preview shadow-map settings live on the graph shadow pass. Both are serialized
 when graph JSON is exported.
 
-The flags cover output size, sampler choice, samples-per-pixel, recursion
-depth, tonemap operator, and per-engine knobs such as [LOD](../appendix/a-glossary.md#l),
-[MSAA](../appendix/a-glossary.md#m), queue size, and thread count.
+The flags cover output size, sampler choice, sample-stream mode,
+samples-per-pixel, recursion depth, tonemap operator, and per-engine knobs such
+as [LOD](../appendix/a-glossary.md#l), [MSAA](../appendix/a-glossary.md#m),
+queue size, and thread count.
 
 For repeatable tracing-backend inspection, build the default release preset
 first. On macOS this includes the Metal wavefront/full-GPU path-loop backend by
@@ -134,15 +135,19 @@ uses, so engine, view, AA, shadow, overlay, camera, shading, and AOV choices
 share one interpretation before plan compilation.
 General render controls that affect an underlying engine are also translated
 into typed intent engine options before compilation. For example,
-`--sampler`, `--samples_per_pixel`, `--sampling_seed`, `--depth`, `--threads`,
-and explicit `--queue_size` values become raytracer pass state when the graph
-contains
+`--sampler`, `--sample_stream_mode`, `--samples_per_pixel`,
+`--sampling_seed`, `--depth`, `--threads`, and explicit `--queue_size` values
+become raytracer pass state when the graph contains
 `raytrace_beauty` or `wavefront_beauty`. The seed is optional, but when present
 it makes stochastic ray-family renders repeatable and is serialized into
-exported graph JSON. When the scene intent does not specify a ray-family view
-plane or queue size, rendercli also writes `TiledViewPlane` and its automatic
-ray-family queue size into compiled raytracer or wavefront pass state so
-graph-backed final renders use the same tiled pixel walk as the direct
+exported graph JSON. `--sample_stream_mode gpu_sample_stream` requests the
+deterministic GPU-owned sample dimensions used by compiled full-GPU path-loop
+renders; sampler-backed modes continue to use the selected `--sampler` and can
+force full-GPU requests back to CPU or hybrid execution. When the scene intent
+does not specify a ray-family view plane or queue size, rendercli also writes
+`TiledViewPlane` and its automatic ray-family queue size into compiled
+raytracer or wavefront pass state so graph-backed final renders use the same
+tiled pixel walk as the direct
 command-line path; scene-authored view-plane and queue intent are left
 unchanged. `--pathtracer_russian_roulette_depth N` and
 `--pathtracer_direct_light_samples N` become graph-visible path-tracer
