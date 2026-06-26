@@ -6,10 +6,11 @@
 
 namespace render {
   namespace {
-    bool isRectilinearMode(std::uint32_t mode) {
+    bool isRectangularPixelDomainMode(std::uint32_t mode) {
       return mode == gpuPrimaryPathGenerationModePinhole ||
              mode == gpuPrimaryPathGenerationModeOrthographic ||
-             mode == gpuPrimaryPathGenerationModeThinLens;
+             mode == gpuPrimaryPathGenerationModeThinLens ||
+             mode == gpuPrimaryPathGenerationModeEquirectangular;
     }
 
     std::uint64_t checkedProduct(std::uint64_t left, std::uint64_t right, const char* label) {
@@ -25,7 +26,7 @@ namespace render {
   }
 
   Recti GpuPrimaryPathDescriptor::requestedRect() const {
-    if (isRectilinearMode(mode)) {
+    if (isRectangularPixelDomainMode(mode)) {
       return Recti(rectilinear.requestedLeft, rectilinear.requestedTop,
                    static_cast<int>(rectilinear.requestedWidth),
                    static_cast<int>(rectilinear.requestedHeight));
@@ -34,7 +35,7 @@ namespace render {
   }
 
   Recti GpuPrimaryPathDescriptor::actualRect() const {
-    if (isRectilinearMode(mode)) {
+    if (isRectangularPixelDomainMode(mode)) {
       return Recti(rectilinear.actualLeft, rectilinear.actualTop,
                    static_cast<int>(rectilinear.actualWidth),
                    static_cast<int>(rectilinear.actualHeight));
@@ -43,11 +44,10 @@ namespace render {
   }
 
   std::uint64_t GpuPrimaryPathDescriptor::pathCount() const {
-    if (isRectilinearMode(mode)) {
-      const std::uint64_t pixelCount = checkedProduct(
-        rectilinear.actualWidth, rectilinear.actualHeight, "GPU rectilinear primary pixel");
-      return checkedProduct(pixelCount, rectilinear.samplesPerPixel,
-                            "GPU rectilinear primary path");
+    if (isRectangularPixelDomainMode(mode)) {
+      const std::uint64_t pixelCount =
+        checkedProduct(rectilinear.actualWidth, rectilinear.actualHeight, "GPU primary pixel");
+      return checkedProduct(pixelCount, rectilinear.samplesPerPixel, "GPU primary path");
     }
     return 0;
   }

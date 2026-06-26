@@ -148,7 +148,8 @@ namespace render {
                                    const GpuPrimaryPathDescriptor& descriptor) {
       if (descriptor.mode != gpuPrimaryPathGenerationModePinhole &&
           descriptor.mode != gpuPrimaryPathGenerationModeOrthographic &&
-          descriptor.mode != gpuPrimaryPathGenerationModeThinLens) {
+          descriptor.mode != gpuPrimaryPathGenerationModeThinLens &&
+          descriptor.mode != gpuPrimaryPathGenerationModeEquirectangular) {
         return;
       }
 

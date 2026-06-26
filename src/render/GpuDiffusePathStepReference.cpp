@@ -204,18 +204,22 @@ namespace {
     if (mode == gpuPrimaryPathGenerationModeThinLens) {
       return "gpu_thin_lens_primary_descriptor";
     }
+    if (mode == gpuPrimaryPathGenerationModeEquirectangular) {
+      return "gpu_equirectangular_primary_descriptor";
+    }
     return "host_primary_path_states";
   }
 
-  void generateRectilinearPrimaryPathStates(std::uint32_t mode,
-                                            const GpuRectilinearPrimaryPathDescriptor& descriptor,
-                                            GpuDiffusePrimaryPathStateGeneration& result) {
+  void generateDescriptorPrimaryPathStates(std::uint32_t mode,
+                                           const GpuRectilinearPrimaryPathDescriptor& descriptor,
+                                           GpuDiffusePrimaryPathStateGeneration& result) {
     const Vector3d originOrDirection = vector3FromArray(descriptor.originOrDirection);
     const Vector3d topLeft = vector3FromArray(descriptor.topLeft);
     const Vector3d right = vector3FromArray(descriptor.right);
     const Vector3d down = vector3FromArray(descriptor.down);
     const Vector3d lensRight = vector3FromArray(descriptor.lensRight);
     const Vector3d lensUp = vector3FromArray(descriptor.lensUp);
+    const Vector3d forward = vector3FromArray(descriptor.forward);
     const std::uint64_t estimatedPathCount = static_cast<std::uint64_t>(descriptor.actualWidth) *
                                              static_cast<std::uint64_t>(descriptor.actualHeight) *
                                              static_cast<std::uint64_t>(descriptor.samplesPerPixel);
@@ -247,11 +251,11 @@ namespace {
           if (mode == gpuPrimaryPathGenerationModeOrthographic) {
             ray = Rayd(pixelPoint, originOrDirection.normalized());
           } else if (mode == gpuPrimaryPathGenerationModeThinLens) {
-            const Vector3d forward = vector3FromArray(descriptor.forward).normalized();
+            const Vector3d focalForward = forward.normalized();
             const double focalPlaneDistance = descriptor.lensParameters[0];
             const Vector3d pinholeDirection = (pixelPoint - originOrDirection).normalized();
-            const double denominator = pinholeDirection * forward;
-            if (!pinholeDirection.isDefined() || !forward.isDefined() ||
+            const double denominator = pinholeDirection * focalForward;
+            if (!pinholeDirection.isDefined() || !focalForward.isDefined() ||
                 std::abs(denominator) <= std::numeric_limits<double>::epsilon()) {
               ++result.skippedPrimarySamples;
               continue;
@@ -264,6 +268,21 @@ namespace {
             const Vector3d lensOrigin =
               originOrDirection + lensRight * lensSample.x() + lensUp * lensSample.y();
             ray = Rayd(lensOrigin, (focalPoint - lensOrigin).normalized());
+          } else if (mode == gpuPrimaryPathGenerationModeEquirectangular) {
+            const double viewWidth = descriptor.lensParameters[0];
+            const double viewHeight = descriptor.lensParameters[1];
+            if (viewWidth <= 0.0 || viewHeight <= 0.0) {
+              ++result.skippedPrimarySamples;
+              continue;
+            }
+            const double x = static_cast<double>(column) + pixelSample.x();
+            const double y = static_cast<double>(row) + pixelSample.y();
+            const double lon = (2.0 * x / viewWidth - 1.0) * PI;
+            const double lat = (1.0 - 2.0 * y / viewHeight) * (PI / 2.0);
+            const double cosLat = std::cos(lat);
+            const Vector3d local(cosLat * std::sin(lon), -std::sin(lat), cosLat * std::cos(lon));
+            ray = Rayd(originOrDirection,
+                       (right * local.x() + down * local.y() + forward * local.z()).normalized());
           } else {
             ray = Rayd(originOrDirection, (pixelPoint - originOrDirection).normalized());
           }
@@ -899,13 +918,14 @@ GpuDiffusePrimaryPathStateGeneration GpuDiffusePrimaryPathStateGenerator::genera
     result.primaryPathExecutionPath = primaryPathExecutionPath(result.primaryPathDescriptor->mode);
     if (result.primaryPathDescriptor->mode == gpuPrimaryPathGenerationModePinhole ||
         result.primaryPathDescriptor->mode == gpuPrimaryPathGenerationModeOrthographic ||
-        result.primaryPathDescriptor->mode == gpuPrimaryPathGenerationModeThinLens) {
+        result.primaryPathDescriptor->mode == gpuPrimaryPathGenerationModeThinLens ||
+        result.primaryPathDescriptor->mode == gpuPrimaryPathGenerationModeEquirectangular) {
       if (!options.materializeHostPathStates) {
         result.generatedPrimarySamples = result.primaryPathDescriptor->pathCount();
         return result;
       }
-      generateRectilinearPrimaryPathStates(result.primaryPathDescriptor->mode,
-                                           result.primaryPathDescriptor->rectilinear, result);
+      generateDescriptorPrimaryPathStates(result.primaryPathDescriptor->mode,
+                                          result.primaryPathDescriptor->rectilinear, result);
       return result;
     }
   }

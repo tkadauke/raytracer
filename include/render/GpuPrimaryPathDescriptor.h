@@ -11,6 +11,7 @@ namespace render {
   inline constexpr std::uint32_t gpuPrimaryPathGenerationModePinhole = 1u;
   inline constexpr std::uint32_t gpuPrimaryPathGenerationModeOrthographic = 2u;
   inline constexpr std::uint32_t gpuPrimaryPathGenerationModeThinLens = 3u;
+  inline constexpr std::uint32_t gpuPrimaryPathGenerationModeEquirectangular = 4u;
 
   struct alignas(16) GpuRectilinearPrimaryPathDescriptor {
     std::array<float, 4> originOrDirection{};

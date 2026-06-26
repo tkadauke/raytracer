@@ -1,8 +1,12 @@
 #include <gtest/gtest.h>
 
+#include <optional>
+
+#include "render/GpuPrimaryPathDescriptor.h"
 #include "render/cameras/EquirectangularCamera.h"
 #include "engine/raytracer/Raytracer.h"
 #include "render/primitives/Scene.h"
+#include "render/samplers/Sampler.h"
 #include "core/Buffer.h"
 #include "core/math/Constants.h"
 
@@ -76,6 +80,41 @@ namespace EquirectangularCameraTest {
         EXPECT_NEAR(1.0, ray.direction().length(), 1e-9);
       }
     }
+  }
+
+  TEST(EquirectangularCamera, ShouldExposeStaticGpuPrimaryPathDescriptor) {
+    EquirectangularCamera camera(Vector3d(1, 2, 3), Vector3d(1, 2, 4));
+    setupViewPlane(camera, 4, 2);
+    camera.viewPlane()->sampler()->setup(4, 8, 42);
+
+    const std::optional<GpuPrimaryPathDescriptor> descriptor =
+      camera.gpuPrimaryPathDescriptor(Recti(0, 0, 4, 2), 1234);
+
+    ASSERT_TRUE(descriptor.has_value());
+    EXPECT_EQ(gpuPrimaryPathGenerationModeEquirectangular, descriptor->mode);
+    EXPECT_EQ(0, descriptor->requestedRect().left());
+    EXPECT_EQ(0, descriptor->requestedRect().top());
+    EXPECT_EQ(4, descriptor->requestedRect().width());
+    EXPECT_EQ(2, descriptor->requestedRect().height());
+    EXPECT_EQ(0, descriptor->actualRect().left());
+    EXPECT_EQ(0, descriptor->actualRect().top());
+    EXPECT_EQ(4, descriptor->actualRect().width());
+    EXPECT_EQ(2, descriptor->actualRect().height());
+    EXPECT_EQ(32u, descriptor->pathCount());
+
+    const GpuRectilinearPrimaryPathDescriptor& payload = descriptor->rectilinear;
+    EXPECT_EQ(4u, payload.requestedWidth);
+    EXPECT_EQ(2u, payload.requestedHeight);
+    EXPECT_EQ(4u, payload.actualWidth);
+    EXPECT_EQ(2u, payload.actualHeight);
+    EXPECT_EQ(4u, payload.samplesPerPixel);
+    EXPECT_EQ(1234u, payload.sampleSeed);
+    EXPECT_FLOAT_EQ(4.0f, payload.lensParameters[0]);
+    EXPECT_FLOAT_EQ(2.0f, payload.lensParameters[1]);
+    EXPECT_FLOAT_EQ(1.0f, payload.originOrDirection[0]);
+    EXPECT_FLOAT_EQ(2.0f, payload.originOrDirection[1]);
+    EXPECT_FLOAT_EQ(3.0f, payload.originOrDirection[2]);
+    EXPECT_FLOAT_EQ(1.0f, payload.originOrDirection[3]);
   }
 
   TEST(EquirectangularCamera, ShouldRenderViaRaytracer) {

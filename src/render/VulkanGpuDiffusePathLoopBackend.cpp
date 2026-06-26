@@ -255,7 +255,8 @@ namespace render {
     activeAccumulationTargetShapeFor(const GpuPrimaryPathDescriptor& descriptor) {
       if (descriptor.mode != gpuPrimaryPathGenerationModePinhole &&
           descriptor.mode != gpuPrimaryPathGenerationModeOrthographic &&
-          descriptor.mode != gpuPrimaryPathGenerationModeThinLens) {
+          descriptor.mode != gpuPrimaryPathGenerationModeThinLens &&
+          descriptor.mode != gpuPrimaryPathGenerationModeEquirectangular) {
         throw std::invalid_argument(
           "Vulkan diffuse path-loop backend requires a supported primary path descriptor");
       }
