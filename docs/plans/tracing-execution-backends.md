@@ -77,8 +77,8 @@ end state for GPU tracing.
   supported shading subset: Matte materials, Phong finite diffuse/glossy shading,
   Reflective mirror continuations, Transparent perfect reflection/refraction
   continuations, Emissive materials, ConstantColor, simple CheckerBoard, nearest
-  ImageTexture, and Tinted ConstantColor texture records, PointLight,
-  DirectionalLight, and RectangularAreaLight.
+  ImageTexture, and Tinted wrappers over those supported base texture records,
+  PointLight, DirectionalLight, and RectangularAreaLight.
 - `render::GpuSampleStream` provides the CPU reference for deterministic
   GPU-style sampling dimensions with fixed-vector coverage.
 - Supported diffuse path-tracing scenes can route GPU execution requests
@@ -2525,7 +2525,7 @@ scene is large enough to amortize upload/readback costs.
      one Metal backend for Matte, Phong finite diffuse/glossy, Reflective
      mirror, Transparent perfect reflection/refraction, or Emissive scenes
      using ConstantColor, simple CheckerBoard, nearest ImageTexture, or Tinted
-     ConstantColor records. ✅ **Started.**
+     wrappers over those texture records. ✅ **Started.**
      `MetalGpuDiffusePathLoopKernel` now compiles and dispatches a Metal
      launch-probe kernel that binds the shader-facing path-loop descriptor plus
      scene, initial/active/next path-state, step-record, retained-index, and
@@ -2551,10 +2551,10 @@ scene is large enough to amortize upload/readback costs.
      rejection, and it can terminate restricted Emissive/ConstantColor sphere
      hits while preserving emitted radiance in the GPU path-state contract.
      The full Metal loop now also samples simple planar/UV CheckerBoard texture
-     records whose children are ConstantColor records and Tinted ConstantColor
-     records, so common wrapped-color matte/emissive scenes can stay in the
-     GPU-owned path loop. OpenCylinder and Torus payload traversal are now in
-     the same full Metal loop.
+     records whose children are ConstantColor records plus Tinted wrappers over
+     supported base texture records, so common wrapped-color matte/emissive
+     scenes can stay in the GPU-owned path loop. OpenCylinder and Torus payload
+     traversal are now in the same full Metal loop.
      Terminal outcomes from that continuation probe now clear and write the
      accumulation color/count planes for unique active pixel targets, including
      miss termination, emissive hits, unsupported hits, and diffuse paths that
@@ -2612,8 +2612,8 @@ scene is large enough to amortize upload/readback costs.
      triangle/sphere/plane/rectangle/disk/open-cylinder/torus subset with
      Matte/Phong-finite-glossy/Reflective-mirror/Transparent-refraction/Emissive
      materials,
-     ConstantColor/simple CheckerBoard/nearest ImageTexture/Tinted
-     ConstantColor records, and zero or more point, directional, or
+     ConstantColor/simple CheckerBoard/nearest ImageTexture records plus Tinted
+     wrappers over those records, and zero or more point, directional, or
      rectangular area lights. It writes
      Vulkan-owned active/next path-state, step-record,
      retained-index, and accumulation buffers, reports platform path-state

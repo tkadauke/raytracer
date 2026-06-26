@@ -1875,9 +1875,9 @@ Progress:
 - BSDF-sampled emissive hits now consume that resident MIS state in the
   CPU-reference, Metal, and Vulkan diffuse path-loop paths, applying the same
   power-heuristic emitter weighting as the scalar path tracer.
-- `TintedTexture` records over `ConstantColorTexture` children now lower and
-  evaluate in the compiled diffuse path-loop CPU reference and restricted
-  Metal/Vulkan full-GPU path-loop subset.
+- `TintedTexture` records over ConstantColor, simple CheckerBoard, or nearest
+  ImageTexture children now lower and evaluate in the compiled diffuse
+  path-loop CPU reference and restricted Metal/Vulkan full-GPU path-loop subset.
 - Compiled diffuse path-loop active-path counts are now visible as a per-depth
   row in rendercli compact summaries and Modeler selected-pass details. The
   graph metadata already owned `activePathsPerDepth`; surfacing it keeps the

@@ -429,6 +429,39 @@ namespace GpuTracingSceneTest {
     expectFloat4(compilation.textures.records[2].parameters, 0.25f, 0.5f, 0.75f, 1.0f);
   }
 
+  TEST(GpuTracingScene, CompilesTintedImageTextureRecordsWithImageChildTextureId) {
+    std::vector<Colord> pixels{Colord::red(), Colord::green(), Colord::blue(), Colord::white()};
+    auto imageTexture =
+      std::make_shared<ImageTexture>(new UVMapping2D(2.0, 3.0), 2, 2, pixels,
+                                     ImageTextureFilter::Nearest, ImageTextureWrap::Clamp);
+    auto tintedTexture = std::make_shared<TintedTexture>(imageTexture, Colord(0.5, 0.25, 0.125));
+    auto matte = std::make_shared<MatteMaterial>(tintedTexture);
+    auto sphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 0.5);
+    sphere->setMaterial(matte);
+
+    Scene scene;
+    scene.add(sphere);
+
+    const CompiledIntersectionScene intersection = IntersectionSceneCompiler().compile(scene);
+    const GpuTracingMaterialCompilation compilation = compileGpuTracingMaterials(intersection);
+
+    EXPECT_TRUE(compilation.supported());
+    ASSERT_EQ(2u, compilation.records.size());
+    ASSERT_EQ(7u, compilation.textures.records.size());
+    EXPECT_EQ(1u, compilation.records[1].albedoTexture);
+    const GpuTracingTextureRecord& tinted = compilation.textures.records[1];
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingTextureKind::Tinted), tinted.kind);
+    EXPECT_EQ(2u, tinted.payloadOffset);
+    expectFloat4(tinted.parameters, 0.5f, 0.25f, 0.125f, 1.0f);
+    const GpuTracingTextureRecord& image = compilation.textures.records[2];
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingTextureKind::Image), image.kind);
+    EXPECT_EQ(3u, image.payloadOffset);
+    EXPECT_EQ(4u, image.payloadCount);
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingTextureMappingKind::UV) |
+                gpuTracingTextureWrapClampFlag,
+              image.flags);
+  }
+
   TEST(GpuTracingScene, MatteMaterialPacksTextureIdsAndCoefficients) {
     MatteMaterial material;
     material.setAmbientCoefficient(0.25);

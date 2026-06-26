@@ -1401,7 +1401,7 @@ int imageTextureCoordinate(GpuTracingTextureRecord texture, float coordinate, in
   return wrapped < 0 ? wrapped + size : wrapped;
 }
 
-bool textureColor(uint textureId, GpuIntersectionHitRecord hit, out vec4 color) {
+bool untintedTextureColor(uint textureId, GpuIntersectionHitRecord hit, out vec4 color) {
   color = vec4(0.0);
   if (textureId >= parameters.textureCount) {
     return false;
@@ -1409,17 +1409,6 @@ bool textureColor(uint textureId, GpuIntersectionHitRecord hit, out vec4 color) 
   const GpuTracingTextureRecord texture = readTexture(textureId);
   if (texture.kind == gpuTracingConstantColorTextureKind) {
     color = texture.parameters;
-    return true;
-  }
-  if (texture.kind == gpuTracingTintedTextureKind) {
-    if (texture.payloadOffset >= parameters.textureCount) {
-      return false;
-    }
-    vec4 child;
-    if (!constantTextureColor(texture.payloadOffset, child)) {
-      return false;
-    }
-    color = child * texture.parameters;
     return true;
   }
   if (texture.kind == gpuTracingCheckerBoardTextureKind) {
@@ -1452,6 +1441,23 @@ bool textureColor(uint textureId, GpuIntersectionHitRecord hit, out vec4 color) 
     return constantTextureColor(texelTextureId, color);
   }
   return false;
+}
+
+bool textureColor(uint textureId, GpuIntersectionHitRecord hit, out vec4 color) {
+  color = vec4(0.0);
+  if (textureId >= parameters.textureCount) {
+    return false;
+  }
+  const GpuTracingTextureRecord texture = readTexture(textureId);
+  if (texture.kind == gpuTracingTintedTextureKind) {
+    vec4 child;
+    if (!untintedTextureColor(texture.payloadOffset, hit, child)) {
+      return false;
+    }
+    color = child * texture.parameters;
+    return true;
+  }
+  return untintedTextureColor(textureId, hit, color);
 }
 
 bool surfaceMaterial(GpuIntersectionHitRecord hit, out GpuTracingMaterialRecord material) {
