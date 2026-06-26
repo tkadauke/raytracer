@@ -21,6 +21,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Compile and sample `UVColorTexture` in the full-GPU path-loop texture subset,
   letting supported GPU path-tracer runs keep diagnostic UV albedo materials on
   the platform path. — GPT-5 Codex
+- Allow bounded nested `TintedTexture` wrapper chains in the compiled
+  full-GPU path-loop texture subset for Metal/Vulkan-backed path-tracer
+  renders. — GPT-5 Codex
 - Add a restricted Vulkan diffuse path-loop backend for empty-scene all-miss
   execution when Vulkan wavefront support is built and available, giving Linux
   builds the first platform-owned path-loop result contract. — GPT-5 Codex

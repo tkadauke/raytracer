@@ -76,9 +76,10 @@ end state for GPU tracing.
   material, texture, light, environment, and debug-id records for the initial
   supported shading subset: Matte materials, Phong finite diffuse/glossy shading,
   Reflective mirror continuations, Transparent perfect reflection/refraction
-  continuations, Emissive materials, ConstantColor, simple CheckerBoard, nearest
-  ImageTexture, and Tinted wrappers over those supported base texture records,
-  PointLight, DirectionalLight, and RectangularAreaLight.
+  continuations, Emissive materials, ConstantColor, simple CheckerBoard,
+  nearest-or-bilinear ImageTexture, UVColorTexture, and bounded Tinted wrapper
+  chains over those supported base texture records, PointLight,
+  DirectionalLight, and RectangularAreaLight.
 - `render::GpuSampleStream` provides the CPU reference for deterministic
   GPU-style sampling dimensions with fixed-vector coverage.
 - Supported diffuse path-tracing scenes can route GPU execution requests
@@ -134,8 +135,8 @@ end state for GPU tracing.
   a multi-depth shaded static-transform
   triangle/sphere/plane/rectangle/disk/open-cylinder/torus subset with
   Matte/Phong-finite-glossy/Reflective-mirror/Transparent-refraction/Emissive
-  materials,
-  ConstantColor/simple CheckerBoard/nearest-or-bilinear ImageTexture/UVColor
+  materials, ConstantColor/simple CheckerBoard/nearest-or-bilinear
+  ImageTexture/UVColor records, bounded Tinted wrapper chains over those
   records, and zero or more point, directional, or rectangular area lights when
   Vulkan is built and available, including sample-slot accumulation for
   duplicate active pixel targets.
@@ -149,8 +150,8 @@ end state for GPU tracing.
 - GPU material records beyond the current Matte, Emissive, Phong, Reflective,
   and Transparent subset.
 - GPU texture records beyond ConstantColor, the first simple CheckerBoard
-  subset, nearest-or-bilinear ImageTexture records, UVColorTexture, and simple
-  Tinted wrappers.
+  subset, nearest-or-bilinear ImageTexture records, UVColorTexture, and bounded
+  Tinted wrapper chains.
 - GPU light records beyond PointLight, DirectionalLight, and
   RectangularAreaLight.
 - Platform GPU BSDF evaluation.
@@ -1751,13 +1752,13 @@ comparison logic.
    `render::GpuTracingTextureCompilation` now packs ConstantColor textures,
    planar/UV CheckerBoard texture references, nearest/bilinear ImageTexture
    records, base-level bilinear records for mipmapped image textures,
-   UVColorTexture records, and simple Tinted wrappers into GPU tracing records
-   keyed by material-referenced texture ids, with unsupported texture reasons
-   counted for tracing scene diagnostics. Closes #581.
+   UVColorTexture records, and bounded Tinted wrapper chains into GPU tracing
+   records keyed by material-referenced texture ids, with unsupported texture
+   reasons counted for tracing scene diagnostics. Closes #581.
    - Depends on: job 1.
    - Output: records for ConstantColor, planar/UV CheckerBoard texture graphs,
-     nearest/bilinear ImageTexture records, UVColorTexture, and simple Tinted
-     wrappers; unsupported reasons otherwise.
+     nearest/bilinear ImageTexture records, UVColorTexture, and bounded Tinted
+     wrapper chains; unsupported reasons otherwise.
 
 4. ~~**Compile light records.**~~ ✅ **Done.**
    `render::GpuTracingLightCompilation` now packs PointLight,
@@ -2529,7 +2530,7 @@ scene is large enough to amortize upload/readback costs.
      mirror, Transparent perfect reflection/refraction, or Emissive scenes
      using ConstantColor, simple CheckerBoard, nearest/bilinear ImageTexture,
      base-level bilinear mipmapped ImageTexture records, UVColorTexture, or
-     Tinted wrappers over those texture records. ✅ **Started.**
+     bounded Tinted wrapper chains over those texture records. ✅ **Started.**
      `MetalGpuDiffusePathLoopKernel` now compiles and dispatches a Metal
      launch-probe kernel that binds the shader-facing path-loop descriptor plus
      scene, initial/active/next path-state, step-record, retained-index, and
@@ -2555,10 +2556,10 @@ scene is large enough to amortize upload/readback costs.
      rejection, and it can terminate restricted Emissive/ConstantColor sphere
      hits while preserving emitted radiance in the GPU path-state contract.
      The full Metal loop now also samples simple planar/UV CheckerBoard texture
-     records whose children are ConstantColor records plus Tinted wrappers over
-     supported base texture records, so common wrapped-color matte/emissive
-     scenes can stay in the GPU-owned path loop. OpenCylinder and Torus payload
-     traversal are now in the same full Metal loop.
+     records whose children are ConstantColor records plus bounded Tinted
+     wrapper chains over supported base texture records, so common wrapped-color
+     matte/emissive scenes can stay in the GPU-owned path loop. OpenCylinder
+     and Torus payload traversal are now in the same full Metal loop.
      Terminal outcomes from that continuation probe now clear and write the
      accumulation color/count planes for unique active pixel targets, including
      miss termination, emissive hits, unsupported hits, and diffuse paths that
@@ -2617,8 +2618,8 @@ scene is large enough to amortize upload/readback costs.
      Matte/Phong-finite-glossy/Reflective-mirror/Transparent-refraction/Emissive
      materials,
      ConstantColor/simple CheckerBoard/nearest-or-bilinear ImageTexture records,
-     UVColorTexture, plus Tinted wrappers over those records, and zero or more
-     point, directional, or rectangular area lights. It writes
+     UVColorTexture, plus bounded Tinted wrapper chains over those records, and
+     zero or more point, directional, or rectangular area lights. It writes
      Vulkan-owned active/next path-state, step-record,
      retained-index, and accumulation buffers, reports platform path-state
      residency, and now dispatches that shader in 64-wide workgroups instead

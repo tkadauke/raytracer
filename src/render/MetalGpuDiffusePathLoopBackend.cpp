@@ -127,12 +127,19 @@ namespace render {
     }
 
     [[nodiscard]] bool supportedTexture(const GpuTracingSceneSections& scene,
-                                        std::size_t textureIndex) {
+                                        std::size_t textureIndex, std::uint32_t depth = 0u) {
+      constexpr std::uint32_t maxTextureEvaluationDepth = 8u;
+      if (depth >= maxTextureEvaluationDepth) {
+        return false;
+      }
+      if (textureIndex >= scene.textures.size()) {
+        return false;
+      }
       const GpuTracingTextureRecord& texture = scene.textures[textureIndex];
       const auto kind = static_cast<GpuTracingTextureKind>(texture.kind);
       if (kind == GpuTracingTextureKind::Tinted) {
         return texture.payloadOffset < scene.textures.size() &&
-               supportedUntintedTexture(scene, texture.payloadOffset);
+               supportedTexture(scene, texture.payloadOffset, depth + 1u);
       }
       return supportedUntintedTexture(scene, textureIndex);
     }
@@ -449,8 +456,8 @@ namespace render {
     }
     if (!supportedTextures(scene)) {
       return {false, "Metal diffuse path-loop backend currently supports ConstantColor, simple "
-                     "CheckerBoard, nearest/bilinear ImageTexture, UVColorTexture, and Tinted "
-                     "wrappers over those textures only"};
+                     "CheckerBoard, nearest/bilinear ImageTexture, UVColorTexture, and bounded "
+                     "Tinted wrapper chains over those textures only"};
     }
     if (!supportedLights(scene)) {
       return {false, "Metal diffuse path-loop backend currently supports point, directional, and "

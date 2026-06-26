@@ -46,6 +46,7 @@ const float pathLoopTau = 6.28318530717958647692;
 const float pathLoopRayEpsilon = 1.0e-7;
 const float pathLoopMinimumHitDistance = 1.0e-4;
 const float pathLoopMinimumContinuationProbability = 0.05;
+const uint pathLoopMaxTextureEvaluationDepth = 8u;
 
 struct GpuDiffusePathLoopLaunchParameters {
   uint layoutVersion;
@@ -1498,20 +1499,29 @@ bool untintedTextureColor(uint textureId, GpuIntersectionHitRecord hit, out vec4
 }
 
 bool textureColor(uint textureId, GpuIntersectionHitRecord hit, out vec4 color) {
-  color = vec4(0.0);
-  if (textureId >= parameters.textureCount) {
-    return false;
-  }
-  const GpuTracingTextureRecord texture = readTexture(textureId);
-  if (texture.kind == gpuTracingTintedTextureKind) {
-    vec4 child;
-    if (!untintedTextureColor(texture.payloadOffset, hit, child)) {
+  vec4 tint = vec4(1.0);
+  uint currentTexture = textureId;
+  for (uint depth = 0u; depth != pathLoopMaxTextureEvaluationDepth; ++depth) {
+    if (currentTexture >= parameters.textureCount) {
+      color = vec4(0.0);
       return false;
     }
-    color = child * texture.parameters;
+    const GpuTracingTextureRecord texture = readTexture(currentTexture);
+    if (texture.kind == gpuTracingTintedTextureKind) {
+      tint *= texture.parameters;
+      currentTexture = texture.payloadOffset;
+      continue;
+    }
+    vec4 base;
+    if (!untintedTextureColor(currentTexture, hit, base)) {
+      color = vec4(0.0);
+      return false;
+    }
+    color = base * tint;
     return true;
   }
-  return untintedTextureColor(textureId, hit, color);
+  color = vec4(0.0);
+  return false;
 }
 
 bool surfaceMaterial(GpuIntersectionHitRecord hit, out GpuTracingMaterialRecord material) {
