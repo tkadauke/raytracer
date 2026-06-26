@@ -2606,7 +2606,9 @@ scene is large enough to amortize upload/readback costs.
      carries an explicit diagnostic-capture flag so render graph execution can
      request image-only platform readback when graph trace capture is disabled,
      while backend tests and trace-enabled runs keep step/path-state
-     diagnostics available. The compiled path loop also
+     diagnostics available. The full path-loop kernels also skip those
+     diagnostic buffer writes on the trace-disabled final-image path. The
+     compiled path loop also
      carries `ReflectiveMaterial` and `TransparentMaterial` delta continuations
      through the CPU reference evaluator and the Metal full-GPU subset, and the
      compiled environment records now carry scene ambient separately from

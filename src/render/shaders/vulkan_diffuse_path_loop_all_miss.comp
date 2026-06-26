@@ -2271,7 +2271,9 @@ void main() {
   const uint id = gl_GlobalInvocationID.x;
   if (id == 0u) {
     echoedParameters = parameters;
-    retainedIndices[0] = 0u;
+    if (parameters.captureDiagnostics != 0u) {
+      retainedIndices[0] = 0u;
+    }
   }
   if (id >= parameters.initialPathCount) {
     return;
@@ -2290,7 +2292,9 @@ void main() {
 
     GpuDiffusePathStateRecord next;
     const GpuDiffusePathStepRecord step = pathStep(id, path, next);
-    stepRecords[id * parameters.maxDepth + depthIndex] = step;
+    if (parameters.captureDiagnostics != 0u) {
+      stepRecords[id * parameters.maxDepth + depthIndex] = step;
+    }
 
     if (pathStateIsActive(path) &&
         (next.flags & gpuDiffusePathStateTerminatedFlag) != 0u) {
@@ -2303,6 +2307,8 @@ void main() {
     path = next;
   }
 
-  activePathStates[id] = path;
-  nextPathStates[id] = path;
+  if (parameters.captureDiagnostics != 0u) {
+    activePathStates[id] = path;
+    nextPathStates[id] = path;
+  }
 }
