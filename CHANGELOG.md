@@ -30,6 +30,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   including shift and tilted focal-plane parameters, so supported Metal/Vulkan
   path-loop renders can synthesize tilt-shift primary paths on device. —
   GPT-5 Codex
+- Add a platform full-GPU compiled path-loop benchmark row and make the tracing
+  backend capture script set the tracing execution mode as well as the
+  intersection backend, so GPU captures measure the broader path-loop request.
+  — GPT-5 Codex
 - Let static equirectangular path-tracer launches use GPU primary-path
   descriptors, so supported Metal/Vulkan path-loop renders can synthesize
   panorama primary paths on device. — GPT-5 Codex

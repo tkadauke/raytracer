@@ -2699,7 +2699,14 @@ scene is large enough to amortize upload/readback costs.
    - Depends on: jobs 2, 3, and 4.
    - Output: CPU/path-loop image parity for fixed seeds, compact trace metrics
      proving `full_gpu_subset`, and benchmark rows that compare CPU-reference,
-     hybrid-compaction, Metal, and Vulkan path-loop execution.
+     hybrid-compaction, Metal, and Vulkan path-loop execution. ✅ **Started.**
+     Platform-enabled benchmark builds now include an explicit requested-GPU
+     compiled diffuse path-loop row with diagnostics disabled, using the same
+     workload matrix as the CPU-reference compiled path-loop row. The rendercli
+     capture script now also sets `--tracing_execution` alongside
+     `--wavefront_intersection_backend` so its CPU/auto/GPU modes measure the
+     broader tracing execution path rather than only intersection-backend
+     selection.
 
 6. **Update user-facing docs and examples.**
    - Depends on: job 5.

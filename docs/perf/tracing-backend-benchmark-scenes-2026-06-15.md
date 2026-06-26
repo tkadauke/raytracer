@@ -65,11 +65,13 @@ checked-in tree does not carry hundreds of repetitive triangle objects.
 
 The supported rendercli scenes run in three modes:
 
-- `--wavefront_intersection_backend cpu`, the CPU reference path;
-- `--wavefront_intersection_backend auto`, the conservative automatic policy;
-- `--wavefront_intersection_backend gpu`, the explicit platform request, which
-  may resolve to Metal, Vulkan, packed CPU, or runtime CPU with a fallback
-  reason.
+- `--tracing_execution cpu --wavefront_intersection_backend cpu`, the CPU
+  reference path;
+- `--tracing_execution auto --wavefront_intersection_backend auto`, the
+  conservative automatic policy;
+- `--tracing_execution gpu --wavefront_intersection_backend gpu`, the explicit
+  platform request, which may resolve to a full Metal/Vulkan path loop, hybrid
+  platform intersection, packed CPU, or runtime CPU with a fallback reason.
 
 The unsupported fallback scene runs only the explicit GPU request. That keeps
 the fallback benchmark focused on the observable behavior that matters:
@@ -87,7 +89,9 @@ for the `indirect_diffuse_supported` workload. Those rows time the current
 `compiled_cpu_reference` path-loop implementation over GPU-facing records, then
 time the CPU-reference image resolve/accumulation handoff for the same terminal
 records. Together they publish the resident path-loop and accumulation counters
-a future Metal/Vulkan full path-loop kernel must replace.
+a Metal/Vulkan full path-loop kernel must replace. Platform-enabled builds also
+include an explicit requested-GPU compiled diffuse path-loop row with
+diagnostics disabled, matching the trace-disabled full-GPU render path.
 
 ## Comparable Metric Fields
 
@@ -119,8 +123,8 @@ Compiled diffuse path-loop rows additionally publish:
 | `compiled_path_loop_*` | Path-loop work totals: initial paths, depths, active paths, closest-hit rays, direct-light visibility rays, hits, misses, unsupported hits, spawned continuations, and terminated paths. |
 | `resident_path_loop_*` | Resident path-state accounting: compaction passes, input/retained/removed/moved path counts, retained-index bytes, resident path-state bytes, round trips, and saved-readback estimates. |
 | `tracing_accumulation_*` | CPU-reference image resolve accounting: resident accumulation bytes, color/sample buffer bytes, clear/add/resolve/readback operations, added samples, and readback bytes. |
-| `full_gpu_path_loop_supported` | `1.0` only when a platform full-GPU path-loop row actually owns the path loop. Current rows are `0.0`. |
-| `full_gpu_path_loop_unavailable` | `1.0` for the current CPU-reference compiled path loop, making the missing platform path-loop kernel visible in benchmark output. |
+| `full_gpu_path_loop_supported` | `1.0` only when a platform full-GPU path-loop row actually owns the path loop. |
+| `full_gpu_path_loop_unavailable` | `1.0` for a CPU-reference or fallback compiled path loop, making missing platform path-loop execution visible in benchmark output. |
 
 ## Automatic Selection Thresholds
 

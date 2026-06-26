@@ -4,6 +4,7 @@
 #include "core/geometry/Polyline.h"
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
+#include "render/GpuDiffusePathLoopBackend.h"
 #include "render/GpuDiffusePathStepReference.h"
 #include "render/GpuIntersectionScene.h"
 #include "render/GpuTracingScene.h"
@@ -1212,6 +1213,59 @@ namespace {
   }
 
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT) || defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+  void bm_requestedGpuCompiledDiffusePathLoop(benchmark::State& state) {
+    const Workload& workload = workloadFor(state);
+    const GpuTracingSceneCompilation compilation = compileGpuTracingScene(*workload.scene);
+    const GpuDiffusePathLoopSupport support =
+      gpuDiffusePathLoopSupport(compilation, *workload.scene);
+    if (!support.supported) {
+      state.SkipWithError(support.reason.c_str());
+      return;
+    }
+
+    const std::shared_ptr<const GpuDiffusePathLoopBackend> backend =
+      GpuDiffusePathLoopBackend::defaultFullGpuBackendForGpuRequest();
+    if (!backend) {
+      state.SkipWithError("platform full-GPU path-loop backend is not enabled");
+      return;
+    }
+    if (!backend->fullGpuPathLoopAvailable()) {
+      state.SkipWithError(backend->fullGpuPathLoopUnavailableReason());
+      return;
+    }
+
+    const std::vector<GpuDiffusePathStateRecord> paths = generateDiffusePathStates(state.range(1));
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = static_cast<std::uint32_t>(state.range(2));
+    settings.russianRouletteDepth = 3;
+    settings.directLightSamples = 1;
+    settings.captureDiagnostics = false;
+
+    const GpuDiffusePathLoopBackendSupport backendSupport =
+      backend->fullGpuPathLoopSupport(compilation.sections, settings);
+    if (!backendSupport.supported) {
+      state.SkipWithError(backendSupport.reason.c_str());
+      return;
+    }
+
+    GpuDiffusePathLoopResult result;
+    double measuredSeconds = 0.0;
+    for (auto _ : state) {
+      const auto start = std::chrono::steady_clock::now();
+      result = backend->run(compilation.sections, paths, settings);
+      const auto stop = std::chrono::steady_clock::now();
+      measuredSeconds += std::chrono::duration<double>(stop - start).count();
+      benchmark::DoNotOptimize(result.hasPlatformAccumulation());
+      benchmark::DoNotOptimize(result.platformAccumulationColorSums.size());
+    }
+
+    const double averageSeconds =
+      measuredSeconds / static_cast<double>(std::max<std::int64_t>(1, state.iterations()));
+    workload.annotateCompiledDiffusePathLoop(state, compilation, result, averageSeconds);
+    state.counters["compiled_path_loop_capture_diagnostics"] = 0.0;
+    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(paths.size()));
+  }
+
   void bm_requestedGpuClosestHitBatch(benchmark::State& state) {
     const Workload& workload = workloadFor(state);
     const std::shared_ptr<const WavefrontIntersectionBackend> backend =
@@ -1496,6 +1550,7 @@ BENCHMARK(bm_requestedGpuUnsupportedMixedClosestAndAnyHitBatch)->Apply(unsupport
 BENCHMARK(bm_compiledDiffusePathLoopCpuReference)->Apply(compiledDiffusePathLoopWorkloads);
 BENCHMARK(bm_compiledDiffusePathLoopResolveCpuReference)->Apply(compiledDiffusePathLoopWorkloads);
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT) || defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+BENCHMARK(bm_requestedGpuCompiledDiffusePathLoop)->Apply(compiledDiffusePathLoopWorkloads);
 BENCHMARK(bm_requestedGpuClosestHitBatch)->Apply(supportedQueryWorkloads);
 BENCHMARK(bm_requestedGpuAnyHitBatch)->Apply(supportedQueryWorkloads);
 BENCHMARK(bm_requestedGpuMixedClosestAndAnyHitBatch)->Apply(supportedQueryWorkloads);

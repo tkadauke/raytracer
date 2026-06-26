@@ -667,16 +667,19 @@ GPU-compaction-support counters, so the current CPU compaction path has a
 baseline before a device-side compaction kernel exists.
 Compiled diffuse path-loop benchmark rows also report peak and final active
 path counts from the depth frontier, matching the render metrics and capture
-summaries used to judge future resident path-loop kernels.
+summaries used to judge future resident path-loop kernels. Platform-enabled
+benchmark builds add an explicit GPU compiled path-loop row with diagnostics
+disabled, so the same workload can compare the CPU reference loop against the
+Metal or Vulkan path-loop backend that normal trace-disabled renders use.
 
 Tracing backend performance captures use the same workload families in
 rendercli form: small supported primitives, a generated large triangle mesh,
 visibility-heavy area-light blockers, indirect diffuse bounce, and an
 unsupported fallback scene. The capture wrapper runs CPU, automatic, and
-explicit GPU-request modes where the scene is supported, then keeps the
-transparent-material fallback as an explicit GPU request so the metrics show
-why runtime CPU execution was selected. The scene list and command surface live
-in
+explicit GPU-request modes where the scene is supported, setting both the
+tracing execution preference and the intersection backend request. It keeps the
+transparent-material fallback as an explicit GPU request so the metrics show why
+runtime CPU execution was selected. The scene list and command surface live in
 [`docs/perf/tracing-backend-benchmark-scenes-2026-06-15.md`](../../perf/tracing-backend-benchmark-scenes-2026-06-15.md).
 
 The GPU tracing accumulation layout is defined separately from the

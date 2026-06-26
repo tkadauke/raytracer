@@ -34,7 +34,8 @@ Environment:
   TRACING_BACKEND_LARGE_MESH_SIDE  generated mesh grid width/height
 
 Each scene captures CPU, auto, and explicit GPU-request modes so metrics show
-runtime, packed-CPU, and available platform GPU intersection paths.
+runtime, hybrid intersection/compaction, and available platform full-GPU
+path-loop execution paths.
 USAGE
 }
 
@@ -199,6 +200,7 @@ run_mode() {
       --sampling_seed 1337 \
       --pathtracer_direct_light_samples 1 \
       --wavefront_denoiser none \
+      --tracing_execution "${backend}" \
       --wavefront_intersection_backend "${backend}" \
       --depth "${depth}" \
       --repeat "${repeat}" \
