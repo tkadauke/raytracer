@@ -302,6 +302,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Preserve Metal/Vulkan full-GPU diffuse path-loop active-depth metrics when
+  graph trace diagnostics are disabled, using device-written counters instead
+  of depending on diagnostic step-record readback. — GPT-5 Codex
 - Keep `TiltShiftCamera` on host primary-path generation instead of inheriting
   `ThinLensCamera`'s GPU descriptor, avoiding incorrect perpendicular
   focal-plane rays for tilted focal-plane renders. — GPT-5 Codex

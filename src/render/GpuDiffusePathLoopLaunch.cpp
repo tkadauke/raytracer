@@ -44,6 +44,10 @@ namespace render {
                             "denoiser feature record");
     }
 
+    std::uint64_t activePathCountBytes(std::uint64_t maxDepth) {
+      return checkedProduct(maxDepth, sizeof(std::uint32_t), "active path depth count");
+    }
+
     template<typename Record>
     std::uint32_t assignGeometryRange(std::uint64_t& byteOffset, std::size_t count,
                                       std::uint32_t& countField, const char* label);
@@ -132,6 +136,7 @@ namespace render {
         plan.buffers.denoiserFeatureRecordBytes =
           denoiserFeatureRecordBytes(accumulationLayout.pixelCount());
       }
+      plan.buffers.activePathCountBytes = activePathCountBytes(maxDepth);
       plan.buffers.accumulationBytes = accumulationLayout.totalBytes();
 
       plan.buffers.totalUploadBytes =
@@ -148,6 +153,8 @@ namespace render {
       residentBytes = checkedAdd(residentBytes, plan.buffers.retainedIndexBytes,
                                  "GPU diffuse path-loop resident");
       residentBytes = checkedAdd(residentBytes, plan.buffers.denoiserFeatureRecordBytes,
+                                 "GPU diffuse path-loop resident");
+      residentBytes = checkedAdd(residentBytes, plan.buffers.activePathCountBytes,
                                  "GPU diffuse path-loop resident");
       residentBytes =
         checkedAdd(residentBytes, plan.buffers.accumulationBytes, "GPU diffuse path-loop resident");

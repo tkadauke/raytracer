@@ -138,7 +138,7 @@ namespace render {
           shaderGuard.device = device;
           shaderGuard.shaderModule = shader;
 
-          VkDescriptorSetLayout descriptorLayout = createDescriptorLayout(device, 10);
+          VkDescriptorSetLayout descriptorLayout = createDescriptorLayout(device, 11);
           DescriptorLayoutGuard descriptorLayoutGuard;
           descriptorLayoutGuard.device = device;
           descriptorLayoutGuard.layout = descriptorLayout;
@@ -220,6 +220,11 @@ namespace render {
           0u);
         buffers.buffers.push_back(
           createStorageBufferFromBytes(device, selection.device, denoiserFeatureBytes));
+        std::vector<std::uint8_t> activePathCountBytes(
+          static_cast<std::size_t>(std::max<std::uint64_t>(1u, plan.buffers.activePathCountBytes)),
+          0u);
+        buffers.buffers.push_back(
+          createStorageBufferFromBytes(device, selection.device, activePathCountBytes));
 
         VkShaderModule shader =
           createShaderModule(device, vulkan_shaders::diffusePathLoopAllMissShaderSpirv.data(),
@@ -228,7 +233,7 @@ namespace render {
         shaderGuard.device = device;
         shaderGuard.shaderModule = shader;
 
-        VkDescriptorSetLayout descriptorLayout = createDescriptorLayout(device, 10);
+        VkDescriptorSetLayout descriptorLayout = createDescriptorLayout(device, 11);
         DescriptorLayoutGuard descriptorLayoutGuard;
         descriptorLayoutGuard.device = device;
         descriptorLayoutGuard.layout = descriptorLayout;
@@ -243,7 +248,7 @@ namespace render {
         pipelineGuard.device = device;
         pipelineGuard.pipeline = pipeline;
 
-        VkDescriptorPool descriptorPool = createDescriptorPool(device, 10);
+        VkDescriptorPool descriptorPool = createDescriptorPool(device, 11);
         DescriptorPoolGuard descriptorPoolGuard;
         descriptorPoolGuard.device = device;
         descriptorPoolGuard.pool = descriptorPool;
@@ -316,6 +321,9 @@ namespace render {
             byteCount<GpuDiffusePathDenoiserFeatureRecord>(pixels), pixels,
             "Vulkan diffuse path-loop denoiser feature output mapping");
         }
+        result.activePathCountsPerDepth = readBackRecords<std::uint32_t>(
+          device, buffers.buffers[10].memory, byteCount<std::uint32_t>(plan.parameters.maxDepth),
+          plan.parameters.maxDepth, "Vulkan diffuse path-loop active-depth count mapping");
         result.readbackWorkerSeconds =
           secondsBetween(readbackStart, std::chrono::steady_clock::now());
         return result;

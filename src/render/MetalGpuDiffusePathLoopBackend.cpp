@@ -376,6 +376,10 @@ namespace render {
                           const GpuDiffusePathLoopSettings& settings) {
       (void)initialPathStates;
       std::uint64_t activeSteps = 0;
+      std::uint64_t countedActiveSteps = 0;
+      for (const std::uint32_t count : metalResult.activePathCountsPerDepth) {
+        countedActiveSteps += count;
+      }
       loop.metrics.closestHitExecutionPath = kFullGpuSubsetExecutionPath;
       loop.metrics.emissionExecutionPath = kFullGpuSubsetExecutionPath;
       loop.metrics.directLightVisibilityExecutionPath = kFullGpuSubsetExecutionPath;
@@ -407,6 +411,9 @@ namespace render {
           ++loop.metrics.unsupportedHits;
         }
       }
+      if (countedActiveSteps != 0u) {
+        activeSteps = countedActiveSteps;
+      }
       loop.metrics.activePaths = activeSteps;
       loop.metrics.closestHitRays = activeSteps;
     }
@@ -415,9 +422,19 @@ namespace render {
                            const MetalGpuDiffusePathLoopKernelResult& metalResult,
                            const GpuDiffusePathLoopSettings& settings) {
       std::vector<std::uint64_t> counts(settings.maxDepth, 0u);
+      if (!metalResult.activePathCountsPerDepth.empty()) {
+        for (std::size_t depth = 0;
+             depth != metalResult.activePathCountsPerDepth.size() && depth != counts.size();
+             ++depth) {
+          counts[depth] = metalResult.activePathCountsPerDepth[depth];
+        }
+      }
       for (const GpuDiffusePathStepRecord& step : metalResult.stepRecords) {
         const auto event = static_cast<GpuDiffusePathStepEvent>(step.event);
         if (event == GpuDiffusePathStepEvent::Inactive || step.depth >= counts.size()) {
+          continue;
+        }
+        if (!metalResult.activePathCountsPerDepth.empty()) {
           continue;
         }
         ++counts[step.depth];

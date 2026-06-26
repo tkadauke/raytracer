@@ -3003,6 +3003,7 @@ namespace render {
               "    device uchar* accumulation [[buffer(8)]],\n"
               "    device GpuIntersectionHitRecord* closestHits [[buffer(9)]],\n"
               "    device GpuDiffusePathDenoiserFeatureRecord* denoiserFeatures [[buffer(10)]],\n"
+              "    device atomic_uint* activePathCounts [[buffer(11)]],\n"
               "    uint id [[thread_position_in_grid]]) {\n"
               "  if (id == 0u) {\n"
               "    echoedParameters[0] = parameters;\n"
@@ -3023,6 +3024,8 @@ namespace render {
               "    if (!pathStateIsActive(path) || path.depth >= parameters.maxDepth) {\n"
               "      break;\n"
               "    }\n"
+              "    atomic_fetch_add_explicit(&activePathCounts[path.depth], 1u,\n"
+              "                              memory_order_relaxed);\n"
               "    GpuDiffusePathStateRecord next = path;\n"
               "    GpuIntersectionHitRecord hit = missHitRecord(path.ray);\n"
               "    GpuDiffusePathStepRecord step = mattePathStep(\n"
@@ -4156,6 +4159,9 @@ namespace render {
       id<MTLBuffer> denoiserFeatureBuffer =
         [device newBufferWithLength:bufferLength(plan.buffers.denoiserFeatureRecordBytes)
                             options:MTLResourceStorageModeShared];
+      id<MTLBuffer> activePathCountBuffer =
+        [device newBufferWithLength:bufferLength(plan.buffers.activePathCountBytes)
+                            options:MTLResourceStorageModeShared];
       const std::uint64_t closestHitBytes =
         plan.parameters.captureDiagnostics != 0u
           ? launchPathCount * static_cast<std::uint64_t>(sizeof(GpuIntersectionHitRecord))
@@ -4165,7 +4171,8 @@ namespace render {
                             options:MTLResourceStorageModeShared];
       if (!parameterBuffer || !echoedParameterBuffer || !sceneUploadBuffer || !initialPathBuffer ||
           !activePathBuffer || !nextPathBuffer || !stepRecordBuffer || !retainedIndexBuffer ||
-          !accumulationBuffer || !denoiserFeatureBuffer || !closestHitBuffer) {
+          !accumulationBuffer || !denoiserFeatureBuffer || !activePathCountBuffer ||
+          !closestHitBuffer) {
         throw std::runtime_error("Metal diffuse path-loop buffer allocation failed");
       }
       clearRetainedIndexBuffer(retainedIndexBuffer, plan.buffers.retainedIndexBytes);
@@ -4176,6 +4183,10 @@ namespace render {
       if (plan.buffers.denoiserFeatureRecordBytes != 0u) {
         std::memset([denoiserFeatureBuffer contents], 0,
                     static_cast<std::size_t>(plan.buffers.denoiserFeatureRecordBytes));
+      }
+      if (plan.buffers.activePathCountBytes != 0u) {
+        std::memset([activePathCountBuffer contents], 0,
+                    static_cast<std::size_t>(plan.buffers.activePathCountBytes));
       }
       MetalGpuDiffusePathLoopKernelResult result;
       result.executionPath = "metal_diffuse_path_loop";
@@ -4206,6 +4217,7 @@ namespace render {
       [encoder setBuffer:accumulationBuffer offset:0 atIndex:8];
       [encoder setBuffer:closestHitBuffer offset:0 atIndex:9];
       [encoder setBuffer:denoiserFeatureBuffer offset:0 atIndex:10];
+      [encoder setBuffer:activePathCountBuffer offset:0 atIndex:11];
       dispatch1D(encoder, pipeline, static_cast<NSUInteger>(launchPathCount));
       [encoder endEncoding];
 
@@ -4220,6 +4232,11 @@ namespace render {
       const auto readbackStart = std::chrono::steady_clock::now();
       std::memcpy(&result.echoedParameters, [echoedParameterBuffer contents],
                   sizeof(result.echoedParameters));
+      result.activePathCountsPerDepth.resize(plan.parameters.maxDepth);
+      if (!result.activePathCountsPerDepth.empty()) {
+        std::memcpy(result.activePathCountsPerDepth.data(), [activePathCountBuffer contents],
+                    result.activePathCountsPerDepth.size() * sizeof(std::uint32_t));
+      }
       if (plan.parameters.captureDiagnostics != 0u) {
         result.copiedInitialPathStates.resize(launchPathCount);
         if (!result.copiedInitialPathStates.empty()) {

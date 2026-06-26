@@ -5541,13 +5541,14 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(2u * 3u * sizeof(GpuDiffusePathStepRecord), plan.buffers.stepRecordBytes);
     EXPECT_EQ(3u * sizeof(std::uint32_t), plan.buffers.retainedIndexBytes);
     EXPECT_EQ(0u, plan.buffers.denoiserFeatureRecordBytes);
+    EXPECT_EQ(3u * sizeof(std::uint32_t), plan.buffers.activePathCountBytes);
     EXPECT_EQ(accumulationLayout.totalBytes(), plan.buffers.accumulationBytes);
     EXPECT_EQ(plan.buffers.sceneUploadBytes + plan.buffers.initialPathStateBytes,
               plan.buffers.totalUploadBytes);
     EXPECT_EQ(plan.buffers.sceneUploadBytes + plan.buffers.activePathStateBytes +
                 plan.buffers.nextPathStateBytes + plan.buffers.stepRecordBytes +
                 plan.buffers.retainedIndexBytes + plan.buffers.denoiserFeatureRecordBytes +
-                plan.buffers.accumulationBytes,
+                plan.buffers.activePathCountBytes + plan.buffers.accumulationBytes,
               plan.buffers.totalResidentBytes);
   }
 
@@ -5626,6 +5627,7 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(24u * sizeof(GpuDiffusePathStateRecord), plan.buffers.activePathStateBytes);
     EXPECT_EQ(24u * sizeof(GpuDiffusePathStateRecord), plan.buffers.nextPathStateBytes);
     EXPECT_EQ(24u * 3u * sizeof(GpuDiffusePathStepRecord), plan.buffers.stepRecordBytes);
+    EXPECT_EQ(3u * sizeof(std::uint32_t), plan.buffers.activePathCountBytes);
     EXPECT_EQ(plan.buffers.sceneUploadBytes, plan.buffers.totalUploadBytes);
   }
 
@@ -5874,9 +5876,11 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(0u, plan.buffers.stepRecordBytes);
     EXPECT_EQ(0u, plan.buffers.retainedIndexBytes);
     EXPECT_EQ(0u, plan.buffers.denoiserFeatureRecordBytes);
+    EXPECT_EQ(8u * sizeof(std::uint32_t), plan.buffers.activePathCountBytes);
     EXPECT_EQ(plan.buffers.sceneUploadBytes + plan.buffers.initialPathStateBytes,
               plan.buffers.totalUploadBytes);
-    EXPECT_EQ(plan.buffers.sceneUploadBytes + plan.buffers.accumulationBytes,
+    EXPECT_EQ(plan.buffers.sceneUploadBytes + plan.buffers.activePathCountBytes +
+                plan.buffers.accumulationBytes,
               plan.buffers.totalResidentBytes);
   }
 
@@ -5897,10 +5901,11 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(0u, plan.buffers.retainedIndexBytes);
     EXPECT_EQ(6u * sizeof(GpuDiffusePathDenoiserFeatureRecord),
               plan.buffers.denoiserFeatureRecordBytes);
+    EXPECT_EQ(8u * sizeof(std::uint32_t), plan.buffers.activePathCountBytes);
     EXPECT_EQ(plan.buffers.sceneUploadBytes + plan.buffers.initialPathStateBytes,
               plan.buffers.totalUploadBytes);
     EXPECT_EQ(plan.buffers.sceneUploadBytes + plan.buffers.denoiserFeatureRecordBytes +
-                plan.buffers.accumulationBytes,
+                plan.buffers.activePathCountBytes + plan.buffers.accumulationBytes,
               plan.buffers.totalResidentBytes);
   }
 
@@ -5943,8 +5948,10 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(0u, plan.buffers.stepRecordBytes);
     EXPECT_EQ(0u, plan.buffers.retainedIndexBytes);
     EXPECT_EQ(0u, plan.buffers.denoiserFeatureRecordBytes);
+    EXPECT_EQ(3u * sizeof(std::uint32_t), plan.buffers.activePathCountBytes);
     EXPECT_EQ(plan.buffers.sceneUploadBytes, plan.buffers.totalUploadBytes);
-    EXPECT_EQ(plan.buffers.sceneUploadBytes + plan.buffers.accumulationBytes,
+    EXPECT_EQ(plan.buffers.sceneUploadBytes + plan.buffers.activePathCountBytes +
+                plan.buffers.accumulationBytes,
               plan.buffers.totalResidentBytes);
   }
 

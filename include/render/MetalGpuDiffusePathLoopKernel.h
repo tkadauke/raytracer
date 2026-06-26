@@ -17,6 +17,7 @@ namespace render {
     std::vector<GpuDiffusePathStepRecord> stepRecords;
     std::vector<GpuDiffusePathDenoiserFeatureRecord> denoiserFeatureRecords;
     std::vector<std::uint32_t> retainedPathIndices;
+    std::vector<std::uint32_t> activePathCountsPerDepth;
     std::vector<std::array<float, 4>> accumulationColorSums;
     std::vector<std::uint32_t> accumulationSampleCounts;
     std::string executionPath{"metal_diffuse_path_loop_launch_probe"};

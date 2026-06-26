@@ -386,6 +386,10 @@ layout(std430, binding = 9) buffer DenoiserFeatures {
   GpuDiffusePathDenoiserFeatureRecord denoiserFeatures[];
 };
 
+layout(std430, binding = 10) buffer ActivePathCounts {
+  uint activePathCounts[];
+};
+
 float rayInfinity() {
   return uintBitsToFloat(0x7f800000u);
 }
@@ -2855,6 +2859,7 @@ void main() {
       break;
     }
 
+    atomicAdd(activePathCounts[path.depth], 1u);
     GpuIntersectionHitRecord hit;
     GpuDiffusePathStateRecord next;
     const GpuDiffusePathStepRecord step = pathStep(id, path, hit, next);

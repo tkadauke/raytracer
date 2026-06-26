@@ -430,6 +430,10 @@ namespace render {
                           const VulkanGpuDiffusePathLoopKernelResult& vulkanResult,
                           const GpuDiffusePathLoopSettings& settings) {
       std::uint64_t activeSteps = 0;
+      std::uint64_t countedActiveSteps = 0;
+      for (const std::uint32_t count : vulkanResult.activePathCountsPerDepth) {
+        countedActiveSteps += count;
+      }
       loop.metrics.closestHitExecutionPath = kFullGpuSubsetExecutionPath;
       loop.metrics.emissionExecutionPath = kFullGpuSubsetExecutionPath;
       loop.metrics.directLightVisibilityExecutionPath = kFullGpuSubsetExecutionPath;
@@ -461,6 +465,9 @@ namespace render {
           ++loop.metrics.unsupportedHits;
         }
       }
+      if (countedActiveSteps != 0u) {
+        activeSteps = countedActiveSteps;
+      }
       loop.metrics.activePaths = activeSteps;
       loop.metrics.closestHitRays = activeSteps;
     }
@@ -469,9 +476,19 @@ namespace render {
                            const VulkanGpuDiffusePathLoopKernelResult& vulkanResult,
                            const GpuDiffusePathLoopSettings& settings) {
       std::vector<std::uint64_t> counts(settings.maxDepth, 0u);
+      if (!vulkanResult.activePathCountsPerDepth.empty()) {
+        for (std::size_t depth = 0;
+             depth != vulkanResult.activePathCountsPerDepth.size() && depth != counts.size();
+             ++depth) {
+          counts[depth] = vulkanResult.activePathCountsPerDepth[depth];
+        }
+      }
       for (const GpuDiffusePathStepRecord& step : vulkanResult.stepRecords) {
         const auto event = static_cast<GpuDiffusePathStepEvent>(step.event);
         if (event == GpuDiffusePathStepEvent::Inactive || step.depth >= counts.size()) {
+          continue;
+        }
+        if (!vulkanResult.activePathCountsPerDepth.empty()) {
           continue;
         }
         ++counts[step.depth];

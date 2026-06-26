@@ -2648,7 +2648,11 @@ scene is large enough to amortize upload/readback costs.
      while backend tests and trace-enabled runs keep step/path-state
      diagnostics available. The full path-loop kernels also skip those
      diagnostic buffer writes and zero the logical diagnostic buffer residency
-     on the trace-disabled final-image path. The compiled path loop also
+     on the trace-disabled final-image path. The platform full-GPU kernels now
+     keep tiny device-written per-depth active-path counters resident even when
+     trace diagnostics are disabled, so compact execution metrics and
+     `activePathsPerDepth` do not depend on diagnostic step-record readback.
+     The compiled path loop also
      carries `ReflectiveMaterial` and `TransparentMaterial` delta continuations
      through the CPU reference evaluator and the Metal full-GPU subset, and the
      compiled environment records now carry scene ambient separately from
