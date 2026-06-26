@@ -1619,13 +1619,16 @@ DirectLightSelection emptyDirectLightSelection() {
   return selection;
 }
 
+float rectangularLightArea(GpuTracingLightRecord light) {
+  return length(cross(light.u.xyz, light.v.xyz));
+}
+
 float compiledLightSelectionWeight(GpuTracingLightRecord light) {
   if (light.kind == gpuTracingPointLightKind || light.kind == gpuTracingDirectionalLightKind) {
     return maxColor(light.parameters);
   }
   if (light.kind == gpuTracingRectangularAreaLightKind) {
-    return maxColor(light.parameters) * length(cross(light.u.xyz, light.v.xyz)) *
-           (pathLoopTau * 0.5);
+    return maxColor(light.parameters) * rectangularLightArea(light) * (pathLoopTau * 0.5);
   }
   return 0.0;
 }
@@ -1663,6 +1666,79 @@ DirectLightSelection selectDirectLight(GpuDiffusePathStateRecord path, uint dire
   }
 
   return selection;
+}
+
+float rectangularLightPdf(GpuTracingLightRecord light, vec3 point, vec3 direction) {
+  const float area = rectangularLightArea(light);
+  if (area <= pathLoopRayEpsilon) {
+    return 0.0;
+  }
+
+  const vec3 lightNormal = cross(light.u.xyz, light.v.xyz) / area;
+  const float normalDotDirection = dot(lightNormal, direction);
+  if (abs(normalDotDirection) <= pathLoopRayEpsilon) {
+    return 0.0;
+  }
+
+  const float distance =
+      dot(light.positionOrDirection.xyz - point, lightNormal) / normalDotDirection;
+  if (distance <= pathLoopRayEpsilon) {
+    return 0.0;
+  }
+
+  const vec3 lightPoint = point + direction * distance;
+  const vec3 local = lightPoint - light.positionOrDirection.xyz;
+  const float uu = dot(light.u.xyz, light.u.xyz);
+  const float uv = dot(light.u.xyz, light.v.xyz);
+  const float vv = dot(light.v.xyz, light.v.xyz);
+  const float lu = dot(local, light.u.xyz);
+  const float lv = dot(local, light.v.xyz);
+  const float determinant = uu * vv - uv * uv;
+  if (abs(determinant) <= pathLoopRayEpsilon) {
+    return 0.0;
+  }
+
+  const float localU = (vv * lu - uv * lv) / determinant;
+  const float localV = (uu * lv - uv * lu) / determinant;
+  if (localU < -0.5 - pathLoopRayEpsilon || localU > 0.5 + pathLoopRayEpsilon ||
+      localV < -0.5 - pathLoopRayEpsilon || localV > 0.5 + pathLoopRayEpsilon) {
+    return 0.0;
+  }
+
+  const float lightCosine = max(0.0, dot(lightNormal, -normalize(direction)));
+  if (lightCosine <= pathLoopRayEpsilon) {
+    return 0.0;
+  }
+  return (distance * distance) / (lightCosine * area);
+}
+
+float lightPdf(vec3 point, vec3 direction) {
+  if (parameters.lightCount == 0u) {
+    return 0.0;
+  }
+
+  float totalWeight = 0.0;
+  for (uint lightIndex = 0u; lightIndex != parameters.lightCount; ++lightIndex) {
+    totalWeight += compiledLightSelectionWeight(readLight(lightIndex));
+  }
+  const bool useUniformWeights = totalWeight <= 0.0;
+  if (useUniformWeights) {
+    totalWeight = float(parameters.lightCount);
+  }
+
+  float pdf = 0.0;
+  for (uint lightIndex = 0u; lightIndex != parameters.lightCount; ++lightIndex) {
+    const GpuTracingLightRecord light = readLight(lightIndex);
+    const float selectionWeight =
+        useUniformWeights ? 1.0 : compiledLightSelectionWeight(light);
+    if (selectionWeight <= 0.0) {
+      continue;
+    }
+    if (light.kind == gpuTracingRectangularAreaLightKind) {
+      pdf += (selectionWeight / totalWeight) * rectangularLightPdf(light, point, direction);
+    }
+  }
+  return pdf;
 }
 
 DirectLightSample sampleDirectLight(GpuTracingLightRecord light, vec3 point,
@@ -1831,7 +1907,7 @@ GpuDiffusePathStateRecord matteContinuationPath(GpuIntersectionHitRecord hit,
   next.throughput = continuationThroughput;
   next.depth = path.depth + 1u;
   next.previousBsdfPdf = pdf;
-  next.previousLightPdf = 0.0;
+  next.previousLightPdf = lightPdf(hit.point.xyz, direction);
   next.previousMaterial = hit.material;
   next.previousEventFlags = gpuDiffusePathStateSampledFromBsdfFlag;
   next.flags = activePathFlags(path.flags);

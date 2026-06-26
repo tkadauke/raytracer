@@ -2565,7 +2565,10 @@ scene is large enough to amortize upload/readback costs.
      texture-record, light-record, environment-record, path-state, step-record,
      continuation, direct-light-contribution, emissive-hit-termination, and
      terminal accumulation ABI plus the retained-frontier ABI for the future
-     path-loop kernel. A restricted `MetalGpuDiffusePathLoopBackend` now wraps
+     path-loop kernel. Compiled diffuse path-loop continuations now also carry
+     weighted rectangular-area-light PDFs in the CPU-reference, Metal, and
+     Vulkan paths instead of dropping that emitter-MIS input. A restricted
+     `MetalGpuDiffusePathLoopBackend` now wraps
      the empty-scene and optionally transformed
      triangle/sphere/plane/rectangle/disk/open-cylinder/torus Matte,
      Phong finite diffuse/glossy, Reflective-mirror, Transparent refraction,

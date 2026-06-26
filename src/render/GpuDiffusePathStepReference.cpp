@@ -346,54 +346,27 @@ namespace {
       return 0.0;
     }
 
-    double pdf = 0.0;
+    double totalSelectionWeight = 0.0;
     for (const GpuTracingLightRecord& light : scene.lights) {
-      const auto kind = static_cast<GpuTracingLightKind>(light.kind);
-      if (kind == GpuTracingLightKind::Point || kind == GpuTracingLightKind::Directional) {
-        continue;
-      }
-
-      if (kind == GpuTracingLightKind::RectangularArea) {
-        const Vector3d normal =
-          (Vector3d(light.u) ^ Vector3d(light.v)).normalizedOrZero(kLightTolerance);
-        const double normalDotDirection = normal * direction;
-        if (std::abs(normalDotDirection) <= kLightTolerance) {
-          continue;
-        }
-        const double t =
-          ((Vector3d(light.positionOrDirection) - point) * normal) / normalDotDirection;
-        if (t <= kLightTolerance) {
-          continue;
-        }
-
-        const Vector3d lightPoint = point + direction * t;
-        const Vector3d local = lightPoint - Vector3d(light.positionOrDirection);
-        const Vector3d u = Vector3d(light.u);
-        const Vector3d v = Vector3d(light.v);
-        const double uu = u * u;
-        const double uv = u * v;
-        const double vv = v * v;
-        const double lu = local * u;
-        const double lv = local * v;
-        const double determinant = uu * vv - uv * uv;
-        if (std::abs(determinant) <= kLightTolerance) {
-          continue;
-        }
-        const double localU = (vv * lu - uv * lv) / determinant;
-        const double localV = (uu * lv - uv * lu) / determinant;
-        if (localU < -0.5 - kLightTolerance || localU > 0.5 + kLightTolerance ||
-            localV < -0.5 - kLightTolerance || localV > 0.5 + kLightTolerance) {
-          continue;
-        }
-
-        const double cosLight = rectangularLightSurfaceCosine(light, direction.normalized());
-        if (cosLight > kLightTolerance) {
-          pdf += (t * t) / (cosLight * rectangularLightArea(light));
-        }
-      }
+      totalSelectionWeight += gpuCompiledLightSelectionWeight(light);
+    }
+    const bool useUniformWeights = totalSelectionWeight <= 0.0;
+    if (useUniformWeights) {
+      totalSelectionWeight = static_cast<double>(scene.lights.size());
     }
 
-    return pdf / static_cast<double>(scene.lights.size());
+    double pdf = 0.0;
+    for (const GpuTracingLightRecord& light : scene.lights) {
+      const double selectionWeight =
+        useUniformWeights ? 1.0 : gpuCompiledLightSelectionWeight(light);
+      if (selectionWeight <= 0.0) {
+        continue;
+      }
+      pdf +=
+        (selectionWeight / totalSelectionWeight) * gpuCompiledLightPdf(light, point, direction);
+    }
+
+    return pdf;
   }
 
   Vector3d tangentFor(const Vector3d& normal) {

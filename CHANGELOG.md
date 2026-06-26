@@ -62,6 +62,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Extend the restricted Vulkan full-GPU diffuse path-loop backend to select and
   evaluate multiple supported point, directional, and rectangular area lights
   in one path-loop dispatch. — GPT-5 Codex
+- Preserve weighted rectangular-area-light PDFs on compiled diffuse path-loop
+  continuations in the CPU reference, Metal, and Vulkan paths, preparing
+  emitter MIS parity for GPU-owned path tracing. — GPT-5 Codex
 - Add a restricted Metal diffuse path-loop backend surface for one-depth
   empty-scene and sphere Matte/Emissive probe execution, while keeping
   automatic full-GPU graph selection disabled until a multi-depth platform loop

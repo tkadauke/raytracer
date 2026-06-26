@@ -1043,6 +1043,48 @@ namespace GpuDiffusePathStepReferenceTest {
                       1e-6);
   }
 
+  TEST(GpuDiffusePathStepReference, DiffuseContinuationRecordsAreaLightPdf) {
+    GpuDiffusePathStateRecord path = activePath();
+    path.sampleSeed = 12347;
+    path.throughput = {0.2f, 0.4f, 0.6f, 0.0f};
+
+    const Vector3d surfaceNormal(0.0, 0.0, -1.0);
+    const Vector2d bsdfSample =
+      GpuSampleStream::sample2D(path.sampleSeed, path.pixelIndex, path.primarySampleIndex,
+                                path.sampleDimensionBase + path.depth * path.sampleDimensionStride);
+    const Vector3d expectedDirection = expectedCosineHemisphereDirection(surfaceNormal, bsdfSample);
+    const Vector3d lightNormal = -expectedDirection;
+    const Vector3d edgeU =
+      ((std::abs(lightNormal.y()) < 0.999 ? Vector3d::up() : Vector3d::right()) ^ lightNormal)
+        .normalized();
+    const Vector3d edgeV = (lightNormal ^ edgeU).normalized();
+
+    Scene scene;
+    auto matte = std::make_shared<MatteMaterial>(
+      std::make_shared<ConstantColorTexture>(Colord(0.25, 0.5, 0.75)));
+    matte->setDiffuseCoefficient(0.8);
+    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    receiver->setMaterial(matte);
+    scene.add(receiver);
+    scene.addLight(std::make_shared<RectangularAreaLight>(expectedDirection * 3.0, edgeU * 2.0,
+                                                          edgeV * 2.0, Colord::white()));
+
+    GpuTracingSceneSections sections = sectionsFor(scene);
+    sections.geometry = GpuIntersectionSceneBuffers{};
+    const std::uint32_t material = firstMaterialId(sections, GpuTracingMaterialKind::Matte);
+
+    GpuDiffusePathLoopSettings settings;
+    settings.russianRouletteDepth = 10;
+    const GpuDiffusePathStepResult result =
+      GpuDiffusePathStepReference().step(sections, {path}, {hitRecord(7, material)}, settings);
+
+    ASSERT_EQ(1u, result.pathStates.size());
+    const GpuDiffusePathStateRecord& next = result.pathStates[0];
+    const double expectedBsdfPdf = (surfaceNormal * expectedDirection) * invPI;
+    EXPECT_FLOAT_EQ(static_cast<float>(expectedBsdfPdf), next.previousBsdfPdf);
+    EXPECT_NEAR(2.25f, next.previousLightPdf, 1e-5f);
+  }
+
   TEST(GpuDiffusePathStepReference, MatteHitSamplesUvCheckerTexture) {
     auto checker = std::make_shared<CheckerBoardTexture>(
       new UVMapping2D(2.0, 2.0), std::make_shared<ConstantColorTexture>(Colord::red()),
