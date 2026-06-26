@@ -65,6 +65,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Preserve weighted rectangular-area-light PDFs on compiled diffuse path-loop
   continuations in the CPU reference, Metal, and Vulkan paths, preparing
   emitter MIS parity for GPU-owned path tracing. — GPT-5 Codex
+- Apply power-heuristic MIS to BSDF-sampled emissive hits in the compiled
+  diffuse path-loop CPU reference and restricted Metal/Vulkan path-loop
+  kernels. — GPT-5 Codex
 - Add a restricted Metal diffuse path-loop backend surface for one-depth
   empty-scene and sphere Matte/Emissive probe execution, while keeping
   automatic full-GPU graph selection disabled until a multi-depth platform loop

@@ -369,6 +369,19 @@ namespace {
     return pdf;
   }
 
+  double emitterHitMisWeight(const GpuDiffusePathStateRecord& pathState) {
+    const bool sampledFromBsdf =
+      (pathState.previousEventFlags & gpuDiffusePathStateSampledFromBsdfFlag) != 0u;
+    const bool sampledDelta =
+      (pathState.previousEventFlags & gpuDiffusePathStateBsdfSampleDeltaFlag) != 0u;
+    if (!sampledFromBsdf || sampledDelta) {
+      return 1.0;
+    }
+
+    return mis::weight(mis::Heuristic::Power, pathState.previousBsdfPdf,
+                       pathState.previousLightPdf);
+  }
+
   Vector3d tangentFor(const Vector3d& normal) {
     const Vector3d helper = std::abs(normal.y()) < 0.999 ? Vector3d::up() : Vector3d::right();
     return (helper ^ normal).normalized();
@@ -1391,8 +1404,9 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
     if (materialKind == GpuTracingMaterialKind::Emissive) {
       result.metrics.emissionExecutionPath = kCpuRecordExecutionPath;
       ++result.metrics.emissionContributionEvaluations;
-      const Colord emitted =
+      Colord emitted =
         (normal * wi) > 0.0 ? textureColor(scene, material.emissionTexture, hit) : Colord::black();
+      emitted = emitted * emitterHitMisWeight(pathState);
       const Colord contribution = throughput * emitted;
       accumulated += contribution;
       pathState.accumulatedRadiance = accumulated.toFloat4(0.0f);

@@ -1569,6 +1569,26 @@ bool matteAmbientRadiance(GpuIntersectionHitRecord hit, GpuDiffusePathStateRecor
   return true;
 }
 
+float powerHeuristic(float sampledPdf, float otherPdf) {
+  const float sampled = max(0.0, sampledPdf);
+  const float other = max(0.0, otherPdf);
+  const float sampledSquared = sampled * sampled;
+  const float otherSquared = other * other;
+  const float denominator = sampledSquared + otherSquared;
+  return denominator == 0.0 ? 0.0 : sampledSquared / denominator;
+}
+
+float emitterHitMisWeight(GpuDiffusePathStateRecord path) {
+  const bool sampledFromBsdf =
+      (path.previousEventFlags & gpuDiffusePathStateSampledFromBsdfFlag) != 0u;
+  const bool sampledDelta =
+      (path.previousEventFlags & gpuDiffusePathStateBsdfSampleDeltaFlag) != 0u;
+  if (!sampledFromBsdf || sampledDelta) {
+    return 1.0;
+  }
+  return powerHeuristic(path.previousBsdfPdf, path.previousLightPdf);
+}
+
 bool emissiveContribution(GpuIntersectionHitRecord hit, GpuDiffusePathStateRecord path,
                           out vec4 emitted) {
   emitted = vec4(0.0);
@@ -1585,7 +1605,8 @@ bool emissiveContribution(GpuIntersectionHitRecord hit, GpuDiffusePathStateRecor
   }
   const vec3 normal = normalize(hit.normal.xyz);
   const vec3 incoming = -normalize(path.ray.direction.xyz);
-  emitted = dot(normal, incoming) > 0.0 ? path.throughput * emission : vec4(0.0);
+  emitted = dot(normal, incoming) > 0.0 ?
+      path.throughput * emission * emitterHitMisWeight(path) : vec4(0.0);
   return true;
 }
 

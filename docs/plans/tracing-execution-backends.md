@@ -2567,7 +2567,9 @@ scene is large enough to amortize upload/readback costs.
      terminal accumulation ABI plus the retained-frontier ABI for the future
      path-loop kernel. Compiled diffuse path-loop continuations now also carry
      weighted rectangular-area-light PDFs in the CPU-reference, Metal, and
-     Vulkan paths instead of dropping that emitter-MIS input. A restricted
+     Vulkan paths instead of dropping that emitter-MIS input, and
+     BSDF-sampled emissive hits consume those PDFs with the scalar path
+     tracer's power-heuristic MIS weight. A restricted
      `MetalGpuDiffusePathLoopBackend` now wraps
      the empty-scene and optionally transformed
      triangle/sphere/plane/rectangle/disk/open-cylinder/torus Matte,

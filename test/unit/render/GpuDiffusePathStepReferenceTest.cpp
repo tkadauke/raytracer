@@ -12,6 +12,7 @@
 #include "render/GpuDiffusePathLoopLaunch.h"
 #include "render/GpuDiffusePathStepReference.h"
 #include "render/IntersectionSceneCompiler.h"
+#include "render/MIS.h"
 #include "render/MetalGpuDiffusePathLoopBackend.h"
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
 #include "render/MetalGpuDiffusePathFrontierCompactionBackend.h"
@@ -930,6 +931,31 @@ namespace GpuDiffusePathStepReferenceTest {
 
     EXPECT_TRUE(result.pathStates.empty());
     ASSERT_COLOR_NEAR(Colord(0.5, 1.5, 3.0), Colord(result.stepRecords[0].emittedRadiance), 1e-6);
+    EXPECT_EQ(1u, result.metrics.emissiveHits);
+  }
+
+  TEST(GpuDiffusePathStepReference, BsdfSampledEmissiveHitAppliesMisWeight) {
+    Scene scene;
+    auto lightCard = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    lightCard->setMaterial(std::make_shared<EmissiveMaterial>(Colord(2.0, 3.0, 4.0)));
+    scene.add(lightCard);
+    GpuTracingSceneSections sections = sectionsFor(scene);
+    const std::uint32_t material = firstMaterialId(sections, GpuTracingMaterialKind::Emissive);
+    GpuDiffusePathStateRecord path = activePath();
+    path.throughput = {0.25f, 0.5f, 0.75f, 0.0f};
+    path.previousEventFlags = gpuDiffusePathStateSampledFromBsdfFlag;
+    path.previousBsdfPdf = 0.25f;
+    path.previousLightPdf = 0.75f;
+
+    const GpuDiffusePathStepResult result =
+      GpuDiffusePathStepReference().step(sections, {path}, {hitRecord(7, material)});
+
+    EXPECT_TRUE(result.pathStates.empty());
+    const double misWeight = mis::powerHeuristic(0.25, 0.75);
+    ASSERT_COLOR_NEAR(Colord(0.5, 1.5, 3.0) * misWeight,
+                      Colord(result.stepRecords[0].emittedRadiance), 1e-6);
+    ASSERT_COLOR_NEAR(Colord(0.5, 1.5, 3.0) * misWeight,
+                      Colord(result.terminatedPathStates[0].accumulatedRadiance), 1e-6);
     EXPECT_EQ(1u, result.metrics.emissiveHits);
   }
 
@@ -4216,6 +4242,9 @@ namespace GpuDiffusePathStepReferenceTest {
     std::vector<GpuDiffusePathStateRecord> paths{activePath()};
     paths[0].pixelIndex = 0;
     paths[0].throughput = {0.25f, 0.5f, 0.75f, 0.0f};
+    paths[0].previousEventFlags = gpuDiffusePathStateSampledFromBsdfFlag;
+    paths[0].previousBsdfPdf = 0.25f;
+    paths[0].previousLightPdf = 0.75f;
     const GpuDiffusePathLoopLaunchPlan plan =
       GpuDiffusePathLoopLaunchPlanner().plan(sections, paths, accumulationLayout, settings);
     const GpuDiffusePathStepResult expected = GpuDiffusePathStepReference().step(

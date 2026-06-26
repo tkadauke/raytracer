@@ -1872,6 +1872,9 @@ Progress:
 - Compiled diffuse path-loop continuations now preserve weighted
   rectangular-area-light PDFs in the CPU-reference, Metal, and Vulkan paths,
   keeping the next emitter-MIS input resident with each path state.
+- BSDF-sampled emissive hits now consume that resident MIS state in the
+  CPU-reference, Metal, and Vulkan diffuse path-loop paths, applying the same
+  power-heuristic emitter weighting as the scalar path tracer.
 - Compiled diffuse path-loop active-path counts are now visible as a per-depth
   row in rendercli compact summaries and Modeler selected-pass details. The
   graph metadata already owned `activePathsPerDepth`; surfacing it keeps the
