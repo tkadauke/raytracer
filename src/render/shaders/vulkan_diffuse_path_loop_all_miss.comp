@@ -19,6 +19,7 @@ const uint gpuTracingConstantColorTextureKind = 1u;
 const uint gpuTracingCheckerBoardTextureKind = 2u;
 const uint gpuTracingImageTextureKind = 3u;
 const uint gpuTracingTintedTextureKind = 4u;
+const uint gpuTracingUvColorTextureKind = 5u;
 const uint gpuTracingPlanarTextureMappingKind = 1u;
 const uint gpuTracingUvTextureMappingKind = 2u;
 const uint gpuTracingTextureMappingMask = 0xffu;
@@ -1423,6 +1424,10 @@ bool untintedTextureColor(uint textureId, GpuIntersectionHitRecord hit, out vec4
   const GpuTracingTextureRecord texture = readTexture(textureId);
   if (texture.kind == gpuTracingConstantColorTextureKind) {
     color = texture.parameters;
+    return true;
+  }
+  if (texture.kind == gpuTracingUvColorTextureKind) {
+    color = vec4(hit.uv.x, hit.uv.y, 0.0, 1.0);
     return true;
   }
   if (texture.kind == gpuTracingCheckerBoardTextureKind) {

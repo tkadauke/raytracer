@@ -20,6 +20,7 @@
 #include "render/textures/ImageTexture.h"
 #include "render/textures/Texture.h"
 #include "render/textures/TintedTexture.h"
+#include "render/textures/UVColorTexture.h"
 #include "render/textures/mappings/UVMapping2D.h"
 
 #include <cstddef>
@@ -463,6 +464,26 @@ namespace GpuTracingSceneTest {
     EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingTextureKind::ConstantColor),
               compilation.textures.records[2].kind);
     expectFloat4(compilation.textures.records[2].parameters, 0.25f, 0.5f, 0.75f, 1.0f);
+  }
+
+  TEST(GpuTracingScene, CompilesUvColorTextureRecords) {
+    auto uvTexture = std::make_shared<UVColorTexture>();
+    auto matte = std::make_shared<MatteMaterial>(uvTexture);
+    auto sphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 0.5);
+    sphere->setMaterial(matte);
+
+    Scene scene;
+    scene.add(sphere);
+
+    const CompiledIntersectionScene intersection = IntersectionSceneCompiler().compile(scene);
+    const GpuTracingMaterialCompilation compilation = compileGpuTracingMaterials(intersection);
+
+    EXPECT_TRUE(compilation.supported());
+    ASSERT_EQ(2u, compilation.records.size());
+    ASSERT_EQ(2u, compilation.textures.records.size());
+    EXPECT_EQ(1u, compilation.records[1].albedoTexture);
+    const GpuTracingTextureRecord& uvColor = compilation.textures.records[1];
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingTextureKind::UVColor), uvColor.kind);
   }
 
   TEST(GpuTracingScene, CompilesTintedImageTextureRecordsWithImageChildTextureId) {

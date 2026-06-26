@@ -78,6 +78,9 @@ namespace render {
       if (kind == GpuTracingTextureKind::ConstantColor) {
         return true;
       }
+      if (kind == GpuTracingTextureKind::UVColor) {
+        return true;
+      }
       if (kind == GpuTracingTextureKind::CheckerBoard) {
         const auto mapping =
           static_cast<GpuTracingTextureMappingKind>(texture.flags & gpuTracingTextureMappingMask);
@@ -446,8 +449,8 @@ namespace render {
     }
     if (!supportedTextures(scene)) {
       return {false, "Metal diffuse path-loop backend currently supports ConstantColor, simple "
-                     "CheckerBoard, nearest/bilinear ImageTexture, and Tinted wrappers over "
-                     "those textures only"};
+                     "CheckerBoard, nearest/bilinear ImageTexture, UVColorTexture, and Tinted "
+                     "wrappers over those textures only"};
     }
     if (!supportedLights(scene)) {
       return {false, "Metal diffuse path-loop backend currently supports point, directional, and "

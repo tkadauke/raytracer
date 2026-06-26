@@ -135,10 +135,10 @@ end state for GPU tracing.
   triangle/sphere/plane/rectangle/disk/open-cylinder/torus subset with
   Matte/Phong-finite-glossy/Reflective-mirror/Transparent-refraction/Emissive
   materials,
-  ConstantColor/simple CheckerBoard/nearest-or-bilinear ImageTexture records,
-  and zero or more point, directional, or rectangular area lights when Vulkan
-  is built and available, including sample-slot accumulation for duplicate
-  active pixel targets.
+  ConstantColor/simple CheckerBoard/nearest-or-bilinear ImageTexture/UVColor
+  records, and zero or more point, directional, or rectangular area lights when
+  Vulkan is built and available, including sample-slot accumulation for
+  duplicate active pixel targets.
   Graph auto-selection still waits for Vulkan shaded-path parity, broader scene
   support, and performance gates.
 - Platform full-GPU path-loop backend selection beyond that restricted Metal
@@ -149,7 +149,8 @@ end state for GPU tracing.
 - GPU material records beyond the current Matte, Emissive, Phong, Reflective,
   and Transparent subset.
 - GPU texture records beyond ConstantColor, the first simple CheckerBoard
-  subset, nearest-or-bilinear ImageTexture records, and simple Tinted wrappers.
+  subset, nearest-or-bilinear ImageTexture records, UVColorTexture, and simple
+  Tinted wrappers.
 - GPU light records beyond PointLight, DirectionalLight, and
   RectangularAreaLight.
 - Platform GPU BSDF evaluation.
@@ -1749,14 +1750,14 @@ comparison logic.
 3. ~~**Compile texture records.**~~ ✅ **Done.**
    `render::GpuTracingTextureCompilation` now packs ConstantColor textures,
    planar/UV CheckerBoard texture references, nearest/bilinear ImageTexture
-   records, base-level bilinear records for mipmapped image textures, and
-   simple Tinted wrappers into GPU tracing records keyed by material-referenced
-   texture ids, with unsupported texture reasons counted for tracing scene
-   diagnostics. Closes #581.
+   records, base-level bilinear records for mipmapped image textures,
+   UVColorTexture records, and simple Tinted wrappers into GPU tracing records
+   keyed by material-referenced texture ids, with unsupported texture reasons
+   counted for tracing scene diagnostics. Closes #581.
    - Depends on: job 1.
    - Output: records for ConstantColor, planar/UV CheckerBoard texture graphs,
-     nearest/bilinear ImageTexture records, and simple Tinted wrappers;
-     unsupported reasons otherwise.
+     nearest/bilinear ImageTexture records, UVColorTexture, and simple Tinted
+     wrappers; unsupported reasons otherwise.
 
 4. ~~**Compile light records.**~~ ✅ **Done.**
    `render::GpuTracingLightCompilation` now packs PointLight,
@@ -2527,8 +2528,8 @@ scene is large enough to amortize upload/readback costs.
      one Metal backend for Matte, Phong finite diffuse/glossy, Reflective
      mirror, Transparent perfect reflection/refraction, or Emissive scenes
      using ConstantColor, simple CheckerBoard, nearest/bilinear ImageTexture,
-     base-level bilinear mipmapped ImageTexture records, or Tinted wrappers
-     over those texture records. ✅ **Started.**
+     base-level bilinear mipmapped ImageTexture records, UVColorTexture, or
+     Tinted wrappers over those texture records. ✅ **Started.**
      `MetalGpuDiffusePathLoopKernel` now compiles and dispatches a Metal
      launch-probe kernel that binds the shader-facing path-loop descriptor plus
      scene, initial/active/next path-state, step-record, retained-index, and
@@ -2615,9 +2616,9 @@ scene is large enough to amortize upload/readback costs.
      triangle/sphere/plane/rectangle/disk/open-cylinder/torus subset with
      Matte/Phong-finite-glossy/Reflective-mirror/Transparent-refraction/Emissive
      materials,
-     ConstantColor/simple CheckerBoard/nearest-or-bilinear ImageTexture records
-     plus Tinted wrappers over those records, and zero or more point,
-     directional, or rectangular area lights. It writes
+     ConstantColor/simple CheckerBoard/nearest-or-bilinear ImageTexture records,
+     UVColorTexture, plus Tinted wrappers over those records, and zero or more
+     point, directional, or rectangular area lights. It writes
      Vulkan-owned active/next path-state, step-record,
      retained-index, and accumulation buffers, reports platform path-state
      residency, and now dispatches that shader in 64-wide workgroups instead

@@ -224,6 +224,10 @@ namespace {
       return Colord(texture.parameters);
     }
 
+    if (kind == GpuTracingTextureKind::UVColor) {
+      return Colord(hit.uv[0], hit.uv[1], 0.0);
+    }
+
     if (kind == GpuTracingTextureKind::Tinted) {
       return textureColor(scene, texture.payloadOffset, hit, depth + 1) *
              Colord(texture.parameters);
