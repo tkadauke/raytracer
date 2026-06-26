@@ -639,7 +639,9 @@ namespace engine::graph {
       return result;
     }
 
-    QJsonObject denoiseMetadataFor(const render::Denoiser& denoiser, double seconds) {
+    QJsonObject denoiseMetadataFor(const render::Denoiser& denoiser, double seconds,
+                                   const render::DenoiserFeatureBuffers& featureBuffers = {},
+                                   double featureSeconds = 0.0) {
       const render::DenoiserDiagnostics diagnostics = denoiser.diagnostics();
 
       QJsonObject parameters;
@@ -648,31 +650,95 @@ namespace engine::graph {
       }
 
       QJsonObject features;
-      features["albedo"] = false;
-      features["normal"] = false;
-      features["depth"] = false;
+      features["albedo"] = featureBuffers.albedo != nullptr;
+      features["normal"] = featureBuffers.normal != nullptr;
+      features["depth"] = featureBuffers.depth != nullptr;
 
       QJsonObject result;
       result["enabled"] = true;
       result["seconds"] = seconds;
-      result["featureSeconds"] = 0.0;
+      result["featureSeconds"] = featureSeconds;
       result["denoiser"] = QString::fromStdString(diagnostics.name);
       result["parameters"] = parameters;
       result["features"] = features;
       return result;
     }
 
-    QJsonObject applyPostPathLoopDenoiser(const render::Denoiser* denoiser,
-                                          Buffer<Colord>& buffer) {
+    struct CompiledPathLoopDenoiserFeatures {
+      explicit CompiledPathLoopDenoiserFeatures(
+        const render::TracingAccumulationLayout& layout,
+        const render::DenoiserFeatureRequest& requestedFeatures)
+          : request(requestedFeatures) {
+        if (request.albedo) {
+          albedo = std::make_unique<Buffer<Colord>>(layout.width, layout.height);
+          albedo->clear(Colord::black());
+        }
+        if (request.normal) {
+          normal = std::make_unique<Buffer<Vector3d>>(layout.width, layout.height);
+          normal->clear(Vector3d::null);
+        }
+        if (request.depth) {
+          depth = std::make_unique<Buffer<double>>(layout.width, layout.height);
+          depth->clear(0.0);
+        }
+      }
+
+      render::DenoiserFeatureBuffers buffers() const {
+        return render::DenoiserFeatureBuffers{albedo.get(), normal.get(), depth.get()};
+      }
+
+      render::DenoiserFeatureRequest request;
+      std::unique_ptr<Buffer<Colord>> albedo;
+      std::unique_ptr<Buffer<Vector3d>> normal;
+      std::unique_ptr<Buffer<double>> depth;
+    };
+
+    std::unique_ptr<CompiledPathLoopDenoiserFeatures>
+    materializeDenoiserFeatures(const render::GpuDiffusePathLoopResult& loop,
+                                const render::TracingAccumulationLayout& layout,
+                                const render::DenoiserFeatureRequest& request) {
+      if (!request.any() || !loop.denoiserFeatureRecordsCaptured) {
+        return nullptr;
+      }
+
+      auto result = std::make_unique<CompiledPathLoopDenoiserFeatures>(layout, request);
+      const std::uint64_t pixelCount = layout.pixelCount();
+      for (const auto& record : loop.denoiserFeatureRecords) {
+        if ((record.flags & render::gpuDiffusePathDenoiserFeatureValidFlag) == 0u ||
+            record.pixelIndex >= pixelCount) {
+          continue;
+        }
+        const int x =
+          static_cast<int>(record.pixelIndex % static_cast<std::uint32_t>(layout.width));
+        const int y =
+          static_cast<int>(record.pixelIndex / static_cast<std::uint32_t>(layout.width));
+        if (result->albedo) {
+          (*result->albedo)[y][x] = Colord(record.albedo);
+        }
+        if (result->normal) {
+          (*result->normal)[y][x] = Vector3d(record.normal);
+        }
+        if (result->depth) {
+          (*result->depth)[y][x] = record.depth;
+        }
+      }
+      return result;
+    }
+
+    QJsonObject applyPostPathLoopDenoiser(const render::Denoiser* denoiser, Buffer<Colord>& buffer,
+                                          const render::DenoiserFeatureBuffers& featureBuffers = {},
+                                          double featureSeconds = 0.0) {
       if (!denoiser) {
         return disabledDenoiseMetadata();
       }
 
       const auto start = std::chrono::steady_clock::now();
-      denoiser->denoise(buffer);
+      render::DenoiserFrame frame(buffer);
+      frame.features = featureBuffers;
+      denoiser->denoiseFrame(frame);
       const double seconds =
         std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
-      return denoiseMetadataFor(*denoiser, seconds);
+      return denoiseMetadataFor(*denoiser, seconds, frame.features, featureSeconds);
     }
 
     QJsonObject
@@ -945,11 +1011,10 @@ namespace engine::graph {
       std::string fullGpuFallbackReason;
     };
 
-    GpuDiffusePathLoopBackendSelection
-    selectGpuDiffusePathLoopBackend(const GraphRenderEngine& graph,
-                                    const RaytracerBeautyPassState& state,
-                                    const render::GpuTracingSceneSections& sections,
-                                    const render::GpuDiffusePathLoopSettings& settings) {
+    GpuDiffusePathLoopBackendSelection selectGpuDiffusePathLoopBackend(
+      const GraphRenderEngine& graph, const RaytracerBeautyPassState& state,
+      const render::GpuTracingSceneSections& sections,
+      const render::GpuDiffusePathLoopSettings& settings, bool requiresDenoiserFeatureBuffers) {
       const std::shared_ptr<const render::GpuDiffusePathLoopBackend> configuredBackend =
         graph.gpuDiffusePathLoopBackend();
       if (graph.hasGpuDiffusePathLoopBackendOverride()) {
@@ -964,6 +1029,10 @@ namespace engine::graph {
         }
         if (!fullGpuBackend->fullGpuPathLoopAvailable()) {
           return {configuredBackend, fullGpuBackend->fullGpuPathLoopUnavailableReason()};
+        }
+        if (requiresDenoiserFeatureBuffers) {
+          return {configuredBackend,
+                  "platform full-GPU path-loop denoiser feature buffers are not available yet"};
         }
         {
           const render::GpuDiffusePathLoopBackendSupport support =
@@ -1192,9 +1261,13 @@ namespace engine::graph {
           static_cast<std::uint32_t>(state.russianRouletteDepth().value_or(3));
         settings.directLightSamples =
           static_cast<std::uint32_t>(std::max(1, state.directLightSamples().value_or(1)));
+        const render::Denoiser* denoiser = wavefront.denoiser();
+        const render::DenoiserFeatureRequest denoiserFeatureRequest =
+          denoiser ? denoiser->requestedFeatures() : render::DenoiserFeatureRequest{};
         settings.captureDiagnostics = context.graph().executionTraceEnabled();
         const GpuDiffusePathLoopBackendSelection pathLoopBackendSelection =
-          selectGpuDiffusePathLoopBackend(context.graph(), state, compilation.sections, settings);
+          selectGpuDiffusePathLoopBackend(context.graph(), state, compilation.sections, settings,
+                                          denoiserFeatureRequest.any());
         const std::shared_ptr<const render::GpuDiffusePathLoopBackend>& pathLoopBackend =
           pathLoopBackendSelection.backend;
         if (!pathLoopBackend) {
@@ -1213,20 +1286,37 @@ namespace engine::graph {
           pathLoopBackend->run(compilation.sections, generation, settings);
         const render::TracingAccumulationLayout layout =
           render::TracingAccumulationLayout::image(width, height);
-        const render::Denoiser* denoiser = wavefront.denoiser();
+        std::unique_ptr<CompiledPathLoopDenoiserFeatures> denoiserFeatures;
+        double denoiserFeatureSeconds = 0.0;
+        if (denoiserFeatureRequest.any()) {
+          const auto featureStart = std::chrono::steady_clock::now();
+          denoiserFeatures = materializeDenoiserFeatures(loop, layout, denoiserFeatureRequest);
+          denoiserFeatureSeconds =
+            std::chrono::duration<double>(std::chrono::steady_clock::now() - featureStart).count();
+          if (!denoiserFeatures) {
+            fallbackReason =
+              "compiled diffuse path loop backend did not produce requested denoiser feature "
+              "buffers";
+            return false;
+          }
+        }
+        const render::DenoiserFeatureBuffers featureBuffers =
+          denoiserFeatures ? denoiserFeatures->buffers() : render::DenoiserFeatureBuffers{};
 
         render::TracingAccumulationDiagnostics accumulation;
         QJsonObject denoise = disabledDenoiseMetadata();
         if (hdrTarget) {
           accumulation = render::resolveGpuDiffusePathLoopImage(loop, layout, *hdrTarget);
-          denoise = applyPostPathLoopDenoiser(denoiser, *hdrTarget);
+          denoise =
+            applyPostPathLoopDenoiser(denoiser, *hdrTarget, featureBuffers, denoiserFeatureSeconds);
           if (displayTarget) {
             packColorBuffer(*hdrTarget, *displayTarget, wavefront.tonemap());
           }
         } else if (denoiser) {
           Buffer<Colord> hdrBuffer(width, height);
           accumulation = render::resolveGpuDiffusePathLoopImage(loop, layout, hdrBuffer);
-          denoise = applyPostPathLoopDenoiser(denoiser, hdrBuffer);
+          denoise =
+            applyPostPathLoopDenoiser(denoiser, hdrBuffer, featureBuffers, denoiserFeatureSeconds);
           packColorBuffer(hdrBuffer, *displayTarget, wavefront.tonemap());
         } else {
           accumulation = render::resolveGpuDiffusePathLoopImage(loop, layout, *displayTarget,

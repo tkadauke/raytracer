@@ -114,9 +114,11 @@ end state for GPU tracing.
   supported platform full-GPU subset.
 - Box denoising is now treated as a postprocess over the resolved compiled
   path-loop image, so it no longer forces a supported GPU path-tracing render
-  back through the scalar CPU path. Feature-guided bilateral denoising still
-  falls back until compiled path-loop execution can produce matching albedo,
-  normal, and depth feature buffers.
+  back through the scalar CPU path. Feature-guided bilateral denoising can now
+  run after the compiled CPU-reference path loop because that loop emits
+  first-hit albedo, normal, and depth feature records; platform full-GPU
+  path-loop kernels still skip that route until they produce the same feature
+  buffers.
 - Automatic tracing execution does not select that CPU-reference path-loop as
   a full GPU backend. `auto` stays on CPU/hybrid execution until scene analysis
   can prove that a platform path-loop kernel is available; explicit GPU
@@ -2660,9 +2662,11 @@ scene is large enough to amortize upload/readback costs.
      unsupported by the compiled path-loop subset; they remain ignored by path
      tracing, matching the scalar CPU integrator.
      Box denoising now runs after compiled path-loop image resolve instead of
-     rejecting the path-loop route; feature-guided bilateral denoising remains
-     outside the platform subset until feature buffers are produced by the same
-     execution path.
+     rejecting the path-loop route. The compiled CPU-reference path loop now
+     also emits first-hit albedo, normal, and depth feature records so bilateral
+     denoising can stay on the compiled route; feature-guided bilateral remains
+     outside the platform full-GPU subset until Metal/Vulkan kernels write those
+     feature buffers from the same execution path.
      Broader
      primitive traversal, full material shading, full direct-light coverage,
      device-side compacted wavefront scheduling, Vulkan parity, and performance

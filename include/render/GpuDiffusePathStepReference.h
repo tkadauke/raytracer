@@ -42,12 +42,25 @@ namespace render {
     void merge(const GpuDiffusePathStepMetrics& source);
   };
 
+  struct GpuDiffusePathDenoiserFeatureRecord {
+    std::uint32_t pixelIndex{0};
+    std::uint32_t primarySampleIndex{0};
+    std::uint32_t flags{0};
+    std::uint32_t reserved{0};
+    std::array<float, 4> albedo{};
+    std::array<float, 4> normal{};
+    float depth{0.0f};
+  };
+
+  inline constexpr std::uint32_t gpuDiffusePathDenoiserFeatureValidFlag = 1u << 0u;
+
   struct GpuDiffusePathStepResult {
     std::vector<GpuIntersectionHitRecord> closestHitRecords;
     // Compact next frontier: only surviving diffuse continuations are emitted.
     std::vector<GpuDiffusePathStateRecord> pathStates;
     std::vector<GpuDiffusePathStateRecord> terminatedPathStates;
     std::vector<GpuDiffusePathStepRecord> stepRecords;
+    std::vector<GpuDiffusePathDenoiserFeatureRecord> denoiserFeatureRecords;
     std::vector<GpuIntersectionRay> directLightShadowRays;
     std::vector<GpuIntersectionOcclusionRecord> directLightOcclusionRecords;
     GpuDiffusePathStepMetrics metrics;
@@ -106,6 +119,8 @@ namespace render {
   struct GpuDiffusePathLoopResult {
     std::vector<GpuDiffusePathStateRecord> resolvedPathStates;
     std::vector<GpuDiffusePathStepRecord> stepRecords;
+    std::vector<GpuDiffusePathDenoiserFeatureRecord> denoiserFeatureRecords;
+    bool denoiserFeatureRecordsCaptured{false};
     std::vector<std::uint64_t> activePathsPerDepth;
     GpuDiffusePathStepMetrics metrics;
     std::string executionPath{"compiled_cpu_reference"};

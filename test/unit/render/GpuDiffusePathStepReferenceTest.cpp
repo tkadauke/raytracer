@@ -1622,6 +1622,69 @@ namespace GpuDiffusePathStepReferenceTest {
     ASSERT_COLOR_NEAR(Colord::blue(), Colord(result.stepRecords[1].continuationThroughput), 1e-6);
   }
 
+  TEST(GpuDiffusePathStepReference, RecordsFirstHitDenoiserFeaturesForPrimarySampleZero) {
+    auto matte = std::make_shared<MatteMaterial>(
+      std::make_shared<ConstantColorTexture>(Colord(0.2, 0.3, 0.4)));
+    matte->setDiffuseCoefficient(1.0);
+    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    receiver->setMaterial(matte);
+
+    Scene scene;
+    scene.add(receiver);
+    GpuTracingSceneSections sections = sectionsFor(scene);
+    sections.geometry = GpuIntersectionSceneBuffers{};
+    const std::uint32_t material = firstMaterialId(sections, GpuTracingMaterialKind::Matte);
+
+    GpuDiffusePathStateRecord primary = activePath(17);
+    primary.pixelIndex = 5;
+    primary.primarySampleIndex = 0;
+    GpuDiffusePathStateRecord secondary = activePath(18);
+    secondary.pixelIndex = 5;
+    secondary.primarySampleIndex = 1;
+    GpuIntersectionHitRecord primaryHit = hitRecord(17, material);
+    primaryHit.distance = 3.5f;
+    primaryHit.normal = {0.0f, 1.0f, 0.0f, 0.0f};
+    GpuIntersectionHitRecord secondaryHit = hitRecord(18, material);
+    secondaryHit.distance = 7.0f;
+
+    GpuDiffusePathLoopSettings settings;
+    settings.russianRouletteDepth = 10;
+    const GpuDiffusePathStepResult result = GpuDiffusePathStepReference().step(
+      sections, {primary, secondary}, {primaryHit, secondaryHit}, settings);
+
+    ASSERT_EQ(1u, result.denoiserFeatureRecords.size());
+    const GpuDiffusePathDenoiserFeatureRecord& feature = result.denoiserFeatureRecords[0];
+    EXPECT_EQ(5u, feature.pixelIndex);
+    EXPECT_EQ(0u, feature.primarySampleIndex);
+    EXPECT_NE(0u, feature.flags & gpuDiffusePathDenoiserFeatureValidFlag);
+    ASSERT_COLOR_NEAR(Colord(0.2, 0.3, 0.4), Colord(feature.albedo), 1e-6);
+    expectFloat4Near(feature.normal, {0.0f, 1.0f, 0.0f, 0.0f});
+    EXPECT_FLOAT_EQ(3.5f, feature.depth);
+  }
+
+  TEST(GpuDiffusePathLoop, CapturesDenoiserFeatureRecordsAcrossDepthLoop) {
+    auto matte = std::make_shared<MatteMaterial>(
+      std::make_shared<ConstantColorTexture>(Colord(0.2, 0.3, 0.4)));
+    matte->setDiffuseCoefficient(1.0);
+    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    receiver->setMaterial(matte);
+
+    Scene scene;
+    scene.add(receiver);
+    GpuTracingSceneSections sections = sectionsFor(scene);
+
+    GpuDiffusePathStateRecord path = activePath();
+    path.pixelIndex = 0;
+    path.primarySampleIndex = 0;
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 1;
+    const GpuDiffusePathLoopResult result = GpuDiffusePathLoop().run(sections, {path}, settings);
+
+    EXPECT_TRUE(result.denoiserFeatureRecordsCaptured);
+    ASSERT_EQ(1u, result.denoiserFeatureRecords.size());
+    ASSERT_COLOR_NEAR(Colord(0.2, 0.3, 0.4), Colord(result.denoiserFeatureRecords[0].albedo), 1e-6);
+  }
+
   TEST(GpuDiffusePathStepReference, MatteHitSamplesNearestImageTexture) {
     std::vector<Colord> pixels{Colord::red(), Colord::green(), Colord::blue(), Colord::white()};
     auto image =

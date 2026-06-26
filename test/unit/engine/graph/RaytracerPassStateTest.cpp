@@ -206,16 +206,12 @@ namespace RaytracerPassStateTest {
     RaytracerBeautyPassState bilateralDenoised;
     bilateralDenoised.setIntegrator("pathtracer");
     bilateralDenoised.setDenoiser("bilateral");
-    ASSERT_TRUE(bilateralDenoised.compiledDiffusePathLoopFallbackReason());
-    EXPECT_EQ("compiled diffuse path loop does not support feature-guided denoising yet",
-              *bilateralDenoised.compiledDiffusePathLoopFallbackReason());
+    EXPECT_FALSE(bilateralDenoised.compiledDiffusePathLoopFallbackReason());
 
     RaytracerBeautyPassState colorSigmaDenoised;
     colorSigmaDenoised.setIntegrator("pathtracer");
     colorSigmaDenoised.setDenoiseColorSigma(0.2);
-    ASSERT_TRUE(colorSigmaDenoised.compiledDiffusePathLoopFallbackReason());
-    EXPECT_EQ("compiled diffuse path loop does not support feature-guided denoising yet",
-              *colorSigmaDenoised.compiledDiffusePathLoopFallbackReason());
+    EXPECT_FALSE(colorSigmaDenoised.compiledDiffusePathLoopFallbackReason());
   }
 
   TEST(RaytracerBeautyPassState, NormalizesSampleStreamModeDiagnostics) {

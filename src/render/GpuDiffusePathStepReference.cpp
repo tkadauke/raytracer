@@ -569,6 +569,36 @@ namespace {
            material.parameters[0] * sceneAmbientRadiance(scene);
   }
 
+  Colord denoiserAlbedo(const GpuTracingSceneSections& scene,
+                        const GpuTracingMaterialRecord& material,
+                        const GpuIntersectionHitRecord& hit) {
+    const auto kind = static_cast<GpuTracingMaterialKind>(material.kind);
+    if (kind == GpuTracingMaterialKind::Emissive) {
+      return GpuTracingTextureEvaluator(scene).evaluate(material.emissionTexture, hit);
+    }
+    if (!GpuTracingBsdfEvaluator::isFiniteSurfaceMaterial(kind)) {
+      return Colord::black();
+    }
+    return GpuTracingTextureEvaluator(scene).evaluate(material.albedoTexture, hit);
+  }
+
+  std::optional<GpuDiffusePathDenoiserFeatureRecord> firstHitDenoiserFeatureRecord(
+    const GpuTracingSceneSections& scene, const GpuDiffusePathStateRecord& pathState,
+    const GpuTracingMaterialRecord& material, const GpuIntersectionHitRecord& hit) {
+    if (pathState.depth != 0u || pathState.primarySampleIndex != 0u) {
+      return std::nullopt;
+    }
+
+    GpuDiffusePathDenoiserFeatureRecord record;
+    record.pixelIndex = pathState.pixelIndex;
+    record.primarySampleIndex = pathState.primarySampleIndex;
+    record.flags = gpuDiffusePathDenoiserFeatureValidFlag;
+    record.albedo = denoiserAlbedo(scene, material, hit).toFloat4(0.0f);
+    record.normal = Vector3d(hit.normal).normalizedOrZero(1e-12).toFloat4(0.0f);
+    record.depth = hit.distance;
+    return record;
+  }
+
   Vector3d sampleFiniteBsdfDirection(const GpuTracingMaterialRecord& material,
                                      const Vector3d& normal, const Vector3d& wi,
                                      const Vector2d& sample) {
@@ -1489,6 +1519,10 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
     const Colord throughput = Colord(pathState.throughput);
     Colord accumulated = Colord(pathState.accumulatedRadiance);
 
+    if (const auto feature = firstHitDenoiserFeatureRecord(scene, pathState, material, hit)) {
+      result.denoiserFeatureRecords.push_back(*feature);
+    }
+
     if (materialKind == GpuTracingMaterialKind::Emissive) {
       result.metrics.emissionExecutionPath = kCpuRecordExecutionPath;
       ++result.metrics.emissionContributionEvaluations;
@@ -1709,6 +1743,7 @@ GpuDiffusePathLoop::run(const GpuTracingSceneSections& scene,
                         const GpuDiffusePathFrontierCompactionBackend& compactionBackend) const {
   GpuDiffusePathLoopResult result;
   result.initialPathCount = initialPathStates.size();
+  result.denoiserFeatureRecordsCaptured = true;
   result.frontierCompactionExecutionPath = compactionBackend.name();
   result.frontierCompactionPathStateResidency = compactionBackend.pathStateResidency();
 
@@ -1738,6 +1773,9 @@ GpuDiffusePathLoop::run(const GpuTracingSceneSections& scene,
     result.metrics.merge(step.metrics);
     result.stepRecords.insert(result.stepRecords.end(), step.stepRecords.begin(),
                               step.stepRecords.end());
+    result.denoiserFeatureRecords.insert(result.denoiserFeatureRecords.end(),
+                                         step.denoiserFeatureRecords.begin(),
+                                         step.denoiserFeatureRecords.end());
     result.resolvedPathStates.insert(result.resolvedPathStates.end(),
                                      step.terminatedPathStates.begin(),
                                      step.terminatedPathStates.end());

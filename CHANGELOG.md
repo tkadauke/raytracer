@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Keep feature-guided bilateral denoising on the compiled path-loop route when
+  the CPU-reference compiled loop can provide first-hit albedo, normal, and
+  depth feature buffers, while still avoiding platform full-GPU kernels that do
+  not emit those buffers yet. — GPT-5 Codex
 - Allow box denoising as a postprocess after compiled GPU path-loop renders, so
   supported path-tracing scenes no longer fall back to scalar CPU rendering just
   because a box denoiser is enabled. — GPT-5 Codex
