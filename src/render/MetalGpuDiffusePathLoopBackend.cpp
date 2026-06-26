@@ -1,5 +1,6 @@
 #include "render/MetalGpuDiffusePathLoopBackend.h"
 
+#include "render/GpuFloat4.h"
 #include "render/MetalGpuDiffusePathLoopKernel.h"
 #include "render/TracingAccumulationLayout.h"
 
@@ -13,11 +14,6 @@ namespace render {
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
     constexpr const char* kFullGpuSubsetExecutionPath = "full_gpu_subset";
     constexpr const char* kMetalPathStateResidency = "metal_shared_diffuse_path_state";
-
-    [[nodiscard]] bool arrayHasValue(const std::array<float, 4>& value) {
-      return std::any_of(value.begin(), value.end(),
-                         [](float component) { return std::fabs(component) > 1.0e-8f; });
-    }
 
     [[nodiscard]] bool
     primitiveUsesSupportedGeometry(const GpuIntersectionPrimitiveRecord& primitive,
@@ -151,7 +147,7 @@ namespace render {
     }
 
     [[nodiscard]] bool stepHasContinuation(const GpuDiffusePathStepRecord& step) {
-      return arrayHasValue(step.continuationThroughput);
+      return gpuFloat4HasValue(step.continuationThroughput);
     }
 
     struct ActiveAccumulationTargetShape {
@@ -291,11 +287,11 @@ namespace render {
           ++loop.metrics.misses;
         } else if (event == GpuDiffusePathStepEvent::Hit) {
           ++loop.metrics.hits;
-          if (arrayHasValue(step.emittedRadiance)) {
+          if (gpuFloat4HasValue(step.emittedRadiance)) {
             ++loop.metrics.emissiveHits;
             ++loop.metrics.emissionContributionEvaluations;
           }
-          if (arrayHasValue(step.directLightRadiance)) {
+          if (gpuFloat4HasValue(step.directLightRadiance)) {
             loop.metrics.directLightSamples +=
               std::max<std::uint32_t>(1u, settings.directLightSamples);
             ++loop.metrics.directLightContributionEvaluations;

@@ -113,6 +113,9 @@ namespace GpuTracingSceneTest {
     EXPECT_EQ(Vector4d(-1.0, 2.0, 4.0, 8.0), Vector4d(packed));
     EXPECT_EQ(Colord(-1.0, 2.0, 4.0), Colord(packed));
     EXPECT_EQ(4.0, gpuFloat4MaxColor(packed));
+    EXPECT_TRUE(gpuFloat4HasValue(packed));
+    EXPECT_TRUE(gpuFloat4HasValue(GpuFloat4{0.0f, 0.0f, -2.0e-8f, 0.0f}));
+    EXPECT_FALSE(gpuFloat4HasValue(GpuFloat4{0.0f, 1.0e-8f, 0.0f, -1.0e-8f}));
     expectFloat4(GpuFloat4{}, 0.0f, 0.0f, 0.0f, 0.0f);
   }
 
