@@ -65,6 +65,7 @@ namespace engine::graph {
     void setRussianRouletteDepth(int depth);
     void setDirectLightSamples(int samples);
     void setSampler(std::string sampler);
+    void clearSampler();
     void setSamplesPerPixel(int samples);
     void setSamplingSeed(std::uint64_t seed);
     void setSampleStreamMode(std::string mode);

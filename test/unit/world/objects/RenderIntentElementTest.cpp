@@ -131,6 +131,38 @@ namespace RenderIntentElementTest {
     EXPECT_EQ(2, *scene.renderIntent().engineOptions.wireframe().lod());
   }
 
+  TEST(RenderIntentElement, EditsGpuSampleStreamIntent) {
+    Scene scene;
+    auto* intent = renderIntentElement(scene);
+    ASSERT_NE(nullptr, intent);
+
+    intent->setDefaultEngine("pathtracer");
+    EXPECT_EQ(QString("sampler"), intent->raytracerSampleStreamMode());
+
+    intent->setRaytracerSampler("Halton");
+    ASSERT_TRUE(scene.renderIntent().engineOptions.raytracer().sampler().has_value());
+    EXPECT_EQ("Halton", *scene.renderIntent().engineOptions.raytracer().sampler());
+    ASSERT_TRUE(scene.renderIntent().engineOptions.raytracer().sampleStreamMode().has_value());
+    EXPECT_EQ("sampler", *scene.renderIntent().engineOptions.raytracer().sampleStreamMode());
+
+    intent->setRaytracerSampleStreamMode("gpu_sample_stream");
+
+    EXPECT_EQ(QString("gpu_sample_stream"), intent->raytracerSampleStreamMode());
+    EXPECT_FALSE(scene.renderIntent().engineOptions.raytracer().sampler().has_value());
+    ASSERT_TRUE(scene.renderIntent().engineOptions.raytracer().sampleStreamMode().has_value());
+    EXPECT_EQ("gpu_sample_stream",
+              *scene.renderIntent().engineOptions.raytracer().sampleStreamMode());
+    EXPECT_FALSE(intent->isPropertyVisible("raytracerSampler"));
+
+    intent->setRaytracerSampler("Jittered");
+
+    ASSERT_TRUE(scene.renderIntent().engineOptions.raytracer().sampler().has_value());
+    EXPECT_EQ("Jittered", *scene.renderIntent().engineOptions.raytracer().sampler());
+    ASSERT_TRUE(scene.renderIntent().engineOptions.raytracer().sampleStreamMode().has_value());
+    EXPECT_EQ("sampler", *scene.renderIntent().engineOptions.raytracer().sampleStreamMode());
+    EXPECT_TRUE(intent->isPropertyVisible("raytracerSampler"));
+  }
+
   TEST(RenderIntentElement, GeneratedEditorIsNotSerializedAsChild) {
     Scene scene;
     auto* intent = renderIntentElement(scene);
@@ -172,6 +204,10 @@ namespace RenderIntentElementTest {
     EXPECT_TRUE(intent->propertyChoices("rasterizerTessellationQuality").contains("final"));
     EXPECT_TRUE(intent->propertyChoices("raytracerIntegrator").contains("pathtracer"));
     EXPECT_TRUE(intent->propertyChoices("raytracerSampler").contains("Halton"));
+    EXPECT_EQ(QString("Sample Stream"), intent->propertyDisplayName("raytracerSampleStreamMode"));
+    EXPECT_TRUE(intent->propertyChoices("raytracerSampleStreamMode").contains("gpu_sample_stream"));
+    EXPECT_EQ(QString("GPU Sample Stream"),
+              intent->propertyChoiceDisplayName("raytracerSampleStreamMode", "gpu_sample_stream"));
     EXPECT_TRUE(intent->propertyChoices("wavefrontConvergenceQuality").contains("balanced"));
     EXPECT_TRUE(intent->propertyChoices("wavefrontConvergenceQuality").contains("custom"));
     EXPECT_TRUE(intent->propertyChoices("wavefrontIntersectionBackend").contains("auto"));
@@ -359,6 +395,7 @@ namespace RenderIntentElementTest {
     ASSERT_NE(nullptr, intent);
 
     EXPECT_TRUE(intent->isPropertyVisible("raytracerSampler"));
+    EXPECT_FALSE(intent->isPropertyVisible("raytracerSampleStreamMode"));
     EXPECT_TRUE(intent->isPropertyVisible("raytracerIntegrator"));
     EXPECT_FALSE(intent->isPropertyVisible("raytracerViewPlane"));
     EXPECT_FALSE(intent->isPropertyVisible("raytracerThreads"));
@@ -372,6 +409,7 @@ namespace RenderIntentElementTest {
 
     intent->setDefaultEngine("rasterizer");
     EXPECT_FALSE(intent->isPropertyVisible("raytracerSampler"));
+    EXPECT_FALSE(intent->isPropertyVisible("raytracerSampleStreamMode"));
     EXPECT_FALSE(intent->isPropertyVisible("raytracerIntegrator"));
     EXPECT_TRUE(intent->isPropertyVisible("rasterizerLod"));
     EXPECT_TRUE(intent->isPropertyVisible("rasterizerVisibilityCulling"));
@@ -381,6 +419,7 @@ namespace RenderIntentElementTest {
 
     intent->setDefaultEngine("wavefront");
     EXPECT_TRUE(intent->isPropertyVisible("raytracerSampler"));
+    EXPECT_FALSE(intent->isPropertyVisible("raytracerSampleStreamMode"));
     EXPECT_TRUE(intent->isPropertyVisible("raytracerIntegrator"));
     EXPECT_TRUE(intent->isPropertyVisible("wavefrontConvergence"));
     EXPECT_TRUE(intent->isPropertyVisible("wavefrontAdaptiveSampling"));
@@ -395,14 +434,20 @@ namespace RenderIntentElementTest {
 
     intent->setDefaultEngine("path tracer");
     EXPECT_TRUE(intent->isPropertyVisible("raytracerSampler"));
+    EXPECT_TRUE(intent->isPropertyVisible("raytracerSampleStreamMode"));
     EXPECT_FALSE(intent->isPropertyVisible("raytracerIntegrator"));
     EXPECT_TRUE(intent->isPropertyVisible("pathTracerRussianRouletteDepth"));
     EXPECT_TRUE(intent->isPropertyVisible("pathTracerDirectLightSamples"));
     EXPECT_TRUE(intent->isPropertyVisible("wavefrontConvergence"));
     EXPECT_TRUE(intent->isPropertyVisible("wavefrontIntersectionBackend"));
     EXPECT_EQ(QString("Path Tracer"), intent->propertyGroup("raytracerSampler"));
+    EXPECT_EQ(QString("Path Tracer"), intent->propertyGroup("raytracerSampleStreamMode"));
     EXPECT_EQ(QString("Path Tracer"), intent->propertyGroup("pathTracerRussianRouletteDepth"));
     EXPECT_EQ(QString("Path Tracer"), intent->propertyGroup("pathTracerDirectLightSamples"));
+    intent->setRaytracerSampleStreamMode("gpu_sample_stream");
+    EXPECT_FALSE(intent->isPropertyVisible("raytracerSampler"));
+    intent->setRaytracerSampleStreamMode("sampler");
+    EXPECT_TRUE(intent->isPropertyVisible("raytracerSampler"));
     EXPECT_FALSE(intent->isPropertyVisible("rasterizerLod"));
     intent->setWavefrontAdaptiveSampling(true);
     EXPECT_TRUE(intent->isPropertyVisible("wavefrontAdaptiveMinimumSamples"));

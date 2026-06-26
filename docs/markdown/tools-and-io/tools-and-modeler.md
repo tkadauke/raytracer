@@ -909,7 +909,10 @@ graph-backed Wavefront pass is still running. The same wavefront section can
 enable adaptive sampling, choose its initial sample count and standard-deviation
 threshold, request the box or bilateral denoiser, choose its pixel radius, and
 set the bilateral color sigma. Path Tracer settings include the
-schedule selector, Russian-roulette start depth, and direct-light sample count.
+schedule selector, Sample Stream selector, Russian-roulette start depth, and
+direct-light sample count. Choosing GPU Sample Stream there removes any saved
+sampler override because compiled full-GPU path-loop renders own their sampling
+dimensions on the backend side.
 Scalar schedule previews publish running sample averages during multi-sample
 renders, while wavefront schedule previews publish depth-frontier snapshots and
 can use wavefront denoising/adaptive sampling and the selected intersection

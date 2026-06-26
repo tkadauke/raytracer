@@ -37,6 +37,11 @@ bool RenderIntentElement::isPropertyVisible(const QString& propertyName) const {
       propertyName == QStringLiteral("raytracerThreads") ||
       propertyName == QStringLiteral("raytracerQueueSize"))
     return false;
+  if (propertyName == QStringLiteral("raytracerSampleStreamMode"))
+    return isPathTracerSelected();
+  if (propertyName == QStringLiteral("raytracerSampler") && isPathTracerSelected() &&
+      raytracerSampleStreamMode() == QStringLiteral("gpu_sample_stream"))
+    return false;
   if (isSelectorRoutingProperty(propertyName)) {
     if (propertyName == QStringLiteral("selectorRouting"))
       return true;
@@ -123,6 +128,8 @@ QString RenderIntentElement::propertyDisplayName(const QString& propertyName) co
     return QStringLiteral("Integrator");
   if (propertyName == QStringLiteral("raytracerSampler"))
     return QStringLiteral("Sampler");
+  if (propertyName == QStringLiteral("raytracerSampleStreamMode"))
+    return QStringLiteral("Sample Stream");
   if (propertyName == QStringLiteral("raytracerSamplesPerPixel"))
     return QStringLiteral("Samples Per Pixel");
   if (propertyName == QStringLiteral("raytracerMaxRecursionDepth"))
@@ -275,6 +282,10 @@ QString RenderIntentElement::propertyDescription(const QString& propertyName) co
     return QStringLiteral(
       "Next-event-estimation light samples per surface hit. Higher values reduce direct-light "
       "variance at proportional render cost.");
+  if (propertyName == QStringLiteral("raytracerSampleStreamMode"))
+    return QStringLiteral(
+      "Sampler uses the selected sampler to generate sample dimensions. GPU sample stream uses "
+      "the deterministic GPU-owned dimensions required by compiled full-GPU path-loop renders.");
   if (propertyName == QStringLiteral("wavefrontDenoiser"))
     return QStringLiteral(
       "Optional HDR denoising pass for low-sample wavefront renders. Bilateral is a "
@@ -293,6 +304,8 @@ QString RenderIntentElement::propertyGroup(const QString& propertyName) const {
   if (isWavefrontProperty(propertyName))
     return QStringLiteral("Wavefront");
   if (isPathTracerProperty(propertyName))
+    return QStringLiteral("Path Tracer");
+  if (propertyName == QStringLiteral("raytracerSampleStreamMode"))
     return QStringLiteral("Path Tracer");
   if (isRaytracerProperty(propertyName) &&
       intent().defaultExecutor == engine::graph::RenderExecutorPreference::PathTracer)
@@ -351,6 +364,8 @@ QStringList RenderIntentElement::propertyChoices(const QString& propertyName) co
             QStringLiteral("taa")};
   if (propertyName == QStringLiteral("raytracerSampler"))
     return raytracerSamplerChoices();
+  if (propertyName == QStringLiteral("raytracerSampleStreamMode"))
+    return {QStringLiteral("sampler"), QStringLiteral("gpu_sample_stream")};
   if (propertyName == QStringLiteral("raytracerIntegrator"))
     return {QStringLiteral("whitted"), QStringLiteral("pathtracer")};
   if (propertyName == QStringLiteral("raytracerViewPlane"))
@@ -441,6 +456,12 @@ QString RenderIntentElement::propertyChoiceDisplayName(const QString& propertyNa
       return QStringLiteral("Whitted");
     if (choice == QStringLiteral("pathtracer"))
       return QStringLiteral("Path Tracer");
+  }
+  if (propertyName == QStringLiteral("raytracerSampleStreamMode")) {
+    if (choice == QStringLiteral("sampler"))
+      return QStringLiteral("Sampler");
+    if (choice == QStringLiteral("gpu_sample_stream"))
+      return QStringLiteral("GPU Sample Stream");
   }
   if (propertyName == QStringLiteral("wavefrontConvergenceQuality")) {
     if (choice == QStringLiteral("off"))
@@ -557,6 +578,7 @@ bool RenderIntentElement::rebuildPropertyEditorAfterChange(const QString& proper
          propertyName == QStringLiteral("selectorRoutingKind") ||
          propertyName == QStringLiteral("selectorRoutingEngine") ||
          propertyName == QStringLiteral("previewShadows") ||
+         propertyName == QStringLiteral("raytracerSampleStreamMode") ||
          propertyName == QStringLiteral("wavefrontConvergence") ||
          propertyName == QStringLiteral("wavefrontConvergenceQuality") ||
          propertyName == QStringLiteral("wavefrontAdaptiveSampling") ||
@@ -812,6 +834,10 @@ QString RenderIntentElement::raytracerSampler() const {
   return toQString(intent().engineOptions.raytracer().sampler().value_or("Regular"));
 }
 
+QString RenderIntentElement::raytracerSampleStreamMode() const {
+  return toQString(intent().engineOptions.raytracer().sampleStreamMode().value_or("sampler"));
+}
+
 QString RenderIntentElement::raytracerIntegrator() const {
   return toQString(intent().engineOptions.raytracer().integrator().value_or("whitted"));
 }
@@ -828,6 +854,19 @@ void RenderIntentElement::setRaytracerSampler(const QString& sampler) {
   auto value = intent();
   value.engineOptions.raytracer().setSampler(
     sampler.trimmed().isEmpty() ? std::string("Regular") : sampler.trimmed().toStdString());
+  value.engineOptions.raytracer().setSampleStreamMode("sampler");
+  setIntent(value);
+}
+
+void RenderIntentElement::setRaytracerSampleStreamMode(const QString& mode) {
+  auto value = intent();
+  const QString normalized = normalizedText(mode);
+  if (normalized == QStringLiteral("gpu") || normalized == QStringLiteral("gpu_sample_stream")) {
+    value.engineOptions.raytracer().clearSampler();
+    value.engineOptions.raytracer().setSampleStreamMode("gpu_sample_stream");
+  } else {
+    value.engineOptions.raytracer().setSampleStreamMode("sampler");
+  }
   setIntent(value);
 }
 

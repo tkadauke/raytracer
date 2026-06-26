@@ -39,6 +39,8 @@ class RenderIntentElement : public Element {
   Q_PROPERTY(QString postProcessAA READ postProcessAA WRITE setPostProcessAA)
   Q_PROPERTY(QString raytracerIntegrator READ raytracerIntegrator WRITE setRaytracerIntegrator)
   Q_PROPERTY(QString raytracerSampler READ raytracerSampler WRITE setRaytracerSampler)
+  Q_PROPERTY(QString raytracerSampleStreamMode READ raytracerSampleStreamMode WRITE
+               setRaytracerSampleStreamMode)
   Q_PROPERTY(
     int raytracerSamplesPerPixel READ raytracerSamplesPerPixel WRITE setRaytracerSamplesPerPixel)
   Q_PROPERTY(int raytracerMaxRecursionDepth READ raytracerMaxRecursionDepth WRITE
@@ -65,8 +67,8 @@ class RenderIntentElement : public Element {
                setWavefrontAdaptiveStddevThreshold)
   Q_PROPERTY(QString wavefrontIntersectionBackend READ wavefrontIntersectionBackend WRITE
                setWavefrontIntersectionBackend)
-  Q_PROPERTY(QString wavefrontTracingBackend READ wavefrontTracingBackend WRITE
-               setWavefrontTracingBackend)
+  Q_PROPERTY(
+    QString wavefrontTracingBackend READ wavefrontTracingBackend WRITE setWavefrontTracingBackend)
   Q_PROPERTY(QString wavefrontDenoiser READ wavefrontDenoiser WRITE setWavefrontDenoiser)
   Q_PROPERTY(int wavefrontDenoiseRadius READ wavefrontDenoiseRadius WRITE setWavefrontDenoiseRadius)
   Q_PROPERTY(double wavefrontDenoiseColorSigma READ wavefrontDenoiseColorSigma WRITE
@@ -168,6 +170,9 @@ public:
 
   QString raytracerSampler() const;
   void setRaytracerSampler(const QString& sampler);
+
+  QString raytracerSampleStreamMode() const;
+  void setRaytracerSampleStreamMode(const QString& mode);
 
   int raytracerSamplesPerPixel() const;
   void setRaytracerSamplesPerPixel(int samples);

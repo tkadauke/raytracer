@@ -249,9 +249,8 @@ namespace engine::graph {
   bool RenderRaytracerOptions::empty() const {
     return !m_maximumRecursionDepth && !m_maximumThreads && !m_queueSize && !m_integrator &&
            !m_tracingBackend && !m_tracingExecution && !m_intersectionBackend &&
-           !m_russianRouletteDepth &&
-           !m_directLightSamples && !m_sampler && !m_samplesPerPixel && !m_samplingSeed &&
-           !m_sampleStreamMode && !m_viewPlane && !m_convergenceEnabled &&
+           !m_russianRouletteDepth && !m_directLightSamples && !m_sampler && !m_samplesPerPixel &&
+           !m_samplingSeed && !m_sampleStreamMode && !m_viewPlane && !m_convergenceEnabled &&
            !m_convergenceActiveSampleFractionThreshold && !m_convergenceRadianceDeltaRmsThreshold &&
            !m_adaptiveSamplingEnabled && !m_adaptiveMinimumSamples && !m_adaptiveStddevThreshold &&
            !m_denoiser && !m_denoiseRadius && !m_denoiseColorSigma;
@@ -325,8 +324,7 @@ namespace engine::graph {
     result.m_maximumThreads = overrideOptional(result.m_maximumThreads, overrides.m_maximumThreads);
     result.m_queueSize = overrideOptional(result.m_queueSize, overrides.m_queueSize);
     result.m_integrator = overrideOptional(result.m_integrator, overrides.m_integrator);
-    result.m_tracingBackend =
-      overrideOptional(result.m_tracingBackend, overrides.m_tracingBackend);
+    result.m_tracingBackend = overrideOptional(result.m_tracingBackend, overrides.m_tracingBackend);
     result.m_tracingExecution =
       overrideOptional(result.m_tracingExecution, overrides.m_tracingExecution);
     result.m_intersectionBackend =
@@ -439,8 +437,8 @@ namespace engine::graph {
     m_tracingBackend = state.tracingBackend();
   }
 
-  void RenderRaytracerOptions::setTracingBackend(
-    render::WavefrontIntersectionBackendChoice backend) {
+  void
+  RenderRaytracerOptions::setTracingBackend(render::WavefrontIntersectionBackendChoice backend) {
     m_tracingBackend = backend;
   }
 
@@ -475,6 +473,10 @@ namespace engine::graph {
 
   void RenderRaytracerOptions::setSampler(std::string sampler) {
     m_sampler = std::move(sampler);
+  }
+
+  void RenderRaytracerOptions::clearSampler() {
+    m_sampler.reset();
   }
 
   void RenderRaytracerOptions::setSamplesPerPixel(int samples) {
