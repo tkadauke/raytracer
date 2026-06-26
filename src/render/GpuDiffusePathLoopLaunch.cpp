@@ -39,6 +39,11 @@ namespace render {
       return checkedProduct(pathCount, sizeof(GpuDiffusePathStateRecord), label);
     }
 
+    std::uint64_t denoiserFeatureRecordBytes(std::uint64_t pixelCount) {
+      return checkedProduct(pixelCount, sizeof(GpuDiffusePathDenoiserFeatureRecord),
+                            "denoiser feature record");
+    }
+
     template<typename Record>
     std::uint32_t assignGeometryRange(std::uint64_t& byteOffset, std::size_t count,
                                       std::uint32_t& countField, const char* label);
@@ -61,6 +66,7 @@ namespace render {
       plan.parameters.russianRouletteDepth = settings.russianRouletteDepth;
       plan.parameters.directLightSamples = settings.directLightSamples;
       plan.parameters.captureDiagnostics = settings.captureDiagnostics ? 1u : 0u;
+      plan.parameters.captureDenoiserFeatures = settings.captureDenoiserFeatures ? 1u : 0u;
       plan.parameters.initialPathCount = checkedU32(initialPathCount, "initial path count");
       plan.parameters.imageWidth =
         checkedU32(static_cast<std::uint64_t>(accumulationLayout.width), "image width");
@@ -122,6 +128,10 @@ namespace render {
         plan.buffers.retainedIndexBytes =
           checkedProduct(retainedIndexCount, sizeof(std::uint32_t), "retained path index");
       }
+      if (settings.captureDenoiserFeatures) {
+        plan.buffers.denoiserFeatureRecordBytes =
+          denoiserFeatureRecordBytes(accumulationLayout.pixelCount());
+      }
       plan.buffers.accumulationBytes = accumulationLayout.totalBytes();
 
       plan.buffers.totalUploadBytes =
@@ -136,6 +146,8 @@ namespace render {
       residentBytes =
         checkedAdd(residentBytes, plan.buffers.stepRecordBytes, "GPU diffuse path-loop resident");
       residentBytes = checkedAdd(residentBytes, plan.buffers.retainedIndexBytes,
+                                 "GPU diffuse path-loop resident");
+      residentBytes = checkedAdd(residentBytes, plan.buffers.denoiserFeatureRecordBytes,
                                  "GPU diffuse path-loop resident");
       residentBytes =
         checkedAdd(residentBytes, plan.buffers.accumulationBytes, "GPU diffuse path-loop resident");

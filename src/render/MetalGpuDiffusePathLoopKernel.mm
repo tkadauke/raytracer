@@ -26,6 +26,8 @@ namespace render {
     static_assert(alignof(GpuDiffusePathStateRecord) == 16);
     static_assert(sizeof(GpuDiffusePathStepRecord) == 96);
     static_assert(alignof(GpuDiffusePathStepRecord) == 16);
+    static_assert(sizeof(GpuDiffusePathDenoiserFeatureRecord) == 64);
+    static_assert(alignof(GpuDiffusePathDenoiserFeatureRecord) == 16);
     static_assert(sizeof(GpuIntersectionHitRecord) == 112);
     static_assert(alignof(GpuIntersectionHitRecord) == 16);
     static_assert(sizeof(GpuTracingMaterialRecord) == 80);
@@ -141,7 +143,7 @@ namespace render {
               "  int primaryPathActualLeft;\n"
               "  int primaryPathActualTop;\n"
               "  uint primaryPathActualHeight;\n"
-              "  uint reserved0;\n"
+              "  uint captureDenoiserFeatures;\n"
               "  uint reserved1;\n"
               "  uint reserved2;\n"
               "  uint reserved3;\n"
@@ -200,6 +202,18 @@ namespace render {
               "  float4 directLightRadiance;\n"
               "  float4 missRadiance;\n"
               "  float4 continuationThroughput;\n"
+              "};\n"
+              "struct GpuDiffusePathDenoiserFeatureRecord {\n"
+              "  uint pixelIndex;\n"
+              "  uint primarySampleIndex;\n"
+              "  uint flags;\n"
+              "  uint reserved;\n"
+              "  float4 albedo;\n"
+              "  float4 normal;\n"
+              "  float depth;\n"
+              "  float reservedDepth0;\n"
+              "  float reservedDepth1;\n"
+              "  float reservedDepth2;\n"
               "};\n"
               "struct GpuTracingEnvironmentRecord {\n"
               "  uint texture;\n"
@@ -384,6 +398,7 @@ namespace render {
               "constant uint gpuDiffusePathStateSampledFromBsdfFlag = 4u;\n"
               "constant uint gpuDiffusePathStateBsdfSampleDeltaFlag = 8u;\n"
               "constant uint gpuDiffusePathStateUnsupportedFlag = 16u;\n"
+              "constant uint gpuDiffusePathDenoiserFeatureValidFlag = 1u;\n"
               "constant uint gpuDiffusePathStepEventInactive = 0u;\n"
               "constant uint gpuDiffusePathStepEventMiss = 1u;\n"
               "constant uint gpuDiffusePathStepEventHit = 2u;\n"
@@ -2029,6 +2044,63 @@ namespace render {
               "  return dot(normal, incoming) > 0.0f ?\n"
               "      path.throughput * emitted * emitterHitMisWeight(path) : float4(0.0f);\n"
               "}\n"
+              "float4 denoiserAlbedo(\n"
+              "    constant GpuDiffusePathLoopLaunchParameters& parameters,\n"
+              "    device const uchar* sceneUpload,\n"
+              "    const GpuIntersectionHitRecord hit,\n"
+              "    GpuTracingMaterialRecord material,\n"
+              "    thread bool& supported) {\n"
+              "  supported = false;\n"
+              "  if (material.kind == gpuTracingEmissiveMaterialKind) {\n"
+              "    return textureColor(parameters, sceneUpload, material.emissionTexture, hit,\n"
+              "                        supported);\n"
+              "  }\n"
+              "  if (material.kind == gpuTracingMatteMaterialKind ||\n"
+              "      material.kind == gpuTracingPhongMaterialKind ||\n"
+              "      material.kind == gpuTracingReflectiveMaterialKind ||\n"
+              "      material.kind == gpuTracingTransparentMaterialKind) {\n"
+              "    return textureColor(parameters, sceneUpload, material.albedoTexture, hit,\n"
+              "                        supported);\n"
+              "  }\n"
+              "  return float4(0.0f);\n"
+              "}\n"
+              "void writeDenoiserFeature(\n"
+              "    constant GpuDiffusePathLoopLaunchParameters& parameters,\n"
+              "    device const uchar* sceneUpload,\n"
+              "    device GpuDiffusePathDenoiserFeatureRecord* denoiserFeatures,\n"
+              "    GpuDiffusePathStateRecord path,\n"
+              "    GpuIntersectionHitRecord hit) {\n"
+              "  const uint featurePixelCount = parameters.imageWidth * parameters.imageHeight;\n"
+              "  if (parameters.captureDenoiserFeatures == 0u || hit.hit == 0u ||\n"
+              "      path.depth != 0u || path.primarySampleIndex != 0u ||\n"
+              "      path.pixelIndex >= featurePixelCount) {\n"
+              "    return;\n"
+              "  }\n"
+              "  bool materialSupported = false;\n"
+              "  const GpuTracingMaterialRecord material = materialRecord(\n"
+              "      parameters, sceneUpload, hit.material, materialSupported);\n"
+              "  if (!materialSupported) {\n"
+              "    return;\n"
+              "  }\n"
+              "  bool albedoSupported = false;\n"
+              "  const float4 albedo = denoiserAlbedo(parameters, sceneUpload, hit, material,\n"
+              "                                       albedoSupported);\n"
+              "  if (!albedoSupported) {\n"
+              "    return;\n"
+              "  }\n"
+              "  GpuDiffusePathDenoiserFeatureRecord record;\n"
+              "  record.pixelIndex = path.pixelIndex;\n"
+              "  record.primarySampleIndex = path.primarySampleIndex;\n"
+              "  record.flags = gpuDiffusePathDenoiserFeatureValidFlag;\n"
+              "  record.reserved = 0u;\n"
+              "  record.albedo = albedo;\n"
+              "  record.normal = float4(normalize(hit.normal.xyz), 0.0f);\n"
+              "  record.depth = hit.distance;\n"
+              "  record.reservedDepth0 = 0.0f;\n"
+              "  record.reservedDepth1 = 0.0f;\n"
+              "  record.reservedDepth2 = 0.0f;\n"
+              "  denoiserFeatures[path.pixelIndex] = record;\n"
+              "}\n"
               "GpuDiffusePathStateRecord terminatedPathWithAccumulatedRadiance(\n"
               "    const GpuDiffusePathStateRecord path,\n"
               "    float4 accumulatedRadiance) {\n"
@@ -2930,6 +3002,7 @@ namespace render {
               "    device atomic_uint* retainedIndices [[buffer(7)]],\n"
               "    device uchar* accumulation [[buffer(8)]],\n"
               "    device GpuIntersectionHitRecord* closestHits [[buffer(9)]],\n"
+              "    device GpuDiffusePathDenoiserFeatureRecord* denoiserFeatures [[buffer(10)]],\n"
               "    uint id [[thread_position_in_grid]]) {\n"
               "  if (id == 0u) {\n"
               "    echoedParameters[0] = parameters;\n"
@@ -2954,6 +3027,7 @@ namespace render {
               "    GpuIntersectionHitRecord hit = missHitRecord(path.ray);\n"
               "    GpuDiffusePathStepRecord step = mattePathStep(\n"
               "        parameters, sceneUpload, id, path, next, hit);\n"
+              "    writeDenoiserFeature(parameters, sceneUpload, denoiserFeatures, path, hit);\n"
               "    if (parameters.captureDiagnostics != 0u) {\n"
               "      stepRecords[id * parameters.maxDepth + depthIndex] = step;\n"
               "    }\n"
@@ -4079,6 +4153,9 @@ namespace render {
       id<MTLBuffer> accumulationBuffer =
         [device newBufferWithLength:bufferLength(plan.buffers.accumulationBytes)
                             options:MTLResourceStorageModeShared];
+      id<MTLBuffer> denoiserFeatureBuffer =
+        [device newBufferWithLength:bufferLength(plan.buffers.denoiserFeatureRecordBytes)
+                            options:MTLResourceStorageModeShared];
       const std::uint64_t closestHitBytes =
         plan.parameters.captureDiagnostics != 0u
           ? launchPathCount * static_cast<std::uint64_t>(sizeof(GpuIntersectionHitRecord))
@@ -4088,13 +4165,17 @@ namespace render {
                             options:MTLResourceStorageModeShared];
       if (!parameterBuffer || !echoedParameterBuffer || !sceneUploadBuffer || !initialPathBuffer ||
           !activePathBuffer || !nextPathBuffer || !stepRecordBuffer || !retainedIndexBuffer ||
-          !accumulationBuffer || !closestHitBuffer) {
+          !accumulationBuffer || !denoiserFeatureBuffer || !closestHitBuffer) {
         throw std::runtime_error("Metal diffuse path-loop buffer allocation failed");
       }
       clearRetainedIndexBuffer(retainedIndexBuffer, plan.buffers.retainedIndexBytes);
       if (plan.buffers.stepRecordBytes != 0u) {
         std::memset([stepRecordBuffer contents], 0,
                     static_cast<std::size_t>(plan.buffers.stepRecordBytes));
+      }
+      if (plan.buffers.denoiserFeatureRecordBytes != 0u) {
+        std::memset([denoiserFeatureBuffer contents], 0,
+                    static_cast<std::size_t>(plan.buffers.denoiserFeatureRecordBytes));
       }
       MetalGpuDiffusePathLoopKernelResult result;
       result.executionPath = "metal_diffuse_path_loop";
@@ -4124,6 +4205,7 @@ namespace render {
       [encoder setBuffer:retainedIndexBuffer offset:0 atIndex:7];
       [encoder setBuffer:accumulationBuffer offset:0 atIndex:8];
       [encoder setBuffer:closestHitBuffer offset:0 atIndex:9];
+      [encoder setBuffer:denoiserFeatureBuffer offset:0 atIndex:10];
       dispatch1D(encoder, pipeline, static_cast<NSUInteger>(launchPathCount));
       [encoder endEncoding];
 
@@ -4186,6 +4268,14 @@ namespace render {
           static_cast<const std::uint8_t*>([accumulationBuffer contents]) + colorBytes;
         std::memcpy(result.accumulationSampleCounts.data(), sampleCountBytes,
                     result.accumulationSampleCounts.size() * sizeof(std::uint32_t));
+      }
+      if (plan.parameters.captureDenoiserFeatures != 0u) {
+        result.denoiserFeatureRecords.resize(pixelCount(plan.parameters));
+        if (!result.denoiserFeatureRecords.empty()) {
+          std::memcpy(result.denoiserFeatureRecords.data(), [denoiserFeatureBuffer contents],
+                      result.denoiserFeatureRecords.size() *
+                        sizeof(GpuDiffusePathDenoiserFeatureRecord));
+        }
       }
       result.readbackWorkerSeconds =
         elapsedSeconds(readbackStart, std::chrono::steady_clock::now());

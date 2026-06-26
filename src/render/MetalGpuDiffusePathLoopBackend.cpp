@@ -442,6 +442,8 @@ namespace render {
       loop.platformName = "metal";
       loop.initialPathCount = initialPathCount;
       loop.stepRecords = metalResult.stepRecords;
+      loop.denoiserFeatureRecords = metalResult.denoiserFeatureRecords;
+      loop.denoiserFeatureRecordsCaptured = settings.captureDenoiserFeatures;
       loop.retainedIndexBytes =
         static_cast<std::uint64_t>(metalResult.retainedPathIndices.size() * sizeof(std::uint32_t));
       loop.roundTrips = 1;

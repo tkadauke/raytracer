@@ -496,6 +496,8 @@ namespace render {
       loop.platformName = "vulkan";
       loop.initialPathCount = initialPathCount;
       loop.stepRecords = vulkanResult.stepRecords;
+      loop.denoiserFeatureRecords = vulkanResult.denoiserFeatureRecords;
+      loop.denoiserFeatureRecordsCaptured = settings.captureDenoiserFeatures;
       loop.retainedIndexBytes =
         static_cast<std::uint64_t>(vulkanResult.retainedPathIndices.size() * sizeof(std::uint32_t));
       loop.roundTrips = 1;

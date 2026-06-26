@@ -1011,10 +1011,11 @@ namespace engine::graph {
       std::string fullGpuFallbackReason;
     };
 
-    GpuDiffusePathLoopBackendSelection selectGpuDiffusePathLoopBackend(
-      const GraphRenderEngine& graph, const RaytracerBeautyPassState& state,
-      const render::GpuTracingSceneSections& sections,
-      const render::GpuDiffusePathLoopSettings& settings, bool requiresDenoiserFeatureBuffers) {
+    GpuDiffusePathLoopBackendSelection
+    selectGpuDiffusePathLoopBackend(const GraphRenderEngine& graph,
+                                    const RaytracerBeautyPassState& state,
+                                    const render::GpuTracingSceneSections& sections,
+                                    const render::GpuDiffusePathLoopSettings& settings) {
       const std::shared_ptr<const render::GpuDiffusePathLoopBackend> configuredBackend =
         graph.gpuDiffusePathLoopBackend();
       if (graph.hasGpuDiffusePathLoopBackendOverride()) {
@@ -1029,10 +1030,6 @@ namespace engine::graph {
         }
         if (!fullGpuBackend->fullGpuPathLoopAvailable()) {
           return {configuredBackend, fullGpuBackend->fullGpuPathLoopUnavailableReason()};
-        }
-        if (requiresDenoiserFeatureBuffers) {
-          return {configuredBackend,
-                  "platform full-GPU path-loop denoiser feature buffers are not available yet"};
         }
         {
           const render::GpuDiffusePathLoopBackendSupport support =
@@ -1265,9 +1262,9 @@ namespace engine::graph {
         const render::DenoiserFeatureRequest denoiserFeatureRequest =
           denoiser ? denoiser->requestedFeatures() : render::DenoiserFeatureRequest{};
         settings.captureDiagnostics = context.graph().executionTraceEnabled();
+        settings.captureDenoiserFeatures = denoiserFeatureRequest.any();
         const GpuDiffusePathLoopBackendSelection pathLoopBackendSelection =
-          selectGpuDiffusePathLoopBackend(context.graph(), state, compilation.sections, settings,
-                                          denoiserFeatureRequest.any());
+          selectGpuDiffusePathLoopBackend(context.graph(), state, compilation.sections, settings);
         const std::shared_ptr<const render::GpuDiffusePathLoopBackend>& pathLoopBackend =
           pathLoopBackendSelection.backend;
         if (!pathLoopBackend) {

@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Emit first-hit albedo, normal, and depth denoiser feature records from the
+  Metal and Vulkan full-GPU diffuse path-loop kernels when feature-guided
+  denoising requests them, allowing bilateral denoising to stay on the platform
+  full-GPU path-loop route. — GPT-5 Codex
 - Keep feature-guided bilateral denoising on the compiled path-loop route when
   the CPU-reference compiled loop can provide first-hit albedo, normal, and
   depth feature buffers, while still avoiding platform full-GPU kernels that do

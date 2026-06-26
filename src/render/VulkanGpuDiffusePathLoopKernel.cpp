@@ -23,6 +23,8 @@ namespace render {
     static_assert(alignof(GpuDiffusePathStateRecord) == 16);
     static_assert(sizeof(GpuDiffusePathStepRecord) == 96);
     static_assert(alignof(GpuDiffusePathStepRecord) == 16);
+    static_assert(sizeof(GpuDiffusePathDenoiserFeatureRecord) == 64);
+    static_assert(alignof(GpuDiffusePathDenoiserFeatureRecord) == 16);
     static_assert(sizeof(GpuTracingEnvironmentRecord) == 32);
     static_assert(alignof(GpuTracingEnvironmentRecord) == 16);
 
@@ -136,7 +138,7 @@ namespace render {
           shaderGuard.device = device;
           shaderGuard.shaderModule = shader;
 
-          VkDescriptorSetLayout descriptorLayout = createDescriptorLayout(device, 9);
+          VkDescriptorSetLayout descriptorLayout = createDescriptorLayout(device, 10);
           DescriptorLayoutGuard descriptorLayoutGuard;
           descriptorLayoutGuard.device = device;
           descriptorLayoutGuard.layout = descriptorLayout;
@@ -212,6 +214,12 @@ namespace render {
           0u);
         buffers.buffers.push_back(
           createStorageBufferFromBytes(device, selection.device, accumulationBytes));
+        std::vector<std::uint8_t> denoiserFeatureBytes(
+          static_cast<std::size_t>(
+            std::max<std::uint64_t>(1u, plan.buffers.denoiserFeatureRecordBytes)),
+          0u);
+        buffers.buffers.push_back(
+          createStorageBufferFromBytes(device, selection.device, denoiserFeatureBytes));
 
         VkShaderModule shader =
           createShaderModule(device, vulkan_shaders::diffusePathLoopAllMissShaderSpirv.data(),
@@ -220,7 +228,7 @@ namespace render {
         shaderGuard.device = device;
         shaderGuard.shaderModule = shader;
 
-        VkDescriptorSetLayout descriptorLayout = createDescriptorLayout(device, 9);
+        VkDescriptorSetLayout descriptorLayout = createDescriptorLayout(device, 10);
         DescriptorLayoutGuard descriptorLayoutGuard;
         descriptorLayoutGuard.device = device;
         descriptorLayoutGuard.layout = descriptorLayout;
@@ -235,7 +243,7 @@ namespace render {
         pipelineGuard.device = device;
         pipelineGuard.pipeline = pipeline;
 
-        VkDescriptorPool descriptorPool = createDescriptorPool(device, 9);
+        VkDescriptorPool descriptorPool = createDescriptorPool(device, 10);
         DescriptorPoolGuard descriptorPoolGuard;
         descriptorPoolGuard.device = device;
         descriptorPoolGuard.pool = descriptorPool;
@@ -302,6 +310,12 @@ namespace render {
         result.accumulationSampleCounts = readBackRecords<std::uint32_t>(
           device, buffers.buffers[8].memory, byteCount<std::uint32_t>(pixels), pixels, colorBytes,
           "Vulkan diffuse path-loop accumulation count output mapping");
+        if (plan.parameters.captureDenoiserFeatures != 0u) {
+          result.denoiserFeatureRecords = readBackRecords<GpuDiffusePathDenoiserFeatureRecord>(
+            device, buffers.buffers[9].memory,
+            byteCount<GpuDiffusePathDenoiserFeatureRecord>(pixels), pixels,
+            "Vulkan diffuse path-loop denoiser feature output mapping");
+        }
         result.readbackWorkerSeconds =
           secondsBetween(readbackStart, std::chrono::steady_clock::now());
         return result;

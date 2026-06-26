@@ -42,7 +42,7 @@ namespace render {
     void merge(const GpuDiffusePathStepMetrics& source);
   };
 
-  struct GpuDiffusePathDenoiserFeatureRecord {
+  struct alignas(16) GpuDiffusePathDenoiserFeatureRecord {
     std::uint32_t pixelIndex{0};
     std::uint32_t primarySampleIndex{0};
     std::uint32_t flags{0};
@@ -50,6 +50,7 @@ namespace render {
     std::array<float, 4> albedo{};
     std::array<float, 4> normal{};
     float depth{0.0f};
+    std::array<float, 3> reservedDepth{};
   };
 
   inline constexpr std::uint32_t gpuDiffusePathDenoiserFeatureValidFlag = 1u << 0u;
@@ -110,6 +111,7 @@ namespace render {
     std::uint32_t russianRouletteDepth{3};
     std::uint32_t directLightSamples{1};
     bool captureDiagnostics{true};
+    bool captureDenoiserFeatures{false};
   };
 
   inline constexpr std::uint32_t gpuDiffusePathLoopAccumulationTargetPixel = 0u;

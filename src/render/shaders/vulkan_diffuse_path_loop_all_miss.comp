@@ -42,6 +42,7 @@ const uint gpuDiffusePathStateTerminatedFlag = 2u;
 const uint gpuDiffusePathStateSampledFromBsdfFlag = 4u;
 const uint gpuDiffusePathStateBsdfSampleDeltaFlag = 8u;
 const uint gpuDiffusePathStateUnsupportedFlag = 16u;
+const uint gpuDiffusePathDenoiserFeatureValidFlag = 1u;
 const uint gpuDiffusePathStepEventInactive = 0u;
 const uint gpuDiffusePathStepEventMiss = 1u;
 const uint gpuDiffusePathStepEventHit = 2u;
@@ -110,7 +111,7 @@ struct GpuDiffusePathLoopLaunchParameters {
   int primaryPathActualLeft;
   int primaryPathActualTop;
   uint primaryPathActualHeight;
-  uint reserved0;
+  uint captureDenoiserFeatures;
   uint reserved1;
   uint reserved2;
   uint reserved3;
@@ -332,6 +333,19 @@ struct GpuDiffusePathStepRecord {
   vec4 continuationThroughput;
 };
 
+struct GpuDiffusePathDenoiserFeatureRecord {
+  uint pixelIndex;
+  uint primarySampleIndex;
+  uint flags;
+  uint reserved;
+  vec4 albedo;
+  vec4 normal;
+  float depth;
+  float reservedDepth0;
+  float reservedDepth1;
+  float reservedDepth2;
+};
+
 layout(std430, binding = 0) readonly buffer PathLoopParameters {
   GpuDiffusePathLoopLaunchParameters parameters;
 };
@@ -366,6 +380,10 @@ layout(std430, binding = 7) buffer RetainedIndices {
 
 layout(std430, binding = 8) buffer Accumulation {
   uint accumulationWords[];
+};
+
+layout(std430, binding = 9) buffer DenoiserFeatures {
+  GpuDiffusePathDenoiserFeatureRecord denoiserFeatures[];
 };
 
 float rayInfinity() {
@@ -2211,6 +2229,50 @@ bool emissiveContribution(GpuIntersectionHitRecord hit, GpuDiffusePathStateRecor
   return true;
 }
 
+bool denoiserAlbedo(GpuIntersectionHitRecord hit, GpuTracingMaterialRecord material,
+                    out vec4 albedo) {
+  albedo = vec4(0.0);
+  if (material.kind == gpuTracingEmissiveMaterialKind) {
+    return textureColor(material.emissionTexture, hit, albedo);
+  }
+  if (material.kind == gpuTracingMatteMaterialKind ||
+      material.kind == gpuTracingPhongMaterialKind ||
+      material.kind == gpuTracingReflectiveMaterialKind ||
+      material.kind == gpuTracingTransparentMaterialKind) {
+    return textureColor(material.albedoTexture, hit, albedo);
+  }
+  return false;
+}
+
+void writeDenoiserFeature(GpuDiffusePathStateRecord path, GpuIntersectionHitRecord hit) {
+  const uint featurePixelCount = parameters.imageWidth * parameters.imageHeight;
+  if (parameters.captureDenoiserFeatures == 0u || hit.hit == 0u || path.depth != 0u ||
+      path.primarySampleIndex != 0u || path.pixelIndex >= featurePixelCount) {
+    return;
+  }
+  if (hit.material >= parameters.materialCount) {
+    return;
+  }
+  const GpuTracingMaterialRecord material = readMaterial(hit.material);
+  vec4 albedo;
+  if (!denoiserAlbedo(hit, material, albedo)) {
+    return;
+  }
+
+  GpuDiffusePathDenoiserFeatureRecord record;
+  record.pixelIndex = path.pixelIndex;
+  record.primarySampleIndex = path.primarySampleIndex;
+  record.flags = gpuDiffusePathDenoiserFeatureValidFlag;
+  record.reserved = 0u;
+  record.albedo = albedo;
+  record.normal = vec4(normalize(hit.normal.xyz), 0.0);
+  record.depth = hit.distance;
+  record.reservedDepth0 = 0.0;
+  record.reservedDepth1 = 0.0;
+  record.reservedDepth2 = 0.0;
+  denoiserFeatures[path.pixelIndex] = record;
+}
+
 GpuIntersectionRay continuationRay(GpuIntersectionHitRecord hit, GpuDiffusePathStateRecord path,
                                    vec3 direction) {
   GpuIntersectionRay ray = path.ray;
@@ -2678,14 +2740,16 @@ GpuDiffusePathStateRecord terminatedPathWithAccumulatedRadiance(GpuDiffusePathSt
 }
 
 GpuDiffusePathStepRecord pathStep(uint pathIndex, GpuDiffusePathStateRecord path,
+                                  out GpuIntersectionHitRecord hit,
                                   out GpuDiffusePathStateRecord next) {
   next = path;
   GpuDiffusePathStepRecord step = inactiveStep(pathIndex, path);
+  hit = missHitRecord(path.ray);
   if (!pathStateIsActive(path)) {
     return step;
   }
 
-  const GpuIntersectionHitRecord hit = closestSupportedHit(path.ray);
+  hit = closestSupportedHit(path.ray);
   if (hit.hit == 0u) {
     const vec4 contribution = path.throughput * missRadiance(path);
     next = terminatedPathWithAccumulatedRadiance(path, path.accumulatedRadiance + contribution);
@@ -2791,8 +2855,10 @@ void main() {
       break;
     }
 
+    GpuIntersectionHitRecord hit;
     GpuDiffusePathStateRecord next;
-    const GpuDiffusePathStepRecord step = pathStep(id, path, next);
+    const GpuDiffusePathStepRecord step = pathStep(id, path, hit, next);
+    writeDenoiserFeature(path, hit);
     if (parameters.captureDiagnostics != 0u) {
       stepRecords[id * parameters.maxDepth + depthIndex] = step;
     }

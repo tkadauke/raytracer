@@ -2692,8 +2692,10 @@ namespace GraphRenderEngineTest {
     const QJsonObject batching = metadata.value("batching").toObject();
     EXPECT_EQ("compiled_diffuse_path_loop",
               batching.value("executionMode").toString().toStdString());
-    EXPECT_EQ("compiled_cpu_reference",
-              batching.value("tracingBackendMode").toString().toStdString());
+    const std::string tracingMode = batching.value("tracingBackendMode").toString().toStdString();
+    EXPECT_TRUE(tracingMode.find("compiled_cpu_reference") != std::string::npos ||
+                tracingMode.find("full_gpu_subset") != std::string::npos)
+      << tracingMode;
 
     const QJsonObject denoise = metadata.value("denoise").toObject();
     EXPECT_TRUE(denoise.value("enabled").toBool());
