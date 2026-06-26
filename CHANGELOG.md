@@ -23,6 +23,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   descriptor flow, so supported full-GPU path-loop renders can synthesize
   orthographic primary paths on device instead of uploading host path states.
   — GPT-5 Codex
+- Let static thin-lens path-tracer launches use GPU primary-path descriptors,
+  including lens-sample dimensions, so supported Metal/Vulkan path-loop renders
+  can synthesize depth-of-field primary paths on device. — GPT-5 Codex
 - Avoid materializing host primary path-state vectors for trace-disabled
   full-GPU static pinhole diffuse path-loop launches when the selected backend
   can synthesize primary paths on device. — GPT-5 Codex

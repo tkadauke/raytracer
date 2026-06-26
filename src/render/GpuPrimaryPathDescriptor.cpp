@@ -8,7 +8,8 @@ namespace render {
   namespace {
     bool isRectilinearMode(std::uint32_t mode) {
       return mode == gpuPrimaryPathGenerationModePinhole ||
-             mode == gpuPrimaryPathGenerationModeOrthographic;
+             mode == gpuPrimaryPathGenerationModeOrthographic ||
+             mode == gpuPrimaryPathGenerationModeThinLens;
     }
 
     std::uint64_t checkedProduct(std::uint64_t left, std::uint64_t right, const char* label) {

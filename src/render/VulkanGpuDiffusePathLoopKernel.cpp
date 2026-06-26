@@ -17,7 +17,7 @@
 
 namespace render {
   namespace {
-    static_assert(sizeof(GpuDiffusePathLoopLaunchParameters) == 288);
+    static_assert(sizeof(GpuDiffusePathLoopLaunchParameters) == 352);
     static_assert(alignof(GpuDiffusePathLoopLaunchParameters) == 16);
     static_assert(sizeof(GpuDiffusePathStateRecord) == 160);
     static_assert(alignof(GpuDiffusePathStateRecord) == 16);

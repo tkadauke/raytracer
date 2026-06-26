@@ -147,7 +147,8 @@ namespace render {
     void copyPrimaryPathDescriptor(GpuDiffusePathLoopLaunchParameters& parameters,
                                    const GpuPrimaryPathDescriptor& descriptor) {
       if (descriptor.mode != gpuPrimaryPathGenerationModePinhole &&
-          descriptor.mode != gpuPrimaryPathGenerationModeOrthographic) {
+          descriptor.mode != gpuPrimaryPathGenerationModeOrthographic &&
+          descriptor.mode != gpuPrimaryPathGenerationModeThinLens) {
         return;
       }
 
@@ -167,6 +168,10 @@ namespace render {
       parameters.primaryPathTopLeft = rectilinear.topLeft;
       parameters.primaryPathRight = rectilinear.right;
       parameters.primaryPathDown = rectilinear.down;
+      parameters.primaryPathLensRight = rectilinear.lensRight;
+      parameters.primaryPathLensUp = rectilinear.lensUp;
+      parameters.primaryPathForward = rectilinear.forward;
+      parameters.primaryPathLensParameters = rectilinear.lensParameters;
     }
 
     template<typename Record>

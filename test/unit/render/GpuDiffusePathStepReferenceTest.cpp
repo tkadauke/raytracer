@@ -24,6 +24,7 @@
 #include "render/VulkanGpuDiffusePathLoopBackend.h"
 #include "render/cameras/OrthographicCamera.h"
 #include "render/cameras/PinholeCamera.h"
+#include "render/cameras/ThinLensCamera.h"
 #include "render/lights/DirectionalLight.h"
 #include "render/lights/PointLight.h"
 #include "render/lights/RectangularAreaLight.h"
@@ -370,6 +371,26 @@ namespace GpuDiffusePathStepReferenceTest {
               normal * std::sqrt(std::max(0.0, 1.0 - sample.x())))
         .normalized();
     }
+
+    Vector2d expectedConcentricDiscSample(const Vector2d& sample) {
+      const double a = 2.0 * sample.x() - 1.0;
+      const double b = 2.0 * sample.y() - 1.0;
+
+      if (a == 0.0 && b == 0.0) {
+        return Vector2d(0.0, 0.0);
+      }
+
+      double r = 0.0;
+      double phi = 0.0;
+      if (a * a > b * b) {
+        r = a;
+        phi = PI_OVER_4 * (b / a);
+      } else {
+        r = b;
+        phi = PI_OVER_2 - PI_OVER_4 * (a / b);
+      }
+      return Vector2d(r * std::cos(phi), r * std::sin(phi));
+    }
   }
 
   TEST(GpuDiffusePathStep, RunsClosestHitAndMaterialLookupForActivePaths) {
@@ -591,6 +612,67 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ("gpu_orthographic_primary_descriptor", generation.primaryPathExecutionPath);
     ASSERT_TRUE(generation.primaryPathDescriptor.has_value());
     EXPECT_EQ(gpuPrimaryPathGenerationModeOrthographic, generation.primaryPathDescriptor->mode);
+    EXPECT_EQ(24u, generation.primaryPathDescriptor->pathCount());
+    EXPECT_EQ(24u, generation.generatedPrimarySamples);
+    EXPECT_TRUE(generation.pathStates.empty());
+  }
+
+  TEST(GpuDiffusePrimaryPathStateGenerator, GeneratesThinLensPrimaryPathDescriptor) {
+    ThinLensCamera camera(Vector3d(0.25, 0.5, -5.0), Vector3d(0.0, 0.0, 0.0));
+    camera.setApertureRadius(0.35);
+    camera.setFocalDistance(7.0);
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 3, 2));
+    camera.viewPlane()->sampler()->setup(4, 8, 42);
+
+    const GpuDiffusePrimaryPathStateGeneration generation =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 3, 2), 99, 1234);
+
+    EXPECT_TRUE(generation.canGeneratePrimaryPathsOnDevice());
+    EXPECT_EQ("gpu_thin_lens_primary_descriptor", generation.primaryPathExecutionPath);
+    ASSERT_TRUE(generation.primaryPathDescriptor.has_value());
+    EXPECT_EQ(gpuPrimaryPathGenerationModeThinLens, generation.primaryPathDescriptor->mode);
+    EXPECT_EQ(24u, generation.primaryPathDescriptor->pathCount());
+    ASSERT_EQ(24u, generation.pathStates.size());
+
+    const GpuRectilinearPrimaryPathDescriptor& descriptor =
+      generation.primaryPathDescriptor->rectilinear;
+    EXPECT_EQ(4u, descriptor.samplesPerPixel);
+    EXPECT_EQ(1234u, descriptor.sampleSeed);
+    EXPECT_NEAR(12.0, descriptor.lensParameters[0], 1e-5);
+
+    const Vector2d pixelSample =
+      GpuSampleStream::sample2D(/*seed=*/1234, /*pixelIndex=*/0, /*primarySampleIndex=*/0,
+                                /*dimension=*/0);
+    const Vector2d lensSample = expectedConcentricDiscSample(
+      GpuSampleStream::sample2D(/*seed=*/1234, /*pixelIndex=*/0, /*primarySampleIndex=*/0,
+                                /*dimension=*/2));
+    const double timeSample = GpuSampleStream::sample1D(GpuSampleCoordinate{
+      /*seed=*/1234, /*pixelIndex=*/0, /*primarySampleIndex=*/0, /*dimension=*/1,
+      /*component=*/0});
+    const Rayd cameraRay =
+      camera.rayForPixelWithLens(pixelSample.x(), pixelSample.y(), lensSample.x(), lensSample.y());
+    const GpuIntersectionRay expected =
+      GpuIntersectionScenePacker().packRay(cameraRay, /*rayIndex=*/0, /*minDistance=*/0.0,
+                                           std::numeric_limits<double>::infinity(), timeSample);
+    expectGpuRayNear(generation.pathStates.front().ray, expected, 2e-5);
+  }
+
+  TEST(GpuDiffusePrimaryPathStateGenerator, CanLeaveThinLensPrimaryPathsDescriptorOnly) {
+    ThinLensCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
+    camera.setApertureRadius(0.25);
+    camera.setFocalDistance(6.0);
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 3, 2));
+    camera.viewPlane()->sampler()->setup(4, 8, 42);
+
+    GpuDiffusePrimaryPathStateGenerationOptions options;
+    options.materializeHostPathStates = false;
+    const GpuDiffusePrimaryPathStateGeneration generation =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 3, 2), 99, 1234, options);
+
+    EXPECT_TRUE(generation.canGeneratePrimaryPathsOnDevice());
+    EXPECT_EQ("gpu_thin_lens_primary_descriptor", generation.primaryPathExecutionPath);
+    ASSERT_TRUE(generation.primaryPathDescriptor.has_value());
+    EXPECT_EQ(gpuPrimaryPathGenerationModeThinLens, generation.primaryPathDescriptor->mode);
     EXPECT_EQ(24u, generation.primaryPathDescriptor->pathCount());
     EXPECT_EQ(24u, generation.generatedPrimarySamples);
     EXPECT_TRUE(generation.pathStates.empty());
@@ -4666,6 +4748,45 @@ namespace GpuDiffusePathStepReferenceTest {
 
     EXPECT_TRUE(plan.generatesPrimaryPathsOnDevice());
     EXPECT_EQ(gpuPrimaryPathGenerationModeOrthographic, plan.parameters.primaryPathGenerationMode);
+    EXPECT_EQ(24u, plan.parameters.initialPathCount);
+    EXPECT_EQ(4u, plan.parameters.primaryPathSamplesPerPixel);
+    EXPECT_EQ(1234u, plan.parameters.primaryPathSampleSeed);
+    EXPECT_EQ(0u, plan.buffers.initialPathStateBytes);
+    EXPECT_EQ(24u * sizeof(GpuDiffusePathStateRecord), plan.buffers.activePathStateBytes);
+    EXPECT_EQ(plan.buffers.sceneUploadBytes, plan.buffers.totalUploadBytes);
+  }
+
+  TEST(GpuDiffusePathLoopLaunchPlanner, AcceptsThinLensPrimaryDescriptorLaunches) {
+    Scene scene;
+    auto matte =
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::white()));
+    matte->setDiffuseCoefficient(1.0);
+    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    receiver->setMaterial(matte);
+    scene.add(receiver);
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+
+    ThinLensCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
+    camera.setApertureRadius(0.25);
+    camera.setFocalDistance(6.0);
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 3, 2));
+    camera.viewPlane()->sampler()->setup(4, 8, 42);
+    GpuDiffusePrimaryPathStateGenerationOptions options;
+    options.materializeHostPathStates = false;
+    const GpuDiffusePrimaryPathStateGeneration generation =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 3, 2), 99, 1234, options);
+    ASSERT_TRUE(generation.canGeneratePrimaryPathsOnDevice());
+    ASSERT_TRUE(generation.pathStates.empty());
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 3;
+    const TracingAccumulationLayout accumulationLayout = TracingAccumulationLayout::image(3, 2);
+
+    const GpuDiffusePathLoopLaunchPlan plan =
+      GpuDiffusePathLoopLaunchPlanner().plan(sections, generation, accumulationLayout, settings);
+
+    EXPECT_TRUE(plan.generatesPrimaryPathsOnDevice());
+    EXPECT_EQ(gpuPrimaryPathGenerationModeThinLens, plan.parameters.primaryPathGenerationMode);
     EXPECT_EQ(24u, plan.parameters.initialPathCount);
     EXPECT_EQ(4u, plan.parameters.primaryPathSamplesPerPixel);
     EXPECT_EQ(1234u, plan.parameters.primaryPathSampleSeed);

@@ -148,6 +148,8 @@ namespace render {
     std::unique_ptr<PrimaryRayGenerator> primaryRayGenerator() const override;
     std::shared_ptr<Camera> clone() const override;
     const char* fingerprintType() const override;
+    std::optional<GpuPrimaryPathDescriptor>
+    gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampleSeed) const override;
 
     /**
       * Forward projection for mesh-based engines. A finite-aperture
