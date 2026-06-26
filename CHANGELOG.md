@@ -248,6 +248,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Compile null diffuse material textures as a real black ConstantColor GPU
+  texture record, so platform full-GPU path-loop renders do not sample the
+  unsupported sentinel for default/no-texture materials. — GPT-5 Codex
 - Let explicit Metal full-GPU diffuse path-loop renders accept compiled scenes
   with the default unused material slot, avoid immediate self-hits on spawned
   GPU rays, and treat finite light-card endpoint hits as visible direct-light

@@ -663,6 +663,7 @@ render::compileGpuTracingMaterials(const CompiledIntersectionScene& scene) {
   }
 
   std::map<const Texturec*, std::uint32_t> textureIds;
+  std::optional<std::uint32_t> nullDiffuseTextureId;
   auto appendConstantColorTexture = [&compilation](const Colord& color) {
     const std::uint32_t id = static_cast<std::uint32_t>(compilation.textures.records.size());
     compilation.textures.records.push_back(
@@ -674,10 +675,13 @@ render::compileGpuTracingMaterials(const CompiledIntersectionScene& scene) {
   FunctionGpuTracingTextureResourceContext textureResources(
     [&textureIdFor](const std::shared_ptr<Texturec>& texture) { return textureIdFor(texture); },
     appendConstantColorTexture);
-  textureIdFor = [&compilation, &textureIds,
+  textureIdFor = [&appendConstantColorTexture, &compilation, &nullDiffuseTextureId, &textureIds,
                   &textureResources](const std::shared_ptr<Texturec>& texture) {
     if (!texture) {
-      return 0u;
+      if (!nullDiffuseTextureId) {
+        nullDiffuseTextureId = appendConstantColorTexture(Colord::black());
+      }
+      return *nullDiffuseTextureId;
     }
 
     const auto existing = textureIds.find(texture.get());

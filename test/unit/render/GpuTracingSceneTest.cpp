@@ -659,6 +659,26 @@ namespace GpuTracingSceneTest {
     expectFloat4(compilation.textures.records[2].parameters, 1.0f, 0.5f, 0.25f, 1.0f);
   }
 
+  TEST(GpuTracingScene, CompilesNullDiffuseTextureAsBlackConstantTexture) {
+    auto matte = std::make_shared<MatteMaterial>();
+    auto sphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    sphere->setMaterial(matte);
+    Scene scene;
+    scene.add(sphere);
+    const CompiledIntersectionScene intersection = IntersectionSceneCompiler().compile(scene);
+
+    const GpuTracingMaterialCompilation compilation = compileGpuTracingMaterials(intersection);
+
+    EXPECT_TRUE(compilation.supported());
+    ASSERT_EQ(2u, compilation.records.size());
+    ASSERT_EQ(2u, compilation.textures.records.size());
+    EXPECT_EQ(1u, compilation.records[1].albedoTexture);
+    const GpuTracingTextureRecord& fallbackTexture = compilation.textures.records[1];
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingTextureKind::ConstantColor),
+              fallbackTexture.kind);
+    expectFloat4(fallbackTexture.parameters, 0.0f, 0.0f, 0.0f, 1.0f);
+  }
+
   TEST(GpuTracingScene, RecordsFirstUnsupportedMaterialReasonAndGroupedCounts) {
     auto firstUnsupported = std::make_shared<Sphere>(Vector3d(-1.0, 0.0, 0.0), 0.5);
     firstUnsupported->setMaterial(std::make_shared<UnsupportedMaterial>());

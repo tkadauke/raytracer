@@ -1880,6 +1880,9 @@ Progress:
   graphs over supported child texture records now lower and evaluate in the
   compiled diffuse path-loop CPU reference and restricted Metal/Vulkan
   full-GPU path-loop subset.
+- Null diffuse material texture slots now lower to an explicit black
+  ConstantColor texture record, so platform path-loop shaders do not sample the
+  unsupported sentinel for default/no-texture materials.
 - Compiled diffuse path-loop active-path counts are now visible as a per-depth
   row in rendercli compact summaries and Modeler selected-pass details. The
   graph metadata already owned `activePathsPerDepth`; surfacing it keeps the
