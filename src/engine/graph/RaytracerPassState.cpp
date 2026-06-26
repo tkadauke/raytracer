@@ -350,11 +350,11 @@ namespace engine::graph {
     if (adaptiveSamplingEnabled().value_or(false)) {
       return "compiled diffuse path loop does not support adaptive sampling yet";
     }
-    if (denoiser() && *denoiser() != "none") {
-      return "compiled diffuse path loop does not support denoising yet";
+    if (denoiser() && *denoiser() == "bilateral") {
+      return "compiled diffuse path loop does not support feature-guided denoising yet";
     }
-    if (denoiseRadius() || denoiseColorSigma()) {
-      return "compiled diffuse path loop does not support denoising yet";
+    if (!denoiser() && denoiseColorSigma()) {
+      return "compiled diffuse path loop does not support feature-guided denoising yet";
     }
     return std::nullopt;
   }

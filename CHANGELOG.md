@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Allow box denoising as a postprocess after compiled GPU path-loop renders, so
+  supported path-tracing scenes no longer fall back to scalar CPU rendering just
+  because a box denoiser is enabled. — GPT-5 Codex
 - Allow raster-only material normal maps on otherwise supported GPU
   path-tracing materials by ignoring `normalTexture()` during compiled
   path-loop material lowering, matching the scalar CPU path tracer's current

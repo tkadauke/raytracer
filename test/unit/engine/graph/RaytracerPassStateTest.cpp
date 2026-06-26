@@ -193,12 +193,29 @@ namespace RaytracerPassStateTest {
     EXPECT_EQ("compiled diffuse path loop requires the GPU sample stream",
               *samplerStream.compiledDiffusePathLoopFallbackReason());
 
-    RaytracerBeautyPassState denoised;
-    denoised.setIntegrator("pathtracer");
-    denoised.setDenoiser("box");
-    ASSERT_TRUE(denoised.compiledDiffusePathLoopFallbackReason());
-    EXPECT_EQ("compiled diffuse path loop does not support denoising yet",
-              *denoised.compiledDiffusePathLoopFallbackReason());
+    RaytracerBeautyPassState boxDenoised;
+    boxDenoised.setIntegrator("pathtracer");
+    boxDenoised.setDenoiser("box");
+    EXPECT_FALSE(boxDenoised.compiledDiffusePathLoopFallbackReason());
+
+    RaytracerBeautyPassState radiusOnlyDenoised;
+    radiusOnlyDenoised.setIntegrator("pathtracer");
+    radiusOnlyDenoised.setDenoiseRadius(2);
+    EXPECT_FALSE(radiusOnlyDenoised.compiledDiffusePathLoopFallbackReason());
+
+    RaytracerBeautyPassState bilateralDenoised;
+    bilateralDenoised.setIntegrator("pathtracer");
+    bilateralDenoised.setDenoiser("bilateral");
+    ASSERT_TRUE(bilateralDenoised.compiledDiffusePathLoopFallbackReason());
+    EXPECT_EQ("compiled diffuse path loop does not support feature-guided denoising yet",
+              *bilateralDenoised.compiledDiffusePathLoopFallbackReason());
+
+    RaytracerBeautyPassState colorSigmaDenoised;
+    colorSigmaDenoised.setIntegrator("pathtracer");
+    colorSigmaDenoised.setDenoiseColorSigma(0.2);
+    ASSERT_TRUE(colorSigmaDenoised.compiledDiffusePathLoopFallbackReason());
+    EXPECT_EQ("compiled diffuse path loop does not support feature-guided denoising yet",
+              *colorSigmaDenoised.compiledDiffusePathLoopFallbackReason());
   }
 
   TEST(RaytracerBeautyPassState, NormalizesSampleStreamModeDiagnostics) {

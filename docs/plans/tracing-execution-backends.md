@@ -112,6 +112,11 @@ end state for GPU tracing.
   rendercli, Modeler preview, and the render dialog report whether that
   execution used the CPU reference path, hybrid frontier compaction, or a
   supported platform full-GPU subset.
+- Box denoising is now treated as a postprocess over the resolved compiled
+  path-loop image, so it no longer forces a supported GPU path-tracing render
+  back through the scalar CPU path. Feature-guided bilateral denoising still
+  falls back until compiled path-loop execution can produce matching albedo,
+  normal, and depth feature buffers.
 - Automatic tracing execution does not select that CPU-reference path-loop as
   a full GPU backend. `auto` stays on CPU/hybrid execution until scene analysis
   can prove that a platform path-loop kernel is available; explicit GPU
@@ -2654,6 +2659,10 @@ scene is large enough to amortize upload/readback costs.
      Raster-only material normal maps no longer make those materials
      unsupported by the compiled path-loop subset; they remain ignored by path
      tracing, matching the scalar CPU integrator.
+     Box denoising now runs after compiled path-loop image resolve instead of
+     rejecting the path-loop route; feature-guided bilateral denoising remains
+     outside the platform subset until feature buffers are produced by the same
+     execution path.
      Broader
      primitive traversal, full material shading, full direct-light coverage,
      device-side compacted wavefront scheduling, Vulkan parity, and performance

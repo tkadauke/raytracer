@@ -23,6 +23,7 @@
 #include "engine/wavefront/WavefrontRaytracer.h"
 #include "engine/wireframe/Wireframe.h"
 #include "render/cameras/Camera.h"
+#include "render/denoise/Denoiser.h"
 #include "render/GpuDiffusePathLoopBackend.h"
 #include "render/GpuDiffusePathStepReference.h"
 #include "render/GpuTracingScene.h"
@@ -42,6 +43,7 @@
 #include <QJsonArray>
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <limits>
@@ -629,6 +631,50 @@ namespace engine::graph {
       return result;
     }
 
+    QJsonObject disabledDenoiseMetadata() {
+      QJsonObject result;
+      result["enabled"] = false;
+      result["seconds"] = 0.0;
+      result["featureSeconds"] = 0.0;
+      return result;
+    }
+
+    QJsonObject denoiseMetadataFor(const render::Denoiser& denoiser, double seconds) {
+      const render::DenoiserDiagnostics diagnostics = denoiser.diagnostics();
+
+      QJsonObject parameters;
+      for (const auto& parameter : diagnostics.numericParameters) {
+        parameters[QString::fromStdString(parameter.name)] = parameter.value;
+      }
+
+      QJsonObject features;
+      features["albedo"] = false;
+      features["normal"] = false;
+      features["depth"] = false;
+
+      QJsonObject result;
+      result["enabled"] = true;
+      result["seconds"] = seconds;
+      result["featureSeconds"] = 0.0;
+      result["denoiser"] = QString::fromStdString(diagnostics.name);
+      result["parameters"] = parameters;
+      result["features"] = features;
+      return result;
+    }
+
+    QJsonObject applyPostPathLoopDenoiser(const render::Denoiser* denoiser,
+                                          Buffer<Colord>& buffer) {
+      if (!denoiser) {
+        return disabledDenoiseMetadata();
+      }
+
+      const auto start = std::chrono::steady_clock::now();
+      denoiser->denoise(buffer);
+      const double seconds =
+        std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
+      return denoiseMetadataFor(*denoiser, seconds);
+    }
+
     QJsonObject
     gpuTracingSceneDiagnosticsToJson(const render::GpuTracingSceneDiagnostics& diagnostics) {
       QJsonObject result;
@@ -1167,13 +1213,21 @@ namespace engine::graph {
           pathLoopBackend->run(compilation.sections, generation, settings);
         const render::TracingAccumulationLayout layout =
           render::TracingAccumulationLayout::image(width, height);
+        const render::Denoiser* denoiser = wavefront.denoiser();
 
         render::TracingAccumulationDiagnostics accumulation;
+        QJsonObject denoise = disabledDenoiseMetadata();
         if (hdrTarget) {
           accumulation = render::resolveGpuDiffusePathLoopImage(loop, layout, *hdrTarget);
+          denoise = applyPostPathLoopDenoiser(denoiser, *hdrTarget);
           if (displayTarget) {
             packColorBuffer(*hdrTarget, *displayTarget, wavefront.tonemap());
           }
+        } else if (denoiser) {
+          Buffer<Colord> hdrBuffer(width, height);
+          accumulation = render::resolveGpuDiffusePathLoopImage(loop, layout, hdrBuffer);
+          denoise = applyPostPathLoopDenoiser(denoiser, hdrBuffer);
+          packColorBuffer(hdrBuffer, *displayTarget, wavefront.tonemap());
         } else {
           accumulation = render::resolveGpuDiffusePathLoopImage(loop, layout, *displayTarget,
                                                                 wavefront.tonemap().get());
@@ -1195,6 +1249,7 @@ namespace engine::graph {
         QJsonObject metadata = compiledDiffusePathLoopMetadata(
           compilation, generation, loop, accumulation,
           state.tracingExecution().value_or(TracingExecutionPreference::Auto));
+        metadata["denoise"] = denoise;
         context.setTraceMetadata(withTracingExecutionMetadata(
           metadata, context.pass(), actualTracingExecution, actualTracingFallback));
         return true;
