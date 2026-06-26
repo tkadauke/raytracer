@@ -10,7 +10,8 @@ namespace render {
       return mode == gpuPrimaryPathGenerationModePinhole ||
              mode == gpuPrimaryPathGenerationModeOrthographic ||
              mode == gpuPrimaryPathGenerationModeThinLens ||
-             mode == gpuPrimaryPathGenerationModeEquirectangular;
+             mode == gpuPrimaryPathGenerationModeEquirectangular ||
+             mode == gpuPrimaryPathGenerationModeSpherical;
     }
 
     std::uint64_t checkedProduct(std::uint64_t left, std::uint64_t right, const char* label) {

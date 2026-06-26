@@ -256,7 +256,8 @@ namespace render {
       if (descriptor.mode != gpuPrimaryPathGenerationModePinhole &&
           descriptor.mode != gpuPrimaryPathGenerationModeOrthographic &&
           descriptor.mode != gpuPrimaryPathGenerationModeThinLens &&
-          descriptor.mode != gpuPrimaryPathGenerationModeEquirectangular) {
+          descriptor.mode != gpuPrimaryPathGenerationModeEquirectangular &&
+          descriptor.mode != gpuPrimaryPathGenerationModeSpherical) {
         throw std::invalid_argument(
           "Vulkan diffuse path-loop backend requires a supported primary path descriptor");
       }

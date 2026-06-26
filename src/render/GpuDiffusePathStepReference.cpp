@@ -207,6 +207,9 @@ namespace {
     if (mode == gpuPrimaryPathGenerationModeEquirectangular) {
       return "gpu_equirectangular_primary_descriptor";
     }
+    if (mode == gpuPrimaryPathGenerationModeSpherical) {
+      return "gpu_spherical_primary_descriptor";
+    }
     return "host_primary_path_states";
   }
 
@@ -281,6 +284,30 @@ namespace {
             const double lat = (1.0 - 2.0 * y / viewHeight) * (PI / 2.0);
             const double cosLat = std::cos(lat);
             const Vector3d local(cosLat * std::sin(lon), -std::sin(lat), cosLat * std::cos(lon));
+            ray = Rayd(originOrDirection,
+                       (right * local.x() + down * local.y() + forward * local.z()).normalized());
+          } else if (mode == gpuPrimaryPathGenerationModeSpherical) {
+            const double viewWidth = descriptor.lensParameters[0];
+            const double viewHeight = descriptor.lensParameters[1];
+            const double horizontalFov = descriptor.lensParameters[2];
+            const double verticalFov = descriptor.lensParameters[3];
+            if (viewWidth <= 0.0 || viewHeight <= 0.0) {
+              ++result.skippedPrimarySamples;
+              continue;
+            }
+            const double x = static_cast<double>(column) + pixelSample.x();
+            const double y = static_cast<double>(row) + pixelSample.y();
+            const double pointX = 2.0 / viewWidth * x + 1.0;
+            const double pointY = 2.0 / viewHeight * y - 1.0;
+            const double lambda = pointX * 0.5 * horizontalFov;
+            const double psi = pointY * 0.5 * verticalFov;
+            const double phi = PI - lambda;
+            const double theta = 0.5 * PI - psi;
+            const double sinPhi = std::sin(phi);
+            const double cosPhi = std::cos(phi);
+            const double sinTheta = std::sin(theta);
+            const double cosTheta = std::cos(theta);
+            const Vector3d local(sinTheta * sinPhi, cosTheta, sinTheta * cosPhi);
             ray = Rayd(originOrDirection,
                        (right * local.x() + down * local.y() + forward * local.z()).normalized());
           } else {
@@ -919,7 +946,8 @@ GpuDiffusePrimaryPathStateGeneration GpuDiffusePrimaryPathStateGenerator::genera
     if (result.primaryPathDescriptor->mode == gpuPrimaryPathGenerationModePinhole ||
         result.primaryPathDescriptor->mode == gpuPrimaryPathGenerationModeOrthographic ||
         result.primaryPathDescriptor->mode == gpuPrimaryPathGenerationModeThinLens ||
-        result.primaryPathDescriptor->mode == gpuPrimaryPathGenerationModeEquirectangular) {
+        result.primaryPathDescriptor->mode == gpuPrimaryPathGenerationModeEquirectangular ||
+        result.primaryPathDescriptor->mode == gpuPrimaryPathGenerationModeSpherical) {
       if (!options.materializeHostPathStates) {
         result.generatedPrimarySamples = result.primaryPathDescriptor->pathCount();
         return result;

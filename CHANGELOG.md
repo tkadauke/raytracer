@@ -29,6 +29,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Let static equirectangular path-tracer launches use GPU primary-path
   descriptors, so supported Metal/Vulkan path-loop renders can synthesize
   panorama primary paths on device. — GPT-5 Codex
+- Let static spherical path-tracer launches use GPU primary-path descriptors,
+  so supported Metal/Vulkan path-loop renders can synthesize partial-panorama
+  primary paths on device. — GPT-5 Codex
 - Avoid materializing host primary path-state vectors for trace-disabled
   full-GPU static pinhole diffuse path-loop launches when the selected backend
   can synthesize primary paths on device. — GPT-5 Codex
