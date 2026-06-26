@@ -34,6 +34,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   backend capture script set the tracing execution mode as well as the
   intersection backend, so GPU captures measure the broader path-loop request.
   — GPT-5 Codex
+- Preserve the underlying Metal/Vulkan diffuse path-loop kernel availability
+  reason on the platform full-GPU backend, so rendercli, tests, and benchmarks
+  report device or pipeline failures instead of a generic launch-path message.
+  — GPT-5 Codex
 - Let static equirectangular path-tracer launches use GPU primary-path
   descriptors, so supported Metal/Vulkan path-loop renders can synthesize
   panorama primary paths on device. — GPT-5 Codex

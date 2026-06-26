@@ -20,6 +20,7 @@
 #endif
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
 #include "render/VulkanGpuDiffusePathFrontierCompactionBackend.h"
+#include "render/VulkanGpuDiffusePathLoopKernel.h"
 #endif
 #include "render/VulkanGpuDiffusePathLoopBackend.h"
 #include "render/cameras/EquirectangularCamera.h"
@@ -2448,6 +2449,8 @@ namespace GpuDiffusePathStepReferenceTest {
     } else {
       EXPECT_FALSE(support.supported);
       EXPECT_FALSE(support.reason.empty());
+      EXPECT_EQ(MetalGpuDiffusePathLoopKernel().launchPathUnavailableReason(), support.reason);
+      EXPECT_STREQ(support.reason.c_str(), backend.fullGpuPathLoopUnavailableReason());
     }
 #else
     EXPECT_FALSE(backend.fullGpuPathLoopAvailable());
@@ -2914,6 +2917,8 @@ namespace GpuDiffusePathStepReferenceTest {
     } else {
       EXPECT_FALSE(support.supported);
       EXPECT_FALSE(support.reason.empty());
+      EXPECT_EQ(VulkanGpuDiffusePathLoopKernel().launchPathUnavailableReason(), support.reason);
+      EXPECT_STREQ(support.reason.c_str(), backend.fullGpuPathLoopUnavailableReason());
     }
 #else
     EXPECT_FALSE(backend.fullGpuPathLoopAvailable());

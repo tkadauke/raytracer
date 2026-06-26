@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
+#include <string>
 
 namespace render {
   namespace {
@@ -517,7 +518,12 @@ namespace render {
 
   const char* MetalGpuDiffusePathLoopBackend::fullGpuPathLoopUnavailableReason() const {
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
-    return "Metal diffuse path-loop launch path is not available";
+    static thread_local std::string reason;
+    reason = MetalGpuDiffusePathLoopKernel().launchPathUnavailableReason();
+    if (reason.empty()) {
+      reason = "Metal diffuse path-loop launch path is available";
+    }
+    return reason.c_str();
 #else
     return "Metal diffuse path-loop backend is not enabled in this build";
 #endif

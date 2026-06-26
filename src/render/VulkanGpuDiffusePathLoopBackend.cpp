@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
+#include <string>
 
 namespace render {
   namespace {
@@ -571,7 +572,12 @@ namespace render {
 
   const char* VulkanGpuDiffusePathLoopBackend::fullGpuPathLoopUnavailableReason() const {
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
-    return "Vulkan diffuse path-loop launch path is not available";
+    static thread_local std::string reason;
+    reason = VulkanGpuDiffusePathLoopKernel().launchPathUnavailableReason();
+    if (reason.empty()) {
+      reason = "Vulkan diffuse path-loop launch path is available";
+    }
+    return reason.c_str();
 #else
     return "Vulkan diffuse path-loop backend is not enabled in this build";
 #endif
