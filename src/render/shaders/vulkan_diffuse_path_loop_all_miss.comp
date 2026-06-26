@@ -18,6 +18,7 @@ const uint gpuTracingTransparentMaterialKind = 5u;
 const uint gpuTracingConstantColorTextureKind = 1u;
 const uint gpuTracingCheckerBoardTextureKind = 2u;
 const uint gpuTracingImageTextureKind = 3u;
+const uint gpuTracingTintedTextureKind = 4u;
 const uint gpuTracingPlanarTextureMappingKind = 1u;
 const uint gpuTracingUvTextureMappingKind = 2u;
 const uint gpuTracingTextureMappingMask = 0xffu;
@@ -1408,6 +1409,17 @@ bool textureColor(uint textureId, GpuIntersectionHitRecord hit, out vec4 color) 
   const GpuTracingTextureRecord texture = readTexture(textureId);
   if (texture.kind == gpuTracingConstantColorTextureKind) {
     color = texture.parameters;
+    return true;
+  }
+  if (texture.kind == gpuTracingTintedTextureKind) {
+    if (texture.payloadOffset >= parameters.textureCount) {
+      return false;
+    }
+    vec4 child;
+    if (!constantTextureColor(texture.payloadOffset, child)) {
+      return false;
+    }
+    color = child * texture.parameters;
     return true;
   }
   if (texture.kind == gpuTracingCheckerBoardTextureKind) {

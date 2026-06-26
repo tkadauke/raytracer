@@ -89,10 +89,10 @@
 > triangle/sphere/plane/rectangle/disk/open-cylinder/torus
 > Matte/Phong-finite-glossy/Reflective-mirror/Transparent-refraction/Emissive
 > subset, including duplicate-pixel sample-slot accumulation. It now also
-> samples the simple planar/UV CheckerBoard and nearest ImageTexture subset used
-> by the Metal backend, and evaluates multiple point, directional, or
-> rectangular area lights with shader-side light selection and supported-scene
-> visibility. It
+> samples the simple planar/UV CheckerBoard, nearest ImageTexture, and Tinted
+> ConstantColor subset used by the Metal backend, and evaluates multiple point,
+> directional, or rectangular area lights with shader-side light selection and
+> supported-scene visibility. It
 > remains intentionally narrower than the Metal shaded subset overall.
 > This restricted backend is not broad enough to advertise general full GPU path
 > tracing yet.
@@ -1875,6 +1875,9 @@ Progress:
 - BSDF-sampled emissive hits now consume that resident MIS state in the
   CPU-reference, Metal, and Vulkan diffuse path-loop paths, applying the same
   power-heuristic emitter weighting as the scalar path tracer.
+- `TintedTexture` records over `ConstantColorTexture` children now lower and
+  evaluate in the compiled diffuse path-loop CPU reference and restricted
+  Metal/Vulkan full-GPU path-loop subset.
 - Compiled diffuse path-loop active-path counts are now visible as a per-depth
   row in rendercli compact summaries and Modeler selected-pass details. The
   graph metadata already owned `activePathsPerDepth`; surfacing it keeps the

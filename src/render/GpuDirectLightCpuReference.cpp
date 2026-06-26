@@ -86,16 +86,24 @@ namespace render {
       return visibility;
     }
 
-    Colord textureColor(const GpuTracingSceneSections& scene, std::uint32_t textureIndex) {
+    Colord textureColor(const GpuTracingSceneSections& scene, std::uint32_t textureIndex,
+                        std::uint32_t depth = 0) {
+      constexpr std::uint32_t maxTextureEvaluationDepth = 8;
       if (textureIndex >= scene.textures.size()) {
         return Colord::black();
       }
-      const GpuTracingTextureRecord& texture = scene.textures[textureIndex];
-      if (static_cast<GpuTracingTextureKind>(texture.kind) !=
-          GpuTracingTextureKind::ConstantColor) {
+      if (depth >= maxTextureEvaluationDepth) {
         return Colord::black();
       }
-      return Colord(texture.parameters);
+      const GpuTracingTextureRecord& texture = scene.textures[textureIndex];
+      const auto kind = static_cast<GpuTracingTextureKind>(texture.kind);
+      if (kind == GpuTracingTextureKind::ConstantColor) {
+        return Colord(texture.parameters);
+      }
+      if (kind == GpuTracingTextureKind::Tinted) {
+        return textureColor(scene, texture.payloadOffset, depth + 1) * Colord(texture.parameters);
+      }
+      return Colord::black();
     }
 
     Rayd visibilityRay(const GpuDirectLightVisibilityRecord& visibility) {

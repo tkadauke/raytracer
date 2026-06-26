@@ -15,6 +15,7 @@
 #include "render/textures/CheckerBoardTexture.h"
 #include "render/textures/ConstantColorTexture.h"
 #include "render/textures/ImageTexture.h"
+#include "render/textures/TintedTexture.h"
 #include "render/textures/Texture.h"
 #include "render/textures/mappings/PlanarMapping2D.h"
 #include "render/textures/mappings/UVMapping2D.h"
@@ -616,6 +617,14 @@ makeGpuTracingTextureRecordWithResources(const Texturec& texture,
         resources.constantColorTexture(image->pixels()[index]);
       }
     }
+    return record;
+  }
+
+  if (const auto* tinted = dynamic_cast<const TintedTexture*>(&texture)) {
+    GpuTracingTextureRecord record;
+    record.kind = static_cast<std::uint32_t>(GpuTracingTextureKind::Tinted);
+    record.payloadOffset = resources.textureIdFor(tinted->texture());
+    record.parameters = tinted->tint().toFloat4();
     return record;
   }
 

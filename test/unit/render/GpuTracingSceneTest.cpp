@@ -19,6 +19,7 @@
 #include "render/textures/ConstantColorTexture.h"
 #include "render/textures/ImageTexture.h"
 #include "render/textures/Texture.h"
+#include "render/textures/TintedTexture.h"
 #include "render/textures/mappings/UVMapping2D.h"
 
 #include <cstddef>
@@ -400,6 +401,32 @@ namespace GpuTracingSceneTest {
     expectFloat4(compilation.textures.records[3].parameters, 0.0f, 1.0f, 0.0f, 1.0f);
     expectFloat4(compilation.textures.records[4].parameters, 0.0f, 0.0f, 1.0f, 1.0f);
     expectFloat4(compilation.textures.records[5].parameters, 1.0f, 1.0f, 1.0f, 1.0f);
+  }
+
+  TEST(GpuTracingScene, CompilesTintedTextureRecordsWithChildTextureId) {
+    auto childTexture = std::make_shared<ConstantColorTexture>(Colord(0.25, 0.5, 0.75));
+    auto tintedTexture = std::make_shared<TintedTexture>(childTexture, Colord(0.5, 0.25, 0.125));
+    auto matte = std::make_shared<MatteMaterial>(tintedTexture);
+    auto sphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 0.5);
+    sphere->setMaterial(matte);
+
+    Scene scene;
+    scene.add(sphere);
+
+    const CompiledIntersectionScene intersection = IntersectionSceneCompiler().compile(scene);
+    const GpuTracingMaterialCompilation compilation = compileGpuTracingMaterials(intersection);
+
+    EXPECT_TRUE(compilation.supported());
+    ASSERT_EQ(2u, compilation.records.size());
+    ASSERT_EQ(3u, compilation.textures.records.size());
+    EXPECT_EQ(1u, compilation.records[1].albedoTexture);
+    const GpuTracingTextureRecord& tinted = compilation.textures.records[1];
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingTextureKind::Tinted), tinted.kind);
+    EXPECT_EQ(2u, tinted.payloadOffset);
+    expectFloat4(tinted.parameters, 0.5f, 0.25f, 0.125f, 1.0f);
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingTextureKind::ConstantColor),
+              compilation.textures.records[2].kind);
+    expectFloat4(compilation.textures.records[2].parameters, 0.25f, 0.5f, 0.75f, 1.0f);
   }
 
   TEST(GpuTracingScene, MatteMaterialPacksTextureIdsAndCoefficients) {

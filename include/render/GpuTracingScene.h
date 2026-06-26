@@ -44,7 +44,8 @@ namespace render {
     Unsupported = 0,
     ConstantColor = 1,
     CheckerBoard = 2,
-    Image = 3
+    Image = 3,
+    Tinted = 4
   };
 
   enum class GpuTracingTextureMappingKind : std::uint32_t { None = 0, Planar = 1, UV = 2 };

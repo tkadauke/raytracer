@@ -204,6 +204,11 @@ namespace {
       return Colord(texture.parameters);
     }
 
+    if (kind == GpuTracingTextureKind::Tinted) {
+      return textureColor(scene, texture.payloadOffset, hit, depth + 1) *
+             Colord(texture.parameters);
+    }
+
     if (kind == GpuTracingTextureKind::CheckerBoard) {
       const Vector2d st = textureCoordinates(texture, hit);
       const int parity =
