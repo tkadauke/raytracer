@@ -1,8 +1,12 @@
 #include <gtest/gtest.h>
 #include "render/cameras/FishEyeCamera.h"
 #include "engine/raytracer/Raytracer.h"
+#include "render/samplers/Sampler.h"
+#include "render/viewplanes/ViewPlane.h"
 #include "render/primitives/Scene.h"
 #include "core/Buffer.h"
+
+#include <optional>
 
 namespace FishEyeCameraTest {
   using namespace ::testing;
@@ -56,5 +60,40 @@ namespace FishEyeCameraTest {
     Rayd ray = camera.rayForPixel(0, 0);
     ASSERT_EQ(Vector3d(0, 0, -1), ray.origin());
     ASSERT_TRUE(ray.direction().isUndefined());
+  }
+
+  TEST(FishEyeCamera, ShouldExposeStaticGpuPrimaryPathDescriptor) {
+    FishEyeCamera camera(Vector3d(1, 2, 3), Vector3d(1, 2, 4));
+    camera.setFieldOfView(180_degrees);
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 4, 4));
+    camera.viewPlane()->sampler()->setup(4, 8, 42);
+
+    const std::optional<GpuPrimaryPathDescriptor> descriptor =
+      camera.gpuPrimaryPathDescriptor(Recti(0, 0, 4, 4), 1234);
+
+    ASSERT_TRUE(descriptor.has_value());
+    EXPECT_EQ(gpuPrimaryPathGenerationModeFishEye, descriptor->mode);
+    EXPECT_TRUE(descriptor->generatesOnDevice());
+    EXPECT_EQ(64u, descriptor->pathCount());
+
+    const GpuRectilinearPrimaryPathDescriptor& rectilinear = descriptor->rectilinear;
+    EXPECT_FLOAT_EQ(1.0f, rectilinear.originOrDirection[0]);
+    EXPECT_FLOAT_EQ(2.0f, rectilinear.originOrDirection[1]);
+    EXPECT_FLOAT_EQ(3.0f, rectilinear.originOrDirection[2]);
+    EXPECT_FLOAT_EQ(1.0f, rectilinear.originOrDirection[3]);
+    EXPECT_FLOAT_EQ(4.0f, rectilinear.lensParameters[0]);
+    EXPECT_FLOAT_EQ(4.0f, rectilinear.lensParameters[1]);
+    EXPECT_FLOAT_EQ(static_cast<float>((180_degrees).radians()), rectilinear.lensParameters[2]);
+    EXPECT_FLOAT_EQ(0.0f, rectilinear.lensParameters[3]);
+    EXPECT_EQ(0, rectilinear.requestedLeft);
+    EXPECT_EQ(0, rectilinear.requestedTop);
+    EXPECT_EQ(4u, rectilinear.requestedWidth);
+    EXPECT_EQ(4u, rectilinear.requestedHeight);
+    EXPECT_EQ(0, rectilinear.actualLeft);
+    EXPECT_EQ(0, rectilinear.actualTop);
+    EXPECT_EQ(4u, rectilinear.actualWidth);
+    EXPECT_EQ(4u, rectilinear.actualHeight);
+    EXPECT_EQ(4u, rectilinear.samplesPerPixel);
+    EXPECT_EQ(1234u, rectilinear.sampleSeed);
   }
 }

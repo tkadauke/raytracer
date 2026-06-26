@@ -48,6 +48,8 @@ namespace render {
     }
 
     Rayd rayForPixel(double x, double y, render::SampleStream& stream) const override;
+    std::optional<GpuPrimaryPathDescriptor>
+    gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampleSeed) const override;
     std::shared_ptr<Camera> clone() const override;
     const char* fingerprintType() const override;
 

@@ -23,6 +23,7 @@
 #endif
 #include "render/VulkanGpuDiffusePathLoopBackend.h"
 #include "render/cameras/EquirectangularCamera.h"
+#include "render/cameras/FishEyeCamera.h"
 #include "render/cameras/OrthographicCamera.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/cameras/SphericalCamera.h"
@@ -788,6 +789,64 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(gpuPrimaryPathGenerationModeSpherical, generation.primaryPathDescriptor->mode);
     EXPECT_EQ(32u, generation.primaryPathDescriptor->pathCount());
     EXPECT_EQ(32u, generation.generatedPrimarySamples);
+    EXPECT_TRUE(generation.pathStates.empty());
+  }
+
+  TEST(GpuDiffusePrimaryPathStateGenerator, GeneratesFishEyePrimaryPathDescriptor) {
+    FishEyeCamera camera(Vector3d(1.0, 2.0, -5.0), Vector3d(1.0, 2.0, -4.0));
+    camera.setFieldOfView(180_degrees);
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 4, 4));
+    camera.viewPlane()->sampler()->setup(4, 8, 42);
+
+    const GpuDiffusePrimaryPathStateGeneration generation =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 4, 4), 99, 1234);
+
+    EXPECT_TRUE(generation.canGeneratePrimaryPathsOnDevice());
+    EXPECT_EQ("gpu_fisheye_primary_descriptor", generation.primaryPathExecutionPath);
+    ASSERT_TRUE(generation.primaryPathDescriptor.has_value());
+    EXPECT_EQ(gpuPrimaryPathGenerationModeFishEye, generation.primaryPathDescriptor->mode);
+    EXPECT_EQ(64u, generation.primaryPathDescriptor->pathCount());
+    EXPECT_GT(generation.generatedPrimarySamples, 0u);
+    EXPECT_GT(generation.skippedPrimarySamples, 0u);
+    EXPECT_EQ(64u, generation.generatedPrimarySamples + generation.skippedPrimarySamples);
+    ASSERT_EQ(generation.generatedPrimarySamples, generation.pathStates.size());
+
+    const GpuRectilinearPrimaryPathDescriptor& descriptor =
+      generation.primaryPathDescriptor->rectilinear;
+    EXPECT_EQ(4u, descriptor.samplesPerPixel);
+    EXPECT_EQ(1234u, descriptor.sampleSeed);
+    EXPECT_FLOAT_EQ(4.0f, descriptor.lensParameters[0]);
+    EXPECT_FLOAT_EQ(4.0f, descriptor.lensParameters[1]);
+    EXPECT_FLOAT_EQ(static_cast<float>((180_degrees).radians()), descriptor.lensParameters[2]);
+    EXPECT_FLOAT_EQ(0.0f, descriptor.lensParameters[3]);
+
+    for (const GpuDiffusePathStateRecord& path : generation.pathStates) {
+      EXPECT_TRUE(gpuDiffusePathStateIsActive(path));
+      EXPECT_FALSE(gpuDiffusePathStateIsTerminated(path));
+      const float directionLengthSquared = path.ray.direction[0] * path.ray.direction[0] +
+                                           path.ray.direction[1] * path.ray.direction[1] +
+                                           path.ray.direction[2] * path.ray.direction[2];
+      EXPECT_NEAR(1.0f, directionLengthSquared, 1e-5f);
+    }
+  }
+
+  TEST(GpuDiffusePrimaryPathStateGenerator, CanLeaveFishEyePrimaryPathsDescriptorOnly) {
+    FishEyeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, -4.0));
+    camera.setFieldOfView(180_degrees);
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 4, 4));
+    camera.viewPlane()->sampler()->setup(4, 8, 42);
+
+    GpuDiffusePrimaryPathStateGenerationOptions options;
+    options.materializeHostPathStates = false;
+    const GpuDiffusePrimaryPathStateGeneration generation =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 4, 4), 99, 1234, options);
+
+    EXPECT_TRUE(generation.canGeneratePrimaryPathsOnDevice());
+    EXPECT_EQ("gpu_fisheye_primary_descriptor", generation.primaryPathExecutionPath);
+    ASSERT_TRUE(generation.primaryPathDescriptor.has_value());
+    EXPECT_EQ(gpuPrimaryPathGenerationModeFishEye, generation.primaryPathDescriptor->mode);
+    EXPECT_EQ(64u, generation.primaryPathDescriptor->pathCount());
+    EXPECT_EQ(64u, generation.generatedPrimarySamples);
     EXPECT_TRUE(generation.pathStates.empty());
   }
 
@@ -2667,6 +2726,57 @@ namespace GpuDiffusePathStepReferenceTest {
 #endif
   }
 
+  TEST(MetalGpuDiffusePathLoopBackend, RunsFishEyeDescriptorOnlyPrimaryPathLoopWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    const MetalGpuDiffusePathLoopBackend backend;
+    if (!backend.fullGpuPathLoopAvailable()) {
+      GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
+    }
+
+    Scene scene;
+    scene.setBackground(Colord(0.25, 0.5, 0.75));
+    scene.setEnvironmentRadiance(Colord(0.1, 0.2, 0.3));
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+
+    FishEyeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, -4.0));
+    camera.setFieldOfView(180_degrees);
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 4, 4));
+    camera.viewPlane()->sampler()->setup(1, 4, 42);
+
+    GpuDiffusePrimaryPathStateGenerationOptions descriptorOnlyOptions;
+    descriptorOnlyOptions.materializeHostPathStates = false;
+    const GpuDiffusePrimaryPathStateGeneration descriptorOnly =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(1, 1, 2, 2), 99, 1234,
+                                                     descriptorOnlyOptions);
+    ASSERT_TRUE(descriptorOnly.canGeneratePrimaryPathsOnDevice());
+    ASSERT_TRUE(descriptorOnly.pathStates.empty());
+    ASSERT_TRUE(descriptorOnly.primaryPathDescriptor.has_value());
+    EXPECT_EQ(gpuPrimaryPathGenerationModeFishEye, descriptorOnly.primaryPathDescriptor->mode);
+
+    const GpuDiffusePrimaryPathStateGeneration materialized =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(1, 1, 2, 2), 99, 1234);
+    ASSERT_EQ(4u, materialized.pathStates.size());
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 1;
+    settings.russianRouletteDepth = 10;
+    const GpuDiffusePathLoopResult expected =
+      GpuDiffusePathLoop().run(sections, materialized.pathStates, settings);
+    const GpuDiffusePathLoopResult result = backend.run(sections, descriptorOnly, settings);
+
+    EXPECT_TRUE(result.fullGpuPathLoopSupported());
+    EXPECT_EQ("metal", result.platformName);
+    EXPECT_EQ(4u, result.initialPathCount);
+    ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
+    for (std::size_t index = 0; index != expected.resolvedPathStates.size(); ++index) {
+      expectPathStateNear(result.resolvedPathStates[index], expected.resolvedPathStates[index],
+                          1e-4);
+    }
+#else
+    GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
+#endif
+  }
+
   TEST(VulkanGpuDiffusePathLoopBackend, ReportsUnavailableWhenBuildOrDeviceCannotRunVulkan) {
     const VulkanGpuDiffusePathLoopBackend backend;
     GpuDiffusePathLoopSettings settings;
@@ -3226,6 +3336,57 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_TRUE(result.fullGpuPathLoopSupported());
     EXPECT_EQ("vulkan", result.platformName);
     EXPECT_EQ(8u, result.initialPathCount);
+    ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
+    for (std::size_t index = 0; index != expected.resolvedPathStates.size(); ++index) {
+      expectPathStateNear(result.resolvedPathStates[index], expected.resolvedPathStates[index],
+                          1e-4);
+    }
+#else
+    GTEST_SKIP() << "Vulkan wavefront support is not enabled in this build";
+#endif
+  }
+
+  TEST(VulkanGpuDiffusePathLoopBackend, RunsFishEyeDescriptorOnlyPrimaryPathLoopWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    const VulkanGpuDiffusePathLoopBackend backend;
+    if (!backend.fullGpuPathLoopAvailable()) {
+      GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
+    }
+
+    Scene scene;
+    scene.setBackground(Colord(0.25, 0.5, 0.75));
+    scene.setEnvironmentRadiance(Colord(0.1, 0.2, 0.3));
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+
+    FishEyeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, -4.0));
+    camera.setFieldOfView(180_degrees);
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 4, 4));
+    camera.viewPlane()->sampler()->setup(1, 4, 42);
+
+    GpuDiffusePrimaryPathStateGenerationOptions descriptorOnlyOptions;
+    descriptorOnlyOptions.materializeHostPathStates = false;
+    const GpuDiffusePrimaryPathStateGeneration descriptorOnly =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(1, 1, 2, 2), 99, 1234,
+                                                     descriptorOnlyOptions);
+    ASSERT_TRUE(descriptorOnly.canGeneratePrimaryPathsOnDevice());
+    ASSERT_TRUE(descriptorOnly.pathStates.empty());
+    ASSERT_TRUE(descriptorOnly.primaryPathDescriptor.has_value());
+    EXPECT_EQ(gpuPrimaryPathGenerationModeFishEye, descriptorOnly.primaryPathDescriptor->mode);
+
+    const GpuDiffusePrimaryPathStateGeneration materialized =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(1, 1, 2, 2), 99, 1234);
+    ASSERT_EQ(4u, materialized.pathStates.size());
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 1;
+    settings.russianRouletteDepth = 10;
+    const GpuDiffusePathLoopResult expected =
+      GpuDiffusePathLoop().run(sections, materialized.pathStates, settings);
+    const GpuDiffusePathLoopResult result = backend.run(sections, descriptorOnly, settings);
+
+    EXPECT_TRUE(result.fullGpuPathLoopSupported());
+    EXPECT_EQ("vulkan", result.platformName);
+    EXPECT_EQ(4u, result.initialPathCount);
     ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
     for (std::size_t index = 0; index != expected.resolvedPathStates.size(); ++index) {
       expectPathStateNear(result.resolvedPathStates[index], expected.resolvedPathStates[index],
@@ -5291,6 +5452,44 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(1234u, plan.parameters.primaryPathSampleSeed);
     EXPECT_EQ(0u, plan.buffers.initialPathStateBytes);
     EXPECT_EQ(32u * sizeof(GpuDiffusePathStateRecord), plan.buffers.activePathStateBytes);
+    EXPECT_EQ(plan.buffers.sceneUploadBytes, plan.buffers.totalUploadBytes);
+  }
+
+  TEST(GpuDiffusePathLoopLaunchPlanner, AcceptsFishEyePrimaryDescriptorLaunches) {
+    Scene scene;
+    auto matte =
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::white()));
+    matte->setDiffuseCoefficient(1.0);
+    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    receiver->setMaterial(matte);
+    scene.add(receiver);
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+
+    FishEyeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, -4.0));
+    camera.setFieldOfView(180_degrees);
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 4, 4));
+    camera.viewPlane()->sampler()->setup(4, 8, 42);
+    GpuDiffusePrimaryPathStateGenerationOptions options;
+    options.materializeHostPathStates = false;
+    const GpuDiffusePrimaryPathStateGeneration generation =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 4, 4), 99, 1234, options);
+    ASSERT_TRUE(generation.canGeneratePrimaryPathsOnDevice());
+    ASSERT_TRUE(generation.pathStates.empty());
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 3;
+    const TracingAccumulationLayout accumulationLayout = TracingAccumulationLayout::image(4, 4);
+
+    const GpuDiffusePathLoopLaunchPlan plan =
+      GpuDiffusePathLoopLaunchPlanner().plan(sections, generation, accumulationLayout, settings);
+
+    EXPECT_TRUE(plan.generatesPrimaryPathsOnDevice());
+    EXPECT_EQ(gpuPrimaryPathGenerationModeFishEye, plan.parameters.primaryPathGenerationMode);
+    EXPECT_EQ(64u, plan.parameters.initialPathCount);
+    EXPECT_EQ(4u, plan.parameters.primaryPathSamplesPerPixel);
+    EXPECT_EQ(1234u, plan.parameters.primaryPathSampleSeed);
+    EXPECT_EQ(0u, plan.buffers.initialPathStateBytes);
+    EXPECT_EQ(64u * sizeof(GpuDiffusePathStateRecord), plan.buffers.activePathStateBytes);
     EXPECT_EQ(plan.buffers.sceneUploadBytes, plan.buffers.totalUploadBytes);
   }
 

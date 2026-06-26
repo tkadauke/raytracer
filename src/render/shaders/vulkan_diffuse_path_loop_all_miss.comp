@@ -35,6 +35,7 @@ const uint gpuPrimaryPathGenerationModeOrthographic = 2u;
 const uint gpuPrimaryPathGenerationModeThinLens = 3u;
 const uint gpuPrimaryPathGenerationModeEquirectangular = 4u;
 const uint gpuPrimaryPathGenerationModeSpherical = 5u;
+const uint gpuPrimaryPathGenerationModeFishEye = 6u;
 const uint gpuDiffusePathStateActiveFlag = 1u;
 const uint gpuDiffusePathStateTerminatedFlag = 2u;
 const uint gpuDiffusePathStateSampledFromBsdfFlag = 4u;
@@ -747,6 +748,72 @@ GpuDiffusePathStateRecord makeSphericalPrimaryPath(uint pathIndex) {
   return path;
 }
 
+GpuDiffusePathStateRecord makeFishEyePrimaryPath(uint pathIndex) {
+  const uint sampleIndex = pathIndex % parameters.primaryPathSamplesPerPixel;
+  const uint pixelOrdinal = pathIndex / parameters.primaryPathSamplesPerPixel;
+  const uint localX = pixelOrdinal % parameters.primaryPathActualWidth;
+  const uint localY = pixelOrdinal / parameters.primaryPathActualWidth;
+  const int column = parameters.primaryPathActualLeft + int(localX);
+  const int row = parameters.primaryPathActualTop + int(localY);
+  const uint pixelIndex =
+    uint((row - parameters.primaryPathRequestedTop) * int(parameters.primaryPathRequestedWidth) +
+         (column - parameters.primaryPathRequestedLeft));
+  const vec2 pixelSample =
+    sample2DCoordinate(parameters.primaryPathSampleSeed, pixelIndex, sampleIndex, 0u);
+  const float timeSample =
+    sample1DCoordinate(parameters.primaryPathSampleSeed, pixelIndex, sampleIndex, 1u, 0u);
+  const float x = float(column) + pixelSample.x;
+  const float y = float(row) + pixelSample.y;
+  const vec2 point = vec2(2.0 / parameters.primaryPathLensParameters.x * x - 1.0,
+                          2.0 / parameters.primaryPathLensParameters.y * y - 1.0);
+  const float r2 = dot(point, point);
+  const bool valid = r2 <= 1.0 && r2 > 0.0;
+  vec3 direction = normalize(parameters.primaryPathForward.xyz);
+  if (valid) {
+    const float r = sqrt(r2);
+    const float psi = r * parameters.primaryPathLensParameters.z * 0.5;
+    const float sinPsi = sin(psi);
+    const float cosPsi = cos(psi);
+    const float sinAlpha = point.y / r;
+    const float cosAlpha = point.x / r;
+    const vec3 local = vec3(sinPsi * cosAlpha, sinPsi * sinAlpha, cosPsi);
+    direction =
+      normalize(parameters.primaryPathRight.xyz * local.x + parameters.primaryPathDown.xyz * local.y +
+                parameters.primaryPathForward.xyz * local.z);
+  }
+
+  GpuDiffusePathStateRecord path;
+  path.ray.origin = parameters.primaryPathOrigin;
+  path.ray.direction = vec4(direction, 0.0);
+  path.ray.minDistance = 0.0;
+  path.ray.maxDistance = uintBitsToFloat(0x7f800000u);
+  path.ray.timeSample = timeSample;
+  path.ray.flags = 0u;
+  path.ray.rayIndex = pathIndex;
+  path.ray.reserved0 = 0u;
+  path.ray.reserved1 = 0u;
+  path.ray.reserved2 = 0u;
+  path.throughput = vec4(1.0, 1.0, 1.0, 0.0);
+  path.accumulatedRadiance = vec4(0.0);
+  path.pixelIndex = pixelIndex;
+  path.primarySampleIndex = sampleIndex;
+  path.depth = 0u;
+  path.sampleSeed = parameters.primaryPathSampleSeed;
+  path.sampleDimensionBase = gpuPrimaryPathSampleDimensionBase;
+  path.sampleDimensionStride = gpuPrimaryPathSampleDimensionStride;
+  path.flags = valid ? gpuDiffusePathStateActiveFlag : gpuDiffusePathStateTerminatedFlag;
+  path.reserved0 = 0u;
+  path.previousBsdfPdf = 0.0;
+  path.previousLightPdf = 0.0;
+  path.previousMaterial = 0u;
+  path.previousEventFlags = 0u;
+  path.reserved1 = 0u;
+  path.reserved2 = 0u;
+  path.reserved3 = 0u;
+  path.reserved4 = 0u;
+  return path;
+}
+
 GpuDiffusePathStateRecord initialPathFor(uint pathIndex) {
   if (parameters.primaryPathGenerationMode == gpuPrimaryPathGenerationModePinhole) {
     return makePinholePrimaryPath(pathIndex);
@@ -762,6 +829,9 @@ GpuDiffusePathStateRecord initialPathFor(uint pathIndex) {
   }
   if (parameters.primaryPathGenerationMode == gpuPrimaryPathGenerationModeSpherical) {
     return makeSphericalPrimaryPath(pathIndex);
+  }
+  if (parameters.primaryPathGenerationMode == gpuPrimaryPathGenerationModeFishEye) {
+    return makeFishEyePrimaryPath(pathIndex);
   }
   return initialPathStates[pathIndex];
 }
