@@ -823,10 +823,9 @@ namespace {
   }
 }
 
-GpuDiffusePrimaryPathStateGeneration
-GpuDiffusePrimaryPathStateGenerator::generate(const Camera& camera, const Recti& rect,
-                                              std::optional<std::uint64_t> tileSeed,
-                                              std::uint32_t sampleSeed) const {
+GpuDiffusePrimaryPathStateGeneration GpuDiffusePrimaryPathStateGenerator::generate(
+  const Camera& camera, const Recti& rect, std::optional<std::uint64_t> tileSeed,
+  std::uint32_t sampleSeed, GpuDiffusePrimaryPathStateGenerationOptions options) const {
   GpuDiffusePrimaryPathStateGeneration result;
   result.requestedRect = rect;
   result.actualRect = camera.renderableRect(rect);
@@ -840,6 +839,10 @@ GpuDiffusePrimaryPathStateGenerator::generate(const Camera& camera, const Recti&
     result.actualRect = result.primaryPathDescriptor->actualRect();
     result.primaryPathExecutionPath = "gpu_pinhole_primary_descriptor";
     if (result.primaryPathDescriptor->mode == gpuPrimaryPathGenerationModePinhole) {
+      if (!options.materializeHostPathStates) {
+        result.generatedPrimarySamples = result.primaryPathDescriptor->pathCount();
+        return result;
+      }
       generatePinholePrimaryPathStates(result.primaryPathDescriptor->pinhole, result);
       return result;
     }

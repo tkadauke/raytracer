@@ -222,6 +222,7 @@ namespace GraphRenderEngineTest {
         const render::GpuDiffusePathLoopSettings& settings) const override {
       m_hasLastCaptureDiagnostics = true;
       m_lastCaptureDiagnostics = settings.captureDiagnostics;
+      m_lastPrimaryHostPathStateCount = initialPathStates.size();
       render::GpuDiffusePathLoopResult result =
         render::CpuReferenceGpuDiffusePathLoopBackend::sharedInstance()->run(
           scene, initialPathStates, settings);
@@ -239,6 +240,16 @@ namespace GraphRenderEngineTest {
       return result;
     }
 
+    render::GpuDiffusePathLoopResult
+    run(const render::GpuTracingSceneSections& scene,
+        const render::GpuDiffusePrimaryPathStateGeneration& primaryPathGeneration,
+        const render::GpuDiffusePathLoopSettings& settings) const override {
+      m_hasLastPrimaryGeneration = true;
+      m_lastPrimaryGeneratedSamples = primaryPathGeneration.generatedPrimarySamples;
+      m_lastPrimaryGeneratesOnDevice = primaryPathGeneration.canGeneratePrimaryPathsOnDevice();
+      return run(scene, primaryPathGeneration.pathStates, settings);
+    }
+
     bool hasLastCaptureDiagnostics() const {
       return m_hasLastCaptureDiagnostics;
     }
@@ -247,9 +258,29 @@ namespace GraphRenderEngineTest {
       return m_lastCaptureDiagnostics;
     }
 
+    bool hasLastPrimaryGeneration() const {
+      return m_hasLastPrimaryGeneration;
+    }
+
+    std::size_t lastPrimaryHostPathStateCount() const {
+      return m_lastPrimaryHostPathStateCount;
+    }
+
+    std::uint64_t lastPrimaryGeneratedSamples() const {
+      return m_lastPrimaryGeneratedSamples;
+    }
+
+    bool lastPrimaryGeneratesOnDevice() const {
+      return m_lastPrimaryGeneratesOnDevice;
+    }
+
   private:
     mutable bool m_hasLastCaptureDiagnostics{false};
     mutable bool m_lastCaptureDiagnostics{false};
+    mutable bool m_hasLastPrimaryGeneration{false};
+    mutable std::size_t m_lastPrimaryHostPathStateCount{0};
+    mutable std::uint64_t m_lastPrimaryGeneratedSamples{0};
+    mutable bool m_lastPrimaryGeneratesOnDevice{false};
   };
 
   class ReportingMetalFrontierCompactionBackend final
@@ -2485,6 +2516,10 @@ namespace GraphRenderEngineTest {
 
     EXPECT_TRUE(pathLoopBackend->hasLastCaptureDiagnostics());
     EXPECT_TRUE(pathLoopBackend->lastCaptureDiagnostics());
+    EXPECT_TRUE(pathLoopBackend->hasLastPrimaryGeneration());
+    EXPECT_TRUE(pathLoopBackend->lastPrimaryGeneratesOnDevice());
+    EXPECT_EQ(64u, pathLoopBackend->lastPrimaryGeneratedSamples());
+    EXPECT_EQ(64u, pathLoopBackend->lastPrimaryHostPathStateCount());
 
     const auto trace = engine.lastExecutionTrace();
     ASSERT_TRUE(trace);
@@ -2574,6 +2609,10 @@ namespace GraphRenderEngineTest {
 
     EXPECT_TRUE(pathLoopBackend->hasLastCaptureDiagnostics());
     EXPECT_FALSE(pathLoopBackend->lastCaptureDiagnostics());
+    EXPECT_TRUE(pathLoopBackend->hasLastPrimaryGeneration());
+    EXPECT_TRUE(pathLoopBackend->lastPrimaryGeneratesOnDevice());
+    EXPECT_EQ(64u, pathLoopBackend->lastPrimaryGeneratedSamples());
+    EXPECT_EQ(0u, pathLoopBackend->lastPrimaryHostPathStateCount());
   }
 
   TEST(GraphRenderEngine, UsesInjectedGpuDiffusePathLoopBackendForAutoEligiblePathTracer) {

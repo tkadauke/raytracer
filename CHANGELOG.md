@@ -19,6 +19,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   Metal/Vulkan diffuse path-loop kernels instead of uploading initial path
   state records, with graph trace metadata reporting whether primary paths are
   generated on device. — GPT-5 Codex
+- Avoid materializing host primary path-state vectors for trace-disabled
+  full-GPU static pinhole diffuse path-loop launches when the selected backend
+  can synthesize primary paths on device. — GPT-5 Codex
 - Extend compiled full-GPU path-loop image textures from nearest-only sampling
   to bilinear filtering, with mipmapped image textures using the same base-level
   bilinear behavior as ray/path-tracer texture evaluation. — GPT-5 Codex

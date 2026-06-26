@@ -1109,9 +1109,6 @@ namespace engine::graph {
         const std::optional<std::uint64_t> samplingSeed = wavefront.samplingSeed();
         const std::uint64_t seedValue = samplingSeed.value_or(0);
         const std::uint32_t sampleSeed = static_cast<std::uint32_t>(seedValue ^ (seedValue >> 32u));
-        const render::GpuDiffusePrimaryPathStateGeneration generation =
-          render::GpuDiffusePrimaryPathStateGenerator().generate(*camera, targetRect, samplingSeed,
-                                                                 sampleSeed);
 
         render::GpuDiffusePathLoopSettings settings;
         settings.maxDepth = static_cast<std::uint32_t>(state.maximumRecursionDepth().value_or(8));
@@ -1126,6 +1123,14 @@ namespace engine::graph {
           fallbackReason = "compiled diffuse path loop requires an execution backend";
           return false;
         }
+        render::GpuDiffusePrimaryPathStateGenerationOptions generationOptions;
+        if (!settings.captureDiagnostics && pathLoopBackend->fullGpuPathLoopAvailable() &&
+            pathLoopBackend->fullGpuPathLoopSupport(compilation.sections, settings).supported) {
+          generationOptions.materializeHostPathStates = false;
+        }
+        const render::GpuDiffusePrimaryPathStateGeneration generation =
+          render::GpuDiffusePrimaryPathStateGenerator().generate(*camera, targetRect, samplingSeed,
+                                                                 sampleSeed, generationOptions);
         const render::GpuDiffusePathLoopResult loop =
           pathLoopBackend->run(compilation.sections, generation, settings);
         const render::TracingAccumulationLayout layout =

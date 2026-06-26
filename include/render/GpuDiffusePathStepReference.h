@@ -167,12 +167,16 @@ namespace render {
     [[nodiscard]] bool canGeneratePrimaryPathsOnDevice() const;
   };
 
+  struct GpuDiffusePrimaryPathStateGenerationOptions {
+    bool materializeHostPathStates{true};
+  };
+
   class GpuDiffusePrimaryPathStateGenerator {
   public:
     [[nodiscard]] GpuDiffusePrimaryPathStateGeneration
     generate(const Camera& camera, const Recti& rect,
-             std::optional<std::uint64_t> tileSeed = std::nullopt,
-             std::uint32_t sampleSeed = 0) const;
+             std::optional<std::uint64_t> tileSeed = std::nullopt, std::uint32_t sampleSeed = 0,
+             GpuDiffusePrimaryPathStateGenerationOptions options = {}) const;
   };
 
   class GpuDiffusePathStep {

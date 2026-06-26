@@ -39,6 +39,109 @@ namespace render {
       return checkedProduct(pathCount, sizeof(GpuDiffusePathStateRecord), label);
     }
 
+    template<typename Record>
+    std::uint32_t assignGeometryRange(std::uint64_t& byteOffset, std::size_t count,
+                                      std::uint32_t& countField, const char* label);
+
+    [[nodiscard]] GpuDiffusePathLoopLaunchPlan
+    planForInitialPathCount(const GpuTracingSceneSections& scene, std::uint64_t initialPathCount,
+                            bool uploadInitialPathStates,
+                            const TracingAccumulationLayout& accumulationLayout,
+                            const GpuDiffusePathLoopSettings& settings) {
+      if (settings.maxDepth == 0) {
+        throw std::invalid_argument("GPU diffuse path-loop launch requires positive max depth");
+      }
+
+      accumulationLayout.validate();
+      const std::uint64_t maxDepth = settings.maxDepth;
+
+      GpuDiffusePathLoopLaunchPlan plan;
+      plan.parameters.layoutVersion = gpuDiffusePathLoopLaunchLayoutVersion;
+      plan.parameters.maxDepth = settings.maxDepth;
+      plan.parameters.russianRouletteDepth = settings.russianRouletteDepth;
+      plan.parameters.directLightSamples = settings.directLightSamples;
+      plan.parameters.captureDiagnostics = settings.captureDiagnostics ? 1u : 0u;
+      plan.parameters.initialPathCount = checkedU32(initialPathCount, "initial path count");
+      plan.parameters.imageWidth =
+        checkedU32(static_cast<std::uint64_t>(accumulationLayout.width), "image width");
+      plan.parameters.imageHeight =
+        checkedU32(static_cast<std::uint64_t>(accumulationLayout.height), "image height");
+      plan.parameters.materialCount = checkedU32(scene.materials.size(), "material count");
+      plan.parameters.textureCount = checkedU32(scene.textures.size(), "texture count");
+      plan.parameters.lightCount = checkedU32(scene.lights.size(), "light count");
+      plan.parameters.environmentCount = checkedU32(scene.environment.size(), "environment count");
+      plan.parameters.debugIdCount = checkedU32(scene.debugIds.size(), "debug id count");
+      const auto sectionLayouts = scene.sectionLayouts();
+      plan.parameters.geometryByteOffset = sectionLayouts[0].byteOffset;
+      plan.parameters.materialByteOffset = sectionLayouts[1].byteOffset;
+      plan.parameters.textureByteOffset = sectionLayouts[2].byteOffset;
+      plan.parameters.lightByteOffset = sectionLayouts[3].byteOffset;
+      plan.parameters.environmentByteOffset = sectionLayouts[4].byteOffset;
+      plan.parameters.debugIdByteOffset = sectionLayouts[5].byteOffset;
+      std::uint64_t geometryOffset = plan.parameters.geometryByteOffset;
+      plan.parameters.bvhByteOffset = assignGeometryRange<GpuIntersectionBvhNode>(
+        geometryOffset, scene.geometry.bvh.size(), plan.parameters.bvhNodeCount, "BVH nodes");
+      plan.parameters.primitiveByteOffset = assignGeometryRange<GpuIntersectionPrimitiveRecord>(
+        geometryOffset, scene.geometry.primitives.size(), plan.parameters.primitiveCount,
+        "primitive records");
+      plan.parameters.triangleByteOffset = assignGeometryRange<GpuIntersectionTrianglePayload>(
+        geometryOffset, scene.geometry.triangles.size(), plan.parameters.triangleCount,
+        "triangles");
+      plan.parameters.sphereByteOffset = assignGeometryRange<GpuIntersectionSpherePayload>(
+        geometryOffset, scene.geometry.spheres.size(), plan.parameters.sphereCount, "spheres");
+      plan.parameters.planeByteOffset = assignGeometryRange<GpuIntersectionPlanePayload>(
+        geometryOffset, scene.geometry.planes.size(), plan.parameters.planeCount, "planes");
+      plan.parameters.rectangleByteOffset = assignGeometryRange<GpuIntersectionRectanglePayload>(
+        geometryOffset, scene.geometry.rectangles.size(), plan.parameters.rectangleCount,
+        "rectangles");
+      plan.parameters.diskByteOffset = assignGeometryRange<GpuIntersectionDiskPayload>(
+        geometryOffset, scene.geometry.disks.size(), plan.parameters.diskCount, "disks");
+      plan.parameters.openCylinderByteOffset =
+        assignGeometryRange<GpuIntersectionOpenCylinderPayload>(
+          geometryOffset, scene.geometry.openCylinders.size(), plan.parameters.openCylinderCount,
+          "open cylinders");
+      plan.parameters.torusByteOffset = assignGeometryRange<GpuIntersectionTorusPayload>(
+        geometryOffset, scene.geometry.tori.size(), plan.parameters.torusCount, "tori");
+      plan.parameters.transformByteOffset = assignGeometryRange<GpuIntersectionTransformPayload>(
+        geometryOffset, scene.geometry.transforms.size(), plan.parameters.transformCount,
+        "transforms");
+
+      plan.sceneUpload = scene.uploadBytes();
+      plan.buffers.sceneUploadBytes = plan.sceneUpload.size();
+      plan.parameters.sceneUploadBytes = checkedU32(plan.sceneUpload.size(), "scene upload bytes");
+      plan.buffers.initialPathStateBytes =
+        uploadInitialPathStates ? pathStateBytes(initialPathCount, "initial path state") : 0u;
+      plan.buffers.activePathStateBytes = pathStateBytes(initialPathCount, "active path state");
+      plan.buffers.nextPathStateBytes = pathStateBytes(initialPathCount, "next path state");
+      plan.buffers.stepRecordBytes =
+        checkedProduct(checkedProduct(initialPathCount, maxDepth, "path-step record count"),
+                       sizeof(GpuDiffusePathStepRecord), "path-step record");
+      const std::uint64_t retainedIndexCount =
+        checkedAdd(initialPathCount, 1u, "retained path index count");
+      plan.buffers.retainedIndexBytes =
+        checkedProduct(retainedIndexCount, sizeof(std::uint32_t), "retained path index");
+      plan.buffers.accumulationBytes = accumulationLayout.totalBytes();
+
+      plan.buffers.totalUploadBytes =
+        checkedAdd(plan.buffers.sceneUploadBytes, plan.buffers.initialPathStateBytes,
+                   "GPU diffuse path-loop upload");
+
+      std::uint64_t residentBytes = plan.buffers.sceneUploadBytes;
+      residentBytes = checkedAdd(residentBytes, plan.buffers.activePathStateBytes,
+                                 "GPU diffuse path-loop resident");
+      residentBytes = checkedAdd(residentBytes, plan.buffers.nextPathStateBytes,
+                                 "GPU diffuse path-loop resident");
+      residentBytes =
+        checkedAdd(residentBytes, plan.buffers.stepRecordBytes, "GPU diffuse path-loop resident");
+      residentBytes = checkedAdd(residentBytes, plan.buffers.retainedIndexBytes,
+                                 "GPU diffuse path-loop resident");
+      residentBytes =
+        checkedAdd(residentBytes, plan.buffers.accumulationBytes, "GPU diffuse path-loop resident");
+      plan.buffers.totalResidentBytes = residentBytes;
+
+      return plan;
+    }
+
     void copyPrimaryPathDescriptor(GpuDiffusePathLoopLaunchParameters& parameters,
                                    const GpuPrimaryPathDescriptor& descriptor) {
       if (descriptor.mode != gpuPrimaryPathGenerationModePinhole) {
@@ -85,99 +188,8 @@ namespace render {
     const std::vector<GpuDiffusePathStateRecord>& initialPathStates,
     const TracingAccumulationLayout& accumulationLayout,
     const GpuDiffusePathLoopSettings& settings) const {
-    if (settings.maxDepth == 0) {
-      throw std::invalid_argument("GPU diffuse path-loop launch requires positive max depth");
-    }
-
-    accumulationLayout.validate();
-    const std::uint64_t initialPathCount = initialPathStates.size();
-    const std::uint64_t maxDepth = settings.maxDepth;
-
-    GpuDiffusePathLoopLaunchPlan plan;
-    plan.parameters.layoutVersion = gpuDiffusePathLoopLaunchLayoutVersion;
-    plan.parameters.maxDepth = settings.maxDepth;
-    plan.parameters.russianRouletteDepth = settings.russianRouletteDepth;
-    plan.parameters.directLightSamples = settings.directLightSamples;
-    plan.parameters.captureDiagnostics = settings.captureDiagnostics ? 1u : 0u;
-    plan.parameters.initialPathCount = checkedU32(initialPathCount, "initial path count");
-    plan.parameters.imageWidth =
-      checkedU32(static_cast<std::uint64_t>(accumulationLayout.width), "image width");
-    plan.parameters.imageHeight =
-      checkedU32(static_cast<std::uint64_t>(accumulationLayout.height), "image height");
-    plan.parameters.materialCount = checkedU32(scene.materials.size(), "material count");
-    plan.parameters.textureCount = checkedU32(scene.textures.size(), "texture count");
-    plan.parameters.lightCount = checkedU32(scene.lights.size(), "light count");
-    plan.parameters.environmentCount = checkedU32(scene.environment.size(), "environment count");
-    plan.parameters.debugIdCount = checkedU32(scene.debugIds.size(), "debug id count");
-    const auto sectionLayouts = scene.sectionLayouts();
-    plan.parameters.geometryByteOffset = sectionLayouts[0].byteOffset;
-    plan.parameters.materialByteOffset = sectionLayouts[1].byteOffset;
-    plan.parameters.textureByteOffset = sectionLayouts[2].byteOffset;
-    plan.parameters.lightByteOffset = sectionLayouts[3].byteOffset;
-    plan.parameters.environmentByteOffset = sectionLayouts[4].byteOffset;
-    plan.parameters.debugIdByteOffset = sectionLayouts[5].byteOffset;
-    std::uint64_t geometryOffset = plan.parameters.geometryByteOffset;
-    plan.parameters.bvhByteOffset = assignGeometryRange<GpuIntersectionBvhNode>(
-      geometryOffset, scene.geometry.bvh.size(), plan.parameters.bvhNodeCount, "BVH nodes");
-    plan.parameters.primitiveByteOffset = assignGeometryRange<GpuIntersectionPrimitiveRecord>(
-      geometryOffset, scene.geometry.primitives.size(), plan.parameters.primitiveCount,
-      "primitive records");
-    plan.parameters.triangleByteOffset = assignGeometryRange<GpuIntersectionTrianglePayload>(
-      geometryOffset, scene.geometry.triangles.size(), plan.parameters.triangleCount, "triangles");
-    plan.parameters.sphereByteOffset = assignGeometryRange<GpuIntersectionSpherePayload>(
-      geometryOffset, scene.geometry.spheres.size(), plan.parameters.sphereCount, "spheres");
-    plan.parameters.planeByteOffset = assignGeometryRange<GpuIntersectionPlanePayload>(
-      geometryOffset, scene.geometry.planes.size(), plan.parameters.planeCount, "planes");
-    plan.parameters.rectangleByteOffset = assignGeometryRange<GpuIntersectionRectanglePayload>(
-      geometryOffset, scene.geometry.rectangles.size(), plan.parameters.rectangleCount,
-      "rectangles");
-    plan.parameters.diskByteOffset = assignGeometryRange<GpuIntersectionDiskPayload>(
-      geometryOffset, scene.geometry.disks.size(), plan.parameters.diskCount, "disks");
-    plan.parameters.openCylinderByteOffset =
-      assignGeometryRange<GpuIntersectionOpenCylinderPayload>(
-        geometryOffset, scene.geometry.openCylinders.size(), plan.parameters.openCylinderCount,
-        "open cylinders");
-    plan.parameters.torusByteOffset = assignGeometryRange<GpuIntersectionTorusPayload>(
-      geometryOffset, scene.geometry.tori.size(), plan.parameters.torusCount, "tori");
-    plan.parameters.transformByteOffset = assignGeometryRange<GpuIntersectionTransformPayload>(
-      geometryOffset, scene.geometry.transforms.size(), plan.parameters.transformCount,
-      "transforms");
-
-    plan.sceneUpload = scene.uploadBytes();
-    plan.buffers.sceneUploadBytes = plan.sceneUpload.size();
-    plan.parameters.sceneUploadBytes = checkedU32(plan.sceneUpload.size(), "scene upload bytes");
-    plan.buffers.initialPathStateBytes = plan.generatesPrimaryPathsOnDevice()
-                                           ? 0u
-                                           : pathStateBytes(initialPathCount, "initial path state");
-    plan.buffers.activePathStateBytes = pathStateBytes(initialPathCount, "active path state");
-    plan.buffers.nextPathStateBytes = pathStateBytes(initialPathCount, "next path state");
-    plan.buffers.stepRecordBytes =
-      checkedProduct(checkedProduct(initialPathCount, maxDepth, "path-step record count"),
-                     sizeof(GpuDiffusePathStepRecord), "path-step record");
-    const std::uint64_t retainedIndexCount =
-      checkedAdd(initialPathCount, 1u, "retained path index count");
-    plan.buffers.retainedIndexBytes =
-      checkedProduct(retainedIndexCount, sizeof(std::uint32_t), "retained path index");
-    plan.buffers.accumulationBytes = accumulationLayout.totalBytes();
-
-    plan.buffers.totalUploadBytes =
-      checkedAdd(plan.buffers.sceneUploadBytes, plan.buffers.initialPathStateBytes,
-                 "GPU diffuse path-loop upload");
-
-    std::uint64_t residentBytes = plan.buffers.sceneUploadBytes;
-    residentBytes = checkedAdd(residentBytes, plan.buffers.activePathStateBytes,
-                               "GPU diffuse path-loop resident");
-    residentBytes =
-      checkedAdd(residentBytes, plan.buffers.nextPathStateBytes, "GPU diffuse path-loop resident");
-    residentBytes =
-      checkedAdd(residentBytes, plan.buffers.stepRecordBytes, "GPU diffuse path-loop resident");
-    residentBytes =
-      checkedAdd(residentBytes, plan.buffers.retainedIndexBytes, "GPU diffuse path-loop resident");
-    residentBytes =
-      checkedAdd(residentBytes, plan.buffers.accumulationBytes, "GPU diffuse path-loop resident");
-    plan.buffers.totalResidentBytes = residentBytes;
-
-    return plan;
+    return planForInitialPathCount(scene, initialPathStates.size(), true, accumulationLayout,
+                                   settings);
   }
 
   GpuDiffusePathLoopLaunchPlan GpuDiffusePathLoopLaunchPlanner::plan(
@@ -185,13 +197,13 @@ namespace render {
     const GpuDiffusePrimaryPathStateGeneration& primaryPathGeneration,
     const TracingAccumulationLayout& accumulationLayout,
     const GpuDiffusePathLoopSettings& settings) const {
-    GpuDiffusePathLoopLaunchPlan plan =
-      this->plan(scene, primaryPathGeneration.pathStates, accumulationLayout, settings);
     if (primaryPathGeneration.canGeneratePrimaryPathsOnDevice()) {
+      GpuDiffusePathLoopLaunchPlan plan =
+        planForInitialPathCount(scene, primaryPathGeneration.primaryPathDescriptor->pathCount(),
+                                false, accumulationLayout, settings);
       copyPrimaryPathDescriptor(plan.parameters, *primaryPathGeneration.primaryPathDescriptor);
-      plan.buffers.initialPathStateBytes = 0u;
-      plan.buffers.totalUploadBytes = plan.buffers.sceneUploadBytes;
+      return plan;
     }
-    return plan;
+    return this->plan(scene, primaryPathGeneration.pathStates, accumulationLayout, settings);
   }
 }

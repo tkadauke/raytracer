@@ -5,6 +5,8 @@
 #include "render/VulkanGpuDiffusePathLoopKernel.h"
 
 #include <algorithm>
+#include <cmath>
+#include <cstdint>
 #include <limits>
 #include <stdexcept>
 
@@ -249,6 +251,42 @@ namespace render {
               activePathCount == 0u ? 1u : maxSampleSlot + 1u, activePathCount};
     }
 
+    [[nodiscard]] ActiveAccumulationTargetShape
+    activeAccumulationTargetShapeFor(const GpuPrimaryPathDescriptor& descriptor) {
+      if (descriptor.mode != gpuPrimaryPathGenerationModePinhole) {
+        throw std::invalid_argument(
+          "Vulkan diffuse path-loop backend requires a supported primary path descriptor");
+      }
+      const GpuPinholePrimaryPathDescriptor& pinhole = descriptor.pinhole;
+      if (pinhole.actualWidth == 0u || pinhole.actualHeight == 0u ||
+          pinhole.samplesPerPixel == 0u) {
+        return {};
+      }
+      const std::int64_t maxColumnOffset = static_cast<std::int64_t>(pinhole.actualLeft) -
+                                           static_cast<std::int64_t>(pinhole.requestedLeft) +
+                                           static_cast<std::int64_t>(pinhole.actualWidth) - 1;
+      const std::int64_t maxRowOffset = static_cast<std::int64_t>(pinhole.actualTop) -
+                                        static_cast<std::int64_t>(pinhole.requestedTop) +
+                                        static_cast<std::int64_t>(pinhole.actualHeight) - 1;
+      if (maxColumnOffset < 0 || maxRowOffset < 0) {
+        throw std::invalid_argument(
+          "Vulkan diffuse path-loop primary descriptor is outside request");
+      }
+      const std::uint64_t maxPixel =
+        static_cast<std::uint64_t>(maxRowOffset) * pinhole.requestedWidth +
+        static_cast<std::uint64_t>(maxColumnOffset);
+      const std::uint64_t maxSampleSlot = pinhole.samplesPerPixel - 1u;
+      if (maxPixel >= static_cast<std::uint64_t>(std::numeric_limits<int>::max())) {
+        throw std::overflow_error(
+          "Vulkan diffuse path-loop backend accumulation pixel index exceeds layout range");
+      }
+      if (maxSampleSlot >= static_cast<std::uint64_t>(std::numeric_limits<int>::max())) {
+        throw std::overflow_error(
+          "Vulkan diffuse path-loop backend accumulation sample index exceeds layout range");
+      }
+      return {maxPixel + 1u, maxSampleSlot + 1u, descriptor.pathCount()};
+    }
+
     [[nodiscard]] bool
     hasDuplicateActivePixelTarget(const std::vector<GpuDiffusePathStateRecord>& pathStates,
                                   const ActiveAccumulationTargetShape& shape) {
@@ -314,6 +352,17 @@ namespace render {
         static_cast<int>(std::max<std::size_t>(1u, pathStates.size())), 1);
     }
 
+    [[nodiscard]] TracingAccumulationLayout
+    pathAccumulationLayoutFor(const GpuPrimaryPathDescriptor& descriptor) {
+      const std::uint64_t pathCount = descriptor.pathCount();
+      if (pathCount >= static_cast<std::uint64_t>(std::numeric_limits<int>::max())) {
+        throw std::overflow_error(
+          "Vulkan diffuse path-loop backend path accumulation index exceeds layout range");
+      }
+      return TracingAccumulationLayout::image(
+        static_cast<int>(std::max<std::uint64_t>(1u, pathCount)), 1);
+    }
+
     struct VulkanAccumulationPlan {
       TracingAccumulationLayout layout;
       std::uint32_t targetMode{gpuDiffusePathLoopAccumulationTargetPixel};
@@ -333,6 +382,33 @@ namespace render {
         return {sampleSlotLayout, gpuDiffusePathLoopAccumulationTargetSampleSlot};
       }
       return {pathLayout, gpuDiffusePathLoopAccumulationTargetPath};
+    }
+
+    [[nodiscard]] VulkanAccumulationPlan
+    accumulationPlanFor(const GpuPrimaryPathDescriptor& descriptor) {
+      const ActiveAccumulationTargetShape shape = activeAccumulationTargetShapeFor(descriptor);
+      const bool hasDuplicatePixelTargets =
+        descriptor.mode == gpuPrimaryPathGenerationModePinhole &&
+        descriptor.pinhole.samplesPerPixel > 1u;
+      if (!hasDuplicatePixelTargets) {
+        return {pixelAccumulationLayoutFor(shape), gpuDiffusePathLoopAccumulationTargetPixel};
+      }
+
+      const TracingAccumulationLayout pathLayout = pathAccumulationLayoutFor(descriptor);
+      const TracingAccumulationLayout sampleSlotLayout = sampleSlotAccumulationLayoutFor(shape);
+      if (sampleSlotLayout.pixelCount() <= pathLayout.pixelCount()) {
+        return {sampleSlotLayout, gpuDiffusePathLoopAccumulationTargetSampleSlot};
+      }
+      return {pathLayout, gpuDiffusePathLoopAccumulationTargetPath};
+    }
+
+    [[nodiscard]] VulkanAccumulationPlan
+    accumulationPlanFor(const GpuDiffusePrimaryPathStateGeneration& primaryPathGeneration) {
+      if (primaryPathGeneration.canGeneratePrimaryPathsOnDevice() &&
+          primaryPathGeneration.pathStates.empty()) {
+        return accumulationPlanFor(*primaryPathGeneration.primaryPathDescriptor);
+      }
+      return accumulationPlanFor(primaryPathGeneration.pathStates);
     }
 
     void terminate(GpuDiffusePathStateRecord& path) {
@@ -404,8 +480,7 @@ namespace render {
     }
 
     [[nodiscard]] GpuDiffusePathLoopResult
-    makeLoopResult(const std::vector<GpuDiffusePathStateRecord>& initialPathStates,
-                   const GpuDiffusePathLoopSettings& settings,
+    makeLoopResult(std::uint64_t initialPathCount, const GpuDiffusePathLoopSettings& settings,
                    const VulkanGpuDiffusePathLoopKernelResult& vulkanResult) {
       GpuDiffusePathLoopResult loop;
       loop.executionPath = kFullGpuSubsetExecutionPath;
@@ -413,7 +488,7 @@ namespace render {
       loop.frontierCompactionExecutionPath = vulkanResult.executionPath;
       loop.frontierCompactionPathStateResidency = vulkanResult.pathStateResidency;
       loop.platformName = "vulkan";
-      loop.initialPathCount = static_cast<std::uint64_t>(initialPathStates.size());
+      loop.initialPathCount = initialPathCount;
       loop.stepRecords = vulkanResult.stepRecords;
       loop.retainedIndexBytes =
         static_cast<std::uint64_t>(vulkanResult.retainedPathIndices.size() * sizeof(std::uint32_t));
@@ -438,7 +513,7 @@ namespace render {
       std::vector<GpuDiffusePathStateRecord> nextPathStates = vulkanResult.nextPathStates.empty()
                                                                 ? vulkanResult.resolvedPathStates
                                                                 : vulkanResult.nextPathStates;
-      if (nextPathStates.size() != initialPathStates.size()) {
+      if (nextPathStates.size() != initialPathCount) {
         throw std::logic_error(
           "Vulkan diffuse path-loop backend returned mismatched path-state count");
       }
@@ -458,6 +533,14 @@ namespace render {
         }
       }
       return loop;
+    }
+
+    [[nodiscard]] GpuDiffusePathLoopResult
+    makeLoopResult(const std::vector<GpuDiffusePathStateRecord>& initialPathStates,
+                   const GpuDiffusePathLoopSettings& settings,
+                   const VulkanGpuDiffusePathLoopKernelResult& vulkanResult) {
+      return makeLoopResult(static_cast<std::uint64_t>(initialPathStates.size()), settings,
+                            vulkanResult);
     }
 #endif
   }
@@ -569,13 +652,13 @@ namespace render {
     }
     const std::vector<GpuDiffusePathStateRecord>& initialPathStates =
       primaryPathGeneration.pathStates;
-    const VulkanAccumulationPlan accumulation = accumulationPlanFor(initialPathStates);
+    const VulkanAccumulationPlan accumulation = accumulationPlanFor(primaryPathGeneration);
     GpuDiffusePathLoopLaunchPlan plan = GpuDiffusePathLoopLaunchPlanner().plan(
       scene, primaryPathGeneration, accumulation.layout, settings);
     plan.parameters.accumulationTargetMode = accumulation.targetMode;
     const VulkanGpuDiffusePathLoopKernelResult vulkanResult =
       VulkanGpuDiffusePathLoopKernel().runAllMissPathLoop(plan, initialPathStates);
-    return makeLoopResult(initialPathStates, settings, vulkanResult);
+    return makeLoopResult(plan.parameters.initialPathCount, settings, vulkanResult);
 #else
     (void)scene;
     (void)primaryPathGeneration;
