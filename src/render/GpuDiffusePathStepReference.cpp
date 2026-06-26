@@ -174,9 +174,20 @@ namespace {
     return pathState;
   }
 
-  void generatePinholePrimaryPathStates(const GpuPinholePrimaryPathDescriptor& descriptor,
-                                        GpuDiffusePrimaryPathStateGeneration& result) {
-    const Vector3d origin = vector3FromArray(descriptor.origin);
+  const char* primaryPathExecutionPath(std::uint32_t mode) {
+    if (mode == gpuPrimaryPathGenerationModePinhole) {
+      return "gpu_pinhole_primary_descriptor";
+    }
+    if (mode == gpuPrimaryPathGenerationModeOrthographic) {
+      return "gpu_orthographic_primary_descriptor";
+    }
+    return "host_primary_path_states";
+  }
+
+  void generateRectilinearPrimaryPathStates(std::uint32_t mode,
+                                            const GpuRectilinearPrimaryPathDescriptor& descriptor,
+                                            GpuDiffusePrimaryPathStateGeneration& result) {
+    const Vector3d originOrDirection = vector3FromArray(descriptor.originOrDirection);
     const Vector3d topLeft = vector3FromArray(descriptor.topLeft);
     const Vector3d right = vector3FromArray(descriptor.right);
     const Vector3d down = vector3FromArray(descriptor.down);
@@ -207,7 +218,10 @@ namespace {
           const Vector3d pixelPoint = topLeft +
                                       right * (static_cast<double>(column) + pixelSample.x()) +
                                       down * (static_cast<double>(row) + pixelSample.y());
-          const Rayd ray(origin, (pixelPoint - origin).normalized());
+          const Rayd ray =
+            mode == gpuPrimaryPathGenerationModeOrthographic
+              ? Rayd(pixelPoint, originOrDirection.normalized())
+              : Rayd(originOrDirection, (pixelPoint - originOrDirection).normalized());
           if (!ray.direction().isDefined()) {
             ++result.skippedPrimarySamples;
             continue;
@@ -837,13 +851,15 @@ GpuDiffusePrimaryPathStateGeneration GpuDiffusePrimaryPathStateGenerator::genera
   if (result.primaryPathDescriptor && result.primaryPathDescriptor->generatesOnDevice()) {
     result.requestedRect = result.primaryPathDescriptor->requestedRect();
     result.actualRect = result.primaryPathDescriptor->actualRect();
-    result.primaryPathExecutionPath = "gpu_pinhole_primary_descriptor";
-    if (result.primaryPathDescriptor->mode == gpuPrimaryPathGenerationModePinhole) {
+    result.primaryPathExecutionPath = primaryPathExecutionPath(result.primaryPathDescriptor->mode);
+    if (result.primaryPathDescriptor->mode == gpuPrimaryPathGenerationModePinhole ||
+        result.primaryPathDescriptor->mode == gpuPrimaryPathGenerationModeOrthographic) {
       if (!options.materializeHostPathStates) {
         result.generatedPrimarySamples = result.primaryPathDescriptor->pathCount();
         return result;
       }
-      generatePinholePrimaryPathStates(result.primaryPathDescriptor->pinhole, result);
+      generateRectilinearPrimaryPathStates(result.primaryPathDescriptor->mode,
+                                           result.primaryPathDescriptor->rectilinear, result);
       return result;
     }
   }

@@ -136,25 +136,25 @@ PinholeCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampleS
 
   GpuPrimaryPathDescriptor descriptor;
   descriptor.mode = gpuPrimaryPathGenerationModePinhole;
-  descriptor.pinhole.origin = vector4(rayOrigin(), 1.0f);
-  descriptor.pinhole.topLeft = vector4(plane->pixelAt(0.0, 0.0), 1.0f);
-  descriptor.pinhole.right = vector4(plane->pixelAt(1.0, 0.0) - plane->pixelAt(0.0, 0.0), 0.0f);
-  descriptor.pinhole.down = vector4(plane->pixelAt(0.0, 1.0) - plane->pixelAt(0.0, 0.0), 0.0f);
-  descriptor.pinhole.requestedLeft = rect.left();
-  descriptor.pinhole.requestedTop = rect.top();
-  descriptor.pinhole.requestedWidth =
+  descriptor.rectilinear.originOrDirection = vector4(rayOrigin(), 1.0f);
+  descriptor.rectilinear.topLeft = vector4(plane->pixelAt(0.0, 0.0), 1.0f);
+  descriptor.rectilinear.right = vector4(plane->pixelAt(1.0, 0.0) - plane->pixelAt(0.0, 0.0), 0.0f);
+  descriptor.rectilinear.down = vector4(plane->pixelAt(0.0, 1.0) - plane->pixelAt(0.0, 0.0), 0.0f);
+  descriptor.rectilinear.requestedLeft = rect.left();
+  descriptor.rectilinear.requestedTop = rect.top();
+  descriptor.rectilinear.requestedWidth =
     checkedU32(static_cast<std::uint64_t>(rect.width()), "GPU pinhole requested width");
-  descriptor.pinhole.requestedHeight =
+  descriptor.rectilinear.requestedHeight =
     checkedU32(static_cast<std::uint64_t>(rect.height()), "GPU pinhole requested height");
-  descriptor.pinhole.actualLeft = actual.left();
-  descriptor.pinhole.actualTop = actual.top();
-  descriptor.pinhole.actualWidth =
+  descriptor.rectilinear.actualLeft = actual.left();
+  descriptor.rectilinear.actualTop = actual.top();
+  descriptor.rectilinear.actualWidth =
     checkedU32(static_cast<std::uint64_t>(actual.width()), "GPU pinhole actual width");
-  descriptor.pinhole.actualHeight =
+  descriptor.rectilinear.actualHeight =
     checkedU32(static_cast<std::uint64_t>(actual.height()), "GPU pinhole actual height");
-  descriptor.pinhole.samplesPerPixel = checkedU32(
+  descriptor.rectilinear.samplesPerPixel = checkedU32(
     static_cast<std::uint64_t>(plane->sampler()->numSamples()), "GPU pinhole samples per pixel");
-  descriptor.pinhole.sampleSeed = sampleSeed;
+  descriptor.rectilinear.sampleSeed = sampleSeed;
   return descriptor;
 }
 

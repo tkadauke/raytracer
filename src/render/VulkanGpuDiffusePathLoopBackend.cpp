@@ -253,29 +253,30 @@ namespace render {
 
     [[nodiscard]] ActiveAccumulationTargetShape
     activeAccumulationTargetShapeFor(const GpuPrimaryPathDescriptor& descriptor) {
-      if (descriptor.mode != gpuPrimaryPathGenerationModePinhole) {
+      if (descriptor.mode != gpuPrimaryPathGenerationModePinhole &&
+          descriptor.mode != gpuPrimaryPathGenerationModeOrthographic) {
         throw std::invalid_argument(
           "Vulkan diffuse path-loop backend requires a supported primary path descriptor");
       }
-      const GpuPinholePrimaryPathDescriptor& pinhole = descriptor.pinhole;
-      if (pinhole.actualWidth == 0u || pinhole.actualHeight == 0u ||
-          pinhole.samplesPerPixel == 0u) {
+      const GpuRectilinearPrimaryPathDescriptor& rectilinear = descriptor.rectilinear;
+      if (rectilinear.actualWidth == 0u || rectilinear.actualHeight == 0u ||
+          rectilinear.samplesPerPixel == 0u) {
         return {};
       }
-      const std::int64_t maxColumnOffset = static_cast<std::int64_t>(pinhole.actualLeft) -
-                                           static_cast<std::int64_t>(pinhole.requestedLeft) +
-                                           static_cast<std::int64_t>(pinhole.actualWidth) - 1;
-      const std::int64_t maxRowOffset = static_cast<std::int64_t>(pinhole.actualTop) -
-                                        static_cast<std::int64_t>(pinhole.requestedTop) +
-                                        static_cast<std::int64_t>(pinhole.actualHeight) - 1;
+      const std::int64_t maxColumnOffset = static_cast<std::int64_t>(rectilinear.actualLeft) -
+                                           static_cast<std::int64_t>(rectilinear.requestedLeft) +
+                                           static_cast<std::int64_t>(rectilinear.actualWidth) - 1;
+      const std::int64_t maxRowOffset = static_cast<std::int64_t>(rectilinear.actualTop) -
+                                        static_cast<std::int64_t>(rectilinear.requestedTop) +
+                                        static_cast<std::int64_t>(rectilinear.actualHeight) - 1;
       if (maxColumnOffset < 0 || maxRowOffset < 0) {
         throw std::invalid_argument(
           "Vulkan diffuse path-loop primary descriptor is outside request");
       }
       const std::uint64_t maxPixel =
-        static_cast<std::uint64_t>(maxRowOffset) * pinhole.requestedWidth +
+        static_cast<std::uint64_t>(maxRowOffset) * rectilinear.requestedWidth +
         static_cast<std::uint64_t>(maxColumnOffset);
-      const std::uint64_t maxSampleSlot = pinhole.samplesPerPixel - 1u;
+      const std::uint64_t maxSampleSlot = rectilinear.samplesPerPixel - 1u;
       if (maxPixel >= static_cast<std::uint64_t>(std::numeric_limits<int>::max())) {
         throw std::overflow_error(
           "Vulkan diffuse path-loop backend accumulation pixel index exceeds layout range");
@@ -388,8 +389,7 @@ namespace render {
     accumulationPlanFor(const GpuPrimaryPathDescriptor& descriptor) {
       const ActiveAccumulationTargetShape shape = activeAccumulationTargetShapeFor(descriptor);
       const bool hasDuplicatePixelTargets =
-        descriptor.mode == gpuPrimaryPathGenerationModePinhole &&
-        descriptor.pinhole.samplesPerPixel > 1u;
+        descriptor.generatesOnDevice() && descriptor.rectilinear.samplesPerPixel > 1u;
       if (!hasDuplicatePixelTargets) {
         return {pixelAccumulationLayoutFor(shape), gpuDiffusePathLoopAccumulationTargetPixel};
       }

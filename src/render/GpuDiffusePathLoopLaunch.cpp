@@ -146,26 +146,27 @@ namespace render {
 
     void copyPrimaryPathDescriptor(GpuDiffusePathLoopLaunchParameters& parameters,
                                    const GpuPrimaryPathDescriptor& descriptor) {
-      if (descriptor.mode != gpuPrimaryPathGenerationModePinhole) {
+      if (descriptor.mode != gpuPrimaryPathGenerationModePinhole &&
+          descriptor.mode != gpuPrimaryPathGenerationModeOrthographic) {
         return;
       }
 
-      const GpuPinholePrimaryPathDescriptor& pinhole = descriptor.pinhole;
+      const GpuRectilinearPrimaryPathDescriptor& rectilinear = descriptor.rectilinear;
       parameters.primaryPathGenerationMode = descriptor.mode;
-      parameters.primaryPathSamplesPerPixel = pinhole.samplesPerPixel;
-      parameters.primaryPathSampleSeed = pinhole.sampleSeed;
-      parameters.primaryPathRequestedWidth = pinhole.requestedWidth;
-      parameters.primaryPathRequestedLeft = pinhole.requestedLeft;
-      parameters.primaryPathRequestedTop = pinhole.requestedTop;
-      parameters.primaryPathRequestedHeight = pinhole.requestedHeight;
-      parameters.primaryPathActualWidth = pinhole.actualWidth;
-      parameters.primaryPathActualLeft = pinhole.actualLeft;
-      parameters.primaryPathActualTop = pinhole.actualTop;
-      parameters.primaryPathActualHeight = pinhole.actualHeight;
-      parameters.primaryPathOrigin = pinhole.origin;
-      parameters.primaryPathTopLeft = pinhole.topLeft;
-      parameters.primaryPathRight = pinhole.right;
-      parameters.primaryPathDown = pinhole.down;
+      parameters.primaryPathSamplesPerPixel = rectilinear.samplesPerPixel;
+      parameters.primaryPathSampleSeed = rectilinear.sampleSeed;
+      parameters.primaryPathRequestedWidth = rectilinear.requestedWidth;
+      parameters.primaryPathRequestedLeft = rectilinear.requestedLeft;
+      parameters.primaryPathRequestedTop = rectilinear.requestedTop;
+      parameters.primaryPathRequestedHeight = rectilinear.requestedHeight;
+      parameters.primaryPathActualWidth = rectilinear.actualWidth;
+      parameters.primaryPathActualLeft = rectilinear.actualLeft;
+      parameters.primaryPathActualTop = rectilinear.actualTop;
+      parameters.primaryPathActualHeight = rectilinear.actualHeight;
+      parameters.primaryPathOrigin = rectilinear.originOrDirection;
+      parameters.primaryPathTopLeft = rectilinear.topLeft;
+      parameters.primaryPathRight = rectilinear.right;
+      parameters.primaryPathDown = rectilinear.down;
     }
 
     template<typename Record>

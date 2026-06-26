@@ -82,15 +82,16 @@ end state for GPU tracing.
   DirectionalLight, and RectangularAreaLight.
 - `render::GpuSampleStream` provides the CPU reference for deterministic
   GPU-style sampling dimensions with fixed-vector coverage.
-- Static `PinholeCamera` primary-ray generation can be represented by a
-  shader-facing GPU primary-path descriptor. The CPU reference generator uses
-  the same descriptor and `GpuSampleStream` dimensions for parity, while
-  Metal/Vulkan diffuse path-loop launches can skip uploading initial path-state
-  records and let the kernel synthesize primary path records from the
-  descriptor. Trace-disabled full-GPU graph launches can also keep those
-  primary records descriptor-only on the host, with platform kernels dispatching
-  by descriptor path count instead of the host vector size; trace and
-  CPU-reference paths still materialize records for inspection and parity.
+- Static rectilinear `PinholeCamera` and `OrthographicCamera` primary-ray
+  generation can be represented by a shader-facing GPU primary-path descriptor.
+  The CPU reference generator uses the same descriptor and `GpuSampleStream`
+  dimensions for parity, while Metal/Vulkan diffuse path-loop launches can skip
+  uploading initial path-state records and let the kernel synthesize primary
+  path records from the descriptor. Trace-disabled full-GPU graph launches can
+  also keep those primary records descriptor-only on the host, with platform
+  kernels dispatching by descriptor path count instead of the host vector size;
+  trace and CPU-reference paths still materialize records for inspection and
+  parity.
   Trace-disabled platform full-GPU launches now also size path-state, step,
   retained-index, and Metal closest-hit diagnostic storage to zero logical bytes
   while retaining the final accumulation image readback.
@@ -134,12 +135,14 @@ end state for GPU tracing.
 
 ### Not Yet Available
 
-- General platform GPU-owned path state. Static pinhole primary paths can now
-  be generated from a shader-facing descriptor without host materialization for
-  trace-disabled full-GPU graph launches and platform kernels dispatch those
-  descriptor-only launches by descriptor path count, but non-pinhole cameras,
-  animated cameras, later path-continuation records, and retained frontier
-  ownership still need broader platform path-state support.
+- General platform GPU-owned path state. Static rectilinear pinhole and
+  orthographic primary paths can now be generated from a shader-facing
+  descriptor without host materialization for trace-disabled full-GPU graph
+  launches and platform kernels dispatch those descriptor-only launches by
+  descriptor path count, but non-rectilinear cameras, thin-lens/tilt-shift
+  stochastic lens dimensions, animated cameras, later path-continuation records,
+  and retained frontier ownership still need broader platform path-state
+  support.
 - Platform GPU-side path/frontier compaction for scheduler-owned path records.
 - Broad platform full-GPU path-loop kernels for the normal render path. A
   restricted Metal path-loop kernel can advance empty-scene and

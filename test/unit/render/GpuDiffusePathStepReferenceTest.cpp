@@ -22,6 +22,7 @@
 #include "render/VulkanGpuDiffusePathFrontierCompactionBackend.h"
 #endif
 #include "render/VulkanGpuDiffusePathLoopBackend.h"
+#include "render/cameras/OrthographicCamera.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/lights/DirectionalLight.h"
 #include "render/lights/PointLight.h"
@@ -512,7 +513,8 @@ namespace GpuDiffusePathStepReferenceTest {
       GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 3, 2), 99, 1234);
 
     ASSERT_TRUE(generation.primaryPathDescriptor.has_value());
-    const GpuPinholePrimaryPathDescriptor& descriptor = generation.primaryPathDescriptor->pinhole;
+    const GpuRectilinearPrimaryPathDescriptor& descriptor =
+      generation.primaryPathDescriptor->rectilinear;
     EXPECT_EQ(0, descriptor.requestedLeft);
     EXPECT_EQ(0, descriptor.requestedTop);
     EXPECT_EQ(3u, descriptor.requestedWidth);
@@ -525,7 +527,7 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(1234u, descriptor.sampleSeed);
 
     ASSERT_FALSE(generation.pathStates.empty());
-    const Vector3d origin(descriptor.origin);
+    const Vector3d origin(descriptor.originOrDirection);
     const Vector3d topLeft(descriptor.topLeft);
     const Vector3d right(descriptor.right);
     const Vector3d down(descriptor.down);
@@ -540,6 +542,58 @@ namespace GpuDiffusePathStepReferenceTest {
       Rayd(origin, (pixelPoint - origin).normalized()), /*rayIndex=*/0, /*minDistance=*/0.0,
       std::numeric_limits<double>::infinity(), timeSample);
     expectGpuRayNear(generation.pathStates.front().ray, expected);
+  }
+
+  TEST(GpuDiffusePrimaryPathStateGenerator, GeneratesOrthographicPrimaryPathDescriptor) {
+    OrthographicCamera camera(Vector3d(1.0, 2.0, -5.0), Vector3d(0.0, 0.0, 0.0));
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 3, 2));
+    camera.viewPlane()->sampler()->setup(4, 8, 42);
+
+    const GpuDiffusePrimaryPathStateGeneration generation =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 3, 2), 99, 1234);
+
+    EXPECT_TRUE(generation.canGeneratePrimaryPathsOnDevice());
+    EXPECT_EQ("gpu_orthographic_primary_descriptor", generation.primaryPathExecutionPath);
+    ASSERT_TRUE(generation.primaryPathDescriptor.has_value());
+    EXPECT_EQ(gpuPrimaryPathGenerationModeOrthographic, generation.primaryPathDescriptor->mode);
+    EXPECT_EQ(24u, generation.primaryPathDescriptor->pathCount());
+    ASSERT_EQ(24u, generation.pathStates.size());
+
+    const GpuRectilinearPrimaryPathDescriptor& descriptor =
+      generation.primaryPathDescriptor->rectilinear;
+    EXPECT_EQ(4u, descriptor.samplesPerPixel);
+    EXPECT_EQ(1234u, descriptor.sampleSeed);
+
+    const Vector2d pixelSample =
+      GpuSampleStream::sample2D(/*seed=*/1234, /*pixelIndex=*/0, /*primarySampleIndex=*/0,
+                                /*dimension=*/0);
+    const double timeSample = GpuSampleStream::sample1D(GpuSampleCoordinate{
+      /*seed=*/1234, /*pixelIndex=*/0, /*primarySampleIndex=*/0, /*dimension=*/1,
+      /*component=*/0});
+    const Rayd cameraRay = camera.rayForPixel(pixelSample.x(), pixelSample.y());
+    const GpuIntersectionRay expected =
+      GpuIntersectionScenePacker().packRay(cameraRay, /*rayIndex=*/0, /*minDistance=*/0.0,
+                                           std::numeric_limits<double>::infinity(), timeSample);
+    expectGpuRayNear(generation.pathStates.front().ray, expected);
+  }
+
+  TEST(GpuDiffusePrimaryPathStateGenerator, CanLeaveOrthographicPrimaryPathsDescriptorOnly) {
+    OrthographicCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 3, 2));
+    camera.viewPlane()->sampler()->setup(4, 8, 42);
+
+    GpuDiffusePrimaryPathStateGenerationOptions options;
+    options.materializeHostPathStates = false;
+    const GpuDiffusePrimaryPathStateGeneration generation =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 3, 2), 99, 1234, options);
+
+    EXPECT_TRUE(generation.canGeneratePrimaryPathsOnDevice());
+    EXPECT_EQ("gpu_orthographic_primary_descriptor", generation.primaryPathExecutionPath);
+    ASSERT_TRUE(generation.primaryPathDescriptor.has_value());
+    EXPECT_EQ(gpuPrimaryPathGenerationModeOrthographic, generation.primaryPathDescriptor->mode);
+    EXPECT_EQ(24u, generation.primaryPathDescriptor->pathCount());
+    EXPECT_EQ(24u, generation.generatedPrimarySamples);
+    EXPECT_TRUE(generation.pathStates.empty());
   }
 
   TEST(GpuDiffusePrimaryPathStateGenerator, UsesActualRenderableRectForFitExactCameras) {
@@ -4580,6 +4634,43 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(24u * sizeof(GpuDiffusePathStateRecord), plan.buffers.activePathStateBytes);
     EXPECT_EQ(24u * sizeof(GpuDiffusePathStateRecord), plan.buffers.nextPathStateBytes);
     EXPECT_EQ(24u * 3u * sizeof(GpuDiffusePathStepRecord), plan.buffers.stepRecordBytes);
+    EXPECT_EQ(plan.buffers.sceneUploadBytes, plan.buffers.totalUploadBytes);
+  }
+
+  TEST(GpuDiffusePathLoopLaunchPlanner, AcceptsOrthographicPrimaryDescriptorLaunches) {
+    Scene scene;
+    auto matte =
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::white()));
+    matte->setDiffuseCoefficient(1.0);
+    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    receiver->setMaterial(matte);
+    scene.add(receiver);
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+
+    OrthographicCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 3, 2));
+    camera.viewPlane()->sampler()->setup(4, 8, 42);
+    GpuDiffusePrimaryPathStateGenerationOptions options;
+    options.materializeHostPathStates = false;
+    const GpuDiffusePrimaryPathStateGeneration generation =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 3, 2), 99, 1234, options);
+    ASSERT_TRUE(generation.canGeneratePrimaryPathsOnDevice());
+    ASSERT_TRUE(generation.pathStates.empty());
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 3;
+    const TracingAccumulationLayout accumulationLayout = TracingAccumulationLayout::image(3, 2);
+
+    const GpuDiffusePathLoopLaunchPlan plan =
+      GpuDiffusePathLoopLaunchPlanner().plan(sections, generation, accumulationLayout, settings);
+
+    EXPECT_TRUE(plan.generatesPrimaryPathsOnDevice());
+    EXPECT_EQ(gpuPrimaryPathGenerationModeOrthographic, plan.parameters.primaryPathGenerationMode);
+    EXPECT_EQ(24u, plan.parameters.initialPathCount);
+    EXPECT_EQ(4u, plan.parameters.primaryPathSamplesPerPixel);
+    EXPECT_EQ(1234u, plan.parameters.primaryPathSampleSeed);
+    EXPECT_EQ(0u, plan.buffers.initialPathStateBytes);
+    EXPECT_EQ(24u * sizeof(GpuDiffusePathStateRecord), plan.buffers.activePathStateBytes);
     EXPECT_EQ(plan.buffers.sceneUploadBytes, plan.buffers.totalUploadBytes);
   }
 

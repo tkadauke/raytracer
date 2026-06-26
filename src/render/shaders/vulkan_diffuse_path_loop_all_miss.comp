@@ -31,6 +31,7 @@ const uint gpuTracingRectangularAreaLightKind = 3u;
 const uint gpuDiffusePathLoopAccumulationTargetPath = 1u;
 const uint gpuDiffusePathLoopAccumulationTargetSampleSlot = 2u;
 const uint gpuPrimaryPathGenerationModePinhole = 1u;
+const uint gpuPrimaryPathGenerationModeOrthographic = 2u;
 const uint gpuDiffusePathStateActiveFlag = 1u;
 const uint gpuDiffusePathStateTerminatedFlag = 2u;
 const uint gpuDiffusePathStateSampledFromBsdfFlag = 4u;
@@ -492,9 +493,62 @@ GpuDiffusePathStateRecord makePinholePrimaryPath(uint pathIndex) {
   return path;
 }
 
+GpuDiffusePathStateRecord makeOrthographicPrimaryPath(uint pathIndex) {
+  const uint sampleIndex = pathIndex % parameters.primaryPathSamplesPerPixel;
+  const uint pixelOrdinal = pathIndex / parameters.primaryPathSamplesPerPixel;
+  const uint localX = pixelOrdinal % parameters.primaryPathActualWidth;
+  const uint localY = pixelOrdinal / parameters.primaryPathActualWidth;
+  const int column = parameters.primaryPathActualLeft + int(localX);
+  const int row = parameters.primaryPathActualTop + int(localY);
+  const uint pixelIndex =
+      uint((row - parameters.primaryPathRequestedTop) * int(parameters.primaryPathRequestedWidth) +
+           (column - parameters.primaryPathRequestedLeft));
+  const vec2 pixelSample =
+      sample2DCoordinate(parameters.primaryPathSampleSeed, pixelIndex, sampleIndex, 0u);
+  const float timeSample =
+      sample1DCoordinate(parameters.primaryPathSampleSeed, pixelIndex, sampleIndex, 1u, 0u);
+  const vec4 pixelPoint = parameters.primaryPathTopLeft +
+                          parameters.primaryPathRight * (float(column) + pixelSample.x) +
+                          parameters.primaryPathDown * (float(row) + pixelSample.y);
+
+  GpuDiffusePathStateRecord path;
+  path.ray.origin = pixelPoint;
+  path.ray.direction = vec4(normalize(parameters.primaryPathOrigin.xyz), 0.0);
+  path.ray.minDistance = 0.0;
+  path.ray.maxDistance = uintBitsToFloat(0x7f800000u);
+  path.ray.timeSample = timeSample;
+  path.ray.flags = 0u;
+  path.ray.rayIndex = pathIndex;
+  path.ray.reserved0 = 0u;
+  path.ray.reserved1 = 0u;
+  path.ray.reserved2 = 0u;
+  path.throughput = vec4(1.0, 1.0, 1.0, 0.0);
+  path.accumulatedRadiance = vec4(0.0);
+  path.pixelIndex = pixelIndex;
+  path.primarySampleIndex = sampleIndex;
+  path.depth = 0u;
+  path.sampleSeed = parameters.primaryPathSampleSeed;
+  path.sampleDimensionBase = gpuPrimaryPathSampleDimensionBase;
+  path.sampleDimensionStride = gpuPrimaryPathSampleDimensionStride;
+  path.flags = gpuDiffusePathStateActiveFlag;
+  path.reserved0 = 0u;
+  path.previousBsdfPdf = 0.0;
+  path.previousLightPdf = 0.0;
+  path.previousMaterial = 0u;
+  path.previousEventFlags = 0u;
+  path.reserved1 = 0u;
+  path.reserved2 = 0u;
+  path.reserved3 = 0u;
+  path.reserved4 = 0u;
+  return path;
+}
+
 GpuDiffusePathStateRecord initialPathFor(uint pathIndex) {
   if (parameters.primaryPathGenerationMode == gpuPrimaryPathGenerationModePinhole) {
     return makePinholePrimaryPath(pathIndex);
+  }
+  if (parameters.primaryPathGenerationMode == gpuPrimaryPathGenerationModeOrthographic) {
+    return makeOrthographicPrimaryPath(pathIndex);
   }
   return initialPathStates[pathIndex];
 }

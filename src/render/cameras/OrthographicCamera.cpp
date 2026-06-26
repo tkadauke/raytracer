@@ -1,9 +1,29 @@
 #include "render/cameras/CameraFactory.h"
 #include "render/cameras/OrthographicCamera.h"
 #include "core/math/Ray.h"
+#include "render/samplers/Sampler.h"
 #include "render/viewplanes/ViewPlane.h"
 
+#include <limits>
+#include <optional>
+#include <stdexcept>
+#include <string>
+
 using namespace render;
+
+namespace {
+  std::uint32_t checkedU32(std::uint64_t value, const char* label) {
+    if (value > std::numeric_limits<std::uint32_t>::max()) {
+      throw std::overflow_error(std::string(label) + " exceeds GPU 32-bit count range");
+    }
+    return static_cast<std::uint32_t>(value);
+  }
+
+  std::array<float, 4> vector4(const Vector3d& value, float w) {
+    return {static_cast<float>(value.x()), static_cast<float>(value.y()),
+            static_cast<float>(value.z()), w};
+  }
+}
 
 std::shared_ptr<Camera> OrthographicCamera::clone() const {
   auto result = std::make_shared<OrthographicCamera>();
@@ -20,6 +40,57 @@ Rayd OrthographicCamera::rayForPixel(double x, double y, render::SampleStream&) 
   Vector3d direction = matrix().transformDirection(Vector3d::forward());
   Vector3d pixel = viewPlane()->pixelAt(x, y);
   return Rayd(pixel, direction);
+}
+
+std::optional<GpuPrimaryPathDescriptor>
+OrthographicCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampleSeed) const {
+  auto plane = viewPlane();
+  if (!plane || !plane->sampler() || plane->sampler()->numSamples() <= 0) {
+    return std::nullopt;
+  }
+  if (animationTrack("position") || animationTrack("target")) {
+    return std::nullopt;
+  }
+
+  const Recti actual = renderableRect(rect);
+  if (actual.width() <= 0 || actual.height() <= 0) {
+    return std::nullopt;
+  }
+
+  const std::uint64_t pixelCount =
+    static_cast<std::uint64_t>(actual.width()) * static_cast<std::uint64_t>(actual.height());
+  const std::uint64_t pathCount =
+    pixelCount * static_cast<std::uint64_t>(plane->sampler()->numSamples());
+  if (pixelCount != 0 &&
+      pathCount / pixelCount != static_cast<std::uint64_t>(plane->sampler()->numSamples())) {
+    throw std::overflow_error("GPU orthographic primary path count overflows");
+  }
+  (void)checkedU32(pathCount, "GPU orthographic primary path count");
+
+  GpuPrimaryPathDescriptor descriptor;
+  descriptor.mode = gpuPrimaryPathGenerationModeOrthographic;
+  descriptor.rectilinear.originOrDirection =
+    vector4(matrix().transformDirection(Vector3d::forward()).normalized(), 0.0f);
+  descriptor.rectilinear.topLeft = vector4(plane->pixelAt(0.0, 0.0), 1.0f);
+  descriptor.rectilinear.right = vector4(plane->pixelAt(1.0, 0.0) - plane->pixelAt(0.0, 0.0), 0.0f);
+  descriptor.rectilinear.down = vector4(plane->pixelAt(0.0, 1.0) - plane->pixelAt(0.0, 0.0), 0.0f);
+  descriptor.rectilinear.requestedLeft = rect.left();
+  descriptor.rectilinear.requestedTop = rect.top();
+  descriptor.rectilinear.requestedWidth =
+    checkedU32(static_cast<std::uint64_t>(rect.width()), "GPU orthographic requested width");
+  descriptor.rectilinear.requestedHeight =
+    checkedU32(static_cast<std::uint64_t>(rect.height()), "GPU orthographic requested height");
+  descriptor.rectilinear.actualLeft = actual.left();
+  descriptor.rectilinear.actualTop = actual.top();
+  descriptor.rectilinear.actualWidth =
+    checkedU32(static_cast<std::uint64_t>(actual.width()), "GPU orthographic actual width");
+  descriptor.rectilinear.actualHeight =
+    checkedU32(static_cast<std::uint64_t>(actual.height()), "GPU orthographic actual height");
+  descriptor.rectilinear.samplesPerPixel =
+    checkedU32(static_cast<std::uint64_t>(plane->sampler()->numSamples()),
+               "GPU orthographic samples per pixel");
+  descriptor.rectilinear.sampleSeed = sampleSeed;
+  return descriptor;
 }
 
 Vector2d OrthographicCamera::projectPoint(const Vector3d& worldPoint) const {

@@ -6,6 +6,11 @@
 
 namespace render {
   namespace {
+    bool isRectilinearMode(std::uint32_t mode) {
+      return mode == gpuPrimaryPathGenerationModePinhole ||
+             mode == gpuPrimaryPathGenerationModeOrthographic;
+    }
+
     std::uint64_t checkedProduct(std::uint64_t left, std::uint64_t right, const char* label) {
       if (right != 0 && left > std::numeric_limits<std::uint64_t>::max() / right) {
         throw std::overflow_error(std::string(label) + " count overflows");
@@ -19,27 +24,29 @@ namespace render {
   }
 
   Recti GpuPrimaryPathDescriptor::requestedRect() const {
-    if (mode == gpuPrimaryPathGenerationModePinhole) {
-      return Recti(pinhole.requestedLeft, pinhole.requestedTop,
-                   static_cast<int>(pinhole.requestedWidth),
-                   static_cast<int>(pinhole.requestedHeight));
+    if (isRectilinearMode(mode)) {
+      return Recti(rectilinear.requestedLeft, rectilinear.requestedTop,
+                   static_cast<int>(rectilinear.requestedWidth),
+                   static_cast<int>(rectilinear.requestedHeight));
     }
     return Recti();
   }
 
   Recti GpuPrimaryPathDescriptor::actualRect() const {
-    if (mode == gpuPrimaryPathGenerationModePinhole) {
-      return Recti(pinhole.actualLeft, pinhole.actualTop, static_cast<int>(pinhole.actualWidth),
-                   static_cast<int>(pinhole.actualHeight));
+    if (isRectilinearMode(mode)) {
+      return Recti(rectilinear.actualLeft, rectilinear.actualTop,
+                   static_cast<int>(rectilinear.actualWidth),
+                   static_cast<int>(rectilinear.actualHeight));
     }
     return Recti();
   }
 
   std::uint64_t GpuPrimaryPathDescriptor::pathCount() const {
-    if (mode == gpuPrimaryPathGenerationModePinhole) {
-      const std::uint64_t pixelCount =
-        checkedProduct(pinhole.actualWidth, pinhole.actualHeight, "GPU pinhole primary pixel");
-      return checkedProduct(pixelCount, pinhole.samplesPerPixel, "GPU pinhole primary path");
+    if (isRectilinearMode(mode)) {
+      const std::uint64_t pixelCount = checkedProduct(
+        rectilinear.actualWidth, rectilinear.actualHeight, "GPU rectilinear primary pixel");
+      return checkedProduct(pixelCount, rectilinear.samplesPerPixel,
+                            "GPU rectilinear primary path");
     }
     return 0;
   }

@@ -9,9 +9,10 @@
 namespace render {
   inline constexpr std::uint32_t gpuPrimaryPathGenerationModeHostPathStates = 0u;
   inline constexpr std::uint32_t gpuPrimaryPathGenerationModePinhole = 1u;
+  inline constexpr std::uint32_t gpuPrimaryPathGenerationModeOrthographic = 2u;
 
-  struct alignas(16) GpuPinholePrimaryPathDescriptor {
-    std::array<float, 4> origin{};
+  struct alignas(16) GpuRectilinearPrimaryPathDescriptor {
+    std::array<float, 4> originOrDirection{};
     std::array<float, 4> topLeft{};
     std::array<float, 4> right{};
     std::array<float, 4> down{};
@@ -30,7 +31,7 @@ namespace render {
 
   struct GpuPrimaryPathDescriptor {
     std::uint32_t mode{gpuPrimaryPathGenerationModeHostPathStates};
-    GpuPinholePrimaryPathDescriptor pinhole;
+    GpuRectilinearPrimaryPathDescriptor rectilinear;
 
     [[nodiscard]] bool generatesOnDevice() const;
     [[nodiscard]] Recti requestedRect() const;

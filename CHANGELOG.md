@@ -19,6 +19,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   Metal/Vulkan diffuse path-loop kernels instead of uploading initial path
   state records, with graph trace metadata reporting whether primary paths are
   generated on device. — GPT-5 Codex
+- Let static orthographic path-tracer launches use the same GPU primary-path
+  descriptor flow, so supported full-GPU path-loop renders can synthesize
+  orthographic primary paths on device instead of uploading host path states.
+  — GPT-5 Codex
 - Avoid materializing host primary path-state vectors for trace-disabled
   full-GPU static pinhole diffuse path-loop launches when the selected backend
   can synthesize primary paths on device. — GPT-5 Codex
