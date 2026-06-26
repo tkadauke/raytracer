@@ -126,7 +126,12 @@ struct RenderWindow::Private {
       } else {
         options.setIntegrator("whitted");
       }
-      options.setSampler(settingsWidget->sampler().toStdString());
+      if (settingsWidget->sampleStreamMode() == "gpu_sample_stream") {
+        options.setSampleStreamMode("gpu_sample_stream");
+      } else {
+        options.setSampler(settingsWidget->sampler().toStdString());
+        options.setSampleStreamMode("sampler");
+      }
       options.setSamplesPerPixel(settingsWidget->samplesPerPixel());
       options.setViewPlane(settingsWidget->viewPlane().toStdString());
       options.setMaximumRecursionDepth(settingsWidget->maxRecursionDepth());

@@ -914,7 +914,12 @@ saved Render Settings, then acts as a one-off override surface for that render.
 When the scene omits sampler or sample-count intent, it keeps Regular as the
 Raytracer default and switches default-managed Path Tracer renders to Halton
 and 64 samples per pixel, matching the sampler guidance for stochastic
-transport. For Path Tracer final renders using the wavefront schedule, the same
+transport. Choosing `GPU sample stream` in the same sampler control explicitly
+requests the deterministic GPU-owned sampling dimensions needed by compiled
+full-GPU path-loop renders; ordinary sampler choices such as Regular, Jittered,
+and Halton stay sampler-backed and therefore keep unsupported full-GPU path
+loops on CPU or hybrid fallback paths. For Path Tracer final renders using the
+wavefront schedule, the same
 dialog can leave the scene's saved denoiser intent alone or explicitly override
 it to None, Box, or Bilateral with radius and bilateral color-sigma controls.
 It can also request Auto, CPU, or GPU wavefront intersection. GPU records the

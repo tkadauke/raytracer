@@ -315,6 +315,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Show auto-selected GPU tracing predictions in the render graph inspector
   before a render runs, instead of hiding them unless tracing execution was
   explicitly requested. — GPT-5 Codex
+- Make the Modeler final render dialog's GPU sample stream an explicit Path
+  Tracer sampler choice and stop silently replacing user-selected samplers with
+  the GPU stream when compiling full-GPU path-loop renders. — GPT-5 Codex
 - Preserve Metal/Vulkan full-GPU diffuse path-loop active-depth metrics when
   graph trace diagnostics are disabled, using device-written counters instead
   of depending on diagnostic step-record readback. — GPT-5 Codex

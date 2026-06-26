@@ -344,6 +344,9 @@ namespace engine::graph {
     if (sampleStreamMode() && *sampleStreamMode() != "gpu_sample_stream") {
       return "compiled diffuse path loop requires the GPU sample stream";
     }
+    if (!sampleStreamMode() && sampler()) {
+      return "compiled diffuse path loop requires the GPU sample stream";
+    }
     if (convergenceEnabled().value_or(false)) {
       return "compiled diffuse path loop does not support wavefront convergence yet";
     }

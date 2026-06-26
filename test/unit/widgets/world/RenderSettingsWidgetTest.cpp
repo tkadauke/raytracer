@@ -37,6 +37,17 @@ namespace RenderSettingsWidgetTest {
     EXPECT_NE(-1, samplerType->findText("Halton"));
   }
 
+  TEST_F(RenderSettingsWidgetTest, ShouldExposeGpuSampleStream) {
+    RenderSettingsWidget widget;
+    auto samplerType = widget.findChild<QComboBox*>("samplerType");
+    ASSERT_NE(nullptr, samplerType);
+
+    samplerType->setCurrentText("GPU sample stream");
+
+    EXPECT_EQ(QString("GPU sample stream"), widget.sampler());
+    EXPECT_EQ(QString("gpu_sample_stream"), widget.sampleStreamMode());
+  }
+
   TEST_F(RenderSettingsWidgetTest, ShouldDefaultPathTracerSamplerToHalton) {
     RenderSettingsWidget widget;
     auto engineType = widget.findChild<QComboBox*>("engineType");
@@ -304,6 +315,19 @@ namespace RenderSettingsWidgetTest {
     EXPECT_EQ(QString("Bilateral"), widget.denoiser());
     EXPECT_EQ(4, widget.denoiseRadius());
     EXPECT_DOUBLE_EQ(0.25, widget.denoiseColorSigma());
+  }
+
+  TEST_F(RenderSettingsWidgetTest, ShouldInitializeGpuSampleStreamFromRenderIntent) {
+    RenderSettingsWidget widget;
+    engine::graph::RenderIntent intent;
+    intent.defaultExecutor = engine::graph::RenderExecutorPreference::PathTracer;
+    intent.engineOptions.raytracer().setSampleStreamMode("gpu_sample_stream");
+
+    widget.setRenderIntent(intent);
+
+    EXPECT_EQ(QString("Path Tracer"), widget.engine());
+    EXPECT_EQ(QString("GPU sample stream"), widget.sampler());
+    EXPECT_EQ(QString("gpu_sample_stream"), widget.sampleStreamMode());
   }
 
   TEST_F(RenderSettingsWidgetTest, ShouldRestoreEngineManagedRayDefaultsWhenIntentOmitsThem) {

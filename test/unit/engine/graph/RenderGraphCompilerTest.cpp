@@ -412,7 +412,7 @@ namespace RenderGraphCompilerTest {
     RenderGraphCompiler compiler;
     RenderIntent intent;
     intent.defaultExecutor = RenderExecutorPreference::PathTracer;
-    intent.engineOptions.raytracer().setDenoiser("box");
+    intent.engineOptions.raytracer().setSampler("Halton");
 
     RenderSceneAnalysis analysis;
     analysis.setFullGpuTracingSupported(true);
@@ -427,6 +427,8 @@ namespace RenderGraphCompilerTest {
     ASSERT_TRUE(state->predictedTracingExecution().has_value());
     EXPECT_EQ(TracingExecutionPreference::CPU, *state->predictedTracingExecution());
     EXPECT_FALSE(state->intersectionBackend().has_value());
+    ASSERT_TRUE(state->sampler().has_value());
+    EXPECT_EQ("Halton", *state->sampler());
     EXPECT_TRUE(state->tracingExecutionFallbackReason().empty());
   }
 

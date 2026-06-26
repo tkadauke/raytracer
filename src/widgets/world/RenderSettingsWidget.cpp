@@ -156,11 +156,19 @@ struct RenderSettingsWidget::Private {
     return QStringLiteral("Auto");
   }
 
+  bool gpuSampleStreamSelected() const {
+    return ui.samplerType->currentText() == QStringLiteral("GPU sample stream");
+  }
+
   void applyRaytracerOptions(const engine::graph::RenderRaytracerOptions& options) {
     samplerDefaultManaged = !options.sampler().has_value();
     samplesPerPixelDefaultManaged = !options.samplesPerPixel().has_value();
 
-    if (options.sampler()) {
+    if (options.sampleStreamMode() && *options.sampleStreamMode() == "gpu_sample_stream") {
+      updatingSamplerDefault = true;
+      setComboBoxText(ui.samplerType, QStringLiteral("GPU sample stream"));
+      updatingSamplerDefault = false;
+    } else if (options.sampler()) {
       updatingSamplerDefault = true;
       setComboBoxText(ui.samplerType, QString::fromStdString(*options.sampler()));
       updatingSamplerDefault = false;
@@ -307,6 +315,7 @@ RenderSettingsWidget::RenderSettingsWidget(QWidget* parent)
   for (const auto& id : ids) {
     p->ui.samplerType->addItem(QString(id.c_str()).replace("Sampler", ""));
   }
+  p->ui.samplerType->addItem(QStringLiteral("GPU sample stream"));
 
   p->ui.samplerType->setCurrentText("Regular");
 
@@ -398,6 +407,11 @@ QSize RenderSettingsWidget::resolution() const {
 
 QString RenderSettingsWidget::sampler() const {
   return p->ui.samplerType->currentText();
+}
+
+QString RenderSettingsWidget::sampleStreamMode() const {
+  return p->gpuSampleStreamSelected() ? QStringLiteral("gpu_sample_stream")
+                                      : QStringLiteral("sampler");
 }
 
 QString RenderSettingsWidget::viewPlane() const {

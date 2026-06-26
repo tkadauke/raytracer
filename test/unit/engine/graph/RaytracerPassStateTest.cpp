@@ -193,6 +193,19 @@ namespace RaytracerPassStateTest {
     EXPECT_EQ("compiled diffuse path loop requires the GPU sample stream",
               *samplerStream.compiledDiffusePathLoopFallbackReason());
 
+    RaytracerBeautyPassState explicitSampler;
+    explicitSampler.setIntegrator("pathtracer");
+    explicitSampler.setSampler("Halton");
+    ASSERT_TRUE(explicitSampler.compiledDiffusePathLoopFallbackReason());
+    EXPECT_EQ("compiled diffuse path loop requires the GPU sample stream",
+              *explicitSampler.compiledDiffusePathLoopFallbackReason());
+
+    RaytracerBeautyPassState explicitGpuStream;
+    explicitGpuStream.setIntegrator("pathtracer");
+    explicitGpuStream.setSampler("Halton");
+    explicitGpuStream.setSampleStreamMode("gpu_sample_stream");
+    EXPECT_FALSE(explicitGpuStream.compiledDiffusePathLoopFallbackReason());
+
     RaytracerBeautyPassState boxDenoised;
     boxDenoised.setIntegrator("pathtracer");
     boxDenoised.setDenoiser("box");

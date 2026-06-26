@@ -197,8 +197,7 @@ namespace RenderWindowTest {
     auto* graphInspector = window.findChild<RenderGraphInspectorWidget*>();
     ASSERT_NE(nullptr, graphInspector);
     auto rows = graphInspector->passDetailRows(QStringLiteral("wavefront_beauty"));
-    EXPECT_EQ(QStringLiteral("CPU"),
-              rowValue(rows, QStringLiteral("Predicted tracing execution")));
+    EXPECT_EQ(QStringLiteral("CPU"), rowValue(rows, QStringLiteral("Predicted tracing execution")));
     EXPECT_EQ(QStringLiteral("not available"), rowValue(rows, QStringLiteral("Trace")));
 
     window.render();
@@ -371,6 +370,8 @@ namespace RenderWindowTest {
     EXPECT_EQ("pathtracer", *state->integrator());
     ASSERT_TRUE(state->sampler().has_value());
     EXPECT_EQ("Jittered", *state->sampler());
+    ASSERT_TRUE(state->sampleStreamMode().has_value());
+    EXPECT_EQ("sampler", *state->sampleStreamMode());
     ASSERT_TRUE(state->samplesPerPixel().has_value());
     EXPECT_EQ(9, *state->samplesPerPixel());
     ASSERT_TRUE(state->directLightSamples().has_value());
@@ -381,6 +382,32 @@ namespace RenderWindowTest {
     EXPECT_EQ("box", *state->denoiser());
     ASSERT_TRUE(state->denoiseRadius().has_value());
     EXPECT_EQ(3, *state->denoiseRadius());
+  }
+
+  TEST_F(RenderWindowTest, ShouldCompileGpuSampleStreamSelectionIntoRenderGraph) {
+    RenderWindow window;
+    Scene scene;
+    engine::graph::RenderIntent intent;
+    intent.defaultExecutor = engine::graph::RenderExecutorPreference::PathTracer;
+    scene.setRenderIntent(intent);
+    window.setScene(&scene);
+
+    auto* sampler = window.findChild<QComboBox*>("samplerType");
+    ASSERT_NE(nullptr, sampler);
+
+    sampler->setCurrentText("GPU sample stream");
+    QCoreApplication::processEvents();
+
+    auto* graphInspector = window.findChild<RenderGraphInspectorWidget*>();
+    ASSERT_NE(nullptr, graphInspector);
+    const auto plan = graphInspector->effectivePlan();
+    const auto* beautyPass = plan.findPass("wavefront_beauty");
+    ASSERT_NE(nullptr, beautyPass);
+    const auto* state = engine::graph::RaytracerBeautyPassState::fromPass(*beautyPass);
+    ASSERT_NE(nullptr, state);
+    EXPECT_FALSE(state->sampler().has_value());
+    ASSERT_TRUE(state->sampleStreamMode().has_value());
+    EXPECT_EQ("gpu_sample_stream", *state->sampleStreamMode());
   }
 
   TEST_F(RenderWindowTest, ShouldCompileRasterShadowsIntoRenderGraph) {

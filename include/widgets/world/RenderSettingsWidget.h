@@ -18,6 +18,7 @@ public:
 
   QSize resolution() const;
   QString sampler() const;
+  QString sampleStreamMode() const;
   QString viewPlane() const;
   QString engine() const;
   QString pathTracingSchedule() const;

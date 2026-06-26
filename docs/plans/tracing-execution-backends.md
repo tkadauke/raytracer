@@ -137,6 +137,10 @@ end state for GPU tracing.
   available Metal or Vulkan frontier-compaction backend for the live
   `GpuDiffusePathStateRecord` frontier, reporting that middle step as hybrid
   execution while the overall loop remains the CPU reference implementation.
+- The Modeler final render dialog exposes `GPU sample stream` as an explicit
+  Path Tracer sampler choice. Full-GPU compiled path-loop eligibility now treats
+  ordinary sampler-backed Path Tracer requests as CPU/hybrid fallback cases
+  instead of silently replacing the chosen sampler with the GPU stream.
 - CPU reference tracing accumulation, the current CPU wavefront tile
   accumulator, optional Metal accumulation buffers, and optional Vulkan
   synthetic accumulation results expose resource residency, byte,
