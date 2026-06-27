@@ -403,6 +403,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Reject malformed compiled GPU diffuse path-loop material texture references
+  before platform backend selection, so shaders do not see out-of-range texture
+  indices. — GPT-5 Codex
 - Match runtime `Box` hit-point UVs to the tessellated compiled representation,
   preserving CPU/GPU texture-coordinate parity for Box geometry in GPU tracing
   paths. — GPT-5 Codex

@@ -121,6 +121,26 @@ namespace GpuDiffusePathLoopSceneSupportTest {
     expectUnsupported(supportFor(unsupportedLight), "light");
   }
 
+  TEST(GpuDiffusePathLoopSceneSupport, RejectsSupportedMaterialsWithMalformedTextureReferences) {
+    GpuTracingSceneSections matteWithMissingAlbedo;
+    matteWithMissingAlbedo.textures.push_back(textureRecord(GpuTracingTextureKind::Unsupported));
+    matteWithMissingAlbedo.textures.push_back(textureRecord(GpuTracingTextureKind::ConstantColor));
+    GpuTracingMaterialRecord matte = materialRecord(GpuTracingMaterialKind::Matte);
+    matte.albedoTexture = 7;
+    matteWithMissingAlbedo.materials.push_back(matte);
+    expectUnsupported(supportFor(matteWithMissingAlbedo), "material");
+
+    GpuTracingSceneSections emissiveWithMissingEmission;
+    emissiveWithMissingEmission.textures.push_back(
+      textureRecord(GpuTracingTextureKind::Unsupported));
+    emissiveWithMissingEmission.textures.push_back(
+      textureRecord(GpuTracingTextureKind::ConstantColor));
+    GpuTracingMaterialRecord emissive = materialRecord(GpuTracingMaterialKind::Emissive);
+    emissive.emissionTexture = 7;
+    emissiveWithMissingEmission.materials.push_back(emissive);
+    expectUnsupported(supportFor(emissiveWithMissingEmission), "material");
+  }
+
   TEST(GpuDiffusePathLoopSceneSupport, ValidatesSupportedPrimitivePayloads) {
     GpuTracingSceneSections sections;
     sections.geometry.bvh.push_back(singlePrimitiveLeafNode());

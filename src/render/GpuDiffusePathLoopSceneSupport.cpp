@@ -128,7 +128,8 @@ namespace render {
   bool GpuDiffusePathLoopSceneSupport::hasSupportedMaterials(
     const GpuTracingSceneSections& scene) const {
     for (std::size_t index = 0; index != scene.materials.size(); ++index) {
-      const auto kind = static_cast<GpuTracingMaterialKind>(scene.materials[index].kind);
+      const GpuTracingMaterialRecord& material = scene.materials[index];
+      const auto kind = static_cast<GpuTracingMaterialKind>(material.kind);
       if (kind == GpuTracingMaterialKind::Unsupported) {
         if (index == 0u) {
           continue;
@@ -141,8 +142,30 @@ namespace render {
           kind != GpuTracingMaterialKind::Portal) {
         return false;
       }
+      if (!materialUsesSupportedTextures(scene, material)) {
+        return false;
+      }
     }
     return true;
+  }
+
+  bool GpuDiffusePathLoopSceneSupport::materialUsesSupportedTextures(
+    const GpuTracingSceneSections& scene, const GpuTracingMaterialRecord& material) const {
+    const auto kind = static_cast<GpuTracingMaterialKind>(material.kind);
+    switch (kind) {
+    case GpuTracingMaterialKind::Matte:
+    case GpuTracingMaterialKind::Phong:
+    case GpuTracingMaterialKind::Reflective:
+    case GpuTracingMaterialKind::Transparent:
+      return supportedTexture(scene, material.albedoTexture);
+    case GpuTracingMaterialKind::Emissive:
+      return supportedTexture(scene, material.emissionTexture);
+    case GpuTracingMaterialKind::Portal:
+      return true;
+    case GpuTracingMaterialKind::Unsupported:
+      return false;
+    }
+    return false;
   }
 
   bool GpuDiffusePathLoopSceneSupport::supportedUntintedTexture(

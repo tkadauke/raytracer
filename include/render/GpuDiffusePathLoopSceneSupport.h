@@ -43,6 +43,9 @@ namespace render {
     primitiveUsesSupportedGeometry(const GpuIntersectionPrimitiveRecord& primitive,
                                    const GpuIntersectionSceneBuffers& geometry,
                                    SupportedGeometryCounts& counts) const;
+    [[nodiscard]] bool
+    materialUsesSupportedTextures(const GpuTracingSceneSections& scene,
+                                  const GpuTracingMaterialRecord& material) const;
     [[nodiscard]] bool supportedTexture(const GpuTracingSceneSections& scene,
                                         std::size_t textureIndex, std::uint32_t depth = 0u) const;
     [[nodiscard]] bool supportedUntintedTexture(const GpuTracingSceneSections& scene,
