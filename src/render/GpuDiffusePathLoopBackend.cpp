@@ -36,6 +36,107 @@ namespace render {
       return std::string(backendDisplayName) + " diffuse path-loop backend " + message;
     }
 
+    [[nodiscard]] std::uint32_t flag(bool enabled) {
+      return enabled ? 1u : 0u;
+    }
+
+    [[nodiscard]] std::uint64_t pixelCount(const GpuDiffusePathLoopLaunchParameters& parameters,
+                                           const char* backendDisplayName) {
+      if (parameters.imageWidth != 0u &&
+          parameters.imageHeight > std::numeric_limits<std::uint64_t>::max() /
+                                     static_cast<std::uint64_t>(parameters.imageWidth)) {
+        throw std::overflow_error(
+          backendMessage(backendDisplayName, "returned accumulation dimensions that overflow"));
+      }
+      return static_cast<std::uint64_t>(parameters.imageWidth) *
+             static_cast<std::uint64_t>(parameters.imageHeight);
+    }
+
+    [[nodiscard]] std::uint64_t
+    displayPixelCount(const GpuDiffusePathLoopLaunchParameters& parameters,
+                      const char* backendDisplayName) {
+      if (parameters.accumulationTargetMode == gpuDiffusePathLoopAccumulationTargetPath) {
+        return 0u;
+      }
+      if (parameters.accumulationTargetMode == gpuDiffusePathLoopAccumulationTargetSampleSlot) {
+        return parameters.imageWidth;
+      }
+      if (parameters.accumulationTargetMode != gpuDiffusePathLoopAccumulationTargetPixel) {
+        throw std::logic_error(
+          backendMessage(backendDisplayName, "returned unknown accumulation target mode"));
+      }
+      return pixelCount(parameters, backendDisplayName);
+    }
+
+    void validateEchoedLaunchParameters(std::uint64_t initialPathCount,
+                                        const GpuDiffusePathLoopSettings& settings,
+                                        const GpuDiffusePathLoopPlatformResult& platformResult,
+                                        const char* backendDisplayName) {
+      if (initialPathCount > std::numeric_limits<std::uint32_t>::max()) {
+        throw std::overflow_error(
+          backendMessage(backendDisplayName, "initial path count exceeds launch descriptor"));
+      }
+      const GpuDiffusePathLoopLaunchParameters& echoed = platformResult.echoedParameters;
+      const bool matches =
+        echoed.layoutVersion == gpuDiffusePathLoopLaunchLayoutVersion &&
+        echoed.maxDepth == settings.maxDepth &&
+        echoed.russianRouletteDepth == settings.russianRouletteDepth &&
+        echoed.directLightSamples == settings.directLightSamples &&
+        echoed.captureDiagnostics == flag(settings.captureDiagnostics) &&
+        echoed.captureMetrics == flag(settings.captureMetrics) &&
+        echoed.captureDenoiserFeatures == flag(settings.captureDenoiserFeatures) &&
+        echoed.displayResolveTonemap ==
+          static_cast<std::uint32_t>(settings.displayResolveTonemap) &&
+        echoed.initialPathCount == static_cast<std::uint32_t>(initialPathCount);
+      if (!matches) {
+        throw std::logic_error(
+          backendMessage(backendDisplayName, "returned mismatched launch parameters"));
+      }
+    }
+
+    void validatePlatformReadbacks(const GpuDiffusePathLoopSettings& settings,
+                                   const GpuDiffusePathLoopPlatformResult& platformResult,
+                                   const char* backendDisplayName) {
+      const GpuDiffusePathLoopLaunchParameters& echoed = platformResult.echoedParameters;
+      const std::uint64_t accumulationPixels = pixelCount(echoed, backendDisplayName);
+
+      if (platformResult.accumulationColorSums.size() !=
+          platformResult.accumulationSampleCounts.size()) {
+        throw std::logic_error(backendMessage(
+          backendDisplayName, "returned mismatched platform accumulation plane sizes"));
+      }
+      if (settings.capturePlatformAccumulation) {
+        if (platformResult.accumulationColorSums.size() != accumulationPixels) {
+          throw std::logic_error(backendMessage(
+            backendDisplayName, "returned accumulation planes with unexpected size"));
+        }
+      } else if (!platformResult.accumulationColorSums.empty()) {
+        throw std::logic_error(backendMessage(
+          backendDisplayName, "returned accumulation planes when capture was disabled"));
+      }
+
+      const std::uint64_t resolvedPixels = displayPixelCount(echoed, backendDisplayName);
+      if (settings.captureResolvedDisplay) {
+        if (resolvedPixels == 0u || platformResult.resolvedDisplayPixels.size() != resolvedPixels) {
+          throw std::logic_error(backendMessage(
+            backendDisplayName, "returned display resolve pixels with unexpected size"));
+        }
+      } else if (!platformResult.resolvedDisplayPixels.empty()) {
+        throw std::logic_error(backendMessage(
+          backendDisplayName, "returned display resolve pixels when capture was disabled"));
+      }
+
+      if (settings.captureDenoiserFeatures) {
+        if (platformResult.denoiserFeatureRecords.size() != accumulationPixels) {
+          throw std::logic_error(backendMessage(
+            backendDisplayName, "returned denoiser feature records with unexpected size"));
+        }
+      } else if (!platformResult.denoiserFeatureRecords.empty()) {
+        throw std::logic_error(backendMessage(
+          backendDisplayName, "returned denoiser feature records when capture was disabled"));
+      }
+    }
+
     [[nodiscard]] ActiveAccumulationTargetShape
     activeAccumulationTargetShapeFor(const std::vector<GpuDiffusePathStateRecord>& pathStates,
                                      const char* backendDisplayName) {
@@ -396,6 +497,9 @@ namespace render {
     GpuDiffusePathLoopPlatformResult&& platformResult, const char* backendDisplayName,
     const char* platformName, const char* pathStateResidency, const char* accumulationBackend,
     const char* accumulationResidency) {
+    validateEchoedLaunchParameters(initialPathCount, settings, platformResult, backendDisplayName);
+    validatePlatformReadbacks(settings, platformResult, backendDisplayName);
+
     GpuDiffusePathLoopResult loop;
     loop.executionPath = kFullGpuSubsetExecutionPath;
     loop.pathStateResidency = pathStateResidency;

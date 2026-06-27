@@ -125,6 +125,25 @@ namespace GpuDiffusePathStepReferenceTest {
       return path;
     }
 
+    void fillEchoedLaunchParameters(GpuDiffusePathLoopPlatformResult& platform,
+                                    std::uint32_t initialPathCount,
+                                    const GpuDiffusePathLoopSettings& settings,
+                                    std::uint32_t width = 1, std::uint32_t height = 1) {
+      platform.echoedParameters.layoutVersion = gpuDiffusePathLoopLaunchLayoutVersion;
+      platform.echoedParameters.maxDepth = settings.maxDepth;
+      platform.echoedParameters.russianRouletteDepth = settings.russianRouletteDepth;
+      platform.echoedParameters.directLightSamples = settings.directLightSamples;
+      platform.echoedParameters.captureDiagnostics = settings.captureDiagnostics ? 1u : 0u;
+      platform.echoedParameters.captureMetrics = settings.captureMetrics ? 1u : 0u;
+      platform.echoedParameters.captureDenoiserFeatures =
+        settings.captureDenoiserFeatures ? 1u : 0u;
+      platform.echoedParameters.displayResolveTonemap =
+        static_cast<std::uint32_t>(settings.displayResolveTonemap);
+      platform.echoedParameters.initialPathCount = initialPathCount;
+      platform.echoedParameters.imageWidth = width;
+      platform.echoedParameters.imageHeight = height;
+    }
+
     class RecordingFrontierCompactionBackend final
         : public GpuDiffusePathFrontierCompactionBackend {
     public:
@@ -2366,9 +2385,11 @@ namespace GpuDiffusePathStepReferenceTest {
   }
 
   TEST(GpuDiffusePathLoopBackend, SharedPlatformResultUsesGpuDirectLightStepCounters) {
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 1;
+
     GpuDiffusePathLoopPlatformResult platform;
-    platform.echoedParameters.imageWidth = 1;
-    platform.echoedParameters.imageHeight = 1;
+    fillEchoedLaunchParameters(platform, 1, settings);
     platform.executionPath = "test_path_loop";
     platform.pathStateResidency = "test_path_state";
     platform.accumulationColorSums = {{{0.25f, 0.5f, 0.75f, 0.0f}}};
@@ -2383,9 +2404,6 @@ namespace GpuDiffusePathStepReferenceTest {
     platform.stepRecords[0].directLightContributingSampleCount = 2;
     platform.stepRecords[0].directLightOccludedSampleCount = 1;
 
-    GpuDiffusePathLoopSettings settings;
-    settings.maxDepth = 1;
-
     GpuDiffusePathLoopResult result = makePlatformGpuDiffusePathLoopResult(
       1, settings, std::move(platform), "Test", "test", "test_path_state", "test_accumulation",
       "test_accumulation_residency");
@@ -2398,11 +2416,15 @@ namespace GpuDiffusePathStepReferenceTest {
   }
 
   TEST(GpuDiffusePathLoopBackend, SharedPlatformResultHonorsTraceDisabledNoReadback) {
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 2;
+    settings.captureDiagnostics = false;
+    settings.captureMetrics = false;
+
     GpuDiffusePathLoopPlatformResult platform;
+    fillEchoedLaunchParameters(platform, 2, settings, 1, 2);
     platform.echoedParameters.accumulationTargetMode =
       gpuDiffusePathLoopAccumulationTargetSampleSlot;
-    platform.echoedParameters.imageWidth = 1;
-    platform.echoedParameters.imageHeight = 2;
     platform.executionPath = "test_path_loop";
     platform.pathStateResidency = "test_path_state";
     platform.retainedFrontierDispatchesIndirect = true;
@@ -2419,11 +2441,6 @@ namespace GpuDiffusePathStepReferenceTest {
     platform.stepRecords[0].continuationThroughput = {0.5f, 0.5f, 0.5f, 0.0f};
     platform.stepRecords[1].event = static_cast<std::uint32_t>(GpuDiffusePathStepEvent::Miss);
     platform.stepRecords[1].depth = 1;
-
-    GpuDiffusePathLoopSettings settings;
-    settings.maxDepth = 2;
-    settings.captureDiagnostics = false;
-    settings.captureMetrics = false;
 
     GpuDiffusePathLoopResult result = makePlatformGpuDiffusePathLoopResult(
       2, settings, std::move(platform), "Test", "test", "test_path_state", "test_accumulation",
@@ -2446,6 +2463,64 @@ namespace GpuDiffusePathStepReferenceTest {
               result.platformAccumulationTargetMode);
     EXPECT_EQ("test_accumulation", result.platformAccumulationBackend);
     EXPECT_EQ("test_accumulation_residency", result.platformAccumulationResidency);
+  }
+
+  TEST(GpuDiffusePathLoopBackend, SharedPlatformResultRejectsMismatchedLaunchEcho) {
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 2;
+    settings.directLightSamples = 4;
+
+    GpuDiffusePathLoopPlatformResult platform;
+    fillEchoedLaunchParameters(platform, 1, settings);
+    platform.echoedParameters.directLightSamples = 1;
+    platform.accumulationColorSums = {{{0.25f, 0.5f, 0.75f, 0.0f}}};
+    platform.accumulationSampleCounts = {1};
+
+    EXPECT_THROW((void)makePlatformGpuDiffusePathLoopResult(
+                   1, settings, std::move(platform), "Test", "test", "test_path_state",
+                   "test_accumulation", "test_accumulation_residency"),
+                 std::logic_error);
+  }
+
+  TEST(GpuDiffusePathLoopBackend, SharedPlatformResultRejectsMalformedPlatformReadbacks) {
+    {
+      GpuDiffusePathLoopSettings settings;
+      GpuDiffusePathLoopPlatformResult platform;
+      fillEchoedLaunchParameters(platform, 1, settings, 2, 1);
+      platform.accumulationColorSums = {{{0.25f, 0.5f, 0.75f, 0.0f}}};
+      platform.accumulationSampleCounts = {1};
+
+      EXPECT_THROW((void)makePlatformGpuDiffusePathLoopResult(
+                     1, settings, std::move(platform), "Test", "test", "test_path_state",
+                     "test_accumulation", "test_accumulation_residency"),
+                   std::logic_error);
+    }
+    {
+      GpuDiffusePathLoopSettings settings;
+      settings.capturePlatformAccumulation = false;
+      GpuDiffusePathLoopPlatformResult platform;
+      fillEchoedLaunchParameters(platform, 1, settings);
+      platform.accumulationColorSums = {{{0.25f, 0.5f, 0.75f, 0.0f}}};
+      platform.accumulationSampleCounts = {1};
+
+      EXPECT_THROW((void)makePlatformGpuDiffusePathLoopResult(
+                     1, settings, std::move(platform), "Test", "test", "test_path_state",
+                     "test_accumulation", "test_accumulation_residency"),
+                   std::logic_error);
+    }
+    {
+      GpuDiffusePathLoopSettings settings;
+      settings.captureResolvedDisplay = true;
+      GpuDiffusePathLoopPlatformResult platform;
+      fillEchoedLaunchParameters(platform, 1, settings);
+      platform.accumulationColorSums = {{{0.25f, 0.5f, 0.75f, 0.0f}}};
+      platform.accumulationSampleCounts = {1};
+
+      EXPECT_THROW((void)makePlatformGpuDiffusePathLoopResult(
+                     1, settings, std::move(platform), "Test", "test", "test_path_state",
+                     "test_accumulation", "test_accumulation_residency"),
+                   std::logic_error);
+    }
   }
 
   TEST(GpuDiffusePathLoopResult, ReportsCpuReferenceTracingCapabilitiesAsGpuFallbacks) {
