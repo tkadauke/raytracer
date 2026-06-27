@@ -3073,6 +3073,59 @@ namespace GpuDiffusePathStepReferenceTest {
 #endif
   }
 
+  TEST(MetalGpuDiffusePathLoopBackend,
+       ResolvesDescriptorOnlyPinholePrimaryPathsToDisplayWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    const MetalGpuDiffusePathLoopBackend backend;
+    if (!backend.fullGpuPathLoopAvailable()) {
+      GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
+    }
+
+    const Colord background(0.25, 0.5, 0.75);
+    Scene scene;
+    scene.setBackground(background);
+    scene.setEnvironmentRadiance(Colord(0.1, 0.2, 0.3));
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+
+    PinholeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 2, 2));
+    camera.viewPlane()->sampler()->setup(1, 4, 42);
+
+    GpuDiffusePrimaryPathStateGenerationOptions descriptorOnlyOptions;
+    descriptorOnlyOptions.materializeHostPathStates = false;
+    const GpuDiffusePrimaryPathStateGeneration descriptorOnly =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 2, 2), 99, 1234,
+                                                     descriptorOnlyOptions);
+    ASSERT_TRUE(descriptorOnly.canGeneratePrimaryPathsOnDevice());
+    ASSERT_TRUE(descriptorOnly.pathStates.empty());
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 1;
+    settings.russianRouletteDepth = 10;
+    settings.captureDiagnostics = false;
+    settings.captureMetrics = false;
+    settings.capturePlatformAccumulation = false;
+    settings.captureResolvedDisplay = true;
+    settings.displayResolveTonemap = GpuDisplayResolveTonemap::Linear;
+
+    const GpuDiffusePathLoopResult result = backend.run(sections, descriptorOnly, settings);
+
+    EXPECT_TRUE(result.fullGpuPathLoopSupported());
+    EXPECT_EQ("metal", result.platformName);
+    EXPECT_EQ(4u, result.initialPathCount);
+    EXPECT_TRUE(result.resolvedPathStates.empty());
+    EXPECT_TRUE(result.stepRecords.empty());
+    EXPECT_FALSE(result.hasPlatformAccumulation());
+    ASSERT_TRUE(result.hasPlatformResolvedDisplay());
+    ASSERT_EQ(4u, result.platformResolvedDisplayPixels.size());
+    for (const unsigned int pixel : result.platformResolvedDisplayPixels) {
+      EXPECT_EQ(background.rgb(), pixel);
+    }
+#else
+    GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
+#endif
+  }
+
   TEST(MetalGpuDiffusePathLoopBackend, RunsDuplicatePixelSamplesWithSampleSlotAccumulation) {
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
     const MetalGpuDiffusePathLoopBackend backend;
@@ -3826,6 +3879,59 @@ namespace GpuDiffusePathStepReferenceTest {
     for (std::size_t index = 0; index != expected.resolvedPathStates.size(); ++index) {
       expectPathStateNear(result.resolvedPathStates[index], expected.resolvedPathStates[index],
                           1e-4);
+    }
+#else
+    GTEST_SKIP() << "Vulkan wavefront support is not enabled in this build";
+#endif
+  }
+
+  TEST(VulkanGpuDiffusePathLoopBackend,
+       ResolvesDescriptorOnlyPinholePrimaryPathsToDisplayWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    const VulkanGpuDiffusePathLoopBackend backend;
+    if (!backend.fullGpuPathLoopAvailable()) {
+      GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
+    }
+
+    const Colord background(0.25, 0.5, 0.75);
+    Scene scene;
+    scene.setBackground(background);
+    scene.setEnvironmentRadiance(Colord(0.1, 0.2, 0.3));
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+
+    PinholeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 2, 2));
+    camera.viewPlane()->sampler()->setup(1, 4, 42);
+
+    GpuDiffusePrimaryPathStateGenerationOptions descriptorOnlyOptions;
+    descriptorOnlyOptions.materializeHostPathStates = false;
+    const GpuDiffusePrimaryPathStateGeneration descriptorOnly =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 2, 2), 99, 1234,
+                                                     descriptorOnlyOptions);
+    ASSERT_TRUE(descriptorOnly.canGeneratePrimaryPathsOnDevice());
+    ASSERT_TRUE(descriptorOnly.pathStates.empty());
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 1;
+    settings.russianRouletteDepth = 10;
+    settings.captureDiagnostics = false;
+    settings.captureMetrics = false;
+    settings.capturePlatformAccumulation = false;
+    settings.captureResolvedDisplay = true;
+    settings.displayResolveTonemap = GpuDisplayResolveTonemap::Linear;
+
+    const GpuDiffusePathLoopResult result = backend.run(sections, descriptorOnly, settings);
+
+    EXPECT_TRUE(result.fullGpuPathLoopSupported());
+    EXPECT_EQ("vulkan", result.platformName);
+    EXPECT_EQ(4u, result.initialPathCount);
+    EXPECT_TRUE(result.resolvedPathStates.empty());
+    EXPECT_TRUE(result.stepRecords.empty());
+    EXPECT_FALSE(result.hasPlatformAccumulation());
+    ASSERT_TRUE(result.hasPlatformResolvedDisplay());
+    ASSERT_EQ(4u, result.platformResolvedDisplayPixels.size());
+    for (const unsigned int pixel : result.platformResolvedDisplayPixels) {
+      EXPECT_EQ(background.rgb(), pixel);
     }
 #else
     GTEST_SKIP() << "Vulkan wavefront support is not enabled in this build";

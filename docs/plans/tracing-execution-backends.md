@@ -2907,7 +2907,11 @@ scene is large enough to amortize upload/readback costs.
      the speed gate now covers the live graph shape where supported cameras
      generate primary paths on the GPU instead of uploading a synthetic host
      path-state vector; synthetic path-vector rows remain available only with an
-     explicit verifier override.
+     explicit verifier override. Metal and Vulkan backend tests now also pin
+     descriptor-only pinhole launches with trace/metrics/accumulation capture
+     disabled and platform display resolve enabled, so the final-display route
+     is covered at the backend boundary rather than only through graph-level
+     fake-backend tests.
 
 6. **Update user-facing docs and examples.**
    - Depends on: job 5.
