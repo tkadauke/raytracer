@@ -2510,6 +2510,11 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ(0.0, batching.value("residentPathLoopSavedHostReadbacks").toDouble());
     EXPECT_FALSE(batching.value("residentPathLoopSceneUploadCacheHit").toBool());
     EXPECT_EQ(0.0, batching.value("residentPathLoopSceneUploadBytesWritten").toDouble());
+    EXPECT_TRUE(batching.value("residentPathLoopCaptureDiagnostics").toBool());
+    EXPECT_TRUE(batching.value("residentPathLoopCapturePlatformAccumulation").toBool());
+    EXPECT_FALSE(batching.value("residentPathLoopCaptureResolvedDisplay").toBool());
+    EXPECT_EQ("linear",
+              batching.value("residentPathLoopDisplayResolveTonemap").toString().toStdString());
 
     const QJsonObject input = metadata.value("input").toObject();
     EXPECT_EQ("gpu_sample_stream", input.value("sampleStreamMode").toString().toStdString());
@@ -2523,6 +2528,10 @@ namespace GraphRenderEngineTest {
     EXPECT_FALSE(loop.value("retainedFrontierDispatchesIndirect").toBool());
     EXPECT_FALSE(loop.value("sceneUploadCacheHit").toBool());
     EXPECT_EQ(0.0, loop.value("sceneUploadBytesWritten").toDouble());
+    EXPECT_TRUE(loop.value("captureDiagnostics").toBool());
+    EXPECT_TRUE(loop.value("capturePlatformAccumulation").toBool());
+    EXPECT_FALSE(loop.value("captureResolvedDisplay").toBool());
+    EXPECT_EQ("linear", loop.value("displayResolveTonemap").toString().toStdString());
     EXPECT_GT(loop.value("submittedIntersectionRays").toDouble(), 0.0);
 
     const QJsonObject accumulation = metadata.value("accumulation").toObject();
@@ -2619,6 +2628,11 @@ namespace GraphRenderEngineTest {
     EXPECT_GT(batching.value("residentPathLoopSavedHostReadbacks").toDouble(), 0.0);
     EXPECT_TRUE(batching.value("residentPathLoopSceneUploadCacheHit").toBool());
     EXPECT_EQ(0.0, batching.value("residentPathLoopSceneUploadBytesWritten").toDouble());
+    EXPECT_TRUE(batching.value("residentPathLoopCaptureDiagnostics").toBool());
+    EXPECT_TRUE(batching.value("residentPathLoopCapturePlatformAccumulation").toBool());
+    EXPECT_FALSE(batching.value("residentPathLoopCaptureResolvedDisplay").toBool());
+    EXPECT_EQ("linear",
+              batching.value("residentPathLoopDisplayResolveTonemap").toString().toStdString());
 
     const QJsonObject loop = metadata.value("compiledDiffusePathLoop").toObject();
     EXPECT_EQ("full_gpu_subset", loop.value("backend").toString().toStdString());
@@ -2628,6 +2642,10 @@ namespace GraphRenderEngineTest {
     EXPECT_TRUE(loop.value("retainedFrontierDispatchesIndirect").toBool());
     EXPECT_TRUE(loop.value("sceneUploadCacheHit").toBool());
     EXPECT_EQ(0.0, loop.value("sceneUploadBytesWritten").toDouble());
+    EXPECT_TRUE(loop.value("captureDiagnostics").toBool());
+    EXPECT_TRUE(loop.value("capturePlatformAccumulation").toBool());
+    EXPECT_FALSE(loop.value("captureResolvedDisplay").toBool());
+    EXPECT_EQ("linear", loop.value("displayResolveTonemap").toString().toStdString());
   }
 
   TEST(GraphRenderEngine, CompiledDiffusePathLoopHonorsBackgroundColorOverride) {

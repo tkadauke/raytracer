@@ -56,6 +56,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Add rendercli `--sample_stream_mode sampler|gpu_sample_stream`, so
   command-line graph renders can explicitly request the GPU sample stream
   without using a sampler-backed path-tracer intent. — GPT-5 Codex
+- Report compiled GPU path-loop capture policy in render graph trace metadata,
+  including diagnostic capture, platform accumulation readback, platform display
+  resolve readback, and the selected platform display-resolve tonemap. —
+  GPT-5 Codex
 - Let Metal and Vulkan full-GPU diffuse path-loop display resolves apply
   Reinhard and ACES tonemapping on the platform path, so simple trace-disabled
   graph LDR renders with those final tonemaps can avoid HDR accumulation

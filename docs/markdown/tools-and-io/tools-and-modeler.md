@@ -581,7 +581,10 @@ simple trace-disabled graph LDR path can now report a platform display resolve
 without a companion HDR accumulation readback when the full-GPU path tracer
 feeds only the final GPU-resolvable tonemap (currently Linear, Reinhard, or
 ACES); denoising, graph trace capture, postprocess consumers, and unsupported
-tonemaps still force HDR materialization.
+tonemaps still force HDR materialization. The compiled path-loop metadata also
+records the capture policy that was requested from the backend: diagnostic
+capture, platform accumulation readback, platform display resolve readback, and
+the display-resolve tonemap.
 The
 compact summary prints total `tiles`, `tile_grid`,
 `max_tile_width`, `max_tile_height`, `max_tile_pixels`, `avg_tile_pixels`,

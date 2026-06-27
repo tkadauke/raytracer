@@ -782,6 +782,20 @@ namespace engine::graph {
       service["sceneUploadBytes"] = static_cast<double>(diagnostics.uploadBytes);
     }
 
+    QString displayResolveTonemapName(render::GpuDisplayResolveTonemap tonemap) {
+      switch (tonemap) {
+      case render::GpuDisplayResolveTonemap::Unsupported:
+        return QStringLiteral("unsupported");
+      case render::GpuDisplayResolveTonemap::Linear:
+        return QStringLiteral("linear");
+      case render::GpuDisplayResolveTonemap::Reinhard:
+        return QStringLiteral("reinhard");
+      case render::GpuDisplayResolveTonemap::Aces:
+        return QStringLiteral("aces");
+      }
+      return QStringLiteral("unknown");
+    }
+
     constexpr const char* compiledDiffusePathLoopDirectLightContributionFallbackReason() {
       return "compiled CPU-reference path loop evaluates direct-light contribution on the host";
     }
@@ -793,6 +807,7 @@ namespace engine::graph {
     QJsonObject
     compiledDiffusePathLoopMetadata(const render::GpuTracingSceneCompilation& compilation,
                                     const render::GpuDiffusePrimaryPathStateGeneration& generation,
+                                    const render::GpuDiffusePathLoopSettings& settings,
                                     const render::GpuDiffusePathLoopResult& loop,
                                     const render::TracingAccumulationDiagnostics& accumulation,
                                     TracingExecutionPreference requestedTracingExecution) {
@@ -936,6 +951,12 @@ namespace engine::graph {
       batching["residentPathLoopSceneUploadCacheHit"] = loop.platformSceneUploadCacheHit;
       batching["residentPathLoopSceneUploadBytesWritten"] =
         static_cast<double>(loop.platformSceneUploadBytesWritten);
+      batching["residentPathLoopCaptureDiagnostics"] = settings.captureDiagnostics;
+      batching["residentPathLoopCapturePlatformAccumulation"] =
+        settings.capturePlatformAccumulation;
+      batching["residentPathLoopCaptureResolvedDisplay"] = settings.captureResolvedDisplay;
+      batching["residentPathLoopDisplayResolveTonemap"] =
+        displayResolveTonemapName(settings.displayResolveTonemap);
       batching["residentPathLoopSubmittedIntersectionRays"] =
         static_cast<double>(loop.submittedIntersectionRayCount());
       batching["residentPathLoopFullPlatformGpuKernel"] = loop.fullGpuPathLoopSupported();
@@ -972,6 +993,11 @@ namespace engine::graph {
       compiledLoop["sceneUploadCacheHit"] = loop.platformSceneUploadCacheHit;
       compiledLoop["sceneUploadBytesWritten"] =
         static_cast<double>(loop.platformSceneUploadBytesWritten);
+      compiledLoop["captureDiagnostics"] = settings.captureDiagnostics;
+      compiledLoop["capturePlatformAccumulation"] = settings.capturePlatformAccumulation;
+      compiledLoop["captureResolvedDisplay"] = settings.captureResolvedDisplay;
+      compiledLoop["displayResolveTonemap"] =
+        displayResolveTonemapName(settings.displayResolveTonemap);
       compiledLoop["submittedIntersectionRays"] =
         static_cast<double>(loop.submittedIntersectionRayCount());
       compiledLoop["note"] =
@@ -1380,7 +1406,7 @@ namespace engine::graph {
           " primary path state(s) through the " +
           (loop.fullGpuPathLoopSupported() ? "platform GPU" : "CPU reference") + " backend");
         QJsonObject metadata = compiledDiffusePathLoopMetadata(
-          compilation, generation, loop, accumulation,
+          compilation, generation, settings, loop, accumulation,
           state.tracingExecution().value_or(TracingExecutionPreference::Auto));
         metadata["denoise"] = denoise;
         context.setTraceMetadata(withTracingExecutionMetadata(

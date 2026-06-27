@@ -120,7 +120,9 @@ end state for GPU tracing.
   unsupported tonemap, or feed postprocess/HDR consumers still retain the
   accumulation image readback. Retained-index and active-depth-count buffers
   remain resident because they are scheduling state, not trace readback
-  artifacts.
+  artifacts. Render graph trace metadata reports the requested capture policy
+  (`captureDiagnostics`, platform accumulation, platform display resolve, and
+  display-resolve tonemap) so readback behavior is inspectable per pass.
 - Supported diffuse path-tracing scenes can route GPU execution requests
   through the compiled diffuse path-loop path from the live render graph path.
   rendercli, Modeler preview, and the render dialog report whether that
