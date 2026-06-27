@@ -1256,26 +1256,20 @@ namespace {
       return false;
     }
 
-    input.backend = GpuDiffusePathLoopBackend::defaultFullGpuBackendForGpuRequest();
-    if (!input.backend) {
-      state.SkipWithError("platform full-GPU path-loop backend is not enabled");
-      return false;
-    }
-    if (!input.backend->fullGpuPathLoopAvailable()) {
-      state.SkipWithError(input.backend->fullGpuPathLoopUnavailableReason());
-      return false;
-    }
-
     input.paths = generateDiffusePathStates(state.range(1));
     input.settings.maxDepth = static_cast<std::uint32_t>(state.range(2));
     input.settings.russianRouletteDepth = 3;
     input.settings.directLightSamples = 1;
     input.settings.captureDiagnostics = false;
 
-    const GpuDiffusePathLoopBackendSupport backendSupport =
-      input.backend->fullGpuPathLoopSupport(input.compilation.sections, input.settings);
-    if (!backendSupport.supported) {
-      state.SkipWithError(backendSupport.reason.c_str());
+    const GpuDiffusePathLoopBackendChoice backendChoice =
+      GpuDiffusePathLoopBackend::defaultFullGpuBackendForGpuRequest(input.compilation.sections,
+                                                                    input.settings);
+    input.backend = backendChoice.backend;
+    if (!input.backend) {
+      state.SkipWithError(backendChoice.fallbackReason.empty()
+                            ? "platform full-GPU path-loop backend is not enabled"
+                            : backendChoice.fallbackReason.c_str());
       return false;
     }
     return true;

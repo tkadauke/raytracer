@@ -104,6 +104,9 @@ disabled, matching the trace-disabled full-GPU render path. One requested-GPU
 row measures a cold launch; the warmed scene-upload row performs one
 unmeasured platform path-loop launch before the timed loop, so captures can
 separate cold scene-upload cost from steady-state GPU path-loop launch cost.
+When a build exposes multiple platform path-loop backends, these rows select
+the first backend that supports the compiled scene and pass settings rather
+than blindly using the first available platform backend.
 `benchmarks/tracing_backend_capture.sh` writes those rows to
 `<out>/indirect_diffuse/indirect_diffuse_compiled_path_loop_benchmarks.json`
 when `TRACING_BACKEND_RUN_CPP_BENCHMARKS=1`.

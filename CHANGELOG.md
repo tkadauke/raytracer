@@ -66,9 +66,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   default use the GPU sample stream, while explicit CPU Path Tracer renders
   still default to Halton. — GPT-5 Codex
 - Prefer a scene/settings-supported platform full-GPU path-loop backend when a
-  build contains more than one GPU path-tracing backend, while keeping fallback
-  diagnostics from a compiled platform backend when none can launch. —
-  GPT-5 Codex
+  build contains more than one GPU path-tracing backend, including graph
+  execution and requested-GPU benchmark rows, while keeping fallback diagnostics
+  from a compiled platform backend when none can launch. — GPT-5 Codex
 - Let compiled GPU diffuse path-loop renders honor graph background-color
   overrides instead of falling back to the scalar path. — GPT-5 Codex
 - Add rendercli `--sample_stream_mode sampler|gpu_sample_stream`, so
