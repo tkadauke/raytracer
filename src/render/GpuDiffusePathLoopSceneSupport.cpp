@@ -157,15 +157,28 @@ namespace render {
     case GpuTracingMaterialKind::Phong:
     case GpuTracingMaterialKind::Reflective:
     case GpuTracingMaterialKind::Transparent:
-      return supportedTexture(scene, material.albedoTexture);
+      return supportedMaterialTexture(scene, material.albedoTexture);
     case GpuTracingMaterialKind::Emissive:
-      return supportedTexture(scene, material.emissionTexture);
+      return supportedMaterialTexture(scene, material.emissionTexture);
     case GpuTracingMaterialKind::Portal:
       return true;
     case GpuTracingMaterialKind::Unsupported:
       return false;
     }
     return false;
+  }
+
+  bool
+  GpuDiffusePathLoopSceneSupport::supportedMaterialTexture(const GpuTracingSceneSections& scene,
+                                                           std::size_t textureIndex) const {
+    if (textureIndex >= scene.textures.size()) {
+      return false;
+    }
+    if (static_cast<GpuTracingTextureKind>(scene.textures[textureIndex].kind) ==
+        GpuTracingTextureKind::Unsupported) {
+      return false;
+    }
+    return supportedTexture(scene, textureIndex);
   }
 
   bool GpuDiffusePathLoopSceneSupport::supportedUntintedTexture(

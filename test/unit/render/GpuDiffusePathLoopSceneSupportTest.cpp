@@ -69,7 +69,9 @@ namespace GpuDiffusePathLoopSceneSupportTest {
   TEST(GpuDiffusePathLoopSceneSupport, AcceptsEmptyGeometryWithSupportedSceneRecords) {
     GpuTracingSceneSections sections;
     sections.materials.push_back(materialRecord(GpuTracingMaterialKind::Unsupported));
-    sections.materials.push_back(materialRecord(GpuTracingMaterialKind::Matte));
+    GpuTracingMaterialRecord matte = materialRecord(GpuTracingMaterialKind::Matte);
+    matte.albedoTexture = 1;
+    sections.materials.push_back(matte);
     sections.textures.push_back(textureRecord(GpuTracingTextureKind::Unsupported));
     sections.textures.push_back(textureRecord(GpuTracingTextureKind::ConstantColor));
     sections.lights.push_back(lightRecord(GpuTracingLightKind::Point));
@@ -139,6 +141,24 @@ namespace GpuDiffusePathLoopSceneSupportTest {
     emissive.emissionTexture = 7;
     emissiveWithMissingEmission.materials.push_back(emissive);
     expectUnsupported(supportFor(emissiveWithMissingEmission), "material");
+  }
+
+  TEST(GpuDiffusePathLoopSceneSupport, RejectsMaterialsThatReferenceUnsupportedTextureSentinel) {
+    GpuTracingSceneSections sentinelAlbedo;
+    sentinelAlbedo.textures.push_back(textureRecord(GpuTracingTextureKind::Unsupported));
+    sentinelAlbedo.textures.push_back(textureRecord(GpuTracingTextureKind::ConstantColor));
+    GpuTracingMaterialRecord matte = materialRecord(GpuTracingMaterialKind::Matte);
+    matte.albedoTexture = 0;
+    sentinelAlbedo.materials.push_back(matte);
+    expectUnsupported(supportFor(sentinelAlbedo), "material");
+
+    GpuTracingSceneSections sentinelEmission;
+    sentinelEmission.textures.push_back(textureRecord(GpuTracingTextureKind::Unsupported));
+    sentinelEmission.textures.push_back(textureRecord(GpuTracingTextureKind::ConstantColor));
+    GpuTracingMaterialRecord emissive = materialRecord(GpuTracingMaterialKind::Emissive);
+    emissive.emissionTexture = 0;
+    sentinelEmission.materials.push_back(emissive);
+    expectUnsupported(supportFor(sentinelEmission), "material");
   }
 
   TEST(GpuDiffusePathLoopSceneSupport, ValidatesSupportedPrimitivePayloads) {
