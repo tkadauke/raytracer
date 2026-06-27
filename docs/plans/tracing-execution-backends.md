@@ -123,6 +123,10 @@ end state for GPU tracing.
   artifacts. Render graph trace metadata reports the requested capture policy
   (`captureDiagnostics`, platform accumulation, platform display resolve, and
   display-resolve tonemap) so readback behavior is inspectable per pass.
+  The Modeler final render dialog now leaves trace capture off by default and
+  exposes it as an explicit `Capture graph trace` diagnostic toggle, so the
+  normal final-render path can take the trace-disabled display-only full-GPU
+  route.
   Direct Metal/Vulkan backend support checks reject unsupported
   display-resolve tonemaps when resolved display pixels are requested.
 - Supported diffuse path-tracing scenes can route GPU execution requests
@@ -2728,7 +2732,9 @@ scene is large enough to amortize upload/readback costs.
      display-only, skips the CPU tonemap pass, marks the final output edge
      produced, and does not ask the backend to read back HDR accumulation
      planes. Any denoiser, graph trace, unsupported tonemap, or postprocess/HDR
-     consumer still forces the older accumulation materialization path. The
+     consumer still forces the older accumulation materialization path; the
+     final render dialog keeps graph trace capture off by default and exposes a
+     diagnostic checkbox for users who need trace images/metadata. The
      compiled path loop also
      carries `ReflectiveMaterial`, `TransparentMaterial`, and `PortalMaterial`
      delta continuations through the CPU reference evaluator and the Metal

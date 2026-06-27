@@ -48,6 +48,7 @@ public:
   int shadowFilterRadius() const;
   QString shadowFilterMode() const;
   RenderWidget::DisplayMode displayMode() const;
+  bool graphTraceCaptureEnabled() const;
 
   bool showProgressIndicators() const;
 

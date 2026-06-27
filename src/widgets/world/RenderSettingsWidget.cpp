@@ -548,6 +548,10 @@ RenderWidget::DisplayMode RenderSettingsWidget::displayMode() const {
   return RenderWidget::DisplayMode::PeriodicUpdate;
 }
 
+bool RenderSettingsWidget::graphTraceCaptureEnabled() const {
+  return p->ui.graphTraceCapture->isChecked();
+}
+
 void RenderSettingsWidget::engineChanged() {
   p->selectSamplerDefaultForCurrentControls();
   p->selectSamplesPerPixelDefaultForEngine(engine());
@@ -679,6 +683,7 @@ void RenderSettingsWidget::setBusy(bool busy) {
   p->ui.rasterShadowFilterMode->setEnabled(!busy);
   p->ui.displayUpdateMode->setEnabled(!busy);
   p->ui.showProgressIndicators->setEnabled(!busy);
+  p->ui.graphTraceCapture->setEnabled(!busy);
 
   p->ui.renderButton->setEnabled(!busy);
   p->ui.stopButton->setEnabled(busy);

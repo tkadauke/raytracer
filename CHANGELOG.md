@@ -24,6 +24,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Default graph-backed `pathtracer` executor shortcuts to the GPU sample stream
   and GPU tracing execution when the scene or caller has not explicitly chosen
   CPU/hybrid tracing or a sampler-backed path. — GPT-5 Codex
+- Add an explicit final render dialog `Capture graph trace` toggle, defaulting
+  off so ordinary GPU Path Tracer renders can use the trace-disabled
+  display-only full-GPU path while keeping trace inspection available on
+  request. — GPT-5 Codex
 - Size Metal full-GPU depth-frontier path-loop bounce dispatches from the
   GPU-resident retained frontier count instead of relaunching every initial
   sample at every depth. — GPT-5 Codex

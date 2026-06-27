@@ -197,7 +197,6 @@ RenderWindow::RenderWindow(QWidget* parent)
     : QWidget(parent),
       p(std::make_unique<Private>()) {
   p->graph = std::make_shared<engine::graph::GraphRenderEngine>(nullptr);
-  p->graph->setExecutionTraceEnabled(true);
 
   auto grid = new QGridLayout(this);
   p->settingsWidget = new RenderSettingsWidget(this);
@@ -256,6 +255,7 @@ void RenderWindow::render() {
   p->renderWidget->setBufferSize(p->settingsWidget->resolution());
 
   const auto intent = p->renderIntent();
+  p->graph->setExecutionTraceEnabled(p->settingsWidget->graphTraceCaptureEnabled());
   p->graph->setIntent(intent);
   if (p->graphInspector->effectivePlanValid()) {
     p->graph->setPlan(p->graphInspector->effectivePlan());

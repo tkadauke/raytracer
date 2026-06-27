@@ -940,6 +940,10 @@ For Path Tracer final renders using the
 wavefront schedule, the same
 dialog can leave the scene's saved denoiser intent alone or explicitly override
 it to None, Box, or Bilateral with radius and bilateral color-sigma controls.
+The dialog's `Capture graph trace` checkbox is off by default; leaving it off
+lets eligible GPU Path Tracer renders use the trace-disabled display-only
+full-GPU route, while enabling it records per-pass images and metadata for
+post-render graph inspection.
 It can also request Auto, CPU, or GPU wavefront intersection. GPU records the
 request and either uses the active Metal/Vulkan platform path or falls back to
 CPU visibly in the compiled graph and trace metadata; if the scene cannot be
@@ -1013,7 +1017,10 @@ final render plan before the Render button starts execution. The plan starts
 from the scene render intent, then applies the render-window controls as
 temporary final-render overrides such as engine, resolution, samples, raster
 backend, MSAA, and shadow-map quality. The image render executes the graph shown
-in that tab, including pass toggles made in the graph inspector.
+in that tab, including pass toggles made in the graph inspector. Completed
+trace images and trace metadata are captured only when `Capture graph trace` is
+enabled for that render; otherwise the graph tab still shows the compiled plan,
+but GPU path-tracer renders avoid trace readback and host diagnostic buffers.
 
 The Render Graph dock compiles the current preview intent into a
 [`RenderPlan`](../render-graph/render-plans-and-resources.md) before preview

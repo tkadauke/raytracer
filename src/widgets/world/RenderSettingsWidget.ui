@@ -221,6 +221,16 @@
         </item>
        </widget>
       </item>
+      <item row="2" column="0" colspan="2">
+       <widget class="QCheckBox" name="graphTraceCapture">
+        <property name="toolTip">
+         <string>Capture per-pass render graph trace images and metadata for inspection after rendering. Leave disabled for the fastest GPU path-tracer display path.</string>
+        </property>
+        <property name="text">
+         <string>Capture graph trace</string>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>

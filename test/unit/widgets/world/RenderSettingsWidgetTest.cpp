@@ -510,6 +510,26 @@ namespace RenderSettingsWidgetTest {
     EXPECT_FALSE(widget.showProgressIndicators());
   }
 
+  TEST_F(RenderSettingsWidgetTest, ShouldDefaultGraphTraceCaptureOff) {
+    RenderSettingsWidget widget;
+
+    auto* graphTraceCapture = widget.findChild<QCheckBox*>("graphTraceCapture");
+    ASSERT_NE(nullptr, graphTraceCapture);
+    EXPECT_FALSE(graphTraceCapture->isChecked());
+    EXPECT_FALSE(widget.graphTraceCaptureEnabled());
+  }
+
+  TEST_F(RenderSettingsWidgetTest, ShouldReadGraphTraceCaptureControl) {
+    RenderSettingsWidget widget;
+
+    auto* graphTraceCapture = widget.findChild<QCheckBox*>("graphTraceCapture");
+    ASSERT_NE(nullptr, graphTraceCapture);
+
+    graphTraceCapture->setChecked(true);
+
+    EXPECT_TRUE(widget.graphTraceCaptureEnabled());
+  }
+
   TEST_F(RenderSettingsWidgetTest, ShouldExposeAllDisplayModesForAnyEngine) {
     RenderSettingsWidget widget;
     auto engineType = widget.findChild<QComboBox*>("engineType");

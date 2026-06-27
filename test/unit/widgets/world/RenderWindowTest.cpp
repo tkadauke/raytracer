@@ -174,6 +174,48 @@ namespace RenderWindowTest {
     EXPECT_NE(nullptr, graphInspector->effectivePlan().findPass("wireframe_beauty"));
   }
 
+  TEST_F(RenderWindowTest, ShouldLeaveGraphTraceCaptureOffByDefaultForFinalRenders) {
+    RenderWindow window;
+    Scene scene;
+    window.setScene(&scene);
+
+    auto* captureTrace = window.findChild<QCheckBox*>("graphTraceCapture");
+    auto* renderWidget = window.findChild<RenderWidget*>();
+    ASSERT_NE(nullptr, captureTrace);
+    ASSERT_NE(nullptr, renderWidget);
+    EXPECT_FALSE(captureTrace->isChecked());
+
+    window.render();
+
+    auto graph =
+      std::dynamic_pointer_cast<engine::graph::GraphRenderEngine>(renderWidget->renderEngine());
+    ASSERT_NE(nullptr, graph);
+    EXPECT_FALSE(graph->executionTraceEnabled());
+
+    window.stop();
+  }
+
+  TEST_F(RenderWindowTest, ShouldEnableGraphTraceCaptureForFinalRendersWhenRequested) {
+    RenderWindow window;
+    Scene scene;
+    window.setScene(&scene);
+
+    auto* captureTrace = window.findChild<QCheckBox*>("graphTraceCapture");
+    auto* renderWidget = window.findChild<RenderWidget*>();
+    ASSERT_NE(nullptr, captureTrace);
+    ASSERT_NE(nullptr, renderWidget);
+
+    captureTrace->setChecked(true);
+    window.render();
+
+    auto graph =
+      std::dynamic_pointer_cast<engine::graph::GraphRenderEngine>(renderWidget->renderEngine());
+    ASSERT_NE(nullptr, graph);
+    EXPECT_TRUE(graph->executionTraceEnabled());
+
+    window.stop();
+  }
+
   TEST_F(RenderWindowTest, ShouldShowPredictedAndActualTracingExecutionInGraphTab) {
     RenderWindow window;
     Scene scene;
@@ -183,15 +225,18 @@ namespace RenderWindowTest {
     auto* resolution = window.findChild<QComboBox*>("resolution");
     auto* samples = window.findChild<QSpinBox*>("samplesPerPixel");
     auto* tracingExecution = window.findChild<QComboBox*>("tracingExecution");
+    auto* captureTrace = window.findChild<QCheckBox*>("graphTraceCapture");
     ASSERT_NE(nullptr, engineType);
     ASSERT_NE(nullptr, resolution);
     ASSERT_NE(nullptr, samples);
     ASSERT_NE(nullptr, tracingExecution);
+    ASSERT_NE(nullptr, captureTrace);
 
     engineType->setCurrentText("Path Tracer");
     resolution->setCurrentText("40x30");
     samples->setValue(1);
     tracingExecution->setCurrentText("CPU");
+    captureTrace->setChecked(true);
     QCoreApplication::processEvents();
 
     auto* graphInspector = window.findChild<RenderGraphInspectorWidget*>();
