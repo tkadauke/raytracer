@@ -160,10 +160,23 @@ struct RenderSettingsWidget::Private {
     return ui.samplerType->currentText() == QStringLiteral("GPU sample stream");
   }
 
+  QString managedSamplerDefault() const {
+    if (ui.engineType->currentText() != QStringLiteral("Path Tracer")) {
+      return QStringLiteral("Regular");
+    }
+    if (ui.tracingExecution->currentText() == QStringLiteral("CPU")) {
+      return QStringLiteral("Halton");
+    }
+    return QStringLiteral("GPU sample stream");
+  }
+
   void applyRaytracerOptions(const engine::graph::RenderRaytracerOptions& options) {
-    samplerDefaultManaged = !options.sampler().has_value();
+    samplerDefaultManaged =
+      !options.sampler().has_value() &&
+      !(options.sampleStreamMode() && *options.sampleStreamMode() == "gpu_sample_stream");
     samplesPerPixelDefaultManaged = !options.samplesPerPixel().has_value();
 
+    setComboBoxText(ui.tracingExecution, tracingExecutionText(options));
     if (options.sampleStreamMode() && *options.sampleStreamMode() == "gpu_sample_stream") {
       updatingSamplerDefault = true;
       setComboBoxText(ui.samplerType, QStringLiteral("GPU sample stream"));
@@ -173,7 +186,7 @@ struct RenderSettingsWidget::Private {
       setComboBoxText(ui.samplerType, QString::fromStdString(*options.sampler()));
       updatingSamplerDefault = false;
     } else {
-      selectSamplerDefaultForEngine(ui.engineType->currentText());
+      selectSamplerDefaultForCurrentControls();
     }
     if (options.samplesPerPixel()) {
       updatingSamplesPerPixelDefault = true;
@@ -195,7 +208,6 @@ struct RenderSettingsWidget::Private {
     if (options.viewPlane()) {
       setComboBoxText(ui.viewPlaneType, QString::fromStdString(*options.viewPlane()));
     }
-    setComboBoxText(ui.tracingExecution, tracingExecutionText(options));
     setComboBoxText(ui.wavefrontIntersectionBackend, intersectionBackendText(options));
     const QString denoiser = denoiserText(options);
     setComboBoxText(ui.rayDenoiser, denoiser);
@@ -263,14 +275,12 @@ struct RenderSettingsWidget::Private {
     }
   }
 
-  void selectSamplerDefaultForEngine(const QString& engine) {
+  void selectSamplerDefaultForCurrentControls() {
     if (!samplerDefaultManaged) {
       return;
     }
 
-    const bool pathTracingSelected = engine == QStringLiteral("Path Tracer");
-    const QString sampler =
-      pathTracingSelected ? QStringLiteral("Halton") : QStringLiteral("Regular");
+    const QString sampler = managedSamplerDefault();
     if (ui.samplerType->findText(sampler) < 0) {
       return;
     }
@@ -539,7 +549,7 @@ RenderWidget::DisplayMode RenderSettingsWidget::displayMode() const {
 }
 
 void RenderSettingsWidget::engineChanged() {
-  p->selectSamplerDefaultForEngine(engine());
+  p->selectSamplerDefaultForCurrentControls();
   p->selectSamplesPerPixelDefaultForEngine(engine());
 
   if (engine() == "Raytracer" || engine() == "Path Tracer") {
@@ -554,6 +564,8 @@ void RenderSettingsWidget::engineChanged() {
 }
 
 void RenderSettingsWidget::updateEngineControls() {
+  p->selectSamplerDefaultForCurrentControls();
+
   // Show the engine-specific frame; hide the others. Resolution +
   // engine selector + progress indicators stay visible regardless.
   // Rasterizer shares Wireframe's LOD knob, and adds raster-only quality controls.

@@ -45,6 +45,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Add a saved Render Settings Sample Stream property, so Modeler scene intent
   can opt into GPU sample streams and clears stale sampler overrides when doing
   so. — GPT-5 Codex
+- Make the Modeler final render dialog's managed Auto/GPU Path Tracer sampler
+  default use the GPU sample stream, while explicit CPU Path Tracer renders
+  still default to Halton. — GPT-5 Codex
 - Prefer an available platform full-GPU path-loop backend when a build contains
   more than one GPU path-tracing backend, while keeping fallback diagnostics
   from a compiled platform backend when none can launch. — GPT-5 Codex
@@ -1881,8 +1884,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   scene's saved Render Settings before applying one-off render overrides.
   — GPT-5
 - **Modeler path tracer sampler default.** The final render dialog now switches
-  default-managed Path Tracer renders to Halton sampling while preserving
-  explicit sampler choices across later engine changes. — GPT-5
+  default-managed Auto/GPU Path Tracer renders to the GPU sample stream and
+  explicit CPU Path Tracer renders to Halton sampling while preserving explicit
+  sampler choices across later engine changes. — GPT-5
 - **Modeler path tracer sample-count default.** The final render dialog now
   switches default-managed Path Tracer renders to 64 samples per pixel while
   preserving explicit sample-count choices across later engine changes. — GPT-5

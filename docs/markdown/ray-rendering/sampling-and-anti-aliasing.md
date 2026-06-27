@@ -397,9 +397,11 @@ versus random sampling at the same sample count. It is still not a
 substitute for a better estimator: direct-light sampling, MIS,
 adaptive sampling, and denoising all address different parts of the
 variance problem. Modeler's final render dialog follows the same
-guidance by switching default-managed Path Tracer renders to Halton
-sampling and 64 samples per pixel; explicit sampler or sample-count
-choices in that dialog are still preserved.
+guidance for explicit CPU Path Tracer renders by switching to Halton
+sampling and 64 samples per pixel. Its Auto/GPU Path Tracer default uses
+the GPU sample stream instead, because eligible full-GPU path-loop renders
+own their sampling dimensions on the backend side. Explicit sampler or
+sample-count choices in that dialog are still preserved.
 
 ## <a id="what-this-chapter-does-not-cover"></a>What this chapter does *not* cover
 Many advanced sampling topics are queued under

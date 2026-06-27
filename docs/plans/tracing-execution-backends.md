@@ -176,7 +176,9 @@ end state for GPU tracing.
   graph options expose the GPU sample stream as an explicit Path Tracer choice.
   Full-GPU compiled path-loop eligibility now treats ordinary sampler-backed
   Path Tracer requests as CPU/hybrid fallback cases instead of silently
-  replacing the chosen sampler with the GPU stream.
+  replacing the chosen sampler with the GPU stream. The final render dialog's
+  managed Auto/GPU Path Tracer default now selects the GPU sample stream, while
+  explicit CPU Path Tracer renders still default to Halton.
 - CPU reference tracing accumulation, the current CPU wavefront tile
   accumulator, optional Metal accumulation buffers, and optional Vulkan
   synthetic accumulation results expose resource residency, byte,

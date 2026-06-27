@@ -915,7 +915,9 @@ keeps their RMS delta below a loose parity threshold so direct-light behavior
 does not drift while path tracing internals evolve.
 Modeler final renders now also pick the sampler default in line with the
 selected ray-family engine: Raytracer stays on Regular for deterministic
-baseline behavior, while default-managed Path Tracer renders switch to Halton.
+baseline behavior, Auto/GPU Path Tracer renders switch to the GPU sample
+stream so eligible scenes can use the compiled full-GPU path loop, and explicit
+CPU Path Tracer renders switch to Halton.
 The same default-management rule applies to samples per pixel: Path Tracer
 switches to 64 spp, while Raytracer/Wavefront keep the lightweight 1 spp
 default. Explicit sampler and sample-count choices are preserved across later

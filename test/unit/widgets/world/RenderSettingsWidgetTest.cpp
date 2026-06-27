@@ -48,14 +48,34 @@ namespace RenderSettingsWidgetTest {
     EXPECT_EQ(QString("gpu_sample_stream"), widget.sampleStreamMode());
   }
 
-  TEST_F(RenderSettingsWidgetTest, ShouldDefaultPathTracerSamplerToHalton) {
+  TEST_F(RenderSettingsWidgetTest, ShouldDefaultPathTracerSamplerToGpuSampleStream) {
     RenderSettingsWidget widget;
     auto engineType = widget.findChild<QComboBox*>("engineType");
     ASSERT_NE(nullptr, engineType);
 
     engineType->setCurrentText("Path Tracer");
 
+    EXPECT_EQ(QString("GPU sample stream"), widget.sampler());
+    EXPECT_EQ(QString("gpu_sample_stream"), widget.sampleStreamMode());
+  }
+
+  TEST_F(RenderSettingsWidgetTest, ShouldDefaultCpuPathTracerSamplerToHalton) {
+    RenderSettingsWidget widget;
+    auto engineType = widget.findChild<QComboBox*>("engineType");
+    auto tracingExecution = widget.findChild<QComboBox*>("tracingExecution");
+    ASSERT_NE(nullptr, engineType);
+    ASSERT_NE(nullptr, tracingExecution);
+
+    engineType->setCurrentText("Path Tracer");
+    tracingExecution->setCurrentText("CPU");
+
     EXPECT_EQ(QString("Halton"), widget.sampler());
+    EXPECT_EQ(QString("sampler"), widget.sampleStreamMode());
+
+    tracingExecution->setCurrentText("Auto");
+
+    EXPECT_EQ(QString("GPU sample stream"), widget.sampler());
+    EXPECT_EQ(QString("gpu_sample_stream"), widget.sampleStreamMode());
   }
 
   TEST_F(RenderSettingsWidgetTest, ShouldRestoreRaytracerSamplerDefaultWhenUnmodified) {
@@ -330,6 +350,22 @@ namespace RenderSettingsWidgetTest {
     EXPECT_EQ(QString("gpu_sample_stream"), widget.sampleStreamMode());
   }
 
+  TEST_F(RenderSettingsWidgetTest, ShouldPreserveExplicitGpuSampleStreamIntentAcrossOverrides) {
+    RenderSettingsWidget widget;
+    engine::graph::RenderIntent intent;
+    intent.defaultExecutor = engine::graph::RenderExecutorPreference::PathTracer;
+    intent.engineOptions.raytracer().setSampleStreamMode("gpu_sample_stream");
+    widget.setRenderIntent(intent);
+
+    auto tracingExecution = widget.findChild<QComboBox*>("tracingExecution");
+    ASSERT_NE(nullptr, tracingExecution);
+
+    tracingExecution->setCurrentText("CPU");
+
+    EXPECT_EQ(QString("GPU sample stream"), widget.sampler());
+    EXPECT_EQ(QString("gpu_sample_stream"), widget.sampleStreamMode());
+  }
+
   TEST_F(RenderSettingsWidgetTest, ShouldRestoreEngineManagedRayDefaultsWhenIntentOmitsThem) {
     RenderSettingsWidget widget;
     engine::graph::RenderIntent explicitIntent;
@@ -344,7 +380,8 @@ namespace RenderSettingsWidgetTest {
     widget.setRenderIntent(defaultIntent);
 
     EXPECT_EQ(QString("Path Tracer"), widget.engine());
-    EXPECT_EQ(QString("Halton"), widget.sampler());
+    EXPECT_EQ(QString("GPU sample stream"), widget.sampler());
+    EXPECT_EQ(QString("gpu_sample_stream"), widget.sampleStreamMode());
     EXPECT_EQ(64, widget.samplesPerPixel());
     EXPECT_EQ(1, widget.directLightSamples());
   }
