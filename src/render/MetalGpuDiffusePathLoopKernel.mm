@@ -3435,6 +3435,12 @@ namespace render {
       std::vector<std::uint8_t> cachedBytes;
     };
 
+    struct PreparedReusableByteBuffer {
+      id<MTLBuffer> buffer{nil};
+      bool cacheHit{false};
+      std::uint64_t bytesWritten{0};
+    };
+
     struct WavefrontPathLoopReusableBuffers {
       std::mutex mutex;
       ReusableMetalBuffer parameter;
@@ -3485,14 +3491,15 @@ namespace render {
       return reusable.buffer;
     }
 
-    id<MTLBuffer> prepareReusableByteBuffer(id<MTLDevice> device,
-                                            ReusableMetalBuffer& reusable,
-                                            const std::vector<std::uint8_t>& bytes) {
+    PreparedReusableByteBuffer prepareReusableByteBuffer(id<MTLDevice> device,
+                                                         ReusableMetalBuffer& reusable,
+                                                         const std::vector<std::uint8_t>& bytes) {
       const NSUInteger length = bufferLength(bytes.size());
       if (reusable.buffer && [reusable.buffer device] != device) {
         reusable.buffer = nil;
         reusable.cachedBytes.clear();
       }
+      bool reusedExistingBuffer = reusable.buffer && [reusable.buffer length] >= length;
       if (!reusable.buffer || [reusable.buffer length] < length) {
         reusable.buffer = [device newBufferWithLength:length
                                              options:MTLResourceStorageModeShared];
@@ -3500,14 +3507,17 @@ namespace render {
           throw std::runtime_error("Metal diffuse wavefront path-loop buffer allocation failed");
         }
         reusable.cachedBytes.clear();
+        reusedExistingBuffer = false;
       }
-      if (reusable.cachedBytes != bytes) {
+      const bool bytesUnchanged = reusedExistingBuffer && reusable.cachedBytes == bytes;
+      if (!bytesUnchanged) {
         if (!bytes.empty()) {
           std::memcpy([reusable.buffer contents], bytes.data(), bytes.size());
         }
         reusable.cachedBytes = bytes;
       }
-      return reusable.buffer;
+      return {reusable.buffer, bytesUnchanged,
+              bytesUnchanged ? 0u : static_cast<std::uint64_t>(bytes.size())};
     }
 
     std::uint64_t pixelCount(const GpuDiffusePathLoopLaunchParameters& parameters) {
@@ -3780,6 +3790,7 @@ namespace render {
       clearRetainedIndexBuffer(retainedIndexBuffer, plan.buffers.retainedIndexBytes);
       MetalGpuDiffusePathLoopKernelResult result;
       result.bufferSizes = plan.buffers;
+      result.sceneUploadBytesWritten = plan.buffers.sceneUploadBytes;
       result.uploadWorkerSeconds = elapsedSeconds(uploadStart, std::chrono::steady_clock::now());
 
       id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
@@ -3917,6 +3928,7 @@ namespace render {
       MetalGpuDiffusePathLoopKernelResult result;
       result.executionPath = "metal_diffuse_path_loop_all_miss_probe";
       result.bufferSizes = plan.buffers;
+      result.sceneUploadBytesWritten = plan.buffers.sceneUploadBytes;
       result.uploadWorkerSeconds = elapsedSeconds(uploadStart, std::chrono::steady_clock::now());
 
       id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
@@ -4072,6 +4084,7 @@ namespace render {
       MetalGpuDiffusePathLoopKernelResult result;
       result.executionPath = "metal_diffuse_path_loop_closest_hit_probe";
       result.bufferSizes = plan.buffers;
+      result.sceneUploadBytesWritten = plan.buffers.sceneUploadBytes;
       result.uploadWorkerSeconds = elapsedSeconds(uploadStart, std::chrono::steady_clock::now());
 
       id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
@@ -4213,6 +4226,7 @@ namespace render {
       MetalGpuDiffusePathLoopKernelResult result;
       result.executionPath = "metal_diffuse_path_loop_matte_hit_shading_probe";
       result.bufferSizes = plan.buffers;
+      result.sceneUploadBytesWritten = plan.buffers.sceneUploadBytes;
       result.uploadWorkerSeconds = elapsedSeconds(uploadStart, std::chrono::steady_clock::now());
 
       id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
@@ -4361,6 +4375,7 @@ namespace render {
       MetalGpuDiffusePathLoopKernelResult result;
       result.executionPath = "metal_diffuse_path_loop_matte_continuation_probe";
       result.bufferSizes = plan.buffers;
+      result.sceneUploadBytesWritten = plan.buffers.sceneUploadBytes;
       result.uploadWorkerSeconds = elapsedSeconds(uploadStart, std::chrono::steady_clock::now());
 
       id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
@@ -4574,6 +4589,7 @@ namespace render {
       MetalGpuDiffusePathLoopKernelResult result;
       result.executionPath = "metal_diffuse_path_loop";
       result.bufferSizes = plan.buffers;
+      result.sceneUploadBytesWritten = plan.buffers.sceneUploadBytes;
       result.uploadWorkerSeconds = elapsedSeconds(uploadStart, std::chrono::steady_clock::now());
 
       id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
@@ -4773,8 +4789,9 @@ namespace render {
         &plan.parameters);
       id<MTLBuffer> echoedParameterBuffer = prepareReusableBuffer(
         device, reusableBuffers.echoedParameter, sizeof(GpuDiffusePathLoopLaunchParameters));
-      id<MTLBuffer> sceneUploadBuffer =
+      const PreparedReusableByteBuffer preparedSceneUpload =
         prepareReusableByteBuffer(device, reusableBuffers.sceneUpload, plan.sceneUpload);
+      id<MTLBuffer> sceneUploadBuffer = preparedSceneUpload.buffer;
       id<MTLBuffer> initialPathBuffer =
         prepareReusableBuffer(device, reusableBuffers.initialPath,
                               plan.generatesPrimaryPathsOnDevice() || initialPathStates.empty()
@@ -4833,6 +4850,8 @@ namespace render {
       result.executionPath = "metal_diffuse_path_loop_wavefront";
       result.retainedFrontierDispatchesIndirect = true;
       result.bufferSizes = plan.buffers;
+      result.sceneUploadCacheHit = preparedSceneUpload.cacheHit;
+      result.sceneUploadBytesWritten = preparedSceneUpload.bytesWritten;
       result.bufferSizes.totalResidentBytes -= plan.buffers.activePathStateBytes;
       result.bufferSizes.totalResidentBytes -= plan.buffers.nextPathStateBytes;
       result.bufferSizes.activePathStateBytes = pathStateStorageBytes;

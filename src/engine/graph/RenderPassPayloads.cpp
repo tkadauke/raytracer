@@ -933,6 +933,9 @@ namespace engine::graph {
       batching["residentPathLoopSavedHostReadbacks"] = static_cast<double>(loop.savedHostReadbacks);
       batching["residentPathLoopSavedHostReadbackBytes"] =
         static_cast<double>(loop.savedHostReadbackBytes);
+      batching["residentPathLoopSceneUploadCacheHit"] = loop.platformSceneUploadCacheHit;
+      batching["residentPathLoopSceneUploadBytesWritten"] =
+        static_cast<double>(loop.platformSceneUploadBytesWritten);
       batching["residentPathLoopSubmittedIntersectionRays"] =
         static_cast<double>(loop.submittedIntersectionRayCount());
       batching["residentPathLoopFullPlatformGpuKernel"] = loop.fullGpuPathLoopSupported();
@@ -966,6 +969,9 @@ namespace engine::graph {
       compiledLoop["platformName"] = QString::fromStdString(loop.platformLabel());
       compiledLoop["fullPlatformGpuKernel"] = loop.fullGpuPathLoopSupported();
       compiledLoop["retainedFrontierDispatchesIndirect"] = loop.retainedFrontierDispatchesIndirect;
+      compiledLoop["sceneUploadCacheHit"] = loop.platformSceneUploadCacheHit;
+      compiledLoop["sceneUploadBytesWritten"] =
+        static_cast<double>(loop.platformSceneUploadBytesWritten);
       compiledLoop["submittedIntersectionRays"] =
         static_cast<double>(loop.submittedIntersectionRayCount());
       compiledLoop["note"] =

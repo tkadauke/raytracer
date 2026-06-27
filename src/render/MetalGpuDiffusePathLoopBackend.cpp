@@ -320,6 +320,8 @@ namespace render {
       loop.frontierCompactionUploadWorkerSeconds = metalResult.uploadWorkerSeconds;
       loop.frontierCompactionKernelWorkerSeconds = metalResult.kernelWorkerSeconds;
       loop.frontierCompactionReadbackWorkerSeconds = metalResult.readbackWorkerSeconds;
+      loop.platformSceneUploadCacheHit = metalResult.sceneUploadCacheHit;
+      loop.platformSceneUploadBytesWritten = metalResult.sceneUploadBytesWritten;
       loop.platformAccumulationColorSums = metalResult.accumulationColorSums;
       loop.platformAccumulationSampleCounts = metalResult.accumulationSampleCounts;
       loop.platformResolvedDisplayPixels = metalResult.resolvedDisplayPixels;

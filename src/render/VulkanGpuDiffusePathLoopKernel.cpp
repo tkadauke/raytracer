@@ -170,7 +170,8 @@ namespace render {
           launchPathCount * static_cast<std::uint64_t>(sizeof(GpuDiffusePathStateRecord));
         prepareStorageBuffer(0u, sizeof(GpuDiffusePathLoopLaunchParameters), &plan.parameters);
         prepareStorageBuffer(1u, sizeof(GpuDiffusePathLoopLaunchParameters), nullptr);
-        prepareStorageBufferFromBytesIfChanged(2u, plan.sceneUpload, m_sceneUploadCache);
+        const bool sceneUploadCacheHit =
+          prepareStorageBufferFromBytesIfChanged(2u, plan.sceneUpload, m_sceneUploadCache);
         if (plan.generatesPrimaryPathsOnDevice()) {
           prepareStorageBuffer(3u, 1u, nullptr);
         } else {
@@ -239,6 +240,9 @@ namespace render {
         result.executionPath = "vulkan_diffuse_path_loop_wavefront";
         result.pathStateResidency = "vulkan_host_visible_diffuse_path_state";
         result.retainedFrontierDispatchesIndirect = true;
+        result.sceneUploadCacheHit = sceneUploadCacheHit;
+        result.sceneUploadBytesWritten =
+          sceneUploadCacheHit ? 0u : static_cast<std::uint64_t>(plan.sceneUpload.size());
         result.bufferSizes = plan.buffers;
         result.bufferSizes.totalResidentBytes -= plan.buffers.activePathStateBytes;
         result.bufferSizes.totalResidentBytes -= plan.buffers.nextPathStateBytes;
@@ -668,9 +672,10 @@ namespace render {
                                     bytes.empty() ? nullptr : bytes.data(), additionalUsage);
       }
 
-      StorageBuffer& prepareStorageBufferFromBytesIfChanged(
-        std::size_t index, const std::vector<std::uint8_t>& bytes,
-        std::vector<std::uint8_t>& cachedBytes, VkBufferUsageFlags additionalUsage = 0) const {
+      bool prepareStorageBufferFromBytesIfChanged(std::size_t index,
+                                                  const std::vector<std::uint8_t>& bytes,
+                                                  std::vector<std::uint8_t>& cachedBytes,
+                                                  VkBufferUsageFlags additionalUsage = 0) const {
         const VkDeviceSize logicalByteCount =
           std::max<VkDeviceSize>(1u, static_cast<VkDeviceSize>(bytes.size()));
         const VkBufferUsageFlags usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | additionalUsage;
@@ -678,13 +683,13 @@ namespace render {
           index < m_buffers.size() && m_buffers[index].buffer != VK_NULL_HANDLE &&
           m_buffers[index].capacityByteCount >= logicalByteCount && m_buffers[index].usage == usage;
         const bool bytesUnchanged = bufferReusable && cachedBytes == bytes;
-        StorageBuffer& buffer = prepareStorageBuffer(
-          index, static_cast<VkDeviceSize>(bytes.size()),
-          bytesUnchanged || bytes.empty() ? nullptr : bytes.data(), additionalUsage);
+        prepareStorageBuffer(index, static_cast<VkDeviceSize>(bytes.size()),
+                             bytesUnchanged || bytes.empty() ? nullptr : bytes.data(),
+                             additionalUsage);
         if (!bytesUnchanged) {
           cachedBytes = bytes;
         }
-        return buffer;
+        return bytesUnchanged;
       }
 
       VkShaderModule createShaderModule(VkDevice device, const std::uint32_t* words,

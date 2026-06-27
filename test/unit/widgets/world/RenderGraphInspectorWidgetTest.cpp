@@ -1502,6 +1502,10 @@ namespace RenderGraphInspectorWidgetTest {
       rowValue(rows, QStringLiteral("Resident path-loop saved host readbacks")).isEmpty());
     EXPECT_FALSE(
       rowValue(rows, QStringLiteral("Resident path-loop saved host readback bytes")).isEmpty());
+    EXPECT_EQ(QStringLiteral("no"),
+              rowValue(rows, QStringLiteral("Resident path-loop scene upload cache hit")));
+    EXPECT_EQ(QStringLiteral("0"),
+              rowValue(rows, QStringLiteral("Resident path-loop scene upload bytes written")));
     EXPECT_EQ(QStringLiteral("GPU Diffuse Path Loop"),
               rowValue(rows, QStringLiteral("Accumulation backend")));
     EXPECT_EQ(QStringLiteral("Resident Accumulation Resolve"),

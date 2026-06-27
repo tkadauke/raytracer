@@ -1128,6 +1128,10 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                               batching, QStringLiteral("residentPathLoopSavedHostReadbacks"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Resident path-loop saved host readback bytes"),
                               batching, QStringLiteral("residentPathLoopSavedHostReadbackBytes"));
+  addDetailBoolMetadataRow(rows, QStringLiteral("Resident path-loop scene upload cache hit"),
+                           batching, QStringLiteral("residentPathLoopSceneUploadCacheHit"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Resident path-loop scene upload bytes written"),
+                              batching, QStringLiteral("residentPathLoopSceneUploadBytesWritten"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Mixed-depth query round trips"), batching,
                               QStringLiteral("frontierMixedQueryRoundTrips"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Mixed-depth query readback bytes"), batching,

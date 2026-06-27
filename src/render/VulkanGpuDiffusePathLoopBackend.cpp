@@ -318,6 +318,8 @@ namespace render {
       loop.frontierCompactionUploadWorkerSeconds = vulkanResult.uploadWorkerSeconds;
       loop.frontierCompactionKernelWorkerSeconds = vulkanResult.kernelWorkerSeconds;
       loop.frontierCompactionReadbackWorkerSeconds = vulkanResult.readbackWorkerSeconds;
+      loop.platformSceneUploadCacheHit = vulkanResult.sceneUploadCacheHit;
+      loop.platformSceneUploadBytesWritten = vulkanResult.sceneUploadBytesWritten;
       loop.platformAccumulationColorSums = vulkanResult.accumulationColorSums;
       loop.platformAccumulationSampleCounts = vulkanResult.accumulationSampleCounts;
       loop.platformResolvedDisplayPixels = vulkanResult.resolvedDisplayPixels;

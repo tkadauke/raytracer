@@ -140,6 +140,8 @@ namespace render {
     std::uint64_t roundTrips{1};
     std::uint64_t savedHostReadbacks{0};
     std::uint64_t savedHostReadbackBytes{0};
+    bool platformSceneUploadCacheHit{false};
+    std::uint64_t platformSceneUploadBytesWritten{0};
     double frontierCompactionUploadWorkerSeconds{0.0};
     double frontierCompactionKernelWorkerSeconds{0.0};
     double frontierCompactionReadbackWorkerSeconds{0.0};

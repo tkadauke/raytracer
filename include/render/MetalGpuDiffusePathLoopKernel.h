@@ -25,6 +25,8 @@ namespace render {
     std::string executionPath{"metal_diffuse_path_loop_launch_probe"};
     std::string pathStateResidency{"metal_shared_diffuse_path_state"};
     bool retainedFrontierDispatchesIndirect{false};
+    bool sceneUploadCacheHit{false};
+    std::uint64_t sceneUploadBytesWritten{0};
     double uploadWorkerSeconds{0.0};
     double kernelWorkerSeconds{0.0};
     double readbackWorkerSeconds{0.0};
