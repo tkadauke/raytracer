@@ -184,6 +184,29 @@ namespace GpuDiffusePathLoopSceneSupportTest {
     expectSupported(supportFor(sections));
   }
 
+  TEST(GpuDiffusePathLoopSceneSupport, ValidatesSupportedBranchBvh) {
+    GpuTracingSceneSections sections;
+    addSupportedMatteMaterial(sections);
+    GpuIntersectionBvhNode branch;
+    branch.leftOrFirstPrimitive = 1;
+    branch.primitiveCount = 2;
+    sections.geometry.bvh.push_back(branch);
+    sections.geometry.bvh.push_back(singlePrimitiveLeafNode());
+    sections.geometry.bvh.push_back(singlePrimitiveLeafNode());
+    sections.geometry.bvh.back().leftOrFirstPrimitive = 1;
+    sections.geometry.primitives.push_back(primitiveRecord(GpuIntersectionPrimitiveKind::Sphere));
+    sections.geometry.primitives.back().material = 1;
+    sections.geometry.primitives.push_back(primitiveRecord(GpuIntersectionPrimitiveKind::Sphere));
+    sections.geometry.primitives.back().material = 1;
+    sections.geometry.primitives.back().payloadOffset = 1;
+    sections.geometry.spheres.push_back(GpuIntersectionSpherePayload{});
+    sections.geometry.spheres.push_back(GpuIntersectionSpherePayload{});
+
+    const GpuDiffusePathLoopSceneSupport supportPolicy;
+    EXPECT_TRUE(supportPolicy.hasSupportedGeometry(sections));
+    expectSupported(supportFor(sections));
+  }
+
   TEST(GpuDiffusePathLoopSceneSupport, RejectsSupportedGeometryWithInvalidMaterialReferences) {
     GpuTracingSceneSections missingMaterial;
     missingMaterial.geometry.bvh.push_back(singlePrimitiveLeafNode());
@@ -201,6 +224,53 @@ namespace GpuDiffusePathLoopSceneSupportTest {
     sentinelMaterial.geometry.primitives.back().material = 0;
     sentinelMaterial.geometry.spheres.push_back(GpuIntersectionSpherePayload{});
     expectUnsupported(supportFor(sentinelMaterial), "geometry");
+  }
+
+  TEST(GpuDiffusePathLoopSceneSupport, RejectsSupportedGeometryWithMalformedBvhRanges) {
+    GpuTracingSceneSections missingLeafPrimitive;
+    addSupportedMatteMaterial(missingLeafPrimitive);
+    missingLeafPrimitive.geometry.bvh.push_back(singlePrimitiveLeafNode());
+    missingLeafPrimitive.geometry.bvh.back().leftOrFirstPrimitive = 1;
+    missingLeafPrimitive.geometry.primitives.push_back(
+      primitiveRecord(GpuIntersectionPrimitiveKind::Sphere));
+    missingLeafPrimitive.geometry.primitives.back().material = 1;
+    missingLeafPrimitive.geometry.spheres.push_back(GpuIntersectionSpherePayload{});
+    expectUnsupported(supportFor(missingLeafPrimitive), "geometry");
+
+    GpuTracingSceneSections emptyLeaf;
+    addSupportedMatteMaterial(emptyLeaf);
+    emptyLeaf.geometry.bvh.push_back(singlePrimitiveLeafNode());
+    emptyLeaf.geometry.bvh.back().primitiveCount = 0;
+    emptyLeaf.geometry.primitives.push_back(primitiveRecord(GpuIntersectionPrimitiveKind::Sphere));
+    emptyLeaf.geometry.primitives.back().material = 1;
+    emptyLeaf.geometry.spheres.push_back(GpuIntersectionSpherePayload{});
+    expectUnsupported(supportFor(emptyLeaf), "geometry");
+
+    GpuTracingSceneSections missingBranchChild;
+    addSupportedMatteMaterial(missingBranchChild);
+    GpuIntersectionBvhNode branch;
+    branch.leftOrFirstPrimitive = 1;
+    branch.primitiveCount = 7;
+    missingBranchChild.geometry.bvh.push_back(branch);
+    missingBranchChild.geometry.bvh.push_back(singlePrimitiveLeafNode());
+    missingBranchChild.geometry.primitives.push_back(
+      primitiveRecord(GpuIntersectionPrimitiveKind::Sphere));
+    missingBranchChild.geometry.primitives.back().material = 1;
+    missingBranchChild.geometry.spheres.push_back(GpuIntersectionSpherePayload{});
+    expectUnsupported(supportFor(missingBranchChild), "geometry");
+
+    GpuTracingSceneSections selfReferencingBranch;
+    addSupportedMatteMaterial(selfReferencingBranch);
+    GpuIntersectionBvhNode selfBranch;
+    selfBranch.leftOrFirstPrimitive = 0;
+    selfBranch.primitiveCount = 1;
+    selfReferencingBranch.geometry.bvh.push_back(selfBranch);
+    selfReferencingBranch.geometry.bvh.push_back(singlePrimitiveLeafNode());
+    selfReferencingBranch.geometry.primitives.push_back(
+      primitiveRecord(GpuIntersectionPrimitiveKind::Sphere));
+    selfReferencingBranch.geometry.primitives.back().material = 1;
+    selfReferencingBranch.geometry.spheres.push_back(GpuIntersectionSpherePayload{});
+    expectUnsupported(supportFor(selfReferencingBranch), "geometry");
   }
 
   TEST(GpuDiffusePathLoopSceneSupport, RejectsUnsupportedOrMalformedGeometry) {

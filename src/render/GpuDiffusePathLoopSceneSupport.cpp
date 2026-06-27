@@ -10,6 +10,10 @@ namespace render {
                                       std::size_t payloadSize) {
       return payloadCount == 1u && payloadOffset < payloadSize;
     }
+
+    [[nodiscard]] bool rangeInSize(std::uint32_t first, std::uint32_t count, std::size_t size) {
+      return first <= size && count <= size - first;
+    }
   }
 
   GpuDiffusePathLoopBackendSupport GpuDiffusePathLoopSceneSupport::support(
@@ -115,6 +119,9 @@ namespace render {
     if (geometry.primitives.empty() || geometry.bvh.empty()) {
       return false;
     }
+    if (!bvhUsesSupportedGeometry(geometry)) {
+      return false;
+    }
 
     SupportedGeometryCounts counts;
     for (const GpuIntersectionPrimitiveRecord& primitive : geometry.primitives) {
@@ -129,6 +136,29 @@ namespace render {
            counts.disks == geometry.disks.size() &&
            counts.openCylinders == geometry.openCylinders.size() &&
            counts.tori == geometry.tori.size();
+  }
+
+  bool GpuDiffusePathLoopSceneSupport::bvhUsesSupportedGeometry(
+    const GpuIntersectionSceneBuffers& geometry) const {
+    for (std::size_t nodeIndex = 0; nodeIndex != geometry.bvh.size(); ++nodeIndex) {
+      const GpuIntersectionBvhNode& node = geometry.bvh[nodeIndex];
+      const bool leaf = (node.flags & gpuIntersectionLeafNodeFlag) != 0u;
+      if (leaf) {
+        if (node.primitiveCount == 0u ||
+            !rangeInSize(node.leftOrFirstPrimitive, node.primitiveCount,
+                         geometry.primitives.size())) {
+          return false;
+        }
+        continue;
+      }
+
+      if (node.leftOrFirstPrimitive >= geometry.bvh.size() ||
+          node.primitiveCount >= geometry.bvh.size() || node.leftOrFirstPrimitive <= nodeIndex ||
+          node.primitiveCount <= nodeIndex || node.leftOrFirstPrimitive == node.primitiveCount) {
+        return false;
+      }
+    }
+    return true;
   }
 
   bool GpuDiffusePathLoopSceneSupport::hasSupportedMaterials(

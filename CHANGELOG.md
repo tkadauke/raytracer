@@ -403,6 +403,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Reject compiled GPU diffuse path-loop BVH nodes with out-of-range primitive
+  or child references before selecting a platform path-loop backend. —
+  GPT-5 Codex
 - Reject malformed compiled GPU diffuse path-loop material texture references
   before platform backend selection, so shaders do not see out-of-range texture
   indices. — GPT-5 Codex
