@@ -1,11 +1,11 @@
 #include "render/MetalGpuDiffusePathLoopBackend.h"
 
+#include "render/GpuDiffusePathLoopSceneSupport.h"
 #include "render/GpuFloat4.h"
 #include "render/MetalGpuDiffusePathLoopKernel.h"
 #include "render/TracingAccumulationLayout.h"
 
 #include <algorithm>
-#include <cmath>
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
@@ -16,154 +16,6 @@ namespace render {
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
     constexpr const char* kFullGpuSubsetExecutionPath = "full_gpu_subset";
     constexpr const char* kMetalPathStateResidency = "metal_shared_diffuse_path_state";
-
-    [[nodiscard]] bool
-    primitiveUsesSupportedGeometry(const GpuIntersectionPrimitiveRecord& primitive,
-                                   std::size_t transformCount) {
-      const auto kind = static_cast<GpuIntersectionPrimitiveKind>(primitive.kind);
-      return primitive.payloadCount == 1u &&
-             (primitive.transform == 0u || primitive.transform < transformCount) &&
-             (kind == GpuIntersectionPrimitiveKind::Triangle ||
-              kind == GpuIntersectionPrimitiveKind::Sphere ||
-              kind == GpuIntersectionPrimitiveKind::Plane ||
-              kind == GpuIntersectionPrimitiveKind::Rectangle ||
-              kind == GpuIntersectionPrimitiveKind::Disk ||
-              kind == GpuIntersectionPrimitiveKind::OpenCylinder ||
-              kind == GpuIntersectionPrimitiveKind::Torus);
-    }
-
-    [[nodiscard]] bool sceneHasSupportedGeometry(const GpuTracingSceneSections& scene) {
-      const GpuIntersectionSceneBuffers& geometry = scene.geometry;
-      return !geometry.primitives.empty() && !geometry.bvh.empty() &&
-             geometry.triangles.size() + geometry.spheres.size() + geometry.planes.size() +
-                 geometry.rectangles.size() + geometry.disks.size() +
-                 geometry.openCylinders.size() + geometry.tori.size() ==
-               geometry.primitives.size() &&
-             std::all_of(geometry.primitives.begin(), geometry.primitives.end(),
-                         [&geometry](const GpuIntersectionPrimitiveRecord& primitive) {
-                           return primitiveUsesSupportedGeometry(primitive,
-                                                                 geometry.transforms.size());
-                         });
-    }
-
-    [[nodiscard]] bool sceneHasNoGeometry(const GpuTracingSceneSections& scene) {
-      const GpuIntersectionSceneBuffers& geometry = scene.geometry;
-      return geometry.primitives.empty() && geometry.bvh.empty();
-    }
-
-    [[nodiscard]] bool supportedMaterials(const GpuTracingSceneSections& scene) {
-      for (std::size_t index = 0; index != scene.materials.size(); ++index) {
-        const auto kind = static_cast<GpuTracingMaterialKind>(scene.materials[index].kind);
-        if (kind == GpuTracingMaterialKind::Unsupported) {
-          if (index == 0u) {
-            continue;
-          }
-          return false;
-        }
-        if (kind != GpuTracingMaterialKind::Matte && kind != GpuTracingMaterialKind::Phong &&
-            kind != GpuTracingMaterialKind::Reflective &&
-            kind != GpuTracingMaterialKind::Transparent &&
-            kind != GpuTracingMaterialKind::Emissive && kind != GpuTracingMaterialKind::Portal) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    [[nodiscard]] bool supportedTexture(const GpuTracingSceneSections& scene,
-                                        std::size_t textureIndex, std::uint32_t depth = 0u);
-
-    [[nodiscard]] bool supportedUntintedTexture(const GpuTracingSceneSections& scene,
-                                                std::size_t textureIndex, std::uint32_t depth) {
-      const GpuTracingTextureRecord& texture = scene.textures[textureIndex];
-      const auto kind = static_cast<GpuTracingTextureKind>(texture.kind);
-      if (kind == GpuTracingTextureKind::Unsupported) {
-        return textureIndex == 0u && depth == 0u;
-      }
-      if (kind == GpuTracingTextureKind::ConstantColor) {
-        return true;
-      }
-      if (kind == GpuTracingTextureKind::UVColor) {
-        return true;
-      }
-      if (kind == GpuTracingTextureKind::CheckerBoard) {
-        const auto mapping =
-          static_cast<GpuTracingTextureMappingKind>(texture.flags & gpuTracingTextureMappingMask);
-        if (mapping != GpuTracingTextureMappingKind::Planar &&
-            mapping != GpuTracingTextureMappingKind::UV) {
-          return false;
-        }
-        if (texture.payloadOffset >= scene.textures.size() ||
-            texture.payloadCount >= scene.textures.size()) {
-          return false;
-        }
-        return supportedTexture(scene, texture.payloadOffset, depth + 1u) &&
-               supportedTexture(scene, texture.payloadCount, depth + 1u);
-      }
-      if (kind == GpuTracingTextureKind::Image) {
-        const auto mapping =
-          static_cast<GpuTracingTextureMappingKind>(texture.flags & gpuTracingTextureMappingMask);
-        if (mapping != GpuTracingTextureMappingKind::Planar &&
-            mapping != GpuTracingTextureMappingKind::UV) {
-          return false;
-        }
-        const std::uint32_t width = static_cast<std::uint32_t>(std::round(texture.parameters[2]));
-        const std::uint32_t height = static_cast<std::uint32_t>(std::round(texture.parameters[3]));
-        const std::uint64_t texelCount =
-          static_cast<std::uint64_t>(width) * static_cast<std::uint64_t>(height);
-        if (width == 0u || height == 0u || texture.payloadCount != texelCount ||
-            texture.payloadOffset >= scene.textures.size() ||
-            static_cast<std::uint64_t>(texture.payloadOffset) + texture.payloadCount >
-              scene.textures.size()) {
-          return false;
-        }
-        for (std::uint32_t offset = 0; offset != texture.payloadCount; ++offset) {
-          if (static_cast<GpuTracingTextureKind>(
-                scene.textures[texture.payloadOffset + offset].kind) !=
-              GpuTracingTextureKind::ConstantColor) {
-            return false;
-          }
-        }
-        return true;
-      }
-      return false;
-    }
-
-    [[nodiscard]] bool supportedTexture(const GpuTracingSceneSections& scene,
-                                        std::size_t textureIndex, std::uint32_t depth) {
-      constexpr std::uint32_t maxTextureEvaluationDepth = 8u;
-      if (depth >= maxTextureEvaluationDepth) {
-        return false;
-      }
-      if (textureIndex >= scene.textures.size()) {
-        return false;
-      }
-      const GpuTracingTextureRecord& texture = scene.textures[textureIndex];
-      const auto kind = static_cast<GpuTracingTextureKind>(texture.kind);
-      if (kind == GpuTracingTextureKind::Tinted) {
-        return texture.payloadOffset < scene.textures.size() &&
-               supportedTexture(scene, texture.payloadOffset, depth + 1u);
-      }
-      return supportedUntintedTexture(scene, textureIndex, depth);
-    }
-
-    [[nodiscard]] bool supportedTextures(const GpuTracingSceneSections& scene) {
-      for (std::size_t index = 0; index != scene.textures.size(); ++index) {
-        if (!supportedTexture(scene, index)) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    [[nodiscard]] bool supportedLights(const GpuTracingSceneSections& scene) {
-      return std::all_of(
-        scene.lights.begin(), scene.lights.end(), [](const GpuTracingLightRecord& light) {
-          const auto kind = static_cast<GpuTracingLightKind>(light.kind);
-          return kind == GpuTracingLightKind::Point || kind == GpuTracingLightKind::Directional ||
-                 kind == GpuTracingLightKind::RectangularArea;
-        });
-    }
 
     void terminate(GpuDiffusePathStateRecord& path) {
       path.flags &= ~gpuDiffusePathStateActiveFlag;
@@ -561,29 +413,19 @@ namespace render {
     if (!kernel.launchPathAvailable()) {
       return {false, kernel.launchPathUnavailableReason()};
     }
-    if (settings.maxDepth == 0u) {
-      return {false, "Metal diffuse path-loop backend requires positive max depth"};
-    }
-    if (!sceneHasNoGeometry(scene) && !sceneHasSupportedGeometry(scene)) {
-      return {false, "Metal diffuse path-loop backend currently supports empty geometry or "
-                     "triangle/sphere/plane/rectangle/disk/open-cylinder/torus geometry only"};
-    }
-    if (!supportedMaterials(scene)) {
-      return {false, "Metal diffuse path-loop backend currently supports Matte, Phong finite "
-                     "glossy, Reflective mirror, Transparent refraction, Emissive, and Portal "
-                     "materials only"};
-    }
-    if (!supportedTextures(scene)) {
-      return {false, "Metal diffuse path-loop backend currently supports ConstantColor, "
-                     "CheckerBoard texture graphs, nearest/bilinear ImageTexture, "
-                     "UVColorTexture, and bounded Tinted wrapper chains over those textures "
-                     "only"};
-    }
-    if (!supportedLights(scene)) {
-      return {false, "Metal diffuse path-loop backend currently supports point, directional, and "
-                     "rectangular area lights only"};
-    }
-    return {true, {}};
+    return GpuDiffusePathLoopSceneSupport().support(
+      scene, settings,
+      GpuDiffusePathLoopSceneSupportReasons{
+        "Metal diffuse path-loop backend requires positive max depth",
+        "Metal diffuse path-loop backend currently supports empty geometry or "
+        "triangle/sphere/plane/rectangle/disk/open-cylinder/torus geometry only",
+        "Metal diffuse path-loop backend currently supports Matte, Phong finite glossy, "
+        "Reflective mirror, Transparent refraction, Emissive, and Portal materials only",
+        "Metal diffuse path-loop backend currently supports ConstantColor, CheckerBoard texture "
+        "graphs, nearest/bilinear ImageTexture, UVColorTexture, and bounded Tinted wrapper chains "
+        "over those textures only",
+        "Metal diffuse path-loop backend currently supports point, directional, and rectangular "
+        "area lights only"});
 #else
     (void)scene;
     (void)settings;

@@ -329,6 +329,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Share Metal/Vulkan full-GPU diffuse path-loop scene support checks, including
+  unsupported material, texture, and light validation for empty-geometry
+  sections, so platform support queries no longer diverge. — GPT-5 Codex
 - Prevent Boolean/convex CSG primitives from being flattened into supported
   child leaves during GPU intersection compilation; they now report explicit
   fallback until exact GPU CSG lowering exists. — GPT-5 Codex

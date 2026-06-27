@@ -1,11 +1,11 @@
 #include "render/VulkanGpuDiffusePathLoopBackend.h"
 
+#include "render/GpuDiffusePathLoopSceneSupport.h"
 #include "render/GpuFloat4.h"
 #include "render/TracingAccumulationLayout.h"
 #include "render/VulkanGpuDiffusePathLoopKernel.h"
 
 #include <algorithm>
-#include <cmath>
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
@@ -16,210 +16,6 @@ namespace render {
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
     constexpr const char* kFullGpuSubsetExecutionPath = "full_gpu_subset";
     constexpr const char* kVulkanPathStateResidency = "vulkan_host_visible_diffuse_path_state";
-
-    [[nodiscard]] bool sceneHasNoGeometry(const GpuTracingSceneSections& scene) {
-      const GpuIntersectionSceneBuffers& geometry = scene.geometry;
-      return geometry.primitives.empty() && geometry.bvh.empty();
-    }
-
-    struct SupportedGeometryCounts {
-      std::size_t triangles{0};
-      std::size_t spheres{0};
-      std::size_t planes{0};
-      std::size_t rectangles{0};
-      std::size_t disks{0};
-      std::size_t openCylinders{0};
-      std::size_t tori{0};
-    };
-
-    [[nodiscard]] bool
-    primitiveUsesSupportedGeometry(const GpuIntersectionPrimitiveRecord& primitive,
-                                   const GpuIntersectionSceneBuffers& geometry,
-                                   SupportedGeometryCounts& counts) {
-      if (primitive.transform != 0u && primitive.transform >= geometry.transforms.size()) {
-        return false;
-      }
-      switch (static_cast<GpuIntersectionPrimitiveKind>(primitive.kind)) {
-      case GpuIntersectionPrimitiveKind::Triangle:
-        if (primitive.payloadOffset >= geometry.triangles.size()) {
-          return false;
-        }
-        ++counts.triangles;
-        return true;
-      case GpuIntersectionPrimitiveKind::Sphere:
-        if (primitive.payloadOffset >= geometry.spheres.size()) {
-          return false;
-        }
-        ++counts.spheres;
-        return true;
-      case GpuIntersectionPrimitiveKind::Plane:
-        if (primitive.payloadOffset >= geometry.planes.size()) {
-          return false;
-        }
-        ++counts.planes;
-        return true;
-      case GpuIntersectionPrimitiveKind::Rectangle:
-        if (primitive.payloadOffset >= geometry.rectangles.size()) {
-          return false;
-        }
-        ++counts.rectangles;
-        return true;
-      case GpuIntersectionPrimitiveKind::Disk:
-        if (primitive.payloadOffset >= geometry.disks.size()) {
-          return false;
-        }
-        ++counts.disks;
-        return true;
-      case GpuIntersectionPrimitiveKind::OpenCylinder:
-        if (primitive.payloadOffset >= geometry.openCylinders.size()) {
-          return false;
-        }
-        ++counts.openCylinders;
-        return true;
-      case GpuIntersectionPrimitiveKind::Torus:
-        if (primitive.payloadOffset >= geometry.tori.size()) {
-          return false;
-        }
-        ++counts.tori;
-        return true;
-      case GpuIntersectionPrimitiveKind::Unsupported:
-        return false;
-      }
-      return false;
-    }
-
-    [[nodiscard]] bool sceneHasSupportedStaticGeometry(const GpuTracingSceneSections& scene) {
-      const GpuIntersectionSceneBuffers& geometry = scene.geometry;
-      if (geometry.primitives.empty()) {
-        return false;
-      }
-      SupportedGeometryCounts counts;
-      for (const GpuIntersectionPrimitiveRecord& primitive : geometry.primitives) {
-        if (!primitiveUsesSupportedGeometry(primitive, geometry, counts)) {
-          return false;
-        }
-      }
-      return counts.triangles == geometry.triangles.size() &&
-             counts.spheres == geometry.spheres.size() && counts.planes == geometry.planes.size() &&
-             counts.rectangles == geometry.rectangles.size() &&
-             counts.disks == geometry.disks.size() &&
-             counts.openCylinders == geometry.openCylinders.size() &&
-             counts.tori == geometry.tori.size();
-    }
-
-    [[nodiscard]] bool supportedMaterials(const GpuTracingSceneSections& scene) {
-      for (std::size_t index = 0; index != scene.materials.size(); ++index) {
-        const auto kind = static_cast<GpuTracingMaterialKind>(scene.materials[index].kind);
-        if (kind == GpuTracingMaterialKind::Unsupported) {
-          if (index == 0u) {
-            continue;
-          }
-          return false;
-        }
-        if (kind != GpuTracingMaterialKind::Matte && kind != GpuTracingMaterialKind::Phong &&
-            kind != GpuTracingMaterialKind::Reflective &&
-            kind != GpuTracingMaterialKind::Transparent &&
-            kind != GpuTracingMaterialKind::Emissive && kind != GpuTracingMaterialKind::Portal) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    [[nodiscard]] bool supportedTexture(const GpuTracingSceneSections& scene,
-                                        std::size_t textureIndex, std::uint32_t depth = 0u);
-
-    [[nodiscard]] bool supportedUntintedTexture(const GpuTracingSceneSections& scene,
-                                                std::size_t textureIndex, std::uint32_t depth) {
-      const GpuTracingTextureRecord& texture = scene.textures[textureIndex];
-      const auto kind = static_cast<GpuTracingTextureKind>(texture.kind);
-      if (kind == GpuTracingTextureKind::Unsupported) {
-        return textureIndex == 0u && depth == 0u;
-      }
-      if (kind == GpuTracingTextureKind::ConstantColor) {
-        return true;
-      }
-      if (kind == GpuTracingTextureKind::UVColor) {
-        return true;
-      }
-      if (kind == GpuTracingTextureKind::CheckerBoard) {
-        const auto mapping =
-          static_cast<GpuTracingTextureMappingKind>(texture.flags & gpuTracingTextureMappingMask);
-        if (mapping != GpuTracingTextureMappingKind::Planar &&
-            mapping != GpuTracingTextureMappingKind::UV) {
-          return false;
-        }
-        if (texture.payloadOffset >= scene.textures.size() ||
-            texture.payloadCount >= scene.textures.size()) {
-          return false;
-        }
-        return supportedTexture(scene, texture.payloadOffset, depth + 1u) &&
-               supportedTexture(scene, texture.payloadCount, depth + 1u);
-      }
-      if (kind == GpuTracingTextureKind::Image) {
-        const auto mapping =
-          static_cast<GpuTracingTextureMappingKind>(texture.flags & gpuTracingTextureMappingMask);
-        if (mapping != GpuTracingTextureMappingKind::Planar &&
-            mapping != GpuTracingTextureMappingKind::UV) {
-          return false;
-        }
-        const std::uint32_t width = static_cast<std::uint32_t>(std::round(texture.parameters[2]));
-        const std::uint32_t height = static_cast<std::uint32_t>(std::round(texture.parameters[3]));
-        const std::uint64_t texelCount =
-          static_cast<std::uint64_t>(width) * static_cast<std::uint64_t>(height);
-        if (width == 0u || height == 0u || texture.payloadCount != texelCount ||
-            texture.payloadOffset >= scene.textures.size() ||
-            static_cast<std::uint64_t>(texture.payloadOffset) + texture.payloadCount >
-              scene.textures.size()) {
-          return false;
-        }
-        for (std::uint32_t offset = 0; offset != texture.payloadCount; ++offset) {
-          if (static_cast<GpuTracingTextureKind>(
-                scene.textures[texture.payloadOffset + offset].kind) !=
-              GpuTracingTextureKind::ConstantColor) {
-            return false;
-          }
-        }
-        return true;
-      }
-      return false;
-    }
-
-    [[nodiscard]] bool supportedTexture(const GpuTracingSceneSections& scene,
-                                        std::size_t textureIndex, std::uint32_t depth) {
-      constexpr std::uint32_t maxTextureEvaluationDepth = 8u;
-      if (depth >= maxTextureEvaluationDepth) {
-        return false;
-      }
-      if (textureIndex >= scene.textures.size()) {
-        return false;
-      }
-      const GpuTracingTextureRecord& texture = scene.textures[textureIndex];
-      const auto kind = static_cast<GpuTracingTextureKind>(texture.kind);
-      if (kind == GpuTracingTextureKind::Tinted) {
-        return texture.payloadOffset < scene.textures.size() &&
-               supportedTexture(scene, texture.payloadOffset, depth + 1u);
-      }
-      return supportedUntintedTexture(scene, textureIndex, depth);
-    }
-
-    [[nodiscard]] bool supportedTextures(const GpuTracingSceneSections& scene) {
-      for (std::size_t index = 0; index != scene.textures.size(); ++index) {
-        if (!supportedTexture(scene, index)) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    [[nodiscard]] bool supportedLights(const GpuTracingSceneSections& scene) {
-      return std::all_of(
-        scene.lights.begin(), scene.lights.end(), [](const GpuTracingLightRecord& light) {
-          const auto kind = static_cast<GpuTracingLightKind>(light.kind);
-          return kind == GpuTracingLightKind::Point || kind == GpuTracingLightKind::Directional ||
-                 kind == GpuTracingLightKind::RectangularArea;
-        });
-    }
 
     struct ActiveAccumulationTargetShape {
       std::uint64_t pixelCount{1};
@@ -615,33 +411,19 @@ namespace render {
     if (!kernel.launchPathAvailable()) {
       return {false, kernel.launchPathUnavailableReason()};
     }
-    if (settings.maxDepth == 0u) {
-      return {false, "Vulkan diffuse path-loop backend requires positive max depth"};
-    }
-    if (sceneHasNoGeometry(scene)) {
-      return {true, {}};
-    }
-    if (!sceneHasSupportedStaticGeometry(scene)) {
-      return {false, "Vulkan diffuse path-loop backend currently supports empty geometry or "
-                     "triangle, sphere, plane, rectangle, disk, open-cylinder, or torus "
-                     "primitives with static transforms only"};
-    }
-    if (!supportedMaterials(scene)) {
-      return {false,
-              "Vulkan diffuse path-loop backend currently supports Matte, Phong finite glossy, "
-              "Reflective mirror, Transparent refraction, Emissive, and Portal materials only"};
-    }
-    if (!supportedTextures(scene)) {
-      return {false, "Vulkan diffuse path-loop backend currently supports ConstantColor, "
-                     "CheckerBoard texture graphs, nearest/bilinear ImageTexture, "
-                     "UVColorTexture, and bounded Tinted wrapper chains over those textures "
-                     "only"};
-    }
-    if (!supportedLights(scene)) {
-      return {false, "Vulkan diffuse path-loop backend currently supports point, directional, or "
-                     "rectangular area lights only"};
-    }
-    return {true, {}};
+    return GpuDiffusePathLoopSceneSupport().support(
+      scene, settings,
+      GpuDiffusePathLoopSceneSupportReasons{
+        "Vulkan diffuse path-loop backend requires positive max depth",
+        "Vulkan diffuse path-loop backend currently supports empty geometry or triangle, sphere, "
+        "plane, rectangle, disk, open-cylinder, or torus primitives with static transforms only",
+        "Vulkan diffuse path-loop backend currently supports Matte, Phong finite glossy, "
+        "Reflective mirror, Transparent refraction, Emissive, and Portal materials only",
+        "Vulkan diffuse path-loop backend currently supports ConstantColor, CheckerBoard texture "
+        "graphs, nearest/bilinear ImageTexture, UVColorTexture, and bounded Tinted wrapper chains "
+        "over those textures only",
+        "Vulkan diffuse path-loop backend currently supports point, directional, or rectangular "
+        "area lights only"});
 #else
     (void)scene;
     (void)settings;

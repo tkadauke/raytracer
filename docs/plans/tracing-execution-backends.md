@@ -2592,7 +2592,10 @@ scene is large enough to amortize upload/readback costs.
      retained indices, and accumulation storage. The backend boundary now also
      exposes scene-specific full-GPU support so a platform backend can be
      available but reject a narrower compiled-scene subset without making graph
-     analysis overclaim full GPU execution.
+     analysis overclaim full GPU execution. Metal and Vulkan now share the same
+     scene-section support policy for geometry, material, texture, light, and
+     max-depth validation, while keeping platform-specific fallback wording at
+     the backend boundary.
 
 2. **Add a minimal Metal path-loop kernel.**
    - Depends on: job 1.
