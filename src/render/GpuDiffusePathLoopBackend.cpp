@@ -192,8 +192,7 @@ namespace render {
     }
 
     void mergeStepMetrics(GpuDiffusePathLoopResult& loop,
-                          const GpuDiffusePathLoopPlatformResult& platformResult,
-                          const GpuDiffusePathLoopSettings& settings) {
+                          const GpuDiffusePathLoopPlatformResult& platformResult) {
       std::uint64_t activeSteps = 0;
       std::uint64_t countedActiveSteps = 0;
       for (const std::uint32_t count : platformResult.activePathCountsPerDepth) {
@@ -217,12 +216,13 @@ namespace render {
             ++loop.metrics.emissiveHits;
             ++loop.metrics.emissionContributionEvaluations;
           }
-          if (gpuFloat4HasValue(step.directLightRadiance)) {
-            loop.metrics.directLightSamples +=
-              std::max<std::uint32_t>(1u, settings.directLightSamples);
-            ++loop.metrics.directLightContributionEvaluations;
-            ++loop.metrics.directLightContributingSamples;
-          }
+          loop.metrics.directLightSamples += step.directLightSampleCount;
+          loop.metrics.directLightVisibilityRays += step.directLightVisibilityRayCount;
+          loop.metrics.directLightContributionEvaluations +=
+            step.directLightVisibilityRayCount -
+            std::min(step.directLightVisibilityRayCount, step.directLightOccludedSampleCount);
+          loop.metrics.directLightContributingSamples += step.directLightContributingSampleCount;
+          loop.metrics.directLightOccludedSamples += step.directLightOccludedSampleCount;
           if (stepHasContinuation(step)) {
             ++loop.metrics.spawnedContinuations;
           }
@@ -364,7 +364,7 @@ namespace render {
     loop.platformAccumulationWidth = platformResult.echoedParameters.imageWidth;
     loop.platformAccumulationHeight = platformResult.echoedParameters.imageHeight;
     recordDepthCounts(loop, platformResult, settings);
-    mergeStepMetrics(loop, platformResult, settings);
+    mergeStepMetrics(loop, platformResult);
     loop.stepRecords = std::move(platformResult.stepRecords);
     loop.denoiserFeatureRecords = std::move(platformResult.denoiserFeatureRecords);
     loop.denoiserFeatureRecordsCaptured = settings.captureDenoiserFeatures;

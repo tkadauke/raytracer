@@ -21,6 +21,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Report platform diffuse path-loop scene-upload cache hits and bytes written
   in render graph metadata, benchmark counters, and the Modeler graph
   inspector. — GPT-5 Codex
+- Report Metal/Vulkan full-GPU diffuse path-loop direct-light sample,
+  visibility-ray, occlusion, and contributing-sample counters from GPU
+  path-step records instead of estimating them from nonzero radiance on the
+  host. — GPT-5 Codex
 - Default graph-backed `pathtracer` executor shortcuts to the GPU sample stream
   and GPU tracing execution when the scene or caller has not explicitly chosen
   CPU/hybrid tracing or a sampler-backed path. — GPT-5 Codex

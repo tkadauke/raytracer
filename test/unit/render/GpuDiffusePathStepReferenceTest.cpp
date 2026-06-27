@@ -300,6 +300,11 @@ namespace GpuDiffusePathStepReferenceTest {
       EXPECT_EQ(expected.directLightRadiance, actual.directLightRadiance);
       EXPECT_EQ(expected.missRadiance, actual.missRadiance);
       EXPECT_EQ(expected.continuationThroughput, actual.continuationThroughput);
+      EXPECT_EQ(expected.directLightSampleCount, actual.directLightSampleCount);
+      EXPECT_EQ(expected.directLightVisibilityRayCount, actual.directLightVisibilityRayCount);
+      EXPECT_EQ(expected.directLightContributingSampleCount,
+                actual.directLightContributingSampleCount);
+      EXPECT_EQ(expected.directLightOccludedSampleCount, actual.directLightOccludedSampleCount);
     }
 
     void expectGpuRayNear(const GpuIntersectionRay& actual, const GpuIntersectionRay& expected,
@@ -1065,6 +1070,10 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(1u, actual.metrics.directLightVisibilityRays);
     EXPECT_EQ(1u, actual.metrics.directLightContributionEvaluations);
     EXPECT_EQ(1u, actual.metrics.directLightContributingSamples);
+    EXPECT_EQ(1u, actual.stepRecords[0].directLightSampleCount);
+    EXPECT_EQ(1u, actual.stepRecords[0].directLightVisibilityRayCount);
+    EXPECT_EQ(1u, actual.stepRecords[0].directLightContributingSampleCount);
+    EXPECT_EQ(0u, actual.stepRecords[0].directLightOccludedSampleCount);
   }
 
   TEST(GpuDiffusePathStep, DirectLightSamplesAreAveragedAcrossConfiguredSamples) {
@@ -1097,6 +1106,10 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(2u, actual.metrics.directLightVisibilityRays);
     EXPECT_EQ(2u, actual.metrics.directLightContributionEvaluations);
     EXPECT_EQ(2u, actual.metrics.directLightContributingSamples);
+    EXPECT_EQ(2u, actual.stepRecords[0].directLightSampleCount);
+    EXPECT_EQ(2u, actual.stepRecords[0].directLightVisibilityRayCount);
+    EXPECT_EQ(2u, actual.stepRecords[0].directLightContributingSampleCount);
+    EXPECT_EQ(0u, actual.stepRecords[0].directLightOccludedSampleCount);
   }
 
   TEST(GpuDiffusePathStep, UnsupportedMaterialLookupTerminatesExplicitly) {
@@ -1987,6 +2000,10 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(1u, result.directLightOcclusionRecords[0].occluded);
     ASSERT_COLOR_NEAR(Colord::black(), Colord(result.stepRecords[0].directLightRadiance), 1e-6);
     EXPECT_EQ(1u, result.metrics.directLightOccludedSamples);
+    EXPECT_EQ(1u, result.stepRecords[0].directLightSampleCount);
+    EXPECT_EQ(1u, result.stepRecords[0].directLightVisibilityRayCount);
+    EXPECT_EQ(0u, result.stepRecords[0].directLightContributingSampleCount);
+    EXPECT_EQ(1u, result.stepRecords[0].directLightOccludedSampleCount);
   }
 
   TEST(GpuDiffusePathStepReference, FixedSeedContinuationIsRepeatableAndSeedDependent) {
@@ -2215,6 +2232,38 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(gpuDiffusePathLoopAccumulationTargetSampleSlot, plan.targetMode);
     EXPECT_EQ(1, plan.layout.width);
     EXPECT_EQ(2, plan.layout.height);
+  }
+
+  TEST(GpuDiffusePathLoopBackend, SharedPlatformResultUsesGpuDirectLightStepCounters) {
+    GpuDiffusePathLoopPlatformResult platform;
+    platform.echoedParameters.imageWidth = 1;
+    platform.echoedParameters.imageHeight = 1;
+    platform.executionPath = "test_path_loop";
+    platform.pathStateResidency = "test_path_state";
+    platform.accumulationColorSums = {{{0.25f, 0.5f, 0.75f, 0.0f}}};
+    platform.accumulationSampleCounts = {1};
+    platform.resolvedPathStates = {activePath(10)};
+    platform.resolvedPathStates[0].flags = gpuDiffusePathStateTerminatedFlag;
+    platform.stepRecords.resize(1);
+    platform.stepRecords[0].event = static_cast<std::uint32_t>(GpuDiffusePathStepEvent::Hit);
+    platform.stepRecords[0].directLightRadiance = {0.25f, 0.5f, 0.75f, 0.0f};
+    platform.stepRecords[0].directLightSampleCount = 4;
+    platform.stepRecords[0].directLightVisibilityRayCount = 3;
+    platform.stepRecords[0].directLightContributingSampleCount = 2;
+    platform.stepRecords[0].directLightOccludedSampleCount = 1;
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 1;
+
+    GpuDiffusePathLoopResult result = makePlatformGpuDiffusePathLoopResult(
+      1, settings, std::move(platform), "Test", "test", "test_path_state", "test_accumulation",
+      "test_accumulation_residency");
+
+    EXPECT_EQ(4u, result.metrics.directLightSamples);
+    EXPECT_EQ(3u, result.metrics.directLightVisibilityRays);
+    EXPECT_EQ(2u, result.metrics.directLightContributionEvaluations);
+    EXPECT_EQ(2u, result.metrics.directLightContributingSamples);
+    EXPECT_EQ(1u, result.metrics.directLightOccludedSamples);
   }
 
   TEST(GpuDiffusePathLoopBackend, SharedPlatformResultHonorsTraceDisabledNoReadback) {

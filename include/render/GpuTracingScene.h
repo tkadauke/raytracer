@@ -196,6 +196,10 @@ namespace render {
     std::array<float, 4> directLightRadiance{};
     std::array<float, 4> missRadiance{};
     std::array<float, 4> continuationThroughput{};
+    std::uint32_t directLightSampleCount{0};
+    std::uint32_t directLightVisibilityRayCount{0};
+    std::uint32_t directLightContributingSampleCount{0};
+    std::uint32_t directLightOccludedSampleCount{0};
   };
 
   [[nodiscard]] inline bool

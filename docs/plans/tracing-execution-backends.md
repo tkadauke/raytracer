@@ -192,7 +192,10 @@ end state for GPU tracing.
   metadata, denoiser feature capture, and diagnostic path-state materialization.
   The platform-specific backends now adapt their shader result records into that
   common contract instead of duplicating host-side image, trace, and metric
-  bookkeeping.
+  bookkeeping. Their shader step records now carry direct-light sample,
+  visibility-ray, occlusion, and contributing-sample counters so full-GPU
+  metrics come from GPU execution records rather than host-side radiance
+  guesses.
 - The Modeler saved Render Settings item, final render dialog, and rendercli
   graph options expose the GPU sample stream as an explicit Path Tracer choice.
   Full-GPU compiled path-loop eligibility now treats ordinary sampler-backed
@@ -2650,7 +2653,10 @@ scene is large enough to amortize upload/readback costs.
      active-depth counts, platform accumulation metadata, denoiser feature
      capture, and trace-disabled path-state readback decisions; the platform
      adapters now only provide shader launch/support behavior and translate
-     kernel result records into the shared contract.
+     kernel result records into the shared contract. The shared contract now
+     consumes per-step direct-light sample, visibility-ray, occlusion, and
+     contributing-sample counters written by the platform kernels instead of
+     estimating those metrics from nonzero radiance.
 
 2. **Add a minimal Metal path-loop kernel.**
    - Depends on: job 1.

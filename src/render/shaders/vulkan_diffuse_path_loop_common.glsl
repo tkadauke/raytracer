@@ -302,6 +302,14 @@ struct DirectLightSample {
   float pdf;
 };
 
+struct DirectLightEstimate {
+  vec4 radiance;
+  uint sampleCount;
+  uint visibilityRayCount;
+  uint contributingSampleCount;
+  uint occludedSampleCount;
+};
+
 struct GpuDiffusePathStateRecord {
   GpuIntersectionRay ray;
   vec4 throughput;
@@ -337,6 +345,10 @@ struct GpuDiffusePathStepRecord {
   vec4 directLightRadiance;
   vec4 missRadiance;
   vec4 continuationThroughput;
+  uint directLightSampleCount;
+  uint directLightVisibilityRayCount;
+  uint directLightContributingSampleCount;
+  uint directLightOccludedSampleCount;
 };
 
 struct GpuDiffusePathDenoiserFeatureRecord {
@@ -2537,16 +2549,21 @@ bool hitOccludesLight(GpuIntersectionHitRecord hit, float lightDistance) {
   return hit.distance < occlusionLimit;
 }
 
-vec4 directLightRadiance(GpuIntersectionHitRecord hit, GpuDiffusePathStateRecord path,
-                         GpuTracingMaterialRecord material, vec4 reflectance) {
+DirectLightEstimate directLightEstimate(GpuIntersectionHitRecord hit, GpuDiffusePathStateRecord path,
+                                        GpuTracingMaterialRecord material, vec4 reflectance) {
+  DirectLightEstimate estimate;
+  estimate.radiance = vec4(0.0);
+  estimate.sampleCount = 0u;
+  estimate.visibilityRayCount = 0u;
+  estimate.contributingSampleCount = 0u;
+  estimate.occludedSampleCount = 0u;
   if (parameters.lightCount == 0u) {
-    return vec4(0.0);
+    return estimate;
   }
   const uint sampleCount = max(parameters.directLightSamples, 1u);
   const vec3 point = hit.point.xyz;
   const vec3 normal = normalize(hit.normal.xyz);
   const vec3 wi = -normalize(path.ray.direction.xyz);
-  vec4 radiance = vec4(0.0);
   for (uint sampleIndex = 0u; sampleIndex != sampleCount; ++sampleIndex) {
     const DirectLightSelection selectedLight = selectDirectLight(path, sampleIndex);
     if (selectedLight.valid == 0u || selectedLight.lightIndex >= parameters.lightCount ||
@@ -2558,12 +2575,18 @@ vec4 directLightRadiance(GpuIntersectionHitRecord hit, GpuDiffusePathStateRecord
     const GpuTracingLightRecord light = readLight(selectedLight.lightIndex);
     const DirectLightSample directLight = sampleDirectLight(light, point, lightSample);
     const float normalDotLight = dot(normal, directLight.direction);
-    if (directLight.valid == 0u || directLight.pdf <= 0.0 || normalDotLight <= 0.0) {
+    if (directLight.valid == 0u || directLight.pdf <= 0.0) {
+      continue;
+    }
+    ++estimate.sampleCount;
+    if (normalDotLight <= 0.0) {
       continue;
     }
     const GpuIntersectionRay visibilityRay = shadowRayFor(point, directLight);
+    ++estimate.visibilityRayCount;
     const GpuIntersectionHitRecord visibilityHit = closestSupportedHit(visibilityRay);
     if (hitOccludesLight(visibilityHit, directLight.distance)) {
+      ++estimate.occludedSampleCount;
       continue;
     }
     const vec4 bsdfValue = finiteBsdf(reflectance, material, normal, wi, directLight.direction);
@@ -2572,10 +2595,16 @@ vec4 directLightRadiance(GpuIntersectionHitRecord hit, GpuDiffusePathStateRecord
     const float misWeight = directLight.delta != 0u ? 1.0 :
         (directLight.pdf * directLight.pdf) /
         (directLight.pdf * directLight.pdf + bsdfPdf * bsdfPdf);
-    radiance += path.throughput * bsdfValue * directLight.radiance *
-                (misWeight * normalDotLight / (directLight.pdf * selectedLight.pdf));
+    const vec4 contribution = path.throughput * bsdfValue * directLight.radiance *
+                              (misWeight * normalDotLight /
+                               (directLight.pdf * selectedLight.pdf));
+    if (contribution.x != 0.0 || contribution.y != 0.0 || contribution.z != 0.0) {
+      ++estimate.contributingSampleCount;
+    }
+    estimate.radiance += contribution;
   }
-  return radiance / float(sampleCount);
+  estimate.radiance = estimate.radiance / float(sampleCount);
+  return estimate;
 }
 
 GpuDiffusePathStateRecord portalContinuationPath(GpuIntersectionHitRecord hit,
@@ -2795,6 +2824,10 @@ GpuDiffusePathStepRecord inactiveStep(uint pathIndex, GpuDiffusePathStateRecord 
   step.directLightRadiance = vec4(0.0);
   step.missRadiance = vec4(0.0);
   step.continuationThroughput = vec4(0.0);
+  step.directLightSampleCount = 0u;
+  step.directLightVisibilityRayCount = 0u;
+  step.directLightContributingSampleCount = 0u;
+  step.directLightOccludedSampleCount = 0u;
   return step;
 }
 
@@ -2851,8 +2884,9 @@ GpuDiffusePathStepRecord pathStep(uint pathIndex, GpuDiffusePathStateRecord path
       step.flags = next.flags;
       return step;
     }
-    const vec4 directLight = directLightRadiance(hit, path, material, reflectance);
-    const vec4 accumulatedRadiance = path.accumulatedRadiance + ambient + directLight;
+    const DirectLightEstimate directLight = directLightEstimate(hit, path, material, reflectance);
+    const vec4 accumulatedRadiance =
+        path.accumulatedRadiance + ambient + directLight.radiance;
     bool spawned = false;
     if (material.kind == gpuTracingReflectiveMaterialKind) {
       next = reflectiveContinuationPath(hit, path, path.throughput * mirrorReflectance(material),
@@ -2862,7 +2896,11 @@ GpuDiffusePathStepRecord pathStep(uint pathIndex, GpuDiffusePathStateRecord path
     } else {
       next = matteContinuationPath(hit, path, material, reflectance, accumulatedRadiance, spawned);
     }
-    step.directLightRadiance = directLight;
+    step.directLightRadiance = directLight.radiance;
+    step.directLightSampleCount = directLight.sampleCount;
+    step.directLightVisibilityRayCount = directLight.visibilityRayCount;
+    step.directLightContributingSampleCount = directLight.contributingSampleCount;
+    step.directLightOccludedSampleCount = directLight.occludedSampleCount;
     step.continuationThroughput = spawned ? next.throughput : vec4(0.0);
     step.flags = next.flags;
     return step;

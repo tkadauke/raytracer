@@ -1683,8 +1683,11 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
           result.directLightShadowRays.push_back(packedShadowRay);
           result.directLightOcclusionRecords.push_back(
             GpuIntersectionOcclusionRecord{occluded ? 1u : 0u, shadowRayIndex, {}});
+          ++stepRecord.directLightSampleCount;
+          ++stepRecord.directLightVisibilityRayCount;
           ++result.metrics.directLightVisibilityRays;
           if (occluded) {
+            ++stepRecord.directLightOccludedSampleCount;
             ++result.metrics.directLightOccludedSamples;
           } else {
             ++result.metrics.directLightContributionEvaluations;
@@ -1701,6 +1704,7 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
               selectedLight.pdf;
             const Colord contribution = throughput * lightContribution;
             if (contribution != Colord::black()) {
+              ++stepRecord.directLightContributingSampleCount;
               ++result.metrics.directLightContributingSamples;
             }
             directLightRadiance += contribution;

@@ -26,7 +26,7 @@ namespace render {
     static_assert(alignof(GpuDiffusePathLoopLaunchParameters) == 16);
     static_assert(sizeof(GpuDiffusePathStateRecord) == 160);
     static_assert(alignof(GpuDiffusePathStateRecord) == 16);
-    static_assert(sizeof(GpuDiffusePathStepRecord) == 96);
+    static_assert(sizeof(GpuDiffusePathStepRecord) == 112);
     static_assert(alignof(GpuDiffusePathStepRecord) == 16);
     static_assert(sizeof(GpuDiffusePathDenoiserFeatureRecord) == 64);
     static_assert(alignof(GpuDiffusePathDenoiserFeatureRecord) == 16);
