@@ -3096,6 +3096,87 @@ namespace render {
               "  closestHits[id] = hit;\n"
               "  recordRetainedActivePath(retainedIndices, id, next);\n"
               "}\n"
+              "kernel void clearDiffusePathLoopFrontier(\n"
+              "    device atomic_uint* frontier [[buffer(0)]],\n"
+              "    uint id [[thread_position_in_grid]]) {\n"
+              "  if (id == 0u) {\n"
+              "    atomic_store_explicit(&frontier[0], 0u, memory_order_relaxed);\n"
+              "  }\n"
+              "}\n"
+              "kernel void initializeDiffusePathLoopFrontier(\n"
+              "    constant GpuDiffusePathLoopLaunchParameters& parameters [[buffer(0)]],\n"
+              "    device GpuDiffusePathLoopLaunchParameters* echoedParameters [[buffer(1)]],\n"
+              "    device const GpuDiffusePathStateRecord* initialPathStates [[buffer(3)]],\n"
+              "    device GpuDiffusePathStateRecord* pathStates [[buffer(4)]],\n"
+              "    device atomic_uint* frontier [[buffer(7)]],\n"
+              "    device uchar* accumulation [[buffer(8)]],\n"
+              "    uint id [[thread_position_in_grid]]) {\n"
+              "  if (id == 0u) {\n"
+              "    echoedParameters[0] = parameters;\n"
+              "  }\n"
+              "  if (id >= parameters.initialPathCount) {\n"
+              "    return;\n"
+              "  }\n"
+              "  GpuDiffusePathStateRecord path = initialPathFor(parameters, initialPathStates, id);\n"
+              "  if (pathStateIsActive(path) && path.depth >= parameters.maxDepth) {\n"
+              "    path.flags = terminatedPathFlags(path.flags);\n"
+              "    accumulateTerminatedPath(parameters, accumulation, id, path);\n"
+              "  }\n"
+              "  pathStates[id] = path;\n"
+              "  recordRetainedActivePath(frontier, id, path);\n"
+              "}\n"
+              "kernel void advanceDiffusePathLoopFrontier(\n"
+              "    constant GpuDiffusePathLoopLaunchParameters& parameters [[buffer(0)]],\n"
+              "    device GpuDiffusePathLoopLaunchParameters* echoedParameters [[buffer(1)]],\n"
+              "    device const uchar* sceneUpload [[buffer(2)]],\n"
+              "    device GpuDiffusePathStateRecord* pathStates [[buffer(4)]],\n"
+              "    device GpuDiffusePathStepRecord* stepRecords [[buffer(6)]],\n"
+              "    device atomic_uint* currentFrontier [[buffer(7)]],\n"
+              "    device uchar* accumulation [[buffer(8)]],\n"
+              "    device GpuIntersectionHitRecord* closestHits [[buffer(9)]],\n"
+              "    device GpuDiffusePathDenoiserFeatureRecord* denoiserFeatures [[buffer(10)]],\n"
+              "    device atomic_uint* activePathCounts [[buffer(11)]],\n"
+              "    device atomic_uint* nextFrontier [[buffer(12)]],\n"
+              "    uint id [[thread_position_in_grid]]) {\n"
+              "  if (id == 0u) {\n"
+              "    echoedParameters[0] = parameters;\n"
+              "  }\n"
+              "  const uint activeCount = atomic_load_explicit(&currentFrontier[0],\n"
+              "                                                  memory_order_relaxed);\n"
+              "  if (id >= activeCount) {\n"
+              "    return;\n"
+              "  }\n"
+              "  const uint pathIndex = atomic_load_explicit(&currentFrontier[id + 1u],\n"
+              "                                                 memory_order_relaxed);\n"
+              "  if (pathIndex >= parameters.initialPathCount) {\n"
+              "    return;\n"
+              "  }\n"
+              "  GpuDiffusePathStateRecord path = pathStates[pathIndex];\n"
+              "  if (!pathStateIsActive(path) || path.depth >= parameters.maxDepth) {\n"
+              "    return;\n"
+              "  }\n"
+              "  atomic_fetch_add_explicit(&activePathCounts[path.depth], 1u,\n"
+              "                            memory_order_relaxed);\n"
+              "  const uint stepRecordIndex = pathIndex * parameters.maxDepth + path.depth;\n"
+              "  GpuDiffusePathStateRecord next = path;\n"
+              "  GpuIntersectionHitRecord hit = missHitRecord(path.ray);\n"
+              "  GpuDiffusePathStepRecord step = mattePathStep(\n"
+              "      parameters, sceneUpload, pathIndex, path, next, hit);\n"
+              "  writeDenoiserFeature(parameters, sceneUpload, denoiserFeatures, path, hit);\n"
+              "  if (parameters.captureDiagnostics != 0u) {\n"
+              "    stepRecords[stepRecordIndex] = step;\n"
+              "    closestHits[pathIndex] = hit;\n"
+              "  }\n"
+              "  if (pathStateIsActive(path) && pathStateIsTerminated(next)) {\n"
+              "    accumulateTerminatedPath(parameters, accumulation, pathIndex, next);\n"
+              "  }\n"
+              "  if (pathStateIsActive(next) && next.depth >= parameters.maxDepth) {\n"
+              "    next.flags = terminatedPathFlags(next.flags);\n"
+              "    accumulateTerminatedPath(parameters, accumulation, pathIndex, next);\n"
+              "  }\n"
+              "  pathStates[pathIndex] = next;\n"
+              "  recordRetainedActivePath(nextFrontier, pathIndex, next);\n"
+              "}\n"
               "kernel void runDiffusePathLoopMatteSubset(\n"
               "    constant GpuDiffusePathLoopLaunchParameters& parameters [[buffer(0)]],\n"
               "    device GpuDiffusePathLoopLaunchParameters* echoedParameters [[buffer(1)]],\n"
@@ -3274,6 +3355,30 @@ namespace render {
       static id<MTLComputePipelineState> pipeline = [] {
         id<MTLDevice> device = sharedMetalDevice();
         return device ? newPipeline(device, @"runDiffusePathLoopMatteSubset") : nil;
+      }();
+      return pipeline;
+    }
+
+    id<MTLComputePipelineState> sharedClearFrontierPipeline() {
+      static id<MTLComputePipelineState> pipeline = [] {
+        id<MTLDevice> device = sharedMetalDevice();
+        return device ? newPipeline(device, @"clearDiffusePathLoopFrontier") : nil;
+      }();
+      return pipeline;
+    }
+
+    id<MTLComputePipelineState> sharedInitializeFrontierPipeline() {
+      static id<MTLComputePipelineState> pipeline = [] {
+        id<MTLDevice> device = sharedMetalDevice();
+        return device ? newPipeline(device, @"initializeDiffusePathLoopFrontier") : nil;
+      }();
+      return pipeline;
+    }
+
+    id<MTLComputePipelineState> sharedAdvanceFrontierPipeline() {
+      static id<MTLComputePipelineState> pipeline = [] {
+        id<MTLDevice> device = sharedMetalDevice();
+        return device ? newPipeline(device, @"advanceDiffusePathLoopFrontier") : nil;
       }();
       return pipeline;
     }
@@ -3474,6 +3579,18 @@ namespace render {
       try {
         if (!sharedLaunchProbePipeline()) {
           return "Metal diffuse path-loop launch probe pipeline was not created";
+        }
+        if (!sharedClearAccumulationPipeline()) {
+          return "Metal diffuse path-loop accumulation clear pipeline was not created";
+        }
+        if (!sharedClearFrontierPipeline()) {
+          return "Metal diffuse path-loop frontier clear pipeline was not created";
+        }
+        if (!sharedInitializeFrontierPipeline()) {
+          return "Metal diffuse path-loop frontier initialization pipeline was not created";
+        }
+        if (!sharedAdvanceFrontierPipeline()) {
+          return "Metal diffuse path-loop frontier advance pipeline was not created";
         }
         return "";
       } catch (const std::exception& e) {
@@ -4435,6 +4552,292 @@ namespace render {
 
         result.retainedPathIndices =
           retainedPathIndicesFromBuffer(retainedIndexBuffer, launchPathCount);
+        result.retainedPathCount = static_cast<std::uint32_t>(result.retainedPathIndices.size());
+      }
+      if (captureResolvedDisplay) {
+        result.resolvedDisplayPixels.resize(static_cast<std::size_t>(resolvedDisplayPixels));
+        if (!result.resolvedDisplayPixels.empty()) {
+          std::memcpy(result.resolvedDisplayPixels.data(), [resolvedDisplayBuffer contents],
+                      result.resolvedDisplayPixels.size() * sizeof(unsigned int));
+        }
+      }
+      if (capturePlatformAccumulation) {
+        result.accumulationColorSums.resize(pixelCount(plan.parameters));
+        if (!result.accumulationColorSums.empty()) {
+          std::memcpy(result.accumulationColorSums.data(), [accumulationBuffer contents],
+                      result.accumulationColorSums.size() * sizeof(std::array<float, 4>));
+        }
+        result.accumulationSampleCounts.resize(pixelCount(plan.parameters));
+        if (!result.accumulationSampleCounts.empty()) {
+          const std::uint64_t colorBytes =
+            result.accumulationColorSums.size() * sizeof(std::array<float, 4>);
+          const auto* sampleCountBytes =
+            static_cast<const std::uint8_t*>([accumulationBuffer contents]) + colorBytes;
+          std::memcpy(result.accumulationSampleCounts.data(), sampleCountBytes,
+                      result.accumulationSampleCounts.size() * sizeof(std::uint32_t));
+        }
+      }
+      if (plan.parameters.captureDenoiserFeatures != 0u) {
+        result.denoiserFeatureRecords.resize(pixelCount(plan.parameters));
+        if (!result.denoiserFeatureRecords.empty()) {
+          std::memcpy(result.denoiserFeatureRecords.data(), [denoiserFeatureBuffer contents],
+                      result.denoiserFeatureRecords.size() *
+                        sizeof(GpuDiffusePathDenoiserFeatureRecord));
+        }
+      }
+      result.readbackWorkerSeconds =
+        elapsedSeconds(readbackStart, std::chrono::steady_clock::now());
+      return result;
+    }
+  }
+
+  MetalGpuDiffusePathLoopKernelResult MetalGpuDiffusePathLoopKernel::runWavefrontPathLoop(
+    const GpuDiffusePathLoopLaunchPlan& plan,
+    const std::vector<GpuDiffusePathStateRecord>& initialPathStates,
+    bool capturePlatformAccumulation,
+    bool captureResolvedDisplay) const {
+    const std::size_t launchPathCount =
+      static_cast<std::size_t>(plan.parameters.initialPathCount);
+    if (plan.parameters.layoutVersion != gpuDiffusePathLoopLaunchLayoutVersion) {
+      throw std::invalid_argument("Metal diffuse path-loop launch descriptor version mismatch");
+    }
+    if (plan.parameters.maxDepth == 0) {
+      throw std::invalid_argument("Metal diffuse path-loop requires positive max depth");
+    }
+    if (initialPathStates.size() != launchPathCount &&
+        (!plan.generatesPrimaryPathsOnDevice() || !initialPathStates.empty())) {
+      throw std::invalid_argument(
+        "Metal diffuse path-loop initial path-state count does not match launch descriptor");
+    }
+    if (plan.sceneUpload.size() != plan.buffers.sceneUploadBytes) {
+      throw std::invalid_argument(
+        "Metal diffuse path-loop scene upload bytes do not match launch descriptor");
+    }
+    validateMattePathLoopScene(plan);
+    validateUniqueActiveAccumulationTargets(plan, initialPathStates, "wavefront path-loop");
+
+    @autoreleasepool {
+      if (!launchPathAvailable()) {
+        throw std::runtime_error(launchPathUnavailableReason());
+      }
+
+      id<MTLDevice> device = sharedMetalDevice();
+      id<MTLCommandQueue> queue = sharedCommandQueue();
+      id<MTLComputePipelineState> clearFrontierPipeline = sharedClearFrontierPipeline();
+      id<MTLComputePipelineState> initializeFrontierPipeline = sharedInitializeFrontierPipeline();
+      id<MTLComputePipelineState> advanceFrontierPipeline = sharedAdvanceFrontierPipeline();
+      id<MTLComputePipelineState> clearPipeline = sharedClearAccumulationPipeline();
+      id<MTLComputePipelineState> resolvePipeline =
+        captureResolvedDisplay ? sharedResolveDisplayPipeline() : nil;
+      if (!clearFrontierPipeline || !initializeFrontierPipeline || !advanceFrontierPipeline) {
+        throw std::runtime_error("Metal diffuse path-loop frontier pipeline was not created");
+      }
+      if (!clearPipeline) {
+        throw std::runtime_error(
+          "Metal diffuse path-loop accumulation clear pipeline was not created");
+      }
+      if (captureResolvedDisplay && !resolvePipeline) {
+        throw std::runtime_error(
+          "Metal diffuse path-loop display resolve pipeline was not created");
+      }
+
+      const auto uploadStart = std::chrono::steady_clock::now();
+      const std::uint64_t resolvedDisplayPixels =
+        captureResolvedDisplay ? displayPixelCount(plan.parameters) : 0u;
+      if (captureResolvedDisplay && resolvedDisplayPixels == 0u) {
+        throw std::invalid_argument(
+          "Metal diffuse path-loop display resolve requires pixel or sample-slot accumulation");
+      }
+      const std::uint64_t resolvedDisplayBytes =
+        resolvedDisplayPixels * static_cast<std::uint64_t>(sizeof(unsigned int));
+      const std::uint64_t pathStateStorageBytes =
+        launchPathCount * static_cast<std::uint64_t>(sizeof(GpuDiffusePathStateRecord));
+      id<MTLBuffer> parameterBuffer =
+        [device newBufferWithBytes:&plan.parameters
+                            length:sizeof(GpuDiffusePathLoopLaunchParameters)
+                           options:MTLResourceStorageModeShared];
+      id<MTLBuffer> echoedParameterBuffer =
+        [device newBufferWithLength:sizeof(GpuDiffusePathLoopLaunchParameters)
+                            options:MTLResourceStorageModeShared];
+      id<MTLBuffer> sceneUploadBuffer =
+        plan.sceneUpload.empty()
+          ? [device newBufferWithLength:1 options:MTLResourceStorageModeShared]
+          : [device newBufferWithBytes:plan.sceneUpload.data()
+                                length:plan.buffers.sceneUploadBytes
+                               options:MTLResourceStorageModeShared];
+      id<MTLBuffer> initialPathBuffer =
+        plan.generatesPrimaryPathsOnDevice() || initialPathStates.empty()
+          ? [device newBufferWithLength:1 options:MTLResourceStorageModeShared]
+          : [device newBufferWithBytes:initialPathStates.data()
+                                length:plan.buffers.initialPathStateBytes
+                               options:MTLResourceStorageModeShared];
+      id<MTLBuffer> pathStateBuffer =
+        [device newBufferWithLength:bufferLength(pathStateStorageBytes)
+                            options:MTLResourceStorageModeShared];
+      id<MTLBuffer> stepRecordBuffer =
+        [device newBufferWithLength:bufferLength(plan.buffers.stepRecordBytes)
+                            options:MTLResourceStorageModeShared];
+      id<MTLBuffer> frontierABuffer =
+        [device newBufferWithLength:bufferLength(plan.buffers.retainedIndexBytes)
+                            options:MTLResourceStorageModeShared];
+      id<MTLBuffer> frontierBBuffer =
+        [device newBufferWithLength:bufferLength(plan.buffers.retainedIndexBytes)
+                            options:MTLResourceStorageModeShared];
+      id<MTLBuffer> accumulationBuffer =
+        [device newBufferWithLength:bufferLength(plan.buffers.accumulationBytes)
+                            options:MTLResourceStorageModeShared];
+      id<MTLBuffer> denoiserFeatureBuffer =
+        [device newBufferWithLength:bufferLength(plan.buffers.denoiserFeatureRecordBytes)
+                            options:MTLResourceStorageModeShared];
+      id<MTLBuffer> activePathCountBuffer =
+        [device newBufferWithLength:bufferLength(plan.buffers.activePathCountBytes)
+                            options:MTLResourceStorageModeShared];
+      id<MTLBuffer> resolvedDisplayBuffer =
+        [device newBufferWithLength:bufferLength(resolvedDisplayBytes)
+                            options:MTLResourceStorageModeShared];
+      const std::uint64_t closestHitBytes =
+        plan.parameters.captureDiagnostics != 0u
+          ? launchPathCount * static_cast<std::uint64_t>(sizeof(GpuIntersectionHitRecord))
+          : 0u;
+      id<MTLBuffer> closestHitBuffer =
+        [device newBufferWithLength:bufferLength(closestHitBytes)
+                            options:MTLResourceStorageModeShared];
+      if (!parameterBuffer || !echoedParameterBuffer || !sceneUploadBuffer || !initialPathBuffer ||
+          !pathStateBuffer || !stepRecordBuffer || !frontierABuffer || !frontierBBuffer ||
+          !accumulationBuffer || !denoiserFeatureBuffer || !activePathCountBuffer ||
+          !resolvedDisplayBuffer || !closestHitBuffer) {
+        throw std::runtime_error("Metal diffuse wavefront path-loop buffer allocation failed");
+      }
+      clearRetainedIndexBuffer(frontierABuffer, plan.buffers.retainedIndexBytes);
+      clearRetainedIndexBuffer(frontierBBuffer, plan.buffers.retainedIndexBytes);
+      if (plan.buffers.stepRecordBytes != 0u) {
+        std::memset([stepRecordBuffer contents], 0,
+                    static_cast<std::size_t>(plan.buffers.stepRecordBytes));
+      }
+      if (plan.buffers.denoiserFeatureRecordBytes != 0u) {
+        std::memset([denoiserFeatureBuffer contents], 0,
+                    static_cast<std::size_t>(plan.buffers.denoiserFeatureRecordBytes));
+      }
+      if (plan.buffers.activePathCountBytes != 0u) {
+        std::memset([activePathCountBuffer contents], 0,
+                    static_cast<std::size_t>(plan.buffers.activePathCountBytes));
+      }
+      MetalGpuDiffusePathLoopKernelResult result;
+      result.executionPath = "metal_diffuse_path_loop_wavefront";
+      result.bufferSizes = plan.buffers;
+      result.bufferSizes.totalResidentBytes -= plan.buffers.activePathStateBytes;
+      result.bufferSizes.totalResidentBytes -= plan.buffers.nextPathStateBytes;
+      result.bufferSizes.activePathStateBytes = pathStateStorageBytes;
+      result.bufferSizes.nextPathStateBytes = 0u;
+      result.bufferSizes.totalResidentBytes += pathStateStorageBytes;
+      result.bufferSizes.totalResidentBytes += plan.buffers.retainedIndexBytes;
+      result.uploadWorkerSeconds = elapsedSeconds(uploadStart, std::chrono::steady_clock::now());
+
+      id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
+      id<MTLComputeCommandEncoder> encoder = [commandBuffer computeCommandEncoder];
+      if (!commandBuffer || !encoder) {
+        throw std::runtime_error("Metal diffuse wavefront path-loop command setup failed");
+      }
+
+      const NSUInteger pixels = static_cast<NSUInteger>(pixelCount(plan.parameters));
+      [encoder setComputePipelineState:clearPipeline];
+      [encoder setBuffer:parameterBuffer offset:0 atIndex:0];
+      [encoder setBuffer:accumulationBuffer offset:0 atIndex:1];
+      dispatch1D(encoder, clearPipeline, pixels);
+
+      id<MTLBuffer> currentFrontierBuffer = frontierABuffer;
+      id<MTLBuffer> nextFrontierBuffer = frontierBBuffer;
+
+      [encoder setComputePipelineState:clearFrontierPipeline];
+      [encoder setBuffer:currentFrontierBuffer offset:0 atIndex:0];
+      dispatch1D(encoder, clearFrontierPipeline, 1);
+
+      [encoder setComputePipelineState:initializeFrontierPipeline];
+      [encoder setBuffer:parameterBuffer offset:0 atIndex:0];
+      [encoder setBuffer:echoedParameterBuffer offset:0 atIndex:1];
+      [encoder setBuffer:initialPathBuffer offset:0 atIndex:3];
+      [encoder setBuffer:pathStateBuffer offset:0 atIndex:4];
+      [encoder setBuffer:currentFrontierBuffer offset:0 atIndex:7];
+      [encoder setBuffer:accumulationBuffer offset:0 atIndex:8];
+      dispatch1D(encoder, initializeFrontierPipeline, static_cast<NSUInteger>(launchPathCount));
+
+      for (std::uint32_t depth = 0; depth != plan.parameters.maxDepth; ++depth) {
+        [encoder setComputePipelineState:clearFrontierPipeline];
+        [encoder setBuffer:nextFrontierBuffer offset:0 atIndex:0];
+        dispatch1D(encoder, clearFrontierPipeline, 1);
+
+        [encoder setComputePipelineState:advanceFrontierPipeline];
+        [encoder setBuffer:parameterBuffer offset:0 atIndex:0];
+        [encoder setBuffer:echoedParameterBuffer offset:0 atIndex:1];
+        [encoder setBuffer:sceneUploadBuffer offset:0 atIndex:2];
+        [encoder setBuffer:pathStateBuffer offset:0 atIndex:4];
+        [encoder setBuffer:stepRecordBuffer offset:0 atIndex:6];
+        [encoder setBuffer:currentFrontierBuffer offset:0 atIndex:7];
+        [encoder setBuffer:accumulationBuffer offset:0 atIndex:8];
+        [encoder setBuffer:closestHitBuffer offset:0 atIndex:9];
+        [encoder setBuffer:denoiserFeatureBuffer offset:0 atIndex:10];
+        [encoder setBuffer:activePathCountBuffer offset:0 atIndex:11];
+        [encoder setBuffer:nextFrontierBuffer offset:0 atIndex:12];
+        dispatch1D(encoder, advanceFrontierPipeline, static_cast<NSUInteger>(launchPathCount));
+        std::swap(currentFrontierBuffer, nextFrontierBuffer);
+      }
+
+      if (captureResolvedDisplay) {
+        [encoder setComputePipelineState:resolvePipeline];
+        [encoder setBuffer:parameterBuffer offset:0 atIndex:0];
+        [encoder setBuffer:accumulationBuffer offset:0 atIndex:1];
+        [encoder setBuffer:resolvedDisplayBuffer offset:0 atIndex:2];
+        dispatch1D(encoder, resolvePipeline, static_cast<NSUInteger>(resolvedDisplayPixels));
+      }
+      [encoder endEncoding];
+
+      const auto kernelStart = std::chrono::steady_clock::now();
+      [commandBuffer commit];
+      [commandBuffer waitUntilCompleted];
+      result.kernelWorkerSeconds = elapsedSeconds(kernelStart, std::chrono::steady_clock::now());
+      if (commandBuffer.status == MTLCommandBufferStatusError) {
+        throw metalError("Metal diffuse wavefront path-loop dispatch failed", commandBuffer.error);
+      }
+
+      const auto readbackStart = std::chrono::steady_clock::now();
+      std::memcpy(&result.echoedParameters, [echoedParameterBuffer contents],
+                  sizeof(result.echoedParameters));
+      result.activePathCountsPerDepth.resize(plan.parameters.maxDepth);
+      if (!result.activePathCountsPerDepth.empty()) {
+        std::memcpy(result.activePathCountsPerDepth.data(), [activePathCountBuffer contents],
+                    result.activePathCountsPerDepth.size() * sizeof(std::uint32_t));
+      }
+      result.retainedPathCount =
+        retainedPathCountFromBuffer(currentFrontierBuffer, launchPathCount);
+      if (plan.parameters.captureDiagnostics != 0u) {
+        result.nextPathStates.resize(launchPathCount);
+        if (!result.nextPathStates.empty()) {
+          std::memcpy(result.nextPathStates.data(), [pathStateBuffer contents],
+                      result.nextPathStates.size() * sizeof(GpuDiffusePathStateRecord));
+        }
+        result.closestHitRecords.resize(launchPathCount);
+        if (!result.closestHitRecords.empty()) {
+          std::memcpy(result.closestHitRecords.data(), [closestHitBuffer contents],
+                      result.closestHitRecords.size() * sizeof(GpuIntersectionHitRecord));
+        }
+
+        const std::size_t rawStepCount =
+          launchPathCount * static_cast<std::size_t>(plan.parameters.maxDepth);
+        std::vector<GpuDiffusePathStepRecord> rawStepRecords(rawStepCount);
+        if (!rawStepRecords.empty()) {
+          std::memcpy(rawStepRecords.data(), [stepRecordBuffer contents],
+                      rawStepRecords.size() * sizeof(GpuDiffusePathStepRecord));
+        }
+        result.stepRecords.reserve(rawStepRecords.size());
+        for (const GpuDiffusePathStepRecord& step : rawStepRecords) {
+          if (static_cast<GpuDiffusePathStepEvent>(step.event) !=
+              GpuDiffusePathStepEvent::Inactive) {
+            result.stepRecords.push_back(step);
+          }
+        }
+
+        result.retainedPathIndices =
+          retainedPathIndicesFromBuffer(currentFrontierBuffer, launchPathCount);
         result.retainedPathCount = static_cast<std::uint32_t>(result.retainedPathIndices.size());
       }
       if (captureResolvedDisplay) {

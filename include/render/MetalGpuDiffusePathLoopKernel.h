@@ -61,5 +61,11 @@ namespace render {
                      const std::vector<GpuDiffusePathStateRecord>& initialPathStates,
                      bool capturePlatformAccumulation = true,
                      bool captureResolvedDisplay = false) const;
+
+    [[nodiscard]] MetalGpuDiffusePathLoopKernelResult
+    runWavefrontPathLoop(const GpuDiffusePathLoopLaunchPlan& plan,
+                         const std::vector<GpuDiffusePathStateRecord>& initialPathStates,
+                         bool capturePlatformAccumulation = true,
+                         bool captureResolvedDisplay = false) const;
   };
 }

@@ -327,7 +327,7 @@ function(tracing_parity_render_compiled_gpu_execution category scene_file depth 
     tracing_parity_assert_matches(
       "tracing parity ${category} compiled GPU execution compaction summary"
       "${gpu_execution_stdout}"
-      "frontier_compaction_execution=(metal_diffuse_path_loop|vulkan_diffuse_path_loop).*frontier_compaction_path_state_residency=(metal_shared_diffuse_path_state|vulkan_host_visible_diffuse_path_state)")
+      "frontier_compaction_execution=(metal_diffuse_path_loop|metal_diffuse_path_loop_wavefront|vulkan_diffuse_path_loop).*frontier_compaction_path_state_residency=(metal_shared_diffuse_path_state|vulkan_host_visible_diffuse_path_state)")
     tracing_parity_assert_matches(
       "tracing parity ${category} compiled GPU execution direct-light platform path"
       "${gpu_execution_stdout}"
@@ -344,7 +344,7 @@ function(tracing_parity_render_compiled_gpu_execution category scene_file depth 
             "\"tracingBackendPlatform\"[ \r\n]*:[ \r\n]*\"(metal|vulkan)\""
             "\"directLightContributionExecutionPath\"[ \r\n]*:[ \r\n]*\"full_gpu_subset\""
             "\"directLightContributionFallbackReason\"[ \r\n]*:[ \r\n]*\"\""
-            "\"frontierCompactionExecutionPath\"[ \r\n]*:[ \r\n]*\"(metal_diffuse_path_loop|vulkan_diffuse_path_loop)\""
+            "\"frontierCompactionExecutionPath\"[ \r\n]*:[ \r\n]*\"(metal_diffuse_path_loop|metal_diffuse_path_loop_wavefront|vulkan_diffuse_path_loop)\""
             "\"frontierCompactionPathStateResidency\"[ \r\n]*:[ \r\n]*\"(metal_shared_diffuse_path_state|vulkan_host_visible_diffuse_path_state)\""
             "\"intersectionBackendResidentDirectLightBatchesUnavailableReason\"[ \r\n]*:[ \r\n]*\"\""
             "\"residentPathLoopExecutionPath\"[ \r\n]*:[ \r\n]*\"full_gpu_subset\""

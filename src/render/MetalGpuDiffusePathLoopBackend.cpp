@@ -447,9 +447,9 @@ namespace render {
       scene, initialPathStates, accumulation.layout, settings);
     plan.parameters.accumulationTargetMode = accumulation.targetMode;
     const MetalGpuDiffusePathLoopKernelResult metalResult =
-      MetalGpuDiffusePathLoopKernel().runMattePathLoop(plan, initialPathStates,
-                                                       settings.capturePlatformAccumulation,
-                                                       settings.captureResolvedDisplay);
+      MetalGpuDiffusePathLoopKernel().runWavefrontPathLoop(plan, initialPathStates,
+                                                           settings.capturePlatformAccumulation,
+                                                           settings.captureResolvedDisplay);
     return makeLoopResult(initialPathStates, settings, metalResult);
 #else
     (void)scene;
@@ -475,9 +475,9 @@ namespace render {
       scene, primaryPathGeneration, accumulation.layout, settings);
     plan.parameters.accumulationTargetMode = accumulation.targetMode;
     const MetalGpuDiffusePathLoopKernelResult metalResult =
-      MetalGpuDiffusePathLoopKernel().runMattePathLoop(plan, initialPathStates,
-                                                       settings.capturePlatformAccumulation,
-                                                       settings.captureResolvedDisplay);
+      MetalGpuDiffusePathLoopKernel().runWavefrontPathLoop(plan, initialPathStates,
+                                                           settings.capturePlatformAccumulation,
+                                                           settings.captureResolvedDisplay);
     return makeLoopResult(plan.parameters.initialPathCount, settings, metalResult);
 #else
     (void)scene;

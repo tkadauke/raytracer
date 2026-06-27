@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Route Metal full-GPU diffuse path-loop renders through a depth-frontier
+  schedule that initializes, advances, and compacts active path indices on the
+  GPU instead of running all bounces inside one per-path megakernel thread. —
+  GPT-5 Codex
 - Let finite-width `Curve` primitives lower through tessellated mesh triangles
   for compiled GPU intersection and full-GPU path-loop eligibility. —
   GPT-5 Codex

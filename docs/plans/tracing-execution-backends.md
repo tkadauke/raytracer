@@ -146,6 +146,13 @@ end state for GPU tracing.
   indices through the shader-facing retained-index buffer. The ABI is
   count-prefixed so the same buffer can become a device-side compacted frontier
   handoff without a host scan of next path-state activity.
+- The Metal full-GPU diffuse path-loop backend now uses that frontier handoff
+  for the live platform path: a Metal initialization kernel builds the active
+  path index frontier, each depth dispatch advances only indexed active paths,
+  and the next frontier is compacted on-device into a second count-prefixed
+  buffer. The host still encodes a bounded dispatch sequence for `maxDepth` and
+  still reads final diagnostics/accumulation, but path records and retained
+  frontier ownership stay in Metal buffers between depths.
 - GPU-requested compiled diffuse path-loop renders automatically use an
   available Metal or Vulkan frontier-compaction backend for the live
   `GpuDiffusePathStateRecord` frontier, reporting that middle step as hybrid
@@ -179,12 +186,14 @@ end state for GPU tracing.
   other camera models without descriptors, animated cameras, later
   path-continuation records, and retained frontier ownership still need broader
   platform path-state support.
-- Platform GPU-side path/frontier compaction for scheduler-owned path records.
+- Vulkan platform GPU-side path/frontier compaction for scheduler-owned path
+  records, plus a shared backend abstraction for selecting compacted wavefront
+  versus megakernel schedules per platform.
 - Broad platform full-GPU path-loop kernels for the normal render path. A
   restricted Metal path-loop kernel can advance empty-scene and
   optionally transformed triangle/`MeshPrimitive` mesh-triangle/finite-width
   `Curve` tessellated-triangle/sphere/plane/rectangle/disk/open-cylinder/torus
-  paths with Matte, Phong finite
+  paths with a depth-frontier Metal schedule and Matte, Phong finite
   diffuse/glossy, Reflective mirror,
   Transparent perfect reflection/refraction, Portal, or Emissive materials across
   multiple depths for backend tests and explicit GPU graph requests when the

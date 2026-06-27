@@ -6909,6 +6909,62 @@ namespace GpuDiffusePathStepReferenceTest {
 #endif
   }
 
+  TEST(MetalGpuDiffusePathLoopKernel, WavefrontPathLoopCompactsFrontiersOnDeviceWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    MetalGpuDiffusePathLoopKernel kernel;
+    if (!kernel.launchPathAvailable()) {
+      GTEST_SKIP() << kernel.launchPathUnavailableReason();
+    }
+
+    Scene scene;
+    scene.setEnvironmentRadiance(Colord(0.1, 0.2, 0.3));
+    auto matte = std::make_shared<MatteMaterial>(
+      std::make_shared<ConstantColorTexture>(Colord(0.25, 0.5, 0.75)));
+    matte->setDiffuseCoefficient(0.8);
+    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    receiver->setMaterial(matte);
+    scene.add(receiver);
+    scene.addLight(std::make_shared<PointLight>(Vector3d(0.0, 0.0, -3.0), Colord(0.8, 0.6, 0.4)));
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 2;
+    settings.russianRouletteDepth = 10;
+    settings.directLightSamples = 1;
+    const TracingAccumulationLayout accumulationLayout = TracingAccumulationLayout::image(2, 2);
+    std::vector<GpuDiffusePathStateRecord> paths{activePath()};
+    paths[0].pixelIndex = 0;
+    paths[0].sampleSeed = 12347;
+    paths[0].throughput = {0.5f, 0.25f, 0.125f, 0.0f};
+    const GpuDiffusePathLoopLaunchPlan plan =
+      GpuDiffusePathLoopLaunchPlanner().plan(sections, paths, accumulationLayout, settings);
+    const GpuDiffusePathLoopResult expected = GpuDiffusePathLoop().run(sections, paths, settings);
+
+    const MetalGpuDiffusePathLoopKernelResult result = kernel.runWavefrontPathLoop(plan, paths);
+
+    EXPECT_EQ("metal_diffuse_path_loop_wavefront", result.executionPath);
+    ASSERT_GE(result.activePathCountsPerDepth.size(), 2u);
+    EXPECT_EQ(1u, result.activePathCountsPerDepth[0]);
+    EXPECT_EQ(1u, result.activePathCountsPerDepth[1]);
+    ASSERT_EQ(expected.stepRecords.size(), result.stepRecords.size());
+    for (std::size_t index = 0; index != expected.stepRecords.size(); ++index) {
+      EXPECT_EQ(expected.stepRecords[index].event, result.stepRecords[index].event);
+      EXPECT_EQ(expected.stepRecords[index].depth, result.stepRecords[index].depth);
+      expectFloat4Near(result.stepRecords[index].directLightRadiance,
+                       expected.stepRecords[index].directLightRadiance, 1e-4);
+      expectFloat4Near(result.stepRecords[index].missRadiance,
+                       expected.stepRecords[index].missRadiance, 1e-4);
+      expectFloat4Near(result.stepRecords[index].continuationThroughput,
+                       expected.stepRecords[index].continuationThroughput, 1e-4);
+    }
+    ASSERT_EQ(expected.resolvedPathStates.size(), result.nextPathStates.size());
+    expectPathStateNear(result.nextPathStates[0], expected.resolvedPathStates[0], 1e-4);
+    EXPECT_TRUE(result.retainedPathIndices.empty());
+#else
+    GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
+#endif
+  }
+
   TEST(MetalGpuDiffusePathLoopKernel,
        MattePathLoopDispatchesDescriptorOnlyPrimaryPathsWhenEnabled) {
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
