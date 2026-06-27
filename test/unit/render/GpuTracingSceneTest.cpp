@@ -14,6 +14,7 @@
 #include "render/materials/PortalMaterial.h"
 #include "render/materials/ReflectiveMaterial.h"
 #include "render/materials/TransparentMaterial.h"
+#include "render/primitives/Curve.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
 #include "render/textures/CheckerBoardTexture.h"
@@ -23,6 +24,8 @@
 #include "render/textures/TintedTexture.h"
 #include "render/textures/UVColorTexture.h"
 #include "render/textures/mappings/UVMapping2D.h"
+
+#include "core/geometry/Polyline.h"
 
 #include <cstddef>
 #include <cstring>
@@ -891,6 +894,29 @@ namespace GpuTracingSceneTest {
     EXPECT_EQ(compilation.sections.lights.size(), compilation.diagnostics.lights);
     EXPECT_EQ(compilation.sections.environment.size(), compilation.diagnostics.environment);
     EXPECT_EQ(compilation.sections.uploadByteCount(), compilation.diagnostics.uploadBytes);
+  }
+
+  TEST(GpuTracingScene, CombinedCompilationSupportsFiniteWidthCurveTessellation) {
+    auto matte = std::make_shared<MatteMaterial>(
+      std::make_shared<ConstantColorTexture>(Colord(0.25, 0.5, 0.75)));
+    auto curve =
+      std::make_shared<Curve>(core::Polyline({Vector3d(0.0, 0.0, 0.0), Vector3d(1.0, 0.0, 0.0)}),
+                              0.5, Curve::TessellationMode::Ribbon);
+    curve->setMaterial(matte);
+    Scene scene;
+    scene.add(curve);
+
+    const GpuTracingSceneCompilation compilation = compileGpuTracingScene(scene);
+
+    EXPECT_TRUE(compilation.supported());
+    EXPECT_EQ(0u, compilation.diagnostics.unsupportedPrimitives);
+    EXPECT_TRUE(compilation.diagnostics.unsupportedPrimitiveReasons.empty());
+    ASSERT_EQ(2u, compilation.sections.geometry.primitives.size());
+    ASSERT_EQ(2u, compilation.sections.geometry.triangles.size());
+    for (const GpuIntersectionPrimitiveRecord& primitive :
+         compilation.sections.geometry.primitives) {
+      EXPECT_EQ(static_cast<std::uint32_t>(GpuIntersectionPrimitiveKind::Triangle), primitive.kind);
+    }
   }
 
   TEST(GpuTracingScene, CombinedCompilationSupportsTransparentMaterials) {

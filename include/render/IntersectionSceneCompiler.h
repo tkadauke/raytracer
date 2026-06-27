@@ -14,6 +14,8 @@
 #include "core/math/Vector.h"
 #include "render/primitives/Primitive.h"
 
+class Mesh;
+
 namespace render {
   class Material;
   class Scene;
@@ -192,6 +194,7 @@ namespace render {
                      const IntersectionTrianglePayload& payload);
     void addTriangle(const Primitive::TransformedLeaf& leaf,
                      const IntersectionTrianglePayload& payload, const BoundingBoxd& bounds);
+    void addMeshTriangles(const Primitive::TransformedLeaf& leaf, const Mesh& mesh);
     void addSphere(const Primitive::TransformedLeaf& leaf, const Vector3d& center, double radius);
     void addPlane(const Primitive::TransformedLeaf& leaf, const Vector3d& normal, double distance);
     void addRectangle(const Primitive::TransformedLeaf& leaf, const Vector3d& corner,

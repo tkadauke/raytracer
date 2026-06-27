@@ -80,6 +80,8 @@ namespace render {
                                             const PrimitivePacketState8& states) const override;
 
     void forEachCurveOverlaySegment(const CurveOverlaySegmentVisitor& visitor) const override;
+    void appendIntersectionSceneRecord(IntersectionSceneBuilder& builder,
+                                       const TransformedLeaf& leaf) const override;
 
     /**
       * Tessellates non-zero-length segments into visible faces.

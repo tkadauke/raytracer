@@ -54,8 +54,8 @@ end state for GPU tracing.
   field.
 - A restricted compiled intersection scene exists for supported geometry:
   triangle/mesh triangles, imported/static `MeshPrimitive` geometry that
-  flattens to mesh triangles, sphere, plane, rectangle, disk, OpenCylinder,
-  Torus, and static transforms.
+  flattens to mesh triangles, finite-width `Curve` ribbon/tube tessellation,
+  sphere, plane, rectangle, disk, OpenCylinder, Torus, and static transforms.
 - The packed CPU intersection path uses the same GPU-style ray, hit, occlusion,
   BVH, primitive, payload, and transform records as the platform backend
   contract.
@@ -176,16 +176,17 @@ end state for GPU tracing.
 - Platform GPU-side path/frontier compaction for scheduler-owned path records.
 - Broad platform full-GPU path-loop kernels for the normal render path. A
   restricted Metal path-loop kernel can advance empty-scene and
-  optionally transformed triangle/`MeshPrimitive` mesh-triangle/sphere/plane/
-  rectangle/disk/open-cylinder/torus paths with Matte, Phong finite
+  optionally transformed triangle/`MeshPrimitive` mesh-triangle/finite-width
+  `Curve` tessellated-triangle/sphere/plane/rectangle/disk/open-cylinder/torus
+  paths with Matte, Phong finite
   diffuse/glossy, Reflective mirror,
   Transparent perfect reflection/refraction, Portal, or Emissive materials across
   multiple depths for backend tests and explicit GPU graph requests when the
   light set is empty or uses point, directional, or rectangular area lights. A
   restricted Vulkan path-loop backend can execute empty-scene all-miss paths and
   a multi-depth shaded static-transform
-  triangle/`MeshPrimitive` mesh-triangle/sphere/plane/rectangle/disk/
-  open-cylinder/torus subset with
+  triangle/`MeshPrimitive` mesh-triangle/finite-width `Curve`
+  tessellated-triangle/sphere/plane/rectangle/disk/open-cylinder/torus subset with
   Matte/Phong-finite-glossy/Reflective-mirror/Transparent-refraction/Portal/Emissive
   materials, ConstantColor/planar-or-UV CheckerBoard texture graphs/
   nearest-or-bilinear ImageTexture/UVColor records, bounded Tinted wrapper
@@ -1700,13 +1701,13 @@ for tracing, shadows, visibility, and graph passes.
 
 2. ~~**Close parity gaps for existing supported primitives.**~~ ✅ **Done.**
    Issue #570 adds explicit packed CPU closest-hit/any-hit parity coverage for
-   triangle, mesh triangle, sphere, plane, rectangle, disk, OpenCylinder, Torus,
-   and static transforms, and keeps mesh triangles represented in optional
-   Metal/Vulkan triangle smoke parity scenes.
+   triangle, mesh triangle, finite-width Curve tessellation, sphere, plane,
+   rectangle, disk, OpenCylinder, Torus, and static transforms, and keeps mesh
+   triangles represented in optional Metal/Vulkan triangle smoke parity scenes.
    - Depends on: job 1.
    - Output: CPU runtime, packed CPU, Metal, and Vulkan closest-hit/any-hit
-     parity tests for triangle, mesh triangle, sphere, plane, rectangle, disk,
-     OpenCylinder, Torus, and static transforms.
+     parity tests for triangle, mesh triangle, finite-width Curve tessellation,
+     sphere, plane, rectangle, disk, OpenCylinder, Torus, and static transforms.
 
 3. ~~**Stabilize explicit fallback behavior.**~~ ✅ **Done.** Issue #571 pinned
    deterministic GPU-intersection fallback reasons; transparent/glass now has
@@ -2643,10 +2644,11 @@ scene is large enough to amortize upload/readback costs.
      tracer's power-heuristic MIS weight. A restricted
      `MetalGpuDiffusePathLoopBackend` now wraps
      the empty-scene and optionally transformed
-     triangle/sphere/plane/rectangle/disk/open-cylinder/torus Matte,
-     Phong finite diffuse/glossy, Reflective-mirror, Transparent refraction,
-     Portal, and Emissive paths with empty, point-light, directional-light, or
-     rectangular-area-light scenes behind the platform
+     triangle/finite-width Curve tessellated-triangle/sphere/plane/rectangle/
+     disk/open-cylinder/torus Matte, Phong finite diffuse/glossy,
+     Reflective-mirror, Transparent refraction, Portal, and Emissive paths with
+     empty, point-light, directional-light, or rectangular-area-light scenes
+     behind the platform
      backend interface, including scene/settings support rejection and
      full-GPU result metadata for backend tests. Its first real path-loop
      dispatch can advance supported paths across multiple depths inside one
@@ -2708,7 +2710,8 @@ scene is large enough to amortize upload/readback costs.
      compile an embedded diffuse path-loop compute shader and expose a
      restricted `VulkanGpuDiffusePathLoopBackend` that can execute empty
      all-miss paths and a multi-depth shaded static-transform
-     triangle/sphere/plane/rectangle/disk/open-cylinder/torus subset with
+     triangle/finite-width Curve tessellated-triangle/sphere/plane/rectangle/
+     disk/open-cylinder/torus subset with
      Matte/Phong-finite-glossy/Reflective-mirror/Transparent-refraction/Portal/Emissive
      materials,
      ConstantColor/planar-or-UV CheckerBoard texture graphs/
@@ -2724,7 +2727,8 @@ scene is large enough to amortize upload/readback costs.
      the shader. It also carries Reflective mirror and Transparent refraction
      materials as exact delta continuations and can intersect transformed or
      untransformed Triangle, Plane, Rectangle, Disk, OpenCylinder, and Torus
-     records in addition to spheres. Portal materials now carry transformed
+     records, plus finite-width Curve tessellation lowered through triangle
+     records, in addition to spheres. Portal materials now carry transformed
      delta continuations through the same shader-side path loop. Trace-disabled
      Vulkan path-loop renders
      with linear tonemapping can now resolve packed display pixels in a second

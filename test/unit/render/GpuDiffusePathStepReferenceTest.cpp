@@ -88,6 +88,18 @@ namespace GpuDiffusePathStepReferenceTest {
       }
     };
 
+    class UnsupportedGpuTracingPrimitive final : public Primitive {
+    public:
+      const Primitive* intersect(const Rayd&, HitPointInterval&, State&) const override {
+        return nullptr;
+      }
+
+    protected:
+      BoundingBoxd calculateBoundingBox() const override {
+        return BoundingBoxd(Vector3d(-1.0, -1.0, -1.0), Vector3d(1.0, 1.0, 1.0));
+      }
+    };
+
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
     std::vector<std::uint32_t> sortedRetainedPathIndices(std::vector<std::uint32_t> indices) {
       std::sort(indices.begin(), indices.end());
@@ -3353,9 +3365,16 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_TRUE(areaLightSupport.supported);
     EXPECT_TRUE(areaLightSupport.reason.empty());
 
-    Scene unsupportedScene;
-    unsupportedScene.add(std::make_shared<Curve>(
+    Scene curveScene;
+    curveScene.add(std::make_shared<Curve>(
       core::Polyline({Vector3d(0.0, 0.0, 0.0), Vector3d(1.0, 0.0, 0.0)}), 0.1));
+    const GpuDiffusePathLoopBackendSupport curveSupport =
+      backend.fullGpuPathLoopSupport(sectionsFor(curveScene), settings);
+    EXPECT_TRUE(curveSupport.supported);
+    EXPECT_TRUE(curveSupport.reason.empty());
+
+    Scene unsupportedScene;
+    unsupportedScene.add(std::make_shared<UnsupportedGpuTracingPrimitive>());
     const GpuTracingSceneSections unsupportedSections = sectionsFor(unsupportedScene);
     const GpuDiffusePathLoopBackendSupport unsupportedSupport =
       backend.fullGpuPathLoopSupport(unsupportedSections, settings);

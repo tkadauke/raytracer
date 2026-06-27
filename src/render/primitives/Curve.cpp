@@ -4,6 +4,7 @@
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
 #include "core/math/RayPacket.h"
+#include "render/IntersectionSceneCompiler.h"
 #include "render/State.h"
 
 #include <algorithm>
@@ -109,6 +110,12 @@ void Curve::forEachCurveOverlaySegment(const CurveOverlaySegmentVisitor& visitor
       m_segmentColorMap ? m_segmentColorMap->colorFor(segment.attributes) : std::optional<Colord>();
     visitor(segment.start, segment.end, color);
   }
+}
+
+void Curve::appendIntersectionSceneRecord(IntersectionSceneBuilder& builder,
+                                          const TransformedLeaf& leaf) const {
+  const std::shared_ptr<Mesh> mesh = tessellate(0);
+  builder.addMeshTriangles(leaf, *mesh);
 }
 
 std::shared_ptr<Mesh> Curve::tessellate(int lod) const {

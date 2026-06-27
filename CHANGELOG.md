@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Let finite-width `Curve` primitives lower through tessellated mesh triangles
+  for compiled GPU intersection and full-GPU path-loop eligibility. —
+  GPT-5 Codex
 - Let compiled full-GPU path-loop renders carry `PortalMaterial` as a transformed
   delta continuation through the CPU reference, Metal, and Vulkan path-loop
   backends. — GPT-5 Codex

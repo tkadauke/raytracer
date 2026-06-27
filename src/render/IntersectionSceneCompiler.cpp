@@ -6,6 +6,7 @@
 #include <optional>
 #include <utility>
 
+#include "core/geometry/Mesh.h"
 #include "core/math/Quadric.h"
 #include "core/math/Quartic.h"
 #include "render/primitives/Scene.h"
@@ -339,6 +340,27 @@ void IntersectionSceneBuilder::addTriangle(const Primitive::TransformedLeaf& lea
   const std::uint32_t offset = static_cast<std::uint32_t>(m_scene.m_triangles.size());
   m_scene.m_triangles.push_back(payload);
   addPrimitive(leaf, IntersectionPrimitiveKind::Triangle, bounds, offset, 1);
+}
+
+void IntersectionSceneBuilder::addMeshTriangles(const Primitive::TransformedLeaf& leaf,
+                                                const Mesh& mesh) {
+  const auto triangleBounds = [&leaf](const IntersectionTrianglePayload& payload) {
+    BoundingBoxd bounds;
+    bounds.include(leaf.pointMatrix.transformPoint(payload.point0));
+    bounds.include(leaf.pointMatrix.transformPoint(payload.point1));
+    bounds.include(leaf.pointMatrix.transformPoint(payload.point2));
+    return bounds.grownByEpsilon();
+  };
+
+  for (auto triangle = mesh.begin(); triangle != mesh.end(); ++triangle) {
+    const auto& indices = *triangle;
+    const auto& v0 = mesh.vertices()[indices[0]];
+    const auto& v1 = mesh.vertices()[indices[1]];
+    const auto& v2 = mesh.vertices()[indices[2]];
+    const IntersectionTrianglePayload payload{v0.point,  v1.point, v2.point, v0.normal, v1.normal,
+                                              v2.normal, v0.uv,    v1.uv,    v2.uv};
+    addTriangle(leaf, payload, triangleBounds(payload));
+  }
 }
 
 void IntersectionSceneBuilder::addSphere(const Primitive::TransformedLeaf& leaf,
