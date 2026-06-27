@@ -2730,10 +2730,11 @@ scene is large enough to amortize upload/readback costs.
      propagate that display resource as current without immediately
      CPU-repacking the HDR graph resource. Simple trace-disabled LDR graph
      renders now go further: when the full-GPU path-tracer beauty pass feeds
-     only that compatible final tonemap, the graph executes the beauty pass as
-     display-only, skips the CPU tonemap pass, marks the final output edge
-     produced, and does not ask the backend to read back HDR accumulation
-     planes. Any denoiser, graph trace, unsupported tonemap, or postprocess/HDR
+     only that compatible final tonemap or writes the exported color directly,
+     the graph executes the beauty pass as display-only, skips the CPU tonemap
+     pass when one is present, marks the final output edge produced, and does
+     not ask the backend to read back HDR accumulation planes. Any denoiser,
+     graph trace, unsupported tonemap, or postprocess/HDR
      consumer still forces accumulation materialization, but downstream
      postprocess consumers no longer request an unused platform display resolve
      for the intermediate beauty preview; the

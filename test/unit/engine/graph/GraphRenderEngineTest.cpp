@@ -2845,6 +2845,62 @@ namespace GraphRenderEngineTest {
     }
   }
 
+  TEST(GraphRenderEngine, UsesDisplayOnlyResolveForTraceDisabledDirectExportPathLoop) {
+    const Colord background(0.125, 0.25, 0.5);
+    auto scene = std::make_shared<render::Scene>();
+    scene->setBackground(background);
+    scene->setEnvironmentRadiance(background);
+    auto receiver = std::make_shared<render::Rectangle>(
+      Vector3d(-20.0, -20.0, 0.0), Vector3d(40.0, 0.0, 0.0), Vector3d(0.0, 40.0, 0.0));
+    receiver->setMaterial(matte(Colord(0.8, 0.8, 0.8)));
+    scene->add(receiver);
+    scene->addLight(
+      std::make_shared<render::PointLight>(Vector3d(0.0, 0.0, -3.0), Colord(0.5, 0.5, 0.5)));
+
+    RenderPlan plan;
+    plan.addResource(colorResource("display_color", RenderResourceLifetime::Exported, 8, 8));
+
+    RaytracerBeautyPassState state;
+    state.setIntegrator("pathtracer");
+    state.setTracingExecution(TracingExecutionPreference::GPU);
+    state.setSamplesPerPixel(1);
+    state.setMaximumRecursionDepth(2);
+    state.setDirectLightSamples(1);
+    state.setSampleStreamMode("gpu_sample_stream");
+
+    RenderPassNode beauty;
+    beauty.id = "wavefront_beauty";
+    beauty.kind = RenderPassKind::Beauty;
+    beauty.executor = RenderExecutorKind::Wavefront;
+    beauty.writes.push_back({"display_color"});
+    state.writeTo(beauty);
+    plan.addPass(beauty);
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setPlan(plan);
+    auto pathLoopBackend = std::make_shared<ReportingFullGpuDiffusePathLoopBackend>();
+    engine.setGpuDiffusePathLoopBackend(pathLoopBackend);
+
+    Buffer<unsigned int> buffer(8, 8);
+    engine.render(buffer);
+
+    EXPECT_TRUE(pathLoopBackend->hasLastCaptureDiagnostics());
+    EXPECT_FALSE(pathLoopBackend->lastCaptureDiagnostics());
+    EXPECT_FALSE(pathLoopBackend->lastCapturePlatformAccumulation());
+    EXPECT_TRUE(pathLoopBackend->lastCaptureResolvedDisplay());
+    EXPECT_EQ(render::GpuDisplayResolveTonemap::Linear,
+              pathLoopBackend->lastDisplayResolveTonemap());
+    EXPECT_TRUE(pathLoopBackend->hasLastPrimaryGeneration());
+    EXPECT_TRUE(pathLoopBackend->lastPrimaryGeneratesOnDevice());
+    EXPECT_EQ(64u, pathLoopBackend->lastPrimaryGeneratedSamples());
+    EXPECT_EQ(0u, pathLoopBackend->lastPrimaryHostPathStateCount());
+    for (int y = 0; y != buffer.height(); ++y) {
+      for (int x = 0; x != buffer.width(); ++x) {
+        EXPECT_EQ(ReportingFullGpuDiffusePathLoopBackend::resolvedDisplaySentinel(), buffer[y][x]);
+      }
+    }
+  }
+
   TEST(GraphRenderEngine, KeepsPlatformAccumulationWhenDisplayGraphHasPostProcessConsumer) {
     const Colord background(0.125, 0.25, 0.5);
     auto scene = std::make_shared<render::Scene>();

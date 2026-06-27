@@ -577,6 +577,9 @@ namespace engine::graph {
       }
 
       const auto consumers = plan.consumersOf(pass.writes.front().resource);
+      if (pass.writes.front().resource == plan.exportedColorResource().id) {
+        return consumers.empty();
+      }
       if (consumers.size() != 1) {
         return false;
       }

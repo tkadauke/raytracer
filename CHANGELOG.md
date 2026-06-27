@@ -88,6 +88,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   full-GPU path-tracer beauty passes when a downstream post-process pass will
   consume HDR accumulation and replace that intermediate preview. —
   GPT-5 Codex
+- Let trace-disabled graph renders whose full-GPU path-tracer beauty pass writes
+  the exported color directly use the display-only platform path instead of
+  also materializing HDR accumulation planes. — GPT-5 Codex
 - Let Vulkan full-GPU diffuse path-loop renders resolve packed LDR display
   pixels on the GPU for trace-disabled linear-tonemap display paths, while
   graph renders that still need HDR resources keep accumulation readback
