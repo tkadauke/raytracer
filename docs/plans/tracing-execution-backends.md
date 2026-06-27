@@ -153,6 +153,11 @@ end state for GPU tracing.
   buffer. The host still encodes a bounded dispatch sequence for `maxDepth` and
   still reads final diagnostics/accumulation, but path records and retained
   frontier ownership stay in Metal buffers between depths.
+- The Vulkan full-GPU diffuse path-loop backend now follows the same
+  depth-frontier shape: Vulkan initialization and advance compute shaders keep
+  path records resident, compact retained path indices into current/next
+  count-prefixed frontier buffers, and swap descriptor sets inside one command
+  buffer instead of looping all bounces inside one shader invocation.
 - GPU-requested compiled diffuse path-loop renders automatically use an
   available Metal or Vulkan frontier-compaction backend for the live
   `GpuDiffusePathStateRecord` frontier, reporting that middle step as hybrid
@@ -186,9 +191,10 @@ end state for GPU tracing.
   other camera models without descriptors, animated cameras, later
   path-continuation records, and retained frontier ownership still need broader
   platform path-state support.
-- Vulkan platform GPU-side path/frontier compaction for scheduler-owned path
-  records, plus a shared backend abstraction for selecting compacted wavefront
-  versus megakernel schedules per platform.
+- A shared backend abstraction for selecting compacted wavefront versus
+  megakernel schedules per platform, plus Vulkan shader validation and parity
+  coverage on a Vulkan-enabled build for the new depth-frontier path-loop
+  entry points.
 - Broad platform full-GPU path-loop kernels for the normal render path. A
   restricted Metal path-loop kernel can advance empty-scene and
   optionally transformed triangle/`MeshPrimitive` mesh-triangle/finite-width
@@ -207,7 +213,8 @@ end state for GPU tracing.
   nearest-or-bilinear ImageTexture/UVColor records, bounded Tinted wrapper
   chains over those records, and zero or more point, directional, or
   rectangular area lights when Vulkan is built and available, including
-  sample-slot accumulation for duplicate active pixel targets.
+  sample-slot accumulation for duplicate active pixel targets, now through a
+  depth-frontier Vulkan schedule.
   Graph auto-selection still waits for Vulkan shaded-path parity, broader scene
   support, and performance gates.
 - Platform full-GPU path-loop backend selection beyond that restricted Metal
@@ -2736,11 +2743,11 @@ scene is large enough to amortize upload/readback costs.
      ConstantColor/planar-or-UV CheckerBoard texture graphs/
      nearest-or-bilinear ImageTexture records, UVColorTexture, plus bounded
      Tinted wrapper chains over those records, and zero or more point,
-     directional, or rectangular area lights. It writes
-     Vulkan-owned active/next path-state, step-record,
-     retained-index, and accumulation buffers, reports platform path-state
-     residency, and now dispatches that shader in 64-wide workgroups instead
-     of one invocation per workgroup. It also uses platform sample-slot/path
+     directional, or rectangular area lights. It writes a Vulkan-owned resident
+     path-state buffer, current/next retained-frontier index buffers,
+     step-record, and accumulation buffers, reports platform path-state
+     residency, and now advances the path loop through depth-frontier dispatches
+     instead of one all-bounces shader invocation. It also uses platform sample-slot/path
      accumulation when duplicate active pixel targets would otherwise collide
      and evaluates direct-light sampling plus supported geometry visibility in
      the shader. It also carries Reflective mirror and Transparent refraction

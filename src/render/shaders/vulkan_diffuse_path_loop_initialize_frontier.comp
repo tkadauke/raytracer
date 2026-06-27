@@ -1,0 +1,31 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+#include "vulkan_diffuse_path_loop_common.glsl"
+
+void recordInitialActivePath(uint pathIndex, GpuDiffusePathStateRecord path) {
+  if (!pathStateIsActive(path)) {
+    return;
+  }
+  const uint slot = atomicAdd(retainedIndices[0], 1u);
+  retainedIndices[slot + 1u] = pathIndex;
+}
+
+void main() {
+  const uint id = gl_GlobalInvocationID.x;
+  if (id == 0u) {
+    echoedParameters = parameters;
+  }
+  if (id >= parameters.initialPathCount) {
+    return;
+  }
+
+  GpuDiffusePathStateRecord path = initialPathFor(id);
+  if (pathStateIsActive(path) && path.depth >= parameters.maxDepth) {
+    path.flags = terminatedPathFlags(path.flags);
+    writeAccumulation(id, path);
+  }
+
+  activePathStates[id] = path;
+  recordInitialActivePath(id, path);
+}

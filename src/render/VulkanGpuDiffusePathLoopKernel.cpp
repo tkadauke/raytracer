@@ -1,8 +1,10 @@
 #include "render/VulkanGpuDiffusePathLoopKernel.h"
 
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
-#include "render/VulkanDiffusePathLoopAllMiss.generated.h"
+#include "render/VulkanDiffusePathLoopAdvanceFrontier.generated.h"
+#include "render/VulkanDiffusePathLoopClearFrontier.generated.h"
 #include "render/VulkanDiffusePathLoopDisplayResolve.generated.h"
+#include "render/VulkanDiffusePathLoopInitializeFrontier.generated.h"
 
 #include <vulkan/vulkan.h>
 #endif
@@ -31,7 +33,7 @@ namespace render {
 
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
     constexpr std::uint32_t kDiffusePathLoopLocalSizeX = 64u;
-    constexpr std::uint32_t kDiffusePathLoopDescriptorCount = 12u;
+    constexpr std::uint32_t kDiffusePathLoopDescriptorCount = 13u;
 
     std::uint64_t pixelCount(const GpuDiffusePathLoopLaunchParameters& parameters) {
       return static_cast<std::uint64_t>(parameters.imageWidth) *
@@ -149,12 +151,24 @@ namespace render {
           DeviceGuard deviceGuard;
           deviceGuard.device = device;
 
-          VkShaderModule shader =
-            createShaderModule(device, vulkan_shaders::diffusePathLoopAllMissShaderSpirv.data(),
-                               vulkan_shaders::diffusePathLoopAllMissShaderSpirv.size());
-          ShaderGuard shaderGuard;
-          shaderGuard.device = device;
-          shaderGuard.shaderModule = shader;
+          VkShaderModule clearShader = createShaderModule(
+            device, vulkan_shaders::diffusePathLoopClearFrontierShaderSpirv.data(),
+            vulkan_shaders::diffusePathLoopClearFrontierShaderSpirv.size());
+          ShaderGuard clearShaderGuard;
+          clearShaderGuard.device = device;
+          clearShaderGuard.shaderModule = clearShader;
+          VkShaderModule initializeShader = createShaderModule(
+            device, vulkan_shaders::diffusePathLoopInitializeFrontierShaderSpirv.data(),
+            vulkan_shaders::diffusePathLoopInitializeFrontierShaderSpirv.size());
+          ShaderGuard initializeShaderGuard;
+          initializeShaderGuard.device = device;
+          initializeShaderGuard.shaderModule = initializeShader;
+          VkShaderModule advanceShader = createShaderModule(
+            device, vulkan_shaders::diffusePathLoopAdvanceFrontierShaderSpirv.data(),
+            vulkan_shaders::diffusePathLoopAdvanceFrontierShaderSpirv.size());
+          ShaderGuard advanceShaderGuard;
+          advanceShaderGuard.device = device;
+          advanceShaderGuard.shaderModule = advanceShader;
           VkShaderModule resolveShader = createShaderModule(
             device, vulkan_shaders::diffusePathLoopDisplayResolveShaderSpirv.data(),
             vulkan_shaders::diffusePathLoopDisplayResolveShaderSpirv.size());
@@ -173,10 +187,18 @@ namespace render {
           pipelineLayoutGuard.device = device;
           pipelineLayoutGuard.layout = pipelineLayout;
 
-          VkPipeline pipeline = createPipeline(device, shader, pipelineLayout);
-          PipelineGuard pipelineGuard;
-          pipelineGuard.device = device;
-          pipelineGuard.pipeline = pipeline;
+          VkPipeline clearPipeline = createPipeline(device, clearShader, pipelineLayout);
+          PipelineGuard clearPipelineGuard;
+          clearPipelineGuard.device = device;
+          clearPipelineGuard.pipeline = clearPipeline;
+          VkPipeline initializePipeline = createPipeline(device, initializeShader, pipelineLayout);
+          PipelineGuard initializePipelineGuard;
+          initializePipelineGuard.device = device;
+          initializePipelineGuard.pipeline = initializePipeline;
+          VkPipeline advancePipeline = createPipeline(device, advanceShader, pipelineLayout);
+          PipelineGuard advancePipelineGuard;
+          advancePipelineGuard.device = device;
+          advancePipelineGuard.pipeline = advancePipeline;
           VkPipeline resolvePipeline = createPipeline(device, resolveShader, pipelineLayout);
           PipelineGuard resolvePipelineGuard;
           resolvePipelineGuard.device = device;
@@ -188,9 +210,9 @@ namespace render {
       }
 
       VulkanGpuDiffusePathLoopKernelResult
-      runAllMissPathLoop(const GpuDiffusePathLoopLaunchPlan& plan,
-                         const std::vector<GpuDiffusePathStateRecord>& initialPathStates,
-                         bool capturePlatformAccumulation, bool captureResolvedDisplay) const {
+      runWavefrontPathLoop(const GpuDiffusePathLoopLaunchPlan& plan,
+                           const std::vector<GpuDiffusePathStateRecord>& initialPathStates,
+                           bool capturePlatformAccumulation, bool captureResolvedDisplay) const {
         validatePathLoopPlan(plan, initialPathStates);
         const std::size_t launchPathCount =
           static_cast<std::size_t>(plan.parameters.initialPathCount);
@@ -219,6 +241,8 @@ namespace render {
           throw std::invalid_argument(
             "Vulkan diffuse path-loop display resolve requires pixel or sample-slot accumulation");
         }
+        const std::uint64_t pathStateStorageBytes =
+          launchPathCount * static_cast<std::uint64_t>(sizeof(GpuDiffusePathStateRecord));
         BufferVectorGuard buffers;
         buffers.device = device;
         buffers.buffers.push_back(createStorageBuffer(
@@ -232,11 +256,8 @@ namespace render {
             ? createStorageBuffer(device, selection.device, 1u, nullptr)
             : createStorageBufferFromVector(device, selection.device, initialPathStates));
         buffers.buffers.push_back(createStorageBuffer(
-          device, selection.device, static_cast<VkDeviceSize>(plan.buffers.activePathStateBytes),
-          nullptr));
-        buffers.buffers.push_back(
-          createStorageBuffer(device, selection.device,
-                              static_cast<VkDeviceSize>(plan.buffers.nextPathStateBytes), nullptr));
+          device, selection.device, static_cast<VkDeviceSize>(pathStateStorageBytes), nullptr));
+        buffers.buffers.push_back(createStorageBuffer(device, selection.device, 1u, nullptr));
         std::vector<std::uint8_t> stepRecordBytes(
           static_cast<std::size_t>(plan.buffers.stepRecordBytes), 0u);
         buffers.buffers.push_back(
@@ -265,13 +286,27 @@ namespace render {
         buffers.buffers.push_back(createStorageBuffer(
           device, selection.device,
           resolvedDisplayPixels * static_cast<std::uint64_t>(sizeof(unsigned int)), nullptr));
+        buffers.buffers.push_back(
+          createStorageBufferFromVector(device, selection.device, retainedIndices));
 
-        VkShaderModule shader =
-          createShaderModule(device, vulkan_shaders::diffusePathLoopAllMissShaderSpirv.data(),
-                             vulkan_shaders::diffusePathLoopAllMissShaderSpirv.size());
-        ShaderGuard shaderGuard;
-        shaderGuard.device = device;
-        shaderGuard.shaderModule = shader;
+        VkShaderModule clearShader =
+          createShaderModule(device, vulkan_shaders::diffusePathLoopClearFrontierShaderSpirv.data(),
+                             vulkan_shaders::diffusePathLoopClearFrontierShaderSpirv.size());
+        ShaderGuard clearShaderGuard;
+        clearShaderGuard.device = device;
+        clearShaderGuard.shaderModule = clearShader;
+        VkShaderModule initializeShader = createShaderModule(
+          device, vulkan_shaders::diffusePathLoopInitializeFrontierShaderSpirv.data(),
+          vulkan_shaders::diffusePathLoopInitializeFrontierShaderSpirv.size());
+        ShaderGuard initializeShaderGuard;
+        initializeShaderGuard.device = device;
+        initializeShaderGuard.shaderModule = initializeShader;
+        VkShaderModule advanceShader = createShaderModule(
+          device, vulkan_shaders::diffusePathLoopAdvanceFrontierShaderSpirv.data(),
+          vulkan_shaders::diffusePathLoopAdvanceFrontierShaderSpirv.size());
+        ShaderGuard advanceShaderGuard;
+        advanceShaderGuard.device = device;
+        advanceShaderGuard.shaderModule = advanceShader;
         VkShaderModule resolveShader =
           captureResolvedDisplay
             ? createShaderModule(device,
@@ -293,10 +328,18 @@ namespace render {
         pipelineLayoutGuard.device = device;
         pipelineLayoutGuard.layout = pipelineLayout;
 
-        VkPipeline pipeline = createPipeline(device, shader, pipelineLayout);
-        PipelineGuard pipelineGuard;
-        pipelineGuard.device = device;
-        pipelineGuard.pipeline = pipeline;
+        VkPipeline clearPipeline = createPipeline(device, clearShader, pipelineLayout);
+        PipelineGuard clearPipelineGuard;
+        clearPipelineGuard.device = device;
+        clearPipelineGuard.pipeline = clearPipeline;
+        VkPipeline initializePipeline = createPipeline(device, initializeShader, pipelineLayout);
+        PipelineGuard initializePipelineGuard;
+        initializePipelineGuard.device = device;
+        initializePipelineGuard.pipeline = initializePipeline;
+        VkPipeline advancePipeline = createPipeline(device, advanceShader, pipelineLayout);
+        PipelineGuard advancePipelineGuard;
+        advancePipelineGuard.device = device;
+        advancePipelineGuard.pipeline = advancePipeline;
         VkPipeline resolvePipeline = captureResolvedDisplay
                                        ? createPipeline(device, resolveShader, pipelineLayout)
                                        : VK_NULL_HANDLE;
@@ -305,14 +348,19 @@ namespace render {
         resolvePipelineGuard.pipeline = resolvePipeline;
 
         VkDescriptorPool descriptorPool =
-          createDescriptorPool(device, kDiffusePathLoopDescriptorCount);
+          createDescriptorPool(device, kDiffusePathLoopDescriptorCount, 2u);
         DescriptorPoolGuard descriptorPoolGuard;
         descriptorPoolGuard.device = device;
         descriptorPoolGuard.pool = descriptorPool;
 
-        VkDescriptorSet descriptorSet =
+        VkDescriptorSet descriptorSetAB =
           allocateDescriptorSet(device, descriptorPool, descriptorLayout);
-        updateDescriptorSet(device, descriptorSet, buffers.buffers);
+        VkDescriptorSet descriptorSetBA =
+          allocateDescriptorSet(device, descriptorPool, descriptorLayout);
+        updateDescriptorSet(device, descriptorSetAB, buffers.buffers);
+        std::vector<StorageBuffer> swappedFrontierBuffers = buffers.buffers;
+        std::swap(swappedFrontierBuffers[7], swappedFrontierBuffers[12]);
+        updateDescriptorSet(device, descriptorSetBA, swappedFrontierBuffers);
 
         VkCommandPool commandPool = createCommandPool(device, selection.queueFamily);
         CommandPoolGuard commandPoolGuard;
@@ -320,11 +368,15 @@ namespace render {
         commandPoolGuard.pool = commandPool;
 
         VkCommandBuffer commandBuffer = allocateCommandBuffer(device, commandPool);
-        recordPathLoopAndOptionalResolve(
-          commandBuffer, pipeline, resolvePipeline, pipelineLayout, descriptorSet,
+        const VkDescriptorSet finalFrontierDescriptorSet = recordPathLoopAndOptionalResolve(
+          commandBuffer, clearPipeline, initializePipeline, advancePipeline, resolvePipeline,
+          pipelineLayout, descriptorSetAB, descriptorSetBA,
           static_cast<std::uint32_t>(std::max<std::size_t>(1u, launchPathCount)),
+          plan.parameters.maxDepth,
           static_cast<std::uint32_t>(std::max<std::uint64_t>(1u, resolvedDisplayPixels)),
           captureResolvedDisplay);
+        const std::size_t finalFrontierBufferIndex =
+          finalFrontierDescriptorSet == descriptorSetAB ? 7u : 12u;
         const auto uploadEnd = std::chrono::steady_clock::now();
 
         const auto kernelStart = std::chrono::steady_clock::now();
@@ -333,16 +385,22 @@ namespace render {
 
         const auto readbackStart = std::chrono::steady_clock::now();
         VulkanGpuDiffusePathLoopKernelResult result;
-        result.executionPath = "vulkan_diffuse_path_loop";
+        result.executionPath = "vulkan_diffuse_path_loop_wavefront";
         result.pathStateResidency = "vulkan_host_visible_diffuse_path_state";
         result.bufferSizes = plan.buffers;
+        result.bufferSizes.totalResidentBytes -= plan.buffers.activePathStateBytes;
+        result.bufferSizes.totalResidentBytes -= plan.buffers.nextPathStateBytes;
+        result.bufferSizes.activePathStateBytes = pathStateStorageBytes;
+        result.bufferSizes.nextPathStateBytes = 0u;
+        result.bufferSizes.totalResidentBytes += pathStateStorageBytes;
+        result.bufferSizes.totalResidentBytes += plan.buffers.retainedIndexBytes;
         result.uploadWorkerSeconds = secondsBetween(uploadStart, uploadEnd);
         result.kernelWorkerSeconds = secondsBetween(kernelStart, kernelEnd);
         result.echoedParameters = readBackOne<GpuDiffusePathLoopLaunchParameters>(
           device, buffers.buffers[1].memory, "Vulkan diffuse path-loop echoed parameters mapping");
         const std::vector<std::uint32_t> retainedCountOutput = readBackRecords<std::uint32_t>(
-          device, buffers.buffers[7].memory, byteCount<std::uint32_t>(1u), 1u,
-          "Vulkan diffuse path-loop retained-count output mapping");
+          device, buffers.buffers[finalFrontierBufferIndex].memory, byteCount<std::uint32_t>(1u),
+          1u, "Vulkan diffuse path-loop retained-count output mapping");
         result.retainedPathCount =
           retainedPathCountFromBuffer(retainedCountOutput, launchPathCount);
         if (plan.parameters.captureDiagnostics != 0u) {
@@ -351,9 +409,9 @@ namespace render {
             byteCount<GpuDiffusePathStateRecord>(launchPathCount), launchPathCount,
             "Vulkan diffuse path-loop active path-state output mapping");
           result.nextPathStates = readBackRecords<GpuDiffusePathStateRecord>(
-            device, buffers.buffers[5].memory,
+            device, buffers.buffers[4].memory,
             byteCount<GpuDiffusePathStateRecord>(launchPathCount), launchPathCount,
-            "Vulkan diffuse path-loop next path-state output mapping");
+            "Vulkan diffuse path-loop final path-state output mapping");
           const std::size_t rawStepCount =
             launchPathCount * static_cast<std::size_t>(plan.parameters.maxDepth);
           const std::vector<GpuDiffusePathStepRecord> rawStepRecords =
@@ -368,8 +426,9 @@ namespace render {
             }
           }
           const std::vector<std::uint32_t> retainedOutput = readBackRecords<std::uint32_t>(
-            device, buffers.buffers[7].memory, byteCount<std::uint32_t>(retainedIndices.size()),
-            retainedIndices.size(), "Vulkan diffuse path-loop retained-index output mapping");
+            device, buffers.buffers[finalFrontierBufferIndex].memory,
+            byteCount<std::uint32_t>(retainedIndices.size()), retainedIndices.size(),
+            "Vulkan diffuse path-loop retained-index output mapping");
           result.retainedPathIndices =
             retainedPathIndicesFromBuffer(retainedOutput, launchPathCount);
           result.retainedPathCount = static_cast<std::uint32_t>(result.retainedPathIndices.size());
@@ -745,14 +804,15 @@ namespace render {
         return pipeline;
       }
 
-      VkDescriptorPool createDescriptorPool(VkDevice device, std::uint32_t descriptorCount) const {
+      VkDescriptorPool createDescriptorPool(VkDevice device, std::uint32_t descriptorCount,
+                                            std::uint32_t setCount = 1u) const {
         VkDescriptorPoolSize poolSize{};
         poolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        poolSize.descriptorCount = descriptorCount;
+        poolSize.descriptorCount = descriptorCount * setCount;
 
         VkDescriptorPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        poolInfo.maxSets = 1;
+        poolInfo.maxSets = setCount;
         poolInfo.poolSizeCount = 1;
         poolInfo.pPoolSizes = &poolSize;
 
@@ -820,37 +880,79 @@ namespace render {
         return commandBuffer;
       }
 
-      void recordPathLoopAndOptionalResolve(VkCommandBuffer commandBuffer,
-                                            VkPipeline pathLoopPipeline, VkPipeline resolvePipeline,
-                                            VkPipelineLayout pipelineLayout,
-                                            VkDescriptorSet descriptorSet, std::uint32_t pathCount,
-                                            std::uint32_t resolvedDisplayPixels,
-                                            bool captureResolvedDisplay) const {
+      void shaderStorageBarrier(VkCommandBuffer commandBuffer) const {
+        VkMemoryBarrier barrier{};
+        barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+        barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+        vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &barrier, 0, nullptr, 0,
+                             nullptr);
+      }
+
+      void dispatch1D(VkCommandBuffer commandBuffer, std::uint32_t itemCount) const {
+        const std::uint32_t groupCount =
+          std::max(1u, (itemCount + kDiffusePathLoopLocalSizeX - 1u) / kDiffusePathLoopLocalSizeX);
+        vkCmdDispatch(commandBuffer, groupCount, 1, 1);
+      }
+
+      VkDescriptorSet recordPathLoopAndOptionalResolve(
+        VkCommandBuffer commandBuffer, VkPipeline clearFrontierPipeline,
+        VkPipeline initializeFrontierPipeline, VkPipeline advanceFrontierPipeline,
+        VkPipeline resolvePipeline, VkPipelineLayout pipelineLayout,
+        VkDescriptorSet descriptorSetAB, VkDescriptorSet descriptorSetBA, std::uint32_t pathCount,
+        std::uint32_t maxDepth, std::uint32_t resolvedDisplayPixels,
+        bool captureResolvedDisplay) const {
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         check(vkBeginCommandBuffer(commandBuffer, &beginInfo),
               "Vulkan diffuse path-loop command buffer begin");
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pathLoopPipeline);
+
+        VkDescriptorSet currentDescriptorSet = descriptorSetAB;
+        VkDescriptorSet nextDescriptorSet = descriptorSetBA;
+
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, clearFrontierPipeline);
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1,
-                                &descriptorSet, 0, nullptr);
-        const std::uint32_t groupCount =
-          std::max(1u, (pathCount + kDiffusePathLoopLocalSizeX - 1u) / kDiffusePathLoopLocalSizeX);
-        vkCmdDispatch(commandBuffer, groupCount, 1, 1);
+                                &currentDescriptorSet, 0, nullptr);
+        vkCmdDispatch(commandBuffer, 1, 1, 1);
+        shaderStorageBarrier(commandBuffer);
+
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1,
+                                &nextDescriptorSet, 0, nullptr);
+        vkCmdDispatch(commandBuffer, 1, 1, 1);
+        shaderStorageBarrier(commandBuffer);
+
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
+                          initializeFrontierPipeline);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1,
+                                &currentDescriptorSet, 0, nullptr);
+        dispatch1D(commandBuffer, pathCount);
+        shaderStorageBarrier(commandBuffer);
+
+        for (std::uint32_t depth = 0; depth != maxDepth; ++depth) {
+          (void)depth;
+          vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, clearFrontierPipeline);
+          vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0,
+                                  1, &nextDescriptorSet, 0, nullptr);
+          vkCmdDispatch(commandBuffer, 1, 1, 1);
+          shaderStorageBarrier(commandBuffer);
+
+          vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, advanceFrontierPipeline);
+          vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0,
+                                  1, &currentDescriptorSet, 0, nullptr);
+          dispatch1D(commandBuffer, pathCount);
+          shaderStorageBarrier(commandBuffer);
+          std::swap(currentDescriptorSet, nextDescriptorSet);
+        }
+
         if (captureResolvedDisplay) {
-          VkMemoryBarrier barrier{};
-          barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-          barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-          barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
-          vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                               VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &barrier, 0, nullptr, 0,
-                               nullptr);
           vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, resolvePipeline);
-          const std::uint32_t resolveGroupCount =
-            std::max(1u, (resolvedDisplayPixels + kDiffusePathLoopLocalSizeX - 1u) /
-                           kDiffusePathLoopLocalSizeX);
-          vkCmdDispatch(commandBuffer, resolveGroupCount, 1, 1);
+          vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0,
+                                  1, &currentDescriptorSet, 0, nullptr);
+          dispatch1D(commandBuffer, resolvedDisplayPixels);
         }
         check(vkEndCommandBuffer(commandBuffer), "Vulkan diffuse path-loop command buffer end");
+        return currentDescriptorSet;
       }
 
       void submitAndWait(VkQueue queue, VkCommandBuffer commandBuffer) const {
@@ -926,12 +1028,12 @@ namespace render {
 #endif
   }
 
-  VulkanGpuDiffusePathLoopKernelResult VulkanGpuDiffusePathLoopKernel::runAllMissPathLoop(
+  VulkanGpuDiffusePathLoopKernelResult VulkanGpuDiffusePathLoopKernel::runWavefrontPathLoop(
     const GpuDiffusePathLoopLaunchPlan& plan,
     const std::vector<GpuDiffusePathStateRecord>& initialPathStates,
     bool capturePlatformAccumulation, bool captureResolvedDisplay) const {
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
-    return VulkanDiffusePathLoopRuntime().runAllMissPathLoop(
+    return VulkanDiffusePathLoopRuntime().runWavefrontPathLoop(
       plan, initialPathStates, capturePlatformAccumulation, captureResolvedDisplay);
 #else
     (void)plan;

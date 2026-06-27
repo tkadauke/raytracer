@@ -15,6 +15,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   schedule that initializes, advances, and compacts active path indices on the
   GPU instead of running all bounces inside one per-path megakernel thread. —
   GPT-5 Codex
+- Route Vulkan full-GPU diffuse path-loop renders through the same GPU-resident
+  depth-frontier schedule, with current/next retained-frontier buffers swapped
+  in a single command buffer instead of looping all bounces in one shader
+  invocation. — GPT-5 Codex
 - Let finite-width `Curve` primitives lower through tessellated mesh triangles
   for compiled GPU intersection and full-GPU path-loop eligibility. —
   GPT-5 Codex

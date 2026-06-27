@@ -1,0 +1,55 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+#include "vulkan_diffuse_path_loop_common.glsl"
+
+layout(std430, binding = 12) buffer NextRetainedIndices {
+  uint nextRetainedIndices[];
+};
+
+void recordNextActivePath(uint pathIndex, GpuDiffusePathStateRecord path) {
+  if (!pathStateIsActive(path)) {
+    return;
+  }
+  const uint slot = atomicAdd(nextRetainedIndices[0], 1u);
+  nextRetainedIndices[slot + 1u] = pathIndex;
+}
+
+void main() {
+  const uint frontierSlot = gl_GlobalInvocationID.x;
+  if (frontierSlot >= retainedIndices[0]) {
+    return;
+  }
+
+  const uint pathIndex = retainedIndices[frontierSlot + 1u];
+  if (pathIndex >= parameters.initialPathCount) {
+    return;
+  }
+
+  GpuDiffusePathStateRecord path = activePathStates[pathIndex];
+  if (!pathStateIsActive(path) || path.depth >= parameters.maxDepth) {
+    activePathStates[pathIndex] = path;
+    return;
+  }
+
+  atomicAdd(activePathCounts[path.depth], 1u);
+  GpuIntersectionHitRecord hit;
+  GpuDiffusePathStateRecord next;
+  const GpuDiffusePathStepRecord step = pathStep(pathIndex, path, hit, next);
+  writeDenoiserFeature(path, hit);
+  if (parameters.captureDiagnostics != 0u) {
+    stepRecords[pathIndex * parameters.maxDepth + path.depth] = step;
+  }
+
+  if (pathStateIsActive(path) &&
+      (next.flags & gpuDiffusePathStateTerminatedFlag) != 0u) {
+    writeAccumulation(pathIndex, next);
+  }
+  if (pathStateIsActive(next) && next.depth >= parameters.maxDepth) {
+    next.flags = terminatedPathFlags(next.flags);
+    writeAccumulation(pathIndex, next);
+  }
+
+  activePathStates[pathIndex] = next;
+  recordNextActivePath(pathIndex, next);
+}

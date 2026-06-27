@@ -445,9 +445,9 @@ namespace render {
       scene, initialPathStates, accumulation.layout, settings);
     plan.parameters.accumulationTargetMode = accumulation.targetMode;
     const VulkanGpuDiffusePathLoopKernelResult vulkanResult =
-      VulkanGpuDiffusePathLoopKernel().runAllMissPathLoop(plan, initialPathStates,
-                                                          settings.capturePlatformAccumulation,
-                                                          settings.captureResolvedDisplay);
+      VulkanGpuDiffusePathLoopKernel().runWavefrontPathLoop(plan, initialPathStates,
+                                                            settings.capturePlatformAccumulation,
+                                                            settings.captureResolvedDisplay);
     return makeLoopResult(initialPathStates, settings, vulkanResult);
 #else
     (void)scene;
@@ -473,9 +473,9 @@ namespace render {
       scene, primaryPathGeneration, accumulation.layout, settings);
     plan.parameters.accumulationTargetMode = accumulation.targetMode;
     const VulkanGpuDiffusePathLoopKernelResult vulkanResult =
-      VulkanGpuDiffusePathLoopKernel().runAllMissPathLoop(plan, initialPathStates,
-                                                          settings.capturePlatformAccumulation,
-                                                          settings.captureResolvedDisplay);
+      VulkanGpuDiffusePathLoopKernel().runWavefrontPathLoop(plan, initialPathStates,
+                                                            settings.capturePlatformAccumulation,
+                                                            settings.captureResolvedDisplay);
     return makeLoopResult(plan.parameters.initialPathCount, settings, vulkanResult);
 #else
     (void)scene;
