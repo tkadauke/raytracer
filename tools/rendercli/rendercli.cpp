@@ -2455,6 +2455,10 @@ engine::graph::RenderEngineOptions Renderer::commandLineEngineOptions() const {
     options.raytracer().setTracingBackend(m_tracingBackend.toStdString());
   if (m_tracingExecutionSet)
     options.raytracer().setTracingExecution(m_tracingExecution.toStdString());
+  if (pathTracingRequested() && m_tracingExecutionSet && m_tracingExecution == "gpu" &&
+      !m_sampleStreamModeSet && !m_samplerSet) {
+    options.raytracer().setSampleStreamMode("gpu_sample_stream");
+  }
   if (m_samplerSet)
     options.raytracer().setSampler(m_sampler.toStdString());
   if (m_sampleStreamModeSet)

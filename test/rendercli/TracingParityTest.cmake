@@ -283,7 +283,6 @@ function(tracing_parity_render_compiled_gpu_execution category scene_file depth 
     COMMAND
       "${RENDERCLI}" --engine pathtracer --tracing_execution gpu
       --width 32 --height 24
-      --sample_stream_mode gpu_sample_stream
       --samples_per_pixel "${samples}"
       --sampling_seed 1337
       --pathtracer_direct_light_samples 1

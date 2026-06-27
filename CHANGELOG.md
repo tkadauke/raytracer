@@ -568,6 +568,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- Make explicit rendercli GPU path-tracing requests default to the GPU sample
+  stream when no command-line sampler or sample-stream mode was supplied, even
+  if the loaded scene has a sampler-backed render intent. — GPT-5 Codex
 - Skip active-depth and retained-count metrics buffers and readbacks for
   trace-disabled full-GPU diffuse path-loop graph renders, while keeping those
   metrics available when graph trace capture is enabled. — GPT-5 Codex
