@@ -3,6 +3,7 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 rendercli="${RENDERCLI:-${repo_root}/build/release/tools/rendercli/rendercli}"
+benchmarks_bin="${BENCHMARKS:-${repo_root}/build/benchmark/benchmarks/benchmarks}"
 out_root="${TRACING_BACKEND_OUT:-${repo_root}/tmp/tracing-backend-benchmarks}"
 repeat="${TRACING_BACKEND_REPEAT:-3}"
 width="${TRACING_BACKEND_WIDTH:-160}"
@@ -10,6 +11,8 @@ height="${TRACING_BACKEND_HEIGHT:-120}"
 samples="${TRACING_BACKEND_SAMPLES:-4}"
 depth="${TRACING_BACKEND_DEPTH:-3}"
 large_mesh_side="${TRACING_BACKEND_LARGE_MESH_SIDE:-28}"
+run_cpp_benchmarks="${TRACING_BACKEND_RUN_CPP_BENCHMARKS:-0}"
+cpp_benchmark_min_time="${TRACING_BACKEND_CPP_MIN_TIME:-0.01s}"
 
 usage() {
   cat <<'USAGE'
@@ -25,6 +28,7 @@ Scenes:
 
 Environment:
   RENDERCLI                        rendercli binary path
+  BENCHMARKS                       Google Benchmark binary path
   TRACING_BACKEND_OUT              output directory
   TRACING_BACKEND_REPEAT           repeated render count per mode
   TRACING_BACKEND_WIDTH            output width
@@ -32,10 +36,15 @@ Environment:
   TRACING_BACKEND_SAMPLES          samples per pixel
   TRACING_BACKEND_DEPTH            max path depth
   TRACING_BACKEND_LARGE_MESH_SIDE  generated mesh grid width/height
+  TRACING_BACKEND_RUN_CPP_BENCHMARKS
+                                   set to 1 to also capture C++ benchmark rows
+  TRACING_BACKEND_CPP_MIN_TIME      min time for C++ benchmark rows
 
 Each scene captures CPU, auto, and explicit GPU-request modes so metrics show
 runtime, hybrid intersection/compaction, and available platform full-GPU
-path-loop execution paths.
+path-loop execution paths. When TRACING_BACKEND_RUN_CPP_BENCHMARKS=1, the
+indirect_diffuse scene also captures the CPU-reference, cold requested-GPU, and
+warmed requested-GPU compiled diffuse path-loop Google Benchmark rows.
 USAGE
 }
 
@@ -43,6 +52,14 @@ require_rendercli() {
   if [[ ! -x "${rendercli}" ]]; then
     echo "rendercli not found or not executable: ${rendercli}" >&2
     echo "Build it with: cmake --preset release && cmake --build --preset release --target rendercli" >&2
+    exit 1
+  fi
+}
+
+require_benchmarks() {
+  if [[ ! -x "${benchmarks_bin}" ]]; then
+    echo "benchmark binary not found or not executable: ${benchmarks_bin}" >&2
+    echo "Build it with: cmake --preset benchmark && cmake --build --preset benchmark --target benchmarks" >&2
     exit 1
   fi
 }
@@ -210,6 +227,38 @@ run_mode() {
       "${input}" "${image}" | tee "${stdout}"
 }
 
+cpp_benchmark_filter_for_scene() {
+  case "$1" in
+    indirect_diffuse)
+      echo 'bm_compiledDiffusePathLoopCpuReference/3/(256|4096)/4$|bm_requestedGpuCompiledDiffusePathLoop/3/(256|4096)/4$|bm_requestedGpuCompiledDiffusePathLoopWarmedSceneUpload/3/(256|4096)/4$'
+      ;;
+    *) return 1 ;;
+  esac
+}
+
+run_cpp_benchmarks_for_scene() {
+  local scene="$1"
+  local filter
+  if ! filter="$(cpp_benchmark_filter_for_scene "${scene}")"; then
+    return
+  fi
+
+  require_benchmarks
+
+  local out_dir="${out_root}/${scene}"
+  mkdir -p "${out_dir}"
+  local json="${out_dir}/${scene}_compiled_path_loop_benchmarks.json"
+  local stdout="${out_dir}/${scene}_compiled_path_loop_benchmarks.stdout.txt"
+
+  echo "Capturing ${scene} C++ compiled path-loop benchmark rows"
+  "${benchmarks_bin}" \
+    --benchmark_filter="${filter}" \
+    --benchmark_min_time="${cpp_benchmark_min_time}" \
+    --benchmark_repetitions=1 \
+    --benchmark_out="${json}" \
+    --benchmark_out_format=json | tee "${stdout}"
+}
+
 run_scene() {
   local scene="$1"
   local input
@@ -219,6 +268,9 @@ run_scene() {
   for backend in ${modes}; do
     run_mode "${scene}" "${input}" "${backend}"
   done
+  if [[ "${run_cpp_benchmarks}" == "1" ]]; then
+    run_cpp_benchmarks_for_scene "${scene}"
+  fi
 }
 
 main() {

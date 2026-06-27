@@ -39,12 +39,21 @@ Capture the full rendercli set:
 benchmarks/tracing_backend_capture.sh all
 ```
 
+Capture the rendercli set plus the compiled diffuse path-loop C++ benchmark
+rows for the indirect-diffuse scene:
+
+```sh
+TRACING_BACKEND_RUN_CPP_BENCHMARKS=1 benchmarks/tracing_backend_capture.sh indirect_diffuse
+```
+
 Outputs default to `tmp/tracing-backend-benchmarks/<scene>/`. Override the
-rendercli path or output directory with `RENDERCLI=/path/to/rendercli` and
+rendercli or benchmark binary path or output directory with
+`RENDERCLI=/path/to/rendercli`, `BENCHMARKS=/path/to/benchmarks`, and
 `TRACING_BACKEND_OUT=/path/to/output`. The wrapper also accepts
 `TRACING_BACKEND_WIDTH`, `TRACING_BACKEND_HEIGHT`, `TRACING_BACKEND_REPEAT`,
-`TRACING_BACKEND_SAMPLES`, `TRACING_BACKEND_DEPTH`, and
-`TRACING_BACKEND_LARGE_MESH_SIDE`.
+`TRACING_BACKEND_SAMPLES`, `TRACING_BACKEND_DEPTH`,
+`TRACING_BACKEND_LARGE_MESH_SIDE`, `TRACING_BACKEND_RUN_CPP_BENCHMARKS`, and
+`TRACING_BACKEND_CPP_MIN_TIME`.
 
 ## Scene Set
 
@@ -95,6 +104,9 @@ disabled, matching the trace-disabled full-GPU render path. One requested-GPU
 row measures a cold launch; the warmed scene-upload row performs one
 unmeasured platform path-loop launch before the timed loop, so captures can
 separate cold scene-upload cost from steady-state GPU path-loop launch cost.
+`benchmarks/tracing_backend_capture.sh` writes those rows to
+`<out>/indirect_diffuse/indirect_diffuse_compiled_path_loop_benchmarks.json`
+when `TRACING_BACKEND_RUN_CPP_BENCHMARKS=1`.
 
 ## Comparable Metric Fields
 

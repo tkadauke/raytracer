@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Let `benchmarks/tracing_backend_capture.sh` optionally capture compiled
+  diffuse path-loop Google Benchmark rows beside the rendercli metrics for
+  CPU-reference, cold requested-GPU, and warmed requested-GPU comparisons. —
+  GPT-5 Codex
 - Add a warmed requested-GPU compiled diffuse path-loop benchmark row so
   benchmark captures can compare cold scene upload with steady-state
   scene-upload cache reuse. — GPT-5 Codex

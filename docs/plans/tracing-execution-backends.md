@@ -2830,7 +2830,11 @@ scene is large enough to amortize upload/readback costs.
      path-loop shader cost. Platform-enabled benchmark builds now also include
      a warmed requested-GPU compiled diffuse path-loop row that pre-runs one
      platform launch before timing, making steady-state scene-upload cache reuse
-     visible beside the cold requested-GPU row.
+     visible beside the cold requested-GPU row. The tracing backend capture
+     script can now opt into those compiled diffuse path-loop benchmark rows
+     beside its rendercli metrics, so one capture directory can hold the
+     CPU-reference, cold requested-GPU, and warmed requested-GPU comparison data
+     needed for the E15 speedup gate.
 
 6. **Update user-facing docs and examples.**
    - Depends on: job 5.
