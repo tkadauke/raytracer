@@ -7,6 +7,7 @@
 #include "engine/graph/RenderExecutionContext.h"
 #include "engine/graph/RenderGraphExecutionObserver.h"
 #include "engine/graph/RenderGraphExecutionTrace.h"
+#include "engine/graph/RaytracerPassState.h"
 #include "engine/graph/RenderResourceStorage.h"
 #include "engine/raster/RasterVisibilitySceneCache.h"
 #include "core/math/BoundingBox.h"
@@ -534,6 +535,55 @@ namespace engine::graph {
              tonemap->gpuDisplayResolveTonemap() == render::GpuDisplayResolveTonemap::Linear;
     }
 
+    bool requestedOrPredictedGpuTracing(const RaytracerBeautyPassState& state) {
+      return (state.predictedTracingExecution() &&
+              *state.predictedTracingExecution() == TracingExecutionPreference::GPU) ||
+             (state.tracingExecution() &&
+              *state.tracingExecution() == TracingExecutionPreference::GPU);
+    }
+
+    bool denoisingDisabled(const RaytracerBeautyPassState& state) {
+      return (!state.denoiser() || *state.denoiser() == "none") && !state.denoiseRadius() &&
+             !state.denoiseColorSigma();
+    }
+
+    bool canSkipTonemapFromCurrentDisplay(
+      const RenderPassNode& pass, const RenderPlan& plan,
+      const std::shared_ptr<render::Tonemap>& displayTonemap,
+      const std::optional<RenderResourceId>& currentDisplayResource) {
+      if (!currentDisplayResource || pass.kind != RenderPassKind::Tonemap ||
+          pass.executor != RenderExecutorKind::PostProcess || pass.reads.size() != 1 ||
+          pass.writes.size() != 1 || pass.reads.front().resource != *currentDisplayResource ||
+          pass.writes.front().resource != plan.exportedColorResource().id ||
+          !supportsPlatformLinearDisplayResolve(displayTonemap)) {
+        return false;
+      }
+      return plan.consumersOf(pass.writes.front().resource).empty();
+    }
+
+    bool canExecuteBeautyForDisplayOnly(const RenderPassNode& pass, const RenderPlan& plan,
+                                        const GraphRenderEngine& graph,
+                                        const std::shared_ptr<render::Tonemap>& displayTonemap) {
+      if (graph.executionTraceEnabled() || pass.kind != RenderPassKind::Beauty ||
+          pass.executor != RenderExecutorKind::Wavefront || pass.writes.size() != 1 ||
+          !supportsPlatformLinearDisplayResolve(displayTonemap)) {
+        return false;
+      }
+
+      const RaytracerBeautyPassState state = RaytracerBeautyPassState::valueFromPass(pass);
+      if (!requestedOrPredictedGpuTracing(state) || state.compiledDiffusePathLoopFallbackReason() ||
+          !denoisingDisabled(state)) {
+        return false;
+      }
+
+      const auto consumers = plan.consumersOf(pass.writes.front().resource);
+      if (consumers.size() != 1) {
+        return false;
+      }
+      return canSkipTonemapFromCurrentDisplay(*consumers.front(), plan, displayTonemap,
+                                              pass.writes.front().resource);
+    }
+
     std::optional<RenderResourceId>
     publishWritesForDisplay(const RenderPassNode& pass, const RenderPlan& plan,
                             RenderResourceStorage& storage, Buffer<unsigned int>& display,
@@ -556,9 +606,7 @@ namespace engine::graph {
           displayedResource = write.resource;
           continue;
         }
-        if (pass.kind == RenderPassKind::Tonemap && currentDisplayResource &&
-            pass.readsResource(*currentDisplayResource) &&
-            supportsPlatformLinearDisplayResolve(displayTonemap)) {
+        if (canSkipTonemapFromCurrentDisplay(pass, plan, displayTonemap, currentDisplayResource)) {
           displayedResource = write.resource;
           continue;
         }
@@ -1448,6 +1496,16 @@ namespace engine::graph {
         return handler.publishesWrites() ? ScheduledPassResult::SkippedWithWrites
                                          : ScheduledPassResult::SkippedWithoutWrites;
       }
+      {
+        std::lock_guard<std::mutex> lock(displayStateMutex);
+        if (!traceSession &&
+            canSkipTonemapFromCurrentDisplay(pass, plan, displayTonemap, displayedResource)) {
+          for (const auto& write : pass.writes) {
+            storage.resource(write.resource).markProduced();
+          }
+          return ScheduledPassResult::SkippedWithWrites;
+        }
+      }
       auto recordTraceMessage = [recorder = p->executionTraceRecorder,
                                  session = traceSession.session, &pass](std::string message) {
         if (recorder && session) {
@@ -1477,7 +1535,9 @@ namespace engine::graph {
                           pass.kind == RenderPassKind::Beauty &&
                           (pass.executor == RenderExecutorKind::Raytracer ||
                            pass.executor == RenderExecutorKind::Wavefront) &&
-                          payload->executeDisplayAndStore(context, buffer, displayTonemap);
+                          (canExecuteBeautyForDisplayOnly(pass, plan, *this, displayTonemap)
+                             ? payload->executeDisplay(context, buffer, displayTonemap)
+                             : payload->executeDisplayAndStore(context, buffer, displayTonemap));
                         if (executedForDisplay) {
                           std::lock_guard<std::mutex> lock(displayStateMutex);
                           directDisplayWrites[pass.id] = pass.singleWrite().resource;

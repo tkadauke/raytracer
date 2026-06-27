@@ -577,6 +577,11 @@ standard-deviation diagnostics, path-tracing emitter-hit counts, sampled
 direct-light counts, contribution luminance sums for emitted, direct-light,
 ambient, miss/background, and compatibility-shaded radiance, and total render
 time. The
+simple trace-disabled graph LDR path can now report a platform display resolve
+without a companion HDR accumulation readback when the full-GPU path tracer
+feeds only the final compatible linear tonemap; denoising, graph trace capture,
+postprocess consumers, and non-linear tonemaps still force HDR materialization.
+The
 compact summary prints total `tiles`, `tile_grid`,
 `max_tile_width`, `max_tile_height`, `max_tile_pixels`, `avg_tile_pixels`,
 `nonempty_tiles`, `min_tile_samples`, `avg_tile_samples`, `max_tile_samples`,

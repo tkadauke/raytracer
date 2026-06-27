@@ -113,9 +113,12 @@ end state for GPU tracing.
   fish-eye launches from the same descriptor metadata. Trace and CPU-reference
   paths still materialize records for inspection and parity.
   Trace-disabled platform full-GPU launches now also size path-state, step, and
-  Metal closest-hit diagnostic storage to zero logical bytes while retaining the
-  final accumulation image readback. Retained-index and active-depth-count
-  buffers remain resident because they are scheduling state, not trace readback
+  Metal closest-hit diagnostic storage to zero logical bytes. Simple LDR graph
+  output can now use the platform-resolved display buffer without final HDR
+  accumulation readback; graph paths that inspect trace data, denoise, apply
+  non-linear tonemapping, or feed postprocess/HDR consumers still retain the
+  accumulation image readback. Retained-index and active-depth-count buffers
+  remain resident because they are scheduling state, not trace readback
   artifacts.
 - Supported diffuse path-tracing scenes can route GPU execution requests
   through the compiled diffuse path-loop path from the live render graph path.
@@ -2714,7 +2717,13 @@ scene is large enough to amortize upload/readback costs.
      consumers. When the live render graph receives such a platform-resolved
      display buffer, compatible linear tonemap passes can propagate that display
      resource as current without immediately CPU-repacking the HDR graph
-     resource. The compiled path loop also
+     resource. Simple trace-disabled LDR graph renders now go further: when the
+     full-GPU path-tracer beauty pass feeds only that compatible final linear
+     tonemap, the graph executes the beauty pass as display-only, skips the
+     CPU tonemap pass, marks the final output edge produced, and does not ask
+     the backend to read back HDR accumulation planes. Any denoiser, graph
+     trace, non-linear tonemap, or postprocess/HDR consumer still forces the
+     older accumulation materialization path. The compiled path loop also
      carries `ReflectiveMaterial`, `TransparentMaterial`, and `PortalMaterial`
      delta continuations through the CPU reference evaluator and the Metal
      full-GPU subset, and the
