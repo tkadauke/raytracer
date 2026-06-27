@@ -230,7 +230,7 @@ run_mode() {
 cpp_benchmark_filter_for_scene() {
   case "$1" in
     indirect_diffuse)
-      echo 'bm_compiledDiffusePathLoopCpuReference/3/(256|4096)/4$|bm_requestedGpuCompiledDiffusePathLoop/3/(256|4096)/4$|bm_requestedGpuCompiledDiffusePathLoopWarmedSceneUpload/3/(256|4096)/4$'
+      echo 'bm_compiledDiffusePathLoopCpuReference/3/(256|4096|65536)/4$|bm_requestedGpuCompiledDiffusePathLoop/3/(256|4096|65536)/4$|bm_requestedGpuCompiledDiffusePathLoopWarmedSceneUpload/3/(256|4096|65536)/4$'
       ;;
     *) return 1 ;;
   esac

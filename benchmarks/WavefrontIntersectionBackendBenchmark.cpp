@@ -1582,6 +1582,7 @@ namespace {
   void compiledDiffusePathLoopWorkloads(benchmark::internal::Benchmark* benchmark) {
     benchmark->Args({3, 256, 4});
     benchmark->Args({3, 4096, 4});
+    benchmark->Args({3, 65536, 4});
   }
 }
 
