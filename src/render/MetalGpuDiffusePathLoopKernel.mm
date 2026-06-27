@@ -3320,8 +3320,8 @@ namespace render {
       std::memset([retainedIndexBuffer contents], 0, static_cast<std::size_t>(bytes));
     }
 
-    std::vector<std::uint32_t> retainedPathIndicesFromBuffer(
-      id<MTLBuffer> retainedIndexBuffer, std::size_t maxPathCount) {
+    std::uint32_t retainedPathCountFromBuffer(id<MTLBuffer> retainedIndexBuffer,
+                                              std::size_t maxPathCount) {
       const auto* retainedIndices =
         static_cast<const std::uint32_t*>([retainedIndexBuffer contents]);
       const std::uint32_t retainedCount = retainedIndices[0];
@@ -3329,6 +3329,15 @@ namespace render {
         throw std::runtime_error(
           "Metal diffuse path-loop retained path count exceeds initial path count");
       }
+      return retainedCount;
+    }
+
+    std::vector<std::uint32_t> retainedPathIndicesFromBuffer(
+      id<MTLBuffer> retainedIndexBuffer, std::size_t maxPathCount) {
+      const auto* retainedIndices =
+        static_cast<const std::uint32_t*>([retainedIndexBuffer contents]);
+      const std::uint32_t retainedCount =
+        retainedPathCountFromBuffer(retainedIndexBuffer, maxPathCount);
       return std::vector<std::uint32_t>(retainedIndices + 1, retainedIndices + 1 + retainedCount);
     }
 
@@ -3589,6 +3598,7 @@ namespace render {
       }
       result.retainedPathIndices =
         retainedPathIndicesFromBuffer(retainedIndexBuffer, initialPathStates.size());
+      result.retainedPathCount = static_cast<std::uint32_t>(result.retainedPathIndices.size());
       result.readbackWorkerSeconds =
         elapsedSeconds(readbackStart, std::chrono::steady_clock::now());
       return result;
@@ -3731,6 +3741,7 @@ namespace render {
       }
       result.retainedPathIndices =
         retainedPathIndicesFromBuffer(retainedIndexBuffer, initialPathStates.size());
+      result.retainedPathCount = static_cast<std::uint32_t>(result.retainedPathIndices.size());
       result.accumulationColorSums.resize(pixelCount(plan.parameters));
       if (!result.accumulationColorSums.empty()) {
         std::memcpy(result.accumulationColorSums.data(), [accumulationBuffer contents],
@@ -3885,6 +3896,7 @@ namespace render {
       }
       result.retainedPathIndices =
         retainedPathIndicesFromBuffer(retainedIndexBuffer, initialPathStates.size());
+      result.retainedPathCount = static_cast<std::uint32_t>(result.retainedPathIndices.size());
       result.readbackWorkerSeconds =
         elapsedSeconds(readbackStart, std::chrono::steady_clock::now());
       return result;
@@ -4026,6 +4038,7 @@ namespace render {
       }
       result.retainedPathIndices =
         retainedPathIndicesFromBuffer(retainedIndexBuffer, initialPathStates.size());
+      result.retainedPathCount = static_cast<std::uint32_t>(result.retainedPathIndices.size());
       result.readbackWorkerSeconds =
         elapsedSeconds(readbackStart, std::chrono::steady_clock::now());
       return result;
@@ -4184,6 +4197,7 @@ namespace render {
       }
       result.retainedPathIndices =
         retainedPathIndicesFromBuffer(retainedIndexBuffer, initialPathStates.size());
+      result.retainedPathCount = static_cast<std::uint32_t>(result.retainedPathIndices.size());
       result.accumulationColorSums.resize(pixelCount(plan.parameters));
       if (!result.accumulationColorSums.empty()) {
         std::memcpy(result.accumulationColorSums.data(), [accumulationBuffer contents],
@@ -4386,6 +4400,7 @@ namespace render {
         std::memcpy(result.activePathCountsPerDepth.data(), [activePathCountBuffer contents],
                     result.activePathCountsPerDepth.size() * sizeof(std::uint32_t));
       }
+      result.retainedPathCount = retainedPathCountFromBuffer(retainedIndexBuffer, launchPathCount);
       if (plan.parameters.captureDiagnostics != 0u) {
         result.copiedInitialPathStates.resize(launchPathCount);
         if (!result.copiedInitialPathStates.empty()) {
@@ -4420,6 +4435,7 @@ namespace render {
 
         result.retainedPathIndices =
           retainedPathIndicesFromBuffer(retainedIndexBuffer, launchPathCount);
+        result.retainedPathCount = static_cast<std::uint32_t>(result.retainedPathIndices.size());
       }
       if (captureResolvedDisplay) {
         result.resolvedDisplayPixels.resize(static_cast<std::size_t>(resolvedDisplayPixels));

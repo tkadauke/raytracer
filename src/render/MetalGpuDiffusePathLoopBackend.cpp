@@ -462,7 +462,7 @@ namespace render {
       loop.denoiserFeatureRecords = metalResult.denoiserFeatureRecords;
       loop.denoiserFeatureRecordsCaptured = settings.captureDenoiserFeatures;
       loop.retainedIndexBytes =
-        static_cast<std::uint64_t>(metalResult.retainedPathIndices.size() * sizeof(std::uint32_t));
+        static_cast<std::uint64_t>(metalResult.retainedPathCount) * sizeof(std::uint32_t);
       loop.roundTrips = 1;
       loop.frontierCompactionUploadWorkerSeconds = metalResult.uploadWorkerSeconds;
       loop.frontierCompactionKernelWorkerSeconds = metalResult.kernelWorkerSeconds;

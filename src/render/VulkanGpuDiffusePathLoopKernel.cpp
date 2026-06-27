@@ -80,14 +80,20 @@ namespace render {
       }
     }
 
+    std::uint32_t
+    retainedPathCountFromBuffer(const std::vector<std::uint32_t>& countPrefixedIndices,
+                                std::size_t maxPathCount) {
+      if (countPrefixedIndices.empty()) {
+        return 0u;
+      }
+      return std::min<std::uint32_t>(countPrefixedIndices.front(),
+                                     static_cast<std::uint32_t>(maxPathCount));
+    }
+
     std::vector<std::uint32_t>
     retainedPathIndicesFromBuffer(const std::vector<std::uint32_t>& countPrefixedIndices,
                                   std::size_t maxPathCount) {
-      if (countPrefixedIndices.empty()) {
-        return {};
-      }
-      const std::uint32_t count = std::min<std::uint32_t>(countPrefixedIndices.front(),
-                                                          static_cast<std::uint32_t>(maxPathCount));
+      const std::uint32_t count = retainedPathCountFromBuffer(countPrefixedIndices, maxPathCount);
       std::vector<std::uint32_t> result;
       result.reserve(count);
       for (std::uint32_t index = 0; index != count; ++index) {
@@ -334,6 +340,11 @@ namespace render {
         result.kernelWorkerSeconds = secondsBetween(kernelStart, kernelEnd);
         result.echoedParameters = readBackOne<GpuDiffusePathLoopLaunchParameters>(
           device, buffers.buffers[1].memory, "Vulkan diffuse path-loop echoed parameters mapping");
+        const std::vector<std::uint32_t> retainedCountOutput = readBackRecords<std::uint32_t>(
+          device, buffers.buffers[7].memory, byteCount<std::uint32_t>(1u), 1u,
+          "Vulkan diffuse path-loop retained-count output mapping");
+        result.retainedPathCount =
+          retainedPathCountFromBuffer(retainedCountOutput, launchPathCount);
         if (plan.parameters.captureDiagnostics != 0u) {
           result.resolvedPathStates = readBackRecords<GpuDiffusePathStateRecord>(
             device, buffers.buffers[4].memory,
@@ -361,6 +372,7 @@ namespace render {
             retainedIndices.size(), "Vulkan diffuse path-loop retained-index output mapping");
           result.retainedPathIndices =
             retainedPathIndicesFromBuffer(retainedOutput, launchPathCount);
+          result.retainedPathCount = static_cast<std::uint32_t>(result.retainedPathIndices.size());
         }
         if (captureResolvedDisplay) {
           result.resolvedDisplayPixels = readBackRecords<unsigned int>(

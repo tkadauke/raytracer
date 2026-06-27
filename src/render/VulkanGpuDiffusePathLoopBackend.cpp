@@ -516,7 +516,7 @@ namespace render {
       loop.denoiserFeatureRecords = vulkanResult.denoiserFeatureRecords;
       loop.denoiserFeatureRecordsCaptured = settings.captureDenoiserFeatures;
       loop.retainedIndexBytes =
-        static_cast<std::uint64_t>(vulkanResult.retainedPathIndices.size() * sizeof(std::uint32_t));
+        static_cast<std::uint64_t>(vulkanResult.retainedPathCount) * sizeof(std::uint32_t);
       loop.roundTrips = 1;
       loop.frontierCompactionUploadWorkerSeconds = vulkanResult.uploadWorkerSeconds;
       loop.frontierCompactionKernelWorkerSeconds = vulkanResult.kernelWorkerSeconds;

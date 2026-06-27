@@ -326,6 +326,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Preserve Metal/Vulkan full-GPU diffuse path-loop retained-frontier byte metrics
+  when graph trace diagnostics are disabled by reading only the device-written
+  retained count. — GPT-5 Codex
 - Show auto-selected GPU tracing predictions in the render graph inspector
   before a render runs, instead of hiding them unless tracing execution was
   explicitly requested. — GPT-5 Codex
