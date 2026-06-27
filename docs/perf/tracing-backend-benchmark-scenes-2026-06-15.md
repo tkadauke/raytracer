@@ -90,8 +90,11 @@ for the `indirect_diffuse_supported` workload. Those rows time the current
 time the CPU-reference image resolve/accumulation handoff for the same terminal
 records. Together they publish the resident path-loop and accumulation counters
 a Metal/Vulkan full path-loop kernel must replace. Platform-enabled builds also
-include an explicit requested-GPU compiled diffuse path-loop row with
-diagnostics disabled, matching the trace-disabled full-GPU render path.
+include explicit requested-GPU compiled diffuse path-loop rows with diagnostics
+disabled, matching the trace-disabled full-GPU render path. One requested-GPU
+row measures a cold launch; the warmed scene-upload row performs one
+unmeasured platform path-loop launch before the timed loop, so captures can
+separate cold scene-upload cost from steady-state GPU path-loop launch cost.
 
 ## Comparable Metric Fields
 
@@ -125,6 +128,9 @@ Compiled diffuse path-loop rows additionally publish:
 | `tracing_accumulation_*` | CPU-reference image resolve accounting: resident accumulation bytes, color/sample buffer bytes, clear/add/resolve/readback operations, added samples, and readback bytes. |
 | `full_gpu_path_loop_supported` | `1.0` only when a platform full-GPU path-loop row actually owns the path loop. |
 | `full_gpu_path_loop_unavailable` | `1.0` for a CPU-reference or fallback compiled path loop, making missing platform path-loop execution visible in benchmark output. |
+| `full_gpu_path_loop_scene_upload_cache_hit` | `1.0` when the platform path-loop launch reused its serialized scene upload buffer. |
+| `full_gpu_path_loop_scene_upload_bytes_written` | Serialized scene bytes written by the timed platform path-loop launch. |
+| `full_gpu_path_loop_warmed_scene_upload_cache` | `1.0` for benchmark rows that pre-run one platform path-loop launch before timing steady-state execution. |
 
 ## Automatic Selection Thresholds
 

@@ -2827,7 +2827,10 @@ scene is large enough to amortize upload/readback costs.
      Modeler graph inspector now also show whether the platform scene-upload
      buffer was reused and how many serialized scene bytes were written for a
      launch, so repeated-render captures can separate scene-upload churn from
-     path-loop shader cost.
+     path-loop shader cost. Platform-enabled benchmark builds now also include
+     a warmed requested-GPU compiled diffuse path-loop row that pre-runs one
+     platform launch before timing, making steady-state scene-upload cache reuse
+     visible beside the cold requested-GPU row.
 
 6. **Update user-facing docs and examples.**
    - Depends on: job 5.

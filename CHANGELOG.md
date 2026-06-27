@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Add a warmed requested-GPU compiled diffuse path-loop benchmark row so
+  benchmark captures can compare cold scene upload with steady-state
+  scene-upload cache reuse. — GPT-5 Codex
 - Report platform diffuse path-loop scene-upload cache hits and bytes written
   in render graph metadata, benchmark counters, and the Modeler graph
   inspector. — GPT-5 Codex
