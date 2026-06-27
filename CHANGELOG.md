@@ -14,6 +14,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Let pairwise-disjoint finite `Union` composites flatten into compiled GPU
   intersection records so GPU path tracing can keep non-overlapping grouped
   shapes on the GPU path without losing CSG semantics. — GPT-5 Codex
+- Add final-display requested-GPU compiled diffuse path-loop benchmark rows and
+  make the speedup verifier require that trace-disabled display-only path by
+  default. — GPT-5 Codex
 - Let `benchmarks/tracing_backend_capture.sh` optionally capture compiled
   diffuse path-loop Google Benchmark rows beside the rendercli metrics for
   CPU-reference, cold requested-GPU, and warmed requested-GPU comparisons. —

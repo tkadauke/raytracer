@@ -4,11 +4,14 @@ require "json"
 require "optparse"
 
 module TracingPathLoopSpeedupVerifier
-  Options = Struct.new(:paths, :depth, :min_speedup, :require_warmed, keyword_init: true)
+  Options = Struct.new(:paths, :depth, :min_speedup, :require_warmed, :require_final_display,
+                       keyword_init: true)
   Result = Struct.new(:ok?, :message, :best_speedup, :row_name, keyword_init: true)
 
-  CPU_ROW = /\Abm_compiledDiffusePathLoopCpuReference\/(?<workload>\d+)\/(?<paths>\d+)\/(?<depth>\d+)\z/
-  GPU_ROW = /\Abm_requestedGpuCompiledDiffusePathLoop(?<warmed>WarmedSceneUpload)?\/(?<workload>\d+)\/(?<paths>\d+)\/(?<depth>\d+)\z/
+  CPU_ROW =
+    /\Abm_compiledDiffusePathLoopCpuReference\/(?<workload>\d+)\/(?<paths>\d+)\/(?<depth>\d+)\z/
+  GPU_ROW =
+    /\Abm_requestedGpuCompiledDiffusePathLoop(?<final>FinalDisplay)?(?<warmed>WarmedSceneUpload)?\/(?<workload>\d+)\/(?<paths>\d+)\/(?<depth>\d+)\z/
 
   module_function
 
@@ -28,6 +31,7 @@ module TracingPathLoopSpeedupVerifier
         cpu_rows[key] = row
       elsif (match = GPU_ROW.match(name))
         next if options.require_warmed && match[:warmed].nil?
+        next if options.require_final_display && match[:final].nil?
 
         key = row_key(match)
         gpu_rows[key] = row
@@ -59,6 +63,10 @@ module TracingPathLoopSpeedupVerifier
       end
       unless gpu.fetch("full_gpu_path_loop_unavailable", 0.0).to_f <= 0.0
         failures << "#{gpu.fetch("name")}: full_gpu_path_loop_unavailable is not 0"
+        next
+      end
+      if options.require_final_display && (reason = final_display_row_error(gpu))
+        failures << "#{gpu.fetch("name")}: #{reason}"
         next
       end
 
@@ -101,6 +109,19 @@ module TracingPathLoopSpeedupVerifier
     "benchmark row errored: #{message}"
   end
 
+  def final_display_row_error(row)
+    unless row.fetch("compiled_path_loop_final_display_mode", 0.0).to_f >= 1.0
+      return "compiled_path_loop_final_display_mode is not 1"
+    end
+    unless row.fetch("compiled_path_loop_capture_resolved_display", 0.0).to_f >= 1.0
+      return "compiled_path_loop_capture_resolved_display is not 1"
+    end
+    unless row.fetch("compiled_path_loop_capture_platform_accumulation", 1.0).to_f <= 0.0
+      return "compiled_path_loop_capture_platform_accumulation is not 0"
+    end
+    nil
+  end
+
   def row_seconds(row)
     return row["tracing_render_seconds"].to_f if row.key?("tracing_render_seconds")
 
@@ -124,7 +145,8 @@ module TracingPathLoopSpeedupVerifier
     Options.new(paths: options&.paths,
                 depth: options&.depth,
                 min_speedup: options&.min_speedup || 1.0,
-                require_warmed: options&.require_warmed.nil? ? true : options.require_warmed)
+                require_warmed: options&.require_warmed.nil? ? true : options.require_warmed,
+                require_final_display: options&.require_final_display.nil? ? true : options.require_final_display)
   end
 
   def failure(message, best)
@@ -137,7 +159,8 @@ end
 
 if $PROGRAM_NAME == __FILE__
   options = TracingPathLoopSpeedupVerifier::Options.new(min_speedup: 1.0,
-                                                        require_warmed: true)
+                                                        require_warmed: true,
+                                                        require_final_display: true)
   parser = OptionParser.new do |opts|
     opts.banner = "Usage: scripts/verify_tracing_path_loop_speedup.rb <benchmark-json> [options]"
     opts.on("--paths N", Integer, "Require a specific initial path count") do |value|
@@ -151,6 +174,10 @@ if $PROGRAM_NAME == __FILE__
     end
     opts.on("--allow-cold", "Allow cold requested-GPU rows instead of requiring warmed rows") do
       options.require_warmed = false
+    end
+    opts.on("--allow-diagnostic-gpu-row",
+            "Allow diagnostic accumulation GPU rows instead of requiring final-display rows") do
+      options.require_final_display = false
     end
   end
   parser.parse!

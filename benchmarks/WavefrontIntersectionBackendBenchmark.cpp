@@ -1235,6 +1235,11 @@ namespace {
   }
 
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT) || defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+  enum class RequestedGpuPathLoopCaptureMode {
+    DiagnosticAccumulation,
+    FinalDisplayResolve,
+  };
+
   struct RequestedGpuCompiledPathLoopBenchmarkInput {
     const Workload* workload{nullptr};
     GpuTracingSceneCompilation compilation;
@@ -1245,6 +1250,7 @@ namespace {
 
   bool
   prepareRequestedGpuCompiledPathLoopBenchmark(benchmark::State& state,
+                                               RequestedGpuPathLoopCaptureMode captureMode,
                                                RequestedGpuCompiledPathLoopBenchmarkInput& input) {
     const Workload& workload = workloadFor(state);
     input.workload = &workload;
@@ -1261,6 +1267,12 @@ namespace {
     input.settings.russianRouletteDepth = 3;
     input.settings.directLightSamples = 1;
     input.settings.captureDiagnostics = false;
+    if (captureMode == RequestedGpuPathLoopCaptureMode::FinalDisplayResolve) {
+      input.settings.captureMetrics = false;
+      input.settings.capturePlatformAccumulation = false;
+      input.settings.captureResolvedDisplay = true;
+      input.settings.displayResolveTonemap = GpuDisplayResolveTonemap::Linear;
+    }
 
     const GpuDiffusePathLoopBackendChoice backendChoice =
       GpuDiffusePathLoopBackend::defaultFullGpuBackendForGpuRequest(input.compilation.sections,
@@ -1276,9 +1288,10 @@ namespace {
   }
 
   void runRequestedGpuCompiledDiffusePathLoopBenchmark(benchmark::State& state,
+                                                       RequestedGpuPathLoopCaptureMode captureMode,
                                                        bool warmSceneUploadCache) {
     RequestedGpuCompiledPathLoopBenchmarkInput input;
-    if (!prepareRequestedGpuCompiledPathLoopBenchmark(state, input)) {
+    if (!prepareRequestedGpuCompiledPathLoopBenchmark(state, captureMode, input)) {
       return;
     }
 
@@ -1286,6 +1299,7 @@ namespace {
       const GpuDiffusePathLoopResult warmup =
         input.backend->run(input.compilation.sections, input.paths, input.settings);
       benchmark::DoNotOptimize(warmup.hasPlatformAccumulation());
+      benchmark::DoNotOptimize(warmup.hasPlatformResolvedDisplay());
     }
 
     GpuDiffusePathLoopResult result;
@@ -1296,25 +1310,49 @@ namespace {
       const auto stop = std::chrono::steady_clock::now();
       measuredSeconds += std::chrono::duration<double>(stop - start).count();
       benchmark::DoNotOptimize(result.hasPlatformAccumulation());
+      benchmark::DoNotOptimize(result.hasPlatformResolvedDisplay());
       benchmark::DoNotOptimize(result.platformAccumulationColorSums.size());
+      benchmark::DoNotOptimize(result.platformResolvedDisplayPixels.size());
     }
 
     const double averageSeconds =
       measuredSeconds / static_cast<double>(std::max<std::int64_t>(1, state.iterations()));
     input.workload->annotateCompiledDiffusePathLoop(state, input.compilation, result,
                                                     averageSeconds);
-    state.counters["compiled_path_loop_capture_diagnostics"] = 0.0;
+    state.counters["compiled_path_loop_capture_diagnostics"] =
+      input.settings.captureDiagnostics ? 1.0 : 0.0;
+    state.counters["compiled_path_loop_capture_metrics"] =
+      input.settings.captureMetrics ? 1.0 : 0.0;
+    state.counters["compiled_path_loop_capture_platform_accumulation"] =
+      input.settings.capturePlatformAccumulation ? 1.0 : 0.0;
+    state.counters["compiled_path_loop_capture_resolved_display"] =
+      input.settings.captureResolvedDisplay ? 1.0 : 0.0;
+    state.counters["compiled_path_loop_final_display_mode"] =
+      captureMode == RequestedGpuPathLoopCaptureMode::FinalDisplayResolve ? 1.0 : 0.0;
     state.counters["full_gpu_path_loop_warmed_scene_upload_cache"] =
       warmSceneUploadCache ? 1.0 : 0.0;
     state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(input.paths.size()));
   }
 
   void bm_requestedGpuCompiledDiffusePathLoop(benchmark::State& state) {
-    runRequestedGpuCompiledDiffusePathLoopBenchmark(state, false);
+    runRequestedGpuCompiledDiffusePathLoopBenchmark(
+      state, RequestedGpuPathLoopCaptureMode::DiagnosticAccumulation, false);
   }
 
   void bm_requestedGpuCompiledDiffusePathLoopWarmedSceneUpload(benchmark::State& state) {
-    runRequestedGpuCompiledDiffusePathLoopBenchmark(state, true);
+    runRequestedGpuCompiledDiffusePathLoopBenchmark(
+      state, RequestedGpuPathLoopCaptureMode::DiagnosticAccumulation, true);
+  }
+
+  void bm_requestedGpuCompiledDiffusePathLoopFinalDisplay(benchmark::State& state) {
+    runRequestedGpuCompiledDiffusePathLoopBenchmark(
+      state, RequestedGpuPathLoopCaptureMode::FinalDisplayResolve, false);
+  }
+
+  void
+  bm_requestedGpuCompiledDiffusePathLoopFinalDisplayWarmedSceneUpload(benchmark::State& state) {
+    runRequestedGpuCompiledDiffusePathLoopBenchmark(
+      state, RequestedGpuPathLoopCaptureMode::FinalDisplayResolve, true);
   }
 
   void bm_requestedGpuClosestHitBatch(benchmark::State& state) {
@@ -1604,6 +1642,10 @@ BENCHMARK(bm_compiledDiffusePathLoopResolveCpuReference)->Apply(compiledDiffuseP
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT) || defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
 BENCHMARK(bm_requestedGpuCompiledDiffusePathLoop)->Apply(compiledDiffusePathLoopWorkloads);
 BENCHMARK(bm_requestedGpuCompiledDiffusePathLoopWarmedSceneUpload)
+  ->Apply(compiledDiffusePathLoopWorkloads);
+BENCHMARK(bm_requestedGpuCompiledDiffusePathLoopFinalDisplay)
+  ->Apply(compiledDiffusePathLoopWorkloads);
+BENCHMARK(bm_requestedGpuCompiledDiffusePathLoopFinalDisplayWarmedSceneUpload)
   ->Apply(compiledDiffusePathLoopWorkloads);
 BENCHMARK(bm_requestedGpuClosestHitBatch)->Apply(supportedQueryWorkloads);
 BENCHMARK(bm_requestedGpuAnyHitBatch)->Apply(supportedQueryWorkloads);

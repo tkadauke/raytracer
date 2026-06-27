@@ -2894,7 +2894,14 @@ scene is large enough to amortize upload/readback costs.
      amortization workload, and `scripts/verify_tracing_path_loop_speedup.rb`
      turns the captured benchmark JSON into an explicit pass/fail check that
      requires a warmed requested-GPU row to report `full_gpu_path_loop_supported`
-     and beat the CPU-reference row.
+     and beat the CPU-reference row. Platform-enabled benchmark builds now also
+     include cold and warmed final-display requested-GPU rows that disable trace
+     metrics, skip platform HDR accumulation readback, and require GPU-resolved
+     display pixels. The speedup verifier now requires those warmed
+     final-display rows by default, so the E15 speed claim measures the
+     ordinary trace-disabled final-render path instead of a diagnostic
+     accumulation-readback path; diagnostic GPU rows remain available only with
+     the explicit verifier override.
 
 6. **Update user-facing docs and examples.**
    - Depends on: job 5.
