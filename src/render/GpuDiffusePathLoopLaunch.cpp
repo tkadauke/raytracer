@@ -77,6 +77,7 @@ namespace render {
       plan.parameters.directLightSamples = settings.directLightSamples;
       plan.parameters.captureDiagnostics = settings.captureDiagnostics ? 1u : 0u;
       plan.parameters.captureDenoiserFeatures = settings.captureDenoiserFeatures ? 1u : 0u;
+      plan.parameters.captureMetrics = settings.captureMetrics ? 1u : 0u;
       plan.parameters.displayResolveTonemap =
         static_cast<std::uint32_t>(settings.displayResolveTonemap);
       plan.parameters.initialPathCount = checkedU32(initialPathCount, "initial path count");
@@ -141,7 +142,9 @@ namespace render {
         plan.buffers.denoiserFeatureRecordBytes =
           denoiserFeatureRecordBytes(accumulationLayout.pixelCount());
       }
-      plan.buffers.activePathCountBytes = activePathCountBytes(maxDepth);
+      if (settings.captureMetrics) {
+        plan.buffers.activePathCountBytes = activePathCountBytes(maxDepth);
+      }
       plan.buffers.accumulationBytes = accumulationLayout.totalBytes();
 
       plan.buffers.totalUploadBytes =

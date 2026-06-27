@@ -346,8 +346,10 @@ namespace render {
     loop.retainedFrontierDispatchesIndirect = platformResult.retainedFrontierDispatchesIndirect;
     loop.platformName = platformName;
     loop.initialPathCount = initialPathCount;
-    loop.retainedIndexBytes =
-      static_cast<std::uint64_t>(platformResult.retainedPathCount) * sizeof(std::uint32_t);
+    if (settings.captureMetrics || settings.captureDiagnostics) {
+      loop.retainedIndexBytes =
+        static_cast<std::uint64_t>(platformResult.retainedPathCount) * sizeof(std::uint32_t);
+    }
     loop.roundTrips = 1;
     loop.frontierCompactionUploadWorkerSeconds = platformResult.uploadWorkerSeconds;
     loop.frontierCompactionKernelWorkerSeconds = platformResult.kernelWorkerSeconds;
@@ -363,8 +365,10 @@ namespace render {
     loop.platformAccumulationTargetMode = platformResult.echoedParameters.accumulationTargetMode;
     loop.platformAccumulationWidth = platformResult.echoedParameters.imageWidth;
     loop.platformAccumulationHeight = platformResult.echoedParameters.imageHeight;
-    recordDepthCounts(loop, platformResult, settings);
-    mergeStepMetrics(loop, platformResult);
+    if (settings.captureMetrics || settings.captureDiagnostics) {
+      recordDepthCounts(loop, platformResult, settings);
+      mergeStepMetrics(loop, platformResult);
+    }
     loop.stepRecords = std::move(platformResult.stepRecords);
     loop.denoiserFeatureRecords = std::move(platformResult.denoiserFeatureRecords);
     loop.denoiserFeatureRecordsCaptured = settings.captureDenoiserFeatures;

@@ -254,11 +254,13 @@ namespace render {
         result.kernelWorkerSeconds = secondsBetween(kernelStart, kernelEnd);
         result.echoedParameters = readBackOne<GpuDiffusePathLoopLaunchParameters>(
           m_device, m_buffers[1].memory, "Vulkan diffuse path-loop echoed parameters mapping");
-        const std::vector<std::uint32_t> retainedCountOutput = readBackRecords<std::uint32_t>(
-          m_device, m_buffers[finalFrontierBufferIndex].memory, byteCount<std::uint32_t>(1u), 1u,
-          "Vulkan diffuse path-loop retained-count output mapping");
-        result.retainedPathCount =
-          retainedPathCountFromBuffer(retainedCountOutput, launchPathCount);
+        if (plan.parameters.captureMetrics != 0u || plan.parameters.captureDiagnostics != 0u) {
+          const std::vector<std::uint32_t> retainedCountOutput = readBackRecords<std::uint32_t>(
+            m_device, m_buffers[finalFrontierBufferIndex].memory, byteCount<std::uint32_t>(1u), 1u,
+            "Vulkan diffuse path-loop retained-count output mapping");
+          result.retainedPathCount =
+            retainedPathCountFromBuffer(retainedCountOutput, launchPathCount);
+        }
         if (plan.parameters.captureDiagnostics != 0u) {
           result.resolvedPathStates = readBackRecords<GpuDiffusePathStateRecord>(
             m_device, m_buffers[4].memory, byteCount<GpuDiffusePathStateRecord>(launchPathCount),
@@ -306,9 +308,11 @@ namespace render {
             m_device, m_buffers[9].memory, byteCount<GpuDiffusePathDenoiserFeatureRecord>(pixels),
             pixels, "Vulkan diffuse path-loop denoiser feature output mapping");
         }
-        result.activePathCountsPerDepth = readBackRecords<std::uint32_t>(
-          m_device, m_buffers[10].memory, byteCount<std::uint32_t>(plan.parameters.maxDepth),
-          plan.parameters.maxDepth, "Vulkan diffuse path-loop active-depth count mapping");
+        if (plan.parameters.captureMetrics != 0u) {
+          result.activePathCountsPerDepth = readBackRecords<std::uint32_t>(
+            m_device, m_buffers[10].memory, byteCount<std::uint32_t>(plan.parameters.maxDepth),
+            plan.parameters.maxDepth, "Vulkan diffuse path-loop active-depth count mapping");
+        }
         result.readbackWorkerSeconds =
           secondsBetween(readbackStart, std::chrono::steady_clock::now());
         return result;

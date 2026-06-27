@@ -415,8 +415,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   unsupported scene to a generic fully-compiled-scene requirement. —
   GPT-5 Codex
 - Preserve Metal/Vulkan full-GPU diffuse path-loop retained-frontier byte metrics
-  when graph trace diagnostics are disabled by reading only the device-written
-  retained count. — GPT-5 Codex
+  when metrics capture remains enabled but diagnostic step-record readback is
+  disabled, by reading only the device-written retained count. — GPT-5 Codex
 - Show auto-selected GPU tracing predictions in the render graph inspector
   before a render runs, instead of hiding them unless tracing execution was
   explicitly requested. — GPT-5 Codex
@@ -424,8 +424,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   Tracer sampler choice and stop silently replacing user-selected samplers with
   the GPU stream when compiling full-GPU path-loop renders. — GPT-5 Codex
 - Preserve Metal/Vulkan full-GPU diffuse path-loop active-depth metrics when
-  graph trace diagnostics are disabled, using device-written counters instead
-  of depending on diagnostic step-record readback. — GPT-5 Codex
+  metrics capture remains enabled but diagnostic step-record readback is
+  disabled, using device-written counters instead of depending on diagnostic
+  step-record readback. — GPT-5 Codex
 - Keep `TiltShiftCamera` on host primary-path generation instead of inheriting
   `ThinLensCamera`'s GPU descriptor, avoiding incorrect perpendicular
   focal-plane rays for tilted focal-plane renders. — GPT-5 Codex
@@ -564,6 +565,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- Skip active-depth and retained-count metrics buffers and readbacks for
+  trace-disabled full-GPU diffuse path-loop graph renders, while keeping those
+  metrics available when graph trace capture is enabled. — GPT-5 Codex
 - Reuse the Vulkan full-GPU diffuse path-loop instance, device, queue, descriptor
   layout, descriptor pool, descriptor sets, pipeline layout, command pool,
   command buffer, storage buffers, and compute pipelines across renders,

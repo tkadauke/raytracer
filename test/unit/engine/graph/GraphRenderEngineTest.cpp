@@ -231,6 +231,7 @@ namespace GraphRenderEngineTest {
         const render::GpuDiffusePathLoopSettings& settings) const override {
       m_hasLastCaptureDiagnostics = true;
       m_lastCaptureDiagnostics = settings.captureDiagnostics;
+      m_lastCaptureMetrics = settings.captureMetrics;
       m_lastCapturePlatformAccumulation = settings.capturePlatformAccumulation;
       m_lastCaptureResolvedDisplay = settings.captureResolvedDisplay;
       m_lastDisplayResolveTonemap = settings.displayResolveTonemap;
@@ -282,6 +283,10 @@ namespace GraphRenderEngineTest {
       return m_lastCaptureDiagnostics;
     }
 
+    bool lastCaptureMetrics() const {
+      return m_lastCaptureMetrics;
+    }
+
     bool lastCapturePlatformAccumulation() const {
       return m_lastCapturePlatformAccumulation;
     }
@@ -321,6 +326,7 @@ namespace GraphRenderEngineTest {
   private:
     mutable bool m_hasLastCaptureDiagnostics{false};
     mutable bool m_lastCaptureDiagnostics{false};
+    mutable bool m_lastCaptureMetrics{false};
     mutable bool m_lastCapturePlatformAccumulation{false};
     mutable bool m_lastCaptureResolvedDisplay{false};
     mutable render::GpuDisplayResolveTonemap m_lastDisplayResolveTonemap{
@@ -2583,6 +2589,7 @@ namespace GraphRenderEngineTest {
 
     EXPECT_TRUE(pathLoopBackend->hasLastCaptureDiagnostics());
     EXPECT_TRUE(pathLoopBackend->lastCaptureDiagnostics());
+    EXPECT_TRUE(pathLoopBackend->lastCaptureMetrics());
     EXPECT_TRUE(pathLoopBackend->hasLastPrimaryGeneration());
     EXPECT_TRUE(pathLoopBackend->lastPrimaryGeneratesOnDevice());
     EXPECT_EQ(64u, pathLoopBackend->lastPrimaryGeneratedSamples());
@@ -2806,6 +2813,7 @@ namespace GraphRenderEngineTest {
 
     EXPECT_TRUE(pathLoopBackend->hasLastCaptureDiagnostics());
     EXPECT_FALSE(pathLoopBackend->lastCaptureDiagnostics());
+    EXPECT_FALSE(pathLoopBackend->lastCaptureMetrics());
     EXPECT_FALSE(pathLoopBackend->lastCapturePlatformAccumulation());
     EXPECT_TRUE(pathLoopBackend->lastCaptureResolvedDisplay());
     EXPECT_EQ(render::GpuDisplayResolveTonemap::Linear,
@@ -2856,6 +2864,7 @@ namespace GraphRenderEngineTest {
 
     EXPECT_TRUE(pathLoopBackend->hasLastCaptureDiagnostics());
     EXPECT_FALSE(pathLoopBackend->lastCaptureDiagnostics());
+    EXPECT_FALSE(pathLoopBackend->lastCaptureMetrics());
     EXPECT_FALSE(pathLoopBackend->lastCapturePlatformAccumulation());
     EXPECT_TRUE(pathLoopBackend->lastCaptureResolvedDisplay());
     EXPECT_EQ(render::GpuDisplayResolveTonemap::Linear,
@@ -2908,6 +2917,7 @@ namespace GraphRenderEngineTest {
 
     EXPECT_TRUE(pathLoopBackend->hasLastCaptureDiagnostics());
     EXPECT_FALSE(pathLoopBackend->lastCaptureDiagnostics());
+    EXPECT_FALSE(pathLoopBackend->lastCaptureMetrics());
     EXPECT_FALSE(pathLoopBackend->lastCapturePlatformAccumulation());
     EXPECT_TRUE(pathLoopBackend->lastCaptureResolvedDisplay());
     EXPECT_EQ(render::GpuDisplayResolveTonemap::Reinhard,
@@ -2959,6 +2969,7 @@ namespace GraphRenderEngineTest {
 
     EXPECT_TRUE(pathLoopBackend->hasLastCaptureDiagnostics());
     EXPECT_FALSE(pathLoopBackend->lastCaptureDiagnostics());
+    EXPECT_FALSE(pathLoopBackend->lastCaptureMetrics());
     EXPECT_FALSE(pathLoopBackend->lastCapturePlatformAccumulation());
     EXPECT_TRUE(pathLoopBackend->lastCaptureResolvedDisplay());
     EXPECT_EQ(render::GpuDisplayResolveTonemap::Aces, pathLoopBackend->lastDisplayResolveTonemap());
@@ -3014,6 +3025,7 @@ namespace GraphRenderEngineTest {
 
     EXPECT_TRUE(pathLoopBackend->hasLastCaptureDiagnostics());
     EXPECT_FALSE(pathLoopBackend->lastCaptureDiagnostics());
+    EXPECT_FALSE(pathLoopBackend->lastCaptureMetrics());
     EXPECT_FALSE(pathLoopBackend->lastCapturePlatformAccumulation());
     EXPECT_TRUE(pathLoopBackend->lastCaptureResolvedDisplay());
     EXPECT_EQ(render::GpuDisplayResolveTonemap::Linear,
@@ -3090,6 +3102,7 @@ namespace GraphRenderEngineTest {
 
     EXPECT_TRUE(pathLoopBackend->hasLastCaptureDiagnostics());
     EXPECT_FALSE(pathLoopBackend->lastCaptureDiagnostics());
+    EXPECT_FALSE(pathLoopBackend->lastCaptureMetrics());
     EXPECT_TRUE(pathLoopBackend->lastCapturePlatformAccumulation());
     EXPECT_FALSE(pathLoopBackend->lastCaptureResolvedDisplay());
   }
@@ -3254,6 +3267,7 @@ namespace GraphRenderEngineTest {
 
     EXPECT_TRUE(pathLoopBackend->hasLastCaptureDiagnostics());
     EXPECT_FALSE(pathLoopBackend->lastCaptureDiagnostics());
+    EXPECT_FALSE(pathLoopBackend->lastCaptureMetrics());
     EXPECT_TRUE(pathLoopBackend->hasLastPrimaryGeneration());
     EXPECT_TRUE(pathLoopBackend->lastPrimaryGeneratesOnDevice());
     EXPECT_EQ(64u, pathLoopBackend->lastPrimaryGeneratedSamples());

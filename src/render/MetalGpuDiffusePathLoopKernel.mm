@@ -152,7 +152,7 @@ namespace render {
               "  uint primaryPathActualHeight;\n"
               "  uint captureDenoiserFeatures;\n"
               "  uint displayResolveTonemap;\n"
-              "  uint reserved2;\n"
+              "  uint captureMetrics;\n"
               "  uint reserved3;\n"
               "  float4 primaryPathOrigin;\n"
               "  float4 primaryPathTopLeft;\n"
@@ -3248,8 +3248,10 @@ namespace render {
               "  if (!pathStateIsActive(path) || path.depth >= parameters.maxDepth) {\n"
               "    return;\n"
               "  }\n"
-              "  atomic_fetch_add_explicit(&activePathCounts[path.depth], 1u,\n"
-              "                            memory_order_relaxed);\n"
+              "  if (parameters.captureMetrics != 0u) {\n"
+              "    atomic_fetch_add_explicit(&activePathCounts[path.depth], 1u,\n"
+              "                              memory_order_relaxed);\n"
+              "  }\n"
               "  const uint stepRecordIndex = pathIndex * parameters.maxDepth + path.depth;\n"
               "  GpuDiffusePathStateRecord next = path;\n"
               "  GpuIntersectionHitRecord hit = missHitRecord(path.ray);\n"
@@ -3303,8 +3305,10 @@ namespace render {
               "    if (!pathStateIsActive(path) || path.depth >= parameters.maxDepth) {\n"
               "      break;\n"
               "    }\n"
-              "    atomic_fetch_add_explicit(&activePathCounts[path.depth], 1u,\n"
-              "                              memory_order_relaxed);\n"
+              "    if (parameters.captureMetrics != 0u) {\n"
+              "      atomic_fetch_add_explicit(&activePathCounts[path.depth], 1u,\n"
+              "                                memory_order_relaxed);\n"
+              "    }\n"
               "    GpuDiffusePathStateRecord next = path;\n"
               "    GpuIntersectionHitRecord hit = missHitRecord(path.ray);\n"
               "    GpuDiffusePathStepRecord step = mattePathStep(\n"
@@ -4712,12 +4716,17 @@ namespace render {
       const auto readbackStart = std::chrono::steady_clock::now();
       std::memcpy(&result.echoedParameters, [echoedParameterBuffer contents],
                   sizeof(result.echoedParameters));
-      result.activePathCountsPerDepth.resize(plan.parameters.maxDepth);
+      if (plan.parameters.captureMetrics != 0u) {
+        result.activePathCountsPerDepth.resize(plan.parameters.maxDepth);
+      }
       if (!result.activePathCountsPerDepth.empty()) {
         std::memcpy(result.activePathCountsPerDepth.data(), [activePathCountBuffer contents],
                     result.activePathCountsPerDepth.size() * sizeof(std::uint32_t));
       }
-      result.retainedPathCount = retainedPathCountFromBuffer(retainedIndexBuffer, launchPathCount);
+      if (plan.parameters.captureMetrics != 0u || plan.parameters.captureDiagnostics != 0u) {
+        result.retainedPathCount =
+          retainedPathCountFromBuffer(retainedIndexBuffer, launchPathCount);
+      }
       if (plan.parameters.captureDiagnostics != 0u) {
         result.copiedInitialPathStates.resize(launchPathCount);
         if (!result.copiedInitialPathStates.empty()) {
@@ -5015,13 +5024,17 @@ namespace render {
       const auto readbackStart = std::chrono::steady_clock::now();
       std::memcpy(&result.echoedParameters, [echoedParameterBuffer contents],
                   sizeof(result.echoedParameters));
-      result.activePathCountsPerDepth.resize(plan.parameters.maxDepth);
+      if (plan.parameters.captureMetrics != 0u) {
+        result.activePathCountsPerDepth.resize(plan.parameters.maxDepth);
+      }
       if (!result.activePathCountsPerDepth.empty()) {
         std::memcpy(result.activePathCountsPerDepth.data(), [activePathCountBuffer contents],
                     result.activePathCountsPerDepth.size() * sizeof(std::uint32_t));
       }
-      result.retainedPathCount =
-        retainedPathCountFromBuffer(currentFrontierBuffer, launchPathCount);
+      if (plan.parameters.captureMetrics != 0u || plan.parameters.captureDiagnostics != 0u) {
+        result.retainedPathCount =
+          retainedPathCountFromBuffer(currentFrontierBuffer, launchPathCount);
+      }
       if (plan.parameters.captureDiagnostics != 0u) {
         result.nextPathStates.resize(launchPathCount);
         if (!result.nextPathStates.empty()) {

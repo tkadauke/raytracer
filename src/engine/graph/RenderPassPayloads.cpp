@@ -964,6 +964,7 @@ namespace engine::graph {
       batching["residentPathLoopSceneUploadBytesWritten"] =
         static_cast<double>(loop.platformSceneUploadBytesWritten);
       batching["residentPathLoopCaptureDiagnostics"] = settings.captureDiagnostics;
+      batching["residentPathLoopCaptureMetrics"] = settings.captureMetrics;
       batching["residentPathLoopCapturePlatformAccumulation"] =
         settings.capturePlatformAccumulation;
       batching["residentPathLoopCaptureResolvedDisplay"] = settings.captureResolvedDisplay;
@@ -1006,6 +1007,7 @@ namespace engine::graph {
       compiledLoop["sceneUploadBytesWritten"] =
         static_cast<double>(loop.platformSceneUploadBytesWritten);
       compiledLoop["captureDiagnostics"] = settings.captureDiagnostics;
+      compiledLoop["captureMetrics"] = settings.captureMetrics;
       compiledLoop["capturePlatformAccumulation"] = settings.capturePlatformAccumulation;
       compiledLoop["captureResolvedDisplay"] = settings.captureResolvedDisplay;
       compiledLoop["displayResolveTonemap"] =
@@ -1331,6 +1333,7 @@ namespace engine::graph {
           static_cast<std::uint32_t>(state.russianRouletteDepth().value_or(3));
         settings.directLightSamples =
           static_cast<std::uint32_t>(std::max(1, state.directLightSamples().value_or(1)));
+        settings.captureMetrics = context.graph().executionTraceEnabled();
         const render::Denoiser* denoiser = wavefront.denoiser();
         const render::DenoiserFeatureRequest denoiserFeatureRequest =
           denoiser ? denoiser->requestedFeatures() : render::DenoiserFeatureRequest{};

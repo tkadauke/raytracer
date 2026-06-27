@@ -111,6 +111,7 @@ namespace render {
     std::uint32_t russianRouletteDepth{3};
     std::uint32_t directLightSamples{1};
     bool captureDiagnostics{true};
+    bool captureMetrics{true};
     bool captureDenoiserFeatures{false};
     bool capturePlatformAccumulation{true};
     bool captureResolvedDisplay{false};

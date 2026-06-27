@@ -2369,6 +2369,7 @@ namespace GpuDiffusePathStepReferenceTest {
     GpuDiffusePathLoopSettings settings;
     settings.maxDepth = 2;
     settings.captureDiagnostics = false;
+    settings.captureMetrics = false;
 
     GpuDiffusePathLoopResult result = makePlatformGpuDiffusePathLoopResult(
       2, settings, std::move(platform), "Test", "test", "test_path_state", "test_accumulation",
@@ -2382,12 +2383,11 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_TRUE(result.retainedFrontierDispatchesIndirect);
     EXPECT_TRUE(result.resolvedPathStates.empty());
     EXPECT_EQ(2u, result.initialPathCount);
-    EXPECT_EQ(3u, result.metrics.activePaths);
-    EXPECT_EQ(1u, result.metrics.spawnedContinuations);
+    EXPECT_EQ(0u, result.retainedIndexBytes);
+    EXPECT_EQ(0u, result.metrics.activePaths);
+    EXPECT_EQ(0u, result.metrics.spawnedContinuations);
     EXPECT_EQ(0u, result.metrics.terminatedPaths);
-    ASSERT_EQ(2u, result.activePathsPerDepth.size());
-    EXPECT_EQ(2u, result.activePathsPerDepth[0]);
-    EXPECT_EQ(1u, result.activePathsPerDepth[1]);
+    EXPECT_TRUE(result.activePathsPerDepth.empty());
     EXPECT_EQ(gpuDiffusePathLoopAccumulationTargetSampleSlot,
               result.platformAccumulationTargetMode);
     EXPECT_EQ("test_accumulation", result.platformAccumulationBackend);
@@ -5877,6 +5877,7 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(2u, plan.parameters.russianRouletteDepth);
     EXPECT_EQ(4u, plan.parameters.directLightSamples);
     EXPECT_EQ(1u, plan.parameters.captureDiagnostics);
+    EXPECT_EQ(1u, plan.parameters.captureMetrics);
     EXPECT_EQ(0u, plan.parameters.captureDenoiserFeatures);
     EXPECT_EQ(static_cast<std::uint32_t>(GpuDisplayResolveTonemap::Reinhard),
               plan.parameters.displayResolveTonemap);
@@ -6275,6 +6276,7 @@ namespace GpuDiffusePathStepReferenceTest {
       GpuTracingSceneSections(), {activePath()}, TracingAccumulationLayout::image(1, 1), settings);
 
     EXPECT_EQ(0u, plan.parameters.captureDiagnostics);
+    EXPECT_EQ(1u, plan.parameters.captureMetrics);
     EXPECT_EQ(0u, plan.parameters.captureDenoiserFeatures);
     EXPECT_EQ(sizeof(GpuDiffusePathStateRecord), plan.buffers.initialPathStateBytes);
     EXPECT_EQ(0u, plan.buffers.activePathStateBytes);
@@ -6290,6 +6292,28 @@ namespace GpuDiffusePathStepReferenceTest {
               plan.buffers.totalResidentBytes);
   }
 
+  TEST(GpuDiffusePathLoopLaunchPlanner, CanDisableMetricsReadbackCapture) {
+    GpuDiffusePathLoopSettings settings;
+    settings.captureDiagnostics = false;
+    settings.captureMetrics = false;
+    const GpuDiffusePathLoopLaunchPlan plan = GpuDiffusePathLoopLaunchPlanner().plan(
+      GpuTracingSceneSections(), {activePath()}, TracingAccumulationLayout::image(1, 1), settings);
+
+    EXPECT_EQ(0u, plan.parameters.captureDiagnostics);
+    EXPECT_EQ(0u, plan.parameters.captureMetrics);
+    EXPECT_EQ(sizeof(GpuDiffusePathStateRecord), plan.buffers.initialPathStateBytes);
+    EXPECT_EQ(0u, plan.buffers.activePathStateBytes);
+    EXPECT_EQ(0u, plan.buffers.nextPathStateBytes);
+    EXPECT_EQ(0u, plan.buffers.stepRecordBytes);
+    EXPECT_EQ(2u * sizeof(std::uint32_t), plan.buffers.retainedIndexBytes);
+    EXPECT_EQ(0u, plan.buffers.activePathCountBytes);
+    EXPECT_EQ(plan.buffers.sceneUploadBytes + plan.buffers.initialPathStateBytes,
+              plan.buffers.totalUploadBytes);
+    EXPECT_EQ(plan.buffers.sceneUploadBytes + plan.buffers.retainedIndexBytes +
+                plan.buffers.accumulationBytes,
+              plan.buffers.totalResidentBytes);
+  }
+
   TEST(GpuDiffusePathLoopLaunchPlanner, CapturesDenoiserFeaturesWithoutDiagnostics) {
     GpuDiffusePathLoopSettings settings;
     settings.captureDiagnostics = false;
@@ -6300,6 +6324,7 @@ namespace GpuDiffusePathStepReferenceTest {
       GpuTracingSceneSections(), {activePath()}, accumulationLayout, settings);
 
     EXPECT_EQ(0u, plan.parameters.captureDiagnostics);
+    EXPECT_EQ(1u, plan.parameters.captureMetrics);
     EXPECT_EQ(1u, plan.parameters.captureDenoiserFeatures);
     EXPECT_EQ(0u, plan.buffers.activePathStateBytes);
     EXPECT_EQ(0u, plan.buffers.nextPathStateBytes);
@@ -6346,6 +6371,7 @@ namespace GpuDiffusePathStepReferenceTest {
 
     EXPECT_TRUE(plan.generatesPrimaryPathsOnDevice());
     EXPECT_EQ(0u, plan.parameters.captureDiagnostics);
+    EXPECT_EQ(1u, plan.parameters.captureMetrics);
     EXPECT_EQ(0u, plan.parameters.captureDenoiserFeatures);
     EXPECT_EQ(24u, plan.parameters.initialPathCount);
     EXPECT_EQ(0u, plan.buffers.initialPathStateBytes);
@@ -6419,6 +6445,7 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(plan.parameters.russianRouletteDepth, result.echoedParameters.russianRouletteDepth);
     EXPECT_EQ(plan.parameters.directLightSamples, result.echoedParameters.directLightSamples);
     EXPECT_EQ(plan.parameters.captureDiagnostics, result.echoedParameters.captureDiagnostics);
+    EXPECT_EQ(plan.parameters.captureMetrics, result.echoedParameters.captureMetrics);
     EXPECT_EQ(plan.parameters.captureDenoiserFeatures,
               result.echoedParameters.captureDenoiserFeatures);
     EXPECT_EQ(plan.parameters.displayResolveTonemap, result.echoedParameters.displayResolveTonemap);

@@ -32,7 +32,9 @@ void main() {
     return;
   }
 
-  atomicAdd(activePathCounts[path.depth], 1u);
+  if (parameters.captureMetrics != 0u) {
+    atomicAdd(activePathCounts[path.depth], 1u);
+  }
   GpuIntersectionHitRecord hit;
   GpuDiffusePathStateRecord next;
   const GpuDiffusePathStepRecord step = pathStep(pathIndex, path, hit, next);
