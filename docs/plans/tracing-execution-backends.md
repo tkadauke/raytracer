@@ -2823,10 +2823,11 @@ scene is large enough to amortize upload/readback costs.
      selection. Full-GPU path-loop benchmark rows now also publish the platform
      backend's reported upload, kernel, readback, total reported, and host
      overhead timings so performance captures can distinguish shader work from
-     setup/readback costs. Render graph metadata and the Modeler graph inspector
-     now also show whether the platform scene-upload buffer was reused and how
-     many serialized scene bytes were written for a launch, so repeated-render
-     captures can separate scene-upload churn from path-loop shader cost.
+     setup/readback costs. Benchmark counters, render graph metadata, and the
+     Modeler graph inspector now also show whether the platform scene-upload
+     buffer was reused and how many serialized scene bytes were written for a
+     launch, so repeated-render captures can separate scene-upload churn from
+     path-loop shader cost.
 
 6. **Update user-facing docs and examples.**
    - Depends on: job 5.

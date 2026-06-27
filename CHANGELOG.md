@@ -12,7 +12,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 ### Added
 
 - Report platform diffuse path-loop scene-upload cache hits and bytes written
-  in render graph metadata and the Modeler graph inspector. — GPT-5 Codex
+  in render graph metadata, benchmark counters, and the Modeler graph
+  inspector. — GPT-5 Codex
 - Size Metal full-GPU depth-frontier path-loop bounce dispatches from the
   GPU-resident retained frontier count instead of relaunching every initial
   sample at every depth. — GPT-5 Codex

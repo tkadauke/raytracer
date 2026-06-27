@@ -159,6 +159,10 @@ namespace {
         result.frontierCompactionKernelWorkerSeconds;
       state.counters["full_gpu_path_loop_readback_seconds"] =
         result.frontierCompactionReadbackWorkerSeconds;
+      state.counters["full_gpu_path_loop_scene_upload_cache_hit"] =
+        result.platformSceneUploadCacheHit ? 1.0 : 0.0;
+      state.counters["full_gpu_path_loop_scene_upload_bytes_written"] =
+        static_cast<double>(result.platformSceneUploadBytesWritten);
       const double fullGpuPathLoopReportedSeconds = result.frontierCompactionUploadWorkerSeconds +
                                                     result.frontierCompactionKernelWorkerSeconds +
                                                     result.frontierCompactionReadbackWorkerSeconds;
