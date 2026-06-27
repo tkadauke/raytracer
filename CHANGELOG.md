@@ -628,6 +628,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Skip active-depth and retained-count metrics buffers and readbacks for
   trace-disabled full-GPU diffuse path-loop graph renders, while keeping those
   metrics available when graph trace capture is enabled. — GPT-5 Codex
+- Skip echoed launch-parameter readback for trace-disabled, metrics-disabled
+  Metal/Vulkan full-GPU diffuse path-loop launches, while keeping diagnostic
+  readback for trace and metrics runs. — GPT-5 Codex
 - Reuse the Vulkan full-GPU diffuse path-loop instance, device, queue, descriptor
   layout, descriptor pool, descriptor sets, pipeline layout, command pool,
   command buffer, storage buffers, and compute pipelines across renders,

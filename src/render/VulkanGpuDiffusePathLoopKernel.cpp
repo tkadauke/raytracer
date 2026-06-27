@@ -256,9 +256,10 @@ namespace render {
         result.bufferSizes.totalResidentBytes += plan.buffers.retainedIndexBytes;
         result.uploadWorkerSeconds = secondsBetween(uploadStart, uploadEnd);
         result.kernelWorkerSeconds = secondsBetween(kernelStart, kernelEnd);
-        result.echoedParameters = readBackOne<GpuDiffusePathLoopLaunchParameters>(
-          m_device, m_buffers[1].memory, "Vulkan diffuse path-loop echoed parameters mapping");
+        result.echoedParameters = plan.parameters;
         if (plan.parameters.captureMetrics != 0u || plan.parameters.captureDiagnostics != 0u) {
+          result.echoedParameters = readBackOne<GpuDiffusePathLoopLaunchParameters>(
+            m_device, m_buffers[1].memory, "Vulkan diffuse path-loop echoed parameters mapping");
           const std::vector<std::uint32_t> retainedCountOutput = readBackRecords<std::uint32_t>(
             m_device, m_buffers[finalFrontierBufferIndex].memory, byteCount<std::uint32_t>(1u), 1u,
             "Vulkan diffuse path-loop retained-count output mapping");

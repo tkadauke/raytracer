@@ -3903,8 +3903,11 @@ namespace render {
       }
 
       const auto readbackStart = std::chrono::steady_clock::now();
-      std::memcpy(&result.echoedParameters, [echoedParameterBuffer contents],
-                  sizeof(result.echoedParameters));
+      result.echoedParameters = plan.parameters;
+      if (plan.parameters.captureMetrics != 0u || plan.parameters.captureDiagnostics != 0u) {
+        std::memcpy(&result.echoedParameters, [echoedParameterBuffer contents],
+                    sizeof(result.echoedParameters));
+      }
       result.copiedInitialPathStates.resize(initialPathStates.size());
       if (!result.copiedInitialPathStates.empty()) {
         std::memcpy(result.copiedInitialPathStates.data(), [activePathBuffer contents],
@@ -4047,8 +4050,11 @@ namespace render {
       }
 
       const auto readbackStart = std::chrono::steady_clock::now();
-      std::memcpy(&result.echoedParameters, [echoedParameterBuffer contents],
-                  sizeof(result.echoedParameters));
+      result.echoedParameters = plan.parameters;
+      if (plan.parameters.captureMetrics != 0u || plan.parameters.captureDiagnostics != 0u) {
+        std::memcpy(&result.echoedParameters, [echoedParameterBuffer contents],
+                    sizeof(result.echoedParameters));
+      }
       result.resolvedPathStates.resize(initialPathStates.size());
       if (!result.resolvedPathStates.empty()) {
         std::memcpy(result.resolvedPathStates.data(), [activePathBuffer contents],
