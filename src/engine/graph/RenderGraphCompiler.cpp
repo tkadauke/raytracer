@@ -118,12 +118,20 @@ namespace engine::graph {
       return sceneAnalysis.fullGpuTracingUnsupportedReason();
     }
 
-    bool passCanUseCompiledFullGpuTracing(const RenderPassNode& pass) {
-      if (pass.kind != RenderPassKind::Beauty || pass.executor != RenderExecutorKind::Wavefront) {
-        return false;
+    std::optional<std::string>
+    compiledFullGpuTracingPassFallbackReason(const RenderPassNode& pass) {
+      if (pass.kind != RenderPassKind::Beauty) {
+        return "compiled diffuse path loop requires a beauty pass";
+      }
+      if (pass.executor != RenderExecutorKind::Wavefront) {
+        return "compiled diffuse path loop requires the wavefront tracing schedule";
       }
       const RaytracerBeautyPassState state = RaytracerBeautyPassState::valueFromPass(pass);
-      return !state.compiledDiffusePathLoopFallbackReason();
+      return state.compiledDiffusePathLoopFallbackReason();
+    }
+
+    bool passCanUseCompiledFullGpuTracing(const RenderPassNode& pass) {
+      return !compiledFullGpuTracingPassFallbackReason(pass);
     }
 
     TracingExecutionDecision resolveTracingExecution(const RenderIntent& intent,
@@ -153,11 +161,12 @@ namespace engine::graph {
       if (decision.requested == TracingExecutionPreference::GPU) {
         if (intersectionBackend &&
             intersectionBackend->kind() == render::WavefrontIntersectionBackendChoice::Kind::CPU &&
-            canUseFullGpuTracing(sceneAnalysis)) {
+            canUseFullGpuTracing(sceneAnalysis) && passCanUseCompiledFullGpuTracing(pass)) {
           throw std::runtime_error(
             "tracingExecution 'gpu' is incompatible with intersectionBackend 'cpu'");
         }
-        if (canUseFullGpuTracing(sceneAnalysis)) {
+        const auto passFallbackReason = compiledFullGpuTracingPassFallbackReason(pass);
+        if (!passFallbackReason && canUseFullGpuTracing(sceneAnalysis)) {
           decision.predicted = TracingExecutionPreference::GPU;
           decision.intersectionBackend = render::WavefrontIntersectionBackendChoice::gpu();
           decision.overrideIntersectionBackend = true;
@@ -166,12 +175,14 @@ namespace engine::graph {
           decision.intersectionBackend =
             intersectionBackend.value_or(render::WavefrontIntersectionBackendChoice::gpu());
           decision.overrideIntersectionBackend = !intersectionBackend.has_value();
-          decision.fallbackReason = fullGpuTracingFallbackReason(sceneAnalysis);
+          decision.fallbackReason =
+            passFallbackReason.value_or(fullGpuTracingFallbackReason(sceneAnalysis));
         } else {
           decision.predicted = TracingExecutionPreference::CPU;
           decision.intersectionBackend = render::WavefrontIntersectionBackendChoice::cpu();
           decision.overrideIntersectionBackend = true;
-          decision.fallbackReason = fullGpuTracingFallbackReason(sceneAnalysis);
+          decision.fallbackReason =
+            passFallbackReason.value_or(fullGpuTracingFallbackReason(sceneAnalysis));
         }
         return decision;
       }

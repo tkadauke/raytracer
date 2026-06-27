@@ -393,6 +393,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Predict explicit GPU Path Tracer requests as hybrid/CPU fallbacks when
+  pass-level settings such as convergence or adaptive sampling make the
+  compiled full-GPU path loop ineligible, instead of labeling the pass as
+  predicted GPU from scene support alone. — GPT-5 Codex
 - Share Metal/Vulkan full-GPU diffuse path-loop scene support checks, including
   unsupported material, texture, and light validation for empty-geometry
   sections, so platform support queries no longer diverge. — GPT-5 Codex

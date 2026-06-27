@@ -252,32 +252,31 @@ end state for GPU tracing.
   rectangular area lights when Vulkan is built and available, including
   sample-slot accumulation for duplicate active pixel targets, now through a
   depth-frontier Vulkan schedule.
-  Graph auto-selection still waits for Vulkan shaded-path parity, broader scene
-  support, and performance gates.
-- Platform full-GPU path-loop backend selection beyond that restricted Metal
-  subset and the restricted Vulkan multi-depth sphere subset. The factory hook
-  can return Metal or Vulkan platform backends in platform-enabled builds, but
-  ordinary builds and unsupported scenes still fall back to the CPU-reference or
-  hybrid diagnostic backend.
-- GPU material records beyond the current Matte, Emissive, Phong, Reflective,
-  and Transparent subset.
-- GPU texture records beyond ConstantColor, planar/UV CheckerBoard texture
-  graphs, nearest-or-bilinear ImageTexture records, UVColorTexture, and bounded
-  Tinted wrapper chains.
-- GPU light records beyond PointLight, DirectionalLight, and
-  RectangularAreaLight.
-- Platform GPU BSDF evaluation.
-- Platform GPU direct-light contribution evaluation.
-- Platform GPU path continuation generation and Russian roulette.
-- Integrated platform GPU accumulation/progressive sample buffers in the live
-  render loop.
-- Full platform GPU path-tracing loop.
+  Graph auto-selection can predict the platform full-GPU path loop when scene,
+  backend, and pass-level settings are all eligible; explicit GPU requests now
+  report hybrid/CPU fallbacks when pass-level settings such as convergence or
+  adaptive sampling make the compiled loop ineligible.
+- Platform full-GPU path-loop backend selection beyond the restricted Metal and
+  Vulkan subsets above. The factory hook can return Metal or Vulkan platform
+  backends in platform-enabled builds, but ordinary builds and unsupported
+  scenes still fall back to the CPU-reference or hybrid diagnostic backend.
+- GPU material records for future/custom material types beyond the current
+  runtime material hierarchy.
+- GPU texture records for future/custom texture or mapping types beyond
+  ConstantColor, planar/UV CheckerBoard texture graphs, nearest-or-bilinear
+  ImageTexture records, UVColorTexture, and bounded Tinted wrapper chains.
+- GPU light records for future/custom light types beyond PointLight,
+  DirectionalLight, and RectangularAreaLight.
+- Platform GPU BSDF, direct-light, path-continuation, and Russian-roulette
+  behavior beyond the current Matte/Phong/Reflective/Transparent/Portal/
+  Emissive subset.
+- Progressive multi-frame platform accumulation buffers in the live render loop.
+- Unrestricted platform GPU path-tracing loop.
 - Full platform GPU Whitted loop.
 - Hardware ray tracing backends.
-- A render graph compiler model that can synthesize platform full-GPU tracing
-  plans after those kernels exist; the current compiler can report explicit
-  GPU requests, hybrid fallbacks, and compiled-reference diagnostics without
-  treating the CPU-reference path-loop as automatic full GPU execution.
+- Render graph scheduling for choosing between multiple GPU path-loop schedules
+  once compacted wavefront, megakernel, and future persistent-queue variants
+  coexist.
 
 ---
 

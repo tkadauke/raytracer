@@ -386,6 +386,31 @@ namespace RenderGraphCompilerTest {
     EXPECT_TRUE(state->tracingExecutionFallbackReason().empty());
   }
 
+  TEST(RenderGraphCompiler, TracingExecutionGpuReportsPassLevelCompiledLoopFallback) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::PathTracer;
+    intent.engineOptions.raytracer().setTracingExecution(TracingExecutionPreference::GPU);
+    intent.engineOptions.raytracer().setConvergenceEnabled(true);
+
+    RenderSceneAnalysis analysis;
+    analysis.setFullGpuTracingSupported(true);
+    analysis.setFullGpuTracingBackendAvailable(true);
+
+    const RenderPlan plan = compiler.compile({64, 64, 1}, intent, analysis);
+
+    const auto* pass = plan.findPass("wavefront_beauty");
+    ASSERT_NE(nullptr, pass);
+    const auto* state = RaytracerBeautyPassState::fromPass(*pass);
+    ASSERT_NE(nullptr, state);
+    ASSERT_TRUE(state->predictedTracingExecution().has_value());
+    EXPECT_EQ(TracingExecutionPreference::Hybrid, *state->predictedTracingExecution());
+    ASSERT_TRUE(state->intersectionBackend().has_value());
+    EXPECT_STREQ("gpu", state->intersectionBackend()->id());
+    EXPECT_EQ("compiled diffuse path loop does not support wavefront convergence yet",
+              state->tracingExecutionFallbackReason());
+  }
+
   TEST(RenderGraphCompiler, TracingExecutionAutoPromotesEligibleFullGpuPathTracer) {
     RenderGraphCompiler compiler;
     RenderIntent intent;
