@@ -936,6 +936,8 @@ namespace engine::graph {
       batching["residentPathLoopSubmittedIntersectionRays"] =
         static_cast<double>(loop.submittedIntersectionRayCount());
       batching["residentPathLoopFullPlatformGpuKernel"] = loop.fullGpuPathLoopSupported();
+      batching["residentPathLoopRetainedFrontierDispatchesIndirect"] =
+        loop.retainedFrontierDispatchesIndirect;
       batching["tracingSceneCompiled"] = compilation.diagnostics.compiled;
       batching["tracingSceneMaterials"] = static_cast<double>(compilation.diagnostics.materials);
       batching["tracingSceneTextures"] = static_cast<double>(compilation.diagnostics.textures);
@@ -963,6 +965,7 @@ namespace engine::graph {
       compiledLoop["residency"] = QString::fromStdString(loop.pathStateResidency);
       compiledLoop["platformName"] = QString::fromStdString(loop.platformLabel());
       compiledLoop["fullPlatformGpuKernel"] = loop.fullGpuPathLoopSupported();
+      compiledLoop["retainedFrontierDispatchesIndirect"] = loop.retainedFrontierDispatchesIndirect;
       compiledLoop["submittedIntersectionRays"] =
         static_cast<double>(loop.submittedIntersectionRayCount());
       compiledLoop["note"] =

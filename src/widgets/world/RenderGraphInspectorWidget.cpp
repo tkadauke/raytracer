@@ -1121,6 +1121,9 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
     QStringLiteral("residentPathLoopSubmittedIntersectionRays"));
   addDetailBoolMetadataRow(rows, QStringLiteral("Resident path-loop platform GPU kernel"), batching,
                            QStringLiteral("residentPathLoopFullPlatformGpuKernel"));
+  addDetailBoolMetadataRow(rows, QStringLiteral("Resident path-loop indirect frontier dispatch"),
+                           batching,
+                           QStringLiteral("residentPathLoopRetainedFrontierDispatchesIndirect"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Resident path-loop saved host readbacks"),
                               batching, QStringLiteral("residentPathLoopSavedHostReadbacks"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Resident path-loop saved host readback bytes"),

@@ -131,6 +131,7 @@ namespace render {
     std::string pathStateResidency{"cpu_host"};
     std::string frontierCompactionExecutionPath{"cpu_diffuse_frontier_compaction"};
     std::string frontierCompactionPathStateResidency{"cpu_host"};
+    bool retainedFrontierDispatchesIndirect{false};
     std::string platformName;
     std::uint64_t initialPathCount{0};
     std::uint64_t depthCount{0};

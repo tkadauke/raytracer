@@ -308,6 +308,7 @@ namespace render {
       loop.pathStateResidency = kMetalPathStateResidency;
       loop.frontierCompactionExecutionPath = metalResult.executionPath;
       loop.frontierCompactionPathStateResidency = metalResult.pathStateResidency;
+      loop.retainedFrontierDispatchesIndirect = metalResult.retainedFrontierDispatchesIndirect;
       loop.platformName = "metal";
       loop.initialPathCount = initialPathCount;
       loop.stepRecords = metalResult.stepRecords;

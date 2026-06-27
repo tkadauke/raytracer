@@ -5,6 +5,7 @@
 #include "render/VulkanDiffusePathLoopClearFrontier.generated.h"
 #include "render/VulkanDiffusePathLoopDisplayResolve.generated.h"
 #include "render/VulkanDiffusePathLoopInitializeFrontier.generated.h"
+#include "render/VulkanDiffusePathLoopPrepareDispatch.generated.h"
 
 #include <vulkan/vulkan.h>
 #endif
@@ -33,7 +34,8 @@ namespace render {
 
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
     constexpr std::uint32_t kDiffusePathLoopLocalSizeX = 64u;
-    constexpr std::uint32_t kDiffusePathLoopDescriptorCount = 13u;
+    constexpr std::uint32_t kDiffusePathLoopDescriptorCount = 14u;
+    constexpr VkDeviceSize kDispatchIndirectCommandBytes = 3u * sizeof(std::uint32_t);
 
     std::uint64_t pixelCount(const GpuDiffusePathLoopLaunchParameters& parameters) {
       return static_cast<std::uint64_t>(parameters.imageWidth) *
@@ -163,6 +165,12 @@ namespace render {
           ShaderGuard initializeShaderGuard;
           initializeShaderGuard.device = device;
           initializeShaderGuard.shaderModule = initializeShader;
+          VkShaderModule prepareDispatchShader = createShaderModule(
+            device, vulkan_shaders::diffusePathLoopPrepareDispatchShaderSpirv.data(),
+            vulkan_shaders::diffusePathLoopPrepareDispatchShaderSpirv.size());
+          ShaderGuard prepareDispatchShaderGuard;
+          prepareDispatchShaderGuard.device = device;
+          prepareDispatchShaderGuard.shaderModule = prepareDispatchShader;
           VkShaderModule advanceShader = createShaderModule(
             device, vulkan_shaders::diffusePathLoopAdvanceFrontierShaderSpirv.data(),
             vulkan_shaders::diffusePathLoopAdvanceFrontierShaderSpirv.size());
@@ -195,6 +203,11 @@ namespace render {
           PipelineGuard initializePipelineGuard;
           initializePipelineGuard.device = device;
           initializePipelineGuard.pipeline = initializePipeline;
+          VkPipeline prepareDispatchPipeline =
+            createPipeline(device, prepareDispatchShader, pipelineLayout);
+          PipelineGuard prepareDispatchPipelineGuard;
+          prepareDispatchPipelineGuard.device = device;
+          prepareDispatchPipelineGuard.pipeline = prepareDispatchPipeline;
           VkPipeline advancePipeline = createPipeline(device, advanceShader, pipelineLayout);
           PipelineGuard advancePipelineGuard;
           advancePipelineGuard.device = device;
@@ -288,6 +301,12 @@ namespace render {
           resolvedDisplayPixels * static_cast<std::uint64_t>(sizeof(unsigned int)), nullptr));
         buffers.buffers.push_back(
           createStorageBufferFromVector(device, selection.device, retainedIndices));
+        buffers.buffers.push_back(createStorageBuffer(device, selection.device,
+                                                      kDispatchIndirectCommandBytes, nullptr,
+                                                      VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT));
+        buffers.buffers.push_back(createStorageBuffer(device, selection.device,
+                                                      kDispatchIndirectCommandBytes, nullptr,
+                                                      VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT));
 
         VkShaderModule clearShader =
           createShaderModule(device, vulkan_shaders::diffusePathLoopClearFrontierShaderSpirv.data(),
@@ -301,6 +320,12 @@ namespace render {
         ShaderGuard initializeShaderGuard;
         initializeShaderGuard.device = device;
         initializeShaderGuard.shaderModule = initializeShader;
+        VkShaderModule prepareDispatchShader = createShaderModule(
+          device, vulkan_shaders::diffusePathLoopPrepareDispatchShaderSpirv.data(),
+          vulkan_shaders::diffusePathLoopPrepareDispatchShaderSpirv.size());
+        ShaderGuard prepareDispatchShaderGuard;
+        prepareDispatchShaderGuard.device = device;
+        prepareDispatchShaderGuard.shaderModule = prepareDispatchShader;
         VkShaderModule advanceShader = createShaderModule(
           device, vulkan_shaders::diffusePathLoopAdvanceFrontierShaderSpirv.data(),
           vulkan_shaders::diffusePathLoopAdvanceFrontierShaderSpirv.size());
@@ -336,6 +361,11 @@ namespace render {
         PipelineGuard initializePipelineGuard;
         initializePipelineGuard.device = device;
         initializePipelineGuard.pipeline = initializePipeline;
+        VkPipeline prepareDispatchPipeline =
+          createPipeline(device, prepareDispatchShader, pipelineLayout);
+        PipelineGuard prepareDispatchPipelineGuard;
+        prepareDispatchPipelineGuard.device = device;
+        prepareDispatchPipelineGuard.pipeline = prepareDispatchPipeline;
         VkPipeline advancePipeline = createPipeline(device, advanceShader, pipelineLayout);
         PipelineGuard advancePipelineGuard;
         advancePipelineGuard.device = device;
@@ -357,9 +387,12 @@ namespace render {
           allocateDescriptorSet(device, descriptorPool, descriptorLayout);
         VkDescriptorSet descriptorSetBA =
           allocateDescriptorSet(device, descriptorPool, descriptorLayout);
-        updateDescriptorSet(device, descriptorSetAB, buffers.buffers);
-        std::vector<StorageBuffer> swappedFrontierBuffers = buffers.buffers;
+        std::vector<StorageBuffer> descriptorBuffersAB(
+          buffers.buffers.begin(), buffers.buffers.begin() + kDiffusePathLoopDescriptorCount);
+        updateDescriptorSet(device, descriptorSetAB, descriptorBuffersAB);
+        std::vector<StorageBuffer> swappedFrontierBuffers = descriptorBuffersAB;
         std::swap(swappedFrontierBuffers[7], swappedFrontierBuffers[12]);
+        swappedFrontierBuffers[13] = buffers.buffers[14];
         updateDescriptorSet(device, descriptorSetBA, swappedFrontierBuffers);
 
         VkCommandPool commandPool = createCommandPool(device, selection.queueFamily);
@@ -369,10 +402,10 @@ namespace render {
 
         VkCommandBuffer commandBuffer = allocateCommandBuffer(device, commandPool);
         const VkDescriptorSet finalFrontierDescriptorSet = recordPathLoopAndOptionalResolve(
-          commandBuffer, clearPipeline, initializePipeline, advancePipeline, resolvePipeline,
-          pipelineLayout, descriptorSetAB, descriptorSetBA,
+          commandBuffer, clearPipeline, initializePipeline, prepareDispatchPipeline,
+          advancePipeline, resolvePipeline, pipelineLayout, descriptorSetAB, descriptorSetBA,
           static_cast<std::uint32_t>(std::max<std::size_t>(1u, launchPathCount)),
-          plan.parameters.maxDepth,
+          buffers.buffers[13].buffer, buffers.buffers[14].buffer, plan.parameters.maxDepth,
           static_cast<std::uint32_t>(std::max<std::uint64_t>(1u, resolvedDisplayPixels)),
           captureResolvedDisplay);
         const std::size_t finalFrontierBufferIndex =
@@ -387,6 +420,7 @@ namespace render {
         VulkanGpuDiffusePathLoopKernelResult result;
         result.executionPath = "vulkan_diffuse_path_loop_wavefront";
         result.pathStateResidency = "vulkan_host_visible_diffuse_path_state";
+        result.retainedFrontierDispatchesIndirect = true;
         result.bufferSizes = plan.buffers;
         result.bufferSizes.totalResidentBytes -= plan.buffers.activePathStateBytes;
         result.bufferSizes.totalResidentBytes -= plan.buffers.nextPathStateBytes;
@@ -677,14 +711,15 @@ namespace render {
       }
 
       StorageBuffer createStorageBuffer(VkDevice device, VkPhysicalDevice physicalDevice,
-                                        VkDeviceSize byteCount, const void* initialData) const {
+                                        VkDeviceSize byteCount, const void* initialData,
+                                        VkBufferUsageFlags additionalUsage = 0) const {
         StorageBuffer result;
         result.byteCount = std::max<VkDeviceSize>(1u, byteCount);
 
         VkBufferCreateInfo bufferInfo{};
         bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
         bufferInfo.size = result.byteCount;
-        bufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+        bufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | additionalUsage;
         bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         check(vkCreateBuffer(device, &bufferInfo, nullptr, &result.buffer),
               "Vulkan diffuse path-loop buffer creation");
@@ -890,6 +925,16 @@ namespace render {
                              nullptr);
       }
 
+      void shaderToIndirectDispatchBarrier(VkCommandBuffer commandBuffer) const {
+        VkMemoryBarrier barrier{};
+        barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+        barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+        barrier.dstAccessMask = VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
+        vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                             VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, 0, 1, &barrier, 0, nullptr, 0,
+                             nullptr);
+      }
+
       void dispatch1D(VkCommandBuffer commandBuffer, std::uint32_t itemCount) const {
         const std::uint32_t groupCount =
           std::max(1u, (itemCount + kDiffusePathLoopLocalSizeX - 1u) / kDiffusePathLoopLocalSizeX);
@@ -898,10 +943,11 @@ namespace render {
 
       VkDescriptorSet recordPathLoopAndOptionalResolve(
         VkCommandBuffer commandBuffer, VkPipeline clearFrontierPipeline,
-        VkPipeline initializeFrontierPipeline, VkPipeline advanceFrontierPipeline,
-        VkPipeline resolvePipeline, VkPipelineLayout pipelineLayout,
-        VkDescriptorSet descriptorSetAB, VkDescriptorSet descriptorSetBA, std::uint32_t pathCount,
-        std::uint32_t maxDepth, std::uint32_t resolvedDisplayPixels,
+        VkPipeline initializeFrontierPipeline, VkPipeline prepareDispatchPipeline,
+        VkPipeline advanceFrontierPipeline, VkPipeline resolvePipeline,
+        VkPipelineLayout pipelineLayout, VkDescriptorSet descriptorSetAB,
+        VkDescriptorSet descriptorSetBA, std::uint32_t pathCount, VkBuffer dispatchBufferA,
+        VkBuffer dispatchBufferB, std::uint32_t maxDepth, std::uint32_t resolvedDisplayPixels,
         bool captureResolvedDisplay) const {
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -910,6 +956,8 @@ namespace render {
 
         VkDescriptorSet currentDescriptorSet = descriptorSetAB;
         VkDescriptorSet nextDescriptorSet = descriptorSetBA;
+        VkBuffer currentDispatchBuffer = dispatchBufferA;
+        VkBuffer nextDispatchBuffer = dispatchBufferB;
 
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, clearFrontierPipeline);
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1,
@@ -937,12 +985,19 @@ namespace render {
           vkCmdDispatch(commandBuffer, 1, 1, 1);
           shaderStorageBarrier(commandBuffer);
 
+          vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, prepareDispatchPipeline);
+          vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0,
+                                  1, &currentDescriptorSet, 0, nullptr);
+          vkCmdDispatch(commandBuffer, 1, 1, 1);
+          shaderToIndirectDispatchBarrier(commandBuffer);
+
           vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, advanceFrontierPipeline);
           vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0,
                                   1, &currentDescriptorSet, 0, nullptr);
-          dispatch1D(commandBuffer, pathCount);
+          vkCmdDispatchIndirect(commandBuffer, currentDispatchBuffer, 0);
           shaderStorageBarrier(commandBuffer);
           std::swap(currentDescriptorSet, nextDescriptorSet);
+          std::swap(currentDispatchBuffer, nextDispatchBuffer);
         }
 
         if (captureResolvedDisplay) {

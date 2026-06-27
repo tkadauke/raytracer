@@ -1,0 +1,22 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+#include "vulkan_diffuse_path_loop_common.glsl"
+
+layout(std430, binding = 13) buffer RetainedFrontierDispatchArguments {
+  uint dispatchArguments[];
+};
+
+const uint diffusePathLoopLocalSizeX = 64u;
+
+void main() {
+  if (gl_GlobalInvocationID.x != 0u) {
+    return;
+  }
+
+  const uint activeCount = retainedIndices[0];
+  dispatchArguments[0] =
+      max((activeCount + diffusePathLoopLocalSizeX - 1u) / diffusePathLoopLocalSizeX, 1u);
+  dispatchArguments[1] = 1u;
+  dispatchArguments[2] = 1u;
+}

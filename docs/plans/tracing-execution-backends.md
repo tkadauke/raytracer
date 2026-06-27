@@ -159,7 +159,10 @@ end state for GPU tracing.
   depth-frontier shape: Vulkan initialization and advance compute shaders keep
   path records resident, compact retained path indices into current/next
   count-prefixed frontier buffers, and swap descriptor sets inside one command
-  buffer instead of looping all bounces inside one shader invocation.
+  buffer instead of looping all bounces inside one shader invocation. Each
+  bounce dispatch is prepared from the current GPU-resident retained-frontier
+  count and launched through Vulkan indirect dispatch arguments instead of
+  relaunching the full initial sample count at every depth.
 - GPU-requested compiled diffuse path-loop renders automatically use an
   available Metal or Vulkan frontier-compaction backend for the live
   `GpuDiffusePathStateRecord` frontier, reporting that middle step as hybrid

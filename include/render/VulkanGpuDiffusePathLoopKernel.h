@@ -22,6 +22,7 @@ namespace render {
     std::vector<unsigned int> resolvedDisplayPixels;
     std::string executionPath{"vulkan_diffuse_path_loop_wavefront"};
     std::string pathStateResidency{"vulkan_host_visible_diffuse_path_state"};
+    bool retainedFrontierDispatchesIndirect{false};
     double uploadWorkerSeconds{0.0};
     double kernelWorkerSeconds{0.0};
     double readbackWorkerSeconds{0.0};

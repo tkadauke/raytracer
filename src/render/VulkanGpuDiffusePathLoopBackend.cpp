@@ -306,6 +306,7 @@ namespace render {
       loop.pathStateResidency = kVulkanPathStateResidency;
       loop.frontierCompactionExecutionPath = vulkanResult.executionPath;
       loop.frontierCompactionPathStateResidency = vulkanResult.pathStateResidency;
+      loop.retainedFrontierDispatchesIndirect = vulkanResult.retainedFrontierDispatchesIndirect;
       loop.platformName = "vulkan";
       loop.initialPathCount = initialPathCount;
       loop.stepRecords = vulkanResult.stepRecords;
