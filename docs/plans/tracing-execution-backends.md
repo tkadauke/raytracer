@@ -2913,11 +2913,14 @@ scene is large enough to amortize upload/readback costs.
      is covered at the backend boundary rather than only through graph-level
      fake-backend tests.
 
-6. **Update user-facing docs and examples.**
+6. ~~**Update user-facing docs and examples.**~~ ✅ **Done.**
    - Depends on: job 5.
    - Output: rendercli/modeler instructions and textbook examples distinguish
      CPU, hybrid intersection/compaction, and full platform GPU path-loop
-     execution with performance caveats.
+     execution with performance caveats. The performance guide and textbook now
+     point the E15 speedup gate at the warmed camera-generated final-display
+     row, explicitly distinguishing normal trace-disabled display-only
+     full-GPU renders from diagnostic graph-trace/HDR accumulation captures.
 
 **Gate:** a supported diffuse path-tracing scene can render end-to-end through
 Metal or Vulkan with path state, shading, direct lighting, compaction, and

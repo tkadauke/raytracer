@@ -671,7 +671,11 @@ path counts from the depth frontier, matching the render metrics and capture
 summaries used to judge future resident path-loop kernels. Platform-enabled
 benchmark builds add an explicit GPU compiled path-loop row with diagnostics
 disabled, so the same workload can compare the CPU reference loop against the
-Metal or Vulkan path-loop backend that normal trace-disabled renders use.
+Metal or Vulkan path-loop backend that normal trace-disabled renders use. The
+current speedup gate uses the warmed camera-generated final-display row, not
+the diagnostic accumulation row: primary rays come from the GPU camera
+descriptor, graph trace and metrics capture are disabled, platform display
+resolve is enabled, and platform HDR accumulation readback is skipped.
 
 Tracing backend performance captures use the same workload families in
 rendercli form: small supported primitives, a generated large triangle mesh,

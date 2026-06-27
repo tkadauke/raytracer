@@ -100,10 +100,14 @@ time the CPU-reference image resolve/accumulation handoff for the same terminal
 records. Together they publish the resident path-loop and accumulation counters
 a Metal/Vulkan full path-loop kernel must replace. Platform-enabled builds also
 include explicit requested-GPU compiled diffuse path-loop rows with diagnostics
-disabled, matching the trace-disabled full-GPU render path. One requested-GPU
-row measures a cold launch; the warmed scene-upload row performs one
-unmeasured platform path-loop launch before the timed loop, so captures can
-separate cold scene-upload cost from steady-state GPU path-loop launch cost.
+disabled. The current speed gate uses the final-display variants: they leave
+trace and metrics capture off, ask the backend to resolve packed display pixels
+on the GPU, skip platform HDR accumulation readback, and generate primary paths
+from the same camera descriptor used by live graph renders instead of uploading
+a synthetic host path-state vector. One requested-GPU row measures a cold
+launch; the warmed scene-upload row performs one unmeasured platform path-loop
+launch before the timed loop, so captures can separate cold scene-upload cost
+from steady-state GPU path-loop launch cost.
 The matrix includes 256, 4,096, and 65,536 initial paths so captures include
 both small diagnostic workloads and a larger amortization workload for the
 full-GPU speedup gate. When a build exposes multiple platform path-loop
@@ -120,6 +124,14 @@ scripts/verify_tracing_path_loop_speedup.rb \
   <out>/indirect_diffuse/indirect_diffuse_compiled_path_loop_benchmarks.json \
   --paths 65536 --depth 4 --min-speedup 1.0
 ```
+
+By default the verifier requires the warmed camera-generated final-display row.
+That is the row closest to an ordinary full-GPU final render: descriptor-only
+primary generation, platform display resolve enabled, platform accumulation
+readback disabled, and trace diagnostics disabled. The older diagnostic
+accumulation rows and synthetic path-vector rows can still be checked with the
+explicit override flags, but they are no longer enough to prove the full-GPU
+render-path speed gate.
 
 ## Comparable Metric Fields
 
@@ -156,6 +168,11 @@ Compiled diffuse path-loop rows additionally publish:
 | `full_gpu_path_loop_scene_upload_cache_hit` | `1.0` when the platform path-loop launch reused its serialized scene upload buffer. |
 | `full_gpu_path_loop_scene_upload_bytes_written` | Serialized scene bytes written by the timed platform path-loop launch. |
 | `full_gpu_path_loop_warmed_scene_upload_cache` | `1.0` for benchmark rows that pre-run one platform path-loop launch before timing steady-state execution. |
+| `compiled_path_loop_final_display_mode` | `1.0` for rows that match the trace-disabled final-display path rather than diagnostic HDR accumulation readback. |
+| `compiled_path_loop_capture_resolved_display` | `1.0` when the backend resolved packed display pixels on the platform. |
+| `compiled_path_loop_capture_platform_accumulation` | `0.0` on display-only rows that skip platform HDR accumulation readback. |
+| `compiled_path_loop_camera_primary_generation` | `1.0` when the row generates primary paths from a camera descriptor. |
+| `compiled_path_loop_primary_paths_materialized` | `0.0` when the row does not upload a host primary path-state vector. |
 
 ## Automatic Selection Thresholds
 
