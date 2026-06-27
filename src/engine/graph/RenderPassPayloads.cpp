@@ -804,6 +804,16 @@ namespace engine::graph {
       return "compiled CPU-reference path loop resolves direct-light visibility on the host";
     }
 
+    QString primaryPathGenerationFallbackReason(
+      const render::GpuDiffusePrimaryPathStateGeneration& generation) {
+      if (generation.canGeneratePrimaryPathsOnDevice()) {
+        return {};
+      }
+      return QStringLiteral(
+        "camera primary path generation ran on the CPU because no GPU primary-path descriptor "
+        "was available");
+    }
+
     QJsonObject
     compiledDiffusePathLoopMetadata(const render::GpuTracingSceneCompilation& compilation,
                                     const render::GpuDiffusePrimaryPathStateGeneration& generation,
@@ -818,6 +828,8 @@ namespace engine::graph {
       input["primaryPathExecutionPath"] =
         QString::fromStdString(generation.primaryPathExecutionPath);
       input["primaryPathGeneratesOnDevice"] = generation.canGeneratePrimaryPathsOnDevice();
+      input["primaryPathGenerationFallbackReason"] =
+        primaryPathGenerationFallbackReason(generation);
       input["requestedX"] = generation.requestedRect.x();
       input["requestedY"] = generation.requestedRect.y();
       input["requestedWidth"] = generation.requestedRect.width();
@@ -1089,7 +1101,12 @@ namespace engine::graph {
 
     QString actualCompiledDiffusePathLoopFallbackReason(
       const render::GpuDiffusePathLoopResult& loop,
-      const GpuDiffusePathLoopBackendSelection& selection) {
+      const GpuDiffusePathLoopBackendSelection& selection,
+      const render::GpuDiffusePrimaryPathStateGeneration& generation) {
+      const QString primaryPathFallback = primaryPathGenerationFallbackReason(generation);
+      if (!primaryPathFallback.isEmpty()) {
+        return primaryPathFallback;
+      }
       if (loop.fullGpuPathLoopSupported()) {
         return {};
       }
@@ -1396,10 +1413,11 @@ namespace engine::graph {
           executionPathUsesGpu(QString::fromStdString(loop.frontierCompactionExecutionPath));
         const QString actualTracingExecution =
           loop.fullGpuPathLoopSupported()
-            ? QStringLiteral("gpu")
+            ? (generation.canGeneratePrimaryPathsOnDevice() ? QStringLiteral("gpu")
+                                                            : QStringLiteral("hybrid"))
             : (frontierCompactionUsesGpu ? QStringLiteral("hybrid") : QStringLiteral("cpu"));
         const QString actualTracingFallback =
-          actualCompiledDiffusePathLoopFallbackReason(loop, pathLoopBackendSelection);
+          actualCompiledDiffusePathLoopFallbackReason(loop, pathLoopBackendSelection, generation);
         context.recordTraceMessage(
           "compiled diffuse path loop rendered " +
           std::to_string(generation.generatedPrimarySamples) +

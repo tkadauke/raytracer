@@ -26,6 +26,7 @@
 #include "render/textures/ConstantColorTexture.h"
 #include "render/tonemap/AcesTonemap.h"
 #include "render/tonemap/ReinhardTonemap.h"
+#include "render/animation/AnimationTrack.h"
 #include "test/helpers/BufferTestHelper.h"
 #include "test/helpers/ColorTestHelper.h"
 #include "test/helpers/VectorTestHelper.h"
@@ -2647,6 +2648,76 @@ namespace GraphRenderEngineTest {
     EXPECT_TRUE(loop.value("capturePlatformAccumulation").toBool());
     EXPECT_FALSE(loop.value("captureResolvedDisplay").toBool());
     EXPECT_EQ("linear", loop.value("displayResolveTonemap").toString().toStdString());
+  }
+
+  TEST(GraphRenderEngine, ReportsHybridWhenFullGpuPathLoopUsesHostPrimaryRays) {
+    const Colord background(0.125, 0.25, 0.5);
+    auto scene = std::make_shared<render::Scene>();
+    scene->setBackground(background);
+    scene->setEnvironmentRadiance(background);
+    auto receiver = std::make_shared<render::Rectangle>(
+      Vector3d(-20.0, -20.0, 0.0), Vector3d(40.0, 0.0, 0.0), Vector3d(0.0, 40.0, 0.0));
+    receiver->setMaterial(matte(Colord(0.8, 0.8, 0.8)));
+    scene->add(receiver);
+
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Wavefront;
+    intent.engineOptions.raytracer().setIntegrator("pathtracer");
+    intent.engineOptions.raytracer().setTracingExecution(TracingExecutionPreference::GPU);
+    intent.engineOptions.raytracer().setSamplesPerPixel(1);
+    intent.engineOptions.raytracer().setMaximumRecursionDepth(2);
+    intent.engineOptions.raytracer().setDirectLightSamples(1);
+    intent.engineOptions.raytracer().setSampleStreamMode("gpu_sample_stream");
+
+    RenderSceneAnalysis analysis;
+    analysis.setFullGpuTracingSupportFromScene(*scene);
+    const RenderPlan plan = RenderGraphCompiler().compile({8, 8, 1}, intent, analysis);
+
+    auto animatedCamera =
+      std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
+    animatedCamera->setAnimationTrack(
+      "position", render::animation::AnimationTrack(
+                    {{0.0, Vector3d(0.0, 0.0, -5.0)}, {1.0, Vector3d(0.0, 0.0, -4.0)}}));
+    GraphRenderEngine engine(animatedCamera, scene);
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(plan);
+    auto pathLoopBackend = std::make_shared<ReportingFullGpuDiffusePathLoopBackend>();
+    engine.setGpuDiffusePathLoopBackend(pathLoopBackend);
+
+    Buffer<Colord> buffer(8, 8);
+    engine.render(buffer);
+
+    EXPECT_TRUE(pathLoopBackend->hasLastPrimaryGeneration());
+    EXPECT_FALSE(pathLoopBackend->lastPrimaryGeneratesOnDevice());
+    EXPECT_EQ(64u, pathLoopBackend->lastPrimaryGeneratedSamples());
+    EXPECT_EQ(64u, pathLoopBackend->lastPrimaryHostPathStateCount());
+
+    const auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const RenderPassTrace* wavefront = trace->findPass("wavefront_beauty");
+    ASSERT_NE(nullptr, wavefront);
+
+    const QJsonObject metadata = wavefront->metadata();
+    const QJsonObject tracingExecution = metadata.value("tracingExecution").toObject();
+    EXPECT_EQ("gpu", tracingExecution.value("requestedMode").toString().toStdString());
+    EXPECT_EQ("hybrid", tracingExecution.value("actualMode").toString().toStdString());
+    EXPECT_EQ(
+      "camera primary path generation ran on the CPU because no GPU primary-path descriptor was "
+      "available",
+      tracingExecution.value("actualFallbackReason").toString().toStdString());
+
+    const QJsonObject input = metadata.value("input").toObject();
+    EXPECT_FALSE(input.value("primaryPathGeneratesOnDevice").toBool());
+    EXPECT_EQ("cpu_camera_primary_ray_generator",
+              input.value("primaryPathExecutionPath").toString().toStdString());
+    EXPECT_EQ(
+      "camera primary path generation ran on the CPU because no GPU primary-path descriptor was "
+      "available",
+      input.value("primaryPathGenerationFallbackReason").toString().toStdString());
+
+    const QJsonObject loop = metadata.value("compiledDiffusePathLoop").toObject();
+    EXPECT_EQ("full_gpu_subset", loop.value("backend").toString().toStdString());
+    EXPECT_TRUE(loop.value("fullPlatformGpuKernel").toBool());
   }
 
   TEST(GraphRenderEngine, CompiledDiffusePathLoopHonorsBackgroundColorOverride) {
