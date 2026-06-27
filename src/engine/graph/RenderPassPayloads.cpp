@@ -1321,8 +1321,8 @@ namespace engine::graph {
         settings.captureDenoiserFeatures = denoiserFeatureRequest.any();
         settings.displayResolveTonemap = platformDisplayResolveTonemap(wavefront.tonemap());
         const bool wantsPlatformDisplayResolve =
-          displayTarget && !denoiser && !settings.captureDiagnostics &&
-          supportsPlatformDisplayResolve(wavefront.tonemap());
+          displayTarget && context.displayTargetDirectlyPublishable() && !denoiser &&
+          !settings.captureDiagnostics && supportsPlatformDisplayResolve(wavefront.tonemap());
         const GpuDiffusePathLoopBackendSelection pathLoopBackendSelection =
           selectGpuDiffusePathLoopBackend(context.graph(), state, compilation.sections, settings);
         const std::shared_ptr<const render::GpuDiffusePathLoopBackend>& pathLoopBackend =

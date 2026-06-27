@@ -59,6 +59,14 @@ namespace engine::graph {
     }
   }
 
+  void RenderExecutionContext::setDisplayTargetDirectlyPublishable(bool directlyPublishable) {
+    m_displayTargetDirectlyPublishable = directlyPublishable;
+  }
+
+  bool RenderExecutionContext::displayTargetDirectlyPublishable() const {
+    return m_displayTargetDirectlyPublishable;
+  }
+
   void RenderExecutionContext::setTraceMetadata(QJsonObject metadata) {
     m_traceMetadata = std::move(metadata);
   }

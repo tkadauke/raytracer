@@ -1522,30 +1522,37 @@ namespace engine::graph {
         }
       } reset{context};
 
-      executeObserved(*this, p->executionTraceRecorder, runtime.activePasses, traceSession.session,
-                      renderGeneration, pass, storage, &context.traceMetadata(), [&] {
-                        auto payload = RenderPassPayload::createBuiltin(pass);
-                        if (!payload) {
-                          throw std::runtime_error(
-                            "GraphRenderEngine cannot execute enabled pass '" + pass.id +
-                            "' with kind '" + toString(pass.kind) + "' and executor '" +
-                            toString(pass.executor) + "'");
-                        }
-                        const bool executedForDisplay =
-                          pass.kind == RenderPassKind::Beauty &&
-                          (pass.executor == RenderExecutorKind::Raytracer ||
-                           pass.executor == RenderExecutorKind::Wavefront) &&
-                          (canExecuteBeautyForDisplayOnly(pass, plan, *this, displayTonemap)
-                             ? payload->executeDisplay(context, buffer, displayTonemap)
-                             : payload->executeDisplayAndStore(context, buffer, displayTonemap));
-                        if (executedForDisplay) {
-                          std::lock_guard<std::mutex> lock(displayStateMutex);
-                          directDisplayWrites[pass.id] = pass.singleWrite().resource;
-                        }
-                        if (!executedForDisplay) {
-                          payload->execute(context);
-                        }
-                      });
+      executeObserved(
+        *this, p->executionTraceRecorder, runtime.activePasses, traceSession.session,
+        renderGeneration, pass, storage, &context.traceMetadata(), [&] {
+          auto payload = RenderPassPayload::createBuiltin(pass);
+          if (!payload) {
+            throw std::runtime_error("GraphRenderEngine cannot execute enabled pass '" + pass.id +
+                                     "' with kind '" + toString(pass.kind) + "' and executor '" +
+                                     toString(pass.executor) + "'");
+          }
+          const bool beautyDisplayFastPath = pass.kind == RenderPassKind::Beauty &&
+                                             (pass.executor == RenderExecutorKind::Raytracer ||
+                                              pass.executor == RenderExecutorKind::Wavefront);
+          const bool displayOnlyBeauty =
+            beautyDisplayFastPath &&
+            canExecuteBeautyForDisplayOnly(pass, plan, *this, displayTonemap);
+          const bool writesExportedOutput =
+            pass.writes.size() == 1 &&
+            pass.writes.front().resource == plan.exportedColorResource().id;
+          context.setDisplayTargetDirectlyPublishable(displayOnlyBeauty || writesExportedOutput);
+          const bool executedForDisplay =
+            beautyDisplayFastPath &&
+            (displayOnlyBeauty ? payload->executeDisplay(context, buffer, displayTonemap)
+                               : payload->executeDisplayAndStore(context, buffer, displayTonemap));
+          if (executedForDisplay) {
+            std::lock_guard<std::mutex> lock(displayStateMutex);
+            directDisplayWrites[pass.id] = pass.singleWrite().resource;
+          }
+          if (!executedForDisplay) {
+            payload->execute(context);
+          }
+        });
 
       for (const auto& write : pass.writes) {
         storage.resource(write.resource).markProduced();

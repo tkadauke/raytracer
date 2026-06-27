@@ -84,6 +84,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   the platform-resolved display buffer as the final linear-tonemap output,
   avoiding HDR accumulation readback when no graph pass needs that HDR resource.
   — GPT-5 Codex
+- Stop requesting platform display-resolve readback from trace-disabled
+  full-GPU path-tracer beauty passes when a downstream post-process pass will
+  consume HDR accumulation and replace that intermediate preview. —
+  GPT-5 Codex
 - Let Vulkan full-GPU diffuse path-loop renders resolve packed LDR display
   pixels on the GPU for trace-disabled linear-tonemap display paths, while
   graph renders that still need HDR resources keep accumulation readback

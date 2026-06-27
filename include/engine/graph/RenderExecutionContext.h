@@ -79,6 +79,13 @@ namespace engine::graph {
       */
     void recordTraceMessage(std::string message) const;
 
+    /**
+      * Marks whether a display buffer written by the payload can be published
+      * directly as the graph's current visible output.
+      */
+    void setDisplayTargetDirectlyPublishable(bool directlyPublishable);
+    bool displayTargetDirectlyPublishable() const;
+
     void setTraceMetadata(QJsonObject metadata);
     const QJsonObject& traceMetadata() const;
 
@@ -89,6 +96,7 @@ namespace engine::graph {
     bool m_cancelled;
     ActiveEngineSetter m_activeEngineSetter;
     TraceMessageRecorder m_traceMessageRecorder;
+    bool m_displayTargetDirectlyPublishable{false};
     QJsonObject m_traceMetadata;
   };
 }

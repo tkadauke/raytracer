@@ -55,6 +55,10 @@ namespace RenderExecutionContextTest {
     EXPECT_TRUE(context.storage().contains("main_color"));
     EXPECT_EQ(&graph, &context.graph());
     EXPECT_TRUE(context.cancelled());
+    EXPECT_FALSE(context.displayTargetDirectlyPublishable());
+
+    context.setDisplayTargetDirectlyPublishable(true);
+    EXPECT_TRUE(context.displayTargetDirectlyPublishable());
 
     auto fake = std::make_shared<FakeRenderEngine>();
     context.setActiveEngine(fake);
