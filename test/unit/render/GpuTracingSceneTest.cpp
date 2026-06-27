@@ -15,6 +15,7 @@
 #include "render/materials/ReflectiveMaterial.h"
 #include "render/materials/TransparentMaterial.h"
 #include "render/primitives/Curve.h"
+#include "render/primitives/Difference.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
 #include "render/textures/CheckerBoardTexture.h"
@@ -30,6 +31,7 @@
 #include <cstddef>
 #include <cstring>
 #include <memory>
+#include <string>
 #include <type_traits>
 #include <vector>
 
@@ -93,6 +95,17 @@ namespace GpuTracingSceneTest {
       EXPECT_FLOAT_EQ(y, actual[1]);
       EXPECT_FLOAT_EQ(z, actual[2]);
       EXPECT_FLOAT_EQ(w, actual[3]);
+    }
+
+    void expectDiffusePathLoopUnsupportedReason(const GpuTracingSceneCompilation& compilation,
+                                                const Scene& scene,
+                                                const std::string& expectedReason) {
+      const GpuDiffusePathLoopSupport support = gpuDiffusePathLoopSupport(compilation, scene);
+
+      EXPECT_FALSE(support.supported);
+      EXPECT_EQ(expectedReason, support.reason);
+      EXPECT_EQ(expectedReason, gpuDiffusePathLoopUnsupportedReason(compilation, scene));
+      EXPECT_FALSE(supportsGpuDiffusePathLoop(compilation, scene));
     }
   }
 
@@ -1020,6 +1033,61 @@ namespace GpuTracingSceneTest {
     EXPECT_TRUE(support.supported);
     EXPECT_TRUE(support.reason.empty());
     EXPECT_TRUE(gpuDiffusePathLoopUnsupportedReason(compilation, scene).empty());
+  }
+
+  TEST(GpuTracingScene, DiffusePathLoopSupportReportsUnsupportedPrimitiveReason) {
+    auto difference = std::make_shared<Difference>();
+    difference->add(std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0));
+    difference->add(std::make_shared<Sphere>(Vector3d(0.5, 0.0, 0.0), 0.5));
+    Scene scene;
+    scene.add(difference);
+
+    const GpuTracingSceneCompilation compilation = compileGpuTracingScene(scene);
+
+    expectDiffusePathLoopUnsupportedReason(
+      compilation, scene,
+      "GPU diffuse path loop unsupported primitive: difference CSG is not supported by GPU "
+      "intersection scene compiler");
+  }
+
+  TEST(GpuTracingScene, DiffusePathLoopSupportReportsUnsupportedMaterialReason) {
+    auto sphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    sphere->setMaterial(std::make_shared<UnsupportedMaterial>());
+    Scene scene;
+    scene.add(sphere);
+
+    const GpuTracingSceneCompilation compilation = compileGpuTracingScene(scene);
+
+    expectDiffusePathLoopUnsupportedReason(
+      compilation, scene,
+      "GPU diffuse path loop unsupported material: material type is not supported by GPU tracing "
+      "scene compiler");
+  }
+
+  TEST(GpuTracingScene, DiffusePathLoopSupportReportsUnsupportedTextureReason) {
+    auto sphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    sphere->setMaterial(std::make_shared<MatteMaterial>(std::make_shared<UnsupportedTexture>()));
+    Scene scene;
+    scene.add(sphere);
+
+    const GpuTracingSceneCompilation compilation = compileGpuTracingScene(scene);
+
+    expectDiffusePathLoopUnsupportedReason(
+      compilation, scene,
+      "GPU diffuse path loop unsupported texture: texture type is not supported by GPU tracing "
+      "scene compiler");
+  }
+
+  TEST(GpuTracingScene, DiffusePathLoopSupportReportsUnsupportedLightReason) {
+    Scene scene;
+    scene.addLight(std::make_shared<UnsupportedLight>("UnsupportedLight"));
+
+    const GpuTracingSceneCompilation compilation = compileGpuTracingScene(scene);
+
+    expectDiffusePathLoopUnsupportedReason(
+      compilation, scene,
+      "GPU diffuse path loop unsupported light: light type is not supported by GPU tracing scene "
+      "compiler");
   }
 
   TEST(GpuTracingScene, DiffusePathLoopSupportAllowsDifferentBackgroundAndEnvironment) {

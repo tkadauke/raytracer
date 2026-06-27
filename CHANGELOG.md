@@ -332,6 +332,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Prevent Boolean/convex CSG primitives from being flattened into supported
   child leaves during GPU intersection compilation; they now report explicit
   fallback until exact GPU CSG lowering exists. — GPT-5 Codex
+- Report concrete primitive, material, texture, or light reasons when a compiled
+  GPU diffuse path-loop scene is unsupported, instead of collapsing every
+  unsupported scene to a generic fully-compiled-scene requirement. —
+  GPT-5 Codex
 - Preserve Metal/Vulkan full-GPU diffuse path-loop retained-frontier byte metrics
   when graph trace diagnostics are disabled by reading only the device-written
   retained count. — GPT-5 Codex

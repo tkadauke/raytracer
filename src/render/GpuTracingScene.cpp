@@ -127,6 +127,44 @@ namespace {
     }
   }
 
+  std::string prefixedReason(const char* prefix, const std::string& reason) {
+    return std::string(prefix) + ": " + reason;
+  }
+
+  std::string groupedUnsupportedReason(const char* prefix,
+                                       const std::map<std::string, std::uint64_t>& reasons) {
+    if (reasons.empty()) {
+      return {};
+    }
+    return prefixedReason(prefix, reasons.begin()->first);
+  }
+
+  std::string tracingSceneUnsupportedReason(const GpuTracingSceneCompilation& compilation) {
+    if (compilation.diagnostics.unsupportedPrimitives != 0u) {
+      const std::string reason =
+        groupedUnsupportedReason("GPU diffuse path loop unsupported primitive",
+                                 compilation.diagnostics.unsupportedPrimitiveReasons);
+      return reason.empty() ? "GPU diffuse path loop has unsupported primitives" : reason;
+    }
+
+    if (!compilation.materials.unsupportedMaterials.empty()) {
+      return prefixedReason("GPU diffuse path loop unsupported material",
+                            compilation.materials.unsupportedMaterials.front().reason);
+    }
+
+    if (!compilation.materials.textures.unsupportedTextures.empty()) {
+      return prefixedReason("GPU diffuse path loop unsupported texture",
+                            compilation.materials.textures.unsupportedTextures.front().reason);
+    }
+
+    if (!compilation.lights.unsupportedLights.empty()) {
+      return prefixedReason("GPU diffuse path loop unsupported light",
+                            compilation.lights.unsupportedLights.front().reason);
+    }
+
+    return "GPU diffuse path loop requires a fully compiled GPU tracing scene";
+  }
+
   void packLocalPhongParameters(const PhongMaterial& material, GpuTracingMaterialRecord& record) {
     record.parameters = {static_cast<float>(material.ambientCoefficient()),
                          static_cast<float>(material.diffuseCoefficient()),
@@ -819,7 +857,7 @@ bool GpuTracingSceneCompilation::supported() const {
 GpuDiffusePathLoopSupport
 render::gpuDiffusePathLoopSupport(const GpuTracingSceneCompilation& compilation, const Scene&) {
   if (!compilation.supported()) {
-    return {false, "GPU diffuse path loop requires a fully compiled GPU tracing scene"};
+    return {false, tracingSceneUnsupportedReason(compilation)};
   }
 
   for (std::size_t materialId = 1; materialId < compilation.sections.materials.size();

@@ -59,6 +59,9 @@ end state for GPU tracing.
 - Boolean/convex CSG primitives (`Difference`, `Intersection`, `Union`,
   `ConvexHull`, and `MinkowskiSum`) emit explicit unsupported intersection
   records instead of flattening supported children and losing CSG semantics.
+- Compiled diffuse path-loop support diagnostics report a concrete unsupported
+  primitive, material, texture, or light reason instead of a generic
+  compiled-scene failure.
 - The packed CPU intersection path uses the same GPU-style ray, hit, occlusion,
   BVH, primitive, payload, and transform records as the platform backend
   contract.
