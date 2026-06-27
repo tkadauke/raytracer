@@ -2817,7 +2817,10 @@ scene is large enough to amortize upload/readback costs.
      capture script now also sets `--tracing_execution` alongside
      `--wavefront_intersection_backend` so its CPU/auto/GPU modes measure the
      broader tracing execution path rather than only intersection-backend
-     selection.
+     selection. Full-GPU path-loop benchmark rows now also publish the platform
+     backend's reported upload, kernel, readback, total reported, and host
+     overhead timings so performance captures can distinguish shader work from
+     setup/readback costs.
 
 6. **Update user-facing docs and examples.**
    - Depends on: job 5.

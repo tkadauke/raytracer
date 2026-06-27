@@ -153,6 +153,18 @@ namespace {
         result.fullGpuPathLoopSupported() ? 1.0 : 0.0;
       state.counters["full_gpu_path_loop_unavailable"] =
         result.fullGpuPathLoopUnavailable() ? 1.0 : 0.0;
+      state.counters["full_gpu_path_loop_upload_seconds"] =
+        result.frontierCompactionUploadWorkerSeconds;
+      state.counters["full_gpu_path_loop_kernel_seconds"] =
+        result.frontierCompactionKernelWorkerSeconds;
+      state.counters["full_gpu_path_loop_readback_seconds"] =
+        result.frontierCompactionReadbackWorkerSeconds;
+      const double fullGpuPathLoopReportedSeconds = result.frontierCompactionUploadWorkerSeconds +
+                                                    result.frontierCompactionKernelWorkerSeconds +
+                                                    result.frontierCompactionReadbackWorkerSeconds;
+      state.counters["full_gpu_path_loop_reported_seconds"] = fullGpuPathLoopReportedSeconds;
+      state.counters["full_gpu_path_loop_host_overhead_seconds"] =
+        std::max(0.0, measuredSeconds - fullGpuPathLoopReportedSeconds);
 
       const GpuTracingSceneDiagnostics& diagnostics = compilation.diagnostics;
       state.counters["tracing_scene_materials"] = static_cast<double>(diagnostics.materials);
@@ -170,7 +182,13 @@ namespace {
         static_cast<double>(diagnostics.unsupportedLights);
 
       WavefrontIntersectionQueryTiming timing;
-      timing.kernelSeconds = measuredSeconds;
+      if (result.fullGpuPathLoopSupported()) {
+        timing.uploadSeconds = result.frontierCompactionUploadWorkerSeconds;
+        timing.kernelSeconds = result.frontierCompactionKernelWorkerSeconds;
+        timing.readbackSeconds = result.frontierCompactionReadbackWorkerSeconds;
+      } else {
+        timing.kernelSeconds = measuredSeconds;
+      }
       timing.executionPath = result.executionPath;
       annotateComparableTracingMetrics(state, result.submittedIntersectionRayCount(),
                                        measuredSeconds, timing, measureSceneCompileSeconds(),
