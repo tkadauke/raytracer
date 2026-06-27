@@ -31,6 +31,11 @@ if(APPLE)
 else()
   set(_RAYTRACER_METAL_WAVEFRONT_DEFAULT OFF)
 endif()
+if(DEFINED RAYTRACER_ENABLE_VULKAN_WAVEFRONT AND RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+  set(_RAYTRACER_VULKAN_WAVEFRONT_REQUIRED ON)
+else()
+  set(_RAYTRACER_VULKAN_WAVEFRONT_REQUIRED OFF)
+endif()
 option(RAYTRACER_ENABLE_METAL_WAVEFRONT
        "Enable Metal wavefront and full-GPU path-loop backend plumbing (macOS only)"
        ${_RAYTRACER_METAL_WAVEFRONT_DEFAULT})
@@ -38,6 +43,8 @@ option(RAYTRACER_DISABLE_METAL_WAVEFRONT
        "Force-disable Metal wavefront and full-GPU path-loop backend plumbing on macOS" OFF)
 option(RAYTRACER_ENABLE_VULKAN_WAVEFRONT
        "Enable Vulkan wavefront and full-GPU path-loop backend plumbing (Linux only)" OFF)
+option(RAYTRACER_DISABLE_VULKAN_WAVEFRONT
+       "Force-disable Vulkan wavefront and full-GPU path-loop backend plumbing on Linux" OFF)
 
 if(APPLE)
   if(RAYTRACER_DISABLE_METAL_WAVEFRONT)
@@ -49,6 +56,38 @@ if(APPLE)
       "set RAYTRACER_DISABLE_METAL_WAVEFRONT=ON to opt out")
     set(RAYTRACER_ENABLE_METAL_WAVEFRONT ON CACHE BOOL
         "Enable Metal wavefront and full-GPU path-loop backend plumbing (macOS only)" FORCE)
+  endif()
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  if(RAYTRACER_DISABLE_VULKAN_WAVEFRONT)
+    set(RAYTRACER_ENABLE_VULKAN_WAVEFRONT OFF CACHE BOOL
+        "Enable Vulkan wavefront and full-GPU path-loop backend plumbing (Linux only)" FORCE)
+  else()
+    find_package(Vulkan QUIET)
+    if(NOT Vulkan_GLSLC_EXECUTABLE)
+      find_program(Vulkan_GLSLC_EXECUTABLE NAMES glslc)
+    endif()
+    if(Vulkan_FOUND AND Vulkan_GLSLC_EXECUTABLE)
+      if(NOT RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+        message(STATUS
+          "Enabling Vulkan wavefront/full-GPU path-loop backend for Linux; "
+          "set RAYTRACER_DISABLE_VULKAN_WAVEFRONT=ON to opt out")
+      endif()
+      set(RAYTRACER_ENABLE_VULKAN_WAVEFRONT ON CACHE BOOL
+          "Enable Vulkan wavefront and full-GPU path-loop backend plumbing (Linux only)" FORCE)
+    elseif(_RAYTRACER_VULKAN_WAVEFRONT_REQUIRED)
+      set(RAYTRACER_ENABLE_VULKAN_WAVEFRONT ON CACHE BOOL
+          "Enable Vulkan wavefront and full-GPU path-loop backend plumbing (Linux only)" FORCE)
+    else()
+      if(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+        message(STATUS
+          "Disabling Vulkan wavefront/full-GPU path-loop backend because Vulkan or glslc "
+          "was not found; set RAYTRACER_ENABLE_VULKAN_WAVEFRONT=ON to require it")
+      endif()
+      set(RAYTRACER_ENABLE_VULKAN_WAVEFRONT OFF CACHE BOOL
+          "Enable Vulkan wavefront and full-GPU path-loop backend plumbing (Linux only)" FORCE)
+    endif()
   endif()
 endif()
 

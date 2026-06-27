@@ -604,6 +604,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- Auto-enable the Vulkan wavefront/full-GPU path-loop backend on Linux builds
+  when Vulkan and `glslc` are available, with
+  `RAYTRACER_DISABLE_VULKAN_WAVEFRONT=ON` as the opt-out. — GPT-5 Codex
 - Clear Vulkan full-GPU diffuse path-loop scratch buffers on the GPU instead of
   allocating and uploading host-side zero-filled vectors for each launch. —
   GPT-5 Codex

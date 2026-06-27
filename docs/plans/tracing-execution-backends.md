@@ -67,7 +67,11 @@ end state for GPU tracing.
 - The packed CPU intersection path uses the same GPU-style ray, hit, occlusion,
   BVH, primitive, payload, and transform records as the platform backend
   contract.
-- Optional Metal and Vulkan presets exist:
+- Platform wavefront/full-GPU path-loop builds are available through normal
+  platform builds when the toolchain is present: macOS release builds enable
+  Metal by default, and Linux release builds enable Vulkan by default when
+  Vulkan plus `glslc` are found. Explicit presets remain for users who want a
+  named backend-specific configure:
   - `release-metal-wavefront`;
   - `benchmark-metal-wavefront`;
   - `release-vulkan-wavefront`;
@@ -2857,9 +2861,11 @@ scene is large enough to amortize upload/readback costs.
      inspector also shows auto-selected tracing execution predictions before a
      render runs, with `Auto` request, predicted CPU/hybrid/GPU execution, and
      `none` when there is no fallback reason. The default macOS release build
-     now enables the Metal wavefront/full-GPU path-loop backend so the normal
-     Modeler/rendercli build can exercise platform GPU execution without using
-     a separate preset. Graph-backed `pathtracer` executor shortcuts now fill
+     now enables Metal wavefront/full-GPU path-loop backends on macOS and
+     Vulkan wavefront/full-GPU path-loop backends on Linux when Vulkan plus
+     `glslc` are available, so the normal Modeler/rendercli build can exercise
+     platform GPU execution without using a separate preset. Graph-backed
+     `pathtracer` executor shortcuts now fill
      in GPU tracing execution and the GPU sample stream when the scene/caller
      did not explicitly choose CPU/hybrid tracing or a sampler-backed path, so
      the default user-facing path-tracer route enters the compiled GPU path-loop
