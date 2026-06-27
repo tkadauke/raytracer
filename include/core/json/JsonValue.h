@@ -65,7 +65,7 @@ namespace core::json {
   }
 
   inline QJsonArray vector3ToJsonArray(const Vector3d& value) {
-    return numberArrayToJsonArray(std::array<double, 3>{value.x(), value.y(), value.z()});
+    return numberArrayToJsonArray(value.toArray());
   }
 
   inline QJsonArray colorToJsonArray(const Colord& value) {

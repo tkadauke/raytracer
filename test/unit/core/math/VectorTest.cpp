@@ -93,6 +93,20 @@ namespace VectorTest {
     ASSERT_EQ(3, vector[2]);
   }
 
+  TYPED_TEST(VectorTest, ShouldConvertVectorToStdArray) {
+    Vector<3, TypeParam> vector;
+    vector[0] = TypeParam(1.5);
+    vector[1] = TypeParam(-2.5);
+    vector[2] = TypeParam(3.5);
+
+    const auto values = vector.toArray();
+
+    static_assert(std::is_same_v<decltype(values), const std::array<TypeParam, 3>>);
+    EXPECT_EQ(TypeParam(1.5), values[0]);
+    EXPECT_EQ(TypeParam(-2.5), values[1]);
+    EXPECT_EQ(TypeParam(3.5), values[2]);
+  }
+
   TYPED_TEST(VectorTest, ShouldAdd) {
     Vector<3, TypeParam> vector1, vector2;
     vector1[0] = 10.0;

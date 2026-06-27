@@ -171,6 +171,17 @@ public:
   }
 
   /**
+    * @returns the vector components as an array.
+    */
+  [[nodiscard]] inline constexpr std::array<T, Dimensions> toArray() const noexcept {
+    std::array<T, Dimensions> result{};
+    for (int i = 0; i != Dimensions; ++i) {
+      result[static_cast<std::size_t>(i)] = coordinate(i);
+    }
+    return result;
+  }
+
+  /**
     * @returns the first four vector components as floats. If the vector has
     * fewer than four dimensions, missing components are filled with @p fill.
     */
