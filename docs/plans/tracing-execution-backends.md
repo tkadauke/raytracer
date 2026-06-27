@@ -2825,7 +2825,11 @@ scene is large enough to amortize upload/readback costs.
      `none` when there is no fallback reason. The default macOS release build
      now enables the Metal wavefront/full-GPU path-loop backend so the normal
      Modeler/rendercli build can exercise platform GPU execution without using
-     a separate preset.
+     a separate preset. Graph-backed `pathtracer` executor shortcuts now fill
+     in GPU tracing execution and the GPU sample stream when the scene/caller
+     did not explicitly choose CPU/hybrid tracing or a sampler-backed path, so
+     the default user-facing path-tracer route enters the compiled GPU path-loop
+     eligibility path.
 
 5. **Add parity and performance gates.**
    - Depends on: jobs 2, 3, and 4.

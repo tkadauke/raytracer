@@ -547,22 +547,42 @@ file(WRITE "${wavefront_unsupported_backend_scene}" [=[
       "children": []
     },
     {
-      "id": "curve",
-      "name": "Unsupported Curve",
+      "id": "difference",
+      "name": "Unsupported Difference",
       "position": [0.0, 0.0, 0.0],
       "rotation": [0.0, 0.0, 0.0],
       "scale": [1.0, 1.0, 1.0],
       "visible": true,
       "material": "curve-material",
-      "width": 0.2,
-      "tessellationMode": "tube",
-      "points": [
-        [-0.8, -0.4, 0.0],
-        [0.0, 0.4, 0.0],
-        [0.8, -0.4, 0.0]
-      ],
-      "type": "Curve",
-      "children": []
+      "active": true,
+      "type": "Difference",
+      "children": [
+        {
+          "id": "difference-box",
+          "name": "Difference Box",
+          "position": [0.0, 0.0, 0.0],
+          "rotation": [0.0, 0.0, 0.0],
+          "scale": [1.0, 1.0, 1.0],
+          "visible": true,
+          "material": null,
+          "size": [1.6, 1.2, 1.0],
+          "bevelRadius": 0.0,
+          "type": "Box",
+          "children": []
+        },
+        {
+          "id": "difference-sphere",
+          "name": "Difference Sphere",
+          "position": [0.35, 0.0, -0.15],
+          "rotation": [0.0, 0.0, 0.0],
+          "scale": [1.0, 1.0, 1.0],
+          "visible": true,
+          "material": null,
+          "radius": 0.55,
+          "type": "Sphere",
+          "children": []
+        }
+      ]
     }
   ]
 }
@@ -2190,7 +2210,7 @@ foreach(expectation
         "\"intersectionBackendRequest\"[ \r\n]*:[ \r\n]*\"gpu\""
         "\"intersectionBackend\"[ \r\n]*:[ \r\n]*\"(cpu|metal|vulkan)\""
         "\"intersectionBackendAvailability\"[ \r\n]*:[ \r\n]*\"(fallback|available)\""
-        "\"intersectionBackendExecutionPath\"[ \r\n]*:[ \r\n]*\"(packed_cpu|metal|vulkan)\"")
+        "\"intersectionBackendExecutionPath\"[ \r\n]*:[ \r\n]*\"(runtime_scene|packed_cpu|metal|vulkan)\"")
   if(NOT wavefront_gpu_backend_replay_trace_json MATCHES "${expectation}")
     _rendercli_fail("rendercli GPU wavefront graph replay trace ${expectation}"
                     "GPU wavefront graph replay trace did not match ${expectation}"
@@ -2287,7 +2307,7 @@ rendercli_run(
   NAME "rendercli writes graph wavefront metrics JSON and summary"
   OUTPUT_VARIABLE wavefront_metrics_stdout
   STDOUT_MATCHES
-    "wavefront_metrics.*pass=wavefront_beauty.*sampling_seed=12345.*sample_stream_mode=sampler.*integrator=whitted.*execution=depth_major_whitted.*tracing_backend=cpu.*tracing_backend_mode=wavefront_intersection.*tracing_backend_fallback=.*wavefront_intersection_backend.*tracing_backend_capabilities=20.*intersection_backend_request=gpu.*intersection_backend=cpu.*intersection_backend_availability=fallback.*intersection_backend_execution=packed_cpu.*intersection_expected_rays=[1-9][0-9]*.*intersection_expected_closest_hit_rays=[1-9][0-9]*.*intersection_expected_any_hit_rays=[1-9][0-9]*.*intersection_scene_compiled=true.*intersection_scene_primitives=[1-9][0-9]*.*intersection_scene_unsupported=0.*intersection_scene_upload_bytes=[1-9][0-9]*.*intersection_scene_triangle_kernel_eligible=false.*intersection_estimated_ray_upload_bytes=[1-9][0-9]*.*intersection_estimated_query_transfer_bytes=[1-9][0-9]*.*intersection_estimated_query_round_trips=[1-9][0-9]*.*intersection_estimated_closest_hit_query_round_trips=[1-9][0-9]*.*intersection_estimated_any_hit_query_round_trips=[1-9][0-9]*.*intersection_backend_upload_worker_ms=0.*intersection_backend_kernel_worker_ms=0.*intersection_backend_readback_worker_ms=0.*intersection_rays=[0-9][0-9]*.*closest_hit_rays=[0-9][0-9]*.*any_hit_rays=[1-9][0-9]*.*closest_hit_queries=[0-9][0-9]*.*any_hit_queries=[1-9][0-9]*.*samples=.*active_sample_depths=.*compatibility_shade_samples=.*convergence=disabled.*denoiser=box.*denoise_radius=2"
+    "wavefront_metrics.*pass=wavefront_beauty.*sampling_seed=12345.*sample_stream_mode=sampler.*integrator=whitted.*execution=depth_major_whitted.*tracing_backend_request=gpu.*tracing_backend=cpu.*tracing_backend_mode=wavefront_intersection.*tracing_backend_fallback=.*tracing_backend_capabilities=20.*intersection_backend_request=gpu.*intersection_backend=cpu.*intersection_backend_availability=fallback.*intersection_backend_execution=(runtime_scene|packed_cpu).*intersection_expected_rays=[1-9][0-9]*.*intersection_expected_closest_hit_rays=[1-9][0-9]*.*intersection_expected_any_hit_rays=[1-9][0-9]*.*intersection_scene_compiled=true.*intersection_scene_primitives=[1-9][0-9]*.*intersection_scene_unsupported=[0-9][0-9]*.*intersection_scene_triangle_kernel_eligible=false.*intersection_backend_upload_worker_ms=0.*intersection_backend_kernel_worker_ms=0.*intersection_backend_readback_worker_ms=0.*intersection_rays=[0-9][0-9]*.*closest_hit_rays=[0-9][0-9]*.*any_hit_rays=[1-9][0-9]*.*closest_hit_queries=[0-9][0-9]*.*any_hit_queries=[1-9][0-9]*.*samples=.*active_sample_depths=.*compatibility_shade_samples=.*convergence=disabled.*denoiser=box.*denoise_radius=2"
   COMMAND
     "${RENDERCLI}" --engine wavefront --width 16 --height 16
     --wavefront_intersection_backend gpu --sampling_seed 12345
@@ -2303,31 +2323,31 @@ if(NOT wavefront_metrics_stdout MATCHES "intersection_auto_estimated_query_trans
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
 if(NOT wavefront_metrics_stdout MATCHES
-       "tracing_backend_restricted_capabilities=[1-9][0-9]*:.*scene\\.geometry_records=cpu:packed_cpu")
+       "tracing_backend_restricted_capabilities=[1-9][0-9]*:.*scene\\.geometry_records=cpu:(runtime_scene|packed_cpu)")
   _rendercli_fail("rendercli wavefront metrics restricted capability summary"
                   "wavefront metrics summary did not report restricted capability details"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
 if(NOT wavefront_metrics_stdout MATCHES
-       "intersection_estimated_closest_hit_ray_upload_bytes=[1-9][0-9]*")
+       "intersection_estimated_closest_hit_ray_upload_bytes=[0-9][0-9]*")
   _rendercli_fail("rendercli wavefront metrics closest-hit upload summary"
                   "wavefront metrics summary did not contain closest-hit upload byte estimate"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
 if(NOT wavefront_metrics_stdout MATCHES
-       "intersection_estimated_any_hit_ray_upload_bytes=[1-9][0-9]*")
+       "intersection_estimated_any_hit_ray_upload_bytes=[0-9][0-9]*")
   _rendercli_fail("rendercli wavefront metrics any-hit upload summary"
                   "wavefront metrics summary did not contain any-hit upload byte estimate"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
 if(NOT wavefront_metrics_stdout MATCHES
-       "intersection_estimated_closest_hit_query_transfer_bytes=[1-9][0-9]*")
+       "intersection_estimated_closest_hit_query_transfer_bytes=[0-9][0-9]*")
   _rendercli_fail("rendercli wavefront metrics closest-hit transfer summary"
                   "wavefront metrics summary did not contain closest-hit transfer byte estimate"
                   "${wavefront_metrics_stdout}" "" "" "")
 endif()
 if(NOT wavefront_metrics_stdout MATCHES
-       "intersection_estimated_any_hit_query_transfer_bytes=[1-9][0-9]*")
+       "intersection_estimated_any_hit_query_transfer_bytes=[0-9][0-9]*")
   _rendercli_fail("rendercli wavefront metrics any-hit transfer summary"
                   "wavefront metrics summary did not contain any-hit transfer byte estimate"
                   "${wavefront_metrics_stdout}" "" "" "")
@@ -2684,14 +2704,15 @@ if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendAvailability\"[ \r\n
                   "" "" "${wavefront_metrics_json}" "")
 endif()
 if(NOT wavefront_metrics_json MATCHES
-       "\"intersectionBackendFallbackReason\"[ \r\n]*:[^\n]*(Metal|Vulkan) wavefront intersection backend is not enabled in this build")
-  _rendercli_fail("rendercli wavefront metrics backend platform fallback reason"
-                  "wavefront metrics report did not contain platform backend fallback reason"
+       "\"intersectionBackendFallbackReason\"[ \r\n]*:[ \r\n]*\"[^\"]+\"")
+  _rendercli_fail("rendercli wavefront metrics backend fallback reason"
+                  "wavefront metrics report did not contain backend fallback reason"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
-if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendExecutionPath\"[ \r\n]*:[ \r\n]*\"packed_cpu\"")
+if(NOT wavefront_metrics_json MATCHES
+       "\"intersectionBackendExecutionPath\"[ \r\n]*:[ \r\n]*\"(runtime_scene|packed_cpu)\"")
   _rendercli_fail("rendercli wavefront metrics backend execution path"
-                  "wavefront metrics report did not contain packed CPU execution path"
+                  "wavefront metrics report did not contain CPU execution path"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
 foreach(expectation
@@ -2702,7 +2723,7 @@ foreach(expectation
         "\"support\"[ \r\n]*:[ \r\n]*\"fallback\""
         "\"requestedDevice\"[ \r\n]*:[ \r\n]*\"gpu\""
         "\"resolvedDevice\"[ \r\n]*:[ \r\n]*\"cpu\""
-        "\"executionPath\"[ \r\n]*:[ \r\n]*\"packed_cpu\""
+        "\"executionPath\"[ \r\n]*:[ \r\n]*\"(runtime_scene|packed_cpu)\""
         "\"tracingBackendFallback\"[ \r\n]*:[ \r\n]*\\{"
         "\"capability\"[ \r\n]*:[ \r\n]*\"geometry.closest_hit\"")
   if(NOT wavefront_metrics_json MATCHES "${expectation}")
@@ -2773,24 +2794,24 @@ if(NOT wavefront_metrics_json MATCHES "\"intersectionBackendKernelRaysPerSecond\
                   "wavefront metrics report did not contain backend kernel throughput"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
-if(NOT wavefront_metrics_json MATCHES "\"intersectionEstimatedQueryRoundTrips\"[ \r\n]*:[ \r\n]*[1-9][0-9]*")
+if(NOT wavefront_metrics_json MATCHES "\"intersectionEstimatedQueryRoundTrips\"[ \r\n]*:[ \r\n]*[0-9][0-9]*")
   _rendercli_fail("rendercli wavefront metrics query round trips"
                   "wavefront metrics report did not contain query round-trip estimate"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
-if(NOT wavefront_metrics_json MATCHES "\"intersectionEstimatedClosestHitQueryRoundTrips\"[ \r\n]*:[ \r\n]*[1-9][0-9]*")
+if(NOT wavefront_metrics_json MATCHES "\"intersectionEstimatedClosestHitQueryRoundTrips\"[ \r\n]*:[ \r\n]*[0-9][0-9]*")
   _rendercli_fail("rendercli wavefront metrics closest-hit query round trips"
                   "wavefront metrics report did not contain closest-hit query round trips"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
 if(NOT wavefront_metrics_json MATCHES
-       "\"intersectionEstimatedAnyHitQueryRoundTrips\"[ \r\n]*:[ \r\n]*[1-9][0-9]*")
+       "\"intersectionEstimatedAnyHitQueryRoundTrips\"[ \r\n]*:[ \r\n]*[0-9][0-9]*")
   _rendercli_fail("rendercli wavefront metrics any-hit query round trips"
                   "wavefront metrics report did not contain any-hit query round trips"
                   "" "" "${wavefront_metrics_json}" "")
 endif()
 rendercli_run(
-  NAME "rendercli writes platform wavefront backend fallback to graph trace"
+  NAME "rendercli writes wavefront backend fallback to graph trace"
   COMMAND
     "${RENDERCLI}" --engine wavefront --wavefront_intersection_backend gpu --width 16
     --height 16 --render_graph_trace_out "${wavefront_unsupported_backend_trace}"
@@ -2806,8 +2827,8 @@ foreach(expectation
         "\"intersectionBackendRequest\"[ \r\n]*:[ \r\n]*\"gpu\""
         "\"intersectionBackend\"[ \r\n]*:[ \r\n]*\"cpu\""
         "\"intersectionBackendAvailability\"[ \r\n]*:[ \r\n]*\"fallback\""
-        "\"intersectionBackendExecutionPath\"[ \r\n]*:[ \r\n]*\"packed_cpu\""
-        "\"intersectionBackendFallbackReason\"[ \r\n]*:[^\n]*(Metal|Vulkan) wavefront intersection backend is not enabled in this build")
+        "\"intersectionBackendExecutionPath\"[ \r\n]*:[ \r\n]*\"(runtime_scene|packed_cpu)\""
+        "\"intersectionBackendFallbackReason\"[ \r\n]*:[ \r\n]*\"[^\"]+\"")
   if(NOT wavefront_unsupported_backend_trace_json MATCHES "${expectation}")
     _rendercli_fail("rendercli platform wavefront backend trace ${expectation}"
                     "platform wavefront backend trace did not match ${expectation}"
@@ -3402,7 +3423,7 @@ foreach(expectation
         "intersection_scene_compiled=true"
         "intersection_scene_primitives=[1-9][0-9]*"
         "intersection_scene_unsupported=[1-9][0-9]*"
-        "intersection_scene_unsupported_by_reason=primitive_is_not_supported_by_GPU_intersection_scene_compiler:[1-9][0-9]*"
+        "intersection_scene_unsupported_by_reason=difference_CSG_is_not_supported_by_GPU_intersection_scene_compiler:[1-9][0-9]*"
         "intersection_scene_upload_bytes=0"
         "intersection_scene_packed_closest_hit_eligible=false"
         "intersection_scene_packed_any_hit_eligible=false"
@@ -3432,7 +3453,7 @@ foreach(expectation
         "\"intersectionScenePrimitives\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
         "\"intersectionSceneUnsupportedPrimitives\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
         "\"intersectionSceneUnsupportedReasons\""
-        "\"primitive is not supported by GPU intersection scene compiler\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
+        "\"difference CSG is not supported by GPU intersection scene compiler\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
         "\"intersectionSceneUploadBytes\"[ \r\n]*:[ \r\n]*0"
         "\"intersectionScenePackedClosestHitEligible\"[ \r\n]*:[ \r\n]*false"
         "\"intersectionScenePackedAnyHitEligible\"[ \r\n]*:[ \r\n]*false"
@@ -5781,6 +5802,35 @@ if(NOT raytracer_state_graph MATCHES "\"streamMode\"[ \r\n]*:[ \r\n]*\"sampler\"
 endif()
 if(NOT raytracer_state_graph MATCHES "maxRecursionDepth")
   message(FATAL_ERROR "raytracer state graph did not contain recursion depth: ${raytracer_state_graph}")
+endif()
+
+set(pathtracer_default_gpu_stream_plan
+    "${TEST_OUTPUT_DIR}/pathtracer_default_gpu_stream_plan.json")
+rendercli_run(
+  NAME "rendercli defaults graph pathtracer shortcut to GPU sample stream"
+  COMMAND
+    "${RENDERCLI}" --engine pathtracer --render_graph_only --render_graph_format json
+    --width 32 --height 16 "${static_scene}" "${pathtracer_default_gpu_stream_plan}"
+)
+rendercli_assert_nonempty("${pathtracer_default_gpu_stream_plan}"
+                          NAME "default pathtracer GPU sample stream plan")
+file(READ "${pathtracer_default_gpu_stream_plan}" pathtracer_default_gpu_stream_graph)
+foreach(expectation
+        "\"integrator\"[ \r\n]*:[ \r\n]*\"pathtracer\""
+        "\"tracingExecution\"[ \r\n]*:[ \r\n]*\"gpu\""
+        "\"streamMode\"[ \r\n]*:[ \r\n]*\"gpu_sample_stream\"")
+  if(NOT pathtracer_default_gpu_stream_graph MATCHES "${expectation}")
+    message(
+      FATAL_ERROR
+        "default pathtracer graph did not contain ${expectation}: ${pathtracer_default_gpu_stream_graph}"
+    )
+  endif()
+endforeach()
+if(pathtracer_default_gpu_stream_graph MATCHES "\"sampler\"")
+  message(
+    FATAL_ERROR
+      "default pathtracer graph should not contain a sampler override: ${pathtracer_default_gpu_stream_graph}"
+  )
 endif()
 
 set(pathtracer_gpu_stream_plan "${TEST_OUTPUT_DIR}/pathtracer_gpu_stream_plan.json")

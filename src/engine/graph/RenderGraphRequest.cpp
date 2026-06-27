@@ -6,6 +6,37 @@
 #include <utility>
 
 namespace engine::graph {
+  namespace {
+    bool tracingExecutionAllowsGpuSampleStream(
+      const std::optional<TracingExecutionPreference>& tracingExecution) {
+      return !tracingExecution || *tracingExecution == TracingExecutionPreference::Auto ||
+             *tracingExecution == TracingExecutionPreference::GPU;
+    }
+
+    void applyPathTracerShortcutDefaults(RenderIntent& intent) {
+      if (intent.defaultExecutor != RenderExecutorPreference::PathTracer) {
+        return;
+      }
+
+      auto& raytracer = intent.engineOptions.raytracer();
+      if (!raytracer.integrator()) {
+        raytracer.setIntegrator("pathtracer");
+      }
+
+      const bool canUseGpuStream =
+        !raytracer.sampler() && tracingExecutionAllowsGpuSampleStream(raytracer.tracingExecution());
+      if (canUseGpuStream && !raytracer.sampleStreamMode()) {
+        raytracer.setSampleStreamMode("gpu_sample_stream");
+      }
+
+      const bool hasGpuStream =
+        raytracer.sampleStreamMode() && *raytracer.sampleStreamMode() == "gpu_sample_stream";
+      if (!raytracer.tracingExecution() && !raytracer.sampler() && hasGpuStream) {
+        raytracer.setTracingExecution(TracingExecutionPreference::GPU);
+      }
+    }
+  }
+
   RenderGraphRequest::RenderGraphRequest() = default;
 
   RenderGraphRequest::RenderGraphRequest(RenderIntent baseIntent)
@@ -204,6 +235,7 @@ namespace engine::graph {
     }
     intent.viewOverrides.insert(intent.viewOverrides.end(), m_viewOverrides.begin(),
                                 m_viewOverrides.end());
+    applyPathTracerShortcutDefaults(intent);
     return intent;
   }
 

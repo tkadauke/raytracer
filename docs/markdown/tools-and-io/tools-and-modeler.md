@@ -28,8 +28,10 @@ The default path is graph-backed. The `--engine` flag sets the graph's preferred
 executor (`raytracer` / `pathtracer` / `wavefront` / `raster` / `wireframe`), while a scene-level
 `renderIntent` can also choose the executor, structural view mode, and overlay
 intent. `pathtracer` names the transport algorithm; by default rendercli runs
-it through the wavefront schedule, and `--path_tracing_schedule scalar` asks
-the graph compiler to synthesize a raytracer beauty pass with the
+it through the wavefront schedule with GPU tracing execution and the GPU sample
+stream when the scene or command line has not explicitly selected CPU/hybrid
+tracing or a sampler-backed path. `--path_tracing_schedule scalar` asks the
+graph compiler to synthesize a raytracer beauty pass with the
 `PathTracingIntegrator` instead. `--direct_engine` bypasses the graph and
 renders with the selected engine directly; that mode is useful for focused
 engine debugging and for low-level knobs that are not yet represented as graph

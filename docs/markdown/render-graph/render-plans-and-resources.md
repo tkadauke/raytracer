@@ -730,9 +730,12 @@ lower-level prepared ray-batch compaction and platform any-hit frontier
 diagnostics separate from the higher-level scheduler capabilities.
 Selecting the `pathtracer` executor preference is the user-facing shortcut for
 path-traced rendering: the compiler emits a wavefront-backed beauty pass and
-forces the typed integrator state to `pathtracer`. The lower-level `wavefront`
-preference remains available for scheduler debugging and Whitted/wavefront
-comparisons.
+forces the typed integrator state to `pathtracer`. When the intent has not
+explicitly selected CPU/hybrid tracing or a sampler-backed path, the shared
+request resolver also fills in GPU tracing execution and the GPU sample stream
+so graph-backed path-tracer shortcuts enter the compiled GPU path-loop route.
+The lower-level `wavefront` preference remains available for scheduler
+debugging and Whitted/wavefront comparisons.
 rendercli fills in `TiledViewPlane` and its automatic ray-family queue size for
 ray-family graph renders when the scene intent leaves those fields unresolved,
 matching its direct final-render path without overriding scene-authored

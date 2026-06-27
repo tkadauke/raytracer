@@ -68,6 +68,82 @@ namespace RenderGraphRequestTest {
     EXPECT_EQ(RenderViewMode::Beauty, resolved.defaultViewMode);
   }
 
+  TEST(RenderGraphRequest, PathTracerShortcutDefaultsToGpuPathLoopIntent) {
+    RenderGraphRequest request;
+    request.setExecutorShortcut(RenderExecutorPreference::PathTracer);
+
+    const RenderIntent resolved = request.resolvedIntent();
+    const auto& raytracer = resolved.engineOptions.raytracer();
+
+    EXPECT_EQ(RenderExecutorPreference::PathTracer, resolved.defaultExecutor);
+    ASSERT_TRUE(raytracer.integrator().has_value());
+    EXPECT_EQ("pathtracer", *raytracer.integrator());
+    ASSERT_TRUE(raytracer.sampleStreamMode().has_value());
+    EXPECT_EQ("gpu_sample_stream", *raytracer.sampleStreamMode());
+    ASSERT_TRUE(raytracer.tracingExecution().has_value());
+    EXPECT_EQ(TracingExecutionPreference::GPU, *raytracer.tracingExecution());
+  }
+
+  TEST(RenderGraphRequest, PathTracerSceneIntentDefaultsToGpuPathLoopIntent) {
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::PathTracer;
+    RenderGraphRequest request(intent);
+
+    const RenderIntent resolved = request.resolvedIntent();
+    const auto& raytracer = resolved.engineOptions.raytracer();
+
+    ASSERT_TRUE(raytracer.sampleStreamMode().has_value());
+    EXPECT_EQ("gpu_sample_stream", *raytracer.sampleStreamMode());
+    ASSERT_TRUE(raytracer.tracingExecution().has_value());
+    EXPECT_EQ(TracingExecutionPreference::GPU, *raytracer.tracingExecution());
+  }
+
+  TEST(RenderGraphRequest, PathTracerShortcutPreservesExplicitSamplerAsHostDriven) {
+    RenderIntent intent;
+    intent.engineOptions.raytracer().setSampler("Halton");
+    RenderGraphRequest request(intent);
+    request.setExecutorShortcut(RenderExecutorPreference::PathTracer);
+
+    const RenderIntent resolved = request.resolvedIntent();
+    const auto& raytracer = resolved.engineOptions.raytracer();
+
+    ASSERT_TRUE(raytracer.integrator().has_value());
+    EXPECT_EQ("pathtracer", *raytracer.integrator());
+    ASSERT_TRUE(raytracer.sampler().has_value());
+    EXPECT_EQ("Halton", *raytracer.sampler());
+    EXPECT_FALSE(raytracer.sampleStreamMode().has_value());
+    EXPECT_FALSE(raytracer.tracingExecution().has_value());
+  }
+
+  TEST(RenderGraphRequest, PathTracerShortcutPreservesExplicitCpuTracingExecution) {
+    RenderIntent intent;
+    intent.engineOptions.raytracer().setTracingExecution(TracingExecutionPreference::CPU);
+    RenderGraphRequest request(intent);
+    request.setExecutorShortcut(RenderExecutorPreference::PathTracer);
+
+    const RenderIntent resolved = request.resolvedIntent();
+    const auto& raytracer = resolved.engineOptions.raytracer();
+
+    ASSERT_TRUE(raytracer.tracingExecution().has_value());
+    EXPECT_EQ(TracingExecutionPreference::CPU, *raytracer.tracingExecution());
+    EXPECT_FALSE(raytracer.sampleStreamMode().has_value());
+  }
+
+  TEST(RenderGraphRequest, PathTracerShortcutPreservesExplicitAutoWhileUsingGpuStream) {
+    RenderIntent intent;
+    intent.engineOptions.raytracer().setTracingExecution(TracingExecutionPreference::Auto);
+    RenderGraphRequest request(intent);
+    request.setExecutorShortcut(RenderExecutorPreference::PathTracer);
+
+    const RenderIntent resolved = request.resolvedIntent();
+    const auto& raytracer = resolved.engineOptions.raytracer();
+
+    ASSERT_TRUE(raytracer.tracingExecution().has_value());
+    EXPECT_EQ(TracingExecutionPreference::Auto, *raytracer.tracingExecution());
+    ASSERT_TRUE(raytracer.sampleStreamMode().has_value());
+    EXPECT_EQ("gpu_sample_stream", *raytracer.sampleStreamMode());
+  }
+
   TEST(RenderGraphRequest, AddsViewOverridesToResolvedIntent) {
     RenderGraphRequest request;
     RenderViewOverride wholeFrame;
