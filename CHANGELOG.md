@@ -604,6 +604,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- Clear Vulkan full-GPU diffuse path-loop scratch buffers on the GPU instead of
+  allocating and uploading host-side zero-filled vectors for each launch. —
+  GPT-5 Codex
 - Make explicit rendercli GPU path-tracing requests default to the GPU sample
   stream when no command-line sampler or sample-stream mode was supplied, even
   if the loaded scene has a sampler-backed render intent. — GPT-5 Codex
