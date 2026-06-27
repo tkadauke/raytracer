@@ -115,6 +115,7 @@ struct GpuDiffusePathLoopLaunchParameters {
   uint captureMetrics;
   uint reserved3;
   vec4 primaryPathOrigin;
+  vec4 primaryPathMotionOriginDelta;
   vec4 primaryPathTopLeft;
   vec4 primaryPathRight;
   vec4 primaryPathDown;
@@ -528,10 +529,12 @@ GpuDiffusePathStateRecord makePinholePrimaryPath(uint pathIndex) {
   const vec4 pixelPoint = parameters.primaryPathTopLeft +
                           parameters.primaryPathRight * (float(column) + pixelSample.x) +
                           parameters.primaryPathDown * (float(row) + pixelSample.y);
+  const vec4 rayOrigin =
+      parameters.primaryPathOrigin + parameters.primaryPathMotionOriginDelta * timeSample;
 
   GpuDiffusePathStateRecord path;
-  path.ray.origin = parameters.primaryPathOrigin;
-  path.ray.direction = vec4(normalize(pixelPoint.xyz - parameters.primaryPathOrigin.xyz), 0.0);
+  path.ray.origin = rayOrigin;
+  path.ray.direction = vec4(normalize(pixelPoint.xyz - rayOrigin.xyz), 0.0);
   path.ray.minDistance = 0.0;
   path.ray.maxDistance = uintBitsToFloat(0x7f800000u);
   path.ray.timeSample = timeSample;

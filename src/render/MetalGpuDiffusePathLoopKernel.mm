@@ -21,7 +21,7 @@ namespace render {
   namespace {
     static_assert(std::is_standard_layout_v<GpuDiffusePathLoopLaunchParameters>,
                   "Metal diffuse path-loop launch parameters must stay shader ABI friendly");
-    static_assert(sizeof(GpuDiffusePathLoopLaunchParameters) == 352);
+    static_assert(sizeof(GpuDiffusePathLoopLaunchParameters) == 368);
     static_assert(alignof(GpuDiffusePathLoopLaunchParameters) == 16);
     static_assert(sizeof(GpuDiffusePathStateRecord) == 160);
     static_assert(alignof(GpuDiffusePathStateRecord) == 16);
@@ -155,6 +155,7 @@ namespace render {
               "  uint captureMetrics;\n"
               "  uint reserved3;\n"
               "  float4 primaryPathOrigin;\n"
+              "  float4 primaryPathMotionOriginDelta;\n"
               "  float4 primaryPathTopLeft;\n"
               "  float4 primaryPathRight;\n"
               "  float4 primaryPathDown;\n"
@@ -542,10 +543,12 @@ namespace render {
               "      parameters.primaryPathTopLeft +\n"
               "      parameters.primaryPathRight * (float(column) + pixelSample.x) +\n"
               "      parameters.primaryPathDown * (float(row) + pixelSample.y);\n"
+              "  const float4 rayOrigin = parameters.primaryPathOrigin +\n"
+              "      parameters.primaryPathMotionOriginDelta * timeSample;\n"
               "  GpuDiffusePathStateRecord path;\n"
-              "  path.ray.origin = parameters.primaryPathOrigin;\n"
+              "  path.ray.origin = rayOrigin;\n"
               "  path.ray.direction = float4(\n"
-              "      normalize(pixelPoint.xyz - parameters.primaryPathOrigin.xyz), 0.0f);\n"
+              "      normalize(pixelPoint.xyz - rayOrigin.xyz), 0.0f);\n"
               "  path.ray.minDistance = 0.0f;\n"
               "  path.ray.maxDistance = rayInfinity();\n"
               "  path.ray.timeSample = timeSample;\n"

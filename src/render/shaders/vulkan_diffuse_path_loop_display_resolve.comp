@@ -66,6 +66,7 @@ struct GpuDiffusePathLoopLaunchParameters {
   uint captureMetrics;
   uint reserved3;
   vec4 primaryPathOrigin;
+  vec4 primaryPathMotionOriginDelta;
   vec4 primaryPathTopLeft;
   vec4 primaryPathRight;
   vec4 primaryPathDown;

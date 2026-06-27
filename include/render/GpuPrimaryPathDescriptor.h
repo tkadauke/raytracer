@@ -18,6 +18,7 @@ namespace render {
 
   struct alignas(16) GpuRectilinearPrimaryPathDescriptor {
     std::array<float, 4> originOrDirection{};
+    std::array<float, 4> motionOriginDelta{};
     std::array<float, 4> topLeft{};
     std::array<float, 4> right{};
     std::array<float, 4> down{};

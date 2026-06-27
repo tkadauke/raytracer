@@ -196,6 +196,7 @@ namespace render {
       parameters.primaryPathActualTop = rectilinear.actualTop;
       parameters.primaryPathActualHeight = rectilinear.actualHeight;
       parameters.primaryPathOrigin = rectilinear.originOrDirection;
+      parameters.primaryPathMotionOriginDelta = rectilinear.motionOriginDelta;
       parameters.primaryPathTopLeft = rectilinear.topLeft;
       parameters.primaryPathRight = rectilinear.right;
       parameters.primaryPathDown = rectilinear.down;

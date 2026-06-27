@@ -223,6 +223,7 @@ namespace {
                                            const GpuRectilinearPrimaryPathDescriptor& descriptor,
                                            GpuDiffusePrimaryPathStateGeneration& result) {
     const Vector3d originOrDirection = vector3FromArray(descriptor.originOrDirection);
+    const Vector3d motionOriginDelta = vector3FromArray(descriptor.motionOriginDelta);
     const Vector3d topLeft = vector3FromArray(descriptor.topLeft);
     const Vector3d right = vector3FromArray(descriptor.right);
     const Vector3d down = vector3FromArray(descriptor.down);
@@ -259,6 +260,9 @@ namespace {
           std::optional<Rayd> ray;
           if (mode == gpuPrimaryPathGenerationModeOrthographic) {
             ray = Rayd(pixelPoint, originOrDirection.normalized());
+          } else if (mode == gpuPrimaryPathGenerationModePinhole) {
+            const Vector3d rayOrigin = originOrDirection + motionOriginDelta * timeSample;
+            ray = Rayd(rayOrigin, (pixelPoint - rayOrigin).normalized());
           } else if (mode == gpuPrimaryPathGenerationModeThinLens) {
             const Vector3d focalForward = forward.normalized();
             const double focalPlaneDistance = descriptor.lensParameters[0];

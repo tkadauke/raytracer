@@ -24,6 +24,7 @@
 #include "render/VulkanGpuDiffusePathLoopKernel.h"
 #endif
 #include "render/VulkanGpuDiffusePathLoopBackend.h"
+#include "render/animation/AnimationTrack.h"
 #include "render/cameras/EquirectangularCamera.h"
 #include "render/cameras/FishEyeCamera.h"
 #include "render/cameras/OrthographicCamera.h"
@@ -619,6 +620,7 @@ namespace GpuDiffusePathStepReferenceTest {
 
     ASSERT_FALSE(generation.pathStates.empty());
     const Vector3d origin(descriptor.originOrDirection);
+    const Vector3d motionOriginDelta(descriptor.motionOriginDelta);
     const Vector3d topLeft(descriptor.topLeft);
     const Vector3d right(descriptor.right);
     const Vector3d down(descriptor.down);
@@ -629,9 +631,53 @@ namespace GpuDiffusePathStepReferenceTest {
       /*seed=*/1234, /*pixelIndex=*/0, /*primarySampleIndex=*/0, /*dimension=*/1,
       /*component=*/0});
     const Vector3d pixelPoint = topLeft + right * pixelSample.x() + down * pixelSample.y();
+    const Vector3d rayOrigin = origin + motionOriginDelta * timeSample;
     const GpuIntersectionRay expected = GpuIntersectionScenePacker().packRay(
-      Rayd(origin, (pixelPoint - origin).normalized()), /*rayIndex=*/0, /*minDistance=*/0.0,
-      std::numeric_limits<double>::infinity(), timeSample);
+      Rayd(rayOrigin, (pixelPoint - rayOrigin).normalized()), /*rayIndex=*/0,
+      /*minDistance=*/0.0, std::numeric_limits<double>::infinity(), timeSample);
+    expectGpuRayNear(generation.pathStates.front().ray, expected);
+  }
+
+  TEST(GpuDiffusePrimaryPathStateGenerator,
+       PinholeDescriptorAppliesSampledShutterMotionOriginDelta) {
+    PinholeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 3, 2));
+    camera.viewPlane()->sampler()->setup(4, 8, 42);
+    camera.setAnimationFrame(0.0);
+    camera.setShutterInterval(0.0, 1.0);
+    camera.setAnimationTrack("position",
+                             render::animation::AnimationTrack(
+                               {{0.0, Vector3d(0.0, 0.0, -5.0)}, {1.0, Vector3d(0.0, 0.0, -3.0)}}));
+    camera.setAnimationTrack("target",
+                             render::animation::AnimationTrack(
+                               {{0.0, Vector3d(0.0, 0.0, 0.0)}, {1.0, Vector3d(0.0, 0.0, 2.0)}}));
+
+    const GpuDiffusePrimaryPathStateGeneration generation =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 3, 2), 99, 1234);
+
+    ASSERT_TRUE(generation.primaryPathDescriptor.has_value());
+    const GpuRectilinearPrimaryPathDescriptor& descriptor =
+      generation.primaryPathDescriptor->rectilinear;
+    ASSERT_VECTOR_NEAR(Vector3d(0.0, 0.0, -10.0), Vector3d(descriptor.originOrDirection), 1e-6);
+    ASSERT_VECTOR_NEAR(Vector3d(0.0, 0.0, 2.0), Vector3d(descriptor.motionOriginDelta), 1e-6);
+
+    ASSERT_FALSE(generation.pathStates.empty());
+    const Vector3d origin(descriptor.originOrDirection);
+    const Vector3d motionOriginDelta(descriptor.motionOriginDelta);
+    const Vector3d topLeft(descriptor.topLeft);
+    const Vector3d right(descriptor.right);
+    const Vector3d down(descriptor.down);
+    const Vector2d pixelSample =
+      GpuSampleStream::sample2D(/*seed=*/1234, /*pixelIndex=*/0, /*primarySampleIndex=*/0,
+                                /*dimension=*/0);
+    const double timeSample = GpuSampleStream::sample1D(GpuSampleCoordinate{
+      /*seed=*/1234, /*pixelIndex=*/0, /*primarySampleIndex=*/0, /*dimension=*/1,
+      /*component=*/0});
+    const Vector3d pixelPoint = topLeft + right * pixelSample.x() + down * pixelSample.y();
+    const Vector3d rayOrigin = origin + motionOriginDelta * timeSample;
+    const GpuIntersectionRay expected = GpuIntersectionScenePacker().packRay(
+      Rayd(rayOrigin, (pixelPoint - rayOrigin).normalized()), /*rayIndex=*/0,
+      /*minDistance=*/0.0, std::numeric_limits<double>::infinity(), timeSample);
     expectGpuRayNear(generation.pathStates.front().ray, expected);
   }
 
@@ -6207,6 +6253,14 @@ namespace GpuDiffusePathStepReferenceTest {
     PinholeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
     camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 3, 2));
     camera.viewPlane()->sampler()->setup(4, 8, 42);
+    camera.setAnimationFrame(0.0);
+    camera.setShutterInterval(0.0, 1.0);
+    camera.setAnimationTrack("position",
+                             render::animation::AnimationTrack(
+                               {{0.0, Vector3d(0.0, 0.0, -5.0)}, {1.0, Vector3d(0.0, 0.0, -3.0)}}));
+    camera.setAnimationTrack("target",
+                             render::animation::AnimationTrack(
+                               {{0.0, Vector3d(0.0, 0.0, 0.0)}, {1.0, Vector3d(0.0, 0.0, 2.0)}}));
     const GpuDiffusePrimaryPathStateGeneration generation =
       GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 3, 2), 99, 1234);
     ASSERT_TRUE(generation.canGeneratePrimaryPathsOnDevice());
@@ -6231,6 +6285,9 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(2u, plan.parameters.primaryPathActualHeight);
     EXPECT_EQ(0, plan.parameters.primaryPathActualLeft);
     EXPECT_EQ(0, plan.parameters.primaryPathActualTop);
+    EXPECT_FLOAT_EQ(0.0f, plan.parameters.primaryPathMotionOriginDelta[0]);
+    EXPECT_FLOAT_EQ(0.0f, plan.parameters.primaryPathMotionOriginDelta[1]);
+    EXPECT_FLOAT_EQ(2.0f, plan.parameters.primaryPathMotionOriginDelta[2]);
     EXPECT_EQ(0u, plan.buffers.initialPathStateBytes);
     EXPECT_EQ(plan.buffers.sceneUploadBytes, plan.buffers.totalUploadBytes);
     EXPECT_EQ(24u * sizeof(GpuDiffusePathStateRecord), plan.buffers.activePathStateBytes);

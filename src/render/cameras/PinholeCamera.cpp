@@ -3,9 +3,12 @@
 #include "render/cameras/PinholeCamera.h"
 #include "PinholeProjection.h"
 #include "core/math/Ray.h"
+#include "render/animation/AnimationTrack.h"
 #include "render/samplers/Sampler.h"
 #include "render/viewplanes/ViewPlane.h"
 
+#include <algorithm>
+#include <cmath>
 #include <limits>
 #include <optional>
 #include <stdexcept>
@@ -44,6 +47,78 @@ namespace {
                     cameraMatrix.cell(1, 3) - cameraMatrix.cell(1, 2) * distance,
                     cameraMatrix.cell(2, 3) - cameraMatrix.cell(2, 2) * distance);
   }
+
+  struct DescriptorOrigin {
+    Vector3d origin;
+    Vector3d motionOriginDelta{Vector3d::null};
+  };
+
+  bool isLinearVectorTrack(const render::animation::AnimationTrack* track) {
+    return track &&
+           track->interpolationMode() == core::math::interpolation::InterpolationMode::Linear &&
+           track->valueType() == render::animation::AnimationValue::Type::Vector3;
+  }
+
+  bool crossesInteriorKey(const render::animation::AnimationTrack& track, double from, double to) {
+    const double start = std::min(from, to);
+    const double end = std::max(from, to);
+    return std::any_of(
+      track.keyframes().begin(), track.keyframes().end(),
+      [start, end](const auto& keyframe) { return keyframe.time > start && keyframe.time < end; });
+  }
+
+  Vector3d animatedVectorAt(const PinholeCamera& camera, const char* property,
+                            const Vector3d& fallback, double time) {
+    const auto* track = camera.animationTrack(property);
+    if (!track) {
+      return fallback;
+    }
+    return fallback + track->sample(time).get<Vector3d>() -
+           track->sample(camera.animationFrame()).get<Vector3d>();
+  }
+
+  bool nearlyEqual(const Vector3d& left, const Vector3d& right) {
+    return (left - right).length() <= 1e-9;
+  }
+
+  std::optional<DescriptorOrigin> sampledShutterRigTranslationOrigin(const PinholeCamera& camera,
+                                                                     double distance) {
+    const auto* positionTrack = camera.animationTrack("position");
+    const auto* targetTrack = camera.animationTrack("target");
+    if (!positionTrack && !targetTrack) {
+      return std::nullopt;
+    }
+    if (!isLinearVectorTrack(positionTrack) || !isLinearVectorTrack(targetTrack)) {
+      return std::nullopt;
+    }
+
+    const double shutterOpen = camera.animationTimeForSample(0.0);
+    const double shutterClose = camera.animationTimeForSample(1.0);
+    if (crossesInteriorKey(*positionTrack, shutterOpen, shutterClose) ||
+        crossesInteriorKey(*targetTrack, shutterOpen, shutterClose)) {
+      return std::nullopt;
+    }
+
+    const Vector3d positionAtOpen =
+      animatedVectorAt(camera, "position", camera.position(), shutterOpen);
+    const Vector3d positionAtClose =
+      animatedVectorAt(camera, "position", camera.position(), shutterClose);
+    const Vector3d targetAtOpen = animatedVectorAt(camera, "target", camera.target(), shutterOpen);
+    const Vector3d targetAtClose =
+      animatedVectorAt(camera, "target", camera.target(), shutterClose);
+    const Vector3d baselineDirection = camera.target() - camera.position();
+    if (!nearlyEqual(targetAtOpen - positionAtOpen, baselineDirection) ||
+        !nearlyEqual(targetAtClose - positionAtClose, baselineDirection)) {
+      return std::nullopt;
+    }
+
+    const Vector3d originAtOpen =
+      rayOriginForMatrix(Matrix4d::lookAt(positionAtOpen, targetAtOpen, Vector3d::up()), distance);
+    const Vector3d originAtClose = rayOriginForMatrix(
+      Matrix4d::lookAt(positionAtClose, targetAtClose, Vector3d::up()), distance);
+    return DescriptorOrigin{originAtOpen, originAtClose - originAtOpen};
+  }
+
 }
 
 Vector3d PinholeCamera::rayOrigin() const {
@@ -122,8 +197,13 @@ PinholeCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampleS
     return std::nullopt;
   }
 
-  const std::optional<Matrix4d> descriptorMatrix = fixedShutterGpuCameraMatrix();
-  if (!descriptorMatrix) {
+  std::optional<DescriptorOrigin> origin;
+  if (const std::optional<Matrix4d> descriptorMatrix = fixedShutterGpuCameraMatrix()) {
+    origin = DescriptorOrigin{rayOriginForMatrix(*descriptorMatrix, m_distance), Vector3d::null};
+  } else {
+    origin = sampledShutterRigTranslationOrigin(*this, m_distance);
+  }
+  if (!origin) {
     return std::nullopt;
   }
 
@@ -144,8 +224,8 @@ PinholeCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampleS
 
   GpuPrimaryPathDescriptor descriptor;
   descriptor.mode = gpuPrimaryPathGenerationModePinhole;
-  descriptor.rectilinear.originOrDirection =
-    vector4(rayOriginForMatrix(*descriptorMatrix, m_distance), 1.0f);
+  descriptor.rectilinear.originOrDirection = vector4(origin->origin, 1.0f);
+  descriptor.rectilinear.motionOriginDelta = vector4(origin->motionOriginDelta, 0.0f);
   descriptor.rectilinear.topLeft = vector4(plane->pixelAt(0.0, 0.0), 1.0f);
   descriptor.rectilinear.right = vector4(plane->pixelAt(1.0, 0.0) - plane->pixelAt(0.0, 0.0), 0.0f);
   descriptor.rectilinear.down = vector4(plane->pixelAt(0.0, 1.0) - plane->pixelAt(0.0, 0.0), 0.0f);

@@ -8,7 +8,7 @@
 #include <vector>
 
 namespace render {
-  inline constexpr std::uint32_t gpuDiffusePathLoopLaunchLayoutVersion = 13u;
+  inline constexpr std::uint32_t gpuDiffusePathLoopLaunchLayoutVersion = 14u;
 
   struct alignas(16) GpuDiffusePathLoopLaunchParameters {
     std::uint32_t layoutVersion{gpuDiffusePathLoopLaunchLayoutVersion};
@@ -69,6 +69,7 @@ namespace render {
     std::uint32_t captureMetrics{1};
     std::uint32_t reserved3{0};
     std::array<float, 4> primaryPathOrigin{};
+    std::array<float, 4> primaryPathMotionOriginDelta{};
     std::array<float, 4> primaryPathTopLeft{};
     std::array<float, 4> primaryPathRight{};
     std::array<float, 4> primaryPathDown{};
