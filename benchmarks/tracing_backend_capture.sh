@@ -44,7 +44,8 @@ Each scene captures CPU, auto, and explicit GPU-request modes so metrics show
 runtime, hybrid intersection/compaction, and available platform full-GPU
 path-loop execution paths. When TRACING_BACKEND_RUN_CPP_BENCHMARKS=1, the
 indirect_diffuse scene also captures the CPU-reference, diagnostic requested-GPU,
-and final-display requested-GPU compiled diffuse path-loop Google Benchmark rows.
+synthetic final-display, and camera final-display requested-GPU compiled
+diffuse path-loop Google Benchmark rows.
 USAGE
 }
 
@@ -230,7 +231,7 @@ run_mode() {
 cpp_benchmark_filter_for_scene() {
   case "$1" in
     indirect_diffuse)
-      echo 'bm_compiledDiffusePathLoopCpuReference/3/(256|4096|65536)/4$|bm_requestedGpuCompiledDiffusePathLoop/3/(256|4096|65536)/4$|bm_requestedGpuCompiledDiffusePathLoopWarmedSceneUpload/3/(256|4096|65536)/4$|bm_requestedGpuCompiledDiffusePathLoopFinalDisplay/3/(256|4096|65536)/4$|bm_requestedGpuCompiledDiffusePathLoopFinalDisplayWarmedSceneUpload/3/(256|4096|65536)/4$'
+      echo 'bm_compiledDiffusePathLoop(Camera)?CpuReference/3/(256|4096|65536)/4$|bm_requestedGpuCompiledDiffusePathLoop(WarmedSceneUpload)?/3/(256|4096|65536)/4$|bm_requestedGpuCompiledDiffusePathLoop(Camera)?FinalDisplay(WarmedSceneUpload)?/3/(256|4096|65536)/4$'
       ;;
     *) return 1 ;;
   esac

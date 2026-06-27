@@ -19,6 +19,7 @@
 #endif
 #include "render/WavefrontFrontierCompaction.h"
 #include "render/WavefrontIntersectionBackend.h"
+#include "render/cameras/PinholeCamera.h"
 #include "render/lights/PointLight.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/primitives/Curve.h"
@@ -26,6 +27,7 @@
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
 #include "render/primitives/Triangle.h"
+#include "render/samplers/Sampler.h"
 #include "render/textures/ConstantColorTexture.h"
 
 #include <algorithm>
@@ -696,6 +698,20 @@ namespace {
     return TracingAccumulationLayout::image(side, side);
   }
 
+  GpuDiffusePrimaryPathStateGeneration
+  generateDiffuseCameraPrimaryPaths(const TracingAccumulationLayout& layout,
+                                    bool materializeHostPathStates) {
+    PinholeCamera camera(Vector3d(0.0, 0.85, -4.0), Vector3d(0.0, -0.05, 1.2));
+    const Recti targetRect(0, 0, layout.width, layout.height);
+    camera.viewPlane()->setup(camera.matrix(), targetRect);
+    camera.viewPlane()->sampler()->setup(1, 4, 42);
+
+    GpuDiffusePrimaryPathStateGenerationOptions options;
+    options.materializeHostPathStates = materializeHostPathStates;
+    return GpuDiffusePrimaryPathStateGenerator().generate(camera, targetRect, 0xBEEFu, 0x600DF00Du,
+                                                          options);
+  }
+
   std::vector<GpuIntersectionRay> packRays(const std::vector<Rayd>& rays, double maxDistance) {
     GpuIntersectionScenePacker packer;
     std::vector<GpuIntersectionRay> packed;
@@ -1195,6 +1211,47 @@ namespace {
     state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(paths.size()));
   }
 
+  void bm_compiledDiffusePathLoopCameraCpuReference(benchmark::State& state) {
+    const Workload& workload = workloadFor(state);
+    const GpuTracingSceneCompilation compilation = compileGpuTracingScene(*workload.scene);
+    const GpuDiffusePathLoopSupport support =
+      gpuDiffusePathLoopSupport(compilation, *workload.scene);
+    if (!support.supported) {
+      state.SkipWithError(support.reason.c_str());
+      return;
+    }
+
+    const TracingAccumulationLayout layout = accumulationLayoutForPathCount(state.range(1));
+    const GpuDiffusePrimaryPathStateGeneration generation =
+      generateDiffuseCameraPrimaryPaths(layout, true);
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = static_cast<std::uint32_t>(state.range(2));
+    settings.russianRouletteDepth = 3;
+    settings.directLightSamples = 1;
+
+    GpuDiffusePathLoopResult result;
+    double measuredSeconds = 0.0;
+    for (auto _ : state) {
+      const auto start = std::chrono::steady_clock::now();
+      result = GpuDiffusePathLoop().run(compilation.sections, generation.pathStates, settings);
+      const auto stop = std::chrono::steady_clock::now();
+      measuredSeconds += std::chrono::duration<double>(stop - start).count();
+      benchmark::DoNotOptimize(result.removedPathCount());
+      benchmark::DoNotOptimize(result.stepRecords.size());
+    }
+
+    const double averageSeconds =
+      measuredSeconds / static_cast<double>(std::max<std::int64_t>(1, state.iterations()));
+    workload.annotateCompiledDiffusePathLoop(state, compilation, result, averageSeconds);
+    state.counters["compiled_path_loop_camera_primary_generation"] = 1.0;
+    state.counters["compiled_path_loop_primary_paths_generated"] =
+      static_cast<double>(generation.generatedPrimarySamples);
+    state.counters["compiled_path_loop_primary_paths_materialized"] =
+      static_cast<double>(generation.pathStates.size());
+    state.SetItemsProcessed(state.iterations() *
+                            static_cast<std::int64_t>(generation.generatedPrimarySamples));
+  }
+
   void bm_compiledDiffusePathLoopResolveCpuReference(benchmark::State& state) {
     const Workload& workload = workloadFor(state);
     const GpuTracingSceneCompilation compilation = compileGpuTracingScene(*workload.scene);
@@ -1245,13 +1302,14 @@ namespace {
     GpuTracingSceneCompilation compilation;
     std::shared_ptr<const GpuDiffusePathLoopBackend> backend;
     std::vector<GpuDiffusePathStateRecord> paths;
+    GpuDiffusePrimaryPathStateGeneration primaryGeneration;
+    bool usePrimaryGeneration{false};
     GpuDiffusePathLoopSettings settings;
   };
 
-  bool
-  prepareRequestedGpuCompiledPathLoopBenchmark(benchmark::State& state,
-                                               RequestedGpuPathLoopCaptureMode captureMode,
-                                               RequestedGpuCompiledPathLoopBenchmarkInput& input) {
+  bool prepareRequestedGpuCompiledPathLoopBenchmark(
+    benchmark::State& state, RequestedGpuPathLoopCaptureMode captureMode,
+    bool useCameraPrimaryDescriptor, RequestedGpuCompiledPathLoopBenchmarkInput& input) {
     const Workload& workload = workloadFor(state);
     input.workload = &workload;
     input.compilation = compileGpuTracingScene(*workload.scene);
@@ -1262,7 +1320,13 @@ namespace {
       return false;
     }
 
-    input.paths = generateDiffusePathStates(state.range(1));
+    if (useCameraPrimaryDescriptor) {
+      const TracingAccumulationLayout layout = accumulationLayoutForPathCount(state.range(1));
+      input.primaryGeneration = generateDiffuseCameraPrimaryPaths(layout, false);
+      input.usePrimaryGeneration = true;
+    } else {
+      input.paths = generateDiffusePathStates(state.range(1));
+    }
     input.settings.maxDepth = static_cast<std::uint32_t>(state.range(2));
     input.settings.russianRouletteDepth = 3;
     input.settings.directLightSamples = 1;
@@ -1289,15 +1353,19 @@ namespace {
 
   void runRequestedGpuCompiledDiffusePathLoopBenchmark(benchmark::State& state,
                                                        RequestedGpuPathLoopCaptureMode captureMode,
+                                                       bool useCameraPrimaryDescriptor,
                                                        bool warmSceneUploadCache) {
     RequestedGpuCompiledPathLoopBenchmarkInput input;
-    if (!prepareRequestedGpuCompiledPathLoopBenchmark(state, captureMode, input)) {
+    if (!prepareRequestedGpuCompiledPathLoopBenchmark(state, captureMode,
+                                                      useCameraPrimaryDescriptor, input)) {
       return;
     }
 
     if (warmSceneUploadCache) {
       const GpuDiffusePathLoopResult warmup =
-        input.backend->run(input.compilation.sections, input.paths, input.settings);
+        input.usePrimaryGeneration
+          ? input.backend->run(input.compilation.sections, input.primaryGeneration, input.settings)
+          : input.backend->run(input.compilation.sections, input.paths, input.settings);
       benchmark::DoNotOptimize(warmup.hasPlatformAccumulation());
       benchmark::DoNotOptimize(warmup.hasPlatformResolvedDisplay());
     }
@@ -1306,7 +1374,10 @@ namespace {
     double measuredSeconds = 0.0;
     for (auto _ : state) {
       const auto start = std::chrono::steady_clock::now();
-      result = input.backend->run(input.compilation.sections, input.paths, input.settings);
+      result =
+        input.usePrimaryGeneration
+          ? input.backend->run(input.compilation.sections, input.primaryGeneration, input.settings)
+          : input.backend->run(input.compilation.sections, input.paths, input.settings);
       const auto stop = std::chrono::steady_clock::now();
       measuredSeconds += std::chrono::duration<double>(stop - start).count();
       benchmark::DoNotOptimize(result.hasPlatformAccumulation());
@@ -1329,30 +1400,53 @@ namespace {
       input.settings.captureResolvedDisplay ? 1.0 : 0.0;
     state.counters["compiled_path_loop_final_display_mode"] =
       captureMode == RequestedGpuPathLoopCaptureMode::FinalDisplayResolve ? 1.0 : 0.0;
+    state.counters["compiled_path_loop_camera_primary_generation"] =
+      input.usePrimaryGeneration ? 1.0 : 0.0;
+    state.counters["compiled_path_loop_primary_paths_generated"] =
+      input.usePrimaryGeneration
+        ? static_cast<double>(input.primaryGeneration.generatedPrimarySamples)
+        : static_cast<double>(input.paths.size());
+    state.counters["compiled_path_loop_primary_paths_materialized"] =
+      input.usePrimaryGeneration ? static_cast<double>(input.primaryGeneration.pathStates.size())
+                                 : static_cast<double>(input.paths.size());
     state.counters["full_gpu_path_loop_warmed_scene_upload_cache"] =
       warmSceneUploadCache ? 1.0 : 0.0;
-    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(input.paths.size()));
+    const std::uint64_t processedPaths = input.usePrimaryGeneration
+                                           ? input.primaryGeneration.generatedPrimarySamples
+                                           : static_cast<std::uint64_t>(input.paths.size());
+    state.SetItemsProcessed(state.iterations() * static_cast<std::int64_t>(processedPaths));
   }
 
   void bm_requestedGpuCompiledDiffusePathLoop(benchmark::State& state) {
     runRequestedGpuCompiledDiffusePathLoopBenchmark(
-      state, RequestedGpuPathLoopCaptureMode::DiagnosticAccumulation, false);
+      state, RequestedGpuPathLoopCaptureMode::DiagnosticAccumulation, false, false);
   }
 
   void bm_requestedGpuCompiledDiffusePathLoopWarmedSceneUpload(benchmark::State& state) {
     runRequestedGpuCompiledDiffusePathLoopBenchmark(
-      state, RequestedGpuPathLoopCaptureMode::DiagnosticAccumulation, true);
+      state, RequestedGpuPathLoopCaptureMode::DiagnosticAccumulation, false, true);
   }
 
   void bm_requestedGpuCompiledDiffusePathLoopFinalDisplay(benchmark::State& state) {
     runRequestedGpuCompiledDiffusePathLoopBenchmark(
-      state, RequestedGpuPathLoopCaptureMode::FinalDisplayResolve, false);
+      state, RequestedGpuPathLoopCaptureMode::FinalDisplayResolve, false, false);
   }
 
   void
   bm_requestedGpuCompiledDiffusePathLoopFinalDisplayWarmedSceneUpload(benchmark::State& state) {
     runRequestedGpuCompiledDiffusePathLoopBenchmark(
-      state, RequestedGpuPathLoopCaptureMode::FinalDisplayResolve, true);
+      state, RequestedGpuPathLoopCaptureMode::FinalDisplayResolve, false, true);
+  }
+
+  void bm_requestedGpuCompiledDiffusePathLoopCameraFinalDisplay(benchmark::State& state) {
+    runRequestedGpuCompiledDiffusePathLoopBenchmark(
+      state, RequestedGpuPathLoopCaptureMode::FinalDisplayResolve, true, false);
+  }
+
+  void bm_requestedGpuCompiledDiffusePathLoopCameraFinalDisplayWarmedSceneUpload(
+    benchmark::State& state) {
+    runRequestedGpuCompiledDiffusePathLoopBenchmark(
+      state, RequestedGpuPathLoopCaptureMode::FinalDisplayResolve, true, true);
   }
 
   void bm_requestedGpuClosestHitBatch(benchmark::State& state) {
@@ -1638,6 +1732,7 @@ BENCHMARK(bm_intersectionServiceMixedClosestAndAnyHitBatch)->Apply(supportedQuer
 BENCHMARK(bm_autoFrontierCompaction)->Apply(supportedQueryWorkloads);
 BENCHMARK(bm_requestedGpuUnsupportedMixedClosestAndAnyHitBatch)->Apply(unsupportedQueryWorkloads);
 BENCHMARK(bm_compiledDiffusePathLoopCpuReference)->Apply(compiledDiffusePathLoopWorkloads);
+BENCHMARK(bm_compiledDiffusePathLoopCameraCpuReference)->Apply(compiledDiffusePathLoopWorkloads);
 BENCHMARK(bm_compiledDiffusePathLoopResolveCpuReference)->Apply(compiledDiffusePathLoopWorkloads);
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT) || defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
 BENCHMARK(bm_requestedGpuCompiledDiffusePathLoop)->Apply(compiledDiffusePathLoopWorkloads);
@@ -1646,6 +1741,10 @@ BENCHMARK(bm_requestedGpuCompiledDiffusePathLoopWarmedSceneUpload)
 BENCHMARK(bm_requestedGpuCompiledDiffusePathLoopFinalDisplay)
   ->Apply(compiledDiffusePathLoopWorkloads);
 BENCHMARK(bm_requestedGpuCompiledDiffusePathLoopFinalDisplayWarmedSceneUpload)
+  ->Apply(compiledDiffusePathLoopWorkloads);
+BENCHMARK(bm_requestedGpuCompiledDiffusePathLoopCameraFinalDisplay)
+  ->Apply(compiledDiffusePathLoopWorkloads);
+BENCHMARK(bm_requestedGpuCompiledDiffusePathLoopCameraFinalDisplayWarmedSceneUpload)
   ->Apply(compiledDiffusePathLoopWorkloads);
 BENCHMARK(bm_requestedGpuClosestHitBatch)->Apply(supportedQueryWorkloads);
 BENCHMARK(bm_requestedGpuAnyHitBatch)->Apply(supportedQueryWorkloads);

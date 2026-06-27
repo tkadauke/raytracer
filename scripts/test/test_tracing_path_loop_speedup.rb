@@ -17,13 +17,20 @@ class TracingPathLoopSpeedupVerifierTest < Minitest::Test
     }.merge(extra)
   end
 
-  def cpu_row(paths:, seconds:)
-    benchmark_row("bm_compiledDiffusePathLoopCpuReference/3/#{paths}/4", seconds)
+  def cpu_row(paths:, seconds:, camera: true)
+    row_name = camera ? "bm_compiledDiffusePathLoopCameraCpuReference"
+                      : "bm_compiledDiffusePathLoopCpuReference"
+    benchmark_row("#{row_name}/3/#{paths}/4", seconds)
   end
 
-  def gpu_row(paths:, seconds:, supported: 1.0, unavailable: 0.0, final_display: true)
+  def gpu_row(paths:, seconds:, supported: 1.0, unavailable: 0.0, final_display: true,
+              camera: true)
     row_name = if final_display
-                 "bm_requestedGpuCompiledDiffusePathLoopFinalDisplayWarmedSceneUpload"
+                 if camera
+                   "bm_requestedGpuCompiledDiffusePathLoopCameraFinalDisplayWarmedSceneUpload"
+                 else
+                   "bm_requestedGpuCompiledDiffusePathLoopFinalDisplayWarmedSceneUpload"
+                 end
                else
                  "bm_requestedGpuCompiledDiffusePathLoopWarmedSceneUpload"
                end
@@ -33,7 +40,9 @@ class TracingPathLoopSpeedupVerifierTest < Minitest::Test
                   "full_gpu_path_loop_unavailable" => unavailable,
                   "compiled_path_loop_final_display_mode" => final_display ? 1.0 : 0.0,
                   "compiled_path_loop_capture_resolved_display" => final_display ? 1.0 : 0.0,
-                  "compiled_path_loop_capture_platform_accumulation" => final_display ? 0.0 : 1.0)
+                  "compiled_path_loop_capture_platform_accumulation" => final_display ? 0.0 : 1.0,
+                  "compiled_path_loop_camera_primary_generation" => camera ? 1.0 : 0.0,
+                  "compiled_path_loop_primary_paths_materialized" => camera ? 0.0 : paths)
   end
 
   def verify(rows, **options)
@@ -51,14 +60,14 @@ class TracingPathLoopSpeedupVerifierTest < Minitest::Test
 
     assert result.ok?
     assert_in_delta 4.0, result.best_speedup, 0.0001
-    assert_match "bm_requestedGpuCompiledDiffusePathLoopFinalDisplayWarmedSceneUpload",
+    assert_match "bm_requestedGpuCompiledDiffusePathLoopCameraFinalDisplayWarmedSceneUpload",
                  result.row_name
   end
 
   def test_rejects_gpu_row_that_was_skipped_by_benchmark
     result = verify([cpu_row(paths: 65_536, seconds: 2.0),
                      {
-                       "name" => "bm_requestedGpuCompiledDiffusePathLoopFinalDisplayWarmedSceneUpload/3/65536/4",
+                       "name" => "bm_requestedGpuCompiledDiffusePathLoopCameraFinalDisplayWarmedSceneUpload/3/65536/4",
                        "error_occurred" => true,
                        "error_message" => "MTLCreateSystemDefaultDevice returned nil"
                      }],
@@ -78,19 +87,21 @@ class TracingPathLoopSpeedupVerifierTest < Minitest::Test
   end
 
   def test_rejects_diagnostic_gpu_rows_by_default
-    result = verify([cpu_row(paths: 65_536, seconds: 2.0),
+    result = verify([cpu_row(paths: 65_536, seconds: 2.0, camera: false),
                      gpu_row(paths: 65_536, seconds: 0.5, final_display: false)],
-                    paths: 65_536)
+                    paths: 65_536,
+                    require_camera: false)
 
     refute result.ok?
     assert_match "no matching CPU/GPU compiled path-loop rows found", result.message
   end
 
   def test_can_allow_diagnostic_gpu_rows_explicitly
-    result = verify([cpu_row(paths: 65_536, seconds: 2.0),
+    result = verify([cpu_row(paths: 65_536, seconds: 2.0, camera: false),
                      gpu_row(paths: 65_536, seconds: 0.5, final_display: false)],
                     paths: 65_536,
-                    require_final_display: false)
+                    require_final_display: false,
+                    require_camera: false)
 
     assert result.ok?
     assert_match "bm_requestedGpuCompiledDiffusePathLoopWarmedSceneUpload", result.row_name
@@ -103,6 +114,35 @@ class TracingPathLoopSpeedupVerifierTest < Minitest::Test
 
     refute result.ok?
     assert_match "compiled_path_loop_capture_platform_accumulation is not 0", result.message
+  end
+
+  def test_rejects_synthetic_path_rows_by_default
+    result = verify([cpu_row(paths: 65_536, seconds: 2.0, camera: false),
+                     gpu_row(paths: 65_536, seconds: 0.5, camera: false)],
+                    paths: 65_536)
+
+    refute result.ok?
+    assert_match "no matching CPU/GPU compiled path-loop rows found", result.message
+  end
+
+  def test_can_allow_synthetic_path_rows_explicitly
+    result = verify([cpu_row(paths: 65_536, seconds: 2.0, camera: false),
+                     gpu_row(paths: 65_536, seconds: 0.5, camera: false)],
+                    paths: 65_536,
+                    require_camera: false)
+
+    assert result.ok?
+    assert_match "bm_requestedGpuCompiledDiffusePathLoopFinalDisplayWarmedSceneUpload",
+                 result.row_name
+  end
+
+  def test_rejects_camera_row_with_materialized_primary_paths
+    broken = gpu_row(paths: 65_536, seconds: 0.5)
+    broken["compiled_path_loop_primary_paths_materialized"] = 65_536
+    result = verify([cpu_row(paths: 65_536, seconds: 2.0), broken], paths: 65_536)
+
+    refute result.ok?
+    assert_match "compiled_path_loop_primary_paths_materialized is not 0", result.message
   end
 
   def test_can_verify_json_file

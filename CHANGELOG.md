@@ -17,6 +17,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Add final-display requested-GPU compiled diffuse path-loop benchmark rows and
   make the speedup verifier require that trace-disabled display-only path by
   default. — GPT-5 Codex
+- Add camera-generated compiled diffuse path-loop benchmark rows and make the
+  speedup verifier require descriptor-only final-display GPU launches by
+  default. — GPT-5 Codex
 - Let `benchmarks/tracing_backend_capture.sh` optionally capture compiled
   diffuse path-loop Google Benchmark rows beside the rendercli metrics for
   CPU-reference, cold requested-GPU, and warmed requested-GPU comparisons. —

@@ -2901,7 +2901,13 @@ scene is large enough to amortize upload/readback costs.
      final-display rows by default, so the E15 speed claim measures the
      ordinary trace-disabled final-render path instead of a diagnostic
      accumulation-readback path; diagnostic GPU rows remain available only with
-     the explicit verifier override.
+     the explicit verifier override. The benchmark matrix now also has
+     camera-generated CPU-reference rows and descriptor-only final-display
+     requested-GPU rows. The verifier requires those camera rows by default, so
+     the speed gate now covers the live graph shape where supported cameras
+     generate primary paths on the GPU instead of uploading a synthetic host
+     path-state vector; synthetic path-vector rows remain available only with an
+     explicit verifier override.
 
 6. **Update user-facing docs and examples.**
    - Depends on: job 5.
