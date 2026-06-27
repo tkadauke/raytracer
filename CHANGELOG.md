@@ -503,9 +503,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 ### Changed
 
 - Reuse the Vulkan full-GPU diffuse path-loop instance, device, queue, descriptor
-  layout, pipeline layout, and compute pipelines across renders, avoiding
-  per-image Vulkan runtime setup on steady platform path-tracing launches. —
-  GPT-5 Codex
+  layout, pipeline layout, command pool, command buffer, and compute pipelines
+  across renders, avoiding per-image Vulkan runtime setup on steady platform
+  path-tracing launches. — GPT-5 Codex
 - Keep full-GPU diffuse path-loop retained-frontier buffers resident even when
   graph trace diagnostics are disabled, separating GPU scheduling state from
   optional trace readback. — GPT-5 Codex

@@ -227,12 +227,8 @@ namespace render {
         swappedFrontierBuffers[13] = buffers.buffers[14];
         updateDescriptorSet(m_device, descriptorSetBA, swappedFrontierBuffers);
 
-        VkCommandPool commandPool = createCommandPool(m_device, m_selection.queueFamily);
-        CommandPoolGuard commandPoolGuard;
-        commandPoolGuard.device = m_device;
-        commandPoolGuard.pool = commandPool;
-
-        VkCommandBuffer commandBuffer = allocateCommandBuffer(m_device, commandPool);
+        resetCommandPool();
+        VkCommandBuffer commandBuffer = m_commandBuffer;
         const VkDescriptorSet finalFrontierDescriptorSet = recordPathLoopAndOptionalResolve(
           commandBuffer, m_clearPipeline, m_initializePipeline, m_prepareDispatchPipeline,
           m_advancePipeline, captureResolvedDisplay ? m_resolvePipeline : VK_NULL_HANDLE,
@@ -380,17 +376,6 @@ namespace render {
         VkDescriptorPool pool{VK_NULL_HANDLE};
       };
 
-      struct CommandPoolGuard {
-        ~CommandPoolGuard() {
-          if (pool) {
-            vkDestroyCommandPool(device, pool, nullptr);
-          }
-        }
-
-        VkDevice device{VK_NULL_HANDLE};
-        VkCommandPool pool{VK_NULL_HANDLE};
-      };
-
       static constexpr std::uint32_t kInvalidQueueFamily =
         std::numeric_limits<std::uint32_t>::max();
 
@@ -404,6 +389,8 @@ namespace render {
 
         m_device = createDevice(m_selection.device, m_selection.queueFamily);
         vkGetDeviceQueue(m_device, m_selection.queueFamily, 0, &m_queue);
+        m_commandPool = createCommandPool(m_device, m_selection.queueFamily);
+        m_commandBuffer = allocateCommandBuffer(m_device, m_commandPool);
 
         VkShaderModule clearShader = createShaderModule(
           m_device, vulkan_shaders::diffusePathLoopClearFrontierShaderSpirv.data(),
@@ -460,6 +447,11 @@ namespace render {
       void destroy() {
         if (m_device) {
           vkDeviceWaitIdle(m_device);
+          if (m_commandPool) {
+            vkDestroyCommandPool(m_device, m_commandPool, nullptr);
+            m_commandPool = VK_NULL_HANDLE;
+            m_commandBuffer = VK_NULL_HANDLE;
+          }
           if (m_resolvePipeline) {
             vkDestroyPipeline(m_device, m_resolvePipeline, nullptr);
             m_resolvePipeline = VK_NULL_HANDLE;
@@ -819,6 +811,11 @@ namespace render {
         return commandBuffer;
       }
 
+      void resetCommandPool() const {
+        check(vkResetCommandPool(m_device, m_commandPool, 0),
+              "Vulkan diffuse path-loop command pool reset");
+      }
+
       void shaderStorageBarrier(VkCommandBuffer commandBuffer) const {
         VkMemoryBarrier barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
@@ -965,6 +962,8 @@ namespace render {
       VkPipeline m_prepareDispatchPipeline{VK_NULL_HANDLE};
       VkPipeline m_advancePipeline{VK_NULL_HANDLE};
       VkPipeline m_resolvePipeline{VK_NULL_HANDLE};
+      VkCommandPool m_commandPool{VK_NULL_HANDLE};
+      VkCommandBuffer m_commandBuffer{VK_NULL_HANDLE};
     };
 
     const VulkanDiffusePathLoopRuntime& sharedVulkanDiffusePathLoopRuntime() {
