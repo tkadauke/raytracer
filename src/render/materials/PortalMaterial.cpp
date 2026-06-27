@@ -11,6 +11,18 @@ void PortalMaterial::setMatrix(const Matrix4d& matrix) {
   m_directionMatrix = Matrix3d(m_originMatrix);
 }
 
+const Matrix4d& PortalMaterial::originMatrix() const {
+  return m_originMatrix;
+}
+
+const Matrix3d& PortalMaterial::directionMatrix() const {
+  return m_directionMatrix;
+}
+
+const Colord& PortalMaterial::filterColor() const {
+  return m_filterColor;
+}
+
 Colord PortalMaterial::shade(const render::RayCaster* raycaster, const render::Scene&,
                              const Rayd& ray, const HitPoint& hitPoint,
                              render::State& state) const {

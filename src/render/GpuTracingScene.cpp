@@ -9,6 +9,7 @@
 #include "render/materials/Material.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/materials/PhongMaterial.h"
+#include "render/materials/PortalMaterial.h"
 #include "render/materials/ReflectiveMaterial.h"
 #include "render/materials/TransparentMaterial.h"
 #include "render/primitives/Scene.h"
@@ -156,6 +157,32 @@ namespace {
                                      static_cast<float>(material.reflectionCoefficient())};
     record.transmissionParameters = {static_cast<float>(material.transmissionCoefficient()),
                                      static_cast<float>(material.refractionIndex()), 0.0f, 0.0f};
+  }
+
+  void packPortalParameters(const PortalMaterial& material, GpuTracingMaterialRecord& record) {
+    record.parameters = material.filterColor().toFloat4(0.0f);
+
+    const auto originRow = [](const Matrix4d& matrix, std::size_t index) {
+      return std::array<float, 4>{static_cast<float>(matrix[static_cast<int>(index)][0]),
+                                  static_cast<float>(matrix[static_cast<int>(index)][1]),
+                                  static_cast<float>(matrix[static_cast<int>(index)][2]),
+                                  static_cast<float>(matrix[static_cast<int>(index)][3])};
+    };
+    const auto directionRow = [](const Matrix3d& matrix, std::size_t index) {
+      return std::array<float, 4>{static_cast<float>(matrix[static_cast<int>(index)][0]),
+                                  static_cast<float>(matrix[static_cast<int>(index)][1]),
+                                  static_cast<float>(matrix[static_cast<int>(index)][2]), 0.0f};
+    };
+    const Matrix4d& origin = material.originMatrix();
+    const Matrix3d& direction = material.directionMatrix();
+
+    record.portalOriginMatrix0 = originRow(origin, 0u);
+    record.portalOriginMatrix1 = originRow(origin, 1u);
+    record.portalOriginMatrix2 = originRow(origin, 2u);
+    record.portalOriginMatrix3 = originRow(origin, 3u);
+    record.portalDirectionMatrix0 = directionRow(direction, 0u);
+    record.portalDirectionMatrix1 = directionRow(direction, 1u);
+    record.portalDirectionMatrix2 = directionRow(direction, 2u);
   }
 
   std::optional<std::uint32_t> mappingFlagsFor(const TextureMapping2D* mapping,
@@ -385,6 +412,24 @@ namespace {
     const EmissiveMaterial& m_material;
   };
 
+  class GpuTracingPortalMaterialModel final : public GpuTracingMaterialModel {
+  public:
+    explicit GpuTracingPortalMaterialModel(const PortalMaterial& material)
+        : m_material(material) {
+    }
+
+    std::optional<GpuTracingMaterialRecord> record(GpuTracingMaterialResourceContext&,
+                                                   std::string*) const override {
+      GpuTracingMaterialRecord record;
+      record.kind = static_cast<std::uint32_t>(GpuTracingMaterialKind::Portal);
+      packPortalParameters(m_material, record);
+      return record;
+    }
+
+  private:
+    const PortalMaterial& m_material;
+  };
+
   class GpuTracingMaterialLoweringVisitor final : public MaterialVisitor {
   public:
     void visit(const Material&) override {
@@ -410,6 +455,10 @@ namespace {
 
     void visit(const EmissiveMaterial& material) override {
       m_model = std::make_unique<GpuTracingEmissiveMaterialModel>(material);
+    }
+
+    void visit(const PortalMaterial& material) override {
+      m_model = std::make_unique<GpuTracingPortalMaterialModel>(material);
     }
 
     std::unique_ptr<GpuTracingMaterialModel> takeModel() {
@@ -779,9 +828,9 @@ render::gpuDiffusePathLoopSupport(const GpuTracingSceneCompilation& compilation,
       static_cast<GpuTracingMaterialKind>(compilation.sections.materials[materialId].kind);
     if (kind != GpuTracingMaterialKind::Matte && kind != GpuTracingMaterialKind::Phong &&
         kind != GpuTracingMaterialKind::Reflective && kind != GpuTracingMaterialKind::Transparent &&
-        kind != GpuTracingMaterialKind::Emissive) {
+        kind != GpuTracingMaterialKind::Emissive && kind != GpuTracingMaterialKind::Portal) {
       return {false, "GPU diffuse path loop supports only matte, Phong finite glossy, reflective, "
-                     "transparent, and emissive materials"};
+                     "transparent, emissive, and portal materials"};
     }
   }
 

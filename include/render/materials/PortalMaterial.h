@@ -35,6 +35,12 @@ namespace render {
 
     void setMatrix(const Matrix4d& matrix);
 
+    const Matrix4d& originMatrix() const;
+
+    const Matrix3d& directionMatrix() const;
+
+    const Colord& filterColor() const;
+
     Colord shade(const render::RayCaster* raycaster, const render::Scene& scene, const Rayd& ray,
                  const HitPoint& hitPoint, render::State& state) const override;
 

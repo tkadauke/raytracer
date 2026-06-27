@@ -20,7 +20,7 @@ namespace render {
   class Material;
   class Scene;
 
-  inline constexpr std::uint32_t gpuTracingSceneLayoutVersion = 4u;
+  inline constexpr std::uint32_t gpuTracingSceneLayoutVersion = 5u;
 
   enum class GpuTracingSceneSectionKind : std::uint32_t {
     Geometry = 1,
@@ -37,7 +37,8 @@ namespace render {
     Emissive = 2,
     Phong = 3,
     Reflective = 4,
-    Transparent = 5
+    Transparent = 5,
+    Portal = 6
   };
 
   enum class GpuTracingTextureKind : std::uint32_t {
@@ -86,6 +87,13 @@ namespace render {
     std::array<float, 4> specularParameters{};
     std::array<float, 4> continuationParameters{};
     std::array<float, 4> transmissionParameters{};
+    std::array<float, 4> portalOriginMatrix0{};
+    std::array<float, 4> portalOriginMatrix1{};
+    std::array<float, 4> portalOriginMatrix2{};
+    std::array<float, 4> portalOriginMatrix3{};
+    std::array<float, 4> portalDirectionMatrix0{};
+    std::array<float, 4> portalDirectionMatrix1{};
+    std::array<float, 4> portalDirectionMatrix2{};
   };
 
   struct alignas(16) GpuTracingTextureRecord {

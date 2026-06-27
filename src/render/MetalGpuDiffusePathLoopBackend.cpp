@@ -63,7 +63,7 @@ namespace render {
         if (kind != GpuTracingMaterialKind::Matte && kind != GpuTracingMaterialKind::Phong &&
             kind != GpuTracingMaterialKind::Reflective &&
             kind != GpuTracingMaterialKind::Transparent &&
-            kind != GpuTracingMaterialKind::Emissive) {
+            kind != GpuTracingMaterialKind::Emissive && kind != GpuTracingMaterialKind::Portal) {
           return false;
         }
       }
@@ -570,8 +570,8 @@ namespace render {
     }
     if (!supportedMaterials(scene)) {
       return {false, "Metal diffuse path-loop backend currently supports Matte, Phong finite "
-                     "glossy, Reflective mirror, Transparent refraction, and Emissive materials "
-                     "only"};
+                     "glossy, Reflective mirror, Transparent refraction, Emissive, and Portal "
+                     "materials only"};
     }
     if (!supportedTextures(scene)) {
       return {false, "Metal diffuse path-loop backend currently supports ConstantColor, "

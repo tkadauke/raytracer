@@ -11,6 +11,7 @@
 #include "render/materials/Material.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/materials/PhongMaterial.h"
+#include "render/materials/PortalMaterial.h"
 #include "render/materials/ReflectiveMaterial.h"
 #include "render/materials/TransparentMaterial.h"
 #include "render/primitives/Scene.h"
@@ -650,6 +651,24 @@ namespace GpuTracingSceneTest {
     expectFloat4(record->transmissionParameters, 0.625f, 1.5f, 0.0f, 0.0f);
   }
 
+  TEST(GpuTracingScene, PortalMaterialPacksFilterAndInverseTransformRows) {
+    const PortalMaterial material(Matrix4d::translate(1.0, 2.0, 3.0), Colord(0.25, 0.5, 0.75));
+
+    const std::optional<GpuTracingMaterialRecord> record =
+      makeGpuTracingMaterialRecord(material, 4, 0);
+
+    ASSERT_TRUE(record.has_value());
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuTracingMaterialKind::Portal), record->kind);
+    expectFloat4(record->parameters, 0.25f, 0.5f, 0.75f, 0.0f);
+    expectFloat4(record->portalOriginMatrix0, 1.0f, 0.0f, 0.0f, -1.0f);
+    expectFloat4(record->portalOriginMatrix1, 0.0f, 1.0f, 0.0f, -2.0f);
+    expectFloat4(record->portalOriginMatrix2, 0.0f, 0.0f, 1.0f, -3.0f);
+    expectFloat4(record->portalOriginMatrix3, 0.0f, 0.0f, 0.0f, 1.0f);
+    expectFloat4(record->portalDirectionMatrix0, 1.0f, 0.0f, 0.0f, 0.0f);
+    expectFloat4(record->portalDirectionMatrix1, 0.0f, 1.0f, 0.0f, 0.0f);
+    expectFloat4(record->portalDirectionMatrix2, 0.0f, 0.0f, 1.0f, 0.0f);
+  }
+
   TEST(GpuTracingScene, CompilesMaterialAndTextureRecordsAtRuntimeIds) {
     auto redTexture = std::make_shared<ConstantColorTexture>(Colord(0.8, 0.1, 0.2));
     auto matte = std::make_shared<MatteMaterial>(redTexture);
@@ -944,6 +963,25 @@ namespace GpuTracingSceneTest {
       std::make_shared<ConstantColorTexture>(Colord(0.25, 0.5, 0.75)));
     auto sphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
     sphere->setMaterial(transparent);
+    Scene scene;
+    scene.setBackground(Colord(0.1, 0.2, 0.3));
+    scene.setEnvironmentRadiance(Colord(0.1, 0.2, 0.3));
+    scene.add(sphere);
+
+    const GpuTracingSceneCompilation compilation = compileGpuTracingScene(scene);
+    ASSERT_TRUE(compilation.supported());
+    const GpuDiffusePathLoopSupport support = gpuDiffusePathLoopSupport(compilation, scene);
+
+    EXPECT_TRUE(support.supported);
+    EXPECT_TRUE(support.reason.empty());
+    EXPECT_TRUE(gpuDiffusePathLoopUnsupportedReason(compilation, scene).empty());
+  }
+
+  TEST(GpuTracingScene, DiffusePathLoopSupportAcceptsPortalMaterials) {
+    auto portal =
+      std::make_shared<PortalMaterial>(Matrix4d::translate(0.0, 0.0, 2.0), Colord(0.25, 0.5, 0.75));
+    auto sphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    sphere->setMaterial(portal);
     Scene scene;
     scene.setBackground(Colord(0.1, 0.2, 0.3));
     scene.setEnvironmentRadiance(Colord(0.1, 0.2, 0.3));

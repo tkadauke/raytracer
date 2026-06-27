@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Let compiled full-GPU path-loop renders carry `PortalMaterial` as a transformed
+  delta continuation through the CPU reference, Metal, and Vulkan path-loop
+  backends. — GPT-5 Codex
 - Add a saved Render Settings Sample Stream property, so Modeler scene intent
   can opt into GPU sample streams and clears stale sampler overrides when doing
   so. — GPT-5 Codex

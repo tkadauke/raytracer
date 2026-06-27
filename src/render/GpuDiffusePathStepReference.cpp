@@ -687,6 +687,32 @@ namespace {
     return {transparentTransmissionDirection(material, wi, normal), transmissionWeightColor};
   }
 
+  Vector3d transformPoint(const std::array<float, 4>& row0, const std::array<float, 4>& row1,
+                          const std::array<float, 4>& row2, const std::array<float, 4>&,
+                          const Vector3d& point) {
+    return Vector3d(row0[0] * point.x() + row0[1] * point.y() + row0[2] * point.z() + row0[3],
+                    row1[0] * point.x() + row1[1] * point.y() + row1[2] * point.z() + row1[3],
+                    row2[0] * point.x() + row2[1] * point.y() + row2[2] * point.z() + row2[3]);
+  }
+
+  Vector3d transformDirection(const std::array<float, 4>& row0, const std::array<float, 4>& row1,
+                              const std::array<float, 4>& row2, const Vector3d& direction) {
+    return Vector3d(row0[0] * direction.x() + row0[1] * direction.y() + row0[2] * direction.z(),
+                    row1[0] * direction.x() + row1[1] * direction.y() + row1[2] * direction.z(),
+                    row2[0] * direction.x() + row2[1] * direction.y() + row2[2] * direction.z());
+  }
+
+  Rayd portalContinuationRay(const GpuTracingMaterialRecord& material,
+                             const GpuIntersectionHitRecord& hit, const Rayd& ray) {
+    const Rayd shifted = Rayd(Vector4d(hit.point), ray.direction()).epsilonShifted();
+    return Rayd(Vector4d(transformPoint(material.portalOriginMatrix0, material.portalOriginMatrix1,
+                                        material.portalOriginMatrix2, material.portalOriginMatrix3,
+                                        Vector3d(shifted.origin()))),
+                transformDirection(material.portalDirectionMatrix0, material.portalDirectionMatrix1,
+                                   material.portalDirectionMatrix2, shifted.direction())
+                  .normalized());
+  }
+
   void terminate(GpuDiffusePathStateRecord& pathState) {
     pathState.flags &= ~gpuDiffusePathStateActiveFlag;
     pathState.flags |= gpuDiffusePathStateTerminatedFlag;
@@ -1579,6 +1605,36 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
       result.terminatedPathStates.push_back(pathState);
       ++result.metrics.emissiveHits;
       ++result.metrics.terminatedPaths;
+      continue;
+    }
+
+    if (materialKind == GpuTracingMaterialKind::Portal) {
+      const Colord nextThroughput = throughput * Colord(material.parameters);
+      if (nextThroughput == Colord::black()) {
+        pathState.accumulatedRadiance = accumulated.toFloat4(0.0f);
+        terminate(pathState);
+        stepRecord.flags = pathState.flags;
+        result.terminatedPathStates.push_back(pathState);
+        ++result.metrics.terminatedPaths;
+        continue;
+      }
+
+      pathState.ray = packRay(portalContinuationRay(material, hit, ray), pathState.ray.rayIndex,
+                              kPackedRayMinimumDistance, std::numeric_limits<double>::infinity());
+      pathState.throughput = nextThroughput.toFloat4(0.0f);
+      pathState.accumulatedRadiance = accumulated.toFloat4(0.0f);
+      pathState.depth += 1u;
+      pathState.previousBsdfPdf = 1.0f;
+      pathState.previousLightPdf = 0.0f;
+      pathState.previousMaterial = hit.material;
+      pathState.previousEventFlags =
+        gpuDiffusePathStateSampledFromBsdfFlag | gpuDiffusePathStateBsdfSampleDeltaFlag;
+      pathState.flags |= gpuDiffusePathStateActiveFlag;
+      pathState.flags &= ~gpuDiffusePathStateTerminatedFlag;
+      stepRecord.continuationThroughput = pathState.throughput;
+      stepRecord.flags = pathState.flags;
+      result.pathStates.push_back(pathState);
+      ++result.metrics.spawnedContinuations;
       continue;
     }
 

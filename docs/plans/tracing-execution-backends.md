@@ -77,7 +77,8 @@ end state for GPU tracing.
   material, texture, light, environment, and debug-id records for the initial
   supported shading subset: Matte materials, Phong finite diffuse/glossy shading,
   Reflective mirror continuations, Transparent perfect reflection/refraction
-  continuations, Emissive materials, ConstantColor, planar/UV CheckerBoard
+  continuations, Portal delta redirection continuations, Emissive materials,
+  ConstantColor, planar/UV CheckerBoard
   texture graphs, nearest-or-bilinear ImageTexture, UVColorTexture, and bounded
   Tinted wrapper chains over those supported base texture records, PointLight,
   DirectionalLight, and RectangularAreaLight.
@@ -176,14 +177,14 @@ end state for GPU tracing.
   optionally transformed triangle/`MeshPrimitive` mesh-triangle/sphere/plane/
   rectangle/disk/open-cylinder/torus paths with Matte, Phong finite
   diffuse/glossy, Reflective mirror,
-  Transparent perfect reflection/refraction, or Emissive materials across
+  Transparent perfect reflection/refraction, Portal, or Emissive materials across
   multiple depths for backend tests and explicit GPU graph requests when the
   light set is empty or uses point, directional, or rectangular area lights. A
   restricted Vulkan path-loop backend can execute empty-scene all-miss paths and
   a multi-depth shaded static-transform
   triangle/`MeshPrimitive` mesh-triangle/sphere/plane/rectangle/disk/
   open-cylinder/torus subset with
-  Matte/Phong-finite-glossy/Reflective-mirror/Transparent-refraction/Emissive
+  Matte/Phong-finite-glossy/Reflective-mirror/Transparent-refraction/Portal/Emissive
   materials, ConstantColor/planar-or-UV CheckerBoard texture graphs/
   nearest-or-bilinear ImageTexture/UVColor records, bounded Tinted wrapper
   chains over those records, and zero or more point, directional, or
@@ -2589,7 +2590,7 @@ scene is large enough to amortize upload/readback costs.
      sample stream dimensions, diffuse continuation, direct light sampling,
      any-hit visibility, path-state compaction, and accumulation execute inside
      one Metal backend for Matte, Phong finite diffuse/glossy, Reflective
-     mirror, Transparent perfect reflection/refraction, or Emissive scenes
+     mirror, Transparent perfect reflection/refraction, Portal, or Emissive scenes
      using ConstantColor, planar/UV CheckerBoard texture graphs,
      nearest/bilinear ImageTexture, base-level bilinear mipmapped ImageTexture
      records, UVColorTexture, or bounded Tinted wrapper chains over those
@@ -2642,7 +2643,7 @@ scene is large enough to amortize upload/readback costs.
      the empty-scene and optionally transformed
      triangle/sphere/plane/rectangle/disk/open-cylinder/torus Matte,
      Phong finite diffuse/glossy, Reflective-mirror, Transparent refraction,
-     and Emissive paths with empty, point-light, directional-light, or
+     Portal, and Emissive paths with empty, point-light, directional-light, or
      rectangular-area-light scenes behind the platform
      backend interface, including scene/settings support rejection and
      full-GPU result metadata for backend tests. Its first real path-loop
@@ -2671,8 +2672,9 @@ scene is large enough to amortize upload/readback costs.
      display buffer, compatible linear tonemap passes can propagate that display
      resource as current without immediately CPU-repacking the HDR graph
      resource. The compiled path loop also
-     carries `ReflectiveMaterial` and `TransparentMaterial` delta continuations
-     through the CPU reference evaluator and the Metal full-GPU subset, and the
+     carries `ReflectiveMaterial`, `TransparentMaterial`, and `PortalMaterial`
+     delta continuations through the CPU reference evaluator and the Metal
+     full-GPU subset, and the
      compiled environment records now carry scene ambient separately from
      visible background and bounced environment radiance so supported surface
      hits match the scalar path tracer's base ambient term. The Metal path-loop
@@ -2704,7 +2706,7 @@ scene is large enough to amortize upload/readback costs.
      restricted `VulkanGpuDiffusePathLoopBackend` that can execute empty
      all-miss paths and a multi-depth shaded static-transform
      triangle/sphere/plane/rectangle/disk/open-cylinder/torus subset with
-     Matte/Phong-finite-glossy/Reflective-mirror/Transparent-refraction/Emissive
+     Matte/Phong-finite-glossy/Reflective-mirror/Transparent-refraction/Portal/Emissive
      materials,
      ConstantColor/planar-or-UV CheckerBoard texture graphs/
      nearest-or-bilinear ImageTexture records, UVColorTexture, plus bounded
@@ -2719,7 +2721,9 @@ scene is large enough to amortize upload/readback costs.
      the shader. It also carries Reflective mirror and Transparent refraction
      materials as exact delta continuations and can intersect transformed or
      untransformed Triangle, Plane, Rectangle, Disk, OpenCylinder, and Torus
-     records in addition to spheres. Trace-disabled Vulkan path-loop renders
+     records in addition to spheres. Portal materials now carry transformed
+     delta continuations through the same shader-side path loop. Trace-disabled
+     Vulkan path-loop renders
      with linear tonemapping can now resolve packed display pixels in a second
      compute dispatch after the path-loop dispatch. Display-only callers can
      skip HDR accumulation-plane readback, while graph renders that still need

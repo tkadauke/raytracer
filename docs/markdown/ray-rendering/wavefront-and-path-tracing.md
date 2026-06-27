@@ -84,14 +84,15 @@ That split gives three useful execution modes:
   every continuation between device queries.
 
 The current full-GPU path-loop support is intentionally narrow. Metal-enabled
-builds can execute explicit GPU requests for empty scenes and optionally
-transformed triangle/sphere/plane/rectangle/disk scenes using Matte or Emissive
-materials, ConstantColor textures, and point, directional, or rectangular area
-lights. Vulkan currently covers empty-scene all-miss execution plus a first
-one-depth shaded subset: one untransformed sphere, Matte or Emissive
-ConstantColor material records, and zero or one point light. Unsupported scenes
-still report the CPU-reference or hybrid diagnostic backend instead of
-pretending that the GPU owns the whole path tracer.
+and Vulkan-enabled builds can execute explicit GPU requests for the compiled
+static geometry subset used by the path-loop kernels: triangle and mesh-triangle
+records, spheres, planes, rectangles, disks, open cylinders, and tori. The
+supported material subset covers Matte, finite-glossy Phong, Reflective,
+Transparent, Portal, and Emissive records with ConstantColor, supported checker,
+image, UV-color, and bounded tinted texture graphs, plus point, directional,
+and rectangular area lights. Unsupported scenes still report the CPU-reference
+or hybrid diagnostic backend instead of pretending that the GPU owns the whole
+path tracer.
 
 Matching rendered images are therefore meaningful backend evidence
 only when the comparison holds the algorithm and schedule contract

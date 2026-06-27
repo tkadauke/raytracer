@@ -15,6 +15,7 @@ const uint gpuTracingEmissiveMaterialKind = 2u;
 const uint gpuTracingPhongMaterialKind = 3u;
 const uint gpuTracingReflectiveMaterialKind = 4u;
 const uint gpuTracingTransparentMaterialKind = 5u;
+const uint gpuTracingPortalMaterialKind = 6u;
 const uint gpuTracingConstantColorTextureKind = 1u;
 const uint gpuTracingCheckerBoardTextureKind = 2u;
 const uint gpuTracingImageTextureKind = 3u;
@@ -260,6 +261,13 @@ struct GpuTracingMaterialRecord {
   vec4 specularParameters;
   vec4 continuationParameters;
   vec4 transmissionParameters;
+  vec4 portalOriginMatrix0;
+  vec4 portalOriginMatrix1;
+  vec4 portalOriginMatrix2;
+  vec4 portalOriginMatrix3;
+  vec4 portalDirectionMatrix0;
+  vec4 portalDirectionMatrix1;
+  vec4 portalDirectionMatrix2;
 };
 
 struct GpuTracingTextureRecord {
@@ -1125,7 +1133,7 @@ GpuIntersectionTransformPayload readTransform(uint index) {
 }
 
 GpuTracingMaterialRecord readMaterial(uint materialId) {
-  const uint wordOffset = byteOffsetWords(parameters.materialByteOffset) + materialId * 20u;
+  const uint wordOffset = byteOffsetWords(parameters.materialByteOffset) + materialId * 48u;
   GpuTracingMaterialRecord material;
   material.kind = sceneWords[wordOffset + 0u];
   material.albedoTexture = sceneWords[wordOffset + 1u];
@@ -1135,6 +1143,13 @@ GpuTracingMaterialRecord readMaterial(uint materialId) {
   material.specularParameters = readVec4(wordOffset + 8u);
   material.continuationParameters = readVec4(wordOffset + 12u);
   material.transmissionParameters = readVec4(wordOffset + 16u);
+  material.portalOriginMatrix0 = readVec4(wordOffset + 20u);
+  material.portalOriginMatrix1 = readVec4(wordOffset + 24u);
+  material.portalOriginMatrix2 = readVec4(wordOffset + 28u);
+  material.portalOriginMatrix3 = readVec4(wordOffset + 32u);
+  material.portalDirectionMatrix0 = readVec4(wordOffset + 36u);
+  material.portalDirectionMatrix1 = readVec4(wordOffset + 40u);
+  material.portalDirectionMatrix2 = readVec4(wordOffset + 44u);
   return material;
 }
 
@@ -2074,6 +2089,13 @@ bool surfaceMaterial(GpuIntersectionHitRecord hit, out GpuTracingMaterialRecord 
   material.specularParameters = vec4(0.0);
   material.continuationParameters = vec4(0.0);
   material.transmissionParameters = vec4(0.0);
+  material.portalOriginMatrix0 = vec4(0.0);
+  material.portalOriginMatrix1 = vec4(0.0);
+  material.portalOriginMatrix2 = vec4(0.0);
+  material.portalOriginMatrix3 = vec4(0.0);
+  material.portalDirectionMatrix0 = vec4(0.0);
+  material.portalDirectionMatrix1 = vec4(0.0);
+  material.portalDirectionMatrix2 = vec4(0.0);
   if (hit.material >= parameters.materialCount) {
     return false;
   }
@@ -2558,6 +2580,49 @@ vec4 directLightRadiance(GpuIntersectionHitRecord hit, GpuDiffusePathStateRecord
   return radiance / float(sampleCount);
 }
 
+GpuDiffusePathStateRecord portalContinuationPath(GpuIntersectionHitRecord hit,
+                                                 GpuDiffusePathStateRecord path,
+                                                 GpuTracingMaterialRecord material,
+                                                 vec4 accumulatedRadiance,
+                                                 out bool spawned) {
+  spawned = false;
+  GpuDiffusePathStateRecord next = path;
+  next.accumulatedRadiance = accumulatedRadiance;
+  const vec4 continuationThroughput = path.throughput * material.parameters;
+  if (throughputIsBlack(continuationThroughput)) {
+    next.flags = terminatedPathFlags(path.flags);
+    next.throughput = vec4(0.0);
+    return next;
+  }
+
+  const vec3 incoming = normalize(path.ray.direction.xyz);
+  const vec4 shiftedOrigin = vec4(hit.point.xyz + incoming * pathLoopRayEpsilon, 1.0);
+  const vec3 direction = normalize(transformDirection(
+      material.portalDirectionMatrix0, material.portalDirectionMatrix1,
+      material.portalDirectionMatrix2, vec4(incoming, 0.0)).xyz);
+
+  next.ray = path.ray;
+  next.ray.origin = transformPoint(material.portalOriginMatrix0,
+                                   material.portalOriginMatrix1,
+                                   material.portalOriginMatrix2,
+                                   material.portalOriginMatrix3,
+                                   shiftedOrigin);
+  next.ray.direction = vec4(direction, 0.0);
+  next.ray.minDistance = pathLoopMinimumHitDistance;
+  next.ray.maxDistance = rayInfinity();
+  next.ray.timeSample = 0.0;
+  next.throughput = continuationThroughput;
+  next.depth = path.depth + 1u;
+  next.previousBsdfPdf = 1.0;
+  next.previousLightPdf = 0.0;
+  next.previousMaterial = hit.material;
+  next.previousEventFlags = gpuDiffusePathStateSampledFromBsdfFlag |
+                            gpuDiffusePathStateBsdfSampleDeltaFlag;
+  next.flags = activePathFlags(path.flags);
+  spawned = true;
+  return next;
+}
+
 GpuDiffusePathStateRecord matteContinuationPath(GpuIntersectionHitRecord hit,
                                                 GpuDiffusePathStateRecord path,
                                                 GpuTracingMaterialRecord material,
@@ -2766,6 +2831,17 @@ GpuDiffusePathStepRecord pathStep(uint pathIndex, GpuDiffusePathStateRecord path
   step.event = gpuDiffusePathStepEventHit;
   step.material = hit.material;
   step.object = hit.object;
+
+  if (hit.material < parameters.materialCount) {
+    const GpuTracingMaterialRecord hitMaterial = readMaterial(hit.material);
+    if (hitMaterial.kind == gpuTracingPortalMaterialKind) {
+      bool spawned = false;
+      next = portalContinuationPath(hit, path, hitMaterial, path.accumulatedRadiance, spawned);
+      step.continuationThroughput = spawned ? next.throughput : vec4(0.0);
+      step.flags = next.flags;
+      return step;
+    }
+  }
 
   GpuTracingMaterialRecord material;
   vec4 reflectance;
