@@ -397,6 +397,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   backend runs on the GPU but camera primary paths still have to be generated on
   the CPU, including the primary-path fallback reason in trace metadata. —
   GPT-5 Codex
+- Preserve path-tracer shutter time on GPU diffuse path-loop shadow rays and
+  secondary continuations instead of resetting secondary rays to time zero. —
+  GPT-5 Codex
 - Predict explicit GPU Path Tracer requests as hybrid/CPU fallbacks when
   pass-level settings such as convergence or adaptive sampling make the
   compiled full-GPU path loop ineligible, instead of labeling the pass as

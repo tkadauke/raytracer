@@ -88,9 +88,9 @@ namespace {
   }
 
   GpuIntersectionRay packRay(const Rayd& ray, std::uint32_t rayIndex, double minDistance,
-                             double maxDistance) {
+                             double maxDistance, double timeSample) {
     return GpuIntersectionScenePacker().packRay(ray, rayIndex, minDistance, maxDistance,
-                                                /*timeSample=*/0.0);
+                                                timeSample);
   }
 
   std::uint32_t sampleDimension(const GpuDiffusePathStateRecord& pathState, std::uint32_t offset) {
@@ -1620,7 +1620,8 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
       }
 
       pathState.ray = packRay(portalContinuationRay(material, hit, ray), pathState.ray.rayIndex,
-                              kPackedRayMinimumDistance, std::numeric_limits<double>::infinity());
+                              kPackedRayMinimumDistance, std::numeric_limits<double>::infinity(),
+                              pathState.ray.timeSample);
       pathState.throughput = nextThroughput.toFloat4(0.0f);
       pathState.accumulatedRadiance = accumulated.toFloat4(0.0f);
       pathState.depth += 1u;
@@ -1678,7 +1679,8 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
           const std::uint32_t shadowRayIndex =
             static_cast<std::uint32_t>(result.directLightShadowRays.size());
           const GpuIntersectionRay packedShadowRay =
-            packRay(shadowRay, shadowRayIndex, kPackedRayMinimumDistance, light.distance);
+            packRay(shadowRay, shadowRayIndex, kPackedRayMinimumDistance, light.distance,
+                    pathState.ray.timeSample);
           const bool occluded = intersector.intersectAny(scene.geometry, packedShadowRay);
           result.directLightShadowRays.push_back(packedShadowRay);
           result.directLightOcclusionRecords.push_back(
@@ -1729,9 +1731,9 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
       }
 
       const Vector3d wo = mirrorContinuationDirection(wi, normal);
-      pathState.ray =
-        packRay(Rayd(Vector4d(hit.point), wo).epsilonShifted(), pathState.ray.rayIndex,
-                kPackedRayMinimumDistance, std::numeric_limits<double>::infinity());
+      pathState.ray = packRay(Rayd(Vector4d(hit.point), wo).epsilonShifted(),
+                              pathState.ray.rayIndex, kPackedRayMinimumDistance,
+                              std::numeric_limits<double>::infinity(), pathState.ray.timeSample);
       pathState.throughput = nextThroughput.toFloat4(0.0f);
       pathState.accumulatedRadiance = accumulated.toFloat4(0.0f);
       pathState.depth += 1u;
@@ -1764,9 +1766,9 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
         continue;
       }
 
-      pathState.ray =
-        packRay(Rayd(Vector4d(hit.point), delta.direction).epsilonShifted(), pathState.ray.rayIndex,
-                kPackedRayMinimumDistance, std::numeric_limits<double>::infinity());
+      pathState.ray = packRay(Rayd(Vector4d(hit.point), delta.direction).epsilonShifted(),
+                              pathState.ray.rayIndex, kPackedRayMinimumDistance,
+                              std::numeric_limits<double>::infinity(), pathState.ray.timeSample);
       pathState.throughput = nextThroughput.toFloat4(0.0f);
       pathState.accumulatedRadiance = accumulated.toFloat4(0.0f);
       pathState.depth += 1u;
@@ -1809,7 +1811,8 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
     }
 
     pathState.ray = packRay(Rayd(Vector4d(hit.point), wo).epsilonShifted(), pathState.ray.rayIndex,
-                            kPackedRayMinimumDistance, std::numeric_limits<double>::infinity());
+                            kPackedRayMinimumDistance, std::numeric_limits<double>::infinity(),
+                            pathState.ray.timeSample);
     pathState.throughput = nextThroughput.toFloat4(0.0f);
     pathState.accumulatedRadiance = accumulated.toFloat4(0.0f);
     pathState.depth += 1u;

@@ -1666,6 +1666,83 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_NEAR(2.25f, next.previousLightPdf, 1e-5f);
   }
 
+  TEST(GpuDiffusePathStepReference,
+       PreservesPathTimeSampleForDiffuseContinuationAndDirectLightVisibility) {
+    Scene scene;
+    auto matte =
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::white()));
+    matte->setDiffuseCoefficient(1.0);
+    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    receiver->setMaterial(matte);
+    scene.add(receiver);
+    scene.addLight(std::make_shared<PointLight>(Vector3d(0.0, 0.0, -3.0), Colord::white()));
+    GpuTracingSceneSections sections = sectionsFor(scene);
+    sections.geometry = GpuIntersectionSceneBuffers{};
+    const std::uint32_t material = firstMaterialId(sections, GpuTracingMaterialKind::Matte);
+
+    GpuDiffusePathStateRecord path = activePath();
+    path.ray.timeSample = 0.625f;
+    path.sampleSeed = 12347;
+    GpuDiffusePathLoopSettings settings;
+    settings.russianRouletteDepth = 10;
+    settings.directLightSamples = 1;
+
+    const GpuDiffusePathStepResult result =
+      GpuDiffusePathStepReference().step(sections, {path}, {hitRecord(7, material)}, settings);
+
+    ASSERT_EQ(1u, result.pathStates.size());
+    EXPECT_FLOAT_EQ(path.ray.timeSample, result.pathStates[0].ray.timeSample);
+    ASSERT_EQ(1u, result.directLightShadowRays.size());
+    EXPECT_FLOAT_EQ(path.ray.timeSample, result.directLightShadowRays[0].timeSample);
+  }
+
+  TEST(GpuDiffusePathStepReference, PreservesPathTimeSampleForDeltaContinuations) {
+    Scene scene;
+    auto reflective =
+      std::make_shared<ReflectiveMaterial>(std::make_shared<ConstantColorTexture>(Colord::white()));
+    reflective->setDiffuseCoefficient(0.0);
+    reflective->setSpecularCoefficient(0.0);
+    reflective->setReflectionCoefficient(1.0);
+    auto mirror = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    mirror->setMaterial(reflective);
+    scene.add(mirror);
+    GpuTracingSceneSections sections = sectionsFor(scene);
+    sections.geometry = GpuIntersectionSceneBuffers{};
+    const std::uint32_t material = firstMaterialId(sections, GpuTracingMaterialKind::Reflective);
+
+    GpuDiffusePathStateRecord path = activePath();
+    path.ray.timeSample = 0.375f;
+    GpuDiffusePathLoopSettings settings;
+    settings.russianRouletteDepth = 10;
+
+    const GpuDiffusePathStepResult result =
+      GpuDiffusePathStepReference().step(sections, {path}, {hitRecord(7, material)}, settings);
+
+    ASSERT_EQ(1u, result.pathStates.size());
+    EXPECT_FLOAT_EQ(path.ray.timeSample, result.pathStates[0].ray.timeSample);
+  }
+
+  TEST(GpuDiffusePathStepReference, PreservesPathTimeSampleForPortalContinuation) {
+    Scene scene;
+    auto portal =
+      std::make_shared<PortalMaterial>(Matrix4d::translate(1.0, 0.0, 0.0), Colord::white());
+    auto surface = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    surface->setMaterial(portal);
+    scene.add(surface);
+    GpuTracingSceneSections sections = sectionsFor(scene);
+    sections.geometry = GpuIntersectionSceneBuffers{};
+    const std::uint32_t material = firstMaterialId(sections, GpuTracingMaterialKind::Portal);
+
+    GpuDiffusePathStateRecord path = activePath();
+    path.ray.timeSample = 0.875f;
+
+    const GpuDiffusePathStepResult result =
+      GpuDiffusePathStepReference().step(sections, {path}, {hitRecord(7, material)});
+
+    ASSERT_EQ(1u, result.pathStates.size());
+    EXPECT_FLOAT_EQ(path.ray.timeSample, result.pathStates[0].ray.timeSample);
+  }
+
   TEST(GpuDiffusePathStepReference, MatteHitSamplesUvCheckerTexture) {
     auto checker = std::make_shared<CheckerBoardTexture>(
       new UVMapping2D(2.0, 2.0), std::make_shared<ConstantColorTexture>(Colord::red()),
@@ -6684,6 +6761,7 @@ namespace GpuDiffusePathStepReferenceTest {
       activePath(Rayd(Vector4d(0.0, 0.0, -4.0, 1.0), Vector3d(0.0, 0.0, 1.0)), 40)};
     paths[0].pixelIndex = 0;
     paths[0].sampleSeed = 12347;
+    paths[0].ray.timeSample = 0.625f;
     paths[0].throughput = {0.2f, 0.4f, 0.6f, 0.0f};
     const GpuDiffusePathLoopLaunchPlan plan =
       GpuDiffusePathLoopLaunchPlanner().plan(sections, paths, accumulationLayout, settings);
@@ -6852,6 +6930,7 @@ namespace GpuDiffusePathStepReferenceTest {
     std::vector<GpuDiffusePathStateRecord> paths{activePath()};
     paths[0].pixelIndex = 0;
     paths[0].sampleSeed = 12347;
+    paths[0].ray.timeSample = 0.625f;
     paths[0].throughput = {0.5f, 0.25f, 0.125f, 0.0f};
     const GpuDiffusePathLoopLaunchPlan plan =
       GpuDiffusePathLoopLaunchPlanner().plan(sections, paths, accumulationLayout, settings);

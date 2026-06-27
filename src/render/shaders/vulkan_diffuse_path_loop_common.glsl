@@ -2316,7 +2316,7 @@ GpuIntersectionRay continuationRay(GpuIntersectionHitRecord hit, GpuDiffusePathS
   ray.direction = vec4(direction, 0.0);
   ray.minDistance = pathLoopMinimumHitDistance;
   ray.maxDistance = rayInfinity();
-  ray.timeSample = 0.0;
+  ray.timeSample = path.ray.timeSample;
   return ray;
 }
 
@@ -2522,13 +2522,13 @@ DirectLightSample sampleDirectLight(GpuTracingLightRecord light, vec3 point,
   return sample;
 }
 
-GpuIntersectionRay shadowRayFor(vec3 point, DirectLightSample sample) {
+GpuIntersectionRay shadowRayFor(vec3 point, DirectLightSample sample, float timeSample) {
   GpuIntersectionRay ray;
   ray.origin = vec4(point + sample.direction * pathLoopRayEpsilon, 1.0);
   ray.direction = vec4(sample.direction, 0.0);
   ray.minDistance = pathLoopMinimumHitDistance;
   ray.maxDistance = sample.distance;
-  ray.timeSample = 0.0;
+  ray.timeSample = timeSample;
   ray.flags = 0u;
   ray.rayIndex = 0u;
   ray.reserved0 = 0u;
@@ -2582,7 +2582,8 @@ DirectLightEstimate directLightEstimate(GpuIntersectionHitRecord hit, GpuDiffuse
     if (normalDotLight <= 0.0) {
       continue;
     }
-    const GpuIntersectionRay visibilityRay = shadowRayFor(point, directLight);
+    const GpuIntersectionRay visibilityRay =
+        shadowRayFor(point, directLight, path.ray.timeSample);
     ++estimate.visibilityRayCount;
     const GpuIntersectionHitRecord visibilityHit = closestSupportedHit(visibilityRay);
     if (hitOccludesLight(visibilityHit, directLight.distance)) {
@@ -2637,7 +2638,7 @@ GpuDiffusePathStateRecord portalContinuationPath(GpuIntersectionHitRecord hit,
   next.ray.direction = vec4(direction, 0.0);
   next.ray.minDistance = pathLoopMinimumHitDistance;
   next.ray.maxDistance = rayInfinity();
-  next.ray.timeSample = 0.0;
+  next.ray.timeSample = path.ray.timeSample;
   next.throughput = continuationThroughput;
   next.depth = path.depth + 1u;
   next.previousBsdfPdf = 1.0;
