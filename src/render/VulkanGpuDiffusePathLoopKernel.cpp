@@ -170,7 +170,7 @@ namespace render {
           launchPathCount * static_cast<std::uint64_t>(sizeof(GpuDiffusePathStateRecord));
         prepareStorageBuffer(0u, sizeof(GpuDiffusePathLoopLaunchParameters), &plan.parameters);
         prepareStorageBuffer(1u, sizeof(GpuDiffusePathLoopLaunchParameters), nullptr);
-        prepareStorageBufferFromBytes(2u, plan.sceneUpload);
+        prepareStorageBufferFromBytesIfChanged(2u, plan.sceneUpload, m_sceneUploadCache);
         if (plan.generatesPrimaryPathsOnDevice()) {
           prepareStorageBuffer(3u, 1u, nullptr);
         } else {
@@ -609,6 +609,7 @@ namespace render {
           destroyStorageBuffer(buffer);
         }
         m_buffers.clear();
+        m_sceneUploadCache.clear();
       }
 
       StorageBuffer& prepareStorageBuffer(std::size_t index, VkDeviceSize byteCount,
@@ -665,6 +666,25 @@ namespace render {
                                                    VkBufferUsageFlags additionalUsage = 0) const {
         return prepareStorageBuffer(index, static_cast<VkDeviceSize>(bytes.size()),
                                     bytes.empty() ? nullptr : bytes.data(), additionalUsage);
+      }
+
+      StorageBuffer& prepareStorageBufferFromBytesIfChanged(
+        std::size_t index, const std::vector<std::uint8_t>& bytes,
+        std::vector<std::uint8_t>& cachedBytes, VkBufferUsageFlags additionalUsage = 0) const {
+        const VkDeviceSize logicalByteCount =
+          std::max<VkDeviceSize>(1u, static_cast<VkDeviceSize>(bytes.size()));
+        const VkBufferUsageFlags usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | additionalUsage;
+        const bool bufferReusable =
+          index < m_buffers.size() && m_buffers[index].buffer != VK_NULL_HANDLE &&
+          m_buffers[index].capacityByteCount >= logicalByteCount && m_buffers[index].usage == usage;
+        const bool bytesUnchanged = bufferReusable && cachedBytes == bytes;
+        StorageBuffer& buffer = prepareStorageBuffer(
+          index, static_cast<VkDeviceSize>(bytes.size()),
+          bytesUnchanged || bytes.empty() ? nullptr : bytes.data(), additionalUsage);
+        if (!bytesUnchanged) {
+          cachedBytes = bytes;
+        }
+        return buffer;
       }
 
       VkShaderModule createShaderModule(VkDevice device, const std::uint32_t* words,
@@ -965,6 +985,7 @@ namespace render {
       VkCommandPool m_commandPool{VK_NULL_HANDLE};
       VkCommandBuffer m_commandBuffer{VK_NULL_HANDLE};
       mutable std::vector<StorageBuffer> m_buffers;
+      mutable std::vector<std::uint8_t> m_sceneUploadCache;
     };
 
     const VulkanDiffusePathLoopRuntime& sharedVulkanDiffusePathLoopRuntime() {

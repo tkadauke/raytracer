@@ -3432,6 +3432,7 @@ namespace render {
 
     struct ReusableMetalBuffer {
       id<MTLBuffer> buffer{nil};
+      std::vector<std::uint8_t> cachedBytes;
     };
 
     struct WavefrontPathLoopReusableBuffers {
@@ -3466,6 +3467,7 @@ namespace render {
       const NSUInteger length = bufferLength(requestedBytes);
       if (reusable.buffer && [reusable.buffer device] != device) {
         reusable.buffer = nil;
+        reusable.cachedBytes.clear();
       }
       if (!reusable.buffer || [reusable.buffer length] < length) {
         reusable.buffer = [device newBufferWithLength:length
@@ -3473,10 +3475,37 @@ namespace render {
         if (!reusable.buffer) {
           throw std::runtime_error("Metal diffuse wavefront path-loop buffer allocation failed");
         }
+        reusable.cachedBytes.clear();
       }
       if (initialData && requestedBytes != 0u) {
         std::memcpy([reusable.buffer contents], initialData,
                     static_cast<std::size_t>(requestedBytes));
+        reusable.cachedBytes.clear();
+      }
+      return reusable.buffer;
+    }
+
+    id<MTLBuffer> prepareReusableByteBuffer(id<MTLDevice> device,
+                                            ReusableMetalBuffer& reusable,
+                                            const std::vector<std::uint8_t>& bytes) {
+      const NSUInteger length = bufferLength(bytes.size());
+      if (reusable.buffer && [reusable.buffer device] != device) {
+        reusable.buffer = nil;
+        reusable.cachedBytes.clear();
+      }
+      if (!reusable.buffer || [reusable.buffer length] < length) {
+        reusable.buffer = [device newBufferWithLength:length
+                                             options:MTLResourceStorageModeShared];
+        if (!reusable.buffer) {
+          throw std::runtime_error("Metal diffuse wavefront path-loop buffer allocation failed");
+        }
+        reusable.cachedBytes.clear();
+      }
+      if (reusable.cachedBytes != bytes) {
+        if (!bytes.empty()) {
+          std::memcpy([reusable.buffer contents], bytes.data(), bytes.size());
+        }
+        reusable.cachedBytes = bytes;
       }
       return reusable.buffer;
     }
@@ -4744,9 +4773,8 @@ namespace render {
         &plan.parameters);
       id<MTLBuffer> echoedParameterBuffer = prepareReusableBuffer(
         device, reusableBuffers.echoedParameter, sizeof(GpuDiffusePathLoopLaunchParameters));
-      id<MTLBuffer> sceneUploadBuffer = prepareReusableBuffer(
-        device, reusableBuffers.sceneUpload, plan.buffers.sceneUploadBytes,
-        plan.sceneUpload.empty() ? nullptr : plan.sceneUpload.data());
+      id<MTLBuffer> sceneUploadBuffer =
+        prepareReusableByteBuffer(device, reusableBuffers.sceneUpload, plan.sceneUpload);
       id<MTLBuffer> initialPathBuffer =
         prepareReusableBuffer(device, reusableBuffers.initialPath,
                               plan.generatesPrimaryPathsOnDevice() || initialPathStates.empty()

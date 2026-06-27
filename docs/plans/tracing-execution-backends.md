@@ -2725,7 +2725,10 @@ scene is large enough to amortize upload/readback costs.
      The real Metal wavefront path-loop launch now also reuses its shared
      buffers across renders, so steady launches no longer allocate the full
      parameter, scene, path-state, frontier, accumulation, diagnostic, and
-     resolve buffer set for every image.
+     resolve buffer set for every image. Metal and Vulkan now also keep an
+     exact host-side copy of the last serialized scene upload and skip rewriting
+     the retained platform scene buffer when those bytes are unchanged across
+     repeated renders.
      Graph background-color overrides now update the compiled visible-background
      record before backend dispatch instead of forcing scalar fallback.
      Raster-only material normal maps no longer make those materials
