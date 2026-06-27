@@ -3,6 +3,7 @@
 #include "render/GpuDiffusePathLoopSceneSupport.h"
 
 #include <cstdint>
+#include <limits>
 
 namespace GpuDiffusePathLoopSceneSupportTest {
   using namespace render;
@@ -130,6 +131,25 @@ namespace GpuDiffusePathLoopSceneSupportTest {
     GpuTracingSceneSections unsupportedLight;
     unsupportedLight.lights.push_back(lightRecord(GpuTracingLightKind::Unsupported));
     expectUnsupported(supportFor(unsupportedLight), "light");
+  }
+
+  TEST(GpuDiffusePathLoopSceneSupport, RejectsNonFiniteLightRecords) {
+    const float nan = std::numeric_limits<float>::quiet_NaN();
+
+    GpuTracingSceneSections nonFinitePoint;
+    nonFinitePoint.lights.push_back(lightRecord(GpuTracingLightKind::Point));
+    nonFinitePoint.lights.back().positionOrDirection[0] = nan;
+    expectUnsupported(supportFor(nonFinitePoint), "light");
+
+    GpuTracingSceneSections nonFiniteDirectional;
+    nonFiniteDirectional.lights.push_back(lightRecord(GpuTracingLightKind::Directional));
+    nonFiniteDirectional.lights.back().parameters[1] = nan;
+    expectUnsupported(supportFor(nonFiniteDirectional), "light");
+
+    GpuTracingSceneSections nonFiniteArea;
+    nonFiniteArea.lights.push_back(lightRecord(GpuTracingLightKind::RectangularArea));
+    nonFiniteArea.lights.back().u[2] = nan;
+    expectUnsupported(supportFor(nonFiniteArea), "light");
   }
 
   TEST(GpuDiffusePathLoopSceneSupport, RejectsSupportedMaterialsWithMalformedTextureReferences) {

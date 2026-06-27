@@ -403,6 +403,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Reject non-finite compiled GPU diffuse path-loop light vectors or colors
+  before selecting a platform path-loop backend. — GPT-5 Codex
 - Reject compiled GPU diffuse path-loop BVH nodes with out-of-range primitive
   or child references before selecting a platform path-loop backend. —
   GPT-5 Codex

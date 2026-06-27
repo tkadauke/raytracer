@@ -1,6 +1,7 @@
 #include "render/GpuDiffusePathLoopSceneSupport.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdint>
 
@@ -13,6 +14,11 @@ namespace render {
 
     [[nodiscard]] bool rangeInSize(std::uint32_t first, std::uint32_t count, std::size_t size) {
       return first <= size && count <= size - first;
+    }
+
+    [[nodiscard]] bool allFinite(const std::array<float, 4>& values) {
+      return std::all_of(values.begin(), values.end(),
+                         [](float value) { return std::isfinite(value); });
     }
   }
 
@@ -307,8 +313,14 @@ namespace render {
     return std::all_of(
       scene.lights.begin(), scene.lights.end(), [](const GpuTracingLightRecord& light) {
         const auto kind = static_cast<GpuTracingLightKind>(light.kind);
-        return kind == GpuTracingLightKind::Point || kind == GpuTracingLightKind::Directional ||
-               kind == GpuTracingLightKind::RectangularArea;
+        if (kind == GpuTracingLightKind::Point || kind == GpuTracingLightKind::Directional) {
+          return allFinite(light.positionOrDirection) && allFinite(light.parameters);
+        }
+        if (kind == GpuTracingLightKind::RectangularArea) {
+          return allFinite(light.positionOrDirection) && allFinite(light.u) && allFinite(light.v) &&
+                 allFinite(light.parameters);
+        }
+        return false;
       });
   }
 }
