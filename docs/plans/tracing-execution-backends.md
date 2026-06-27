@@ -2890,7 +2890,11 @@ scene is large enough to amortize upload/readback costs.
      script can now opt into those compiled diffuse path-loop benchmark rows
      beside its rendercli metrics, so one capture directory can hold the
      CPU-reference, cold requested-GPU, and warmed requested-GPU comparison data
-     needed for the E15 speedup gate.
+     needed for the E15 speedup gate. Those rows now include a 65,536-path
+     amortization workload, and `scripts/verify_tracing_path_loop_speedup.rb`
+     turns the captured benchmark JSON into an explicit pass/fail check that
+     requires a warmed requested-GPU row to report `full_gpu_path_loop_supported`
+     and beat the CPU-reference row.
 
 6. **Update user-facing docs and examples.**
    - Depends on: job 5.
