@@ -6,6 +6,7 @@
 #include <QDebug>
 #include <array>
 #include <cstdint>
+#include <utility>
 
 using namespace render;
 
@@ -106,6 +107,16 @@ Union::intersectPacketIntervals(const Ray8& rays, const PrimitivePacketState8& s
 std::shared_ptr<Mesh> Union::tessellate(int) const {
   qWarning() << "Union::tessellate not implemented — CSG mesh booleans not implemented.";
   return std::make_shared<Mesh>();
+}
+
+void Union::appendIntersectionSceneRecords(IntersectionSceneBuilder& builder,
+                                           std::shared_ptr<render::Material> inheritedMaterial,
+                                           const Matrix4d& pointMatrix,
+                                           const Matrix3d& normalMatrix,
+                                           const Primitive* inheritedObject) const {
+  addUnsupportedCompositeIntersectionSceneRecord(
+    builder, std::move(inheritedMaterial), pointMatrix, normalMatrix, inheritedObject,
+    "union CSG is not supported by GPU intersection scene compiler");
 }
 
 bool Union::intersects(const Rayd& ray, render::State& state) const {

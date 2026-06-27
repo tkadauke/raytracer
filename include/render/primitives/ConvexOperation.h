@@ -16,6 +16,10 @@ namespace render {
     PrimitivePacketInterval8
     intersectPacketIntervals(const Ray8& rays, const PrimitivePacketState8& states) const override;
     virtual bool intersects(const Rayd& ray, render::State& state) const override;
+    void appendIntersectionSceneRecords(IntersectionSceneBuilder& builder,
+                                        std::shared_ptr<render::Material> inheritedMaterial,
+                                        const Matrix4d& pointMatrix, const Matrix3d& normalMatrix,
+                                        const Primitive* inheritedObject = nullptr) const override;
 
     virtual Vector3d farthestPoint(const Vector3d& direction) const override = 0;
 

@@ -6,6 +6,7 @@
 #include <QDebug>
 #include <array>
 #include <cstdint>
+#include <utility>
 
 using namespace render;
 
@@ -144,6 +145,15 @@ bool Intersection::intersects(const Rayd& ray, render::State& state) const {
   }
 
   return true;
+}
+
+void Intersection::appendIntersectionSceneRecords(
+  IntersectionSceneBuilder& builder, std::shared_ptr<render::Material> inheritedMaterial,
+  const Matrix4d& pointMatrix, const Matrix3d& normalMatrix,
+  const Primitive* inheritedObject) const {
+  addUnsupportedCompositeIntersectionSceneRecord(
+    builder, std::move(inheritedMaterial), pointMatrix, normalMatrix, inheritedObject,
+    "intersection CSG is not supported by GPU intersection scene compiler");
 }
 
 std::shared_ptr<Mesh> Intersection::tessellate(int) const {

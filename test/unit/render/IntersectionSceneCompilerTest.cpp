@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <limits>
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "render/IntersectionSceneCompiler.h"
@@ -11,11 +12,14 @@
 #include "render/materials/TransparentMaterial.h"
 #include "render/primitives/Box.h"
 #include "render/primitives/ClosedSolidUnion.h"
-#include "render/primitives/Curve.h"
+#include "render/primitives/ConvexHull.h"
+#include "render/primitives/Difference.h"
 #include "render/primitives/Disk.h"
 #include "render/primitives/FlatMeshTriangle.h"
 #include "render/primitives/Instance.h"
+#include "render/primitives/Intersection.h"
 #include "render/primitives/MeshPrimitive.h"
+#include "render/primitives/MinkowskiSum.h"
 #include "render/primitives/OpenCylinder.h"
 #include "render/primitives/Plane.h"
 #include "render/primitives/Rectangle.h"
@@ -24,6 +28,7 @@
 #include "render/primitives/Sphere.h"
 #include "render/primitives/Torus.h"
 #include "render/primitives/Triangle.h"
+#include "render/primitives/Union.h"
 #include "render/textures/ConstantColorTexture.h"
 
 #include "core/geometry/Mesh.h"
@@ -78,8 +83,46 @@ namespace IntersectionSceneCompilerTest {
       return cylinder;
     }
 
-    std::shared_ptr<Curve> unsupportedCurve() {
-      return std::make_shared<Curve>(core::Polyline({Vector3d(0, 0, 0), Vector3d(1, 0, 0)}), 0.1);
+    class UnsupportedIntersectionPrimitive final : public Primitive {
+    public:
+      const Primitive* intersect(const Rayd&, HitPointInterval&, render::State&) const override {
+        return nullptr;
+      }
+
+    protected:
+      BoundingBoxd calculateBoundingBox() const override {
+        return BoundingBoxd(Vector3d(-1, -1, -1), Vector3d(1, 1, 1));
+      }
+    };
+
+    std::shared_ptr<Primitive> unsupportedPrimitive() {
+      return std::make_shared<UnsupportedIntersectionPrimitive>();
+    }
+
+    void addTwoSpheres(Composite& composite) {
+      composite.add(std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0));
+      composite.add(std::make_shared<Sphere>(Vector3d(0.5, 0, 0), 0.5));
+    }
+
+    void expectUnsupportedComposite(std::shared_ptr<Primitive> primitive,
+                                    const std::string& primitiveName,
+                                    const std::string& expectedReason) {
+      primitive->setName(primitiveName);
+      Scene scene;
+      scene.add(primitive);
+
+      const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
+
+      ASSERT_EQ(1u, compiled.primitives().size());
+      ASSERT_EQ(1u, compiled.unsupportedPrimitives().size());
+      EXPECT_FALSE(compiled.fullySupported());
+      EXPECT_TRUE(compiled.spheres().empty());
+      EXPECT_EQ(IntersectionPrimitiveKind::Unsupported, compiled.primitives()[0].kind);
+      ASSERT_GT(compiled.objects().size(), compiled.primitives()[0].object);
+      EXPECT_EQ(primitive.get(), compiled.objects()[compiled.primitives()[0].object]);
+      EXPECT_EQ(compiled.primitives()[0].object, compiled.unsupportedPrimitives()[0].object);
+      EXPECT_EQ(primitiveName, compiled.unsupportedPrimitives()[0].primitiveName);
+      EXPECT_EQ(expectedReason, compiled.unsupportedPrimitives()[0].reason);
     }
 
     std::unique_ptr<Mesh> triangleMesh() {
@@ -320,11 +363,42 @@ namespace IntersectionSceneCompilerTest {
     }
   }
 
+  TEST(IntersectionSceneCompiler, RejectsBooleanCsgInsteadOfFlatteningChildren) {
+    auto difference = std::make_shared<Difference>();
+    addTwoSpheres(*difference);
+    expectUnsupportedComposite(
+      difference, "subtract sphere",
+      "difference CSG is not supported by GPU intersection scene compiler");
+
+    auto intersection = std::make_shared<Intersection>();
+    addTwoSpheres(*intersection);
+    expectUnsupportedComposite(
+      intersection, "overlap volume",
+      "intersection CSG is not supported by GPU intersection scene compiler");
+
+    auto unionPrimitive = std::make_shared<Union>();
+    addTwoSpheres(*unionPrimitive);
+    expectUnsupportedComposite(unionPrimitive, "merged volume",
+                               "union CSG is not supported by GPU intersection scene compiler");
+  }
+
+  TEST(IntersectionSceneCompiler, RejectsConvexCsgInsteadOfFlatteningChildren) {
+    auto convexHull = std::make_shared<ConvexHull>();
+    addTwoSpheres(*convexHull);
+    expectUnsupportedComposite(convexHull, "convex hull",
+                               "convex CSG is not supported by GPU intersection scene compiler");
+
+    auto minkowskiSum = std::make_shared<MinkowskiSum>();
+    addTwoSpheres(*minkowskiSum);
+    expectUnsupportedComposite(minkowskiSum, "minkowski sum",
+                               "convex CSG is not supported by GPU intersection scene compiler");
+  }
+
   TEST(IntersectionSceneCompiler, RecordsUnsupportedPrimitiveReasons) {
-    auto curve = unsupportedCurve();
-    curve->setName("render curve");
+    auto unsupported = unsupportedPrimitive();
+    unsupported->setName("unsupported primitive");
     Scene scene;
-    scene.add(curve);
+    scene.add(unsupported);
 
     const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
 
@@ -333,7 +407,7 @@ namespace IntersectionSceneCompilerTest {
     EXPECT_FALSE(compiled.fullySupported());
     EXPECT_EQ(IntersectionPrimitiveKind::Unsupported, compiled.primitives()[0].kind);
     EXPECT_EQ(compiled.primitives()[0].object, compiled.unsupportedPrimitives()[0].object);
-    EXPECT_EQ("render curve", compiled.unsupportedPrimitives()[0].primitiveName);
+    EXPECT_EQ("unsupported primitive", compiled.unsupportedPrimitives()[0].primitiveName);
     EXPECT_EQ("primitive is not supported by GPU intersection scene compiler",
               compiled.unsupportedPrimitives()[0].reason);
   }
@@ -355,14 +429,14 @@ namespace IntersectionSceneCompilerTest {
   }
 
   TEST(IntersectionSceneCompiler, CountsUnsupportedPrimitiveReasonsInFirstSeenOrder) {
-    auto firstCurve = unsupportedCurve();
-    auto secondCurve = unsupportedCurve();
+    auto firstUnsupported = unsupportedPrimitive();
+    auto secondUnsupported = unsupportedPrimitive();
     auto movingInstance = std::make_shared<Instance>(std::make_shared<Sphere>(Vector3d(), 1.0));
     movingInstance->setVelocity(Vector3d(1, 0, 0));
     Scene scene;
-    scene.add(firstCurve);
+    scene.add(firstUnsupported);
     scene.add(movingInstance);
-    scene.add(secondCurve);
+    scene.add(secondUnsupported);
 
     const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
     const std::vector<UnsupportedIntersectionReasonCount> reasonCounts =

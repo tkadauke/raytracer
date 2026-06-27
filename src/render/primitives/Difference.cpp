@@ -6,6 +6,7 @@
 #include <QDebug>
 #include <array>
 #include <cstdint>
+#include <utility>
 
 using namespace render;
 
@@ -143,6 +144,16 @@ Difference::intersectPacketIntervals(const Ray8& rays, const PrimitivePacketStat
 // differential objects
 bool Difference::intersects(const Rayd& ray, render::State& state) const {
   return Primitive::intersects(ray, state);
+}
+
+void Difference::appendIntersectionSceneRecords(IntersectionSceneBuilder& builder,
+                                                std::shared_ptr<render::Material> inheritedMaterial,
+                                                const Matrix4d& pointMatrix,
+                                                const Matrix3d& normalMatrix,
+                                                const Primitive* inheritedObject) const {
+  addUnsupportedCompositeIntersectionSceneRecord(
+    builder, std::move(inheritedMaterial), pointMatrix, normalMatrix, inheritedObject,
+    "difference CSG is not supported by GPU intersection scene compiler");
 }
 
 std::shared_ptr<Mesh> Difference::tessellate(int) const {

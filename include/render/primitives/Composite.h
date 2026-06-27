@@ -2,6 +2,7 @@
 
 #include <list>
 #include <memory>
+#include <string>
 
 #include "render/primitives/Primitive.h"
 #include "render/primitives/SpatialIndex.h"
@@ -126,6 +127,11 @@ namespace render {
     std::shared_ptr<Mesh> tessellate(int lod = 0) const override;
 
   protected:
+    void addUnsupportedCompositeIntersectionSceneRecord(
+      IntersectionSceneBuilder& builder, std::shared_ptr<render::Material> inheritedMaterial,
+      const Matrix4d& pointMatrix, const Matrix3d& normalMatrix, const Primitive* inheritedObject,
+      std::string reason) const;
+
     /**
       * @returns the union of every child's bounding box, or a
       * default-constructed (empty) box for an empty composite.

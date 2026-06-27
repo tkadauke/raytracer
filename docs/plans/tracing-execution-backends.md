@@ -56,6 +56,9 @@ end state for GPU tracing.
   triangle/mesh triangles, imported/static `MeshPrimitive` geometry that
   flattens to mesh triangles, finite-width `Curve` ribbon/tube tessellation,
   sphere, plane, rectangle, disk, OpenCylinder, Torus, and static transforms.
+- Boolean/convex CSG primitives (`Difference`, `Intersection`, `Union`,
+  `ConvexHull`, and `MinkowskiSum`) emit explicit unsupported intersection
+  records instead of flattening supported children and losing CSG semantics.
 - The packed CPU intersection path uses the same GPU-style ray, hit, occlusion,
   BVH, primitive, payload, and transform records as the platform backend
   contract.
@@ -379,7 +382,8 @@ smaller and all-or-nothing for a render or service call. The supported subset is
 - static transforms / instances whose payloads can be represented by stable
   compiled ids.
 
-Unsupported CSG/boolean composites, moving transforms, unsupported exact
+Unsupported CSG/boolean composites (`Difference`, `Intersection`, `Union`,
+`ConvexHull`, and `MinkowskiSum`), moving transforms, unsupported exact
 primitive payloads, and materials that require runtime-only continuation
 semantics such as transparent/glass Whitted recursion must keep the service on
 the runtime CPU path or produce an explicit fallback reason. Platform Metal and

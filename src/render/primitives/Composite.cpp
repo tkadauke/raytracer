@@ -9,6 +9,7 @@
 #include <array>
 #include <cstdint>
 #include <limits>
+#include <utility>
 
 using namespace std;
 using namespace render;
@@ -238,6 +239,19 @@ void Composite::appendIntersectionSceneRecords(IntersectionSceneBuilder& builder
     primitive->appendIntersectionSceneRecords(builder, effective, pointMatrix, normalMatrix,
                                               effectiveObject);
   }
+}
+
+void Composite::addUnsupportedCompositeIntersectionSceneRecord(
+  IntersectionSceneBuilder& builder, std::shared_ptr<render::Material> inheritedMaterial,
+  const Matrix4d& pointMatrix, const Matrix3d& normalMatrix, const Primitive* inheritedObject,
+  std::string reason) const {
+  auto own = material();
+  auto effective = own ? own : inheritedMaterial;
+  const Primitive* effectiveObject = own ? this : inheritedObject;
+
+  builder.addUnsupportedPrimitive(
+    TransformedLeaf{this, effective, pointMatrix, normalMatrix, effectiveObject},
+    std::move(reason));
 }
 
 void Composite::forEachCurveOverlaySegment(const CurveOverlaySegmentVisitor& visitor) const {

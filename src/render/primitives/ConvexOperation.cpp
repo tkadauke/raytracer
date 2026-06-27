@@ -3,6 +3,8 @@
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
 
+#include <utility>
+
 using namespace render;
 
 const Primitive* ConvexOperation::intersect(const Rayd& ray, HitPointInterval& hitPoints,
@@ -137,4 +139,13 @@ bool ConvexOperation::intersects(const Rayd& ray, render::State&) const {
 
   HitPointInterval hitPoints;
   return convexIntersect(ray, hitPoints);
+}
+
+void ConvexOperation::appendIntersectionSceneRecords(
+  IntersectionSceneBuilder& builder, std::shared_ptr<render::Material> inheritedMaterial,
+  const Matrix4d& pointMatrix, const Matrix3d& normalMatrix,
+  const Primitive* inheritedObject) const {
+  addUnsupportedCompositeIntersectionSceneRecord(
+    builder, std::move(inheritedMaterial), pointMatrix, normalMatrix, inheritedObject,
+    "convex CSG is not supported by GPU intersection scene compiler");
 }
