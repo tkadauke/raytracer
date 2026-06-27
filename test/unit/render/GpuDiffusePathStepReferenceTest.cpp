@@ -188,6 +188,23 @@ namespace GpuDiffusePathStepReferenceTest {
       fullGpuPathLoopSupport(const GpuTracingSceneSections&) const override {
         return {false, "test backend supports only a narrower scene subset"};
       }
+
+      GpuDiffusePathLoopBackendSupport
+      fullGpuPathLoopSupport(const GpuTracingSceneSections&,
+                             const GpuDiffusePathLoopSettings&) const override {
+        return {false, "test backend supports only a narrower scene subset"};
+      }
+    };
+
+    class UnavailableFullGpuPathLoopBackend final : public AvailableFullGpuPathLoopBackend {
+    public:
+      bool fullGpuPathLoopAvailable() const override {
+        return false;
+      }
+
+      const char* fullGpuPathLoopUnavailableReason() const override {
+        return "test backend is offline";
+      }
     };
 
     GpuIntersectionHitRecord hitRecord(std::uint32_t rayIndex, std::uint32_t material) {
@@ -2294,6 +2311,43 @@ namespace GpuDiffusePathStepReferenceTest {
 
     EXPECT_FALSE(support.supported);
     EXPECT_EQ("test backend supports only a narrower scene subset", support.reason);
+  }
+
+  TEST(GpuDiffusePathLoopBackend, SelectsLaterBackendWhenEarlierBackendRejectsScene) {
+    const std::vector<std::shared_ptr<const GpuDiffusePathLoopBackend>> backends{
+      std::make_shared<SceneRejectingFullGpuPathLoopBackend>(),
+      std::make_shared<AvailableFullGpuPathLoopBackend>()};
+
+    const GpuDiffusePathLoopBackendChoice choice = selectFullGpuDiffusePathLoopBackend(
+      backends, GpuTracingSceneSections(), GpuDiffusePathLoopSettings());
+
+    ASSERT_TRUE(choice.backend);
+    EXPECT_STREQ("available_full_gpu_path_loop", choice.backend->name());
+    EXPECT_TRUE(choice.fallbackReason.empty());
+  }
+
+  TEST(GpuDiffusePathLoopBackend, ReportsFirstRelevantReasonWhenNoBackendSupportsScene) {
+    {
+      const std::vector<std::shared_ptr<const GpuDiffusePathLoopBackend>> backends{
+        std::make_shared<UnavailableFullGpuPathLoopBackend>(),
+        std::make_shared<SceneRejectingFullGpuPathLoopBackend>()};
+
+      const GpuDiffusePathLoopBackendChoice choice = selectFullGpuDiffusePathLoopBackend(
+        backends, GpuTracingSceneSections(), GpuDiffusePathLoopSettings());
+
+      EXPECT_FALSE(choice.backend);
+      EXPECT_EQ("test backend supports only a narrower scene subset", choice.fallbackReason);
+    }
+    {
+      const std::vector<std::shared_ptr<const GpuDiffusePathLoopBackend>> backends{
+        std::make_shared<UnavailableFullGpuPathLoopBackend>()};
+
+      const GpuDiffusePathLoopBackendChoice choice = selectFullGpuDiffusePathLoopBackend(
+        backends, GpuTracingSceneSections(), GpuDiffusePathLoopSettings());
+
+      EXPECT_FALSE(choice.backend);
+      EXPECT_EQ("test backend is offline", choice.fallbackReason);
+    }
   }
 
   TEST(GpuDiffusePathLoopBackend, SharedPlatformAccumulationPlanUsesSampleSlotsForDuplicatePixels) {

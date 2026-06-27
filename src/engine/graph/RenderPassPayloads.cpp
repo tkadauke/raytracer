@@ -1064,15 +1064,7 @@ namespace engine::graph {
         render::makeGpuTracingConstantEnvironment(graph.backgroundColor());
     }
 
-    constexpr const char* kNoPlatformFullGpuPathLoopBackendReason =
-      "platform full-GPU path-loop backend is not enabled in this build";
-
-    struct GpuDiffusePathLoopBackendSelection {
-      std::shared_ptr<const render::GpuDiffusePathLoopBackend> backend;
-      std::string fullGpuFallbackReason;
-    };
-
-    GpuDiffusePathLoopBackendSelection
+    render::GpuDiffusePathLoopBackendChoice
     selectGpuDiffusePathLoopBackend(const GraphRenderEngine& graph,
                                     const RaytracerBeautyPassState& state,
                                     const render::GpuTracingSceneSections& sections,
@@ -1084,22 +1076,12 @@ namespace engine::graph {
       }
 
       if (requestedOrPredictedGpuTracing(state)) {
-        const std::shared_ptr<const render::GpuDiffusePathLoopBackend> fullGpuBackend =
-          render::GpuDiffusePathLoopBackend::defaultFullGpuBackendForGpuRequest();
-        if (!fullGpuBackend) {
-          return {configuredBackend, kNoPlatformFullGpuPathLoopBackendReason};
+        render::GpuDiffusePathLoopBackendChoice fullGpuBackend =
+          render::GpuDiffusePathLoopBackend::defaultFullGpuBackendForGpuRequest(sections, settings);
+        if (fullGpuBackend.backend) {
+          return fullGpuBackend;
         }
-        if (!fullGpuBackend->fullGpuPathLoopAvailable()) {
-          return {configuredBackend, fullGpuBackend->fullGpuPathLoopUnavailableReason()};
-        }
-        {
-          const render::GpuDiffusePathLoopBackendSupport support =
-            fullGpuBackend->fullGpuPathLoopSupport(sections, settings);
-          if (support.supported) {
-            return {fullGpuBackend, {}};
-          }
-          return {configuredBackend, support.reason};
-        }
+        return {configuredBackend, std::move(fullGpuBackend.fallbackReason)};
       }
 
       return {configuredBackend, {}};
@@ -1107,7 +1089,7 @@ namespace engine::graph {
 
     QString actualCompiledDiffusePathLoopFallbackReason(
       const render::GpuDiffusePathLoopResult& loop,
-      const GpuDiffusePathLoopBackendSelection& selection,
+      const render::GpuDiffusePathLoopBackendChoice& selection,
       const render::GpuDiffusePrimaryPathStateGeneration& generation) {
       const QString primaryPathFallback = primaryPathGenerationFallbackReason(generation);
       if (!primaryPathFallback.isEmpty()) {
@@ -1116,7 +1098,7 @@ namespace engine::graph {
       if (loop.fullGpuPathLoopSupported()) {
         return {};
       }
-      QString reason = QString::fromStdString(selection.fullGpuFallbackReason);
+      QString reason = QString::fromStdString(selection.fallbackReason);
       if (reason.isEmpty()) {
         reason = QStringLiteral("selected backend does not execute a full platform GPU path-loop");
       }
@@ -1347,7 +1329,7 @@ namespace engine::graph {
         const bool wantsPlatformDisplayResolve =
           displayTarget && context.displayTargetDirectlyPublishable() && !denoiser &&
           !settings.captureDiagnostics && supportsPlatformDisplayResolve(wavefront.tonemap());
-        const GpuDiffusePathLoopBackendSelection pathLoopBackendSelection =
+        const render::GpuDiffusePathLoopBackendChoice pathLoopBackendSelection =
           selectGpuDiffusePathLoopBackend(context.graph(), state, compilation.sections, settings);
         const std::shared_ptr<const render::GpuDiffusePathLoopBackend>& pathLoopBackend =
           pathLoopBackendSelection.backend;

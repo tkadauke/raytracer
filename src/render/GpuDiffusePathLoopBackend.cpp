@@ -23,6 +23,8 @@ namespace render {
     constexpr const char* kFullGpuSubsetExecutionPath = "full_gpu_subset";
     constexpr const char* kNoPlatformPathLoopReason =
       "platform full-GPU path-loop kernel is not available yet";
+    constexpr const char* kNoPlatformFullGpuPathLoopBackendReason =
+      "platform full-GPU path-loop backend is not enabled in this build";
 
     struct ActiveAccumulationTargetShape {
       std::uint64_t pixelCount{1};
@@ -281,6 +283,62 @@ namespace render {
       }
       return {};
     }
+
+    std::vector<std::shared_ptr<const GpuDiffusePathLoopBackend>> fullGpuBackendsForGpuRequest() {
+      std::vector<std::shared_ptr<const GpuDiffusePathLoopBackend>> backends;
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+      backends.push_back(MetalGpuDiffusePathLoopBackend::sharedInstance());
+#endif
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+      backends.push_back(VulkanGpuDiffusePathLoopBackend::sharedInstance());
+#endif
+      return backends;
+    }
+  }
+
+  GpuDiffusePathLoopBackendChoice selectFullGpuDiffusePathLoopBackend(
+    const std::vector<std::shared_ptr<const GpuDiffusePathLoopBackend>>& backends,
+    const GpuTracingSceneSections& scene, const GpuDiffusePathLoopSettings& settings) {
+    bool sawBackend = false;
+    bool sawAvailableBackend = false;
+    std::string firstUnavailableReason;
+    std::string firstUnsupportedReason;
+
+    for (const auto& backend : backends) {
+      if (!backend) {
+        continue;
+      }
+      sawBackend = true;
+      if (!backend->fullGpuPathLoopAvailable()) {
+        if (firstUnavailableReason.empty()) {
+          firstUnavailableReason = backend->fullGpuPathLoopUnavailableReason();
+        }
+        continue;
+      }
+
+      sawAvailableBackend = true;
+      const GpuDiffusePathLoopBackendSupport support =
+        backend->fullGpuPathLoopSupport(scene, settings);
+      if (support.supported) {
+        return {backend, {}};
+      }
+      if (firstUnsupportedReason.empty()) {
+        firstUnsupportedReason = support.reason.empty()
+                                   ? "platform full-GPU path-loop backend rejected scene/settings"
+                                   : support.reason;
+      }
+    }
+
+    if (!sawBackend) {
+      return {nullptr, kNoPlatformFullGpuPathLoopBackendReason};
+    }
+    if (sawAvailableBackend) {
+      return {nullptr, firstUnsupportedReason.empty()
+                         ? "no platform full-GPU path-loop backend supports this scene/settings"
+                         : firstUnsupportedReason};
+    }
+    return {nullptr, firstUnavailableReason.empty() ? kNoPlatformFullGpuPathLoopBackendReason
+                                                    : firstUnavailableReason};
   }
 
   GpuDiffusePathLoopPlatformAccumulationPlan platformGpuDiffusePathLoopAccumulationPlanFor(
@@ -425,14 +483,12 @@ namespace render {
 
   std::shared_ptr<const GpuDiffusePathLoopBackend>
   GpuDiffusePathLoopBackend::defaultFullGpuBackendForGpuRequest() {
-    std::vector<std::shared_ptr<const GpuDiffusePathLoopBackend>> backends;
-#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
-    backends.push_back(MetalGpuDiffusePathLoopBackend::sharedInstance());
-#endif
-#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
-    backends.push_back(VulkanGpuDiffusePathLoopBackend::sharedInstance());
-#endif
-    return firstAvailableFullGpuBackend(backends);
+    return firstAvailableFullGpuBackend(fullGpuBackendsForGpuRequest());
+  }
+
+  GpuDiffusePathLoopBackendChoice GpuDiffusePathLoopBackend::defaultFullGpuBackendForGpuRequest(
+    const GpuTracingSceneSections& scene, const GpuDiffusePathLoopSettings& settings) {
+    return selectFullGpuDiffusePathLoopBackend(fullGpuBackendsForGpuRequest(), scene, settings);
   }
 
   bool GpuDiffusePathLoopBackend::fullGpuPathLoopAvailable() const {

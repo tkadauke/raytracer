@@ -134,9 +134,11 @@ namespace engine::graph {
                                        : "platform full-GPU path-loop backend is not enabled in "
                                          "this build");
     if (support.supported && backendAvailable) {
-      const render::GpuDiffusePathLoopBackendSupport backendSupport =
-        fullGpuBackend->fullGpuPathLoopSupport(compilation.sections);
-      setFullGpuTracingSupported(backendSupport.supported, backendSupport.reason);
+      const render::GpuDiffusePathLoopBackendChoice backendChoice =
+        render::GpuDiffusePathLoopBackend::defaultFullGpuBackendForGpuRequest(
+          compilation.sections, render::GpuDiffusePathLoopSettings());
+      setFullGpuTracingSupported(static_cast<bool>(backendChoice.backend),
+                                 backendChoice.fallbackReason);
     }
   }
 

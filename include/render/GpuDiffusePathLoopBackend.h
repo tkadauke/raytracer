@@ -10,9 +10,16 @@
 #include <vector>
 
 namespace render {
+  class GpuDiffusePathLoopBackend;
+
   struct GpuDiffusePathLoopBackendSupport {
     bool supported{false};
     std::string reason;
+  };
+
+  struct GpuDiffusePathLoopBackendChoice {
+    std::shared_ptr<const GpuDiffusePathLoopBackend> backend;
+    std::string fallbackReason;
   };
 
   struct GpuDiffusePathLoopPlatformAccumulationPlan {
@@ -56,6 +63,9 @@ namespace render {
     GpuDiffusePathLoopPlatformResult&& platformResult, const char* backendDisplayName,
     const char* platformName, const char* pathStateResidency, const char* accumulationBackend,
     const char* accumulationResidency);
+  [[nodiscard]] GpuDiffusePathLoopBackendChoice selectFullGpuDiffusePathLoopBackend(
+    const std::vector<std::shared_ptr<const GpuDiffusePathLoopBackend>>& backends,
+    const GpuTracingSceneSections& scene, const GpuDiffusePathLoopSettings& settings);
 
   /**
     * Backend boundary for the compiled diffuse path-loop subset.
@@ -72,6 +82,9 @@ namespace render {
     defaultBackendForGpuRequest();
     [[nodiscard]] static std::shared_ptr<const GpuDiffusePathLoopBackend>
     defaultFullGpuBackendForGpuRequest();
+    [[nodiscard]] static GpuDiffusePathLoopBackendChoice
+    defaultFullGpuBackendForGpuRequest(const GpuTracingSceneSections& scene,
+                                       const GpuDiffusePathLoopSettings& settings);
 
     virtual const char* name() const = 0;
     [[nodiscard]] virtual bool fullGpuPathLoopAvailable() const;
