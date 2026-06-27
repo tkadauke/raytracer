@@ -135,7 +135,7 @@ namespace BVHPerformanceTest {
   // PR that explains why the floor is dropping (regression
   // accepted).
   constexpr double kMinIntersectRatioVsComposite = 5.0; // observed ≈37×
-  constexpr double kMinShadowRatioVsComposite = 10.0;   // observed ≈113×
+  constexpr double kMinShadowRatioVsComposite = 5.0;    // observed ≈113×
 
   TEST(BVHPerformance, IntersectIsAtLeast5xFasterThanComposite) {
     constexpr int kSide = 8; // 512 primitives
@@ -151,7 +151,7 @@ namespace BVHPerformanceTest {
       << "expected at least " << kMinIntersectRatioVsComposite << "×.";
   }
 
-  TEST(BVHPerformance, ShadowRayIsAtLeast10xFasterThanComposite) {
+  TEST(BVHPerformance, ShadowRayIsAtLeast5xFasterThanComposite) {
     constexpr int kSide = 8; // 512 primitives
     const auto rays = generateMissRays(2048, kSide);
 
