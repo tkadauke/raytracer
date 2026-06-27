@@ -113,6 +113,13 @@ backend.
 `benchmarks/tracing_backend_capture.sh` writes those rows to
 `<out>/indirect_diffuse/indirect_diffuse_compiled_path_loop_benchmarks.json`
 when `TRACING_BACKEND_RUN_CPP_BENCHMARKS=1`.
+After a GPU-capable capture, verify the E15 speedup gate with:
+
+```sh
+scripts/verify_tracing_path_loop_speedup.rb \
+  <out>/indirect_diffuse/indirect_diffuse_compiled_path_loop_benchmarks.json \
+  --paths 65536 --depth 4 --min-speedup 1.0
+```
 
 ## Comparable Metric Fields
 

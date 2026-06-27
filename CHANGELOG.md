@@ -21,6 +21,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Add 65,536-path compiled diffuse path-loop benchmark rows so CPU-reference
   and requested-GPU captures include a realistic full-GPU amortization
   workload. — GPT-5 Codex
+- Add `scripts/verify_tracing_path_loop_speedup.rb` to turn compiled
+  diffuse path-loop benchmark JSON into an explicit full-GPU speedup pass/fail
+  check. — GPT-5 Codex
 - Add a warmed requested-GPU compiled diffuse path-loop benchmark row so
   benchmark captures can compare cold scene upload with steady-state
   scene-upload cache reuse. — GPT-5 Codex
