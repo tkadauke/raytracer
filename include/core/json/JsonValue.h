@@ -45,6 +45,14 @@ namespace core::json {
     return result;
   }
 
+  template<class Source, std::size_t Size>
+  inline QJsonArray numberArrayToJsonArray(const std::array<Source, Size>& values) {
+    QJsonArray result;
+    for (const auto& value : values)
+      result.append(static_cast<double>(value));
+    return result;
+  }
+
   template<std::size_t Size, class Message, class ErrorHandler>
   inline std::optional<std::array<double, Size>>
   requireNumberArray(const QJsonValue& value, Message arrayMessage, Message sizeMessage,
@@ -57,19 +65,19 @@ namespace core::json {
   }
 
   inline QJsonArray vector3ToJsonArray(const Vector3d& value) {
-    return QJsonArray{value.x(), value.y(), value.z()};
+    return numberArrayToJsonArray(std::array<double, 3>{value.x(), value.y(), value.z()});
   }
 
   inline QJsonArray colorToJsonArray(const Colord& value) {
-    return QJsonArray{value.r(), value.g(), value.b()};
+    return numberArrayToJsonArray(std::array<double, 3>{value.r(), value.g(), value.b()});
   }
 
   inline Vector3d vector3FromJsonArray(const QJsonArray& array) {
-    return Vector3d(array[0].toDouble(), array[1].toDouble(), array[2].toDouble());
+    return Vector3d(numberArrayFromJsonArray<3>(array));
   }
 
   inline Colord colorFromJsonArray(const QJsonArray& array) {
-    return Colord(array[0].toDouble(), array[1].toDouble(), array[2].toDouble());
+    return Colord(numberArrayFromJsonArray<3>(array));
   }
 
 }

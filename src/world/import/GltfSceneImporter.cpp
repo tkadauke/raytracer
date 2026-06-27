@@ -2,6 +2,7 @@
 
 #include "core/geometry/Mesh.h"
 #include "core/formats/gltf/GltfReader.h"
+#include "core/json/JsonValue.h"
 #include "core/math/Matrix.h"
 #include "core/math/Quaternion.h"
 #include "render/materials/MatteMaterial.h"
@@ -350,7 +351,7 @@ namespace world {
     }
 
     QJsonArray jsonArrayFor(const std::array<double, 3>& values) {
-      return QJsonArray{values[0], values[1], values[2]};
+      return core::json::numberArrayToJsonArray(values);
     }
 
     Vector3d normalizedDirectionOrDefault(const Matrix4d& transform, const Vector3d& local) {
