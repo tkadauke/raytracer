@@ -43,8 +43,14 @@ namespace render {
   }
 
   bool GpuDiffusePathLoopSceneSupport::primitiveUsesSupportedGeometry(
-    const GpuIntersectionPrimitiveRecord& primitive, const GpuIntersectionSceneBuffers& geometry,
+    const GpuIntersectionPrimitiveRecord& primitive, const GpuTracingSceneSections& scene,
     SupportedGeometryCounts& counts) const {
+    const GpuIntersectionSceneBuffers& geometry = scene.geometry;
+    if (primitive.material >= scene.materials.size() ||
+        static_cast<GpuTracingMaterialKind>(scene.materials[primitive.material].kind) ==
+          GpuTracingMaterialKind::Unsupported) {
+      return false;
+    }
     if (primitive.transform != 0u && primitive.transform >= geometry.transforms.size()) {
       return false;
     }
@@ -112,7 +118,7 @@ namespace render {
 
     SupportedGeometryCounts counts;
     for (const GpuIntersectionPrimitiveRecord& primitive : geometry.primitives) {
-      if (!primitiveUsesSupportedGeometry(primitive, geometry, counts)) {
+      if (!primitiveUsesSupportedGeometry(primitive, scene, counts)) {
         return false;
       }
     }

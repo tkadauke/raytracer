@@ -47,6 +47,15 @@ namespace GpuDiffusePathLoopSceneSupportTest {
       return record;
     }
 
+    void addSupportedMatteMaterial(GpuTracingSceneSections& sections) {
+      sections.textures.push_back(textureRecord(GpuTracingTextureKind::Unsupported));
+      sections.textures.push_back(textureRecord(GpuTracingTextureKind::ConstantColor));
+      sections.materials.push_back(materialRecord(GpuTracingMaterialKind::Unsupported));
+      GpuTracingMaterialRecord matte = materialRecord(GpuTracingMaterialKind::Matte);
+      matte.albedoTexture = 1;
+      sections.materials.push_back(matte);
+    }
+
     GpuIntersectionBvhNode singlePrimitiveLeafNode() {
       GpuIntersectionBvhNode node;
       node.primitiveCount = 1;
@@ -163,8 +172,10 @@ namespace GpuDiffusePathLoopSceneSupportTest {
 
   TEST(GpuDiffusePathLoopSceneSupport, ValidatesSupportedPrimitivePayloads) {
     GpuTracingSceneSections sections;
+    addSupportedMatteMaterial(sections);
     sections.geometry.bvh.push_back(singlePrimitiveLeafNode());
     sections.geometry.primitives.push_back(primitiveRecord(GpuIntersectionPrimitiveKind::Sphere));
+    sections.geometry.primitives.back().material = 1;
     sections.geometry.spheres.push_back(GpuIntersectionSpherePayload{});
 
     const GpuDiffusePathLoopSceneSupport supportPolicy;
@@ -173,28 +184,55 @@ namespace GpuDiffusePathLoopSceneSupportTest {
     expectSupported(supportFor(sections));
   }
 
+  TEST(GpuDiffusePathLoopSceneSupport, RejectsSupportedGeometryWithInvalidMaterialReferences) {
+    GpuTracingSceneSections missingMaterial;
+    missingMaterial.geometry.bvh.push_back(singlePrimitiveLeafNode());
+    missingMaterial.geometry.primitives.push_back(
+      primitiveRecord(GpuIntersectionPrimitiveKind::Sphere));
+    missingMaterial.geometry.primitives.back().material = 7;
+    missingMaterial.geometry.spheres.push_back(GpuIntersectionSpherePayload{});
+    expectUnsupported(supportFor(missingMaterial), "geometry");
+
+    GpuTracingSceneSections sentinelMaterial;
+    addSupportedMatteMaterial(sentinelMaterial);
+    sentinelMaterial.geometry.bvh.push_back(singlePrimitiveLeafNode());
+    sentinelMaterial.geometry.primitives.push_back(
+      primitiveRecord(GpuIntersectionPrimitiveKind::Sphere));
+    sentinelMaterial.geometry.primitives.back().material = 0;
+    sentinelMaterial.geometry.spheres.push_back(GpuIntersectionSpherePayload{});
+    expectUnsupported(supportFor(sentinelMaterial), "geometry");
+  }
+
   TEST(GpuDiffusePathLoopSceneSupport, RejectsUnsupportedOrMalformedGeometry) {
     GpuTracingSceneSections missingBvh;
+    addSupportedMatteMaterial(missingBvh);
     missingBvh.geometry.primitives.push_back(primitiveRecord(GpuIntersectionPrimitiveKind::Sphere));
+    missingBvh.geometry.primitives.back().material = 1;
     missingBvh.geometry.spheres.push_back(GpuIntersectionSpherePayload{});
     expectUnsupported(supportFor(missingBvh), "geometry");
 
     GpuTracingSceneSections unsupportedPrimitive;
+    addSupportedMatteMaterial(unsupportedPrimitive);
     unsupportedPrimitive.geometry.bvh.push_back(singlePrimitiveLeafNode());
     unsupportedPrimitive.geometry.primitives.push_back(
       primitiveRecord(GpuIntersectionPrimitiveKind::Unsupported));
+    unsupportedPrimitive.geometry.primitives.back().material = 1;
     expectUnsupported(supportFor(unsupportedPrimitive), "geometry");
 
     GpuTracingSceneSections missingPayload;
+    addSupportedMatteMaterial(missingPayload);
     missingPayload.geometry.bvh.push_back(singlePrimitiveLeafNode());
     missingPayload.geometry.primitives.push_back(
       primitiveRecord(GpuIntersectionPrimitiveKind::Sphere));
+    missingPayload.geometry.primitives.back().material = 1;
     expectUnsupported(supportFor(missingPayload), "geometry");
 
     GpuTracingSceneSections wrongPayloadCount;
+    addSupportedMatteMaterial(wrongPayloadCount);
     wrongPayloadCount.geometry.bvh.push_back(singlePrimitiveLeafNode());
     wrongPayloadCount.geometry.primitives.push_back(
       primitiveRecord(GpuIntersectionPrimitiveKind::Sphere));
+    wrongPayloadCount.geometry.primitives.back().material = 1;
     wrongPayloadCount.geometry.primitives.back().payloadCount = 2;
     wrongPayloadCount.geometry.spheres.push_back(GpuIntersectionSpherePayload{});
     wrongPayloadCount.geometry.spheres.push_back(GpuIntersectionSpherePayload{});

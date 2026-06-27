@@ -409,6 +409,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Reject compiled GPU diffuse path-loop materials that use the unsupported
   texture-table sentinel as a shader-visible albedo or emission texture. —
   GPT-5 Codex
+- Reject compiled GPU diffuse path-loop geometry whose primitive material ids
+  point outside the material table or at the unsupported material sentinel. —
+  GPT-5 Codex
 - Match runtime `Box` hit-point UVs to the tessellated compiled representation,
   preserving CPU/GPU texture-coordinate parity for Box geometry in GPU tracing
   paths. — GPT-5 Codex

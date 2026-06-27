@@ -41,7 +41,7 @@ namespace render {
 
     [[nodiscard]] bool
     primitiveUsesSupportedGeometry(const GpuIntersectionPrimitiveRecord& primitive,
-                                   const GpuIntersectionSceneBuffers& geometry,
+                                   const GpuTracingSceneSections& scene,
                                    SupportedGeometryCounts& counts) const;
     [[nodiscard]] bool
     materialUsesSupportedTextures(const GpuTracingSceneSections& scene,
