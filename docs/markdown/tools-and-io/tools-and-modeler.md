@@ -1002,6 +1002,10 @@ rasterizer preview shadows switch the live preview to Rasterizer before
 recompiling because the shadow pass is raster-specific. When the scene intent
 does not name a default camera, Modeler annotates scene-rendering passes with
 the active scene camera id from the editable scene.
+`Capture Graph Trace` in the same preview menu is off by default; enable it
+when the central Graph Trace tab needs fresh pass/resource snapshots. Leaving it
+off lets ordinary Path Tracer previews use trace-disabled GPU display paths
+instead of materializing host-side diagnostics.
 `Render -> Preview
 View` can also switch the live graph preview from beauty to depth, stencil,
 normal, object-id, material-id, world-position, or raster counter AOVs; the
@@ -1048,7 +1052,8 @@ manipulated plan immediately. When the manipulated plan is still valid, the
 central preview renders through that effective plan. After a render, selecting
 a pass or inspectable color/depth resource in the graph opens the central Graph
 Trace preview tab with input, output, and difference images from the last
-execution when that trace still matches the current plan and preview inputs.
+execution when preview graph trace capture was enabled and that trace still
+matches the current plan and preview inputs.
 The graph nodes themselves summarize pass status/timing and resource
 preview/cache status from that same trace.
 When a selected resource has no captured image, the trace preview distinguishes

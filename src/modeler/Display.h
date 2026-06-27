@@ -62,8 +62,7 @@ public:
   void notifyRenderGraphPassFinished(const QString& passId, std::uint64_t generation);
   void notifyRenderGraphPassFailed(const QString& passId, const QString& message,
                                    std::uint64_t generation);
-  void notifyRenderGraphActivePassesChanged(const QStringList& passIds,
-                                            std::uint64_t generation);
+  void notifyRenderGraphActivePassesChanged(const QStringList& passIds, std::uint64_t generation);
   std::shared_ptr<const engine::graph::RenderGraphExecutionTrace>
   lastRenderGraphExecutionTrace() const;
   std::shared_ptr<const engine::graph::RenderGraphExecutionTrace>
@@ -120,6 +119,10 @@ public slots:
   /// Enables or suspends live preview rendering while graph overrides are valid.
   void setRenderGraphPreviewEnabled(bool enabled);
   bool renderGraphPreviewEnabled() const;
+
+  /// Toggles per-pass graph trace capture for live preview renders.
+  void setRenderGraphTraceCaptureEnabled(bool enabled);
+  bool renderGraphTraceCaptureEnabled() const;
 
   /// Sets the tonemap used by the preview graph's tonemap node.
   void setPreviewTonemap(std::shared_ptr<render::Tonemap> tonemap);

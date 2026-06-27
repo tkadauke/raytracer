@@ -620,6 +620,7 @@ struct MainWindow::Private {
   QAction* previewRasterizerAct;
   QAction* previewRasterizerShadowsAct;
   QAction* previewFpsOverlayAct;
+  QAction* previewGraphTraceCaptureAct;
   QAction* previewRasterBackendCPUAct;
   QAction* previewRasterBackendOpenGLAct;
   QAction* previewPostAANoneAct;
@@ -992,6 +993,15 @@ void MainWindow::createActions() {
   p->previewFpsOverlayAct->setChecked(false);
   connect(p->previewFpsOverlayAct, SIGNAL(triggered(bool)), this, SLOT(setPreviewFpsOverlay(bool)));
 
+  p->previewGraphTraceCaptureAct = new QAction(tr("Capture Graph &Trace"), this);
+  p->previewGraphTraceCaptureAct->setObjectName(QStringLiteral("previewGraphTraceCaptureAct"));
+  p->previewGraphTraceCaptureAct->setStatusTip(
+    tr("Capture per-pass graph trace images and metadata for the live preview"));
+  p->previewGraphTraceCaptureAct->setCheckable(true);
+  p->previewGraphTraceCaptureAct->setChecked(false);
+  connect(p->previewGraphTraceCaptureAct, SIGNAL(triggered(bool)), this,
+          SLOT(setPreviewGraphTraceCapture(bool)));
+
   p->previewRasterBackendCPUAct = new QAction(tr("&CPU"), this);
   p->previewRasterBackendCPUAct->setStatusTip(
     tr("Use the software CPU rasterizer for live raster preview passes"));
@@ -1307,6 +1317,7 @@ void MainWindow::createMenus() {
   previewMenu->addAction(p->previewWireframeOverlayAct);
   previewMenu->addAction(p->previewRasterizerShadowsAct);
   previewMenu->addAction(p->previewFpsOverlayAct);
+  previewMenu->addAction(p->previewGraphTraceCaptureAct);
   auto previewRasterBackendMenu = previewMenu->addMenu(tr("Raster &Backend"));
   previewRasterBackendMenu->addAction(p->previewRasterBackendCPUAct);
   previewRasterBackendMenu->addAction(p->previewRasterBackendOpenGLAct);
@@ -1876,6 +1887,13 @@ void MainWindow::setPreviewRasterizerShadows(bool enabled) {
 
 void MainWindow::setPreviewFpsOverlay(bool enabled) {
   p->display->setFpsOverlayEnabled(enabled);
+}
+
+void MainWindow::setPreviewGraphTraceCapture(bool enabled) {
+  p->display->setRenderGraphTraceCaptureEnabled(enabled);
+  if (p->renderGraphInspectorWidget)
+    p->renderGraphInspectorWidget->setExecutionTrace(nullptr);
+  redraw();
 }
 
 void MainWindow::setPreviewRasterBackendCPU() {

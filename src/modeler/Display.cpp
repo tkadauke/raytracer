@@ -123,7 +123,6 @@ RenderDisplay::RenderDisplay(QWidget* parent)
   m_graphExecutionObserver = std::make_shared<ModelerRenderGraphExecutionObserver>(this);
   if (m_graphEngine) {
     m_graphEngine->setExecutionObserver(m_graphExecutionObserver);
-    m_graphEngine->setExecutionTraceEnabled(true);
   }
   m_raytracerEngine = std::make_shared<engine::raytracer::Raytracer>(nullptr);
   applyPreviewPolicy(EngineKind::Raytracer);
@@ -331,6 +330,15 @@ void RenderDisplay::setRenderGraphPreviewEnabled(bool enabled) {
 
 bool RenderDisplay::renderGraphPreviewEnabled() const {
   return m_renderGraphPreviewEnabled;
+}
+
+void RenderDisplay::setRenderGraphTraceCaptureEnabled(bool enabled) {
+  if (m_graphEngine)
+    m_graphEngine->setExecutionTraceEnabled(enabled);
+}
+
+bool RenderDisplay::renderGraphTraceCaptureEnabled() const {
+  return m_graphEngine && m_graphEngine->executionTraceEnabled();
 }
 
 void RenderDisplay::setPreviewTonemap(std::shared_ptr<render::Tonemap> tonemap) {

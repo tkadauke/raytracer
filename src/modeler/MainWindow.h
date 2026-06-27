@@ -113,6 +113,7 @@ private slots:
   void usePreviewRasterizer();
   void setPreviewRasterizerShadows(bool enabled);
   void setPreviewFpsOverlay(bool enabled);
+  void setPreviewGraphTraceCapture(bool enabled);
   void setPreviewRasterBackendCPU();
   void setPreviewRasterBackendOpenGL();
   void setPreviewPostAANone();

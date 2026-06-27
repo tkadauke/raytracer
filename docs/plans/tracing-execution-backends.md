@@ -126,7 +126,9 @@ end state for GPU tracing.
   The Modeler final render dialog now leaves trace capture off by default and
   exposes it as an explicit `Capture graph trace` diagnostic toggle, so the
   normal final-render path can take the trace-disabled display-only full-GPU
-  route.
+  route. The live preview similarly leaves graph trace capture off by default
+  and exposes `Capture Graph Trace` in the preview menu for users who need
+  pass/resource snapshots.
   Direct Metal/Vulkan backend support checks reject unsupported
   display-resolve tonemaps when resolved display pixels are requested.
 - Supported diffuse path-tracing scenes can route GPU execution requests

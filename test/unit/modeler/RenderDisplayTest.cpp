@@ -79,6 +79,34 @@ namespace RenderDisplayTest {
     EXPECT_TRUE(display.rasterizerPreviewBackend().isOpenGL());
   }
 
+  TEST_F(RenderDisplayTest, ShouldDefaultGraphTraceCaptureOff) {
+    RenderDisplay display(nullptr);
+
+    auto graph =
+      std::dynamic_pointer_cast<engine::graph::GraphRenderEngine>(display.renderEngine());
+    ASSERT_NE(nullptr, graph);
+    EXPECT_FALSE(display.renderGraphTraceCaptureEnabled());
+    EXPECT_FALSE(graph->executionTraceEnabled());
+  }
+
+  TEST_F(RenderDisplayTest, ShouldToggleGraphTraceCapture) {
+    RenderDisplay display(nullptr);
+
+    auto graph =
+      std::dynamic_pointer_cast<engine::graph::GraphRenderEngine>(display.renderEngine());
+    ASSERT_NE(nullptr, graph);
+
+    display.setRenderGraphTraceCaptureEnabled(true);
+
+    EXPECT_TRUE(display.renderGraphTraceCaptureEnabled());
+    EXPECT_TRUE(graph->executionTraceEnabled());
+
+    display.setRenderGraphTraceCaptureEnabled(false);
+
+    EXPECT_FALSE(display.renderGraphTraceCaptureEnabled());
+    EXPECT_FALSE(graph->executionTraceEnabled());
+  }
+
   TEST_F(RenderDisplayTest, ShouldBindSceneCamerasForPreviewGraphPasses) {
     auto scene = std::make_unique<Scene>();
     auto* activeCamera = new PinholeCamera;

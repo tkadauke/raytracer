@@ -28,6 +28,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   off so ordinary GPU Path Tracer renders can use the trace-disabled
   display-only full-GPU path while keeping trace inspection available on
   request. — GPT-5 Codex
+- Add a Modeler live-preview `Capture Graph Trace` toggle, defaulting off so
+  ordinary preview renders do not force graph trace diagnostics or host path
+  state materialization. — GPT-5 Codex
 - Size Metal full-GPU depth-frontier path-loop bounce dispatches from the
   GPU-resident retained frontier count instead of relaunching every initial
   sample at every depth. — GPT-5 Codex
