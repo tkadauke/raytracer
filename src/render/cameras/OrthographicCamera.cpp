@@ -48,7 +48,8 @@ OrthographicCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sa
   if (!plane || !plane->sampler() || plane->sampler()->numSamples() <= 0) {
     return std::nullopt;
   }
-  if (animationTrack("position") || animationTrack("target")) {
+  const std::optional<Matrix4d> descriptorMatrix = fixedShutterGpuCameraMatrix();
+  if (!descriptorMatrix) {
     return std::nullopt;
   }
 
@@ -70,7 +71,7 @@ OrthographicCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sa
   GpuPrimaryPathDescriptor descriptor;
   descriptor.mode = gpuPrimaryPathGenerationModeOrthographic;
   descriptor.rectilinear.originOrDirection =
-    vector4(matrix().transformDirection(Vector3d::forward()).normalized(), 0.0f);
+    vector4(descriptorMatrix->transformDirection(Vector3d::forward()).normalized(), 0.0f);
   descriptor.rectilinear.topLeft = vector4(plane->pixelAt(0.0, 0.0), 1.0f);
   descriptor.rectilinear.right = vector4(plane->pixelAt(1.0, 0.0) - plane->pixelAt(0.0, 0.0), 0.0f);
   descriptor.rectilinear.down = vector4(plane->pixelAt(0.0, 1.0) - plane->pixelAt(0.0, 0.0), 0.0f);

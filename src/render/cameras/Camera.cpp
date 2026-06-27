@@ -38,6 +38,16 @@ namespace {
   unsigned int packedRgb(const Colord& color) {
     return color.rgb();
   }
+
+  Vector3d animatedVectorAt(const Camera& camera, const char* property, const Vector3d& fallback,
+                            double time) {
+    const auto* track = camera.animationTrack(property);
+    if (!track) {
+      return fallback;
+    }
+    return fallback + track->sample(time).get<Vector3d>() -
+           track->sample(camera.animationFrame()).get<Vector3d>();
+  }
 }
 
 Camera::Camera()
@@ -80,6 +90,22 @@ void Camera::copyBaseStateTo(Camera& camera) const {
   // because clone() copies all fields; the camera-side copies above
   // keep the two in sync if setViewPlane() is called on the clone later.
   camera.m_viewPlane = m_viewPlane ? m_viewPlane->clone() : nullptr;
+}
+
+std::optional<Matrix4d> Camera::fixedShutterGpuCameraMatrix() const {
+  const bool hasAnimatedPose = animationTrack("position") || animationTrack("target");
+  if (!hasAnimatedPose) {
+    return matrix();
+  }
+
+  if (m_shutterOpen != m_shutterClose) {
+    return std::nullopt;
+  }
+
+  const double animationTime = animationTimeForSample(0.0);
+  const Vector3d animatedPosition = animatedVectorAt(*this, "position", m_position, animationTime);
+  const Vector3d animatedTarget = animatedVectorAt(*this, "target", m_target, animationTime);
+  return Matrix4d::lookAt(animatedPosition, animatedTarget, Vector3d::up());
 }
 
 void Camera::setViewPlane(std::shared_ptr<render::ViewPlane> plane) {

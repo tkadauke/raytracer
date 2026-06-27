@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Let fixed-shutter animated orthographic, thin-lens, tilt-shift,
+  equirectangular, spherical, and fish-eye cameras lower to GPU primary-path
+  descriptors, matching the pinhole descriptor fast path for still-frame
+  animated camera poses. — GPT-5 Codex
 - Let fixed-shutter animated pinhole cameras lower to GPU primary-path
   descriptors so trace-disabled full-GPU path-tracer renders can avoid host
   primary path-state materialization for still-frame animated camera poses. —

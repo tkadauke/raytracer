@@ -72,8 +72,11 @@ SphericalCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampl
   if (!plane || !plane->sampler() || plane->sampler()->numSamples() <= 0) {
     return std::nullopt;
   }
-  if (animationTrack("position") || animationTrack("target") ||
-      animationTrack("horizontalFieldOfView") || animationTrack("verticalFieldOfView")) {
+  if (animationTrack("horizontalFieldOfView") || animationTrack("verticalFieldOfView")) {
+    return std::nullopt;
+  }
+  const std::optional<Matrix4d> descriptorMatrix = fixedShutterGpuCameraMatrix();
+  if (!descriptorMatrix) {
     return std::nullopt;
   }
 
@@ -92,18 +95,16 @@ SphericalCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampl
   }
   (void)checkedU32(pathCount, "GPU spherical primary path count");
 
-  const Matrix4d& cameraMatrix = matrix();
-
   GpuPrimaryPathDescriptor descriptor;
   descriptor.mode = gpuPrimaryPathGenerationModeSpherical;
   descriptor.rectilinear.originOrDirection =
-    vector4(cameraMatrix.transformPoint(Vector3d(0.0, 0.0, -5.0)), 1.0f);
+    vector4(descriptorMatrix->transformPoint(Vector3d(0.0, 0.0, -5.0)), 1.0f);
   descriptor.rectilinear.right =
-    vector4(cameraMatrix.transformDirection(Vector3d(1.0, 0.0, 0.0)), 0.0f);
+    vector4(descriptorMatrix->transformDirection(Vector3d(1.0, 0.0, 0.0)), 0.0f);
   descriptor.rectilinear.down =
-    vector4(cameraMatrix.transformDirection(Vector3d(0.0, 1.0, 0.0)), 0.0f);
+    vector4(descriptorMatrix->transformDirection(Vector3d(0.0, 1.0, 0.0)), 0.0f);
   descriptor.rectilinear.forward =
-    vector4(cameraMatrix.transformDirection(Vector3d(0.0, 0.0, 1.0)), 0.0f);
+    vector4(descriptorMatrix->transformDirection(Vector3d(0.0, 0.0, 1.0)), 0.0f);
   descriptor.rectilinear.lensParameters =
     parameters4(plane->width(), plane->height(), m_horizontalFieldOfView.radians(),
                 m_verticalFieldOfView.radians());

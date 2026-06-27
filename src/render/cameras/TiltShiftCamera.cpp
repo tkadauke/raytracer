@@ -111,9 +111,12 @@ TiltShiftCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampl
   if (!plane || !plane->sampler() || plane->sampler()->numSamples() <= 0) {
     return std::nullopt;
   }
-  if (animationTrack("position") || animationTrack("target") || animationTrack("distance") ||
-      animationTrack("zoom") || animationTrack("apertureRadius") ||
+  if (animationTrack("distance") || animationTrack("zoom") || animationTrack("apertureRadius") ||
       animationTrack("focalDistance") || animationTrack("tilt") || animationTrack("shift")) {
+    return std::nullopt;
+  }
+  const std::optional<Matrix4d> descriptorMatrix = fixedShutterGpuCameraMatrix();
+  if (!descriptorMatrix) {
     return std::nullopt;
   }
 
@@ -132,11 +135,10 @@ TiltShiftCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampl
   }
   (void)checkedU32(pathCount, "GPU tilt-shift primary path count");
 
-  const Matrix4d& cameraMatrix = matrix();
-  const Vector3d eye = cameraMatrix * Vector4d(0, 0, -distance());
-  const Vector3d forward = cameraMatrix.transformDirection(Vector3d(0, 0, 1)).normalized();
-  const Vector3d right = cameraMatrix.transformDirection(Vector3d(1, 0, 0));
-  const Vector3d up = cameraMatrix.transformDirection(Vector3d(0, 1, 0));
+  const Vector3d eye = *descriptorMatrix * Vector4d(0, 0, -distance());
+  const Vector3d forward = descriptorMatrix->transformDirection(Vector3d(0, 0, 1)).normalized();
+  const Vector3d right = descriptorMatrix->transformDirection(Vector3d(1, 0, 0));
+  const Vector3d up = descriptorMatrix->transformDirection(Vector3d(0, 1, 0));
 
   GpuPrimaryPathDescriptor descriptor;
   descriptor.mode = gpuPrimaryPathGenerationModeTiltShift;

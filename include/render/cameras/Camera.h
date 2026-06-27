@@ -427,6 +427,17 @@ namespace render {
   protected:
     void copyBaseStateTo(Camera& camera) const;
 
+    /**
+      * Return the camera matrix that GPU primary-path descriptors may bake.
+      *
+      * Static cameras return `matrix()`. Cameras with animated position/target
+      * can only be represented when the shutter interval collapses to one
+      * deterministic time; sampled camera motion must keep using the CPU
+      * primary-ray generator until descriptor records can carry transforms as a
+      * function of shutter time.
+      */
+    [[nodiscard]] std::optional<Matrix4d> fixedShutterGpuCameraMatrix() const;
+
     /// Write `color` (already divided by sample count) into every
     /// pixel of the iterator's footprint — single pixel for the
     /// regular iterator, the size×size block for interlaced

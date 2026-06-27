@@ -116,11 +116,11 @@ end state for GPU tracing.
   with platform kernels dispatching by descriptor path count instead of the host
   vector size; the platform backends size accumulation for descriptor-only
   pinhole, orthographic, thin-lens, tilt-shift, equirectangular, spherical, and
-  fish-eye launches from the same descriptor metadata. Pinhole cameras with
-  fixed-width shutter intervals can also bake their animated still-frame pose
-  into that descriptor; sampled shutter camera motion still falls back until
-  descriptors carry animation-time transforms. Trace and CPU-reference paths
-  still materialize records for inspection and parity.
+  fish-eye launches from the same descriptor metadata. Those descriptor-backed
+  camera models with fixed-width shutter intervals can also bake their animated
+  still-frame pose into the descriptor; sampled shutter camera motion still
+  falls back until descriptors carry animation-time transforms. Trace and
+  CPU-reference paths still materialize records for inspection and parity.
   Trace-disabled platform full-GPU launches now also size path-state, step, and
   Metal closest-hit diagnostic storage to zero logical bytes. Simple LDR graph
   output can now use the platform-resolved display buffer without final HDR
@@ -233,10 +233,10 @@ end state for GPU tracing.
   can now be generated from shader-facing descriptors without host
   materialization for trace-disabled full-GPU graph launches and platform
   kernels dispatch those descriptor-only launches by descriptor path count.
-  Fixed-shutter animated pinhole poses are also descriptor-backed, but other
-  camera models without descriptors, sampled-shutter animated camera motion,
-  later path-continuation records, and retained frontier ownership still need
-  broader platform path-state support.
+  Fixed-shutter animated poses for those descriptor-backed camera models are
+  also descriptor-backed, but other camera models without descriptors,
+  sampled-shutter animated camera motion, later path-continuation records, and
+  retained frontier ownership still need broader platform path-state support.
 - A higher-level backend abstraction for selecting compacted wavefront versus
   megakernel schedules per platform. Metal/Vulkan now share the path-loop
   accumulation/result bookkeeping layer, but schedule selection and Vulkan
@@ -2770,7 +2770,7 @@ scene is large enough to amortize upload/readback costs.
      postprocess consumers no longer request an unused platform display resolve
      for the intermediate beauty preview; the final render dialog keeps graph
      trace capture off by default and exposes a diagnostic checkbox for users
-     who need trace images/metadata. Fixed-shutter animated pinhole
+     who need trace images/metadata. Fixed-shutter animated descriptor-backed
      cameras now bake their deterministic animated pose into the same primary
      descriptor, so still-frame animated camera renders can stay on the
      descriptor-only full-GPU path; sampled shutter camera motion still falls
