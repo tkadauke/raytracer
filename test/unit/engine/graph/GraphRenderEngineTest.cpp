@@ -2419,6 +2419,7 @@ namespace GraphRenderEngineTest {
     intent.engineOptions.raytracer().setIntegrator("pathtracer");
     intent.engineOptions.raytracer().setTracingExecution(TracingExecutionPreference::GPU);
     intent.engineOptions.raytracer().setSamplesPerPixel(1);
+    intent.engineOptions.raytracer().setSamplingSeed(2468);
     intent.engineOptions.raytracer().setMaximumRecursionDepth(2);
     intent.engineOptions.raytracer().setDirectLightSamples(2);
     intent.engineOptions.raytracer().setSampleStreamMode("gpu_sample_stream");
@@ -2532,6 +2533,7 @@ namespace GraphRenderEngineTest {
 
     const QJsonObject input = metadata.value("input").toObject();
     EXPECT_EQ("gpu_sample_stream", input.value("sampleStreamMode").toString().toStdString());
+    EXPECT_EQ(2468.0, input.value("samplingSeed").toDouble());
     EXPECT_EQ(64.0, input.value("primarySamples").toDouble());
 
     const QJsonObject loop = metadata.value("compiledDiffusePathLoop").toObject();
@@ -2570,6 +2572,7 @@ namespace GraphRenderEngineTest {
     intent.engineOptions.raytracer().setIntegrator("pathtracer");
     intent.engineOptions.raytracer().setTracingExecution(TracingExecutionPreference::GPU);
     intent.engineOptions.raytracer().setSamplesPerPixel(1);
+    intent.engineOptions.raytracer().setSamplingSeed(1357);
     intent.engineOptions.raytracer().setMaximumRecursionDepth(2);
     intent.engineOptions.raytracer().setDirectLightSamples(1);
     intent.engineOptions.raytracer().setSampleStreamMode("gpu_sample_stream");
@@ -2648,6 +2651,10 @@ namespace GraphRenderEngineTest {
     EXPECT_FALSE(batching.value("residentPathLoopCaptureResolvedDisplay").toBool());
     EXPECT_EQ("linear",
               batching.value("residentPathLoopDisplayResolveTonemap").toString().toStdString());
+
+    const QJsonObject input = metadata.value("input").toObject();
+    EXPECT_EQ("gpu_sample_stream", input.value("sampleStreamMode").toString().toStdString());
+    EXPECT_EQ(1357.0, input.value("samplingSeed").toDouble());
 
     const QJsonObject loop = metadata.value("compiledDiffusePathLoop").toObject();
     EXPECT_EQ("full_gpu_subset", loop.value("backend").toString().toStdString());

@@ -820,11 +820,15 @@ namespace engine::graph {
                                     const render::GpuDiffusePathLoopSettings& settings,
                                     const render::GpuDiffusePathLoopResult& loop,
                                     const render::TracingAccumulationDiagnostics& accumulation,
+                                    std::optional<std::uint64_t> samplingSeed,
                                     TracingExecutionPreference requestedTracingExecution) {
       QJsonObject input;
       input["primarySamples"] = static_cast<double>(generation.generatedPrimarySamples);
       input["skippedPrimarySamples"] = static_cast<double>(generation.skippedPrimarySamples);
       input["sampleStreamMode"] = QStringLiteral("gpu_sample_stream");
+      if (samplingSeed) {
+        input["samplingSeed"] = static_cast<double>(*samplingSeed);
+      }
       input["primaryPathExecutionPath"] =
         QString::fromStdString(generation.primaryPathExecutionPath);
       input["primaryPathGeneratesOnDevice"] = generation.canGeneratePrimaryPathsOnDevice();
@@ -1427,7 +1431,7 @@ namespace engine::graph {
           " primary path state(s) through the " +
           (loop.fullGpuPathLoopSupported() ? "platform GPU" : "CPU reference") + " backend");
         QJsonObject metadata = compiledDiffusePathLoopMetadata(
-          compilation, generation, settings, loop, accumulation,
+          compilation, generation, settings, loop, accumulation, samplingSeed,
           state.tracingExecution().value_or(TracingExecutionPreference::Auto));
         metadata["denoise"] = denoise;
         context.setTraceMetadata(withTracingExecutionMetadata(

@@ -393,6 +393,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Preserve the requested sampling seed in compiled GPU path-loop trace metadata
+  and rendercli wavefront metrics summaries, so graph-backed GPU sample-stream
+  path tracer runs remain reproducible and inspectable. — GPT-5 Codex
 - Report GPU Path Tracer graph executions as hybrid when the platform path-loop
   backend runs on the GPU but camera primary paths still have to be generated on
   the CPU, including the primary-path fallback reason in trace metadata. —
