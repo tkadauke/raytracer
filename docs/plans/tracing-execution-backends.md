@@ -152,7 +152,9 @@ end state for GPU tracing.
   and the next frontier is compacted on-device into a second count-prefixed
   buffer. The host still encodes a bounded dispatch sequence for `maxDepth` and
   still reads final diagnostics/accumulation, but path records and retained
-  frontier ownership stay in Metal buffers between depths.
+  frontier ownership stay in Metal buffers between depths. Each bounce dispatch
+  is now indirectly sized from the current GPU-resident retained-frontier count,
+  avoiding a full initial-sample dispatch after paths have terminated.
 - The Vulkan full-GPU diffuse path-loop backend now follows the same
   depth-frontier shape: Vulkan initialization and advance compute shaders keep
   path records resident, compact retained path indices into current/next

@@ -6943,6 +6943,7 @@ namespace GpuDiffusePathStepReferenceTest {
     const MetalGpuDiffusePathLoopKernelResult result = kernel.runWavefrontPathLoop(plan, paths);
 
     EXPECT_EQ("metal_diffuse_path_loop_wavefront", result.executionPath);
+    EXPECT_TRUE(result.retainedFrontierDispatchesIndirect);
     ASSERT_GE(result.activePathCountsPerDepth.size(), 2u);
     EXPECT_EQ(1u, result.activePathCountsPerDepth[0]);
     EXPECT_EQ(1u, result.activePathCountsPerDepth[1]);

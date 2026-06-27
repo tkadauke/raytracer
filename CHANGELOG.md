@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Size Metal full-GPU depth-frontier path-loop bounce dispatches from the
+  GPU-resident retained frontier count instead of relaunching every initial
+  sample at every depth. — GPT-5 Codex
 - Route Metal full-GPU diffuse path-loop renders through a depth-frontier
   schedule that initializes, advances, and compacts active path indices on the
   GPU instead of running all bounces inside one per-path megakernel thread. —

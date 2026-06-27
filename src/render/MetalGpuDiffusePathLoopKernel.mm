@@ -39,6 +39,9 @@ namespace render {
     static_assert(sizeof(GpuTracingEnvironmentRecord) == 32);
     static_assert(alignof(GpuTracingEnvironmentRecord) == 16);
 
+    constexpr NSUInteger kDispatchThreadgroupsIndirectByteCount =
+      3u * static_cast<NSUInteger>(sizeof(std::uint32_t));
+
     id<MTLDevice> sharedMetalDevice() {
       static id<MTLDevice> device = MTLCreateSystemDefaultDevice();
       return device;
@@ -3103,6 +3106,21 @@ namespace render {
               "    atomic_store_explicit(&frontier[0], 0u, memory_order_relaxed);\n"
               "  }\n"
               "}\n"
+              "kernel void prepareDiffusePathLoopFrontierDispatch(\n"
+              "    device atomic_uint* frontier [[buffer(0)]],\n"
+              "    constant uint& threadsPerThreadgroup [[buffer(1)]],\n"
+              "    device uint* dispatchArguments [[buffer(2)]],\n"
+              "    uint id [[thread_position_in_grid]]) {\n"
+              "  if (id != 0u) {\n"
+              "    return;\n"
+              "  }\n"
+              "  const uint activeCount = atomic_load_explicit(&frontier[0],\n"
+              "                                                  memory_order_relaxed);\n"
+              "  const uint width = max(threadsPerThreadgroup, 1u);\n"
+              "  dispatchArguments[0] = max((activeCount + width - 1u) / width, 1u);\n"
+              "  dispatchArguments[1] = 1u;\n"
+              "  dispatchArguments[2] = 1u;\n"
+              "}\n"
               "kernel void initializeDiffusePathLoopFrontier(\n"
               "    constant GpuDiffusePathLoopLaunchParameters& parameters [[buffer(0)]],\n"
               "    device GpuDiffusePathLoopLaunchParameters* echoedParameters [[buffer(1)]],\n"
@@ -3375,6 +3393,14 @@ namespace render {
       return pipeline;
     }
 
+    id<MTLComputePipelineState> sharedPrepareFrontierDispatchPipeline() {
+      static id<MTLComputePipelineState> pipeline = [] {
+        id<MTLDevice> device = sharedMetalDevice();
+        return device ? newPipeline(device, @"prepareDiffusePathLoopFrontierDispatch") : nil;
+      }();
+      return pipeline;
+    }
+
     id<MTLComputePipelineState> sharedAdvanceFrontierPipeline() {
       static id<MTLComputePipelineState> pipeline = [] {
         id<MTLDevice> device = sharedMetalDevice();
@@ -3588,6 +3614,9 @@ namespace render {
         }
         if (!sharedInitializeFrontierPipeline()) {
           return "Metal diffuse path-loop frontier initialization pipeline was not created";
+        }
+        if (!sharedPrepareFrontierDispatchPipeline()) {
+          return "Metal diffuse path-loop frontier dispatch pipeline was not created";
         }
         if (!sharedAdvanceFrontierPipeline()) {
           return "Metal diffuse path-loop frontier advance pipeline was not created";
@@ -4625,11 +4654,14 @@ namespace render {
       id<MTLCommandQueue> queue = sharedCommandQueue();
       id<MTLComputePipelineState> clearFrontierPipeline = sharedClearFrontierPipeline();
       id<MTLComputePipelineState> initializeFrontierPipeline = sharedInitializeFrontierPipeline();
+      id<MTLComputePipelineState> prepareFrontierDispatchPipeline =
+        sharedPrepareFrontierDispatchPipeline();
       id<MTLComputePipelineState> advanceFrontierPipeline = sharedAdvanceFrontierPipeline();
       id<MTLComputePipelineState> clearPipeline = sharedClearAccumulationPipeline();
       id<MTLComputePipelineState> resolvePipeline =
         captureResolvedDisplay ? sharedResolveDisplayPipeline() : nil;
-      if (!clearFrontierPipeline || !initializeFrontierPipeline || !advanceFrontierPipeline) {
+      if (!clearFrontierPipeline || !initializeFrontierPipeline ||
+          !prepareFrontierDispatchPipeline || !advanceFrontierPipeline) {
         throw std::runtime_error("Metal diffuse path-loop frontier pipeline was not created");
       }
       if (!clearPipeline) {
@@ -4683,6 +4715,19 @@ namespace render {
       id<MTLBuffer> frontierBBuffer =
         [device newBufferWithLength:bufferLength(plan.buffers.retainedIndexBytes)
                             options:MTLResourceStorageModeShared];
+      const std::uint32_t advanceThreadsPerThreadgroup =
+        static_cast<std::uint32_t>(threadgroupWidthFor(
+          advanceFrontierPipeline, static_cast<NSUInteger>(std::max<std::size_t>(1u, launchPathCount))));
+      id<MTLBuffer> advanceThreadgroupWidthBuffer =
+        [device newBufferWithBytes:&advanceThreadsPerThreadgroup
+                            length:sizeof(advanceThreadsPerThreadgroup)
+                           options:MTLResourceStorageModeShared];
+      id<MTLBuffer> frontierADispatchBuffer =
+        [device newBufferWithLength:kDispatchThreadgroupsIndirectByteCount
+                            options:MTLResourceStorageModeShared];
+      id<MTLBuffer> frontierBDispatchBuffer =
+        [device newBufferWithLength:kDispatchThreadgroupsIndirectByteCount
+                            options:MTLResourceStorageModeShared];
       id<MTLBuffer> accumulationBuffer =
         [device newBufferWithLength:bufferLength(plan.buffers.accumulationBytes)
                             options:MTLResourceStorageModeShared];
@@ -4704,8 +4749,9 @@ namespace render {
                             options:MTLResourceStorageModeShared];
       if (!parameterBuffer || !echoedParameterBuffer || !sceneUploadBuffer || !initialPathBuffer ||
           !pathStateBuffer || !stepRecordBuffer || !frontierABuffer || !frontierBBuffer ||
-          !accumulationBuffer || !denoiserFeatureBuffer || !activePathCountBuffer ||
-          !resolvedDisplayBuffer || !closestHitBuffer) {
+          !advanceThreadgroupWidthBuffer || !frontierADispatchBuffer ||
+          !frontierBDispatchBuffer || !accumulationBuffer || !denoiserFeatureBuffer ||
+          !activePathCountBuffer || !resolvedDisplayBuffer || !closestHitBuffer) {
         throw std::runtime_error("Metal diffuse wavefront path-loop buffer allocation failed");
       }
       clearRetainedIndexBuffer(frontierABuffer, plan.buffers.retainedIndexBytes);
@@ -4724,6 +4770,7 @@ namespace render {
       }
       MetalGpuDiffusePathLoopKernelResult result;
       result.executionPath = "metal_diffuse_path_loop_wavefront";
+      result.retainedFrontierDispatchesIndirect = true;
       result.bufferSizes = plan.buffers;
       result.bufferSizes.totalResidentBytes -= plan.buffers.activePathStateBytes;
       result.bufferSizes.totalResidentBytes -= plan.buffers.nextPathStateBytes;
@@ -4747,6 +4794,8 @@ namespace render {
 
       id<MTLBuffer> currentFrontierBuffer = frontierABuffer;
       id<MTLBuffer> nextFrontierBuffer = frontierBBuffer;
+      id<MTLBuffer> currentFrontierDispatchBuffer = frontierADispatchBuffer;
+      id<MTLBuffer> nextFrontierDispatchBuffer = frontierBDispatchBuffer;
 
       [encoder setComputePipelineState:clearFrontierPipeline];
       [encoder setBuffer:currentFrontierBuffer offset:0 atIndex:0];
@@ -4766,6 +4815,12 @@ namespace render {
         [encoder setBuffer:nextFrontierBuffer offset:0 atIndex:0];
         dispatch1D(encoder, clearFrontierPipeline, 1);
 
+        [encoder setComputePipelineState:prepareFrontierDispatchPipeline];
+        [encoder setBuffer:currentFrontierBuffer offset:0 atIndex:0];
+        [encoder setBuffer:advanceThreadgroupWidthBuffer offset:0 atIndex:1];
+        [encoder setBuffer:currentFrontierDispatchBuffer offset:0 atIndex:2];
+        dispatch1D(encoder, prepareFrontierDispatchPipeline, 1);
+
         [encoder setComputePipelineState:advanceFrontierPipeline];
         [encoder setBuffer:parameterBuffer offset:0 atIndex:0];
         [encoder setBuffer:echoedParameterBuffer offset:0 atIndex:1];
@@ -4778,8 +4833,12 @@ namespace render {
         [encoder setBuffer:denoiserFeatureBuffer offset:0 atIndex:10];
         [encoder setBuffer:activePathCountBuffer offset:0 atIndex:11];
         [encoder setBuffer:nextFrontierBuffer offset:0 atIndex:12];
-        dispatch1D(encoder, advanceFrontierPipeline, static_cast<NSUInteger>(launchPathCount));
+        [encoder dispatchThreadgroupsWithIndirectBuffer:currentFrontierDispatchBuffer
+                                   indirectBufferOffset:0
+                                  threadsPerThreadgroup:MTLSizeMake(advanceThreadsPerThreadgroup, 1,
+                                                                    1)];
         std::swap(currentFrontierBuffer, nextFrontierBuffer);
+        std::swap(currentFrontierDispatchBuffer, nextFrontierDispatchBuffer);
       }
 
       if (captureResolvedDisplay) {

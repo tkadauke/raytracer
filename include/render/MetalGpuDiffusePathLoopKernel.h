@@ -24,6 +24,7 @@ namespace render {
     std::vector<unsigned int> resolvedDisplayPixels;
     std::string executionPath{"metal_diffuse_path_loop_launch_probe"};
     std::string pathStateResidency{"metal_shared_diffuse_path_state"};
+    bool retainedFrontierDispatchesIndirect{false};
     double uploadWorkerSeconds{0.0};
     double kernelWorkerSeconds{0.0};
     double readbackWorkerSeconds{0.0};
