@@ -209,16 +209,8 @@ namespace render {
         buffers.buffers.push_back(createStorageBuffer(kDispatchIndirectCommandBytes, nullptr,
                                                       VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT));
 
-        VkDescriptorPool descriptorPool =
-          createDescriptorPool(m_device, kDiffusePathLoopDescriptorCount, 2u);
-        DescriptorPoolGuard descriptorPoolGuard;
-        descriptorPoolGuard.device = m_device;
-        descriptorPoolGuard.pool = descriptorPool;
-
-        VkDescriptorSet descriptorSetAB =
-          allocateDescriptorSet(m_device, descriptorPool, m_descriptorLayout);
-        VkDescriptorSet descriptorSetBA =
-          allocateDescriptorSet(m_device, descriptorPool, m_descriptorLayout);
+        VkDescriptorSet descriptorSetAB = m_descriptorSetAB;
+        VkDescriptorSet descriptorSetBA = m_descriptorSetBA;
         std::vector<StorageBuffer> descriptorBuffersAB(
           buffers.buffers.begin(), buffers.buffers.begin() + kDiffusePathLoopDescriptorCount);
         updateDescriptorSet(m_device, descriptorSetAB, descriptorBuffersAB);
@@ -365,17 +357,6 @@ namespace render {
         VkShaderModule shaderModule{VK_NULL_HANDLE};
       };
 
-      struct DescriptorPoolGuard {
-        ~DescriptorPoolGuard() {
-          if (pool) {
-            vkDestroyDescriptorPool(device, pool, nullptr);
-          }
-        }
-
-        VkDevice device{VK_NULL_HANDLE};
-        VkDescriptorPool pool{VK_NULL_HANDLE};
-      };
-
       static constexpr std::uint32_t kInvalidQueueFamily =
         std::numeric_limits<std::uint32_t>::max();
 
@@ -424,6 +405,9 @@ namespace render {
         resolveShaderGuard.shaderModule = resolveShader;
 
         m_descriptorLayout = createDescriptorLayout(m_device, kDiffusePathLoopDescriptorCount);
+        m_descriptorPool = createDescriptorPool(m_device, kDiffusePathLoopDescriptorCount, 2u);
+        m_descriptorSetAB = allocateDescriptorSet(m_device, m_descriptorPool, m_descriptorLayout);
+        m_descriptorSetBA = allocateDescriptorSet(m_device, m_descriptorPool, m_descriptorLayout);
         m_pipelineLayout = createPipelineLayout(m_device, m_descriptorLayout);
         m_clearPipeline = createPipeline(m_device, clearShader, m_pipelineLayout);
         m_initializePipeline = createPipeline(m_device, initializeShader, m_pipelineLayout);
@@ -475,6 +459,12 @@ namespace render {
           if (m_pipelineLayout) {
             vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
             m_pipelineLayout = VK_NULL_HANDLE;
+          }
+          if (m_descriptorPool) {
+            vkDestroyDescriptorPool(m_device, m_descriptorPool, nullptr);
+            m_descriptorPool = VK_NULL_HANDLE;
+            m_descriptorSetAB = VK_NULL_HANDLE;
+            m_descriptorSetBA = VK_NULL_HANDLE;
           }
           if (m_descriptorLayout) {
             vkDestroyDescriptorSetLayout(m_device, m_descriptorLayout, nullptr);
@@ -956,6 +946,9 @@ namespace render {
       VkDevice m_device{VK_NULL_HANDLE};
       VkQueue m_queue{VK_NULL_HANDLE};
       VkDescriptorSetLayout m_descriptorLayout{VK_NULL_HANDLE};
+      VkDescriptorPool m_descriptorPool{VK_NULL_HANDLE};
+      VkDescriptorSet m_descriptorSetAB{VK_NULL_HANDLE};
+      VkDescriptorSet m_descriptorSetBA{VK_NULL_HANDLE};
       VkPipelineLayout m_pipelineLayout{VK_NULL_HANDLE};
       VkPipeline m_clearPipeline{VK_NULL_HANDLE};
       VkPipeline m_initializePipeline{VK_NULL_HANDLE};

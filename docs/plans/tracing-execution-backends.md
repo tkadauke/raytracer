@@ -163,10 +163,11 @@ end state for GPU tracing.
   bounce dispatch is prepared from the current GPU-resident retained-frontier
   count and launched through Vulkan indirect dispatch arguments instead of
   relaunching the full initial sample count at every depth.
-  Vulkan now also retains its instance, device, descriptor layout, pipeline
-  layout, queue, command pool, command buffer, and path-loop compute pipelines
-  across launches, so steady renders no longer pay device, command-pool, and
-  pipeline creation overhead for every image.
+  Vulkan now also retains its instance, device, descriptor layout, descriptor
+  pool, descriptor sets, pipeline layout, queue, command pool, command buffer,
+  and path-loop compute pipelines across launches, so steady renders no longer
+  pay device, descriptor, command-pool, and pipeline creation overhead for every
+  image.
 - GPU-requested compiled diffuse path-loop renders automatically use an
   available Metal or Vulkan frontier-compaction backend for the live
   `GpuDiffusePathStateRecord` frontier, reporting that middle step as hybrid
@@ -2771,9 +2772,9 @@ scene is large enough to amortize upload/readback costs.
      skip HDR accumulation-plane readback, while graph renders that still need
      HDR resources can request the packed display buffer and accumulation
      readback together. The Vulkan runtime also keeps its device, queue,
-     descriptor layout, pipeline layout, command pool, command buffer, and
-     path-loop compute pipelines alive across launches instead of rebuilding
-     them for every render. It
+     descriptor layout, descriptor pool, descriptor sets, pipeline layout,
+     command pool, command buffer, and path-loop compute pipelines alive across
+     launches instead of rebuilding them for every render. It
      still cleanly rejects broader compiled geometry until the platform subset
      reaches parity with Metal.
 
