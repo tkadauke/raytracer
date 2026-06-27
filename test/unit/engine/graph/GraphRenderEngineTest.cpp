@@ -2695,6 +2695,7 @@ namespace GraphRenderEngineTest {
 
     auto animatedCamera =
       std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
+    animatedCamera->setShutterInterval(0.0, 1.0);
     animatedCamera->setAnimationTrack(
       "position", render::animation::AnimationTrack(
                     {{0.0, Vector3d(0.0, 0.0, -5.0)}, {1.0, Vector3d(0.0, 0.0, -4.0)}}));
@@ -2825,6 +2826,62 @@ namespace GraphRenderEngineTest {
     EXPECT_TRUE(pathLoopBackend->lastCaptureResolvedDisplay());
     EXPECT_EQ(render::GpuDisplayResolveTonemap::Linear,
               pathLoopBackend->lastDisplayResolveTonemap());
+    EXPECT_TRUE(pathLoopBackend->hasLastPrimaryGeneration());
+    EXPECT_TRUE(pathLoopBackend->lastPrimaryGeneratesOnDevice());
+    EXPECT_EQ(64u, pathLoopBackend->lastPrimaryGeneratedSamples());
+    EXPECT_EQ(0u, pathLoopBackend->lastPrimaryHostPathStateCount());
+    for (int y = 0; y != buffer.height(); ++y) {
+      for (int x = 0; x != buffer.width(); ++x) {
+        EXPECT_EQ(ReportingFullGpuDiffusePathLoopBackend::resolvedDisplaySentinel(), buffer[y][x]);
+      }
+    }
+  }
+
+  TEST(GraphRenderEngine, UsesDescriptorOnlyDisplayResolveForFixedShutterAnimatedPinholeCamera) {
+    const Colord background(0.125, 0.25, 0.5);
+    auto scene = std::make_shared<render::Scene>();
+    scene->setBackground(background);
+    scene->setEnvironmentRadiance(background);
+    auto receiver = std::make_shared<render::Rectangle>(
+      Vector3d(-20.0, -20.0, 0.0), Vector3d(40.0, 0.0, 0.0), Vector3d(0.0, 40.0, 0.0));
+    receiver->setMaterial(matte(Colord(0.8, 0.8, 0.8)));
+    scene->add(receiver);
+    scene->addLight(
+      std::make_shared<render::PointLight>(Vector3d(0.0, 0.0, -3.0), Colord(0.5, 0.5, 0.5)));
+
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Wavefront;
+    intent.engineOptions.raytracer().setIntegrator("pathtracer");
+    intent.engineOptions.raytracer().setTracingExecution(TracingExecutionPreference::GPU);
+    intent.engineOptions.raytracer().setSamplesPerPixel(1);
+    intent.engineOptions.raytracer().setMaximumRecursionDepth(2);
+    intent.engineOptions.raytracer().setDirectLightSamples(1);
+    intent.engineOptions.raytracer().setSampleStreamMode("gpu_sample_stream");
+
+    RenderSceneAnalysis analysis;
+    analysis.setFullGpuTracingSupportFromScene(*scene);
+    const RenderPlan plan = RenderGraphCompiler().compile({8, 8, 1}, intent, analysis);
+
+    auto animatedCamera =
+      std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
+    animatedCamera->setAnimationFrame(0.0);
+    animatedCamera->setShutterInterval(0.25, 0.25);
+    animatedCamera->setAnimationTrack(
+      "position", render::animation::AnimationTrack(
+                    {{0.0, Vector3d(0.0, 0.0, -5.0)}, {1.0, Vector3d(0.0, 0.0, -3.0)}}));
+    GraphRenderEngine engine(animatedCamera, scene);
+    engine.setPlan(plan);
+    auto pathLoopBackend = std::make_shared<ReportingFullGpuDiffusePathLoopBackend>();
+    engine.setGpuDiffusePathLoopBackend(pathLoopBackend);
+
+    Buffer<unsigned int> buffer(8, 8);
+    engine.render(buffer);
+
+    EXPECT_TRUE(pathLoopBackend->hasLastCaptureDiagnostics());
+    EXPECT_FALSE(pathLoopBackend->lastCaptureDiagnostics());
+    EXPECT_FALSE(pathLoopBackend->lastCaptureMetrics());
+    EXPECT_FALSE(pathLoopBackend->lastCapturePlatformAccumulation());
+    EXPECT_TRUE(pathLoopBackend->lastCaptureResolvedDisplay());
     EXPECT_TRUE(pathLoopBackend->hasLastPrimaryGeneration());
     EXPECT_TRUE(pathLoopBackend->lastPrimaryGeneratesOnDevice());
     EXPECT_EQ(64u, pathLoopBackend->lastPrimaryGeneratedSamples());

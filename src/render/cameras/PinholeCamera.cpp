@@ -38,6 +38,43 @@ namespace {
     return {static_cast<float>(value.x()), static_cast<float>(value.y()),
             static_cast<float>(value.z()), w};
   }
+
+  bool hasAnimatedPose(const PinholeCamera& camera) {
+    return camera.animationTrack("position") || camera.animationTrack("target");
+  }
+
+  Vector3d animatedVectorAt(const PinholeCamera& camera, const char* property,
+                            const Vector3d& fallback, double time) {
+    const auto* track = camera.animationTrack(property);
+    if (!track) {
+      return fallback;
+    }
+    return fallback + track->sample(time).get<Vector3d>() -
+           track->sample(camera.animationFrame()).get<Vector3d>();
+  }
+
+  Vector3d rayOriginForMatrix(const Matrix4d& cameraMatrix, double distance) {
+    return Vector3d(cameraMatrix.cell(0, 3) - cameraMatrix.cell(0, 2) * distance,
+                    cameraMatrix.cell(1, 3) - cameraMatrix.cell(1, 2) * distance,
+                    cameraMatrix.cell(2, 3) - cameraMatrix.cell(2, 2) * distance);
+  }
+
+  std::optional<Vector3d> gpuDescriptorRayOriginFor(const PinholeCamera& camera) {
+    if (!hasAnimatedPose(camera)) {
+      return rayOriginForMatrix(camera.matrix(), camera.distance());
+    }
+
+    if (camera.shutterOpen() != camera.shutterClose()) {
+      return std::nullopt;
+    }
+
+    const double animationTime = camera.animationTimeForSample(0.0);
+    const Vector3d position =
+      animatedVectorAt(camera, "position", camera.position(), animationTime);
+    const Vector3d target = animatedVectorAt(camera, "target", camera.target(), animationTime);
+    const Matrix4d cameraMatrix = Matrix4d::lookAt(position, target, Vector3d::up());
+    return rayOriginForMatrix(cameraMatrix, camera.distance());
+  }
 }
 
 Vector3d PinholeCamera::rayOrigin() const {
@@ -115,7 +152,9 @@ PinholeCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampleS
   if (!plane || !plane->sampler() || plane->sampler()->numSamples() <= 0) {
     return std::nullopt;
   }
-  if (animationTrack("position") || animationTrack("target")) {
+
+  const std::optional<Vector3d> descriptorOrigin = gpuDescriptorRayOriginFor(*this);
+  if (!descriptorOrigin) {
     return std::nullopt;
   }
 
@@ -136,7 +175,7 @@ PinholeCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampleS
 
   GpuPrimaryPathDescriptor descriptor;
   descriptor.mode = gpuPrimaryPathGenerationModePinhole;
-  descriptor.rectilinear.originOrDirection = vector4(rayOrigin(), 1.0f);
+  descriptor.rectilinear.originOrDirection = vector4(*descriptorOrigin, 1.0f);
   descriptor.rectilinear.topLeft = vector4(plane->pixelAt(0.0, 0.0), 1.0f);
   descriptor.rectilinear.right = vector4(plane->pixelAt(1.0, 0.0) - plane->pixelAt(0.0, 0.0), 0.0f);
   descriptor.rectilinear.down = vector4(plane->pixelAt(0.0, 1.0) - plane->pixelAt(0.0, 0.0), 0.0f);
