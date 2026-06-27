@@ -165,9 +165,9 @@ end state for GPU tracing.
   relaunching the full initial sample count at every depth.
   Vulkan now also retains its instance, device, descriptor layout, descriptor
   pool, descriptor sets, pipeline layout, queue, command pool, command buffer,
-  and path-loop compute pipelines across launches, so steady renders no longer
-  pay device, descriptor, command-pool, and pipeline creation overhead for every
-  image.
+  storage buffers, and path-loop compute pipelines across launches, so steady
+  renders no longer pay device, descriptor, command-pool, buffer allocation,
+  and pipeline creation overhead for every image.
 - GPU-requested compiled diffuse path-loop renders automatically use an
   available Metal or Vulkan frontier-compaction backend for the live
   `GpuDiffusePathStateRecord` frontier, reporting that middle step as hybrid

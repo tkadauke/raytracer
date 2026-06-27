@@ -168,55 +168,52 @@ namespace render {
         }
         const std::uint64_t pathStateStorageBytes =
           launchPathCount * static_cast<std::uint64_t>(sizeof(GpuDiffusePathStateRecord));
-        BufferVectorGuard buffers;
-        buffers.device = m_device;
-        buffers.buffers.push_back(
-          createStorageBuffer(sizeof(GpuDiffusePathLoopLaunchParameters), &plan.parameters));
-        buffers.buffers.push_back(
-          createStorageBuffer(sizeof(GpuDiffusePathLoopLaunchParameters), nullptr));
-        buffers.buffers.push_back(createStorageBufferFromBytes(plan.sceneUpload));
-        buffers.buffers.push_back(plan.generatesPrimaryPathsOnDevice()
-                                    ? createStorageBuffer(1u, nullptr)
-                                    : createStorageBufferFromVector(initialPathStates));
-        buffers.buffers.push_back(
-          createStorageBuffer(static_cast<VkDeviceSize>(pathStateStorageBytes), nullptr));
-        buffers.buffers.push_back(createStorageBuffer(1u, nullptr));
+        prepareStorageBuffer(0u, sizeof(GpuDiffusePathLoopLaunchParameters), &plan.parameters);
+        prepareStorageBuffer(1u, sizeof(GpuDiffusePathLoopLaunchParameters), nullptr);
+        prepareStorageBufferFromBytes(2u, plan.sceneUpload);
+        if (plan.generatesPrimaryPathsOnDevice()) {
+          prepareStorageBuffer(3u, 1u, nullptr);
+        } else {
+          prepareStorageBufferFromVector(3u, initialPathStates);
+        }
+        prepareStorageBuffer(4u, static_cast<VkDeviceSize>(pathStateStorageBytes), nullptr);
+        prepareStorageBuffer(5u, 1u, nullptr);
         std::vector<std::uint8_t> stepRecordBytes(
           static_cast<std::size_t>(plan.buffers.stepRecordBytes), 0u);
-        buffers.buffers.push_back(createStorageBufferFromBytes(stepRecordBytes));
+        prepareStorageBufferFromBytes(6u, stepRecordBytes);
         const std::size_t retainedIndexCount =
           static_cast<std::size_t>(plan.buffers.retainedIndexBytes / sizeof(std::uint32_t));
         std::vector<std::uint32_t> retainedIndices(retainedIndexCount, 0u);
-        buffers.buffers.push_back(createStorageBufferFromVector(retainedIndices));
+        prepareStorageBufferFromVector(7u, retainedIndices);
         std::vector<std::uint8_t> accumulationBytes(
           static_cast<std::size_t>(std::max<std::uint64_t>(1u, plan.buffers.accumulationBytes)),
           0u);
-        buffers.buffers.push_back(createStorageBufferFromBytes(accumulationBytes));
+        prepareStorageBufferFromBytes(8u, accumulationBytes);
         std::vector<std::uint8_t> denoiserFeatureBytes(
           static_cast<std::size_t>(
             std::max<std::uint64_t>(1u, plan.buffers.denoiserFeatureRecordBytes)),
           0u);
-        buffers.buffers.push_back(createStorageBufferFromBytes(denoiserFeatureBytes));
+        prepareStorageBufferFromBytes(9u, denoiserFeatureBytes);
         std::vector<std::uint8_t> activePathCountBytes(
           static_cast<std::size_t>(std::max<std::uint64_t>(1u, plan.buffers.activePathCountBytes)),
           0u);
-        buffers.buffers.push_back(createStorageBufferFromBytes(activePathCountBytes));
-        buffers.buffers.push_back(createStorageBuffer(
-          resolvedDisplayPixels * static_cast<std::uint64_t>(sizeof(unsigned int)), nullptr));
-        buffers.buffers.push_back(createStorageBufferFromVector(retainedIndices));
-        buffers.buffers.push_back(createStorageBuffer(kDispatchIndirectCommandBytes, nullptr,
-                                                      VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT));
-        buffers.buffers.push_back(createStorageBuffer(kDispatchIndirectCommandBytes, nullptr,
-                                                      VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT));
+        prepareStorageBufferFromBytes(10u, activePathCountBytes);
+        prepareStorageBuffer(
+          11u, resolvedDisplayPixels * static_cast<std::uint64_t>(sizeof(unsigned int)), nullptr);
+        prepareStorageBufferFromVector(12u, retainedIndices);
+        prepareStorageBuffer(13u, kDispatchIndirectCommandBytes, nullptr,
+                             VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT);
+        prepareStorageBuffer(14u, kDispatchIndirectCommandBytes, nullptr,
+                             VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT);
 
         VkDescriptorSet descriptorSetAB = m_descriptorSetAB;
         VkDescriptorSet descriptorSetBA = m_descriptorSetBA;
         std::vector<StorageBuffer> descriptorBuffersAB(
-          buffers.buffers.begin(), buffers.buffers.begin() + kDiffusePathLoopDescriptorCount);
+          m_buffers.begin(), m_buffers.begin() + kDiffusePathLoopDescriptorCount);
         updateDescriptorSet(m_device, descriptorSetAB, descriptorBuffersAB);
         std::vector<StorageBuffer> swappedFrontierBuffers = descriptorBuffersAB;
         std::swap(swappedFrontierBuffers[7], swappedFrontierBuffers[12]);
-        swappedFrontierBuffers[13] = buffers.buffers[14];
+        swappedFrontierBuffers[13] = m_buffers[14];
         updateDescriptorSet(m_device, descriptorSetBA, swappedFrontierBuffers);
 
         resetCommandPool();
@@ -226,7 +223,7 @@ namespace render {
           m_advancePipeline, captureResolvedDisplay ? m_resolvePipeline : VK_NULL_HANDLE,
           m_pipelineLayout, descriptorSetAB, descriptorSetBA,
           static_cast<std::uint32_t>(std::max<std::size_t>(1u, launchPathCount)),
-          buffers.buffers[13].buffer, buffers.buffers[14].buffer, plan.parameters.maxDepth,
+          m_buffers[13].buffer, m_buffers[14].buffer, plan.parameters.maxDepth,
           static_cast<std::uint32_t>(std::max<std::uint64_t>(1u, resolvedDisplayPixels)),
           captureResolvedDisplay);
         const std::size_t finalFrontierBufferIndex =
@@ -252,29 +249,25 @@ namespace render {
         result.uploadWorkerSeconds = secondsBetween(uploadStart, uploadEnd);
         result.kernelWorkerSeconds = secondsBetween(kernelStart, kernelEnd);
         result.echoedParameters = readBackOne<GpuDiffusePathLoopLaunchParameters>(
-          m_device, buffers.buffers[1].memory,
-          "Vulkan diffuse path-loop echoed parameters mapping");
+          m_device, m_buffers[1].memory, "Vulkan diffuse path-loop echoed parameters mapping");
         const std::vector<std::uint32_t> retainedCountOutput = readBackRecords<std::uint32_t>(
-          m_device, buffers.buffers[finalFrontierBufferIndex].memory, byteCount<std::uint32_t>(1u),
-          1u, "Vulkan diffuse path-loop retained-count output mapping");
+          m_device, m_buffers[finalFrontierBufferIndex].memory, byteCount<std::uint32_t>(1u), 1u,
+          "Vulkan diffuse path-loop retained-count output mapping");
         result.retainedPathCount =
           retainedPathCountFromBuffer(retainedCountOutput, launchPathCount);
         if (plan.parameters.captureDiagnostics != 0u) {
           result.resolvedPathStates = readBackRecords<GpuDiffusePathStateRecord>(
-            m_device, buffers.buffers[4].memory,
-            byteCount<GpuDiffusePathStateRecord>(launchPathCount), launchPathCount,
-            "Vulkan diffuse path-loop active path-state output mapping");
+            m_device, m_buffers[4].memory, byteCount<GpuDiffusePathStateRecord>(launchPathCount),
+            launchPathCount, "Vulkan diffuse path-loop active path-state output mapping");
           result.nextPathStates = readBackRecords<GpuDiffusePathStateRecord>(
-            m_device, buffers.buffers[4].memory,
-            byteCount<GpuDiffusePathStateRecord>(launchPathCount), launchPathCount,
-            "Vulkan diffuse path-loop final path-state output mapping");
+            m_device, m_buffers[4].memory, byteCount<GpuDiffusePathStateRecord>(launchPathCount),
+            launchPathCount, "Vulkan diffuse path-loop final path-state output mapping");
           const std::size_t rawStepCount =
             launchPathCount * static_cast<std::size_t>(plan.parameters.maxDepth);
           const std::vector<GpuDiffusePathStepRecord> rawStepRecords =
             readBackRecords<GpuDiffusePathStepRecord>(
-              m_device, buffers.buffers[6].memory,
-              byteCount<GpuDiffusePathStepRecord>(rawStepCount), rawStepCount,
-              "Vulkan diffuse path-loop step-record output mapping");
+              m_device, m_buffers[6].memory, byteCount<GpuDiffusePathStepRecord>(rawStepCount),
+              rawStepCount, "Vulkan diffuse path-loop step-record output mapping");
           result.stepRecords.reserve(rawStepRecords.size());
           for (const GpuDiffusePathStepRecord& step : rawStepRecords) {
             if (static_cast<GpuDiffusePathStepEvent>(step.event) !=
@@ -283,7 +276,7 @@ namespace render {
             }
           }
           const std::vector<std::uint32_t> retainedOutput = readBackRecords<std::uint32_t>(
-            m_device, buffers.buffers[finalFrontierBufferIndex].memory,
+            m_device, m_buffers[finalFrontierBufferIndex].memory,
             byteCount<std::uint32_t>(retainedIndices.size()), retainedIndices.size(),
             "Vulkan diffuse path-loop retained-index output mapping");
           result.retainedPathIndices =
@@ -292,26 +285,25 @@ namespace render {
         }
         if (captureResolvedDisplay) {
           result.resolvedDisplayPixels = readBackRecords<unsigned int>(
-            m_device, buffers.buffers[11].memory, byteCount<unsigned int>(resolvedDisplayPixels),
+            m_device, m_buffers[11].memory, byteCount<unsigned int>(resolvedDisplayPixels),
             resolvedDisplayPixels, "Vulkan diffuse path-loop display resolve output mapping");
         }
         if (capturePlatformAccumulation) {
           result.accumulationColorSums = readBackRecords<std::array<float, 4>>(
-            m_device, buffers.buffers[8].memory, byteCount<std::array<float, 4>>(pixels), pixels,
+            m_device, m_buffers[8].memory, byteCount<std::array<float, 4>>(pixels), pixels,
             "Vulkan diffuse path-loop accumulation color output mapping");
           const VkDeviceSize colorBytes = byteCount<std::array<float, 4>>(pixels);
           result.accumulationSampleCounts = readBackRecords<std::uint32_t>(
-            m_device, buffers.buffers[8].memory, byteCount<std::uint32_t>(pixels), pixels,
-            colorBytes, "Vulkan diffuse path-loop accumulation count output mapping");
+            m_device, m_buffers[8].memory, byteCount<std::uint32_t>(pixels), pixels, colorBytes,
+            "Vulkan diffuse path-loop accumulation count output mapping");
         }
         if (plan.parameters.captureDenoiserFeatures != 0u) {
           result.denoiserFeatureRecords = readBackRecords<GpuDiffusePathDenoiserFeatureRecord>(
-            m_device, buffers.buffers[9].memory,
-            byteCount<GpuDiffusePathDenoiserFeatureRecord>(pixels), pixels,
-            "Vulkan diffuse path-loop denoiser feature output mapping");
+            m_device, m_buffers[9].memory, byteCount<GpuDiffusePathDenoiserFeatureRecord>(pixels),
+            pixels, "Vulkan diffuse path-loop denoiser feature output mapping");
         }
         result.activePathCountsPerDepth = readBackRecords<std::uint32_t>(
-          m_device, buffers.buffers[10].memory, byteCount<std::uint32_t>(plan.parameters.maxDepth),
+          m_device, m_buffers[10].memory, byteCount<std::uint32_t>(plan.parameters.maxDepth),
           plan.parameters.maxDepth, "Vulkan diffuse path-loop active-depth count mapping");
         result.readbackWorkerSeconds =
           secondsBetween(readbackStart, std::chrono::steady_clock::now());
@@ -328,22 +320,8 @@ namespace render {
         VkBuffer buffer{VK_NULL_HANDLE};
         VkDeviceMemory memory{VK_NULL_HANDLE};
         VkDeviceSize byteCount{0};
-      };
-
-      struct BufferVectorGuard {
-        ~BufferVectorGuard() {
-          for (StorageBuffer& buffer : buffers) {
-            if (buffer.buffer) {
-              vkDestroyBuffer(device, buffer.buffer, nullptr);
-            }
-            if (buffer.memory) {
-              vkFreeMemory(device, buffer.memory, nullptr);
-            }
-          }
-        }
-
-        VkDevice device{VK_NULL_HANDLE};
-        std::vector<StorageBuffer> buffers;
+        VkDeviceSize capacityByteCount{0};
+        VkBufferUsageFlags usage{0};
       };
 
       struct ShaderGuard {
@@ -431,6 +409,7 @@ namespace render {
       void destroy() {
         if (m_device) {
           vkDeviceWaitIdle(m_device);
+          destroyStorageBuffers();
           if (m_commandPool) {
             vkDestroyCommandPool(m_device, m_commandPool, nullptr);
             m_commandPool = VK_NULL_HANDLE;
@@ -584,11 +563,13 @@ namespace render {
                                         VkBufferUsageFlags additionalUsage = 0) const {
         StorageBuffer result;
         result.byteCount = std::max<VkDeviceSize>(1u, byteCount);
+        result.capacityByteCount = result.byteCount;
+        result.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | additionalUsage;
 
         VkBufferCreateInfo bufferInfo{};
         bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        bufferInfo.size = result.byteCount;
-        bufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | additionalUsage;
+        bufferInfo.size = result.capacityByteCount;
+        bufferInfo.usage = result.usage;
         bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         check(vkCreateBuffer(device, &bufferInfo, nullptr, &result.buffer),
               "Vulkan diffuse path-loop buffer creation");
@@ -613,10 +594,45 @@ namespace render {
         return result;
       }
 
-      StorageBuffer createStorageBuffer(VkDeviceSize byteCount, const void* initialData,
-                                        VkBufferUsageFlags additionalUsage = 0) const {
-        return createStorageBuffer(m_device, m_selection.device, byteCount, initialData,
-                                   additionalUsage);
+      void destroyStorageBuffer(StorageBuffer& buffer) const {
+        if (buffer.buffer) {
+          vkDestroyBuffer(m_device, buffer.buffer, nullptr);
+        }
+        if (buffer.memory) {
+          vkFreeMemory(m_device, buffer.memory, nullptr);
+        }
+        buffer = {};
+      }
+
+      void destroyStorageBuffers() const {
+        for (StorageBuffer& buffer : m_buffers) {
+          destroyStorageBuffer(buffer);
+        }
+        m_buffers.clear();
+      }
+
+      StorageBuffer& prepareStorageBuffer(std::size_t index, VkDeviceSize byteCount,
+                                          const void* initialData,
+                                          VkBufferUsageFlags additionalUsage = 0) const {
+        if (m_buffers.size() < kDiffusePathLoopDescriptorCount + 1u) {
+          m_buffers.resize(kDiffusePathLoopDescriptorCount + 1u);
+        }
+
+        const VkDeviceSize logicalByteCount = std::max<VkDeviceSize>(1u, byteCount);
+        const VkBufferUsageFlags usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | additionalUsage;
+        StorageBuffer& buffer = m_buffers[index];
+        if (buffer.buffer == VK_NULL_HANDLE || buffer.capacityByteCount < logicalByteCount ||
+            buffer.usage != usage) {
+          destroyStorageBuffer(buffer);
+          buffer = createStorageBuffer(m_device, m_selection.device, logicalByteCount, nullptr,
+                                       additionalUsage);
+        }
+        buffer.byteCount = logicalByteCount;
+        if (initialData && byteCount != 0u) {
+          writeBuffer(m_device, buffer, byteCount, initialData,
+                      "Vulkan diffuse path-loop input buffer mapping");
+        }
+        return buffer;
       }
 
       void writeBuffer(VkDevice device, const StorageBuffer& buffer, VkDeviceSize byteCount,
@@ -637,27 +653,18 @@ namespace render {
       }
 
       template<typename Record>
-      StorageBuffer createStorageBufferFromVector(VkDevice device, VkPhysicalDevice physicalDevice,
-                                                  const std::vector<Record>& records) const {
-        return createStorageBuffer(device, physicalDevice, byteCount<Record>(records.size()),
-                                   records.empty() ? nullptr : records.data());
+      StorageBuffer& prepareStorageBufferFromVector(std::size_t index,
+                                                    const std::vector<Record>& records,
+                                                    VkBufferUsageFlags additionalUsage = 0) const {
+        return prepareStorageBuffer(index, byteCount<Record>(records.size()),
+                                    records.empty() ? nullptr : records.data(), additionalUsage);
       }
 
-      template<typename Record>
-      StorageBuffer createStorageBufferFromVector(const std::vector<Record>& records) const {
-        return createStorageBuffer(byteCount<Record>(records.size()),
-                                   records.empty() ? nullptr : records.data());
-      }
-
-      StorageBuffer createStorageBufferFromBytes(VkDevice device, VkPhysicalDevice physicalDevice,
-                                                 const std::vector<std::uint8_t>& bytes) const {
-        return createStorageBuffer(device, physicalDevice, static_cast<VkDeviceSize>(bytes.size()),
-                                   bytes.empty() ? nullptr : bytes.data());
-      }
-
-      StorageBuffer createStorageBufferFromBytes(const std::vector<std::uint8_t>& bytes) const {
-        return createStorageBuffer(static_cast<VkDeviceSize>(bytes.size()),
-                                   bytes.empty() ? nullptr : bytes.data());
+      StorageBuffer& prepareStorageBufferFromBytes(std::size_t index,
+                                                   const std::vector<std::uint8_t>& bytes,
+                                                   VkBufferUsageFlags additionalUsage = 0) const {
+        return prepareStorageBuffer(index, static_cast<VkDeviceSize>(bytes.size()),
+                                    bytes.empty() ? nullptr : bytes.data(), additionalUsage);
       }
 
       VkShaderModule createShaderModule(VkDevice device, const std::uint32_t* words,
@@ -957,6 +964,7 @@ namespace render {
       VkPipeline m_resolvePipeline{VK_NULL_HANDLE};
       VkCommandPool m_commandPool{VK_NULL_HANDLE};
       VkCommandBuffer m_commandBuffer{VK_NULL_HANDLE};
+      mutable std::vector<StorageBuffer> m_buffers;
     };
 
     const VulkanDiffusePathLoopRuntime& sharedVulkanDiffusePathLoopRuntime() {
