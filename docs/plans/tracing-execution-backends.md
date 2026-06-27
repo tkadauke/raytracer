@@ -106,9 +106,11 @@ end state for GPU tracing.
   pinhole, orthographic, thin-lens, tilt-shift, equirectangular, spherical, and
   fish-eye launches from the same descriptor metadata. Trace and CPU-reference
   paths still materialize records for inspection and parity.
-  Trace-disabled platform full-GPU launches now also size path-state, step,
-  retained-index, and Metal closest-hit diagnostic storage to zero logical bytes
-  while retaining the final accumulation image readback.
+  Trace-disabled platform full-GPU launches now also size path-state, step, and
+  Metal closest-hit diagnostic storage to zero logical bytes while retaining the
+  final accumulation image readback. Retained-index and active-depth-count
+  buffers remain resident because they are scheduling state, not trace readback
+  artifacts.
 - Supported diffuse path-tracing scenes can route GPU execution requests
   through the compiled diffuse path-loop path from the live render graph path.
   rendercli, Modeler preview, and the render dialog report whether that
@@ -2661,8 +2663,9 @@ scene is large enough to amortize upload/readback costs.
      diagnostics available. The full path-loop kernels also skip those
      diagnostic buffer writes and zero the logical diagnostic buffer residency
      on the trace-disabled final-image path. The platform full-GPU kernels now
-     keep tiny device-written per-depth active-path counters resident even when
-     trace diagnostics are disabled, so compact execution metrics and
+     keep tiny device-written retained-frontier and per-depth active-path
+     counters resident even when trace diagnostics are disabled, so future
+     device-side scheduling, compact execution metrics, and
      `activePathsPerDepth` do not depend on diagnostic step-record readback.
      Trace-disabled Metal display-only path-loop renders with linear tonemapping
      can also resolve packed display pixels on the GPU and skip HDR

@@ -471,6 +471,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- Keep full-GPU diffuse path-loop retained-frontier buffers resident even when
+  graph trace diagnostics are disabled, separating GPU scheduling state from
+  optional trace readback. — GPT-5 Codex
 - Migrate stale macOS CMake caches back to the intended Metal wavefront/full-GPU
   path-loop default, while adding `RAYTRACER_DISABLE_METAL_WAVEFRONT` as the
   explicit opt-out. — GPT-5 Codex

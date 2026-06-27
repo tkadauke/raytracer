@@ -2912,13 +2912,18 @@ void writeAccumulation(uint pathIndex, GpuDiffusePathStateRecord path) {
   accumulationWords[pixelCount() * 4u + accumulationIndex] = 1u;
 }
 
+void recordRetainedActivePath(uint pathIndex, GpuDiffusePathStateRecord path) {
+  if (!pathStateIsActive(path)) {
+    return;
+  }
+  const uint slot = atomicAdd(retainedIndices[0], 1u);
+  retainedIndices[slot + 1u] = pathIndex;
+}
+
 void main() {
   const uint id = gl_GlobalInvocationID.x;
   if (id == 0u) {
     echoedParameters = parameters;
-    if (parameters.captureDiagnostics != 0u) {
-      retainedIndices[0] = 0u;
-    }
   }
   if (id >= parameters.initialPathCount) {
     return;
@@ -2959,4 +2964,5 @@ void main() {
     activePathStates[id] = path;
     nextPathStates[id] = path;
   }
+  recordRetainedActivePath(id, path);
 }

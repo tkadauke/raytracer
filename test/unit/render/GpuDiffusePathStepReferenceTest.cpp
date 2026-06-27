@@ -6066,13 +6066,13 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(0u, plan.buffers.activePathStateBytes);
     EXPECT_EQ(0u, plan.buffers.nextPathStateBytes);
     EXPECT_EQ(0u, plan.buffers.stepRecordBytes);
-    EXPECT_EQ(0u, plan.buffers.retainedIndexBytes);
+    EXPECT_EQ(2u * sizeof(std::uint32_t), plan.buffers.retainedIndexBytes);
     EXPECT_EQ(0u, plan.buffers.denoiserFeatureRecordBytes);
     EXPECT_EQ(8u * sizeof(std::uint32_t), plan.buffers.activePathCountBytes);
     EXPECT_EQ(plan.buffers.sceneUploadBytes + plan.buffers.initialPathStateBytes,
               plan.buffers.totalUploadBytes);
-    EXPECT_EQ(plan.buffers.sceneUploadBytes + plan.buffers.activePathCountBytes +
-                plan.buffers.accumulationBytes,
+    EXPECT_EQ(plan.buffers.sceneUploadBytes + plan.buffers.retainedIndexBytes +
+                plan.buffers.activePathCountBytes + plan.buffers.accumulationBytes,
               plan.buffers.totalResidentBytes);
   }
 
@@ -6090,19 +6090,19 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(0u, plan.buffers.activePathStateBytes);
     EXPECT_EQ(0u, plan.buffers.nextPathStateBytes);
     EXPECT_EQ(0u, plan.buffers.stepRecordBytes);
-    EXPECT_EQ(0u, plan.buffers.retainedIndexBytes);
+    EXPECT_EQ(2u * sizeof(std::uint32_t), plan.buffers.retainedIndexBytes);
     EXPECT_EQ(6u * sizeof(GpuDiffusePathDenoiserFeatureRecord),
               plan.buffers.denoiserFeatureRecordBytes);
     EXPECT_EQ(8u * sizeof(std::uint32_t), plan.buffers.activePathCountBytes);
     EXPECT_EQ(plan.buffers.sceneUploadBytes + plan.buffers.initialPathStateBytes,
               plan.buffers.totalUploadBytes);
     EXPECT_EQ(plan.buffers.sceneUploadBytes + plan.buffers.denoiserFeatureRecordBytes +
-                plan.buffers.activePathCountBytes + plan.buffers.accumulationBytes,
+                plan.buffers.retainedIndexBytes + plan.buffers.activePathCountBytes +
+                plan.buffers.accumulationBytes,
               plan.buffers.totalResidentBytes);
   }
 
-  TEST(GpuDiffusePathLoopLaunchPlanner,
-       SkipsHostAndDiagnosticBuffersForTraceDisabledDescriptorLaunch) {
+  TEST(GpuDiffusePathLoopLaunchPlanner, SkipsHostAndTraceBuffersForTraceDisabledDescriptorLaunch) {
     Scene scene;
     auto matte =
       std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::white()));
@@ -6138,12 +6138,12 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(0u, plan.buffers.activePathStateBytes);
     EXPECT_EQ(0u, plan.buffers.nextPathStateBytes);
     EXPECT_EQ(0u, plan.buffers.stepRecordBytes);
-    EXPECT_EQ(0u, plan.buffers.retainedIndexBytes);
+    EXPECT_EQ(25u * sizeof(std::uint32_t), plan.buffers.retainedIndexBytes);
     EXPECT_EQ(0u, plan.buffers.denoiserFeatureRecordBytes);
     EXPECT_EQ(3u * sizeof(std::uint32_t), plan.buffers.activePathCountBytes);
     EXPECT_EQ(plan.buffers.sceneUploadBytes, plan.buffers.totalUploadBytes);
-    EXPECT_EQ(plan.buffers.sceneUploadBytes + plan.buffers.activePathCountBytes +
-                plan.buffers.accumulationBytes,
+    EXPECT_EQ(plan.buffers.sceneUploadBytes + plan.buffers.retainedIndexBytes +
+                plan.buffers.activePathCountBytes + plan.buffers.accumulationBytes,
               plan.buffers.totalResidentBytes);
   }
 

@@ -48,6 +48,12 @@ namespace render {
       return checkedProduct(maxDepth, sizeof(std::uint32_t), "active path depth count");
     }
 
+    std::uint64_t retainedIndexBytes(std::uint64_t pathCount) {
+      const std::uint64_t retainedIndexCount =
+        checkedAdd(pathCount, 1u, "retained path index count");
+      return checkedProduct(retainedIndexCount, sizeof(std::uint32_t), "retained path index");
+    }
+
     template<typename Record>
     std::uint32_t assignGeometryRange(std::uint64_t& byteOffset, std::size_t count,
                                       std::uint32_t& countField, const char* label);
@@ -127,11 +133,8 @@ namespace render {
         plan.buffers.stepRecordBytes =
           checkedProduct(checkedProduct(initialPathCount, maxDepth, "path-step record count"),
                          sizeof(GpuDiffusePathStepRecord), "path-step record");
-        const std::uint64_t retainedIndexCount =
-          checkedAdd(initialPathCount, 1u, "retained path index count");
-        plan.buffers.retainedIndexBytes =
-          checkedProduct(retainedIndexCount, sizeof(std::uint32_t), "retained path index");
       }
+      plan.buffers.retainedIndexBytes = retainedIndexBytes(initialPathCount);
       if (settings.captureDenoiserFeatures) {
         plan.buffers.denoiserFeatureRecordBytes =
           denoiserFeatureRecordBytes(accumulationLayout.pixelCount());

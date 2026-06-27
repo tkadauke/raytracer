@@ -235,8 +235,9 @@ namespace render {
           static_cast<std::size_t>(plan.buffers.stepRecordBytes), 0u);
         buffers.buffers.push_back(
           createStorageBufferFromBytes(device, selection.device, stepRecordBytes));
-        std::vector<std::uint32_t> retainedIndices(
-          plan.parameters.captureDiagnostics != 0u ? launchPathCount + 1u : 0u, 0u);
+        const std::size_t retainedIndexCount =
+          static_cast<std::size_t>(plan.buffers.retainedIndexBytes / sizeof(std::uint32_t));
+        std::vector<std::uint32_t> retainedIndices(retainedIndexCount, 0u);
         buffers.buffers.push_back(
           createStorageBufferFromVector(device, selection.device, retainedIndices));
         std::vector<std::uint8_t> accumulationBytes(
