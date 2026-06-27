@@ -57,6 +57,15 @@ spheres looks like two spheres glued together — the surface is
 the outer envelope of the contributing children, with the
 overlap region's interior boundaries hidden.
 
+The compiled GPU intersection scene can flatten a `Union` only
+when each child has finite bounds and those bounds are pairwise
+disjoint. In that case, no ray can see an interior overlap
+boundary, so testing the children independently is exactly the
+same as testing the union. Overlapping or merely touching child
+bounds stay on the runtime CSG path, because flattening them
+would expose child surfaces that the Boolean union is supposed
+to hide.
+
 [`Intersection`](../../../include/render/primitives/Intersection.h)
 returns the *intersection* of the children's intervals. Inside
 only when *every* child is inside; outside otherwise. Visually,

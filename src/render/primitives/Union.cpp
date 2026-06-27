@@ -7,8 +7,36 @@
 #include <array>
 #include <cstdint>
 #include <utility>
+#include <vector>
 
 using namespace render;
+
+namespace {
+  bool hasFiniteValidBounds(const BoundingBoxd& bounds) {
+    return bounds.isValid() && !bounds.isUndefined() && !bounds.isInfinite();
+  }
+
+  bool boundsOverlap(const BoundingBoxd& lhs, const BoundingBoxd& rhs) {
+    return (lhs & rhs).isValid();
+  }
+
+  bool hasPairwiseDisjointFiniteChildBounds(const Union& primitive) {
+    std::vector<BoundingBoxd> bounds;
+    for (const auto& child : primitive.primitives()) {
+      const BoundingBoxd& childBounds = child->boundingBox();
+      if (!hasFiniteValidBounds(childBounds)) {
+        return false;
+      }
+      for (const BoundingBoxd& existing : bounds) {
+        if (boundsOverlap(existing, childBounds)) {
+          return false;
+        }
+      }
+      bounds.push_back(childBounds);
+    }
+    return true;
+  }
+}
 
 const Primitive* Union::intersect(const Rayd& ray, HitPointInterval& hitPoints,
                                   render::State& state) const {
@@ -114,6 +142,12 @@ void Union::appendIntersectionSceneRecords(IntersectionSceneBuilder& builder,
                                            const Matrix4d& pointMatrix,
                                            const Matrix3d& normalMatrix,
                                            const Primitive* inheritedObject) const {
+  if (hasPairwiseDisjointFiniteChildBounds(*this)) {
+    Composite::appendIntersectionSceneRecords(builder, std::move(inheritedMaterial), pointMatrix,
+                                              normalMatrix, inheritedObject);
+    return;
+  }
+
   addUnsupportedCompositeIntersectionSceneRecord(
     builder, std::move(inheritedMaterial), pointMatrix, normalMatrix, inheritedObject,
     "union CSG is not supported by GPU intersection scene compiler");

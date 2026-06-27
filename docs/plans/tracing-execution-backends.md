@@ -55,10 +55,12 @@ end state for GPU tracing.
 - A restricted compiled intersection scene exists for supported geometry:
   triangle/mesh triangles, imported/static `MeshPrimitive` geometry that
   flattens to mesh triangles, finite-width `Curve` ribbon/tube tessellation,
-  sphere, plane, rectangle, disk, OpenCylinder, Torus, and static transforms.
-- Boolean/convex CSG primitives (`Difference`, `Intersection`, `Union`,
-  `ConvexHull`, and `MinkowskiSum`) emit explicit unsupported intersection
-  records instead of flattening supported children and losing CSG semantics.
+  `Box` tessellation, sphere, plane, rectangle, disk, OpenCylinder, Torus,
+  pairwise-disjoint finite `Union` children, and static transforms.
+- Boolean/convex CSG primitives (`Difference`, `Intersection`, overlapping or
+  touching `Union`, `ConvexHull`, and `MinkowskiSum`) emit explicit unsupported
+  intersection records instead of flattening supported children and losing CSG
+  semantics.
 - Compiled diffuse path-loop support diagnostics report a concrete unsupported
   primitive, material, texture, or light reason instead of a generic
   compiled-scene failure.
@@ -428,22 +430,25 @@ semantics. The compiled/packed and platform GPU service subset is deliberately
 smaller and all-or-nothing for a render or service call. The supported subset is:
 
 - triangle leaves and mesh triangles;
+- `Box` tessellation;
 - sphere;
 - plane;
 - rectangle;
 - disk;
 - `OpenCylinder`;
 - `Torus`;
+- pairwise-disjoint finite `Union` composites whose children compile to
+  supported payloads;
 - static transforms / instances whose payloads can be represented by stable
   compiled ids.
 
-Unsupported CSG/boolean composites (`Difference`, `Intersection`, `Union`,
-`ConvexHull`, and `MinkowskiSum`), moving transforms, unsupported exact
-primitive payloads, and materials that require runtime-only continuation
-semantics such as transparent/glass Whitted recursion must keep the service on
-the runtime CPU path or produce an explicit fallback reason. Platform Metal and
-Vulkan backends may also reject a scene that the packed CPU service can compile
-until matching platform kernels exist.
+Unsupported CSG/boolean composites (`Difference`, `Intersection`, overlapping or
+touching `Union`, `ConvexHull`, and `MinkowskiSum`), moving transforms,
+unsupported exact primitive payloads, and materials that require runtime-only
+continuation semantics such as transparent/glass Whitted recursion must keep the
+service on the runtime CPU path or produce an explicit fallback reason. Platform
+Metal and Vulkan backends may also reject a scene that the packed CPU service
+can compile until matching platform kernels exist.
 
 Closest-hit output records must preserve CPU intersection semantics for the
 supported subset:

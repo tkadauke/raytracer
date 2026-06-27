@@ -62,6 +62,22 @@ namespace BoxTest {
     ASSERT_EQ(0, state.intersectionMisses);
   }
 
+  TEST(Box, ShouldReportFaceTextureCoordinates) {
+    Box box(Vector3d(), Vector3d(1, 1, 1));
+    Rayd ray(Vector3d(0.25, 0.5, -2), Vector3d(0, 0, 1));
+
+    State state;
+    HitPointInterval hitPoints;
+    auto primitive = box.intersect(ray, hitPoints, state);
+    ASSERT_EQ(primitive, &box);
+    EXPECT_EQ(Vector3d(0.25, 0.5, -1), hitPoints.min().point());
+    EXPECT_EQ(Vector3d(0, 0, -1), hitPoints.min().normal());
+    EXPECT_EQ(Vector2d(0.625, 0.25), hitPoints.min().uv());
+    EXPECT_EQ(Vector3d(0.25, 0.5, 1), hitPoints.max().point());
+    EXPECT_EQ(Vector3d(0, 0, 1), hitPoints.max().normal());
+    EXPECT_EQ(Vector2d(0.625, 0.75), hitPoints.max().uv());
+  }
+
   TEST(Box, ShouldIntersectIfRayIsTangentToPrimitive) {
     Box box(Vector3d(), Vector3d(1, 1, 1));
     Rayd ray(Vector3d(0, 1, -2), Vector3d(0, 0, 1));

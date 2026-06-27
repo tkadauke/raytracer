@@ -363,6 +363,30 @@ namespace IntersectionSceneCompilerTest {
     }
   }
 
+  TEST(IntersectionSceneCompiler, CompilesDisjointUnionAsSupportedPayloads) {
+    auto unionPrimitive = std::make_shared<Union>();
+    auto sharedMaterial = material(Colord::blue());
+    unionPrimitive->setMaterial(sharedMaterial);
+    unionPrimitive->add(std::make_shared<Sphere>(Vector3d(-3.0, 0.0, 0.0), 1.0));
+    unionPrimitive->add(std::make_shared<Sphere>(Vector3d(3.0, 0.0, 0.0), 1.0));
+    Scene scene;
+    scene.add(unionPrimitive);
+
+    const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
+
+    ASSERT_EQ(2u, compiled.primitives().size());
+    EXPECT_TRUE(compiled.fullySupported());
+    EXPECT_TRUE(compiled.unsupportedPrimitives().empty());
+    EXPECT_EQ(2u, compiled.spheres().size());
+    EXPECT_EQ(2u, countPrimitivesOfKind(compiled, IntersectionPrimitiveKind::Sphere));
+    for (const IntersectionPrimitiveRecord& primitive : compiled.primitives()) {
+      ASSERT_GT(compiled.materials().size(), primitive.material);
+      ASSERT_GT(compiled.objects().size(), primitive.object);
+      EXPECT_EQ(sharedMaterial.get(), compiled.materials()[primitive.material].get());
+      EXPECT_EQ(unionPrimitive.get(), compiled.objects()[primitive.object]);
+    }
+  }
+
   TEST(IntersectionSceneCompiler, RejectsBooleanCsgInsteadOfFlatteningChildren) {
     auto difference = std::make_shared<Difference>();
     addTwoSpheres(*difference);
@@ -658,6 +682,25 @@ namespace IntersectionSceneCompilerTest {
     const Rayd ray(Vector4d(0, 0, -3, 1), Vector3d(0, 0, 1));
 
     expectCompiledClosestHitMatchesRuntime(scene, ray);
+  }
+
+  TEST(CompiledIntersectionSceneIntersector, IntersectsDisjointUnionLikeRuntimeScene) {
+    auto unionPrimitive = std::make_shared<Union>();
+    unionPrimitive->add(std::make_shared<Sphere>(Vector3d(-3.0, 0.0, 0.0), 1.0));
+    unionPrimitive->add(std::make_shared<Sphere>(Vector3d(3.0, 0.0, 0.0), 1.0));
+    Scene scene;
+    scene.add(unionPrimitive);
+
+    const Rayd leftRay(Vector3d(-3.0, 0.0, -5.0), Vector3d(0.0, 0.0, 1.0));
+    expectCompiledClosestHitMatchesRuntime(scene, leftRay);
+    expectCompiledAnyHitMatchesRuntime(scene, leftRay, 5.0);
+
+    const Rayd rightRay(Vector3d(3.0, 0.0, -5.0), Vector3d(0.0, 0.0, 1.0));
+    expectCompiledClosestHitMatchesRuntime(scene, rightRay);
+    expectCompiledAnyHitMatchesRuntime(scene, rightRay, 5.0);
+
+    const Rayd missRay(Vector3d(0.0, 3.0, -5.0), Vector3d(0.0, 0.0, 1.0));
+    expectCompiledAnyHitMatchesRuntime(scene, missRay, std::numeric_limits<double>::infinity());
   }
 
   TEST(CompiledIntersectionSceneIntersector, IntersectsPlaneLikeRuntimeScene) {

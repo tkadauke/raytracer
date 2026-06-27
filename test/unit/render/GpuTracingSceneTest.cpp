@@ -18,6 +18,7 @@
 #include "render/primitives/Difference.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
+#include "render/primitives/Union.h"
 #include "render/textures/CheckerBoardTexture.h"
 #include "render/textures/ConstantColorTexture.h"
 #include "render/textures/ImageTexture.h"
@@ -949,6 +950,30 @@ namespace GpuTracingSceneTest {
       foundTransparentMaterial = foundTransparentMaterial || material.kind == transparentKind;
     }
     EXPECT_TRUE(foundTransparentMaterial);
+  }
+
+  TEST(GpuTracingScene, DiffusePathLoopSupportAcceptsDisjointUnion) {
+    auto unionPrimitive = std::make_shared<Union>();
+    unionPrimitive->setMaterial(std::make_shared<MatteMaterial>(
+      std::make_shared<ConstantColorTexture>(Colord(0.25, 0.5, 0.75))));
+    unionPrimitive->add(std::make_shared<Sphere>(Vector3d(-3.0, 0.0, 0.0), 1.0));
+    unionPrimitive->add(std::make_shared<Sphere>(Vector3d(3.0, 0.0, 0.0), 1.0));
+    Scene scene;
+    scene.setBackground(Colord(0.1, 0.2, 0.3));
+    scene.setEnvironmentRadiance(Colord(0.1, 0.2, 0.3));
+    scene.add(unionPrimitive);
+
+    const GpuTracingSceneCompilation compilation = compileGpuTracingScene(scene);
+    const GpuDiffusePathLoopSupport support = gpuDiffusePathLoopSupport(compilation, scene);
+
+    EXPECT_TRUE(compilation.supported());
+    EXPECT_EQ(0u, compilation.diagnostics.unsupportedPrimitives);
+    EXPECT_TRUE(compilation.diagnostics.unsupportedPrimitiveReasons.empty());
+    ASSERT_EQ(2u, compilation.sections.geometry.primitives.size());
+    ASSERT_EQ(2u, compilation.sections.geometry.spheres.size());
+    EXPECT_TRUE(support.supported);
+    EXPECT_TRUE(support.reason.empty());
+    EXPECT_TRUE(supportsGpuDiffusePathLoop(compilation, scene));
   }
 
   TEST(GpuTracingScene, DiffusePathLoopSupportAcceptsMattePhongAndEmissiveScenes) {

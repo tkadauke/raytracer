@@ -13,6 +13,50 @@
 using namespace std;
 using namespace render;
 
+namespace {
+  double normalizedFaceCoordinate(double value, double halfExtent) {
+    if (halfExtent == 0.0) {
+      return 0.0;
+    }
+    return (value + halfExtent) / (2.0 * halfExtent);
+  }
+
+  double invertedFaceCoordinate(double value, double halfExtent) {
+    if (halfExtent == 0.0) {
+      return 0.0;
+    }
+    return (halfExtent - value) / (2.0 * halfExtent);
+  }
+
+  Vector2d boxFaceUv(const Vector3d& center, const Vector3d& edge, const Vector4d& point,
+                     const Vector3d& normal) {
+    const double x = point.x() - center.x();
+    const double y = point.y() - center.y();
+    const double z = point.z() - center.z();
+
+    if (std::fabs(normal.x()) > 0.5) {
+      if (normal.x() > 0.0) {
+        return Vector2d(normalizedFaceCoordinate(y, edge.y()),
+                        normalizedFaceCoordinate(z, edge.z()));
+      }
+      return Vector2d(normalizedFaceCoordinate(z, edge.z()), normalizedFaceCoordinate(y, edge.y()));
+    }
+
+    if (std::fabs(normal.y()) > 0.5) {
+      if (normal.y() > 0.0) {
+        return Vector2d(normalizedFaceCoordinate(z, edge.z()),
+                        normalizedFaceCoordinate(x, edge.x()));
+      }
+      return Vector2d(normalizedFaceCoordinate(x, edge.x()), normalizedFaceCoordinate(z, edge.z()));
+    }
+
+    if (normal.z() > 0.0) {
+      return Vector2d(normalizedFaceCoordinate(x, edge.x()), normalizedFaceCoordinate(y, edge.y()));
+    }
+    return Vector2d(normalizedFaceCoordinate(x, edge.x()), invertedFaceCoordinate(y, edge.y()));
+  }
+}
+
 #if RAYTRACER_SIMD_SSE || RAYTRACER_SIMD_NEON
 namespace {
   void packetHit(State& state, const Primitive* primitive, const std::string& reason) {
@@ -85,7 +129,10 @@ const Primitive* Box::intersect(const Rayd& ray, HitPointInterval& hitPoints,
           return nullptr;
         }
 
-  hitPoints.add(HitPoint(this, t1, ray.at(t1), normal1), HitPoint(this, t2, ray.at(t2), normal2));
+  const Vector4d point1 = ray.at(t1);
+  const Vector4d point2 = ray.at(t2);
+  hitPoints.add(HitPoint(this, t1, point1, normal1, boxFaceUv(m_center, m_edge, point1, normal1)),
+                HitPoint(this, t2, point2, normal2, boxFaceUv(m_center, m_edge, point2, normal2)));
 
   if (t1 < 0 && t2 < 0) {
     state.miss(this, "Box, behind ray");
@@ -241,7 +288,9 @@ Result Box::intersectPacketHitsFor(const Packet& rays, const StateArray& states)
     const double t = t1 > 0.0 ? t1 : t2;
     const Vector3d normal = t1 > 0.0 ? normal1 : normal2;
     if (t > 0.0) {
-      result.setHit(lane, this, HitPoint(this, t, ray.at(t), normal));
+      const Vector4d point = ray.at(t);
+      result.setHit(lane, this,
+                    HitPoint(this, t, point, normal, boxFaceUv(m_center, m_edge, point, normal)));
     }
   }
   return result;
@@ -332,8 +381,11 @@ Result Box::intersectPacketIntervalsFor(const Packet& rays, const StateArray& st
       continue;
     }
 
-    HitPointInterval hitPoints(HitPoint(this, t1, ray.at(t1), normal1),
-                               HitPoint(this, t2, ray.at(t2), normal2));
+    const Vector4d point1 = ray.at(t1);
+    const Vector4d point2 = ray.at(t2);
+    HitPointInterval hitPoints(
+      HitPoint(this, t1, point1, normal1, boxFaceUv(m_center, m_edge, point1, normal1)),
+      HitPoint(this, t2, point2, normal2, boxFaceUv(m_center, m_edge, point2, normal2)));
 
     if (t1 < 0.0 && t2 < 0.0) {
       result.setInterval(lane, nullptr, hitPoints);

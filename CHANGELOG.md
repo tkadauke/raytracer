@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Let pairwise-disjoint finite `Union` composites flatten into compiled GPU
+  intersection records so GPU path tracing can keep non-overlapping grouped
+  shapes on the GPU path without losing CSG semantics. — GPT-5 Codex
 - Let `benchmarks/tracing_backend_capture.sh` optionally capture compiled
   diffuse path-loop Google Benchmark rows beside the rendercli metrics for
   CPU-reference, cold requested-GPU, and warmed requested-GPU comparisons. —
@@ -393,6 +396,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Match runtime `Box` hit-point UVs to the tessellated compiled representation,
+  preserving CPU/GPU texture-coordinate parity for Box geometry in GPU tracing
+  paths. — GPT-5 Codex
 - Preserve the requested sampling seed in compiled GPU path-loop trace metadata
   and rendercli wavefront metrics summaries, so graph-backed GPU sample-stream
   path tracer runs remain reproducible and inspectable. — GPT-5 Codex
