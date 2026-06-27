@@ -18,6 +18,10 @@ namespace render {
     if (settings.maxDepth == 0u) {
       return {false, reasons.maxDepth};
     }
+    if (settings.captureResolvedDisplay &&
+        settings.displayResolveTonemap == GpuDisplayResolveTonemap::Unsupported) {
+      return {false, reasons.displayResolve};
+    }
     if (!hasNoGeometry(scene) && !hasSupportedGeometry(scene)) {
       return {false, reasons.geometry};
     }

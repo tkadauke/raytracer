@@ -9,7 +9,7 @@ namespace GpuDiffusePathLoopSceneSupportTest {
 
   namespace {
     GpuDiffusePathLoopSceneSupportReasons reasons() {
-      return {"max-depth", "geometry", "material", "texture", "light"};
+      return {"max-depth", "geometry", "material", "texture", "light", "display-resolve"};
     }
 
     GpuDiffusePathLoopSettings settings() {
@@ -88,6 +88,21 @@ namespace GpuDiffusePathLoopSceneSupportTest {
 
     expectUnsupported(GpuDiffusePathLoopSceneSupport().support(sections, zeroDepth, reasons()),
                       "max-depth");
+  }
+
+  TEST(GpuDiffusePathLoopSceneSupport,
+       RejectsUnsupportedDisplayResolveTonemapOnlyWhenDisplayResolveRequested) {
+    GpuDiffusePathLoopSettings unsupportedDisplayResolve = settings();
+    unsupportedDisplayResolve.captureResolvedDisplay = true;
+    unsupportedDisplayResolve.displayResolveTonemap = GpuDisplayResolveTonemap::Unsupported;
+
+    expectUnsupported(GpuDiffusePathLoopSceneSupport().support(
+                        GpuTracingSceneSections(), unsupportedDisplayResolve, reasons()),
+                      "display-resolve");
+
+    unsupportedDisplayResolve.captureResolvedDisplay = false;
+    expectSupported(GpuDiffusePathLoopSceneSupport().support(GpuTracingSceneSections(),
+                                                             unsupportedDisplayResolve, reasons()));
   }
 
   TEST(GpuDiffusePathLoopSceneSupport, RejectsUnsupportedNonGeometryRecordsOnEmptyGeometry) {

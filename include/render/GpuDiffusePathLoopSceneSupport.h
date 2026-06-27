@@ -13,6 +13,7 @@ namespace render {
     std::string material;
     std::string texture;
     std::string light;
+    std::string displayResolve;
   };
 
   class GpuDiffusePathLoopSceneSupport {

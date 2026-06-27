@@ -123,6 +123,8 @@ end state for GPU tracing.
   artifacts. Render graph trace metadata reports the requested capture policy
   (`captureDiagnostics`, platform accumulation, platform display resolve, and
   display-resolve tonemap) so readback behavior is inspectable per pass.
+  Direct Metal/Vulkan backend support checks reject unsupported
+  display-resolve tonemaps when resolved display pixels are requested.
 - Supported diffuse path-tracing scenes can route GPU execution requests
   through the compiled diffuse path-loop path from the live render graph path.
   rendercli, Modeler preview, and the render dialog report whether that

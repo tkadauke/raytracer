@@ -428,7 +428,9 @@ namespace render {
         "graphs, nearest/bilinear ImageTexture, UVColorTexture, and bounded Tinted wrapper chains "
         "over those textures only",
         "Metal diffuse path-loop backend currently supports point, directional, and rectangular "
-        "area lights only"});
+        "area lights only",
+        "Metal diffuse path-loop backend requires Linear, Reinhard, or ACES display-resolve "
+        "tonemapping when resolved display pixels are requested"});
 #else
     (void)scene;
     (void)settings;

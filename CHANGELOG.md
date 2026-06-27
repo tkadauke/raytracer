@@ -60,6 +60,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   including diagnostic capture, platform accumulation readback, platform display
   resolve readback, and the selected platform display-resolve tonemap. —
   GPT-5 Codex
+- Reject unsupported platform display-resolve tonemap requests in Metal/Vulkan
+  full-GPU diffuse path-loop support checks instead of silently treating them
+  as linear output. — GPT-5 Codex
 - Let Metal and Vulkan full-GPU diffuse path-loop display resolves apply
   Reinhard and ACES tonemapping on the platform path, so simple trace-disabled
   graph LDR renders with those final tonemaps can avoid HDR accumulation
