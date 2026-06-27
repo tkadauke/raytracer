@@ -5672,6 +5672,7 @@ namespace GpuDiffusePathStepReferenceTest {
     settings.maxDepth = 3;
     settings.russianRouletteDepth = 2;
     settings.directLightSamples = 4;
+    settings.displayResolveTonemap = GpuDisplayResolveTonemap::Reinhard;
     const TracingAccumulationLayout accumulationLayout = TracingAccumulationLayout::image(3, 2);
     const std::vector<GpuDiffusePathStateRecord> paths{activePath(), activePath()};
 
@@ -5685,6 +5686,8 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(4u, plan.parameters.directLightSamples);
     EXPECT_EQ(1u, plan.parameters.captureDiagnostics);
     EXPECT_EQ(0u, plan.parameters.captureDenoiserFeatures);
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuDisplayResolveTonemap::Reinhard),
+              plan.parameters.displayResolveTonemap);
     EXPECT_EQ(2u, plan.parameters.initialPathCount);
     EXPECT_EQ(gpuPrimaryPathGenerationModeHostPathStates,
               plan.parameters.primaryPathGenerationMode);
@@ -6204,6 +6207,7 @@ namespace GpuDiffusePathStepReferenceTest {
     settings.maxDepth = 2;
     settings.russianRouletteDepth = 1;
     settings.directLightSamples = 3;
+    settings.displayResolveTonemap = GpuDisplayResolveTonemap::Aces;
     const TracingAccumulationLayout accumulationLayout = TracingAccumulationLayout::image(2, 2);
     std::vector<GpuDiffusePathStateRecord> paths{activePath(40), activePath(41)};
     paths[0].pixelIndex = 12;
@@ -6225,6 +6229,7 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(plan.parameters.captureDiagnostics, result.echoedParameters.captureDiagnostics);
     EXPECT_EQ(plan.parameters.captureDenoiserFeatures,
               result.echoedParameters.captureDenoiserFeatures);
+    EXPECT_EQ(plan.parameters.displayResolveTonemap, result.echoedParameters.displayResolveTonemap);
     EXPECT_EQ(plan.parameters.initialPathCount, result.echoedParameters.initialPathCount);
     EXPECT_EQ(plan.parameters.imageWidth, result.echoedParameters.imageWidth);
     EXPECT_EQ(plan.parameters.imageHeight, result.echoedParameters.imageHeight);

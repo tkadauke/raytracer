@@ -49,6 +49,10 @@ namespace render {
       return "AcesTonemap";
     }
 
+    inline GpuDisplayResolveTonemap gpuDisplayResolveTonemap() const override {
+      return GpuDisplayResolveTonemap::Aces;
+    }
+
   private:
     static inline double applyChannel(double x) {
       if (!std::isfinite(x)) {

@@ -530,9 +530,9 @@ namespace engine::graph {
       return std::make_shared<render::LinearTonemap>();
     }
 
-    bool supportsPlatformLinearDisplayResolve(const std::shared_ptr<render::Tonemap>& tonemap) {
+    bool supportsPlatformDisplayResolve(const std::shared_ptr<render::Tonemap>& tonemap) {
       return !tonemap ||
-             tonemap->gpuDisplayResolveTonemap() == render::GpuDisplayResolveTonemap::Linear;
+             tonemap->gpuDisplayResolveTonemap() != render::GpuDisplayResolveTonemap::Unsupported;
     }
 
     bool requestedOrPredictedGpuTracing(const RaytracerBeautyPassState& state) {
@@ -555,7 +555,7 @@ namespace engine::graph {
           pass.executor != RenderExecutorKind::PostProcess || pass.reads.size() != 1 ||
           pass.writes.size() != 1 || pass.reads.front().resource != *currentDisplayResource ||
           pass.writes.front().resource != plan.exportedColorResource().id ||
-          !supportsPlatformLinearDisplayResolve(displayTonemap)) {
+          !supportsPlatformDisplayResolve(displayTonemap)) {
         return false;
       }
       return plan.consumersOf(pass.writes.front().resource).empty();
@@ -566,7 +566,7 @@ namespace engine::graph {
                                         const std::shared_ptr<render::Tonemap>& displayTonemap) {
       if (graph.executionTraceEnabled() || pass.kind != RenderPassKind::Beauty ||
           pass.executor != RenderExecutorKind::Wavefront || pass.writes.size() != 1 ||
-          !supportsPlatformLinearDisplayResolve(displayTonemap)) {
+          !supportsPlatformDisplayResolve(displayTonemap)) {
         return false;
       }
 

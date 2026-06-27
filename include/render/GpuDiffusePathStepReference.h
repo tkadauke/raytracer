@@ -5,6 +5,7 @@
 #include "render/GpuTracingScene.h"
 #include "render/TracingAccumulationLayout.h"
 #include "render/TracingExecutionCapability.h"
+#include "render/tonemap/Tonemap.h"
 
 #include <array>
 #include <cstdint>
@@ -17,7 +18,6 @@ class Buffer;
 
 namespace render {
   class Camera;
-  class Tonemap;
 
   struct GpuDiffusePathStepMetrics {
     std::string closestHitExecutionPath;
@@ -114,6 +114,7 @@ namespace render {
     bool captureDenoiserFeatures{false};
     bool capturePlatformAccumulation{true};
     bool captureResolvedDisplay{false};
+    GpuDisplayResolveTonemap displayResolveTonemap{GpuDisplayResolveTonemap::Linear};
   };
 
   inline constexpr std::uint32_t gpuDiffusePathLoopAccumulationTargetPixel = 0u;

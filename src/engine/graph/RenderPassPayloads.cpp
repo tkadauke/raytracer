@@ -1076,9 +1076,17 @@ namespace engine::graph {
              reason;
     }
 
-    bool supportsPlatformLinearDisplayResolve(const std::shared_ptr<render::Tonemap>& tonemap) {
-      return !tonemap ||
-             tonemap->gpuDisplayResolveTonemap() == render::GpuDisplayResolveTonemap::Linear;
+    render::GpuDisplayResolveTonemap
+    platformDisplayResolveTonemap(const std::shared_ptr<render::Tonemap>& tonemap) {
+      if (!tonemap) {
+        return render::GpuDisplayResolveTonemap::Linear;
+      }
+      return tonemap->gpuDisplayResolveTonemap();
+    }
+
+    bool supportsPlatformDisplayResolve(const std::shared_ptr<render::Tonemap>& tonemap) {
+      return platformDisplayResolveTonemap(tonemap) !=
+             render::GpuDisplayResolveTonemap::Unsupported;
     }
 
     void packColorBuffer(const Buffer<Colord>& source, Buffer<unsigned int>& destination,
@@ -1285,9 +1293,10 @@ namespace engine::graph {
           denoiser ? denoiser->requestedFeatures() : render::DenoiserFeatureRequest{};
         settings.captureDiagnostics = context.graph().executionTraceEnabled();
         settings.captureDenoiserFeatures = denoiserFeatureRequest.any();
+        settings.displayResolveTonemap = platformDisplayResolveTonemap(wavefront.tonemap());
         const bool wantsPlatformDisplayResolve =
           displayTarget && !denoiser && !settings.captureDiagnostics &&
-          supportsPlatformLinearDisplayResolve(wavefront.tonemap());
+          supportsPlatformDisplayResolve(wavefront.tonemap());
         const GpuDiffusePathLoopBackendSelection pathLoopBackendSelection =
           selectGpuDiffusePathLoopBackend(context.graph(), state, compilation.sections, settings);
         const std::shared_ptr<const render::GpuDiffusePathLoopBackend>& pathLoopBackend =

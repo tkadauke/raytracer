@@ -115,8 +115,9 @@ end state for GPU tracing.
   Trace-disabled platform full-GPU launches now also size path-state, step, and
   Metal closest-hit diagnostic storage to zero logical bytes. Simple LDR graph
   output can now use the platform-resolved display buffer without final HDR
-  accumulation readback; graph paths that inspect trace data, denoise, apply
-  non-linear tonemapping, or feed postprocess/HDR consumers still retain the
+  accumulation readback when the final tonemap is GPU-resolvable (Linear,
+  Reinhard, or ACES); graph paths that inspect trace data, denoise, apply an
+  unsupported tonemap, or feed postprocess/HDR consumers still retain the
   accumulation image readback. Retained-index and active-depth-count buffers
   remain resident because they are scheduling state, not trace readback
   artifacts.
@@ -2710,20 +2711,21 @@ scene is large enough to amortize upload/readback costs.
      counters resident even when trace diagnostics are disabled, so future
      device-side scheduling, compact execution metrics, and
      `activePathsPerDepth` do not depend on diagnostic step-record readback.
-     Trace-disabled Metal display-only path-loop renders with linear tonemapping
-     can also resolve packed display pixels on the GPU and skip HDR
-     accumulation-plane readback; HDR, denoiser, graph trace, and non-linear
-     tonemap paths still keep the accumulation planes available for CPU
-     consumers. When the live render graph receives such a platform-resolved
-     display buffer, compatible linear tonemap passes can propagate that display
-     resource as current without immediately CPU-repacking the HDR graph
-     resource. Simple trace-disabled LDR graph renders now go further: when the
-     full-GPU path-tracer beauty pass feeds only that compatible final linear
-     tonemap, the graph executes the beauty pass as display-only, skips the
-     CPU tonemap pass, marks the final output edge produced, and does not ask
-     the backend to read back HDR accumulation planes. Any denoiser, graph
-     trace, non-linear tonemap, or postprocess/HDR consumer still forces the
-     older accumulation materialization path. The compiled path loop also
+     Trace-disabled Metal display-only path-loop renders with GPU-resolvable
+     tonemapping (Linear, Reinhard, or ACES) can also resolve packed display
+     pixels on the GPU and skip HDR accumulation-plane readback; HDR, denoiser,
+     graph trace, and unsupported tonemap paths still keep the accumulation
+     planes available for CPU consumers. When the live render graph receives
+     such a platform-resolved display buffer, compatible tonemap passes can
+     propagate that display resource as current without immediately
+     CPU-repacking the HDR graph resource. Simple trace-disabled LDR graph
+     renders now go further: when the full-GPU path-tracer beauty pass feeds
+     only that compatible final tonemap, the graph executes the beauty pass as
+     display-only, skips the CPU tonemap pass, marks the final output edge
+     produced, and does not ask the backend to read back HDR accumulation
+     planes. Any denoiser, graph trace, unsupported tonemap, or postprocess/HDR
+     consumer still forces the older accumulation materialization path. The
+     compiled path loop also
      carries `ReflectiveMaterial`, `TransparentMaterial`, and `PortalMaterial`
      delta continuations through the CPU reference evaluator and the Metal
      full-GPU subset, and the
@@ -2785,8 +2787,9 @@ scene is large enough to amortize upload/readback costs.
      records, in addition to spheres. Portal materials now carry transformed
      delta continuations through the same shader-side path loop. Trace-disabled
      Vulkan path-loop renders
-     with linear tonemapping can now resolve packed display pixels in a second
-     compute dispatch after the path-loop dispatch. Display-only callers can
+     with GPU-resolvable tonemapping (Linear, Reinhard, or ACES) can now resolve
+     packed display pixels in a second compute dispatch after the path-loop
+     dispatch. Display-only callers can
      skip HDR accumulation-plane readback, while graph renders that still need
      HDR resources can request the packed display buffer and accumulation
      readback together. The Vulkan runtime also keeps its device, queue,

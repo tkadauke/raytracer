@@ -38,9 +38,9 @@ namespace TonemapTest {
     ASSERT_COLOR_NEAR(Colord::black(), t.apply(Colord::black()), 1e-12);
   }
 
-  TEST(ReinhardTonemap, DoesNotOptIntoGpuDisplayResolve) {
+  TEST(ReinhardTonemap, SupportsGpuDisplayResolve) {
     ReinhardTonemap t;
-    EXPECT_EQ(GpuDisplayResolveTonemap::Unsupported, t.gpuDisplayResolveTonemap());
+    EXPECT_EQ(GpuDisplayResolveTonemap::Reinhard, t.gpuDisplayResolveTonemap());
   }
 
   TEST(ReinhardTonemap, MapsLuminanceOneToHalf) {
@@ -80,9 +80,9 @@ namespace TonemapTest {
     ASSERT_COLOR_NEAR(Colord::black(), t.apply(Colord::black()), 1e-12);
   }
 
-  TEST(AcesTonemap, DoesNotOptIntoGpuDisplayResolve) {
+  TEST(AcesTonemap, SupportsGpuDisplayResolve) {
     AcesTonemap t;
-    EXPECT_EQ(GpuDisplayResolveTonemap::Unsupported, t.gpuDisplayResolveTonemap());
+    EXPECT_EQ(GpuDisplayResolveTonemap::Aces, t.gpuDisplayResolveTonemap());
   }
 
   TEST(AcesTonemap, ClampsToUnitRange) {

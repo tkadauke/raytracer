@@ -77,6 +77,8 @@ namespace render {
       plan.parameters.directLightSamples = settings.directLightSamples;
       plan.parameters.captureDiagnostics = settings.captureDiagnostics ? 1u : 0u;
       plan.parameters.captureDenoiserFeatures = settings.captureDenoiserFeatures ? 1u : 0u;
+      plan.parameters.displayResolveTonemap =
+        static_cast<std::uint32_t>(settings.displayResolveTonemap);
       plan.parameters.initialPathCount = checkedU32(initialPathCount, "initial path count");
       plan.parameters.imageWidth =
         checkedU32(static_cast<std::uint64_t>(accumulationLayout.width), "image width");

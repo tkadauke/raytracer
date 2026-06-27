@@ -4,7 +4,12 @@
 #include "render/Object.h"
 
 namespace render {
-  enum class GpuDisplayResolveTonemap { Unsupported, Linear };
+  enum class GpuDisplayResolveTonemap : unsigned int {
+    Unsupported = 0u,
+    Linear = 1u,
+    Reinhard = 2u,
+    Aces = 3u
+  };
 
   /**
     * @brief HDR-to-LDR tone-mapping operator.
