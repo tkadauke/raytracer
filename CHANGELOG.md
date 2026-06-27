@@ -507,6 +507,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   command buffer, storage buffers, and compute pipelines across renders,
   avoiding per-image Vulkan runtime setup and buffer allocation on steady
   platform path-tracing launches. — GPT-5 Codex
+- Reuse Metal full-GPU diffuse wavefront path-loop buffers across renders,
+  avoiding per-image Metal buffer allocation on steady platform path-tracing
+  launches. — GPT-5 Codex
 - Keep full-GPU diffuse path-loop retained-frontier buffers resident even when
   graph trace diagnostics are disabled, separating GPU scheduling state from
   optional trace readback. — GPT-5 Codex

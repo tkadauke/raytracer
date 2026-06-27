@@ -11,6 +11,7 @@
 #include <chrono>
 #include <cstring>
 #include <limits>
+#include <mutex>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
@@ -3429,6 +3430,57 @@ namespace render {
       return static_cast<NSUInteger>(std::max<std::uint64_t>(1, requestedBytes));
     }
 
+    struct ReusableMetalBuffer {
+      id<MTLBuffer> buffer{nil};
+    };
+
+    struct WavefrontPathLoopReusableBuffers {
+      std::mutex mutex;
+      ReusableMetalBuffer parameter;
+      ReusableMetalBuffer echoedParameter;
+      ReusableMetalBuffer sceneUpload;
+      ReusableMetalBuffer initialPath;
+      ReusableMetalBuffer pathState;
+      ReusableMetalBuffer stepRecord;
+      ReusableMetalBuffer frontierA;
+      ReusableMetalBuffer frontierB;
+      ReusableMetalBuffer advanceThreadgroupWidth;
+      ReusableMetalBuffer frontierADispatch;
+      ReusableMetalBuffer frontierBDispatch;
+      ReusableMetalBuffer accumulation;
+      ReusableMetalBuffer denoiserFeature;
+      ReusableMetalBuffer activePathCount;
+      ReusableMetalBuffer resolvedDisplay;
+      ReusableMetalBuffer closestHit;
+    };
+
+    WavefrontPathLoopReusableBuffers& sharedWavefrontPathLoopBuffers() {
+      static WavefrontPathLoopReusableBuffers buffers;
+      return buffers;
+    }
+
+    id<MTLBuffer> prepareReusableBuffer(id<MTLDevice> device,
+                                        ReusableMetalBuffer& reusable,
+                                        std::uint64_t requestedBytes,
+                                        const void* initialData = nullptr) {
+      const NSUInteger length = bufferLength(requestedBytes);
+      if (reusable.buffer && [reusable.buffer device] != device) {
+        reusable.buffer = nil;
+      }
+      if (!reusable.buffer || [reusable.buffer length] < length) {
+        reusable.buffer = [device newBufferWithLength:length
+                                             options:MTLResourceStorageModeShared];
+        if (!reusable.buffer) {
+          throw std::runtime_error("Metal diffuse wavefront path-loop buffer allocation failed");
+        }
+      }
+      if (initialData && requestedBytes != 0u) {
+        std::memcpy([reusable.buffer contents], initialData,
+                    static_cast<std::size_t>(requestedBytes));
+      }
+      return reusable.buffer;
+    }
+
     std::uint64_t pixelCount(const GpuDiffusePathLoopLaunchParameters& parameters) {
       return static_cast<std::uint64_t>(parameters.imageWidth) *
              static_cast<std::uint64_t>(parameters.imageHeight);
@@ -4684,76 +4736,57 @@ namespace render {
         resolvedDisplayPixels * static_cast<std::uint64_t>(sizeof(unsigned int));
       const std::uint64_t pathStateStorageBytes =
         launchPathCount * static_cast<std::uint64_t>(sizeof(GpuDiffusePathStateRecord));
-      id<MTLBuffer> parameterBuffer =
-        [device newBufferWithBytes:&plan.parameters
-                            length:sizeof(GpuDiffusePathLoopLaunchParameters)
-                           options:MTLResourceStorageModeShared];
-      id<MTLBuffer> echoedParameterBuffer =
-        [device newBufferWithLength:sizeof(GpuDiffusePathLoopLaunchParameters)
-                            options:MTLResourceStorageModeShared];
-      id<MTLBuffer> sceneUploadBuffer =
-        plan.sceneUpload.empty()
-          ? [device newBufferWithLength:1 options:MTLResourceStorageModeShared]
-          : [device newBufferWithBytes:plan.sceneUpload.data()
-                                length:plan.buffers.sceneUploadBytes
-                               options:MTLResourceStorageModeShared];
+      WavefrontPathLoopReusableBuffers& reusableBuffers = sharedWavefrontPathLoopBuffers();
+      std::lock_guard<std::mutex> reusableBufferLock(reusableBuffers.mutex);
+
+      id<MTLBuffer> parameterBuffer = prepareReusableBuffer(
+        device, reusableBuffers.parameter, sizeof(GpuDiffusePathLoopLaunchParameters),
+        &plan.parameters);
+      id<MTLBuffer> echoedParameterBuffer = prepareReusableBuffer(
+        device, reusableBuffers.echoedParameter, sizeof(GpuDiffusePathLoopLaunchParameters));
+      id<MTLBuffer> sceneUploadBuffer = prepareReusableBuffer(
+        device, reusableBuffers.sceneUpload, plan.buffers.sceneUploadBytes,
+        plan.sceneUpload.empty() ? nullptr : plan.sceneUpload.data());
       id<MTLBuffer> initialPathBuffer =
-        plan.generatesPrimaryPathsOnDevice() || initialPathStates.empty()
-          ? [device newBufferWithLength:1 options:MTLResourceStorageModeShared]
-          : [device newBufferWithBytes:initialPathStates.data()
-                                length:plan.buffers.initialPathStateBytes
-                               options:MTLResourceStorageModeShared];
+        prepareReusableBuffer(device, reusableBuffers.initialPath,
+                              plan.generatesPrimaryPathsOnDevice() || initialPathStates.empty()
+                                ? 1u
+                                : plan.buffers.initialPathStateBytes,
+                              plan.generatesPrimaryPathsOnDevice() || initialPathStates.empty()
+                                ? nullptr
+                                : initialPathStates.data());
       id<MTLBuffer> pathStateBuffer =
-        [device newBufferWithLength:bufferLength(pathStateStorageBytes)
-                            options:MTLResourceStorageModeShared];
+        prepareReusableBuffer(device, reusableBuffers.pathState, pathStateStorageBytes);
       id<MTLBuffer> stepRecordBuffer =
-        [device newBufferWithLength:bufferLength(plan.buffers.stepRecordBytes)
-                            options:MTLResourceStorageModeShared];
+        prepareReusableBuffer(device, reusableBuffers.stepRecord, plan.buffers.stepRecordBytes);
       id<MTLBuffer> frontierABuffer =
-        [device newBufferWithLength:bufferLength(plan.buffers.retainedIndexBytes)
-                            options:MTLResourceStorageModeShared];
+        prepareReusableBuffer(device, reusableBuffers.frontierA, plan.buffers.retainedIndexBytes);
       id<MTLBuffer> frontierBBuffer =
-        [device newBufferWithLength:bufferLength(plan.buffers.retainedIndexBytes)
-                            options:MTLResourceStorageModeShared];
+        prepareReusableBuffer(device, reusableBuffers.frontierB, plan.buffers.retainedIndexBytes);
       const std::uint32_t advanceThreadsPerThreadgroup =
         static_cast<std::uint32_t>(threadgroupWidthFor(
           advanceFrontierPipeline, static_cast<NSUInteger>(std::max<std::size_t>(1u, launchPathCount))));
-      id<MTLBuffer> advanceThreadgroupWidthBuffer =
-        [device newBufferWithBytes:&advanceThreadsPerThreadgroup
-                            length:sizeof(advanceThreadsPerThreadgroup)
-                           options:MTLResourceStorageModeShared];
-      id<MTLBuffer> frontierADispatchBuffer =
-        [device newBufferWithLength:kDispatchThreadgroupsIndirectByteCount
-                            options:MTLResourceStorageModeShared];
-      id<MTLBuffer> frontierBDispatchBuffer =
-        [device newBufferWithLength:kDispatchThreadgroupsIndirectByteCount
-                            options:MTLResourceStorageModeShared];
+      id<MTLBuffer> advanceThreadgroupWidthBuffer = prepareReusableBuffer(
+        device, reusableBuffers.advanceThreadgroupWidth, sizeof(advanceThreadsPerThreadgroup),
+        &advanceThreadsPerThreadgroup);
+      id<MTLBuffer> frontierADispatchBuffer = prepareReusableBuffer(
+        device, reusableBuffers.frontierADispatch, kDispatchThreadgroupsIndirectByteCount);
+      id<MTLBuffer> frontierBDispatchBuffer = prepareReusableBuffer(
+        device, reusableBuffers.frontierBDispatch, kDispatchThreadgroupsIndirectByteCount);
       id<MTLBuffer> accumulationBuffer =
-        [device newBufferWithLength:bufferLength(plan.buffers.accumulationBytes)
-                            options:MTLResourceStorageModeShared];
-      id<MTLBuffer> denoiserFeatureBuffer =
-        [device newBufferWithLength:bufferLength(plan.buffers.denoiserFeatureRecordBytes)
-                            options:MTLResourceStorageModeShared];
-      id<MTLBuffer> activePathCountBuffer =
-        [device newBufferWithLength:bufferLength(plan.buffers.activePathCountBytes)
-                            options:MTLResourceStorageModeShared];
+        prepareReusableBuffer(device, reusableBuffers.accumulation, plan.buffers.accumulationBytes);
+      id<MTLBuffer> denoiserFeatureBuffer = prepareReusableBuffer(
+        device, reusableBuffers.denoiserFeature, plan.buffers.denoiserFeatureRecordBytes);
+      id<MTLBuffer> activePathCountBuffer = prepareReusableBuffer(
+        device, reusableBuffers.activePathCount, plan.buffers.activePathCountBytes);
       id<MTLBuffer> resolvedDisplayBuffer =
-        [device newBufferWithLength:bufferLength(resolvedDisplayBytes)
-                            options:MTLResourceStorageModeShared];
+        prepareReusableBuffer(device, reusableBuffers.resolvedDisplay, resolvedDisplayBytes);
       const std::uint64_t closestHitBytes =
         plan.parameters.captureDiagnostics != 0u
           ? launchPathCount * static_cast<std::uint64_t>(sizeof(GpuIntersectionHitRecord))
           : 0u;
       id<MTLBuffer> closestHitBuffer =
-        [device newBufferWithLength:bufferLength(closestHitBytes)
-                            options:MTLResourceStorageModeShared];
-      if (!parameterBuffer || !echoedParameterBuffer || !sceneUploadBuffer || !initialPathBuffer ||
-          !pathStateBuffer || !stepRecordBuffer || !frontierABuffer || !frontierBBuffer ||
-          !advanceThreadgroupWidthBuffer || !frontierADispatchBuffer ||
-          !frontierBDispatchBuffer || !accumulationBuffer || !denoiserFeatureBuffer ||
-          !activePathCountBuffer || !resolvedDisplayBuffer || !closestHitBuffer) {
-        throw std::runtime_error("Metal diffuse wavefront path-loop buffer allocation failed");
-      }
+        prepareReusableBuffer(device, reusableBuffers.closestHit, closestHitBytes);
       clearRetainedIndexBuffer(frontierABuffer, plan.buffers.retainedIndexBytes);
       clearRetainedIndexBuffer(frontierBBuffer, plan.buffers.retainedIndexBytes);
       if (plan.buffers.stepRecordBytes != 0u) {

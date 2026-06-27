@@ -2722,6 +2722,10 @@ scene is large enough to amortize upload/readback costs.
      dispatch now uses pipeline-derived threadgroup widths instead of one
      thread per threadgroup, moving the explicit full-GPU path tracer closer to
      the E15 performance gate without changing its supported-scene contract.
+     The real Metal wavefront path-loop launch now also reuses its shared
+     buffers across renders, so steady launches no longer allocate the full
+     parameter, scene, path-state, frontier, accumulation, diagnostic, and
+     resolve buffer set for every image.
      Graph background-color overrides now update the compiled visible-background
      record before backend dispatch instead of forcing scalar fallback.
      Raster-only material normal maps no longer make those materials
