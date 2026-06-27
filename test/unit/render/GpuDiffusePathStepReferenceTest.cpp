@@ -2202,6 +2202,72 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ("test backend supports only a narrower scene subset", support.reason);
   }
 
+  TEST(GpuDiffusePathLoopBackend, SharedPlatformAccumulationPlanUsesSampleSlotsForDuplicatePixels) {
+    std::vector<GpuDiffusePathStateRecord> paths{activePath(10), activePath(11)};
+    paths[0].pixelIndex = 0;
+    paths[0].primarySampleIndex = 0;
+    paths[1].pixelIndex = 0;
+    paths[1].primarySampleIndex = 1;
+
+    const GpuDiffusePathLoopPlatformAccumulationPlan plan =
+      platformGpuDiffusePathLoopAccumulationPlanFor(paths, "Test");
+
+    EXPECT_EQ(gpuDiffusePathLoopAccumulationTargetSampleSlot, plan.targetMode);
+    EXPECT_EQ(1, plan.layout.width);
+    EXPECT_EQ(2, plan.layout.height);
+  }
+
+  TEST(GpuDiffusePathLoopBackend, SharedPlatformResultHonorsTraceDisabledNoReadback) {
+    GpuDiffusePathLoopPlatformResult platform;
+    platform.echoedParameters.accumulationTargetMode =
+      gpuDiffusePathLoopAccumulationTargetSampleSlot;
+    platform.echoedParameters.imageWidth = 1;
+    platform.echoedParameters.imageHeight = 2;
+    platform.executionPath = "test_path_loop";
+    platform.pathStateResidency = "test_path_state";
+    platform.retainedFrontierDispatchesIndirect = true;
+    platform.retainedPathCount = 1;
+    platform.activePathCountsPerDepth = {2, 1};
+    platform.accumulationColorSums = {{{1.0f, 0.0f, 0.0f, 0.0f}}, {{0.0f, 1.0f, 0.0f, 0.0f}}};
+    platform.accumulationSampleCounts = {1, 1};
+    platform.resolvedPathStates = {activePath(10), activePath(11)};
+    platform.resolvedPathStates[0].flags = gpuDiffusePathStateTerminatedFlag;
+    platform.resolvedPathStates[1].flags = gpuDiffusePathStateTerminatedFlag;
+    platform.stepRecords.resize(2);
+    platform.stepRecords[0].event = static_cast<std::uint32_t>(GpuDiffusePathStepEvent::Hit);
+    platform.stepRecords[0].depth = 0;
+    platform.stepRecords[0].continuationThroughput = {0.5f, 0.5f, 0.5f, 0.0f};
+    platform.stepRecords[1].event = static_cast<std::uint32_t>(GpuDiffusePathStepEvent::Miss);
+    platform.stepRecords[1].depth = 1;
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 2;
+    settings.captureDiagnostics = false;
+
+    GpuDiffusePathLoopResult result = makePlatformGpuDiffusePathLoopResult(
+      2, settings, std::move(platform), "Test", "test", "test_path_state", "test_accumulation",
+      "test_accumulation_residency");
+
+    EXPECT_TRUE(result.fullGpuPathLoopSupported());
+    EXPECT_EQ("test", result.platformName);
+    EXPECT_EQ("test_path_loop", result.frontierCompactionExecutionPath);
+    EXPECT_EQ("test_path_state", result.pathStateResidency);
+    EXPECT_EQ("test_path_state", result.frontierCompactionPathStateResidency);
+    EXPECT_TRUE(result.retainedFrontierDispatchesIndirect);
+    EXPECT_TRUE(result.resolvedPathStates.empty());
+    EXPECT_EQ(2u, result.initialPathCount);
+    EXPECT_EQ(3u, result.metrics.activePaths);
+    EXPECT_EQ(1u, result.metrics.spawnedContinuations);
+    EXPECT_EQ(0u, result.metrics.terminatedPaths);
+    ASSERT_EQ(2u, result.activePathsPerDepth.size());
+    EXPECT_EQ(2u, result.activePathsPerDepth[0]);
+    EXPECT_EQ(1u, result.activePathsPerDepth[1]);
+    EXPECT_EQ(gpuDiffusePathLoopAccumulationTargetSampleSlot,
+              result.platformAccumulationTargetMode);
+    EXPECT_EQ("test_accumulation", result.platformAccumulationBackend);
+    EXPECT_EQ("test_accumulation_residency", result.platformAccumulationResidency);
+  }
+
   TEST(GpuDiffusePathLoopResult, ReportsCpuReferenceTracingCapabilitiesAsGpuFallbacks) {
     GpuDiffusePathLoopResult result;
     result.metrics.closestHitExecutionPath = "packed_cpu";

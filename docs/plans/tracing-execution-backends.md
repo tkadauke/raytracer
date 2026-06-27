@@ -186,6 +186,13 @@ end state for GPU tracing.
   available Metal or Vulkan frontier-compaction backend for the live
   `GpuDiffusePathStateRecord` frontier, reporting that middle step as hybrid
   execution while the overall loop remains the CPU reference implementation.
+- Metal and Vulkan full-GPU diffuse path-loop backends now share platform
+  accumulation-target planning and result assembly for trace-disabled readback
+  policy, retained-frontier metrics, active-depth counts, platform accumulation
+  metadata, denoiser feature capture, and diagnostic path-state materialization.
+  The platform-specific backends now adapt their shader result records into that
+  common contract instead of duplicating host-side image, trace, and metric
+  bookkeeping.
 - The Modeler saved Render Settings item, final render dialog, and rendercli
   graph options expose the GPU sample stream as an explicit Path Tracer choice.
   Full-GPU compiled path-loop eligibility now treats ordinary sampler-backed
@@ -217,10 +224,11 @@ end state for GPU tracing.
   other camera models without descriptors, animated cameras, later
   path-continuation records, and retained frontier ownership still need broader
   platform path-state support.
-- A shared backend abstraction for selecting compacted wavefront versus
-  megakernel schedules per platform, plus Vulkan shader validation and parity
-  coverage on a Vulkan-enabled build for the new depth-frontier path-loop
-  entry points.
+- A higher-level backend abstraction for selecting compacted wavefront versus
+  megakernel schedules per platform. Metal/Vulkan now share the path-loop
+  accumulation/result bookkeeping layer, but schedule selection and Vulkan
+  shader validation/parity coverage on a Vulkan-enabled build for the new
+  depth-frontier path-loop entry points still need to land.
 - Broad platform full-GPU path-loop kernels for the normal render path. A
   restricted Metal path-loop kernel can advance empty-scene and
   optionally transformed triangle/`MeshPrimitive` mesh-triangle/finite-width
@@ -2637,7 +2645,12 @@ scene is large enough to amortize upload/readback costs.
      analysis overclaim full GPU execution. Metal and Vulkan now share the same
      scene-section support policy for geometry, material, texture, light, and
      max-depth validation, while keeping platform-specific fallback wording at
-     the backend boundary.
+     the backend boundary. They also share accumulation-target planning and
+     result assembly for diagnostic capture policy, retained-frontier metrics,
+     active-depth counts, platform accumulation metadata, denoiser feature
+     capture, and trace-disabled path-state readback decisions; the platform
+     adapters now only provide shader launch/support behavior and translate
+     kernel result records into the shared contract.
 
 2. **Add a minimal Metal path-loop kernel.**
    - Depends on: job 1.

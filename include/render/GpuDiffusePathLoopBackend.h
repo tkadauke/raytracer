@@ -1,7 +1,10 @@
 #pragma once
 
+#include "render/GpuDiffusePathLoopLaunch.h"
 #include "render/GpuDiffusePathStepReference.h"
 
+#include <array>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
@@ -11,6 +14,48 @@ namespace render {
     bool supported{false};
     std::string reason;
   };
+
+  struct GpuDiffusePathLoopPlatformAccumulationPlan {
+    TracingAccumulationLayout layout;
+    std::uint32_t targetMode{gpuDiffusePathLoopAccumulationTargetPixel};
+  };
+
+  struct GpuDiffusePathLoopPlatformResult {
+    GpuDiffusePathLoopLaunchParameters echoedParameters;
+    std::vector<GpuDiffusePathStateRecord> resolvedPathStates;
+    std::vector<GpuDiffusePathStateRecord> nextPathStates;
+    std::vector<GpuDiffusePathStepRecord> stepRecords;
+    std::vector<GpuDiffusePathDenoiserFeatureRecord> denoiserFeatureRecords;
+    std::uint32_t retainedPathCount{0};
+    std::vector<std::uint32_t> activePathCountsPerDepth;
+    std::vector<std::array<float, 4>> accumulationColorSums;
+    std::vector<std::uint32_t> accumulationSampleCounts;
+    std::vector<unsigned int> resolvedDisplayPixels;
+    std::string executionPath;
+    std::string pathStateResidency;
+    bool retainedFrontierDispatchesIndirect{false};
+    bool sceneUploadCacheHit{false};
+    std::uint64_t sceneUploadBytesWritten{0};
+    double uploadWorkerSeconds{0.0};
+    double kernelWorkerSeconds{0.0};
+    double readbackWorkerSeconds{0.0};
+  };
+
+  [[nodiscard]] GpuDiffusePathLoopPlatformAccumulationPlan
+  platformGpuDiffusePathLoopAccumulationPlanFor(
+    const std::vector<GpuDiffusePathStateRecord>& pathStates, const char* backendDisplayName);
+  [[nodiscard]] GpuDiffusePathLoopPlatformAccumulationPlan
+  platformGpuDiffusePathLoopAccumulationPlanFor(const GpuPrimaryPathDescriptor& descriptor,
+                                                const char* backendDisplayName);
+  [[nodiscard]] GpuDiffusePathLoopPlatformAccumulationPlan
+  platformGpuDiffusePathLoopAccumulationPlanFor(
+    const GpuDiffusePrimaryPathStateGeneration& primaryPathGeneration,
+    const char* backendDisplayName);
+  [[nodiscard]] GpuDiffusePathLoopResult makePlatformGpuDiffusePathLoopResult(
+    std::uint64_t initialPathCount, const GpuDiffusePathLoopSettings& settings,
+    GpuDiffusePathLoopPlatformResult&& platformResult, const char* backendDisplayName,
+    const char* platformName, const char* pathStateResidency, const char* accumulationBackend,
+    const char* accumulationResidency);
 
   /**
     * Backend boundary for the compiled diffuse path-loop subset.
