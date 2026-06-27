@@ -234,6 +234,7 @@ namespace GraphRenderEngineTest {
       m_lastCapturePlatformAccumulation = settings.capturePlatformAccumulation;
       m_lastCaptureResolvedDisplay = settings.captureResolvedDisplay;
       m_lastDisplayResolveTonemap = settings.displayResolveTonemap;
+      m_lastDirectLightSamples = settings.directLightSamples;
       m_lastPrimaryHostPathStateCount = initialPathStates.size();
       render::GpuDiffusePathLoopResult result =
         render::CpuReferenceGpuDiffusePathLoopBackend::sharedInstance()->run(
@@ -293,6 +294,10 @@ namespace GraphRenderEngineTest {
       return m_lastDisplayResolveTonemap;
     }
 
+    std::uint32_t lastDirectLightSamples() const {
+      return m_lastDirectLightSamples;
+    }
+
     bool hasLastPrimaryGeneration() const {
       return m_hasLastPrimaryGeneration;
     }
@@ -320,6 +325,7 @@ namespace GraphRenderEngineTest {
     mutable bool m_lastCaptureResolvedDisplay{false};
     mutable render::GpuDisplayResolveTonemap m_lastDisplayResolveTonemap{
       render::GpuDisplayResolveTonemap::Unsupported};
+    mutable std::uint32_t m_lastDirectLightSamples{0};
     mutable bool m_hasLastPrimaryGeneration{false};
     mutable std::size_t m_lastPrimaryHostPathStateCount{0};
     mutable std::uint64_t m_lastPrimaryGeneratedSamples{0};
@@ -2807,6 +2813,57 @@ namespace GraphRenderEngineTest {
     EXPECT_TRUE(pathLoopBackend->hasLastPrimaryGeneration());
     EXPECT_TRUE(pathLoopBackend->lastPrimaryGeneratesOnDevice());
     EXPECT_EQ(64u, pathLoopBackend->lastPrimaryGeneratedSamples());
+    EXPECT_EQ(0u, pathLoopBackend->lastPrimaryHostPathStateCount());
+    for (int y = 0; y != buffer.height(); ++y) {
+      for (int x = 0; x != buffer.width(); ++x) {
+        EXPECT_EQ(ReportingFullGpuDiffusePathLoopBackend::resolvedDisplaySentinel(), buffer[y][x]);
+      }
+    }
+  }
+
+  TEST(GraphRenderEngine, UsesDescriptorOnlyDisplayResolveForTraceDisabledMultisamplePathLoop) {
+    const Colord background(0.125, 0.25, 0.5);
+    auto scene = std::make_shared<render::Scene>();
+    scene->setBackground(background);
+    scene->setEnvironmentRadiance(background);
+    auto receiver = std::make_shared<render::Rectangle>(
+      Vector3d(-20.0, -20.0, 0.0), Vector3d(40.0, 0.0, 0.0), Vector3d(0.0, 40.0, 0.0));
+    receiver->setMaterial(matte(Colord(0.8, 0.8, 0.8)));
+    scene->add(receiver);
+    scene->addLight(
+      std::make_shared<render::PointLight>(Vector3d(0.0, 0.0, -3.0), Colord(0.5, 0.5, 0.5)));
+
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Wavefront;
+    intent.engineOptions.raytracer().setIntegrator("pathtracer");
+    intent.engineOptions.raytracer().setTracingExecution(TracingExecutionPreference::GPU);
+    intent.engineOptions.raytracer().setSamplesPerPixel(4);
+    intent.engineOptions.raytracer().setMaximumRecursionDepth(2);
+    intent.engineOptions.raytracer().setDirectLightSamples(3);
+    intent.engineOptions.raytracer().setSampleStreamMode("gpu_sample_stream");
+
+    RenderSceneAnalysis analysis;
+    analysis.setFullGpuTracingSupportFromScene(*scene);
+    const RenderPlan plan = RenderGraphCompiler().compile({8, 8, 1}, intent, analysis);
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setPlan(plan);
+    auto pathLoopBackend = std::make_shared<ReportingFullGpuDiffusePathLoopBackend>();
+    engine.setGpuDiffusePathLoopBackend(pathLoopBackend);
+
+    Buffer<unsigned int> buffer(8, 8);
+    engine.render(buffer);
+
+    EXPECT_TRUE(pathLoopBackend->hasLastCaptureDiagnostics());
+    EXPECT_FALSE(pathLoopBackend->lastCaptureDiagnostics());
+    EXPECT_FALSE(pathLoopBackend->lastCapturePlatformAccumulation());
+    EXPECT_TRUE(pathLoopBackend->lastCaptureResolvedDisplay());
+    EXPECT_EQ(render::GpuDisplayResolveTonemap::Linear,
+              pathLoopBackend->lastDisplayResolveTonemap());
+    EXPECT_EQ(3u, pathLoopBackend->lastDirectLightSamples());
+    EXPECT_TRUE(pathLoopBackend->hasLastPrimaryGeneration());
+    EXPECT_TRUE(pathLoopBackend->lastPrimaryGeneratesOnDevice());
+    EXPECT_EQ(256u, pathLoopBackend->lastPrimaryGeneratedSamples());
     EXPECT_EQ(0u, pathLoopBackend->lastPrimaryHostPathStateCount());
     for (int y = 0; y != buffer.height(); ++y) {
       for (int x = 0; x != buffer.width(); ++x) {
