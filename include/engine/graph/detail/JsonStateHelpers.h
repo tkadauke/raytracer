@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/Color.h"
+#include "core/json/JsonValue.h"
 #include "core/math/Rect.h"
 
 #include <QJsonArray>
@@ -43,25 +43,26 @@ namespace engine::graph::detail {
   [[nodiscard]] inline Colord colorFromJson(const QJsonObject& object, const char* key,
                                             const std::string& path, Error error) {
     const auto value = object.value(key);
-    if (!value.isArray())
+    const auto values = core::json::requireNumberArray<3>(
+      value, "expected [r, g, b]", "expected three numbers", "expected number",
+      [&](std::optional<int> index, const char* message) {
+        error(index ? path + "." + key + "[" + std::to_string(*index) + "]" : path + "." + key,
+              message);
+      });
+    if (!values)
       error(path + "." + key, "expected [r, g, b]");
 
-    const auto array = value.toArray();
-    if (array.size() != 3)
-      error(path + "." + key, "expected three numbers");
-
-    double values[3];
     for (int i = 0; i != 3; ++i) {
-      if (!array.at(i).isDouble())
-        error(path + "." + key + "[" + std::to_string(i) + "]", "expected number");
-      values[i] = array.at(i).toDouble();
-      if (!std::isfinite(values[i]) || values[i] < 0.0 || values[i] > 1.0)
+      if (!std::isfinite((*values)[static_cast<std::size_t>(i)]) ||
+          (*values)[static_cast<std::size_t>(i)] < 0.0 ||
+          (*values)[static_cast<std::size_t>(i)] > 1.0) {
         error(path + "." + key + "[" + std::to_string(i) + "]", "expected number from 0 to 1");
+      }
     }
-    return Colord(values);
+    return Colord(*values);
   }
 
   [[nodiscard]] inline QJsonArray colorToJson(const Colord& color) {
-    return QJsonArray{color.r(), color.g(), color.b()};
+    return core::json::colorToJsonArray(color);
   }
 }

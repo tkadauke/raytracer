@@ -2,6 +2,7 @@
 
 #include "core/json/JsonValue.h"
 
+#include <array>
 #include <stdexcept>
 
 TEST(JsonValueTest, ConvertsVector3ToAndFromJsonArray) {
@@ -52,6 +53,15 @@ TEST(JsonValueTest, RequiresTypedNumberArrayWithExpectedSize) {
   EXPECT_DOUBLE_EQ(1.0, result->at(0));
   EXPECT_DOUBLE_EQ(2.0, result->at(1));
   EXPECT_DOUBLE_EQ(3.0, result->at(2));
+}
+
+TEST(JsonValueTest, ConvertsStdArrayToJsonArray) {
+  const auto result = core::json::numberArrayToJsonArray(std::array<double, 3>{1.0, 2.5, 4.0});
+
+  ASSERT_EQ(3, result.size());
+  EXPECT_DOUBLE_EQ(1.0, result[0].toDouble());
+  EXPECT_DOUBLE_EQ(2.5, result[1].toDouble());
+  EXPECT_DOUBLE_EQ(4.0, result[2].toDouble());
 }
 
 TEST(JsonValueTest, ReportsNonNumericArrayIndex) {
