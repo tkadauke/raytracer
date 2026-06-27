@@ -34,8 +34,23 @@ endif()
 option(RAYTRACER_ENABLE_METAL_WAVEFRONT
        "Enable Metal wavefront and full-GPU path-loop backend plumbing (macOS only)"
        ${_RAYTRACER_METAL_WAVEFRONT_DEFAULT})
+option(RAYTRACER_DISABLE_METAL_WAVEFRONT
+       "Force-disable Metal wavefront and full-GPU path-loop backend plumbing on macOS" OFF)
 option(RAYTRACER_ENABLE_VULKAN_WAVEFRONT
        "Enable Vulkan wavefront and full-GPU path-loop backend plumbing (Linux only)" OFF)
+
+if(APPLE)
+  if(RAYTRACER_DISABLE_METAL_WAVEFRONT)
+    set(RAYTRACER_ENABLE_METAL_WAVEFRONT OFF CACHE BOOL
+        "Enable Metal wavefront and full-GPU path-loop backend plumbing (macOS only)" FORCE)
+  elseif(NOT RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    message(STATUS
+      "Enabling Metal wavefront/full-GPU path-loop backend for macOS; "
+      "set RAYTRACER_DISABLE_METAL_WAVEFRONT=ON to opt out")
+    set(RAYTRACER_ENABLE_METAL_WAVEFRONT ON CACHE BOOL
+        "Enable Metal wavefront and full-GPU path-loop backend plumbing (macOS only)" FORCE)
+  endif()
+endif()
 
 if(DEFINED ENV{GITHUB_ACTIONS})
   set(_RAYTRACER_NATIVE_TUNING_DEFAULT OFF)

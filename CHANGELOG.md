@@ -471,6 +471,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- Migrate stale macOS CMake caches back to the intended Metal wavefront/full-GPU
+  path-loop default, while adding `RAYTRACER_DISABLE_METAL_WAVEFRONT` as the
+  explicit opt-out. — GPT-5 Codex
 - Enable the Metal wavefront/full-GPU path-loop backend by default in macOS
   builds, so the normal `release` preset can exercise platform GPU path tracing
   without requiring the separate Metal preset. — GPT-5 Codex

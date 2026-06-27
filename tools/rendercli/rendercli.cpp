@@ -293,6 +293,7 @@ namespace {
       const QJsonObject accumulation = metrics.value("accumulation").toObject();
       const QJsonObject accumulationLayout = accumulation.value("layout").toObject();
       const QJsonObject batching = metrics.value("batching").toObject();
+      const QJsonObject tracingExecution = metrics.value("tracingExecution").toObject();
       const QJsonObject convergence = metrics.value("convergence").toObject();
       const QJsonObject adaptiveSampling = metrics.value("adaptiveSampling").toObject();
       const QJsonObject denoise = metrics.value("denoise").toObject();
@@ -370,6 +371,8 @@ namespace {
       const std::uint64_t frontierScalarRayCount = unsignedArraySum(frontierScalarRays);
       const std::uint64_t frontierPacketScalarFallbackRayCount =
         unsignedArraySum(frontierPacketScalarFallbackRays);
+      const std::string tracingBackendFallback =
+        tracingBackendFallbackSummary(batching, tracingExecution);
       const double frontierPacketLaneCapacity =
         static_cast<double>(frontierRay8PacketChunkCount) * 8.0 +
         static_cast<double>(frontierRay4PacketChunkCount) * 4.0;
@@ -421,9 +424,7 @@ namespace {
         << compactTextValue(batching.value("tracingBackendMode"), "unknown")
         << " tracing_backend_platform="
         << compactTextValue(batching.value("tracingBackendPlatform"), "none")
-        << " tracing_backend_fallback="
-        << compactTextValue(batching.value("tracingBackendFallback").toObject().value("reason"),
-                            "none")
+        << " tracing_backend_fallback=" << tracingBackendFallback
         << " tracing_backend_capabilities="
         << batching.value("tracingBackendCapabilities").toArray().size()
         << " tracing_backend_fallback_capabilities="
@@ -1042,6 +1043,25 @@ namespace {
         result += names[index];
       }
       return result;
+    }
+
+    std::string tracingBackendFallbackSummary(const QJsonObject& batching,
+                                              const QJsonObject& tracingExecution) const {
+      if (batching.value("executionMode").toString() ==
+          QStringLiteral("compiled_diffuse_path_loop")) {
+        const std::string fallbackReason =
+          compactTextValue(tracingExecution.value("fallbackReason"), "");
+        if (!fallbackReason.empty()) {
+          return fallbackReason;
+        }
+        const std::string actualFallbackReason =
+          compactTextValue(tracingExecution.value("actualFallbackReason"), "");
+        if (!actualFallbackReason.empty()) {
+          return actualFallbackReason;
+        }
+      }
+      return compactTextValue(batching.value("tracingBackendFallback").toObject().value("reason"),
+                              "none");
     }
 
     std::string compactToken(std::string value) const {
