@@ -358,7 +358,7 @@ namespace GpuDiffusePathStepReferenceTest {
       return settings;
     }
 
-    GpuPathLoopCase meshPrimitiveGpuPathLoopCase() {
+    [[maybe_unused]] GpuPathLoopCase meshPrimitiveGpuPathLoopCase() {
       Scene scene;
       auto meshPrimitive =
         std::make_shared<MeshPrimitive>(triangleMesh(), MeshPrimitive::NormalMode::Smooth);
@@ -373,7 +373,7 @@ namespace GpuDiffusePathStepReferenceTest {
       return {sectionsFor(scene), {path}, singleBounceGpuPathLoopSettings()};
     }
 
-    GpuPathLoopCase boxGpuPathLoopCase() {
+    [[maybe_unused]] GpuPathLoopCase boxGpuPathLoopCase() {
       Scene scene;
       auto box = std::make_shared<Box>(Vector3d(0.0, 0.0, 3.0), Vector3d(1.0, 1.0, 1.0));
       box->setMaterial(gpuPathLoopMatte(Colord(0.25, 0.5, 0.75), 0.8));
@@ -387,7 +387,7 @@ namespace GpuDiffusePathStepReferenceTest {
       return {sectionsFor(scene), {path}, singleBounceGpuPathLoopSettings()};
     }
 
-    GpuPathLoopCase curveGpuPathLoopCase() {
+    [[maybe_unused]] GpuPathLoopCase curveGpuPathLoopCase() {
       Scene scene;
       auto curve =
         std::make_shared<Curve>(core::Polyline({Vector3d(0.0, 0.0, 3.0), Vector3d(1.0, 0.0, 3.0)}),
@@ -461,8 +461,8 @@ namespace GpuDiffusePathStepReferenceTest {
       return {sectionsFor(scene), {directLightTestPath()}, directLightTestSettings(4u)};
     }
 
-    void expectBackendPathLoopMatchesReference(const GpuDiffusePathLoopBackend& backend,
-                                               const GpuPathLoopCase& testCase) {
+    [[maybe_unused]] void expectBackendPathLoopMatchesReference(
+      const GpuDiffusePathLoopBackend& backend, const GpuPathLoopCase& testCase) {
       const GpuDiffusePathLoopResult expected =
         GpuDiffusePathLoop().run(testCase.sections, testCase.paths, testCase.settings);
       const GpuDiffusePathLoopResult result =

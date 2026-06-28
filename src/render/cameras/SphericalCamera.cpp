@@ -1,4 +1,5 @@
 #include "render/cameras/CameraFactory.h"
+#include "GpuPrimaryPathDescriptorPacking.h"
 #include "render/cameras/SphericalCamera.h"
 #include "core/math/Ray.h"
 #include "core/math/Constants.h"
@@ -18,22 +19,9 @@ using namespace std;
 using namespace render;
 
 namespace {
-  std::uint32_t checkedU32(std::uint64_t value, const char* label) {
-    if (value > std::numeric_limits<std::uint32_t>::max()) {
-      throw std::overflow_error(std::string(label) + " exceeds GPU 32-bit count range");
-    }
-    return static_cast<std::uint32_t>(value);
-  }
-
-  std::array<float, 4> vector4(const Vector3d& value, float w) {
-    return {static_cast<float>(value.x()), static_cast<float>(value.y()),
-            static_cast<float>(value.z()), w};
-  }
-
-  std::array<float, 4> parameters4(double x, double y, double z, double w) {
-    return {static_cast<float>(x), static_cast<float>(y), static_cast<float>(z),
-            static_cast<float>(w)};
-  }
+  using render::detail::checkedU32;
+  using render::detail::parameters4;
+  using render::detail::vector4;
 }
 
 std::shared_ptr<Camera> SphericalCamera::clone() const {
