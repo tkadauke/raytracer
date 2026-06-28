@@ -19,6 +19,7 @@
 #include "render/materials/MatteMaterial.h"
 #include "render/primitives/Box.h"
 #include "render/primitives/Curve.h"
+#include "render/primitives/Instance.h"
 #include "render/primitives/Rectangle.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
@@ -1037,10 +1038,11 @@ namespace GraphRenderEngineTest {
 
   TEST(GraphRenderEngine, RecordsHybridVisibilityUnsupportedServiceSceneReasons) {
     auto scene = std::make_shared<render::Scene>();
-    auto curve =
-      std::make_shared<render::Curve>(core::Polyline({Vector3d(-1, 0, 0), Vector3d(1, 0, 0)}), 0.1);
-    curve->setName("debug curve");
-    scene->add(curve);
+    auto instance =
+      std::make_shared<render::Instance>(std::make_shared<render::Sphere>(Vector3d(), 1.0));
+    instance->setName("debug moving instance");
+    instance->setVelocity(Vector3d(1, 0, 0));
+    scene->add(instance);
 
     RenderIntent intent;
     intent.defaultExecutor = RenderExecutorPreference::Wavefront;
@@ -1072,7 +1074,8 @@ namespace GraphRenderEngineTest {
     ASSERT_EQ(1, reasons.size());
     EXPECT_EQ(
       1.0,
-      reasons.value("primitive is not supported by GPU intersection scene compiler").toDouble());
+      reasons.value("moving instances are not supported by GPU intersection scene compiler")
+        .toDouble());
   }
 
   TEST(GraphRenderEngine, ExecutesSampleStddevAOVViewAndRecordsColorTrace) {
@@ -2005,8 +2008,7 @@ namespace GraphRenderEngineTest {
     engine.render(buffer);
 
     const std::vector<std::string> expected = {"start:raytrace_beauty", "finish:raytrace_beauty",
-                                               "start:post_fxaa",       "finish:post_fxaa",
-                                               "start:tonemap",         "finish:tonemap"};
+                                               "start:post_fxaa",       "finish:post_fxaa"};
     EXPECT_EQ(expected, observer->events);
   }
 
@@ -2042,8 +2044,7 @@ namespace GraphRenderEngineTest {
     Buffer<unsigned int> buffer(8, 8);
     clone->render(buffer);
 
-    const std::vector<std::string> expected = {"start:raytrace_beauty", "finish:raytrace_beauty",
-                                               "start:tonemap", "finish:tonemap"};
+    const std::vector<std::string> expected = {"start:raytrace_beauty", "finish:raytrace_beauty"};
     EXPECT_EQ(expected, observer->events);
   }
 
@@ -2818,7 +2819,9 @@ namespace GraphRenderEngineTest {
     animatedCamera->setShutterInterval(0.0, 1.0);
     animatedCamera->setAnimationTrack(
       "position", render::animation::AnimationTrack(
-                    {{0.0, Vector3d(0.0, 0.0, -5.0)}, {1.0, Vector3d(0.0, 0.0, -4.0)}}));
+                    {{0.0, Vector3d(0.0, 0.0, -5.0)},
+                     {0.5, Vector3d(0.0, 0.0, -4.5)},
+                     {1.0, Vector3d(0.0, 0.0, -4.0)}}));
     GraphRenderEngine engine(animatedCamera, scene);
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(plan);

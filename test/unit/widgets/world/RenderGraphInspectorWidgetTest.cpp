@@ -12,6 +12,7 @@
 #include "render/lights/PointLight.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/primitives/Curve.h"
+#include "render/primitives/Instance.h"
 #include "render/primitives/Rectangle.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
@@ -367,10 +368,11 @@ namespace RenderGraphInspectorWidgetTest {
 
   std::shared_ptr<render::Scene> unsupportedExactScene() {
     auto scene = std::make_shared<render::Scene>();
-    auto curve =
-      std::make_shared<render::Curve>(core::Polyline({Vector3d(0, 0, 0), Vector3d(1, 0, 0)}), 0.1);
-    curve->setName("render curve");
-    scene->add(curve);
+    auto instance =
+      std::make_shared<render::Instance>(std::make_shared<render::Sphere>(Vector3d(), 1.0));
+    instance->setName("render moving instance");
+    instance->setVelocity(Vector3d(1, 0, 0));
+    scene->add(instance);
     return scene;
   }
 
@@ -482,10 +484,11 @@ namespace RenderGraphInspectorWidgetTest {
 
   std::shared_ptr<const RenderGraphExecutionTrace> unsupportedHybridVisibilityTrace() {
     auto scene = std::make_shared<render::Scene>();
-    auto curve =
-      std::make_shared<render::Curve>(core::Polyline({Vector3d(-1, 0, 0), Vector3d(1, 0, 0)}), 0.1);
-    curve->setName("debug curve");
-    scene->add(curve);
+    auto instance =
+      std::make_shared<render::Instance>(std::make_shared<render::Sphere>(Vector3d(), 1.0));
+    instance->setName("debug moving instance");
+    instance->setVelocity(Vector3d(1, 0, 0));
+    scene->add(instance);
 
     RenderIntent intent;
     intent.defaultExecutor = RenderExecutorPreference::Wavefront;
@@ -1574,7 +1577,7 @@ namespace RenderGraphInspectorWidgetTest {
 
     const QString reasonRow =
       rowValue(rows, QStringLiteral("Intersection scene unsupported reasons"));
-    EXPECT_TRUE(reasonRow.contains(QStringLiteral("Primitive Is Not Supported")));
+    EXPECT_TRUE(reasonRow.contains(QStringLiteral("Moving Instances Are Not Supported")));
     EXPECT_THAT(rowValue(rows, QStringLiteral("Tracing fallback")).toStdString(),
                 ::testing::HasSubstr("GPU -> CPU"));
     EXPECT_THAT(rowValue(rows, QStringLiteral("Tracing fallback")).toStdString(),
@@ -1590,7 +1593,8 @@ namespace RenderGraphInspectorWidgetTest {
     ASSERT_NE(nullptr, pass);
 
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("unsupported reasons")));
-    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("Primitive Is Not Supported")));
+    EXPECT_TRUE(
+      nodeLineTooltipContains(pass, QStringLiteral("Moving Instances Are Not Supported")));
   }
 
   TEST_F(RenderGraphInspectorWidgetTest,
@@ -1706,7 +1710,7 @@ namespace RenderGraphInspectorWidgetTest {
 
     const QString reasonRow =
       rowValue(rows, QStringLiteral("Intersection service unsupported scene reasons"));
-    EXPECT_TRUE(reasonRow.contains(QStringLiteral("Primitive Is Not Supported")));
+    EXPECT_TRUE(reasonRow.contains(QStringLiteral("Moving Instances Are Not Supported")));
     EXPECT_TRUE(reasonRow.contains(QStringLiteral("1")));
 
     auto* graph = widget.findChild<QGraphicsView*>(QStringLiteral("renderGraphView"));
@@ -1718,7 +1722,8 @@ namespace RenderGraphInspectorWidgetTest {
 
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("service scene compiled")));
     EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("unsupported reasons")));
-    EXPECT_TRUE(nodeLineTooltipContains(pass, QStringLiteral("Primitive Is Not Supported")));
+    EXPECT_TRUE(
+      nodeLineTooltipContains(pass, QStringLiteral("Moving Instances Are Not Supported")));
   }
 
   TEST_F(RenderGraphInspectorWidgetTest,

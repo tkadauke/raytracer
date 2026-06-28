@@ -3,11 +3,10 @@
 #include "render/IntersectionService.h"
 #include "render/GpuIntersectionScene.h"
 #include "render/State.h"
-#include "render/primitives/Curve.h"
+#include "render/primitives/Instance.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
 
-#include "core/geometry/Polyline.h"
 #include "core/math/HitPoint.h"
 
 #include <memory>
@@ -613,10 +612,10 @@ namespace IntersectionServiceTest {
 
   TEST(IntersectionService, ReportsFallbackForUnsupportedGpuScene) {
     Scene scene;
-    auto curve =
-      std::make_shared<Curve>(core::Polyline({Vector3d(0, 0, 0), Vector3d(1, 0, 0)}), 0.1);
-    curve->setName("debug curve");
-    scene.add(curve);
+    auto instance = std::make_shared<Instance>(std::make_shared<Sphere>(Vector3d(), 1.0));
+    instance->setName("debug moving instance");
+    instance->setVelocity(Vector3d(1, 0, 0));
+    scene.add(instance);
 
     IntersectionService service(scene, WavefrontIntersectionBackendChoice::gpu());
 
@@ -625,7 +624,8 @@ namespace IntersectionServiceTest {
     EXPECT_EQ("fallback", service.diagnostics().availability);
     EXPECT_EQ("runtime_scene", service.diagnostics().executionPath);
     EXPECT_NE(std::string::npos, service.diagnostics().fallbackReason.find("unsupported"));
-    EXPECT_NE(std::string::npos, service.diagnostics().fallbackReason.find("debug curve"));
+    EXPECT_NE(std::string::npos,
+              service.diagnostics().fallbackReason.find("debug moving instance"));
     EXPECT_TRUE(service.diagnostics().scene.compiled);
     EXPECT_EQ(1u, service.diagnostics().scene.unsupportedPrimitives);
   }

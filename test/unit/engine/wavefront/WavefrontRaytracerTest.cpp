@@ -2331,10 +2331,11 @@ namespace WavefrontRaytracerTest {
 
   TEST(WavefrontRaytracer, RecordsGpuIntersectionSceneUnsupportedFallbackMetrics) {
     auto scene = std::make_shared<render::Scene>(Colord::black());
-    auto curve =
-      std::make_shared<render::Curve>(core::Polyline({Vector3d(0, 0, 0), Vector3d(1, 0, 0)}), 0.1);
-    curve->setName("render curve");
-    scene->add(curve);
+    auto instance =
+      std::make_shared<render::Instance>(std::make_shared<render::Sphere>(Vector3d(), 1.0));
+    instance->setName("render moving instance");
+    instance->setVelocity(Vector3d(1, 0, 0));
+    scene->add(instance);
     auto renderer = std::make_shared<WavefrontRaytracer>(camera(), scene);
     renderer->setMaximumThreads(1);
     renderer->setQueueSize(1);
@@ -2349,7 +2350,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ("cpu", metrics.batching.intersectionBackend);
     EXPECT_EQ("fallback", metrics.batching.intersectionBackendAvailability);
     EXPECT_NE(std::string::npos,
-              metrics.batching.intersectionBackendFallbackReason.find("render curve"));
+              metrics.batching.intersectionBackendFallbackReason.find("render moving instance"));
     EXPECT_NE(std::string::npos,
               metrics.batching.intersectionBackendFallbackReason.find("unsupported"));
     EXPECT_EQ(std::string::npos,
@@ -2362,7 +2363,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(1u, metrics.batching.intersectionSceneUnsupportedPrimitives);
     ASSERT_EQ(1u, metrics.batching.intersectionSceneUnsupportedReasons.size());
     EXPECT_EQ(1u, metrics.batching.intersectionSceneUnsupportedReasons.at(
-                    "primitive is not supported by GPU intersection scene compiler"));
+                    "moving instances are not supported by GPU intersection scene compiler"));
     EXPECT_EQ(0u, metrics.batching.intersectionSceneUploadBytes);
     EXPECT_FALSE(metrics.batching.intersectionSceneTriangleClosestHitEligible);
     EXPECT_FALSE(metrics.batching.intersectionSceneBasicHitEligible);
@@ -2373,7 +2374,7 @@ namespace WavefrontRaytracerTest {
     const QJsonObject unsupportedReasons =
       batching.value("intersectionSceneUnsupportedReasons").toObject();
     EXPECT_EQ(
-      1.0, unsupportedReasons.value("primitive is not supported by GPU intersection scene compiler")
+      1.0, unsupportedReasons.value("moving instances are not supported by GPU intersection scene compiler")
              .toDouble());
   }
 
