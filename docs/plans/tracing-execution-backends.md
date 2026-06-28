@@ -3036,8 +3036,9 @@ scene is large enough to amortize upload/readback costs.
      backend dispatch rather than only lower-level support checks. The
      `rendercli_tracing_parity` compiled-GPU execution cases now also render a
      scalar CPU path-tracer baseline with the same GPU sample stream seed and
-     compare indirect-bounce, imported-mesh, transparent-glass, and
-     visibility-heavy outputs against the compiled GPU-requested path.
+     compare direct-light, indirect-bounce, environment-miss, imported-mesh,
+     transparent-glass, and visibility-heavy outputs against the compiled
+     GPU-requested path.
 
 6. ~~**Update user-facing docs and examples.**~~ ✅ **Done.**
    - Depends on: job 5.

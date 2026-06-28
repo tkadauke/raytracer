@@ -276,6 +276,23 @@ function(tracing_parity_render_compiled_gpu_execution category scene_file depth 
   set(cpu_scalar_render "${TEST_OUTPUT_DIR}/${slug}-scalar-cpu.png")
   set(gpu_execution_render "${TEST_OUTPUT_DIR}/${slug}-compiled-gpu-execution.png")
   set(gpu_execution_metrics "${TEST_OUTPUT_DIR}/${slug}-compiled-gpu-execution-metrics.json")
+  if(ARGC GREATER 5)
+    set(platform_direct_light_regex "${ARGV5}")
+  else()
+    set(platform_direct_light_regex
+        "resident_direct_light_batches_unavailable_reason=none.*direct_light_contribution_execution=full_gpu_subset.*direct_light_contribution_fallback=none")
+  endif()
+  if(ARGC GREATER 6)
+    set(fallback_direct_light_regex "${ARGV6}")
+  else()
+    set(fallback_direct_light_regex
+        "resident_direct_light_batches_unavailable_reason=compiled_CPU-reference_path_loop_resolves_direct-light_visibility_on_the_host.*direct_light_contribution_execution=cpu_record.*direct_light_contribution_fallback=compiled_CPU-reference_path_loop_evaluates_direct-light_contribution_on_the_host")
+  endif()
+  if(ARGC GREATER 7)
+    set(platform_direct_light_execution_path_regex "${ARGV7}")
+  else()
+    set(platform_direct_light_execution_path_regex "full_gpu_subset")
+  endif()
 
   rendercli_run(
     NAME "rendercli tracing parity ${category} scalar CPU baseline"
@@ -356,8 +373,7 @@ function(tracing_parity_render_compiled_gpu_execution category scene_file depth 
       "frontier_compaction_execution=(metal_diffuse_path_loop|metal_diffuse_path_loop_wavefront|vulkan_diffuse_path_loop|vulkan_diffuse_path_loop_wavefront).*frontier_compaction_path_state_residency=(metal_shared_diffuse_path_state|vulkan_host_visible_diffuse_path_state)")
     tracing_parity_assert_matches(
       "tracing parity ${category} compiled GPU execution direct-light platform path"
-      "${gpu_execution_stdout}"
-      "resident_direct_light_batches_unavailable_reason=none.*direct_light_contribution_execution=full_gpu_subset.*direct_light_contribution_fallback=none")
+      "${gpu_execution_stdout}" "${platform_direct_light_regex}")
     tracing_parity_assert_matches(
       "tracing parity ${category} compiled GPU execution supported capabilities summary"
       "${gpu_execution_stdout}"
@@ -368,7 +384,7 @@ function(tracing_parity_render_compiled_gpu_execution category scene_file depth 
             "\"tracingBackend\"[ \r\n]*:[ \r\n]*\"gpu\""
             "\"tracingBackendMode\"[ \r\n]*:[ \r\n]*\"full_gpu_subset\""
             "\"tracingBackendPlatform\"[ \r\n]*:[ \r\n]*\"(metal|vulkan)\""
-            "\"directLightContributionExecutionPath\"[ \r\n]*:[ \r\n]*\"full_gpu_subset\""
+            "\"directLightContributionExecutionPath\"[ \r\n]*:[ \r\n]*\"${platform_direct_light_execution_path_regex}\""
             "\"directLightContributionFallbackReason\"[ \r\n]*:[ \r\n]*\"\""
             "\"frontierCompactionExecutionPath\"[ \r\n]*:[ \r\n]*\"(metal_diffuse_path_loop|metal_diffuse_path_loop_wavefront|vulkan_diffuse_path_loop|vulkan_diffuse_path_loop_wavefront)\""
             "\"frontierCompactionPathStateResidency\"[ \r\n]*:[ \r\n]*\"(metal_shared_diffuse_path_state|vulkan_host_visible_diffuse_path_state)\""
@@ -399,8 +415,7 @@ function(tracing_parity_render_compiled_gpu_execution category scene_file depth 
       "frontier_compaction_execution=cpu_diffuse_frontier_compaction.*frontier_compaction_path_state_residency=cpu_host")
     tracing_parity_assert_matches(
       "tracing parity ${category} compiled GPU execution direct-light fallback"
-      "${gpu_execution_stdout}"
-      "resident_direct_light_batches_unavailable_reason=compiled_CPU-reference_path_loop_resolves_direct-light_visibility_on_the_host.*direct_light_contribution_execution=cpu_record.*direct_light_contribution_fallback=compiled_CPU-reference_path_loop_evaluates_direct-light_contribution_on_the_host")
+      "${gpu_execution_stdout}" "${fallback_direct_light_regex}")
     tracing_parity_assert_matches(
       "tracing parity ${category} compiled GPU execution fallback capabilities summary"
       "${gpu_execution_stdout}"
@@ -438,6 +453,8 @@ endfunction()
 tracing_parity_render_supported(
   "matte_direct_light" "matte_direct_light.json" 1 1 0.001
   "direct_light_samples=[1-9][0-9]*")
+tracing_parity_render_compiled_gpu_execution(
+  "matte_direct_light" "matte_direct_light.json" 1 1 0.04)
 tracing_parity_render_supported(
   "indirect_bounce" "indirect_bounce.json" 3 4 0.02
   "secondary_direct_light_luminance=[1-9]")
@@ -446,6 +463,11 @@ tracing_parity_render_compiled_gpu_execution(
 tracing_parity_render_supported(
   "environment_miss" "environment_miss.json" 2 1 0.001
   "tracing_scene_environment=[1-9][0-9]*.*miss_luminance=[1-9]")
+tracing_parity_render_compiled_gpu_execution(
+  "environment_miss" "environment_miss.json" 1 1 0.04
+  "resident_direct_light_batches_unavailable_reason=none.*direct_light_contribution_execution=none.*direct_light_contribution_fallback=none"
+  "resident_direct_light_batches_unavailable_reason=compiled_CPU-reference_path_loop_resolves_direct-light_visibility_on_the_host.*direct_light_contribution_execution=none.*direct_light_contribution_fallback=compiled_CPU-reference_path_loop_evaluates_direct-light_contribution_on_the_host"
+  "none")
 tracing_parity_render_compiled_gpu_execution(
   "imported_mesh" "imported_mesh.json" 1 1 0.02)
 tracing_parity_render_supported(
