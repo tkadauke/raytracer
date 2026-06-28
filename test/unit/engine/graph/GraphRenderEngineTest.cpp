@@ -291,15 +291,21 @@ namespace GraphRenderEngineTest {
           std::vector<unsigned int> progressPixels(pixelCount, progressDisplaySentinel());
           for (const render::GpuDiffusePrimaryPathSampleChunk& chunk : chunks) {
             render::GpuDiffusePathLoopPlatformResult platformChunk;
-            platformChunk.resolvedDisplayPixels = progressPixels;
+            if (render::shouldCaptureGpuDiffusePathLoopChunkResolvedDisplay(settings, chunk)) {
+              platformChunk.resolvedDisplayPixels = progressPixels;
+              ++result.platformResolvedDisplayReadbacks;
+            }
             render::notifyGpuDiffusePathLoopChunkProgress(settings, primaryPathGeneration, chunk,
                                                           platformChunk);
             ++m_lastChunkProgressCallbacks;
             m_lastChunkProgressDisplayPixelCount = progressPixels.size();
           }
+        } else {
+          result.platformResolvedDisplayReadbacks = 1u;
         }
         result.platformResolvedDisplayPixels.assign(pixelCount, resolvedDisplaySentinel());
       }
+      m_lastResolvedDisplayReadbacks = result.platformResolvedDisplayReadbacks;
       return result;
     }
 
@@ -333,6 +339,10 @@ namespace GraphRenderEngineTest {
 
     std::uint32_t lastPrimarySampleChunkSize() const {
       return m_lastPrimarySampleChunkSize;
+    }
+
+    std::uint64_t lastResolvedDisplayReadbacks() const {
+      return m_lastResolvedDisplayReadbacks;
     }
 
     bool lastChunkProgressObserverInstalled() const {
@@ -393,6 +403,7 @@ namespace GraphRenderEngineTest {
       render::GpuDisplayResolveTonemap::Unsupported};
     mutable std::uint32_t m_lastDirectLightSamples{0};
     mutable std::uint32_t m_lastPrimarySampleChunkSize{0};
+    mutable std::uint64_t m_lastResolvedDisplayReadbacks{0};
     mutable bool m_lastChunkProgressObserverInstalled{false};
     mutable std::uint64_t m_lastChunkProgressCallbacks{0};
     mutable std::size_t m_lastChunkProgressDisplayPixelCount{0};
@@ -2751,6 +2762,7 @@ namespace GraphRenderEngineTest {
     EXPECT_TRUE(batching.value("residentPathLoopCaptureDiagnostics").toBool());
     EXPECT_TRUE(batching.value("residentPathLoopCapturePlatformAccumulation").toBool());
     EXPECT_FALSE(batching.value("residentPathLoopCaptureResolvedDisplay").toBool());
+    EXPECT_EQ(0.0, batching.value("residentPathLoopResolvedDisplayReadbacks").toDouble());
     EXPECT_EQ(8.0, batching.value("residentPathLoopRequestedPrimarySampleChunkSize").toDouble());
     EXPECT_EQ(0.0, batching.value("residentPathLoopPrimarySampleChunkSize").toDouble());
     EXPECT_EQ("linear",
@@ -2772,6 +2784,7 @@ namespace GraphRenderEngineTest {
     EXPECT_TRUE(loop.value("captureDiagnostics").toBool());
     EXPECT_TRUE(loop.value("capturePlatformAccumulation").toBool());
     EXPECT_FALSE(loop.value("captureResolvedDisplay").toBool());
+    EXPECT_EQ(0.0, loop.value("resolvedDisplayReadbacks").toDouble());
     EXPECT_EQ(8.0, loop.value("requestedPrimarySampleChunkSize").toDouble());
     EXPECT_EQ(0.0, loop.value("primarySampleChunkSize").toDouble());
     EXPECT_EQ("linear", loop.value("displayResolveTonemap").toString().toStdString());
@@ -2937,6 +2950,7 @@ namespace GraphRenderEngineTest {
     EXPECT_TRUE(pathLoopBackend->lastPrimaryGeneratesOnDevice());
     EXPECT_EQ(64u, pathLoopBackend->lastPrimaryGeneratedSamples());
     EXPECT_EQ(0u, pathLoopBackend->lastPrimaryHostPathStateCount());
+    EXPECT_EQ(1u, pathLoopBackend->lastResolvedDisplayReadbacks());
     for (int y = 0; y != buffer.height(); ++y) {
       for (int x = 0; x != buffer.width(); ++x) {
         EXPECT_EQ(ReportingFullGpuDiffusePathLoopBackend::resolvedDisplaySentinel(), buffer[y][x]);
@@ -2982,6 +2996,7 @@ namespace GraphRenderEngineTest {
     EXPECT_TRUE(pathLoopBackend->lastChunkProgressObserverInstalled());
     EXPECT_EQ(4u, pathLoopBackend->lastChunkProgressCallbacks());
     EXPECT_EQ(64u, pathLoopBackend->lastChunkProgressDisplayPixelCount());
+    EXPECT_EQ(4u, pathLoopBackend->lastResolvedDisplayReadbacks());
     for (int y = 0; y != buffer.height(); ++y) {
       for (int x = 0; x != buffer.width(); ++x) {
         EXPECT_EQ(ReportingFullGpuDiffusePathLoopBackend::resolvedDisplaySentinel(), buffer[y][x]);

@@ -999,6 +999,8 @@ namespace engine::graph {
       batching["residentPathLoopCapturePlatformAccumulation"] =
         settings.capturePlatformAccumulation;
       batching["residentPathLoopCaptureResolvedDisplay"] = settings.captureResolvedDisplay;
+      batching["residentPathLoopResolvedDisplayReadbacks"] =
+        static_cast<double>(loop.platformResolvedDisplayReadbacks);
       batching["residentPathLoopRequestedPrimarySampleChunkSize"] =
         static_cast<double>(settings.primarySampleChunkSize);
       batching["residentPathLoopPrimarySampleChunkSize"] =
@@ -1049,6 +1051,8 @@ namespace engine::graph {
       compiledLoop["captureMetrics"] = settings.captureMetrics;
       compiledLoop["capturePlatformAccumulation"] = settings.capturePlatformAccumulation;
       compiledLoop["captureResolvedDisplay"] = settings.captureResolvedDisplay;
+      compiledLoop["resolvedDisplayReadbacks"] =
+        static_cast<double>(loop.platformResolvedDisplayReadbacks);
       compiledLoop["requestedPrimarySampleChunkSize"] =
         static_cast<double>(settings.primarySampleChunkSize);
       compiledLoop["primarySampleChunkSize"] = static_cast<double>(resolvedPrimarySampleChunkSize);

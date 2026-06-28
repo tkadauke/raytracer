@@ -38,6 +38,7 @@ namespace render {
     std::vector<std::array<float, 4>> accumulationColorSums;
     std::vector<std::uint32_t> accumulationSampleCounts;
     std::vector<unsigned int> resolvedDisplayPixels;
+    std::uint64_t resolvedDisplayReadbacks{0};
     std::string executionPath;
     std::string schedule{gpuDiffusePathLoopScheduleDepthFrontier};
     std::string pathStateResidency;

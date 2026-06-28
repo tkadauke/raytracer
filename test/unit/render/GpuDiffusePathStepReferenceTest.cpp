@@ -3401,6 +3401,30 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ("test_accumulation_residency", result.platformAccumulationResidency);
   }
 
+  TEST(GpuDiffusePathLoopBackend, SharedPlatformResultReportsResolvedDisplayReadbacks) {
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 2;
+    settings.captureDiagnostics = false;
+    settings.captureMetrics = false;
+    settings.capturePlatformAccumulation = false;
+    settings.captureResolvedDisplay = true;
+
+    GpuDiffusePathLoopPlatformResult platform;
+    fillEchoedLaunchParameters(platform, 2, settings, 2, 1);
+    platform.executionPath = "test_path_loop";
+    platform.pathStateResidency = "test_path_state";
+    platform.resolvedDisplayPixels = {0x112233u, 0x445566u};
+    platform.resolvedDisplayReadbacks = 1u;
+
+    GpuDiffusePathLoopResult result = makePlatformGpuDiffusePathLoopResult(
+      2, settings, std::move(platform), "Test", "test", "test_path_state", "test_accumulation",
+      "test_accumulation_residency");
+
+    EXPECT_EQ(1u, result.platformResolvedDisplayReadbacks);
+    ASSERT_EQ(2u, result.platformResolvedDisplayPixels.size());
+    EXPECT_EQ(0x445566u, result.platformResolvedDisplayPixels[1]);
+  }
+
   TEST(GpuDiffusePathLoopBackend, SharedPlatformResultRejectsMismatchedLaunchEcho) {
     GpuDiffusePathLoopSettings settings;
     settings.maxDepth = 2;
@@ -7759,6 +7783,7 @@ namespace GpuDiffusePathStepReferenceTest {
     first.activePathCountsPerDepth = {3u, 1u};
     first.sceneUploadBytesWritten = 64u;
     first.kernelWorkerSeconds = 0.25;
+    first.resolvedDisplayReadbacks = 1u;
     first.stepRecords.push_back({});
     first.denoiserFeatureRecords.resize(3);
     first.denoiserFeatureRecords[1].pixelIndex = 1u;
@@ -7777,6 +7802,7 @@ namespace GpuDiffusePathStepReferenceTest {
     second.accumulationColorSums = {{{1.0f, 2.0f, 3.0f, 0.0f}}};
     second.accumulationSampleCounts = {2u};
     second.resolvedDisplayPixels = {0x112233u};
+    second.resolvedDisplayReadbacks = 2u;
     second.denoiserFeatureRecords.resize(3);
     second.denoiserFeatureRecords[1].pixelIndex = 1u;
     second.denoiserFeatureRecords[1].albedo = {0.75f, 0.0f, 0.0f, 0.0f};
@@ -7802,6 +7828,7 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(2u, merged.accumulationSampleCounts[0]);
     ASSERT_EQ(1u, merged.resolvedDisplayPixels.size());
     EXPECT_EQ(0x112233u, merged.resolvedDisplayPixels[0]);
+    EXPECT_EQ(3u, merged.resolvedDisplayReadbacks);
     ASSERT_EQ(3u, merged.denoiserFeatureRecords.size());
     EXPECT_EQ(gpuDiffusePathDenoiserFeatureValidFlag, merged.denoiserFeatureRecords[1].flags);
     EXPECT_FLOAT_EQ(0.25f, merged.denoiserFeatureRecords[1].albedo[0]);

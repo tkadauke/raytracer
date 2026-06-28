@@ -671,6 +671,12 @@ namespace render {
     if (!chunkResult.resolvedDisplayPixels.empty()) {
       merged.resolvedDisplayPixels = std::move(chunkResult.resolvedDisplayPixels);
     }
+    if (merged.resolvedDisplayReadbacks >
+        std::numeric_limits<std::uint64_t>::max() - chunkResult.resolvedDisplayReadbacks) {
+      throw std::overflow_error("GPU diffuse path-loop chunk resolved-display readback count "
+                                "overflows");
+    }
+    merged.resolvedDisplayReadbacks += chunkResult.resolvedDisplayReadbacks;
     addActivePathCounts(merged.activePathCountsPerDepth, chunkResult.activePathCountsPerDepth);
     if (merged.retainedPathCount >
         std::numeric_limits<std::uint32_t>::max() - chunkResult.retainedPathCount) {
@@ -878,6 +884,7 @@ namespace render {
     loop.platformAccumulationColorSums = std::move(platformResult.accumulationColorSums);
     loop.platformAccumulationSampleCounts = std::move(platformResult.accumulationSampleCounts);
     loop.platformResolvedDisplayPixels = std::move(platformResult.resolvedDisplayPixels);
+    loop.platformResolvedDisplayReadbacks = platformResult.resolvedDisplayReadbacks;
     loop.platformAccumulationAddedSamples = initialPathCount;
     loop.platformAccumulationBackend = accumulationBackend;
     loop.platformAccumulationResidency = accumulationResidency;

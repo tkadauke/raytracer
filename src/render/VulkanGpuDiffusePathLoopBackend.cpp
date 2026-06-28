@@ -29,6 +29,7 @@ namespace render {
       platform.accumulationColorSums = std::move(result.accumulationColorSums);
       platform.accumulationSampleCounts = std::move(result.accumulationSampleCounts);
       platform.resolvedDisplayPixels = std::move(result.resolvedDisplayPixels);
+      platform.resolvedDisplayReadbacks = platform.resolvedDisplayPixels.empty() ? 0u : 1u;
       platform.executionPath = std::move(result.executionPath);
       platform.schedule = std::move(result.schedule);
       platform.pathStateResidency = std::move(result.pathStateResidency);

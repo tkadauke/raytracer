@@ -170,6 +170,7 @@ namespace render {
     std::vector<std::array<float, 4>> platformAccumulationColorSums;
     std::vector<std::uint32_t> platformAccumulationSampleCounts;
     std::vector<unsigned int> platformResolvedDisplayPixels;
+    std::uint64_t platformResolvedDisplayReadbacks{0};
     std::uint64_t platformAccumulationAddedSamples{0};
     std::string platformAccumulationBackend;
     std::string platformAccumulationResidency;

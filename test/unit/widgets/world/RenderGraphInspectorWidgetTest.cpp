@@ -1494,6 +1494,8 @@ namespace RenderGraphInspectorWidgetTest {
       rowValue(rows, QStringLiteral("Resident path-loop removed path-state bytes")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Resident path-loop compaction passes")).isEmpty());
     EXPECT_FALSE(rowValue(rows, QStringLiteral("Resident path-loop round trips")).isEmpty());
+    EXPECT_EQ(QStringLiteral("0"),
+              rowValue(rows, QStringLiteral("Resident path-loop display readbacks")));
     EXPECT_FALSE(
       rowValue(rows, QStringLiteral("Resident path-loop submitted intersection rays")).isEmpty());
     EXPECT_EQ(QStringLiteral("no"),

@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Report Metal/Vulkan full-GPU path-tracer resolved-display readback counts in
+  graph metadata and the Modeler render graph inspector so progress/readback
+  pressure is visible for chunked GPU sample-stream renders. — GPT-5 Codex
 - Keep supported graph-trace path-tracer renders on the full-GPU path while
   suppressing oversized low-level path-state/path-step diagnostic readback that
   would otherwise materialize a huge host record set. — GPT-5 Codex
