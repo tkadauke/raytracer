@@ -3258,6 +3258,40 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(layout.resolveBytes(), diagnostics.readbackBytes);
   }
 
+  TEST(GpuDiffusePathLoop, ConvergenceStopsRetainedPathsAtCurrentEstimate) {
+    Scene scene;
+    auto reflective =
+      std::make_shared<ReflectiveMaterial>(std::make_shared<ConstantColorTexture>(Colord::white()));
+    reflective->setReflectionCoefficient(1.0);
+    auto mirrorSphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    mirrorSphere->setMaterial(reflective);
+    scene.add(mirrorSphere);
+
+    GpuDiffusePathStateRecord path = activePath();
+    path.pixelIndex = 0;
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 4;
+    settings.russianRouletteDepth = 10;
+    settings.convergenceEnabled = true;
+    settings.convergenceActiveSampleFractionThreshold = 1.0;
+    settings.convergenceRadianceDeltaRmsThreshold = 100.0;
+
+    const GpuDiffusePathLoopResult result =
+      GpuDiffusePathLoop().run(sectionsFor(scene), {path}, settings);
+
+    EXPECT_TRUE(result.convergenceEnabled);
+    EXPECT_TRUE(result.stoppedByConvergence);
+    EXPECT_EQ(1u, result.stoppedAfterDepth);
+    EXPECT_EQ(1u, result.depthCount);
+    ASSERT_EQ(1u, result.activePathsPerDepth.size());
+    EXPECT_EQ(1u, result.activePathsPerDepth[0]);
+    ASSERT_EQ(1u, result.radianceDeltaSquaredSumPerDepth.size());
+    EXPECT_GE(result.radianceDeltaSquaredSumPerDepth[0], 0.0);
+    ASSERT_EQ(1u, result.resolvedPathStates.size());
+    EXPECT_TRUE(gpuDiffusePathStateIsTerminated(result.resolvedPathStates[0]));
+  }
+
   TEST(GpuDiffusePathLoopResult, ReportsEmptyActivePathShapeAsZero) {
     const GpuDiffusePathLoopResult result;
 
@@ -7642,9 +7676,9 @@ namespace GpuDiffusePathStepReferenceTest {
     const std::vector<GpuDiffusePrimaryPathSampleChunk> chunks =
       gpuDiffusePrimarySampleChunksFor(generation, settings);
 
-    ASSERT_EQ(192u, chunks.size());
-    EXPECT_LE(chunks.front().primaryPathGeneration.generatedPrimarySamples, 128u * 1024u);
-    EXPECT_EQ(163, chunks.front().primaryPathGeneration.actualRect.height());
+    ASSERT_EQ(768u, chunks.size());
+    EXPECT_LE(chunks.front().primaryPathGeneration.generatedPrimarySamples, 32u * 1024u);
+    EXPECT_EQ(40, chunks.front().primaryPathGeneration.actualRect.height());
     std::size_t capturedProgressDisplays = 0;
     for (const GpuDiffusePrimaryPathSampleChunk& chunk : chunks) {
       if (shouldCaptureGpuDiffusePathLoopChunkResolvedDisplay(settings, chunk)) {
@@ -7653,10 +7687,10 @@ namespace GpuDiffusePathStepReferenceTest {
     }
     EXPECT_EQ(65u, capturedProgressDisplays);
     EXPECT_TRUE(shouldCaptureGpuDiffusePathLoopChunkResolvedDisplay(settings, chunks.front()));
-    ASSERT_LT(2u, chunks.size());
-    EXPECT_TRUE(shouldCaptureGpuDiffusePathLoopChunkResolvedDisplay(settings, chunks[2]));
-    EXPECT_EQ(326, chunks[2].primaryPathGeneration.actualRect.top());
-    EXPECT_EQ(154, chunks[2].primaryPathGeneration.actualRect.height());
+    ASSERT_LT(11u, chunks.size());
+    EXPECT_TRUE(shouldCaptureGpuDiffusePathLoopChunkResolvedDisplay(settings, chunks[11]));
+    EXPECT_EQ(440, chunks[11].primaryPathGeneration.actualRect.top());
+    EXPECT_EQ(40, chunks[11].primaryPathGeneration.actualRect.height());
     EXPECT_TRUE(shouldCaptureGpuDiffusePathLoopChunkResolvedDisplay(settings, chunks.back()));
 
     settings.chunkProgressObserver = {};

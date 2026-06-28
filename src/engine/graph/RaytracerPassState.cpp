@@ -348,9 +348,6 @@ namespace engine::graph {
     if (integrator().value_or("whitted") != "pathtracer") {
       return "compiled diffuse path loop currently supports only the pathtracer integrator";
     }
-    if (convergenceEnabled().value_or(false)) {
-      return "compiled diffuse path loop does not support wavefront convergence yet";
-    }
     if (adaptiveSamplingEnabled().value_or(false)) {
       return "compiled diffuse path loop does not support adaptive sampling yet";
     }

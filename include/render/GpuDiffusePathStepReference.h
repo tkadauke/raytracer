@@ -66,6 +66,8 @@ namespace render {
     std::vector<GpuIntersectionRay> directLightShadowRays;
     std::vector<GpuIntersectionOcclusionRecord> directLightOcclusionRecords;
     GpuDiffusePathStepMetrics metrics;
+    double radianceDeltaSquaredSum{0.0};
+    double maxRadianceDelta{0.0};
   };
 
   struct GpuDiffusePathFrontierCompactionResult {
@@ -130,6 +132,9 @@ namespace render {
     bool captureDenoiserFeatures{false};
     bool capturePlatformAccumulation{true};
     bool captureResolvedDisplay{false};
+    bool convergenceEnabled{false};
+    double convergenceActiveSampleFractionThreshold{0.0};
+    double convergenceRadianceDeltaRmsThreshold{0.0};
     GpuDisplayResolveTonemap displayResolveTonemap{GpuDisplayResolveTonemap::Linear};
     std::uint32_t primarySampleChunkSize{0};
     GpuDiffusePathLoopChunkProgressObserver chunkProgressObserver;
@@ -158,6 +163,13 @@ namespace render {
     std::uint64_t initialPathCount{0};
     std::uint64_t depthCount{0};
     std::uint64_t maxDepthTerminatedPaths{0};
+    bool convergenceEnabled{false};
+    double convergenceActiveSampleFractionThreshold{0.0};
+    double convergenceRadianceDeltaRmsThreshold{0.0};
+    bool stoppedByConvergence{false};
+    std::uint64_t stoppedAfterDepth{0};
+    std::vector<double> radianceDeltaSquaredSumPerDepth;
+    std::vector<double> maxRadianceDeltaPerDepth;
     std::uint64_t retainedIndexBytes{0};
     std::uint64_t roundTrips{1};
     std::uint64_t savedHostReadbacks{0};

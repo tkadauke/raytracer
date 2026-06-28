@@ -15,6 +15,7 @@ namespace render {
     std::string light;
     std::string environment;
     std::string displayResolve;
+    std::string convergence;
   };
 
   class GpuDiffusePathLoopSceneSupport {

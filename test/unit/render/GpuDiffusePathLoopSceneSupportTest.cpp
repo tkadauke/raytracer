@@ -10,8 +10,8 @@ namespace GpuDiffusePathLoopSceneSupportTest {
 
   namespace {
     GpuDiffusePathLoopSceneSupportReasons reasons() {
-      return {"max-depth", "geometry",    "material",       "texture",
-              "light",     "environment", "display-resolve"};
+      return {"max-depth", "geometry",    "material",        "texture",
+              "light",     "environment", "display-resolve", "convergence"};
     }
 
     GpuDiffusePathLoopSettings settings() {
@@ -116,6 +116,19 @@ namespace GpuDiffusePathLoopSceneSupportTest {
     unsupportedDisplayResolve.captureResolvedDisplay = false;
     expectSupported(GpuDiffusePathLoopSceneSupport().support(GpuTracingSceneSections(),
                                                              unsupportedDisplayResolve, reasons()));
+  }
+
+  TEST(GpuDiffusePathLoopSceneSupport, RejectsConvergenceBeforeScenePolicyChecks) {
+    GpuTracingSceneSections sections;
+    sections.geometry.primitives.push_back(
+      primitiveRecord(GpuIntersectionPrimitiveKind::Unsupported));
+    sections.lights.push_back(lightRecord(GpuTracingLightKind::Unsupported));
+
+    GpuDiffusePathLoopSettings convergence = settings();
+    convergence.convergenceEnabled = true;
+
+    expectUnsupported(GpuDiffusePathLoopSceneSupport().support(sections, convergence, reasons()),
+                      "convergence");
   }
 
   TEST(GpuDiffusePathLoopSceneSupport, RejectsUnsupportedNonGeometryRecordsOnEmptyGeometry) {

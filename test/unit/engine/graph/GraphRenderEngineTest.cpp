@@ -2527,6 +2527,9 @@ namespace GraphRenderEngineTest {
     intent.engineOptions.raytracer().setMaximumRecursionDepth(2);
     intent.engineOptions.raytracer().setDirectLightSamples(2);
     intent.engineOptions.raytracer().setSampleStreamMode("gpu_sample_stream");
+    intent.engineOptions.raytracer().setConvergenceEnabled(true);
+    intent.engineOptions.raytracer().setConvergenceActiveSampleFractionThreshold(1.0);
+    intent.engineOptions.raytracer().setConvergenceRadianceDeltaRmsThreshold(100.0);
 
     RenderSceneAnalysis analysis;
     analysis.setFullGpuTracingSupportFromScene(*scene);
@@ -2628,6 +2631,8 @@ namespace GraphRenderEngineTest {
     EXPECT_GT(batching.value("residentPathLoopInputPaths").toDouble(), 0.0);
     EXPECT_GT(batching.value("residentPathLoopCompactionPasses").toDouble(), 0.0);
     EXPECT_GT(batching.value("residentPathLoopSubmittedIntersectionRays").toDouble(), 0.0);
+    const QJsonArray deltaRms = batching.value("radianceDeltaRmsPerDepth").toArray();
+    ASSERT_GE(deltaRms.size(), 1);
     EXPECT_FALSE(batching.value("residentPathLoopFullPlatformGpuKernel").toBool());
     EXPECT_EQ(0.0, batching.value("residentPathLoopSavedHostReadbacks").toDouble());
     EXPECT_FALSE(batching.value("residentPathLoopSceneUploadCacheHit").toBool());
@@ -2657,6 +2662,13 @@ namespace GraphRenderEngineTest {
     EXPECT_FALSE(loop.value("captureResolvedDisplay").toBool());
     EXPECT_EQ("linear", loop.value("displayResolveTonemap").toString().toStdString());
     EXPECT_GT(loop.value("submittedIntersectionRays").toDouble(), 0.0);
+
+    const QJsonObject convergence = metadata.value("convergence").toObject();
+    EXPECT_TRUE(convergence.value("enabled").toBool());
+    EXPECT_DOUBLE_EQ(1.0, convergence.value("activeSampleFractionThreshold").toDouble());
+    EXPECT_DOUBLE_EQ(100.0, convergence.value("radianceDeltaRmsThreshold").toDouble());
+    EXPECT_EQ("stopped_some_tiles", convergence.value("decision").toString().toStdString());
+    EXPECT_EQ(1.0, convergence.value("stoppedTileCount").toDouble());
 
     const QJsonObject accumulation = metadata.value("accumulation").toObject();
     EXPECT_EQ("gpu_diffuse_path_loop", accumulation.value("backend").toString().toStdString());

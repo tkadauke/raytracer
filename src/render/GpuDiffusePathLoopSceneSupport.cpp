@@ -32,6 +32,9 @@ namespace render {
         settings.displayResolveTonemap == GpuDisplayResolveTonemap::Unsupported) {
       return {false, reasons.displayResolve};
     }
+    if (settings.convergenceEnabled) {
+      return {false, reasons.convergence};
+    }
     if (!hasNoGeometry(scene) && !hasSupportedGeometry(scene)) {
       return {false, reasons.geometry};
     }

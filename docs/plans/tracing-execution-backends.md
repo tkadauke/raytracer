@@ -317,10 +317,13 @@ end state for GPU tracing.
   depth-frontier Vulkan schedule.
   Graph auto-selection can predict the platform full-GPU path loop when scene,
   backend, and pass-level settings are all eligible; explicit GPU requests now
-  report hybrid/CPU fallbacks when pass-level settings such as convergence or
-  adaptive sampling make the compiled loop ineligible. Backend run parity tests
-  now pin the triangle-backed geometry subset at the Metal/Vulkan path-loop
-  boundary, including `MeshPrimitive`, `Box`, and finite-width `Curve` scenes.
+  keep the compiled CPU-reference loop available for convergence settings and
+  report hybrid/CPU fallbacks when settings such as adaptive sampling make the
+  compiled loop ineligible. Platform Metal/Vulkan path-loop backends still
+  reject convergence until their kernels expose matching per-depth radiance
+  deltas. Backend run parity tests now pin the triangle-backed geometry subset
+  at the Metal/Vulkan path-loop boundary, including `MeshPrimitive`, `Box`, and
+  finite-width `Curve` scenes.
 - Platform full-GPU path-loop backend selection beyond the restricted Metal and
   Vulkan subsets above. The factory hook can return Metal or Vulkan platform
   backends in platform-enabled builds, but ordinary builds and unsupported
@@ -2964,8 +2967,10 @@ scene is large enough to amortize upload/readback costs.
      predict full GPU execution when the scene analysis proves the compiled
      full-GPU subset and a platform backend are both available; incompatible
      settings such as
-     denoising, adaptive sampling, convergence, and non-GPU sample streams
-     remain CPU/hybrid until those paths have platform support.
+     denoising, adaptive sampling, and non-GPU sample streams remain CPU/hybrid
+     until those paths have platform support. Convergence now stays on the
+     compiled CPU-reference path, while Metal/Vulkan full-GPU kernels reject it
+     until they can publish equivalent per-depth radiance-delta feedback.
      Execution metadata now preserves the full-GPU selection fallback reason,
      so graph traces distinguish missing platform builds, unavailable
      Metal/Vulkan devices or kernels, unsupported scene/settings subsets, and

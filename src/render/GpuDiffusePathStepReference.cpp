@@ -139,6 +139,42 @@ namespace {
     return first + second;
   }
 
+  double colorDeltaSquared(const Colord& before, const Colord& after) {
+    const Colord delta = after - before;
+    return delta.r() * delta.r() + delta.g() * delta.g() + delta.b() * delta.b();
+  }
+
+  void recordStepRadianceDelta(GpuDiffusePathStepResult& result, const Colord& before,
+                               const GpuDiffusePathStateRecord& after) {
+    const double deltaSquared = colorDeltaSquared(before, Colord(after.accumulatedRadiance));
+    result.radianceDeltaSquaredSum += deltaSquared;
+    result.maxRadianceDelta = std::max(result.maxRadianceDelta, std::sqrt(deltaSquared));
+  }
+
+  void recordLoopRadianceDelta(GpuDiffusePathLoopResult& result,
+                               const GpuDiffusePathStepResult& step) {
+    result.radianceDeltaSquaredSumPerDepth.push_back(step.radianceDeltaSquaredSum);
+    result.maxRadianceDeltaPerDepth.push_back(step.maxRadianceDelta);
+  }
+
+  bool compiledPathLoopReachedConvergence(std::uint64_t activePathCount,
+                                          std::uint64_t retainedPathCount,
+                                          std::uint64_t totalPathCount,
+                                          const GpuDiffusePathStepResult& step,
+                                          const GpuDiffusePathLoopSettings& settings) {
+    if (!settings.convergenceEnabled || totalPathCount == 0u) {
+      return false;
+    }
+    const double activeFraction =
+      static_cast<double>(retainedPathCount) / static_cast<double>(totalPathCount);
+    const double radianceDeltaRms =
+      activePathCount == 0u
+        ? 0.0
+        : std::sqrt(step.radianceDeltaSquaredSum / static_cast<double>(activePathCount));
+    return activeFraction <= settings.convergenceActiveSampleFractionThreshold &&
+           radianceDeltaRms <= settings.convergenceRadianceDeltaRmsThreshold;
+  }
+
   double fraction(std::uint64_t numerator, std::uint64_t denominator) {
     if (denominator == 0u) {
       return 0.0;
@@ -1693,6 +1729,7 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
       continue;
     }
 
+    const Colord accumulatedBeforeDepth = Colord(pathState.accumulatedRadiance);
     ++result.metrics.activePaths;
     const auto hitIt = hitRecords.find(pathState.ray.rayIndex);
     const GpuIntersectionHitRecord hit =
@@ -1707,6 +1744,7 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
       stepRecord.missRadiance = contribution.toFloat4(0.0f);
       terminate(pathState);
       stepRecord.flags = pathState.flags;
+      recordStepRadianceDelta(result, accumulatedBeforeDepth, pathState);
       result.terminatedPathStates.push_back(pathState);
       ++result.metrics.misses;
       ++result.metrics.terminatedPaths;
@@ -1722,6 +1760,7 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
       markUnsupported(pathState);
       stepRecord.event = static_cast<std::uint32_t>(GpuDiffusePathStepEvent::Unsupported);
       stepRecord.flags = pathState.flags;
+      recordStepRadianceDelta(result, accumulatedBeforeDepth, pathState);
       result.terminatedPathStates.push_back(pathState);
       ++result.metrics.unsupportedHits;
       ++result.metrics.terminatedPaths;
@@ -1754,6 +1793,7 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
       stepRecord.emittedRadiance = contribution.toFloat4(0.0f);
       terminate(pathState);
       stepRecord.flags = pathState.flags;
+      recordStepRadianceDelta(result, accumulatedBeforeDepth, pathState);
       result.terminatedPathStates.push_back(pathState);
       ++result.metrics.emissiveHits;
       ++result.metrics.terminatedPaths;
@@ -1766,6 +1806,7 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
         pathState.accumulatedRadiance = accumulated.toFloat4(0.0f);
         terminate(pathState);
         stepRecord.flags = pathState.flags;
+        recordStepRadianceDelta(result, accumulatedBeforeDepth, pathState);
         result.terminatedPathStates.push_back(pathState);
         ++result.metrics.terminatedPaths;
         continue;
@@ -1786,6 +1827,7 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
       pathState.flags &= ~gpuDiffusePathStateTerminatedFlag;
       stepRecord.continuationThroughput = pathState.throughput;
       stepRecord.flags = pathState.flags;
+      recordStepRadianceDelta(result, accumulatedBeforeDepth, pathState);
       result.pathStates.push_back(pathState);
       ++result.metrics.spawnedContinuations;
       continue;
@@ -1795,6 +1837,7 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
       markUnsupported(pathState);
       stepRecord.event = static_cast<std::uint32_t>(GpuDiffusePathStepEvent::Unsupported);
       stepRecord.flags = pathState.flags;
+      recordStepRadianceDelta(result, accumulatedBeforeDepth, pathState);
       result.terminatedPathStates.push_back(pathState);
       ++result.metrics.unsupportedHits;
       ++result.metrics.terminatedPaths;
@@ -1877,6 +1920,7 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
         pathState.accumulatedRadiance = accumulated.toFloat4(0.0f);
         terminate(pathState);
         stepRecord.flags = pathState.flags;
+        recordStepRadianceDelta(result, accumulatedBeforeDepth, pathState);
         result.terminatedPathStates.push_back(pathState);
         ++result.metrics.terminatedPaths;
         continue;
@@ -1898,6 +1942,7 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
       pathState.flags &= ~gpuDiffusePathStateTerminatedFlag;
       stepRecord.continuationThroughput = pathState.throughput;
       stepRecord.flags = pathState.flags;
+      recordStepRadianceDelta(result, accumulatedBeforeDepth, pathState);
       result.pathStates.push_back(pathState);
       ++result.metrics.spawnedContinuations;
       continue;
@@ -1913,6 +1958,7 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
         pathState.accumulatedRadiance = accumulated.toFloat4(0.0f);
         terminate(pathState);
         stepRecord.flags = pathState.flags;
+        recordStepRadianceDelta(result, accumulatedBeforeDepth, pathState);
         result.terminatedPathStates.push_back(pathState);
         ++result.metrics.terminatedPaths;
         continue;
@@ -1933,6 +1979,7 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
       pathState.flags &= ~gpuDiffusePathStateTerminatedFlag;
       stepRecord.continuationThroughput = pathState.throughput;
       stepRecord.flags = pathState.flags;
+      recordStepRadianceDelta(result, accumulatedBeforeDepth, pathState);
       result.pathStates.push_back(pathState);
       ++result.metrics.spawnedContinuations;
       continue;
@@ -1957,6 +2004,7 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
       pathState.accumulatedRadiance = accumulated.toFloat4(0.0f);
       terminate(pathState);
       stepRecord.flags = pathState.flags;
+      recordStepRadianceDelta(result, accumulatedBeforeDepth, pathState);
       result.terminatedPathStates.push_back(pathState);
       ++result.metrics.terminatedPaths;
       continue;
@@ -1976,6 +2024,7 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
     pathState.flags &= ~gpuDiffusePathStateTerminatedFlag;
     stepRecord.continuationThroughput = nextThroughput.toFloat4(0.0f);
     stepRecord.flags = pathState.flags;
+    recordStepRadianceDelta(result, accumulatedBeforeDepth, pathState);
     result.pathStates.push_back(pathState);
     ++result.metrics.spawnedContinuations;
   }
@@ -2008,6 +2057,10 @@ GpuDiffusePathLoop::run(const GpuTracingSceneSections& scene,
   result.denoiserFeatureRecordsCaptured = true;
   result.frontierCompactionExecutionPath = compactionBackend.name();
   result.frontierCompactionPathStateResidency = compactionBackend.pathStateResidency();
+  result.convergenceEnabled = settings.convergenceEnabled;
+  result.convergenceActiveSampleFractionThreshold =
+    settings.convergenceActiveSampleFractionThreshold;
+  result.convergenceRadianceDeltaRmsThreshold = settings.convergenceRadianceDeltaRmsThreshold;
 
   std::vector<GpuDiffusePathStateRecord> active;
   active.reserve(initialPathStates.size());
@@ -2034,6 +2087,7 @@ GpuDiffusePathLoop::run(const GpuTracingSceneSections& scene,
     const GpuDiffusePathStepResult step = stepper.step(scene, active, settings);
     throwIfCancelled();
     ++result.depthCount;
+    recordLoopRadianceDelta(result, step);
     result.metrics.merge(step.metrics);
     result.stepRecords.insert(result.stepRecords.end(), step.stepRecords.begin(),
                               step.stepRecords.end());
@@ -2081,6 +2135,17 @@ GpuDiffusePathLoop::run(const GpuTracingSceneSections& scene,
     result.frontierCompactionPathStateResidency = compaction.pathStateResidency;
 
     active = compaction.retainedRecords;
+    if (compiledPathLoopReachedConvergence(result.activePathsPerDepth.back(), active.size(),
+                                           result.initialPathCount, step, settings)) {
+      result.stoppedByConvergence = true;
+      result.stoppedAfterDepth = result.depthCount;
+      for (GpuDiffusePathStateRecord& pathState : active) {
+        terminate(pathState);
+        result.resolvedPathStates.push_back(pathState);
+      }
+      active.clear();
+      break;
+    }
   }
 
   return result;

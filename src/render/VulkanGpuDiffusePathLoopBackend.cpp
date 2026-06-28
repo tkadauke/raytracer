@@ -114,7 +114,8 @@ namespace render {
         "Vulkan diffuse path-loop backend requires finite ambient, background, and environment "
         "colors",
         "Vulkan diffuse path-loop backend requires Linear, Reinhard, or ACES display-resolve "
-        "tonemapping when resolved display pixels are requested"});
+        "tonemapping when resolved display pixels are requested",
+        "Vulkan diffuse path-loop backend does not support wavefront convergence yet"});
 #else
     (void)scene;
     (void)settings;

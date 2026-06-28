@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Honor path-tracer convergence settings in the compiled diffuse path-loop
+  CPU-reference route and report convergence stop metadata, while platform
+  Metal/Vulkan path-loop kernels reject convergence until they can expose
+  equivalent radiance-delta feedback. — GPT-5 Codex
 - Keep common interactive full-GPU path-tracer renders responsive by using a
   depth-aware automatic per-launch budget while live display progress is
   enabled. — GPT-5 Codex

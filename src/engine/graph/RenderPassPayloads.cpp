@@ -617,6 +617,14 @@ namespace engine::graph {
       return result;
     }
 
+    QJsonArray doubleArrayToJson(const std::vector<double>& values) {
+      QJsonArray result;
+      for (const double value : values) {
+        result.push_back(value);
+      }
+      return result;
+    }
+
     QJsonObject
     accumulationDiagnosticsToJson(const render::TracingAccumulationDiagnostics& diagnostics) {
       QJsonObject layout;
@@ -1042,6 +1050,18 @@ namespace engine::graph {
       batching["residentPathLoopFullPlatformGpuKernel"] = loop.fullGpuPathLoopSupported();
       batching["residentPathLoopRetainedFrontierDispatchesIndirect"] =
         loop.retainedFrontierDispatchesIndirect;
+      batching["radianceDeltaSquaredSumPerDepth"] =
+        doubleArrayToJson(loop.radianceDeltaSquaredSumPerDepth);
+      QJsonArray radianceDeltaRmsPerDepth;
+      for (std::size_t depth = 0; depth != loop.radianceDeltaSquaredSumPerDepth.size(); ++depth) {
+        const double squaredSum = loop.radianceDeltaSquaredSumPerDepth[depth];
+        const std::uint64_t activePaths =
+          depth < loop.activePathsPerDepth.size() ? loop.activePathsPerDepth[depth] : 0u;
+        radianceDeltaRmsPerDepth.push_back(
+          activePaths == 0u ? 0.0 : std::sqrt(squaredSum / static_cast<double>(activePaths)));
+      }
+      batching["radianceDeltaRmsPerDepth"] = radianceDeltaRmsPerDepth;
+      batching["maxRadianceDeltaPerDepth"] = doubleArrayToJson(loop.maxRadianceDeltaPerDepth);
       batching["tracingSceneCompiled"] = compilation.diagnostics.compiled;
       batching["tracingSceneMaterials"] = static_cast<double>(compilation.diagnostics.materials);
       batching["tracingSceneTextures"] = static_cast<double>(compilation.diagnostics.textures);
@@ -1096,9 +1116,30 @@ namespace engine::graph {
           : QStringLiteral(
               "executes the GPU tracing record contract through the CPU reference path-loop");
 
+      QJsonObject convergence;
+      convergence["enabled"] = loop.convergenceEnabled;
+      convergence["activeSampleFractionThreshold"] = loop.convergenceActiveSampleFractionThreshold;
+      convergence["radianceDeltaRmsThreshold"] = loop.convergenceRadianceDeltaRmsThreshold;
+      convergence["stoppedTileCount"] = loop.stoppedByConvergence ? 1.0 : 0.0;
+      convergence["earliestStoppedAfterDepth"] = static_cast<double>(loop.stoppedAfterDepth);
+      convergence["latestStoppedAfterDepth"] = static_cast<double>(loop.stoppedAfterDepth);
+      convergence["feedbackDepthCount"] = 0.0;
+      QJsonArray stoppedTileDepthHistogram;
+      if (loop.stoppedAfterDepth > 0u) {
+        for (std::uint64_t depth = 1; depth <= loop.stoppedAfterDepth; ++depth) {
+          stoppedTileDepthHistogram.push_back(depth == loop.stoppedAfterDepth ? 1.0 : 0.0);
+        }
+      }
+      convergence["stoppedTileDepthHistogram"] = stoppedTileDepthHistogram;
+      convergence["decision"] =
+        loop.convergenceEnabled ? (loop.stoppedByConvergence ? QStringLiteral("stopped_some_tiles")
+                                                             : QStringLiteral("not_reached"))
+                                : QStringLiteral("disabled");
+
       QJsonObject metadata;
       metadata["input"] = input;
       metadata["batching"] = batching;
+      metadata["convergence"] = convergence;
       metadata["compiledTracingScene"] = gpuTracingSceneDiagnosticsToJson(compilation.diagnostics);
       metadata["compiledDiffusePathLoop"] = compiledLoop;
       metadata["accumulation"] = accumulationDiagnosticsToJson(accumulation);
@@ -1447,6 +1488,11 @@ namespace engine::graph {
           static_cast<std::uint32_t>(std::max(1, state.directLightSamples().value_or(1)));
         settings.primarySampleChunkSize =
           static_cast<std::uint32_t>(std::max(0, state.gpuPrimarySampleChunkSize().value_or(0)));
+        settings.convergenceEnabled = state.convergenceEnabled().value_or(false);
+        settings.convergenceActiveSampleFractionThreshold =
+          state.convergenceActiveSampleFractionThreshold().value_or(0.0);
+        settings.convergenceRadianceDeltaRmsThreshold =
+          state.convergenceRadianceDeltaRmsThreshold().value_or(0.0);
         settings.cancellationCallback = [&graph = context.graph()] {
           return graph.cancellationRequested();
         };
