@@ -198,6 +198,8 @@ namespace render {
 
   struct GpuDiffusePrimaryPathStateGenerationOptions {
     bool materializeHostPathStates{true};
+    std::uint32_t sampleOffset{0};
+    std::optional<std::uint32_t> sampleCount;
   };
 
   class GpuDiffusePrimaryPathStateGenerator {

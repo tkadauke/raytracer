@@ -275,6 +275,11 @@ namespace {
     const std::uint64_t estimatedPathCount = static_cast<std::uint64_t>(descriptor.actualWidth) *
                                              static_cast<std::uint64_t>(descriptor.actualHeight) *
                                              static_cast<std::uint64_t>(descriptor.samplesPerPixel);
+    if (descriptor.samplesPerPixel != 0u &&
+        descriptor.sampleOffset >
+          std::numeric_limits<std::uint32_t>::max() - descriptor.samplesPerPixel) {
+      throw std::overflow_error("gpu diffuse primary sample range exceeds GPU sample index range");
+    }
     if (estimatedPathCount > std::numeric_limits<std::uint32_t>::max()) {
       throw std::overflow_error("gpu diffuse primary path-state count exceeds GPU ray index range");
     }
@@ -288,8 +293,9 @@ namespace {
           static_cast<std::uint32_t>(static_cast<std::uint64_t>(row - descriptor.requestedTop) *
                                        static_cast<std::uint64_t>(descriptor.requestedWidth) +
                                      static_cast<std::uint64_t>(column - descriptor.requestedLeft));
-        for (std::uint32_t sampleIndex = 0; sampleIndex != descriptor.samplesPerPixel;
-             ++sampleIndex) {
+        for (std::uint32_t localSampleIndex = 0; localSampleIndex != descriptor.samplesPerPixel;
+             ++localSampleIndex) {
+          const std::uint32_t sampleIndex = descriptor.sampleOffset + localSampleIndex;
           const Vector2d pixelSample =
             GpuSampleStream::sample2D(descriptor.sampleSeed, pixelIndex, sampleIndex,
                                       /*dimension=*/0u);
@@ -1225,6 +1231,15 @@ GpuDiffusePrimaryPathStateGeneration GpuDiffusePrimaryPathStateGenerator::genera
 
   result.primaryPathDescriptor = camera.gpuPrimaryPathDescriptor(rect, sampleSeed);
   if (result.primaryPathDescriptor && result.primaryPathDescriptor->generatesOnDevice()) {
+    if (options.sampleOffset != 0u || options.sampleCount) {
+      const std::uint32_t descriptorSampleCount =
+        result.primaryPathDescriptor->rectilinear.samplesPerPixel;
+      const std::uint32_t remainingSampleCount = options.sampleOffset <= descriptorSampleCount
+                                                   ? descriptorSampleCount - options.sampleOffset
+                                                   : 0u;
+      result.primaryPathDescriptor = result.primaryPathDescriptor->withSampleRange(
+        options.sampleOffset, options.sampleCount.value_or(remainingSampleCount));
+    }
     result.requestedRect = result.primaryPathDescriptor->requestedRect();
     result.actualRect = result.primaryPathDescriptor->actualRect();
     result.primaryPathExecutionPath = primaryPathExecutionPath(result.primaryPathDescriptor->mode);

@@ -194,7 +194,14 @@ namespace render {
       const std::uint64_t maxPixel =
         static_cast<std::uint64_t>(maxRowOffset) * rectilinear.requestedWidth +
         static_cast<std::uint64_t>(maxColumnOffset);
-      const std::uint64_t maxSampleSlot = rectilinear.samplesPerPixel - 1u;
+      if (rectilinear.samplesPerPixel != 0u &&
+          rectilinear.sampleOffset >
+            std::numeric_limits<std::uint32_t>::max() - rectilinear.samplesPerPixel) {
+        throw std::overflow_error(
+          backendMessage(backendDisplayName, "primary descriptor sample range overflows"));
+      }
+      const std::uint64_t maxSampleSlot =
+        rectilinear.sampleOffset + rectilinear.samplesPerPixel - 1u;
       if (maxPixel >= static_cast<std::uint64_t>(std::numeric_limits<int>::max())) {
         throw std::overflow_error(
           backendMessage(backendDisplayName, "accumulation pixel index exceeds layout range"));

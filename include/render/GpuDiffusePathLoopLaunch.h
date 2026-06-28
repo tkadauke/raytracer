@@ -8,7 +8,7 @@
 #include <vector>
 
 namespace render {
-  inline constexpr std::uint32_t gpuDiffusePathLoopLaunchLayoutVersion = 15u;
+  inline constexpr std::uint32_t gpuDiffusePathLoopLaunchLayoutVersion = 16u;
 
   struct alignas(16) GpuDiffusePathLoopLaunchParameters {
     std::uint32_t layoutVersion{gpuDiffusePathLoopLaunchLayoutVersion};
@@ -68,6 +68,10 @@ namespace render {
       static_cast<std::uint32_t>(GpuDisplayResolveTonemap::Linear)};
     std::uint32_t captureMetrics{1};
     std::uint32_t primaryPathMotionMode{gpuPrimaryPathMotionModeOriginDelta};
+    std::uint32_t primaryPathSampleOffset{0};
+    std::uint32_t primaryPathReserved0{0};
+    std::uint32_t primaryPathReserved1{0};
+    std::uint32_t primaryPathReserved2{0};
     std::array<float, 4> primaryPathOrigin{};
     std::array<float, 4> primaryPathMotionOriginDelta{};
     std::array<float, 4> primaryPathMotionTarget{};

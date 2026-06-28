@@ -116,6 +116,10 @@ struct GpuDiffusePathLoopLaunchParameters {
   uint displayResolveTonemap;
   uint captureMetrics;
   uint primaryPathMotionMode;
+  uint primaryPathSampleOffset;
+  uint primaryPathReserved0;
+  uint primaryPathReserved1;
+  uint primaryPathReserved2;
   vec4 primaryPathOrigin;
   vec4 primaryPathMotionOriginDelta;
   vec4 primaryPathMotionTarget;
@@ -557,7 +561,8 @@ vec3 primaryPathRectilinearWorldPoint(PrimaryPathPanoramicBasis basis, float cam
 }
 
 GpuDiffusePathStateRecord makePinholePrimaryPath(uint pathIndex) {
-  const uint sampleIndex = pathIndex % parameters.primaryPathSamplesPerPixel;
+  const uint localSampleIndex = pathIndex % parameters.primaryPathSamplesPerPixel;
+  const uint sampleIndex = parameters.primaryPathSampleOffset + localSampleIndex;
   const uint pixelOrdinal = pathIndex / parameters.primaryPathSamplesPerPixel;
   const uint localX = pixelOrdinal % parameters.primaryPathActualWidth;
   const uint localY = pixelOrdinal / parameters.primaryPathActualWidth;
@@ -618,7 +623,8 @@ GpuDiffusePathStateRecord makePinholePrimaryPath(uint pathIndex) {
 }
 
 GpuDiffusePathStateRecord makeOrthographicPrimaryPath(uint pathIndex) {
-  const uint sampleIndex = pathIndex % parameters.primaryPathSamplesPerPixel;
+  const uint localSampleIndex = pathIndex % parameters.primaryPathSamplesPerPixel;
+  const uint sampleIndex = parameters.primaryPathSampleOffset + localSampleIndex;
   const uint pixelOrdinal = pathIndex / parameters.primaryPathSamplesPerPixel;
   const uint localX = pixelOrdinal % parameters.primaryPathActualWidth;
   const uint localY = pixelOrdinal / parameters.primaryPathActualWidth;
@@ -680,7 +686,8 @@ GpuDiffusePathStateRecord makeOrthographicPrimaryPath(uint pathIndex) {
 }
 
 GpuDiffusePathStateRecord makeThinLensPrimaryPath(uint pathIndex) {
-  const uint sampleIndex = pathIndex % parameters.primaryPathSamplesPerPixel;
+  const uint localSampleIndex = pathIndex % parameters.primaryPathSamplesPerPixel;
+  const uint sampleIndex = parameters.primaryPathSampleOffset + localSampleIndex;
   const uint pixelOrdinal = pathIndex / parameters.primaryPathSamplesPerPixel;
   const uint localX = pixelOrdinal % parameters.primaryPathActualWidth;
   const uint localY = pixelOrdinal / parameters.primaryPathActualWidth;
@@ -752,7 +759,8 @@ GpuDiffusePathStateRecord makeThinLensPrimaryPath(uint pathIndex) {
 }
 
 GpuDiffusePathStateRecord makeEquirectangularPrimaryPath(uint pathIndex) {
-  const uint sampleIndex = pathIndex % parameters.primaryPathSamplesPerPixel;
+  const uint localSampleIndex = pathIndex % parameters.primaryPathSamplesPerPixel;
+  const uint sampleIndex = parameters.primaryPathSampleOffset + localSampleIndex;
   const uint pixelOrdinal = pathIndex / parameters.primaryPathSamplesPerPixel;
   const uint localX = pixelOrdinal % parameters.primaryPathActualWidth;
   const uint localY = pixelOrdinal / parameters.primaryPathActualWidth;
@@ -808,7 +816,8 @@ GpuDiffusePathStateRecord makeEquirectangularPrimaryPath(uint pathIndex) {
 }
 
 GpuDiffusePathStateRecord makeSphericalPrimaryPath(uint pathIndex) {
-  const uint sampleIndex = pathIndex % parameters.primaryPathSamplesPerPixel;
+  const uint localSampleIndex = pathIndex % parameters.primaryPathSamplesPerPixel;
+  const uint sampleIndex = parameters.primaryPathSampleOffset + localSampleIndex;
   const uint pixelOrdinal = pathIndex / parameters.primaryPathSamplesPerPixel;
   const uint localX = pixelOrdinal % parameters.primaryPathActualWidth;
   const uint localY = pixelOrdinal / parameters.primaryPathActualWidth;
@@ -872,7 +881,8 @@ GpuDiffusePathStateRecord makeSphericalPrimaryPath(uint pathIndex) {
 }
 
 GpuDiffusePathStateRecord makeFishEyePrimaryPath(uint pathIndex) {
-  const uint sampleIndex = pathIndex % parameters.primaryPathSamplesPerPixel;
+  const uint localSampleIndex = pathIndex % parameters.primaryPathSamplesPerPixel;
+  const uint sampleIndex = parameters.primaryPathSampleOffset + localSampleIndex;
   const uint pixelOrdinal = pathIndex / parameters.primaryPathSamplesPerPixel;
   const uint localX = pixelOrdinal % parameters.primaryPathActualWidth;
   const uint localY = pixelOrdinal / parameters.primaryPathActualWidth;
@@ -938,7 +948,8 @@ GpuDiffusePathStateRecord makeFishEyePrimaryPath(uint pathIndex) {
 }
 
 GpuDiffusePathStateRecord makeTiltShiftPrimaryPath(uint pathIndex) {
-  const uint sampleIndex = pathIndex % parameters.primaryPathSamplesPerPixel;
+  const uint localSampleIndex = pathIndex % parameters.primaryPathSamplesPerPixel;
+  const uint sampleIndex = parameters.primaryPathSampleOffset + localSampleIndex;
   const uint pixelOrdinal = pathIndex / parameters.primaryPathSamplesPerPixel;
   const uint localX = pixelOrdinal % parameters.primaryPathActualWidth;
   const uint localY = pixelOrdinal / parameters.primaryPathActualWidth;

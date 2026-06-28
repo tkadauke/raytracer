@@ -40,10 +40,10 @@ namespace render {
     std::int32_t actualTop{0};
     std::uint32_t actualWidth{0};
     std::uint32_t actualHeight{0};
+    std::uint32_t sampleOffset{0};
     std::uint32_t samplesPerPixel{0};
     std::uint32_t sampleSeed{0};
     std::uint32_t motionMode{gpuPrimaryPathMotionModeOriginDelta};
-    std::uint32_t reserved{0};
   };
 
   struct GpuPrimaryPathDescriptor {
@@ -54,5 +54,7 @@ namespace render {
     [[nodiscard]] Recti requestedRect() const;
     [[nodiscard]] Recti actualRect() const;
     [[nodiscard]] std::uint64_t pathCount() const;
+    [[nodiscard]] GpuPrimaryPathDescriptor withSampleRange(std::uint32_t firstSample,
+                                                           std::uint32_t sampleCount) const;
   };
 }

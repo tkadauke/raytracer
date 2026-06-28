@@ -21,7 +21,7 @@ namespace render {
   namespace {
     static_assert(std::is_standard_layout_v<GpuDiffusePathLoopLaunchParameters>,
                   "Metal diffuse path-loop launch parameters must stay shader ABI friendly");
-    static_assert(sizeof(GpuDiffusePathLoopLaunchParameters) == 416);
+    static_assert(sizeof(GpuDiffusePathLoopLaunchParameters) == 432);
     static_assert(alignof(GpuDiffusePathLoopLaunchParameters) == 16);
     static_assert(sizeof(GpuDiffusePathStateRecord) == 160);
     static_assert(alignof(GpuDiffusePathStateRecord) == 16);
@@ -156,6 +156,10 @@ namespace render {
               "  uint displayResolveTonemap;\n"
               "  uint captureMetrics;\n"
               "  uint primaryPathMotionMode;\n"
+              "  uint primaryPathSampleOffset;\n"
+              "  uint primaryPathReserved0;\n"
+              "  uint primaryPathReserved1;\n"
+              "  uint primaryPathReserved2;\n"
               "  float4 primaryPathOrigin;\n"
               "  float4 primaryPathMotionOriginDelta;\n"
               "  float4 primaryPathMotionTarget;\n"
@@ -570,7 +574,8 @@ namespace render {
               "}\n"
               "GpuDiffusePathStateRecord makePinholePrimaryPath(\n"
               "    constant GpuDiffusePathLoopLaunchParameters& parameters, uint pathIndex) {\n"
-              "  const uint sampleIndex = pathIndex % parameters.primaryPathSamplesPerPixel;\n"
+              "  const uint localSampleIndex = pathIndex % parameters.primaryPathSamplesPerPixel;\n"
+              "  const uint sampleIndex = parameters.primaryPathSampleOffset + localSampleIndex;\n"
               "  const uint pixelOrdinal = pathIndex / parameters.primaryPathSamplesPerPixel;\n"
               "  const uint localX = pixelOrdinal % parameters.primaryPathActualWidth;\n"
               "  const uint localY = pixelOrdinal / parameters.primaryPathActualWidth;\n"
@@ -632,7 +637,8 @@ namespace render {
               "}\n"
               "GpuDiffusePathStateRecord makeOrthographicPrimaryPath(\n"
               "    constant GpuDiffusePathLoopLaunchParameters& parameters, uint pathIndex) {\n"
-              "  const uint sampleIndex = pathIndex % parameters.primaryPathSamplesPerPixel;\n"
+              "  const uint localSampleIndex = pathIndex % parameters.primaryPathSamplesPerPixel;\n"
+              "  const uint sampleIndex = parameters.primaryPathSampleOffset + localSampleIndex;\n"
               "  const uint pixelOrdinal = pathIndex / parameters.primaryPathSamplesPerPixel;\n"
               "  const uint localX = pixelOrdinal % parameters.primaryPathActualWidth;\n"
               "  const uint localY = pixelOrdinal / parameters.primaryPathActualWidth;\n"
@@ -695,7 +701,8 @@ namespace render {
               "}\n"
               "GpuDiffusePathStateRecord makeThinLensPrimaryPath(\n"
               "    constant GpuDiffusePathLoopLaunchParameters& parameters, uint pathIndex) {\n"
-              "  const uint sampleIndex = pathIndex % parameters.primaryPathSamplesPerPixel;\n"
+              "  const uint localSampleIndex = pathIndex % parameters.primaryPathSamplesPerPixel;\n"
+              "  const uint sampleIndex = parameters.primaryPathSampleOffset + localSampleIndex;\n"
               "  const uint pixelOrdinal = pathIndex / parameters.primaryPathSamplesPerPixel;\n"
               "  const uint localX = pixelOrdinal % parameters.primaryPathActualWidth;\n"
               "  const uint localY = pixelOrdinal / parameters.primaryPathActualWidth;\n"
@@ -773,7 +780,8 @@ namespace render {
               "}\n"
               "GpuDiffusePathStateRecord makeEquirectangularPrimaryPath(\n"
               "    constant GpuDiffusePathLoopLaunchParameters& parameters, uint pathIndex) {\n"
-              "  const uint sampleIndex = pathIndex % parameters.primaryPathSamplesPerPixel;\n"
+              "  const uint localSampleIndex = pathIndex % parameters.primaryPathSamplesPerPixel;\n"
+              "  const uint sampleIndex = parameters.primaryPathSampleOffset + localSampleIndex;\n"
               "  const uint pixelOrdinal = pathIndex / parameters.primaryPathSamplesPerPixel;\n"
               "  const uint localX = pixelOrdinal % parameters.primaryPathActualWidth;\n"
               "  const uint localY = pixelOrdinal / parameters.primaryPathActualWidth;\n"
@@ -833,7 +841,8 @@ namespace render {
               "}\n"
               "GpuDiffusePathStateRecord makeSphericalPrimaryPath(\n"
               "    constant GpuDiffusePathLoopLaunchParameters& parameters, uint pathIndex) {\n"
-              "  const uint sampleIndex = pathIndex % parameters.primaryPathSamplesPerPixel;\n"
+              "  const uint localSampleIndex = pathIndex % parameters.primaryPathSamplesPerPixel;\n"
+              "  const uint sampleIndex = parameters.primaryPathSampleOffset + localSampleIndex;\n"
               "  const uint pixelOrdinal = pathIndex / parameters.primaryPathSamplesPerPixel;\n"
               "  const uint localX = pixelOrdinal % parameters.primaryPathActualWidth;\n"
               "  const uint localY = pixelOrdinal / parameters.primaryPathActualWidth;\n"
@@ -902,7 +911,8 @@ namespace render {
     NSString* diffusePathLoopKernelSourcePrimaryPathDescriptors() {
       return @"GpuDiffusePathStateRecord makeFishEyePrimaryPath(\n"
               "    constant GpuDiffusePathLoopLaunchParameters& parameters, uint pathIndex) {\n"
-              "  const uint sampleIndex = pathIndex % parameters.primaryPathSamplesPerPixel;\n"
+              "  const uint localSampleIndex = pathIndex % parameters.primaryPathSamplesPerPixel;\n"
+              "  const uint sampleIndex = parameters.primaryPathSampleOffset + localSampleIndex;\n"
               "  const uint pixelOrdinal = pathIndex / parameters.primaryPathSamplesPerPixel;\n"
               "  const uint localX = pixelOrdinal % parameters.primaryPathActualWidth;\n"
               "  const uint localY = pixelOrdinal / parameters.primaryPathActualWidth;\n"
@@ -971,7 +981,8 @@ namespace render {
               "}\n"
               "GpuDiffusePathStateRecord makeTiltShiftPrimaryPath(\n"
               "    constant GpuDiffusePathLoopLaunchParameters& parameters, uint pathIndex) {\n"
-              "  const uint sampleIndex = pathIndex % parameters.primaryPathSamplesPerPixel;\n"
+              "  const uint localSampleIndex = pathIndex % parameters.primaryPathSamplesPerPixel;\n"
+              "  const uint sampleIndex = parameters.primaryPathSampleOffset + localSampleIndex;\n"
               "  const uint pixelOrdinal = pathIndex / parameters.primaryPathSamplesPerPixel;\n"
               "  const uint localX = pixelOrdinal % parameters.primaryPathActualWidth;\n"
               "  const uint localY = pixelOrdinal / parameters.primaryPathActualWidth;\n"

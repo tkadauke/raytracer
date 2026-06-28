@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Add GPU primary-path sample ranges so descriptor-backed Metal/Vulkan
+  path-loop launches can address absolute primary sample indices for future
+  progressive GPU accumulation. — GPT-5 Codex
 - Report the compiled diffuse path-loop schedule explicitly in render graph
   metadata and rendercli wavefront summaries so CPU-reference and full-GPU
   tracing paths no longer require execution-path string parsing to distinguish

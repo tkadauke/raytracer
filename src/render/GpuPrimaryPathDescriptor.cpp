@@ -54,4 +54,27 @@ namespace render {
     }
     return 0;
   }
+
+  GpuPrimaryPathDescriptor
+  GpuPrimaryPathDescriptor::withSampleRange(std::uint32_t firstSample,
+                                            std::uint32_t sampleCount) const {
+    if (!isRectangularPixelDomainMode(mode)) {
+      throw std::invalid_argument("GPU primary sample ranges require a rectangular descriptor");
+    }
+    if (sampleCount == 0u) {
+      throw std::invalid_argument("GPU primary sample range requires a positive sample count");
+    }
+    const std::uint64_t currentBegin = rectilinear.sampleOffset;
+    const std::uint64_t currentEnd = currentBegin + rectilinear.samplesPerPixel;
+    const std::uint64_t requestedBegin = firstSample;
+    const std::uint64_t requestedEnd = requestedBegin + sampleCount;
+    if (requestedBegin < currentBegin || requestedEnd > currentEnd) {
+      throw std::out_of_range("GPU primary sample range is outside the descriptor sample domain");
+    }
+
+    GpuPrimaryPathDescriptor result = *this;
+    result.rectilinear.sampleOffset = firstSample;
+    result.rectilinear.samplesPerPixel = sampleCount;
+    return result;
+  }
 }
