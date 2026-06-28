@@ -454,9 +454,9 @@ namespace render {
     constexpr std::uint64_t kAutoPrimaryLaunchPathWorkBudget = 1024ull * 1024ull;
     constexpr std::uint64_t kAutoPrimaryLaunchMinimumPathBudget = 16ull * 1024ull;
     constexpr std::uint64_t kAutoPrimaryLaunchMaximumPathBudget = 128ull * 1024ull;
-    constexpr std::uint64_t kInteractiveAutoPrimaryLaunchPathWorkBudget = 8ull * 1024ull * 1024ull;
-    constexpr std::uint64_t kInteractiveAutoPrimaryLaunchMinimumPathBudget = 64ull * 1024ull;
-    constexpr std::uint64_t kInteractiveAutoPrimaryLaunchMaximumPathBudget = 512ull * 1024ull;
+    constexpr std::uint64_t kInteractiveAutoPrimaryLaunchPathWorkBudget = 1024ull * 1024ull;
+    constexpr std::uint64_t kInteractiveAutoPrimaryLaunchMinimumPathBudget = 16ull * 1024ull;
+    constexpr std::uint64_t kInteractiveAutoPrimaryLaunchMaximumPathBudget = 128ull * 1024ull;
 
     [[nodiscard]] bool primaryGenerationCanUseSampleChunks(
       const GpuDiffusePrimaryPathStateGeneration& primaryPathGeneration,
