@@ -7276,6 +7276,34 @@ namespace GpuDiffusePathStepReferenceTest {
     }
   }
 
+  TEST(GpuDiffusePrimarySampleChunks, AutoChunksLargeDenoiserFeatureLaunches) {
+    PinholeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 1024, 1024));
+    camera.viewPlane()->sampler()->setup(4, 8, 42);
+    GpuDiffusePrimaryPathStateGenerationOptions options;
+    options.materializeHostPathStates = false;
+    const GpuDiffusePrimaryPathStateGeneration generation =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 1024, 1024), 99, 1234,
+                                                     options);
+    ASSERT_TRUE(generation.canGeneratePrimaryPathsOnDevice());
+
+    GpuDiffusePathLoopSettings settings;
+    settings.captureDiagnostics = false;
+    settings.captureDenoiserFeatures = true;
+    settings.primarySampleChunkSize = 0u;
+
+    EXPECT_EQ(1u, resolvedGpuDiffusePrimarySampleChunkSize(generation, settings));
+    ASSERT_TRUE(canChunkGpuDiffusePrimarySamples(generation, settings));
+    const std::vector<GpuDiffusePrimaryPathSampleChunk> chunks =
+      gpuDiffusePrimarySampleChunksFor(generation, settings);
+
+    ASSERT_EQ(4u, chunks.size());
+    EXPECT_EQ(0u,
+              chunks.front().primaryPathGeneration.primaryPathDescriptor->rectilinear.sampleOffset);
+    EXPECT_TRUE(chunks.front().firstChunk);
+    EXPECT_TRUE(chunks.back().finalChunk);
+  }
+
   TEST(GpuDiffusePrimarySampleChunks, CapsExplicitChunkSizeForLargeDescriptorBackedSamples) {
     PinholeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
     camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 1024, 1024));
@@ -7356,6 +7384,10 @@ namespace GpuDiffusePathStepReferenceTest {
     first.sceneUploadBytesWritten = 64u;
     first.kernelWorkerSeconds = 0.25;
     first.stepRecords.push_back({});
+    first.denoiserFeatureRecords.resize(3);
+    first.denoiserFeatureRecords[1].pixelIndex = 1u;
+    first.denoiserFeatureRecords[1].flags = gpuDiffusePathDenoiserFeatureValidFlag;
+    first.denoiserFeatureRecords[1].albedo = {0.25f, 0.0f, 0.0f, 0.0f};
 
     GpuDiffusePathLoopPlatformResult second;
     second.executionPath = "platform_path_loop";
@@ -7369,6 +7401,12 @@ namespace GpuDiffusePathStepReferenceTest {
     second.accumulationColorSums = {{{1.0f, 2.0f, 3.0f, 0.0f}}};
     second.accumulationSampleCounts = {2u};
     second.resolvedDisplayPixels = {0x112233u};
+    second.denoiserFeatureRecords.resize(3);
+    second.denoiserFeatureRecords[1].pixelIndex = 1u;
+    second.denoiserFeatureRecords[1].albedo = {0.75f, 0.0f, 0.0f, 0.0f};
+    second.denoiserFeatureRecords[2].pixelIndex = 2u;
+    second.denoiserFeatureRecords[2].flags = gpuDiffusePathDenoiserFeatureValidFlag;
+    second.denoiserFeatureRecords[2].albedo = {0.5f, 0.0f, 0.0f, 0.0f};
 
     mergePlatformGpuDiffusePathLoopChunkResult(merged, std::move(first));
     mergePlatformGpuDiffusePathLoopChunkResult(merged, std::move(second));
@@ -7388,6 +7426,24 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(2u, merged.accumulationSampleCounts[0]);
     ASSERT_EQ(1u, merged.resolvedDisplayPixels.size());
     EXPECT_EQ(0x112233u, merged.resolvedDisplayPixels[0]);
+    ASSERT_EQ(3u, merged.denoiserFeatureRecords.size());
+    EXPECT_EQ(gpuDiffusePathDenoiserFeatureValidFlag, merged.denoiserFeatureRecords[1].flags);
+    EXPECT_FLOAT_EQ(0.25f, merged.denoiserFeatureRecords[1].albedo[0]);
+    EXPECT_EQ(gpuDiffusePathDenoiserFeatureValidFlag, merged.denoiserFeatureRecords[2].flags);
+    EXPECT_FLOAT_EQ(0.5f, merged.denoiserFeatureRecords[2].albedo[0]);
+  }
+
+  TEST(GpuDiffusePrimarySampleChunks, RejectsMismatchedChunkDenoiserFeatureSizes) {
+    GpuDiffusePathLoopPlatformResult merged;
+    merged.executionPath = "platform_path_loop";
+    merged.denoiserFeatureRecords.resize(2);
+
+    GpuDiffusePathLoopPlatformResult chunk;
+    chunk.executionPath = "platform_path_loop";
+    chunk.denoiserFeatureRecords.resize(3);
+
+    EXPECT_THROW(mergePlatformGpuDiffusePathLoopChunkResult(merged, std::move(chunk)),
+                 std::logic_error);
   }
 
   TEST(GpuDiffusePrimarySampleChunks, NotifiesChunkProgressObserver) {

@@ -417,10 +417,25 @@ namespace render {
     }
 
     void
-    appendMovedDenoiserFeatureRecords(std::vector<GpuDiffusePathDenoiserFeatureRecord>& target,
-                                      std::vector<GpuDiffusePathDenoiserFeatureRecord>&& source) {
-      target.insert(target.end(), std::make_move_iterator(source.begin()),
-                    std::make_move_iterator(source.end()));
+    mergeMovedDenoiserFeatureRecords(std::vector<GpuDiffusePathDenoiserFeatureRecord>& target,
+                                     std::vector<GpuDiffusePathDenoiserFeatureRecord>&& source) {
+      if (source.empty()) {
+        return;
+      }
+      if (target.empty()) {
+        target = std::move(source);
+        return;
+      }
+      if (target.size() != source.size()) {
+        throw std::logic_error("GPU diffuse path-loop chunk denoiser feature size mismatch");
+      }
+      for (GpuDiffusePathDenoiserFeatureRecord& record : source) {
+        if ((record.flags & gpuDiffusePathDenoiserFeatureValidFlag) == 0u ||
+            record.pixelIndex >= target.size()) {
+          continue;
+        }
+        target[record.pixelIndex] = record;
+      }
     }
 
     void addActivePathCounts(std::vector<std::uint32_t>& target,
@@ -441,7 +456,7 @@ namespace render {
     [[nodiscard]] bool primaryGenerationCanUseSampleChunks(
       const GpuDiffusePrimaryPathStateGeneration& primaryPathGeneration,
       const GpuDiffusePathLoopSettings& settings) {
-      return !settings.captureDiagnostics && !settings.captureDenoiserFeatures &&
+      return !settings.captureDiagnostics &&
              primaryPathGeneration.canGeneratePrimaryPathsOnDevice() &&
              primaryPathGeneration.pathStates.empty() &&
              primaryPathGeneration.primaryPathDescriptor.has_value();
@@ -539,8 +554,8 @@ namespace render {
     appendMovedPathStates(merged.resolvedPathStates, std::move(chunkResult.resolvedPathStates));
     appendMovedPathStates(merged.nextPathStates, std::move(chunkResult.nextPathStates));
     appendMovedStepRecords(merged.stepRecords, std::move(chunkResult.stepRecords));
-    appendMovedDenoiserFeatureRecords(merged.denoiserFeatureRecords,
-                                      std::move(chunkResult.denoiserFeatureRecords));
+    mergeMovedDenoiserFeatureRecords(merged.denoiserFeatureRecords,
+                                     std::move(chunkResult.denoiserFeatureRecords));
     if (!chunkResult.accumulationColorSums.empty()) {
       merged.accumulationColorSums = std::move(chunkResult.accumulationColorSums);
     }

@@ -124,8 +124,10 @@ end state for GPU tracing.
   graph-backed GPU path-tracer runs. A requested chunk size of `0` now means
   backend auto-sizing: small descriptor-backed launches stay unchunked, while
   large launches resolve to a bounded chunk size before allocation. Trace
-  metadata reports both the requested and resolved chunk size. Those
-  descriptor-backed camera models with
+  metadata reports both the requested and resolved chunk size. Denoiser feature
+  capture can use the same chunked path because per-pixel feature records merge
+  by pixel index across sample chunks instead of appending one feature buffer per
+  chunk. Those descriptor-backed camera models with
   fixed-width shutter intervals can also bake their animated still-frame pose
   into the descriptor, and pinhole, orthographic, thin-lens, tilt-shift,
   equirectangular, spherical, and fish-eye camera rigs with position and target
@@ -315,7 +317,9 @@ end state for GPU tracing.
   between chunks. For large descriptor-backed launches, `primarySampleChunkSize = 0`
   auto-resolves to a backend budgeted chunk size; explicit chunk sizes are
   treated as an upper bound when a smaller chunk is needed to avoid a monolithic
-  path-state allocation. The live render loop does not yet schedule separate
+  path-state allocation. Per-pixel denoiser feature records are merged across
+  chunks so bilateral denoiser feature capture does not disable this sample
+  chunking path. The live render loop does not yet schedule separate
   progressive chunks across frames or retain platform accumulation across
   render calls.
 - Unrestricted platform GPU path-tracing loop.

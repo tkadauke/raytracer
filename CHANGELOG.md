@@ -473,6 +473,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   primary-sample chunk size `0` to a safe backend chunk size for large
   descriptor-backed renders instead of submitting one monolithic path-state
   allocation. — GPT-5 Codex
+- Let denoiser feature capture share the same chunked full-GPU path-tracer
+  launch path by merging per-pixel feature records across sample chunks instead
+  of forcing one large launch. — GPT-5 Codex
 - Clarify Metal/Vulkan full-GPU path-loop unsupported-geometry diagnostics so
   they name triangle-backed MeshPrimitive, Box, and finite-width Curve geometry
   alongside the analytic GPU primitive records they already accept. —
