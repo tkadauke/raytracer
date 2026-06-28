@@ -534,7 +534,7 @@
       <item row="14" column="1">
        <widget class="QSpinBox" name="gpuPrimarySampleChunkSize">
         <property name="toolTip">
-         <string>Primary samples per retained GPU accumulation chunk. 0 lets the backend choose a safe chunk size.</string>
+         <string>Primary samples per retained GPU accumulation chunk. 0 lets the backend choose depth-aware sample/tile chunks.</string>
         </property>
         <property name="minimum">
          <number>0</number>

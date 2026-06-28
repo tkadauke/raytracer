@@ -3730,7 +3730,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"pathtracer_direct_light_samples", "Path-tracer direct-light samples per surface hit",
       "samples"},
      {"gpu_primary_sample_chunk_size",
-      "GPU path-tracer primary sample chunk size; 0 lets the backend choose a safe size",
+      "GPU path-tracer primary sample chunk size; 0 lets the backend choose depth-aware "
+      "sample/tile chunks",
       "samples"},
      {{"j", "threads"}, "Number of threads", "threads"},
      {"queue_size", "Explicit queue size for thread pool; raster defaults to automatic",

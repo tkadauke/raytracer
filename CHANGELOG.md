@@ -478,6 +478,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Document and test base-level mipmapped `ImageTexture` support in the compiled
   full-GPU path-loop subset, matching the scalar path tracer's derivative-free
   texture evaluation path. — GPT-5 Codex
+- Scale automatic full-GPU path-tracer sample/tile chunks by path depth and
+  direct-light samples so interactive Metal/Vulkan path-tracer renders avoid
+  long single-command submissions that can hang the UI or driver. —
+  GPT-5 Codex
 - Keep automatic full-GPU path-tracer sample chunks on image-sized retained
   accumulation when each chunk contains one sample per pixel, avoiding
   sample-count-sized platform buffers for high-sample render-window previews.

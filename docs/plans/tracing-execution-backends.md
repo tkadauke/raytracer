@@ -121,7 +121,10 @@ end state for GPU tracing.
   backends can opt into chunking those descriptor sample ranges while retaining
   the platform accumulation buffer across chunks. Oversized single-sample
   launches are further split by the descriptor's actual pixel rectangle, so
-  auto chunking has a smaller fallback unit than "one full-resolution sample."
+  auto chunking has a smaller fallback unit than "one full-resolution sample";
+  the automatic tile budget also scales down with path depth and direct-light
+  samples so long-running interactive renders do not submit one oversized GPU
+  command before progress and cancellation can run.
   Render intent, rendercli, and the modeler final render dialog can request the
   sample chunk size explicitly for graph-backed GPU path-tracer runs. A
   requested chunk size of `0` now means backend auto-sizing: small
@@ -321,13 +324,16 @@ end state for GPU tracing.
   between chunks. For large descriptor-backed launches, `primarySampleChunkSize = 0`
   auto-resolves to a backend budgeted chunk size; explicit chunk sizes are
   treated as an upper bound when a smaller chunk is needed to avoid a monolithic
-  path-state allocation. Per-pixel denoiser feature records are merged across
-  chunks so bilateral denoiser feature capture does not disable this sample
-  chunking path. Oversized graph-trace diagnostic captures now suppress only the
-  low-level path-state/path-step diagnostic readback when a supported full-GPU
-  backend can keep execution on the platform path; non-platform fallbacks still
-  stop before materializing a giant host record set. Trace-disabled display
-  renders remain on the bounded chunked GPU path. The live render loop does not
+  path-state allocation, and the pixel-tile fallback budget scales down with
+  requested path depth and direct-light sample count so an interactive render can
+  report progress and honor cancellation between smaller GPU command buffers.
+  Per-pixel denoiser feature records are merged across chunks so bilateral
+  denoiser feature capture does not disable this sample chunking path. Oversized
+  graph-trace diagnostic captures now suppress only the low-level
+  path-state/path-step diagnostic readback when a supported full-GPU backend can
+  keep execution on the platform path; non-platform fallbacks still stop before
+  materializing a giant host record set. Trace-disabled display renders remain
+  on the bounded chunked GPU path. The live render loop does not
   yet schedule separate progressive chunks across frames or retain platform
   accumulation across render calls.
 - Unrestricted platform GPU path-tracing loop.
