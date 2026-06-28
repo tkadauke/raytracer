@@ -2,6 +2,7 @@
 #include "render/cameras/EquirectangularCamera.h"
 #include "core/math/Ray.h"
 #include "core/math/Constants.h"
+#include "render/cameras/SampledShutterDescriptorMotion.h"
 #include "render/samplers/Sampler.h"
 #include "render/viewplanes/ViewPlane.h"
 
@@ -78,9 +79,17 @@ EquirectangularCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t
   if (!plane || !plane->sampler() || plane->sampler()->numSamples() <= 0) {
     return std::nullopt;
   }
-  const std::optional<Matrix4d> descriptorMatrix = fixedShutterGpuCameraMatrix();
+  std::optional<Matrix4d> descriptorMatrix = fixedShutterGpuCameraMatrix();
+  Vector3d motionOriginDelta = Vector3d::null;
   if (!descriptorMatrix) {
-    return std::nullopt;
+    const std::optional<detail::SampledShutterDescriptorMotion> motion =
+      detail::sampledStableBasisShutterMotion(*this);
+    if (!motion) {
+      return std::nullopt;
+    }
+    descriptorMatrix = motion->matrixAtOpen;
+    motionOriginDelta =
+      motion->matrixAtClose.translationVector() - motion->matrixAtOpen.translationVector();
   }
 
   const Recti actual = renderableRect(rect);
@@ -101,6 +110,7 @@ EquirectangularCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t
   GpuPrimaryPathDescriptor descriptor;
   descriptor.mode = gpuPrimaryPathGenerationModeEquirectangular;
   descriptor.rectilinear.originOrDirection = vector4(descriptorMatrix->translationVector(), 1.0f);
+  descriptor.rectilinear.motionOriginDelta = vector4(motionOriginDelta, 0.0f);
   descriptor.rectilinear.right =
     vector4(descriptorMatrix->transformDirection(Vector3d(1.0, 0.0, 0.0)), 0.0f);
   descriptor.rectilinear.down =

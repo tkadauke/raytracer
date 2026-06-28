@@ -9,6 +9,7 @@
 #include "render/samplers/Sampler.h"
 #include "core/Buffer.h"
 #include "core/math/Constants.h"
+#include "render/animation/AnimationTrack.h"
 
 #include "test/helpers/CameraTestHelper.h"
 #include "test/helpers/VectorTestHelper.h"
@@ -115,6 +116,31 @@ namespace EquirectangularCameraTest {
     EXPECT_FLOAT_EQ(2.0f, payload.originOrDirection[1]);
     EXPECT_FLOAT_EQ(3.0f, payload.originOrDirection[2]);
     EXPECT_FLOAT_EQ(1.0f, payload.originOrDirection[3]);
+  }
+
+  TEST(EquirectangularCamera, ShouldExposeSampledShutterRigTranslationGpuPrimaryPathDescriptor) {
+    EquirectangularCamera camera(Vector3d(0, 0, -5), Vector3d(0, 0, -4));
+    setupViewPlane(camera, 4, 2);
+    camera.viewPlane()->sampler()->setup(1, 1, 17);
+    camera.setAnimationFrame(0.0);
+    camera.setShutterInterval(0.0, 1.0);
+    camera.setAnimationTrack("position",
+                             render::animation::AnimationTrack(
+                               {{0.0, Vector3d(0.0, 0.0, -5.0)}, {1.0, Vector3d(0.0, 1.0, -5.0)}}));
+    camera.setAnimationTrack("target",
+                             render::animation::AnimationTrack(
+                               {{0.0, Vector3d(0.0, 0.0, -4.0)}, {1.0, Vector3d(0.0, 1.0, -4.0)}}));
+
+    const std::optional<GpuPrimaryPathDescriptor> descriptor =
+      camera.gpuPrimaryPathDescriptor(Recti(0, 0, 4, 2), 1234);
+
+    ASSERT_TRUE(descriptor.has_value());
+    EXPECT_EQ(gpuPrimaryPathGenerationModeEquirectangular, descriptor->mode);
+    ASSERT_VECTOR_NEAR(Vector3d(0.0, 0.0, -5.0),
+                       Vector3d(descriptor->rectilinear.originOrDirection), 1e-6);
+    ASSERT_VECTOR_NEAR(Vector3d(0.0, 1.0, 0.0), Vector3d(descriptor->rectilinear.motionOriginDelta),
+                       1e-6);
+    EXPECT_EQ(8u, descriptor->pathCount());
   }
 
   TEST(EquirectangularCamera, ShouldRenderViaRaytracer) {

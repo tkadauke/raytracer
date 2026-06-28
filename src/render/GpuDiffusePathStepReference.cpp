@@ -350,7 +350,7 @@ namespace {
             const double lat = (1.0 - 2.0 * y / viewHeight) * (PI / 2.0);
             const double cosLat = std::cos(lat);
             const Vector3d local(cosLat * std::sin(lon), -std::sin(lat), cosLat * std::cos(lon));
-            ray = Rayd(originOrDirection,
+            ray = Rayd(originOrDirection + motionOriginDelta * timeSample,
                        (right * local.x() + down * local.y() + forward * local.z()).normalized());
           } else if (mode == gpuPrimaryPathGenerationModeSpherical) {
             const double viewWidth = descriptor.lensParameters[0];
@@ -374,7 +374,7 @@ namespace {
             const double sinTheta = std::sin(theta);
             const double cosTheta = std::cos(theta);
             const Vector3d local(sinTheta * sinPhi, cosTheta, sinTheta * cosPhi);
-            ray = Rayd(originOrDirection,
+            ray = Rayd(originOrDirection + motionOriginDelta * timeSample,
                        (right * local.x() + down * local.y() + forward * local.z()).normalized());
           } else if (mode == gpuPrimaryPathGenerationModeFishEye) {
             const double viewWidth = descriptor.lensParameters[0];
@@ -399,7 +399,7 @@ namespace {
             const double sinAlpha = point.y() / r;
             const double cosAlpha = point.x() / r;
             const Vector3d local(sinPsi * cosAlpha, sinPsi * sinAlpha, cosPsi);
-            ray = Rayd(originOrDirection,
+            ray = Rayd(originOrDirection + motionOriginDelta * timeSample,
                        (right * local.x() + down * local.y() + forward * local.z()).normalized());
           } else {
             ray = Rayd(originOrDirection, (pixelPoint - originOrDirection).normalized());

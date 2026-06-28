@@ -1,10 +1,13 @@
 #include <gtest/gtest.h>
 #include "render/cameras/FishEyeCamera.h"
 #include "engine/raytracer/Raytracer.h"
+#include "render/animation/AnimationTrack.h"
 #include "render/samplers/Sampler.h"
 #include "render/viewplanes/ViewPlane.h"
 #include "render/primitives/Scene.h"
 #include "core/Buffer.h"
+
+#include "test/helpers/VectorTestHelper.h"
 
 #include <optional>
 
@@ -95,5 +98,31 @@ namespace FishEyeCameraTest {
     EXPECT_EQ(4u, rectilinear.actualHeight);
     EXPECT_EQ(4u, rectilinear.samplesPerPixel);
     EXPECT_EQ(1234u, rectilinear.sampleSeed);
+  }
+
+  TEST(FishEyeCamera, ShouldExposeSampledShutterRigTranslationGpuPrimaryPathDescriptor) {
+    FishEyeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, -4.0));
+    camera.setFieldOfView(180_degrees);
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 4, 4));
+    camera.viewPlane()->sampler()->setup(1, 1, 17);
+    camera.setAnimationFrame(0.0);
+    camera.setShutterInterval(0.0, 1.0);
+    camera.setAnimationTrack("position",
+                             render::animation::AnimationTrack(
+                               {{0.0, Vector3d(0.0, 0.0, -5.0)}, {1.0, Vector3d(0.0, 1.0, -5.0)}}));
+    camera.setAnimationTrack("target",
+                             render::animation::AnimationTrack(
+                               {{0.0, Vector3d(0.0, 0.0, -4.0)}, {1.0, Vector3d(0.0, 1.0, -4.0)}}));
+
+    const std::optional<GpuPrimaryPathDescriptor> descriptor =
+      camera.gpuPrimaryPathDescriptor(Recti(0, 0, 4, 4), 1234);
+
+    ASSERT_TRUE(descriptor.has_value());
+    EXPECT_EQ(gpuPrimaryPathGenerationModeFishEye, descriptor->mode);
+    ASSERT_VECTOR_NEAR(Vector3d(0.0, 0.0, -5.0),
+                       Vector3d(descriptor->rectilinear.originOrDirection), 1e-6);
+    ASSERT_VECTOR_NEAR(Vector3d(0.0, 1.0, 0.0), Vector3d(descriptor->rectilinear.motionOriginDelta),
+                       1e-6);
+    EXPECT_EQ(16u, descriptor->pathCount());
   }
 }

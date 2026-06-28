@@ -730,7 +730,8 @@ GpuDiffusePathStateRecord makeEquirectangularPrimaryPath(uint pathIndex) {
               parameters.primaryPathForward.xyz * local.z);
 
   GpuDiffusePathStateRecord path;
-  path.ray.origin = parameters.primaryPathOrigin;
+  path.ray.origin =
+    parameters.primaryPathOrigin + parameters.primaryPathMotionOriginDelta * timeSample;
   path.ray.direction = vec4(direction, 0.0);
   path.ray.minDistance = 0.0;
   path.ray.maxDistance = uintBitsToFloat(0x7f800000u);
@@ -793,7 +794,8 @@ GpuDiffusePathStateRecord makeSphericalPrimaryPath(uint pathIndex) {
               parameters.primaryPathForward.xyz * local.z);
 
   GpuDiffusePathStateRecord path;
-  path.ray.origin = parameters.primaryPathOrigin;
+  path.ray.origin =
+    parameters.primaryPathOrigin + parameters.primaryPathMotionOriginDelta * timeSample;
   path.ray.direction = vec4(direction, 0.0);
   path.ray.minDistance = 0.0;
   path.ray.maxDistance = uintBitsToFloat(0x7f800000u);
@@ -859,7 +861,8 @@ GpuDiffusePathStateRecord makeFishEyePrimaryPath(uint pathIndex) {
   }
 
   GpuDiffusePathStateRecord path;
-  path.ray.origin = parameters.primaryPathOrigin;
+  path.ray.origin =
+    parameters.primaryPathOrigin + parameters.primaryPathMotionOriginDelta * timeSample;
   path.ray.direction = vec4(direction, 0.0);
   path.ray.minDistance = 0.0;
   path.ray.maxDistance = uintBitsToFloat(0x7f800000u);
