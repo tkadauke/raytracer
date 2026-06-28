@@ -16,9 +16,15 @@ namespace render {
   inline constexpr std::uint32_t gpuPrimaryPathGenerationModeFishEye = 6u;
   inline constexpr std::uint32_t gpuPrimaryPathGenerationModeTiltShift = 7u;
 
+  inline constexpr std::uint32_t gpuPrimaryPathMotionModeOriginDelta = 0u;
+  inline constexpr std::uint32_t gpuPrimaryPathMotionModeLookAt = 1u;
+
   struct alignas(16) GpuRectilinearPrimaryPathDescriptor {
     std::array<float, 4> originOrDirection{};
     std::array<float, 4> motionOriginDelta{};
+    std::array<float, 4> motionTarget{};
+    std::array<float, 4> motionTargetDelta{};
+    std::array<float, 4> motionParameters{};
     std::array<float, 4> topLeft{};
     std::array<float, 4> right{};
     std::array<float, 4> down{};
@@ -36,7 +42,8 @@ namespace render {
     std::uint32_t actualHeight{0};
     std::uint32_t samplesPerPixel{0};
     std::uint32_t sampleSeed{0};
-    std::array<std::uint32_t, 2> reserved{};
+    std::uint32_t motionMode{gpuPrimaryPathMotionModeOriginDelta};
+    std::uint32_t reserved{0};
   };
 
   struct GpuPrimaryPathDescriptor {

@@ -15,6 +15,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   segment lower to GPU primary-path descriptors by carrying a primary-origin
   motion delta through CPU reference, Metal, and Vulkan path-loop launches. —
   GPT-5 Codex
+- Let sampled-shutter pinhole camera rigs whose linear in-shutter motion changes
+  their view direction stay on GPU primary-path descriptors by carrying
+  shader-facing look-at motion state through CPU reference, Metal, and Vulkan
+  path-loop launches. — GPT-5 Codex
 - Let fixed-shutter animated orthographic, thin-lens, tilt-shift,
   equirectangular, spherical, and fish-eye cameras lower to GPU primary-path
   descriptors, matching the pinhole descriptor fast path for still-frame

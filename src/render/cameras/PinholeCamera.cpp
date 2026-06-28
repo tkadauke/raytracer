@@ -48,15 +48,19 @@ namespace {
                     cameraMatrix.cell(2, 3) - cameraMatrix.cell(2, 2) * distance);
   }
 
-  struct DescriptorOrigin {
-    Vector3d origin;
-    Vector3d motionOriginDelta{Vector3d::null};
+  struct DescriptorMotion {
+    std::uint32_t motionMode{gpuPrimaryPathMotionModeOriginDelta};
+    Vector3d originOrPosition;
+    Vector3d motionOriginOrPositionDelta{Vector3d::null};
+    Vector3d target{Vector3d::null};
+    Vector3d targetDelta{Vector3d::null};
+    double distance{0.0};
   };
 
   bool isLinearVectorTrack(const render::animation::AnimationTrack* track) {
-    return track &&
-           track->interpolationMode() == core::math::interpolation::InterpolationMode::Linear &&
-           track->valueType() == render::animation::AnimationValue::Type::Vector3;
+    return !track ||
+           (track->interpolationMode() == core::math::interpolation::InterpolationMode::Linear &&
+            track->valueType() == render::animation::AnimationValue::Type::Vector3);
   }
 
   bool crossesInteriorKey(const render::animation::AnimationTrack& track, double from, double to) {
@@ -81,8 +85,24 @@ namespace {
     return (left - right).length() <= 1e-9;
   }
 
-  std::optional<DescriptorOrigin> sampledShutterRigTranslationOrigin(const PinholeCamera& camera,
-                                                                     double distance) {
+  bool hasDefinedDirection(const Vector3d& position, const Vector3d& target) {
+    return (target - position).length() > std::numeric_limits<double>::epsilon();
+  }
+
+  bool linearDirectionSegmentStaysDefined(const Vector3d& directionAtOpen,
+                                          const Vector3d& directionAtClose) {
+    const Vector3d directionDelta = directionAtClose - directionAtOpen;
+    const double deltaLengthSquared = directionDelta * directionDelta;
+    double closestT = 0.0;
+    if (deltaLengthSquared > std::numeric_limits<double>::epsilon()) {
+      closestT = std::clamp(-(directionAtOpen * directionDelta) / deltaLengthSquared, 0.0, 1.0);
+    }
+    return (directionAtOpen + directionDelta * closestT).length() >
+           std::numeric_limits<double>::epsilon();
+  }
+
+  std::optional<DescriptorMotion> sampledShutterPinholeMotion(const PinholeCamera& camera,
+                                                              double distance) {
     const auto* positionTrack = camera.animationTrack("position");
     const auto* targetTrack = camera.animationTrack("target");
     if (!positionTrack && !targetTrack) {
@@ -94,8 +114,8 @@ namespace {
 
     const double shutterOpen = camera.animationTimeForSample(0.0);
     const double shutterClose = camera.animationTimeForSample(1.0);
-    if (crossesInteriorKey(*positionTrack, shutterOpen, shutterClose) ||
-        crossesInteriorKey(*targetTrack, shutterOpen, shutterClose)) {
+    if ((positionTrack && crossesInteriorKey(*positionTrack, shutterOpen, shutterClose)) ||
+        (targetTrack && crossesInteriorKey(*targetTrack, shutterOpen, shutterClose))) {
       return std::nullopt;
     }
 
@@ -106,17 +126,26 @@ namespace {
     const Vector3d targetAtOpen = animatedVectorAt(camera, "target", camera.target(), shutterOpen);
     const Vector3d targetAtClose =
       animatedVectorAt(camera, "target", camera.target(), shutterClose);
-    const Vector3d baselineDirection = camera.target() - camera.position();
-    if (!nearlyEqual(targetAtOpen - positionAtOpen, baselineDirection) ||
-        !nearlyEqual(targetAtClose - positionAtClose, baselineDirection)) {
+    const Vector3d directionAtOpen = targetAtOpen - positionAtOpen;
+    const Vector3d directionAtClose = targetAtClose - positionAtClose;
+    if (!hasDefinedDirection(positionAtOpen, targetAtOpen) ||
+        !hasDefinedDirection(positionAtClose, targetAtClose) ||
+        !linearDirectionSegmentStaysDefined(directionAtOpen, directionAtClose)) {
       return std::nullopt;
     }
 
-    const Vector3d originAtOpen =
-      rayOriginForMatrix(Matrix4d::lookAt(positionAtOpen, targetAtOpen, Vector3d::up()), distance);
-    const Vector3d originAtClose = rayOriginForMatrix(
-      Matrix4d::lookAt(positionAtClose, targetAtClose, Vector3d::up()), distance);
-    return DescriptorOrigin{originAtOpen, originAtClose - originAtOpen};
+    const Matrix4d matrixAtOpen = Matrix4d::lookAt(positionAtOpen, targetAtOpen, Vector3d::up());
+    const Matrix4d matrixAtClose = Matrix4d::lookAt(positionAtClose, targetAtClose, Vector3d::up());
+    const Vector3d originAtOpen = rayOriginForMatrix(matrixAtOpen, distance);
+    const Vector3d originAtClose = rayOriginForMatrix(matrixAtClose, distance);
+    if (nearlyEqual(directionAtClose, directionAtOpen)) {
+      return DescriptorMotion{gpuPrimaryPathMotionModeOriginDelta, originAtOpen,
+                              originAtClose - originAtOpen};
+    }
+
+    return DescriptorMotion{gpuPrimaryPathMotionModeLookAt,   positionAtOpen,
+                            positionAtClose - positionAtOpen, targetAtOpen,
+                            targetAtClose - targetAtOpen,     distance};
   }
 
 }
@@ -197,13 +226,14 @@ PinholeCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampleS
     return std::nullopt;
   }
 
-  std::optional<DescriptorOrigin> origin;
+  std::optional<DescriptorMotion> motion;
   if (const std::optional<Matrix4d> descriptorMatrix = fixedShutterGpuCameraMatrix()) {
-    origin = DescriptorOrigin{rayOriginForMatrix(*descriptorMatrix, m_distance), Vector3d::null};
+    motion = DescriptorMotion{gpuPrimaryPathMotionModeOriginDelta,
+                              rayOriginForMatrix(*descriptorMatrix, m_distance)};
   } else {
-    origin = sampledShutterRigTranslationOrigin(*this, m_distance);
+    motion = sampledShutterPinholeMotion(*this, m_distance);
   }
-  if (!origin) {
+  if (!motion) {
     return std::nullopt;
   }
 
@@ -224,8 +254,13 @@ PinholeCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampleS
 
   GpuPrimaryPathDescriptor descriptor;
   descriptor.mode = gpuPrimaryPathGenerationModePinhole;
-  descriptor.rectilinear.originOrDirection = vector4(origin->origin, 1.0f);
-  descriptor.rectilinear.motionOriginDelta = vector4(origin->motionOriginDelta, 0.0f);
+  descriptor.rectilinear.motionMode = motion->motionMode;
+  descriptor.rectilinear.originOrDirection = vector4(motion->originOrPosition, 1.0f);
+  descriptor.rectilinear.motionOriginDelta = vector4(motion->motionOriginOrPositionDelta, 0.0f);
+  descriptor.rectilinear.motionTarget = vector4(motion->target, 1.0f);
+  descriptor.rectilinear.motionTargetDelta = vector4(motion->targetDelta, 0.0f);
+  descriptor.rectilinear.motionParameters = {static_cast<float>(motion->distance), 0.0f, 0.0f,
+                                             0.0f};
   descriptor.rectilinear.topLeft = vector4(plane->pixelAt(0.0, 0.0), 1.0f);
   descriptor.rectilinear.right = vector4(plane->pixelAt(1.0, 0.0) - plane->pixelAt(0.0, 0.0), 0.0f);
   descriptor.rectilinear.down = vector4(plane->pixelAt(0.0, 1.0) - plane->pixelAt(0.0, 0.0), 0.0f);

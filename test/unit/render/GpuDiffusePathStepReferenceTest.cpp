@@ -681,6 +681,56 @@ namespace GpuDiffusePathStepReferenceTest {
     expectGpuRayNear(generation.pathStates.front().ray, expected);
   }
 
+  TEST(GpuDiffusePrimaryPathStateGenerator, PinholeDescriptorAppliesSampledShutterLookAtMotion) {
+    PinholeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 3, 2));
+    camera.viewPlane()->sampler()->setup(4, 8, 42);
+    camera.setAnimationFrame(0.0);
+    camera.setShutterInterval(0.0, 1.0);
+    camera.setAnimationTrack("position",
+                             render::animation::AnimationTrack(
+                               {{0.0, Vector3d(0.0, 0.0, -5.0)}, {1.0, Vector3d(0.0, 0.0, -3.0)}}));
+    camera.setAnimationTrack("target",
+                             render::animation::AnimationTrack(
+                               {{0.0, Vector3d(0.0, 0.0, 0.0)}, {1.0, Vector3d(1.0, 0.0, 2.0)}}));
+
+    const GpuDiffusePrimaryPathStateGeneration generation =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 3, 2), 99, 1234);
+
+    ASSERT_TRUE(generation.primaryPathDescriptor.has_value());
+    const GpuRectilinearPrimaryPathDescriptor& descriptor =
+      generation.primaryPathDescriptor->rectilinear;
+    EXPECT_EQ(gpuPrimaryPathMotionModeLookAt, descriptor.motionMode);
+    ASSERT_VECTOR_NEAR(Vector3d(0.0, 0.0, -5.0), Vector3d(descriptor.originOrDirection), 1e-6);
+    ASSERT_VECTOR_NEAR(Vector3d(0.0, 0.0, 2.0), Vector3d(descriptor.motionOriginDelta), 1e-6);
+    ASSERT_VECTOR_NEAR(Vector3d(0.0, 0.0, 0.0), Vector3d(descriptor.motionTarget), 1e-6);
+    ASSERT_VECTOR_NEAR(Vector3d(1.0, 0.0, 2.0), Vector3d(descriptor.motionTargetDelta), 1e-6);
+
+    ASSERT_FALSE(generation.pathStates.empty());
+    const Vector3d positionAtOpen(descriptor.originOrDirection);
+    const Vector3d positionDelta(descriptor.motionOriginDelta);
+    const Vector3d targetAtOpen(descriptor.motionTarget);
+    const Vector3d targetDelta(descriptor.motionTargetDelta);
+    const Vector3d topLeft(descriptor.topLeft);
+    const Vector3d right(descriptor.right);
+    const Vector3d down(descriptor.down);
+    const Vector2d pixelSample =
+      GpuSampleStream::sample2D(/*seed=*/1234, /*pixelIndex=*/0, /*primarySampleIndex=*/0,
+                                /*dimension=*/0);
+    const double timeSample = GpuSampleStream::sample1D(GpuSampleCoordinate{
+      /*seed=*/1234, /*pixelIndex=*/0, /*primarySampleIndex=*/0, /*dimension=*/1,
+      /*component=*/0});
+    const Vector3d pixelPoint = topLeft + right * pixelSample.x() + down * pixelSample.y();
+    const Vector3d position = positionAtOpen + positionDelta * timeSample;
+    const Vector3d target = targetAtOpen + targetDelta * timeSample;
+    const Vector3d rayOrigin =
+      position - (target - position).normalized() * descriptor.motionParameters[0];
+    const GpuIntersectionRay expected = GpuIntersectionScenePacker().packRay(
+      Rayd(rayOrigin, (pixelPoint - rayOrigin).normalized()), /*rayIndex=*/0,
+      /*minDistance=*/0.0, std::numeric_limits<double>::infinity(), timeSample);
+    expectGpuRayNear(generation.pathStates.front().ray, expected);
+  }
+
   TEST(GpuDiffusePrimaryPathStateGenerator, GeneratesOrthographicPrimaryPathDescriptor) {
     OrthographicCamera camera(Vector3d(1.0, 2.0, -5.0), Vector3d(0.0, 0.0, 0.0));
     camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 3, 2));
@@ -6285,12 +6335,54 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(2u, plan.parameters.primaryPathActualHeight);
     EXPECT_EQ(0, plan.parameters.primaryPathActualLeft);
     EXPECT_EQ(0, plan.parameters.primaryPathActualTop);
+    EXPECT_EQ(gpuPrimaryPathMotionModeOriginDelta, plan.parameters.primaryPathMotionMode);
     EXPECT_FLOAT_EQ(0.0f, plan.parameters.primaryPathMotionOriginDelta[0]);
     EXPECT_FLOAT_EQ(0.0f, plan.parameters.primaryPathMotionOriginDelta[1]);
     EXPECT_FLOAT_EQ(2.0f, plan.parameters.primaryPathMotionOriginDelta[2]);
     EXPECT_EQ(0u, plan.buffers.initialPathStateBytes);
     EXPECT_EQ(plan.buffers.sceneUploadBytes, plan.buffers.totalUploadBytes);
     EXPECT_EQ(24u * sizeof(GpuDiffusePathStateRecord), plan.buffers.activePathStateBytes);
+  }
+
+  TEST(GpuDiffusePathLoopLaunchPlanner, CopiesLookAtPrimaryMotionDescriptor) {
+    PinholeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 3, 2));
+    camera.viewPlane()->sampler()->setup(4, 8, 42);
+    camera.setAnimationFrame(0.0);
+    camera.setShutterInterval(0.0, 1.0);
+    camera.setAnimationTrack("position",
+                             render::animation::AnimationTrack(
+                               {{0.0, Vector3d(0.0, 0.0, -5.0)}, {1.0, Vector3d(0.0, 0.0, -3.0)}}));
+    camera.setAnimationTrack("target",
+                             render::animation::AnimationTrack(
+                               {{0.0, Vector3d(0.0, 0.0, 0.0)}, {1.0, Vector3d(1.0, 0.0, 2.0)}}));
+    GpuDiffusePrimaryPathStateGenerationOptions options;
+    options.materializeHostPathStates = false;
+    const GpuDiffusePrimaryPathStateGeneration generation =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 3, 2), 99, 1234, options);
+    ASSERT_TRUE(generation.canGeneratePrimaryPathsOnDevice());
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 3;
+    const GpuDiffusePathLoopLaunchPlan plan = GpuDiffusePathLoopLaunchPlanner().plan(
+      GpuTracingSceneSections(), generation, TracingAccumulationLayout::image(3, 2), settings);
+
+    EXPECT_TRUE(plan.generatesPrimaryPathsOnDevice());
+    EXPECT_EQ(gpuPrimaryPathMotionModeLookAt, plan.parameters.primaryPathMotionMode);
+    EXPECT_FLOAT_EQ(0.0f, plan.parameters.primaryPathOrigin[0]);
+    EXPECT_FLOAT_EQ(0.0f, plan.parameters.primaryPathOrigin[1]);
+    EXPECT_FLOAT_EQ(-5.0f, plan.parameters.primaryPathOrigin[2]);
+    EXPECT_FLOAT_EQ(0.0f, plan.parameters.primaryPathMotionOriginDelta[0]);
+    EXPECT_FLOAT_EQ(0.0f, plan.parameters.primaryPathMotionOriginDelta[1]);
+    EXPECT_FLOAT_EQ(2.0f, plan.parameters.primaryPathMotionOriginDelta[2]);
+    EXPECT_FLOAT_EQ(0.0f, plan.parameters.primaryPathMotionTarget[0]);
+    EXPECT_FLOAT_EQ(0.0f, plan.parameters.primaryPathMotionTarget[1]);
+    EXPECT_FLOAT_EQ(0.0f, plan.parameters.primaryPathMotionTarget[2]);
+    EXPECT_FLOAT_EQ(1.0f, plan.parameters.primaryPathMotionTargetDelta[0]);
+    EXPECT_FLOAT_EQ(0.0f, plan.parameters.primaryPathMotionTargetDelta[1]);
+    EXPECT_FLOAT_EQ(2.0f, plan.parameters.primaryPathMotionTargetDelta[2]);
+    EXPECT_FLOAT_EQ(5.0f, plan.parameters.primaryPathMotionParameters[0]);
+    EXPECT_EQ(0u, plan.buffers.initialPathStateBytes);
   }
 
   TEST(GpuDiffusePathLoopLaunchPlanner, SizesDescriptorOnlyPrimaryLaunches) {

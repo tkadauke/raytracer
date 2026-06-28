@@ -64,9 +64,12 @@ struct GpuDiffusePathLoopLaunchParameters {
   uint captureDenoiserFeatures;
   uint displayResolveTonemap;
   uint captureMetrics;
-  uint reserved3;
+  uint primaryPathMotionMode;
   vec4 primaryPathOrigin;
   vec4 primaryPathMotionOriginDelta;
+  vec4 primaryPathMotionTarget;
+  vec4 primaryPathMotionTargetDelta;
+  vec4 primaryPathMotionParameters;
   vec4 primaryPathTopLeft;
   vec4 primaryPathRight;
   vec4 primaryPathDown;

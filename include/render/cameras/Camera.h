@@ -432,9 +432,9 @@ namespace render {
       *
       * Static cameras return `matrix()`. Cameras with animated position/target
       * can only be represented when the shutter interval collapses to one
-      * deterministic time; sampled camera motion must keep using the CPU
-      * primary-ray generator until descriptor records can carry transforms as a
-      * function of shutter time.
+      * deterministic time; camera subclasses may still expose sampled-shutter
+      * descriptor support when their descriptor ABI can carry the required
+      * motion model.
       */
     [[nodiscard]] std::optional<Matrix4d> fixedShutterGpuCameraMatrix() const;
 

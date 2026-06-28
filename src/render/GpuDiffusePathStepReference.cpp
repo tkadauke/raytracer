@@ -224,6 +224,8 @@ namespace {
                                            GpuDiffusePrimaryPathStateGeneration& result) {
     const Vector3d originOrDirection = vector3FromArray(descriptor.originOrDirection);
     const Vector3d motionOriginDelta = vector3FromArray(descriptor.motionOriginDelta);
+    const Vector3d motionTarget = vector3FromArray(descriptor.motionTarget);
+    const Vector3d motionTargetDelta = vector3FromArray(descriptor.motionTargetDelta);
     const Vector3d topLeft = vector3FromArray(descriptor.topLeft);
     const Vector3d right = vector3FromArray(descriptor.right);
     const Vector3d down = vector3FromArray(descriptor.down);
@@ -261,7 +263,17 @@ namespace {
           if (mode == gpuPrimaryPathGenerationModeOrthographic) {
             ray = Rayd(pixelPoint, originOrDirection.normalized());
           } else if (mode == gpuPrimaryPathGenerationModePinhole) {
-            const Vector3d rayOrigin = originOrDirection + motionOriginDelta * timeSample;
+            Vector3d rayOrigin = originOrDirection + motionOriginDelta * timeSample;
+            if (descriptor.motionMode == gpuPrimaryPathMotionModeLookAt) {
+              const Vector3d position = rayOrigin;
+              const Vector3d target = motionTarget + motionTargetDelta * timeSample;
+              const Vector3d forward = (target - position).normalized();
+              if (!forward.isDefined()) {
+                ++result.skippedPrimarySamples;
+                continue;
+              }
+              rayOrigin = position - forward * descriptor.motionParameters[0];
+            }
             ray = Rayd(rayOrigin, (pixelPoint - rayOrigin).normalized());
           } else if (mode == gpuPrimaryPathGenerationModeThinLens) {
             const Vector3d focalForward = forward.normalized();

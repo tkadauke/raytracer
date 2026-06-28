@@ -120,8 +120,11 @@ end state for GPU tracing.
   camera models with fixed-width shutter intervals can also bake their animated
   still-frame pose into the descriptor, and pinhole camera rigs with position
   and target translated together over one linear sampled-shutter segment carry
-  a primary-origin motion delta. General sampled-shutter camera motion still
-  falls back until descriptors carry full animation-time transforms. Trace and
+  a primary-origin motion delta. Pinhole rigs whose linear in-shutter
+  position/target motion changes the view direction can carry look-at motion
+  state for shader-side ray-origin reconstruction. General sampled-shutter
+  camera motion for other descriptor-backed camera models still falls back
+  until those descriptors carry full animation-time transforms. Trace and
   CPU-reference paths still materialize records for inspection and parity.
   Trace-disabled platform full-GPU launches now also size path-state, step, and
   Metal closest-hit diagnostic storage to zero logical bytes. Simple LDR graph
@@ -236,9 +239,11 @@ end state for GPU tracing.
   materialization for trace-disabled full-GPU graph launches and platform
   kernels dispatch those descriptor-only launches by descriptor path count.
   Fixed-shutter animated poses for those descriptor-backed camera models are
-  also descriptor-backed, but other camera models without descriptors,
-  general sampled-shutter animated camera motion, later path-continuation records, and
-  retained frontier ownership still need broader platform path-state support.
+  also descriptor-backed, and pinhole sampled-shutter animation can carry
+  linear position/target look-at motion. Other camera models without
+  descriptors, sampled-shutter animated camera motion for non-pinhole camera
+  models, later path-continuation records, and retained frontier ownership
+  still need broader platform path-state support.
 - A higher-level backend abstraction for selecting compacted wavefront versus
   megakernel schedules per platform. Metal/Vulkan now share the path-loop
   accumulation/result bookkeeping layer, but schedule selection and Vulkan
@@ -2781,9 +2786,13 @@ scene is large enough to amortize upload/readback costs.
      descriptor, so still-frame animated camera renders can stay on the
      descriptor-only full-GPU path. Pinhole camera rigs whose position and
      target translate together over one linear sampled-shutter segment also
-     stay descriptor-backed by carrying a primary-origin motion delta; general
-     sampled shutter camera motion still falls back to host primary generation
-     until descriptors carry camera transforms as a function of shutter time.
+     stay descriptor-backed by carrying a primary-origin motion delta. Pinhole
+     rigs whose linear in-shutter motion changes the view direction now carry
+     look-at motion state so shader-side primary generation can reconstruct the
+     same ray origin as the scalar camera path; general sampled shutter camera
+     motion for other camera models still falls back to host primary generation
+     until their descriptors carry camera transforms as a function of shutter
+     time.
      The compiled path loop also
      carries `ReflectiveMaterial`, `TransparentMaterial`, and `PortalMaterial`
      delta continuations through the CPU reference evaluator and the Metal

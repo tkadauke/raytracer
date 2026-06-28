@@ -36,6 +36,8 @@ const uint gpuPrimaryPathGenerationModeEquirectangular = 4u;
 const uint gpuPrimaryPathGenerationModeSpherical = 5u;
 const uint gpuPrimaryPathGenerationModeFishEye = 6u;
 const uint gpuPrimaryPathGenerationModeTiltShift = 7u;
+const uint gpuPrimaryPathMotionModeOriginDelta = 0u;
+const uint gpuPrimaryPathMotionModeLookAt = 1u;
 const uint gpuDiffusePathStateActiveFlag = 1u;
 const uint gpuDiffusePathStateTerminatedFlag = 2u;
 const uint gpuDiffusePathStateSampledFromBsdfFlag = 4u;
@@ -113,9 +115,12 @@ struct GpuDiffusePathLoopLaunchParameters {
   uint captureDenoiserFeatures;
   uint displayResolveTonemap;
   uint captureMetrics;
-  uint reserved3;
+  uint primaryPathMotionMode;
   vec4 primaryPathOrigin;
   vec4 primaryPathMotionOriginDelta;
+  vec4 primaryPathMotionTarget;
+  vec4 primaryPathMotionTargetDelta;
+  vec4 primaryPathMotionParameters;
   vec4 primaryPathTopLeft;
   vec4 primaryPathRight;
   vec4 primaryPathDown;
@@ -529,8 +534,17 @@ GpuDiffusePathStateRecord makePinholePrimaryPath(uint pathIndex) {
   const vec4 pixelPoint = parameters.primaryPathTopLeft +
                           parameters.primaryPathRight * (float(column) + pixelSample.x) +
                           parameters.primaryPathDown * (float(row) + pixelSample.y);
-  const vec4 rayOrigin =
+  vec4 rayOrigin =
       parameters.primaryPathOrigin + parameters.primaryPathMotionOriginDelta * timeSample;
+  if (parameters.primaryPathMotionMode == gpuPrimaryPathMotionModeLookAt) {
+    const vec3 position = rayOrigin.xyz;
+    const vec3 target =
+        parameters.primaryPathMotionTarget.xyz +
+        parameters.primaryPathMotionTargetDelta.xyz * timeSample;
+    rayOrigin = vec4(position - normalize(target - position) *
+                                  parameters.primaryPathMotionParameters.x,
+                     1.0);
+  }
 
   GpuDiffusePathStateRecord path;
   path.ray.origin = rayOrigin;

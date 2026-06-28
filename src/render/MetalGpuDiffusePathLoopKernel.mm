@@ -21,7 +21,7 @@ namespace render {
   namespace {
     static_assert(std::is_standard_layout_v<GpuDiffusePathLoopLaunchParameters>,
                   "Metal diffuse path-loop launch parameters must stay shader ABI friendly");
-    static_assert(sizeof(GpuDiffusePathLoopLaunchParameters) == 368);
+    static_assert(sizeof(GpuDiffusePathLoopLaunchParameters) == 416);
     static_assert(alignof(GpuDiffusePathLoopLaunchParameters) == 16);
     static_assert(sizeof(GpuDiffusePathStateRecord) == 160);
     static_assert(alignof(GpuDiffusePathStateRecord) == 16);
@@ -97,6 +97,8 @@ namespace render {
               "constant uint gpuDisplayResolveTonemapLinear = 1u;\n"
               "constant uint gpuDisplayResolveTonemapReinhard = 2u;\n"
               "constant uint gpuDisplayResolveTonemapAces = 3u;\n"
+              "constant uint gpuPrimaryPathMotionModeOriginDelta = 0u;\n"
+              "constant uint gpuPrimaryPathMotionModeLookAt = 1u;\n"
               "struct GpuDiffusePathLoopLaunchParameters {\n"
               "  uint layoutVersion;\n"
               "  uint maxDepth;\n"
@@ -153,9 +155,12 @@ namespace render {
               "  uint captureDenoiserFeatures;\n"
               "  uint displayResolveTonemap;\n"
               "  uint captureMetrics;\n"
-              "  uint reserved3;\n"
+              "  uint primaryPathMotionMode;\n"
               "  float4 primaryPathOrigin;\n"
               "  float4 primaryPathMotionOriginDelta;\n"
+              "  float4 primaryPathMotionTarget;\n"
+              "  float4 primaryPathMotionTargetDelta;\n"
+              "  float4 primaryPathMotionParameters;\n"
               "  float4 primaryPathTopLeft;\n"
               "  float4 primaryPathRight;\n"
               "  float4 primaryPathDown;\n"
@@ -543,8 +548,16 @@ namespace render {
               "      parameters.primaryPathTopLeft +\n"
               "      parameters.primaryPathRight * (float(column) + pixelSample.x) +\n"
               "      parameters.primaryPathDown * (float(row) + pixelSample.y);\n"
-              "  const float4 rayOrigin = parameters.primaryPathOrigin +\n"
+              "  float4 rayOrigin = parameters.primaryPathOrigin +\n"
               "      parameters.primaryPathMotionOriginDelta * timeSample;\n"
+              "  if (parameters.primaryPathMotionMode == gpuPrimaryPathMotionModeLookAt) {\n"
+              "    const float3 position = rayOrigin.xyz;\n"
+              "    const float3 target = parameters.primaryPathMotionTarget.xyz +\n"
+              "        parameters.primaryPathMotionTargetDelta.xyz * timeSample;\n"
+              "    rayOrigin = float4(position - normalize(target - position) *\n"
+              "                            parameters.primaryPathMotionParameters.x,\n"
+              "                        1.0f);\n"
+              "  }\n"
               "  GpuDiffusePathStateRecord path;\n"
               "  path.ray.origin = rayOrigin;\n"
               "  path.ray.direction = float4(\n"
