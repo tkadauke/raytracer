@@ -269,11 +269,32 @@ function(tracing_parity_render_supported category scene_file depth samples rms_t
   endif()
 endfunction()
 
-function(tracing_parity_render_compiled_gpu_execution category scene_file depth samples)
+function(tracing_parity_render_compiled_gpu_execution category scene_file depth samples
+         scalar_rms_threshold)
   tracing_parity_slug(slug "${category}")
   set(scene_path "${tracing_parity_fixture_dir}/${scene_file}")
+  set(cpu_scalar_render "${TEST_OUTPUT_DIR}/${slug}-scalar-cpu.png")
   set(gpu_execution_render "${TEST_OUTPUT_DIR}/${slug}-compiled-gpu-execution.png")
   set(gpu_execution_metrics "${TEST_OUTPUT_DIR}/${slug}-compiled-gpu-execution-metrics.json")
+
+  rendercli_run(
+    NAME "rendercli tracing parity ${category} scalar CPU baseline"
+    COMMAND
+      "${RENDERCLI}" --engine pathtracer --path_tracing_schedule scalar
+      --width 32 --height 24
+      --sample_stream_mode gpu_sample_stream
+      --samples_per_pixel "${samples}"
+      --sampling_seed 1337
+      --pathtracer_direct_light_samples 1
+      --wavefront_denoiser none
+      --depth "${depth}"
+      "${scene_path}" "${cpu_scalar_render}"
+  )
+  rendercli_assert_image_dimensions(
+    "${cpu_scalar_render}" 32 24
+    NAME "tracing parity ${category} scalar CPU baseline dimensions")
+  rendercli_assert_image_nonempty(
+    "${cpu_scalar_render}" NAME "tracing parity ${category} scalar CPU baseline pixels")
 
   rendercli_run(
     NAME "rendercli tracing parity ${category} compiled GPU execution metrics"
@@ -298,6 +319,9 @@ function(tracing_parity_render_compiled_gpu_execution category scene_file depth 
   rendercli_assert_image_nonempty(
     "${gpu_execution_render}"
     NAME "tracing parity ${category} compiled GPU execution pixels")
+  rendercli_assert_image_rms_at_most(
+    "${cpu_scalar_render}" "${gpu_execution_render}" "${scalar_rms_threshold}"
+    NAME "tracing parity ${category} compiled GPU execution image RMS matches scalar CPU")
 
   foreach(expectation
           "\"compiledDiffusePathLoop\""
@@ -418,19 +442,19 @@ tracing_parity_render_supported(
   "indirect_bounce" "indirect_bounce.json" 3 4 0.02
   "secondary_direct_light_luminance=[1-9]")
 tracing_parity_render_compiled_gpu_execution(
-  "indirect_bounce" "indirect_bounce.json" 3 4)
+  "indirect_bounce" "indirect_bounce.json" 3 4 0.06)
 tracing_parity_render_supported(
   "environment_miss" "environment_miss.json" 2 1 0.001
   "tracing_scene_environment=[1-9][0-9]*.*miss_luminance=[1-9]")
 tracing_parity_render_compiled_gpu_execution(
-  "imported_mesh" "imported_mesh.json" 1 1)
+  "imported_mesh" "imported_mesh.json" 1 1 0.02)
 tracing_parity_render_supported(
   "transparent_glass" "transparent_fallback.json" 4 1 0.05
   "tracing_scene_materials=[1-9][0-9]*")
 tracing_parity_render_compiled_gpu_execution(
-  "transparent_glass" "transparent_fallback.json" 4 1)
+  "transparent_glass" "transparent_fallback.json" 4 1 0.10)
 tracing_parity_render_compiled_gpu_execution(
-  "visibility_heavy" "visibility_heavy.json" 2 1)
+  "visibility_heavy" "visibility_heavy.json" 2 1 0.12)
 render_whitted_gpu_parity(
   "matte-direct-light" "${PROJECT_SOURCE_DIR}/test/fixtures/tracing_parity/matte_direct_light.json"
   2)

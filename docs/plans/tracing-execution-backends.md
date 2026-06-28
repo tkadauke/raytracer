@@ -3033,7 +3033,11 @@ scene is large enough to amortize upload/readback costs.
      fake-backend tests. Metal backend tests now also match the Vulkan
      end-to-end direct-light gate for directional, rectangular-area, and
      multiple-light path-loop renders, proving those light records survive
-     backend dispatch rather than only lower-level support checks.
+     backend dispatch rather than only lower-level support checks. The
+     `rendercli_tracing_parity` compiled-GPU execution cases now also render a
+     scalar CPU path-tracer baseline with the same GPU sample stream seed and
+     compare indirect-bounce, imported-mesh, transparent-glass, and
+     visibility-heavy outputs against the compiled GPU-requested path.
 
 6. ~~**Update user-facing docs and examples.**~~ ✅ **Done.**
    - Depends on: job 5.
