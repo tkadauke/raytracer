@@ -125,11 +125,11 @@ end state for GPU tracing.
   the automatic tile budget also scales down with path depth and direct-light
   samples so long-running interactive renders do not submit one oversized GPU
   command before progress and cancellation can run. Render-window progress
-  renders use an even smaller automatic budget than offline/displayless
-  launches, because avoiding Metal/Vulkan watchdog pressure is more important
-  than throughput while the UI is publishing intermediate results. The budget
-  is still large enough that normal high-sample 640x480 renders avoid thousands
-  of tiny platform launches.
+  renders use a larger per-launch budget than offline/displayless launches so
+  common 640x480 high-sample previews progress sample-by-sample instead of
+  exploding into hundreds of tiny tile submissions. The budget still scales down
+  with depth and direct-light samples, and larger images still tile when needed
+  to avoid one oversized GPU command before progress and cancellation can run.
   Render intent, rendercli, and the modeler final render dialog can request the
   sample chunk size explicitly for graph-backed GPU path-tracer runs. A
   requested chunk size of `0` now means backend auto-sizing: small
@@ -335,9 +335,11 @@ end state for GPU tracing.
   between chunks. For large descriptor-backed launches, `primarySampleChunkSize = 0`
   auto-resolves to a backend budgeted chunk size; explicit chunk sizes are
   treated as an upper bound when a smaller chunk is needed to avoid a monolithic
-  path-state allocation, and the pixel-tile fallback budget scales down with
-  requested path depth and direct-light sample count so an interactive render can
-  report progress and honor cancellation between smaller GPU command buffers.
+  path-state allocation. The pixel-tile fallback budget scales down with
+  requested path depth and direct-light sample count, while interactive display
+  progress uses a larger bounded budget so common preview renders report
+  progress per sample instead of spending most of their time in tiny tile
+  submissions.
   Per-pixel denoiser feature records are merged across chunks so bilateral
   denoiser feature capture does not disable this sample chunking path. Oversized
   graph-trace diagnostic captures now suppress only the low-level

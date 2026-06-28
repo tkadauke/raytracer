@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Keep common interactive full-GPU path-tracer renders from exploding into
+  hundreds of tiny tile launches by using a larger automatic per-launch budget
+  when live display progress is enabled. — GPT-5 Codex
 - Report Metal/Vulkan full-GPU path-tracer resolved-display readback counts in
   graph metadata and the Modeler render graph inspector so progress/readback
   pressure is visible for chunked GPU sample-stream renders. — GPT-5 Codex

@@ -7618,9 +7618,9 @@ namespace GpuDiffusePathStepReferenceTest {
     const std::vector<GpuDiffusePrimaryPathSampleChunk> chunks =
       gpuDiffusePrimarySampleChunksFor(generation, settings);
 
-    ASSERT_EQ(768u, chunks.size());
-    EXPECT_LE(chunks.front().primaryPathGeneration.generatedPrimarySamples, 32u * 1024u);
-    EXPECT_EQ(40, chunks.front().primaryPathGeneration.actualRect.height());
+    ASSERT_EQ(64u, chunks.size());
+    EXPECT_EQ(640u * 480u, chunks.front().primaryPathGeneration.generatedPrimarySamples);
+    EXPECT_EQ(480, chunks.front().primaryPathGeneration.actualRect.height());
     std::size_t capturedProgressDisplays = 0;
     for (const GpuDiffusePrimaryPathSampleChunk& chunk : chunks) {
       if (shouldCaptureGpuDiffusePathLoopChunkResolvedDisplay(settings, chunk)) {
@@ -7628,11 +7628,11 @@ namespace GpuDiffusePathStepReferenceTest {
       }
     }
     EXPECT_EQ(64u, capturedProgressDisplays);
-    EXPECT_FALSE(shouldCaptureGpuDiffusePathLoopChunkResolvedDisplay(settings, chunks.front()));
+    EXPECT_TRUE(shouldCaptureGpuDiffusePathLoopChunkResolvedDisplay(settings, chunks.front()));
     ASSERT_LT(11u, chunks.size());
     EXPECT_TRUE(shouldCaptureGpuDiffusePathLoopChunkResolvedDisplay(settings, chunks[11]));
-    EXPECT_EQ(440, chunks[11].primaryPathGeneration.actualRect.top());
-    EXPECT_EQ(40, chunks[11].primaryPathGeneration.actualRect.height());
+    EXPECT_EQ(0, chunks[11].primaryPathGeneration.actualRect.top());
+    EXPECT_EQ(480, chunks[11].primaryPathGeneration.actualRect.height());
     EXPECT_TRUE(shouldCaptureGpuDiffusePathLoopChunkResolvedDisplay(settings, chunks.back()));
 
     settings.chunkProgressObserver = {};
@@ -7891,12 +7891,12 @@ namespace GpuDiffusePathStepReferenceTest {
 
   TEST(GpuDiffusePrimarySampleChunks, ReportsTiledProgressOnlyAfterCompletedSampleRange) {
     PinholeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
-    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 640, 480));
-    camera.viewPlane()->sampler()->setup(64, 8, 42);
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 1024, 1024));
+    camera.viewPlane()->sampler()->setup(4, 8, 42);
     GpuDiffusePrimaryPathStateGenerationOptions options;
     options.materializeHostPathStates = false;
     const GpuDiffusePrimaryPathStateGeneration generation =
-      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 640, 480), 99, 1234,
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 1024, 1024), 99, 1234,
                                                      options);
 
     GpuDiffusePathLoopSettings settings;
@@ -7910,15 +7910,15 @@ namespace GpuDiffusePathStepReferenceTest {
     };
     const std::vector<GpuDiffusePrimaryPathSampleChunk> chunks =
       gpuDiffusePrimarySampleChunksFor(generation, settings);
-    ASSERT_EQ(768u, chunks.size());
+    ASSERT_EQ(8u, chunks.size());
     ASSERT_FALSE(chunks.front().completesSampleRange);
-    ASSERT_LT(11u, chunks.size());
-    ASSERT_TRUE(chunks[11].completesSampleRange);
+    ASSERT_LT(1u, chunks.size());
+    ASSERT_TRUE(chunks[1].completesSampleRange);
 
     GpuDiffusePathLoopPlatformResult platformChunk;
     notifyGpuDiffusePathLoopChunkProgress(settings, generation, chunks.front(), platformChunk);
     platformChunk.resolvedDisplayPixels = {0x112233u};
-    notifyGpuDiffusePathLoopChunkProgress(settings, generation, chunks[11], platformChunk);
+    notifyGpuDiffusePathLoopChunkProgress(settings, generation, chunks[1], platformChunk);
 
     ASSERT_EQ(2u, callbacks.size());
     EXPECT_EQ(0u, callbacks[0].completedSampleCount);
