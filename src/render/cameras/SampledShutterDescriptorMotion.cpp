@@ -86,8 +86,16 @@ namespace render::detail {
     }
   }
 
-  std::optional<SampledShutterDescriptorMotion>
-  sampledStableBasisShutterMotion(const Camera& camera) {
+  Vector3d SampledShutterLookAtDescriptorMotion::positionDelta() const {
+    return positionAtClose - positionAtOpen;
+  }
+
+  Vector3d SampledShutterLookAtDescriptorMotion::targetDelta() const {
+    return targetAtClose - targetAtOpen;
+  }
+
+  std::optional<SampledShutterLookAtDescriptorMotion>
+  sampledLookAtShutterMotion(const Camera& camera) {
     const auto* positionTrack = camera.animationTrack("position");
     const auto* targetTrack = camera.animationTrack("target");
     if (!positionTrack && !targetTrack) {
@@ -120,8 +128,22 @@ namespace render::detail {
       return std::nullopt;
     }
 
-    const Matrix4d matrixAtOpen = Matrix4d::lookAt(positionAtOpen, targetAtOpen, Vector3d::up());
-    const Matrix4d matrixAtClose = Matrix4d::lookAt(positionAtClose, targetAtClose, Vector3d::up());
+    return SampledShutterLookAtDescriptorMotion{positionAtOpen, positionAtClose, targetAtOpen,
+                                                targetAtClose};
+  }
+
+  std::optional<SampledShutterDescriptorMotion>
+  sampledStableBasisShutterMotion(const Camera& camera) {
+    const std::optional<SampledShutterLookAtDescriptorMotion> motion =
+      sampledLookAtShutterMotion(camera);
+    if (!motion) {
+      return std::nullopt;
+    }
+
+    const Matrix4d matrixAtOpen =
+      Matrix4d::lookAt(motion->positionAtOpen, motion->targetAtOpen, Vector3d::up());
+    const Matrix4d matrixAtClose =
+      Matrix4d::lookAt(motion->positionAtClose, motion->targetAtClose, Vector3d::up());
     if (!hasStableDescriptorBasis(matrixAtOpen, matrixAtClose)) {
       return std::nullopt;
     }

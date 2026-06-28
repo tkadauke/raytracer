@@ -143,6 +143,32 @@ namespace EquirectangularCameraTest {
     EXPECT_EQ(8u, descriptor->pathCount());
   }
 
+  TEST(EquirectangularCamera, ShouldExposeSampledShutterLookAtGpuPrimaryPathDescriptor) {
+    EquirectangularCamera camera(Vector3d(0, 0, -5), Vector3d(0, 0, -4));
+    setupViewPlane(camera, 4, 2);
+    camera.viewPlane()->sampler()->setup(1, 1, 17);
+    camera.setAnimationFrame(0.0);
+    camera.setShutterInterval(0.0, 1.0);
+    camera.setAnimationTrack("target",
+                             render::animation::AnimationTrack(
+                               {{0.0, Vector3d(0.0, 0.0, -4.0)}, {1.0, Vector3d(1.0, 0.0, -4.0)}}));
+
+    const std::optional<GpuPrimaryPathDescriptor> descriptor =
+      camera.gpuPrimaryPathDescriptor(Recti(0, 0, 4, 2), 1234);
+
+    ASSERT_TRUE(descriptor.has_value());
+    EXPECT_EQ(gpuPrimaryPathGenerationModeEquirectangular, descriptor->mode);
+    EXPECT_EQ(gpuPrimaryPathMotionModeLookAt, descriptor->rectilinear.motionMode);
+    ASSERT_VECTOR_NEAR(Vector3d(0.0, 0.0, -5.0),
+                       Vector3d(descriptor->rectilinear.originOrDirection), 1e-6);
+    ASSERT_VECTOR_NEAR(Vector3d::null, Vector3d(descriptor->rectilinear.motionOriginDelta), 1e-6);
+    ASSERT_VECTOR_NEAR(Vector3d(0.0, 0.0, -4.0), Vector3d(descriptor->rectilinear.motionTarget),
+                       1e-6);
+    ASSERT_VECTOR_NEAR(Vector3d(1.0, 0.0, 0.0), Vector3d(descriptor->rectilinear.motionTargetDelta),
+                       1e-6);
+    EXPECT_EQ(8u, descriptor->pathCount());
+  }
+
   TEST(EquirectangularCamera, ShouldRenderViaRaytracer) {
     // End-to-end: route through Raytracer::render which sets up the
     // viewplane. The full sphere wraps a white scene → every pixel

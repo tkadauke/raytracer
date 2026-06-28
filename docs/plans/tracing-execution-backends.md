@@ -246,11 +246,10 @@ end state for GPU tracing.
   carry linear translation or look-at motion, thin-lens and tilt-shift
   sampled-shutter animation can carry stable linear rig translation, and
   equirectangular, spherical, and fish-eye sampled-shutter animation can carry
-  stable linear rig translation. Other camera models without descriptors,
-  non-stable
-  sampled-shutter animated camera motion for non-pinhole camera models, later
-  path-continuation records, and retained frontier ownership still need broader
-  platform path-state support.
+  linear rig translation or linear look-at motion. Other camera models without
+  descriptors, non-stable sampled-shutter animated camera motion for thin-lens
+  and tilt-shift camera models, later path-continuation records, and retained
+  frontier ownership still need broader platform path-state support.
 - A higher-level backend abstraction for selecting compacted wavefront versus
   megakernel schedules per platform. Metal/Vulkan now share the path-loop
   accumulation/result bookkeeping layer, but schedule selection and Vulkan
@@ -2800,9 +2799,11 @@ scene is large enough to amortize upload/readback costs.
      orthographic rigs whose linear in-shutter motion changes the view
      direction now carry look-at motion state so shader-side primary generation
      can reconstruct the same ray origin or ray plane as the scalar camera
-     path; general sampled shutter camera motion for other camera models still
-     falls back to host primary generation until their descriptors carry camera
-     transforms as a function of shutter time.
+     path, and equirectangular, spherical, and fish-eye rigs now do the same for
+     per-sample panoramic basis reconstruction; general sampled shutter camera
+     motion for other camera models still falls back to host primary generation
+     until their descriptors carry camera transforms as a function of shutter
+     time.
      The compiled path loop also
      carries `ReflectiveMaterial`, `TransparentMaterial`, and `PortalMaterial`
      delta continuations through the CPU reference evaluator and the Metal

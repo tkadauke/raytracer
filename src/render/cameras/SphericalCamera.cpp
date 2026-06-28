@@ -77,16 +77,37 @@ SphericalCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampl
     return std::nullopt;
   }
   std::optional<Matrix4d> descriptorMatrix = fixedShutterGpuCameraMatrix();
+  std::uint32_t motionMode = gpuPrimaryPathMotionModeOriginDelta;
+  Vector3d originOrPosition;
   Vector3d motionOriginDelta = Vector3d::null;
+  Vector3d motionTarget = Vector3d::null;
+  Vector3d motionTargetDelta = Vector3d::null;
+  double motionOriginOffset = 0.0;
   if (!descriptorMatrix) {
     const std::optional<detail::SampledShutterDescriptorMotion> motion =
       detail::sampledStableBasisShutterMotion(*this);
-    if (!motion) {
-      return std::nullopt;
+    if (motion) {
+      descriptorMatrix = motion->matrixAtOpen;
+      originOrPosition = motion->matrixAtOpen.transformPoint(Vector3d(0.0, 0.0, -5.0));
+      motionOriginDelta = motion->matrixAtClose.transformPoint(Vector3d(0.0, 0.0, -5.0)) -
+                          motion->matrixAtOpen.transformPoint(Vector3d(0.0, 0.0, -5.0));
+    } else {
+      const std::optional<detail::SampledShutterLookAtDescriptorMotion> lookAtMotion =
+        detail::sampledLookAtShutterMotion(*this);
+      if (!lookAtMotion) {
+        return std::nullopt;
+      }
+      descriptorMatrix =
+        Matrix4d::lookAt(lookAtMotion->positionAtOpen, lookAtMotion->targetAtOpen, Vector3d::up());
+      motionMode = gpuPrimaryPathMotionModeLookAt;
+      originOrPosition = lookAtMotion->positionAtOpen;
+      motionOriginDelta = lookAtMotion->positionDelta();
+      motionTarget = lookAtMotion->targetAtOpen;
+      motionTargetDelta = lookAtMotion->targetDelta();
+      motionOriginOffset = 5.0;
     }
-    descriptorMatrix = motion->matrixAtOpen;
-    motionOriginDelta = motion->matrixAtClose.transformPoint(Vector3d(0.0, 0.0, -5.0)) -
-                        motion->matrixAtOpen.transformPoint(Vector3d(0.0, 0.0, -5.0));
+  } else {
+    originOrPosition = descriptorMatrix->transformPoint(Vector3d(0.0, 0.0, -5.0));
   }
 
   const Recti actual = renderableRect(rect);
@@ -106,9 +127,13 @@ SphericalCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampl
 
   GpuPrimaryPathDescriptor descriptor;
   descriptor.mode = gpuPrimaryPathGenerationModeSpherical;
-  descriptor.rectilinear.originOrDirection =
-    vector4(descriptorMatrix->transformPoint(Vector3d(0.0, 0.0, -5.0)), 1.0f);
+  descriptor.rectilinear.motionMode = motionMode;
+  descriptor.rectilinear.originOrDirection = vector4(originOrPosition, 1.0f);
   descriptor.rectilinear.motionOriginDelta = vector4(motionOriginDelta, 0.0f);
+  descriptor.rectilinear.motionTarget = vector4(motionTarget, 1.0f);
+  descriptor.rectilinear.motionTargetDelta = vector4(motionTargetDelta, 0.0f);
+  descriptor.rectilinear.motionParameters = {static_cast<float>(motionOriginOffset), 0.0f, 0.0f,
+                                             0.0f};
   descriptor.rectilinear.right =
     vector4(descriptorMatrix->transformDirection(Vector3d(1.0, 0.0, 0.0)), 0.0f);
   descriptor.rectilinear.down =

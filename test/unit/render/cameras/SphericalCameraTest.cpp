@@ -105,6 +105,32 @@ namespace SphericalCameraTest {
     EXPECT_EQ(8u, descriptor->pathCount());
   }
 
+  TEST(SphericalCamera, ShouldExposeSampledShutterLookAtGpuPrimaryPathDescriptor) {
+    SphericalCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, -4.0));
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 4, 2));
+    camera.viewPlane()->sampler()->setup(1, 1, 17);
+    camera.setAnimationFrame(0.0);
+    camera.setShutterInterval(0.0, 1.0);
+    camera.setAnimationTrack("target",
+                             render::animation::AnimationTrack(
+                               {{0.0, Vector3d(0.0, 0.0, -4.0)}, {1.0, Vector3d(1.0, 0.0, -4.0)}}));
+
+    const auto descriptor = camera.gpuPrimaryPathDescriptor(Recti(0, 0, 4, 2), 1234);
+
+    ASSERT_TRUE(descriptor.has_value());
+    EXPECT_EQ(gpuPrimaryPathGenerationModeSpherical, descriptor->mode);
+    EXPECT_EQ(gpuPrimaryPathMotionModeLookAt, descriptor->rectilinear.motionMode);
+    ASSERT_VECTOR_NEAR(Vector3d(0.0, 0.0, -5.0),
+                       Vector3d(descriptor->rectilinear.originOrDirection), 1e-6);
+    ASSERT_VECTOR_NEAR(Vector3d::null, Vector3d(descriptor->rectilinear.motionOriginDelta), 1e-6);
+    ASSERT_VECTOR_NEAR(Vector3d(0.0, 0.0, -4.0), Vector3d(descriptor->rectilinear.motionTarget),
+                       1e-6);
+    ASSERT_VECTOR_NEAR(Vector3d(1.0, 0.0, 0.0), Vector3d(descriptor->rectilinear.motionTargetDelta),
+                       1e-6);
+    EXPECT_FLOAT_EQ(5.0f, descriptor->rectilinear.motionParameters[0]);
+    EXPECT_EQ(8u, descriptor->pathCount());
+  }
+
   TEST(SphericalCamera, ShouldRender) {
     auto camera = std::make_shared<SphericalCamera>(Vector3d(0, 0, -1), Vector3d::null);
     auto scene = std::make_shared<Scene>(Colord::white());

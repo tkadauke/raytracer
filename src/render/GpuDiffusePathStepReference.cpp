@@ -182,6 +182,39 @@ namespace {
     return Vector2d(r * std::cos(phi), r * std::sin(phi));
   }
 
+  struct PrimaryPathBasis {
+    Vector3d origin;
+    Vector3d right;
+    Vector3d down;
+    Vector3d forward;
+  };
+
+  std::optional<PrimaryPathBasis>
+  panoramicBasisAt(const GpuRectilinearPrimaryPathDescriptor& descriptor,
+                   const Vector3d& originOrDirection, const Vector3d& motionOriginDelta,
+                   const Vector3d& motionTarget, const Vector3d& motionTargetDelta,
+                   const Vector3d& right, const Vector3d& down, const Vector3d& forward,
+                   double timeSample, double originOffset) {
+    if (descriptor.motionMode != gpuPrimaryPathMotionModeLookAt) {
+      return PrimaryPathBasis{originOrDirection + motionOriginDelta * timeSample, right, down,
+                              forward};
+    }
+
+    const Vector3d position = originOrDirection + motionOriginDelta * timeSample;
+    const Vector3d target = motionTarget + motionTargetDelta * timeSample;
+    const Matrix4d cameraMatrix = Matrix4d::lookAt(position, target, Vector3d::up());
+    PrimaryPathBasis basis;
+    basis.origin = cameraMatrix.transformPoint(Vector3d(0.0, 0.0, -originOffset));
+    basis.right = cameraMatrix.transformDirection(Vector3d(1.0, 0.0, 0.0));
+    basis.down = cameraMatrix.transformDirection(Vector3d(0.0, 1.0, 0.0));
+    basis.forward = cameraMatrix.transformDirection(Vector3d(0.0, 0.0, 1.0));
+    if (!basis.origin.isDefined() || !basis.right.isDefined() || !basis.down.isDefined() ||
+        !basis.forward.isDefined()) {
+      return std::nullopt;
+    }
+    return basis;
+  }
+
   GpuDiffusePathStateRecord makePrimaryPathState(const Rayd& ray, std::uint32_t rayIndex,
                                                  std::uint32_t pixelIndex,
                                                  std::uint32_t primarySampleIndex,
@@ -352,8 +385,17 @@ namespace {
             const double lat = (1.0 - 2.0 * y / viewHeight) * (PI / 2.0);
             const double cosLat = std::cos(lat);
             const Vector3d local(cosLat * std::sin(lon), -std::sin(lat), cosLat * std::cos(lon));
-            ray = Rayd(originOrDirection + motionOriginDelta * timeSample,
-                       (right * local.x() + down * local.y() + forward * local.z()).normalized());
+            const std::optional<PrimaryPathBasis> basis =
+              panoramicBasisAt(descriptor, originOrDirection, motionOriginDelta, motionTarget,
+                               motionTargetDelta, right, down, forward, timeSample,
+                               /*originOffset=*/0.0);
+            if (!basis) {
+              ++result.skippedPrimarySamples;
+              continue;
+            }
+            ray = Rayd(basis->origin, (basis->right * local.x() + basis->down * local.y() +
+                                       basis->forward * local.z())
+                                        .normalized());
           } else if (mode == gpuPrimaryPathGenerationModeSpherical) {
             const double viewWidth = descriptor.lensParameters[0];
             const double viewHeight = descriptor.lensParameters[1];
@@ -376,8 +418,16 @@ namespace {
             const double sinTheta = std::sin(theta);
             const double cosTheta = std::cos(theta);
             const Vector3d local(sinTheta * sinPhi, cosTheta, sinTheta * cosPhi);
-            ray = Rayd(originOrDirection + motionOriginDelta * timeSample,
-                       (right * local.x() + down * local.y() + forward * local.z()).normalized());
+            const std::optional<PrimaryPathBasis> basis = panoramicBasisAt(
+              descriptor, originOrDirection, motionOriginDelta, motionTarget, motionTargetDelta,
+              right, down, forward, timeSample, descriptor.motionParameters[0]);
+            if (!basis) {
+              ++result.skippedPrimarySamples;
+              continue;
+            }
+            ray = Rayd(basis->origin, (basis->right * local.x() + basis->down * local.y() +
+                                       basis->forward * local.z())
+                                        .normalized());
           } else if (mode == gpuPrimaryPathGenerationModeFishEye) {
             const double viewWidth = descriptor.lensParameters[0];
             const double viewHeight = descriptor.lensParameters[1];
@@ -401,8 +451,17 @@ namespace {
             const double sinAlpha = point.y() / r;
             const double cosAlpha = point.x() / r;
             const Vector3d local(sinPsi * cosAlpha, sinPsi * sinAlpha, cosPsi);
-            ray = Rayd(originOrDirection + motionOriginDelta * timeSample,
-                       (right * local.x() + down * local.y() + forward * local.z()).normalized());
+            const std::optional<PrimaryPathBasis> basis =
+              panoramicBasisAt(descriptor, originOrDirection, motionOriginDelta, motionTarget,
+                               motionTargetDelta, right, down, forward, timeSample,
+                               /*originOffset=*/0.0);
+            if (!basis) {
+              ++result.skippedPrimarySamples;
+              continue;
+            }
+            ray = Rayd(basis->origin, (basis->right * local.x() + basis->down * local.y() +
+                                       basis->forward * local.z())
+                                        .normalized());
           } else {
             ray = Rayd(originOrDirection, (pixelPoint - originOrDirection).normalized());
           }

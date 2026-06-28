@@ -523,6 +523,33 @@ vec3 orthographicLookAtWorldPoint(vec3 position, vec3 forward, vec3 localPoint) 
   return position + right * localPoint.x + down * localPoint.y + forward * localPoint.z;
 }
 
+struct PrimaryPathPanoramicBasis {
+  vec3 origin;
+  vec3 right;
+  vec3 down;
+  vec3 forward;
+};
+
+PrimaryPathPanoramicBasis primaryPathPanoramicBasis(float timeSample, float originOffset) {
+  PrimaryPathPanoramicBasis basis;
+  basis.origin =
+      (parameters.primaryPathOrigin + parameters.primaryPathMotionOriginDelta * timeSample).xyz;
+  basis.right = parameters.primaryPathRight.xyz;
+  basis.down = parameters.primaryPathDown.xyz;
+  basis.forward = parameters.primaryPathForward.xyz;
+  if (parameters.primaryPathMotionMode == gpuPrimaryPathMotionModeLookAt) {
+    const vec3 position = basis.origin;
+    const vec3 target =
+        parameters.primaryPathMotionTarget.xyz +
+        parameters.primaryPathMotionTargetDelta.xyz * timeSample;
+    basis.forward = normalize(target - position);
+    basis.right = normalize(cross(vec3(0.0, 1.0, 0.0), basis.forward));
+    basis.down = cross(basis.right, -basis.forward);
+    basis.origin = position - basis.forward * originOffset;
+  }
+  return basis;
+}
+
 GpuDiffusePathStateRecord makePinholePrimaryPath(uint pathIndex) {
   const uint sampleIndex = pathIndex % parameters.primaryPathSamplesPerPixel;
   const uint pixelOrdinal = pathIndex / parameters.primaryPathSamplesPerPixel;
@@ -726,13 +753,12 @@ GpuDiffusePathStateRecord makeEquirectangularPrimaryPath(uint pathIndex) {
   const float lat = (1.0 - 2.0 * y / parameters.primaryPathLensParameters.y) * (pathLoopTau * 0.25);
   const float cosLat = cos(lat);
   const vec3 local = vec3(cosLat * sin(lon), -sin(lat), cosLat * cos(lon));
+  const PrimaryPathPanoramicBasis basis = primaryPathPanoramicBasis(timeSample, 0.0);
   const vec3 direction =
-    normalize(parameters.primaryPathRight.xyz * local.x + parameters.primaryPathDown.xyz * local.y +
-              parameters.primaryPathForward.xyz * local.z);
+    normalize(basis.right * local.x + basis.down * local.y + basis.forward * local.z);
 
   GpuDiffusePathStateRecord path;
-  path.ray.origin =
-    parameters.primaryPathOrigin + parameters.primaryPathMotionOriginDelta * timeSample;
+  path.ray.origin = vec4(basis.origin, 1.0);
   path.ray.direction = vec4(direction, 0.0);
   path.ray.minDistance = 0.0;
   path.ray.maxDistance = uintBitsToFloat(0x7f800000u);
@@ -790,13 +816,13 @@ GpuDiffusePathStateRecord makeSphericalPrimaryPath(uint pathIndex) {
   const float sinTheta = sin(theta);
   const float cosTheta = cos(theta);
   const vec3 local = vec3(sinTheta * sinPhi, cosTheta, sinTheta * cosPhi);
+  const PrimaryPathPanoramicBasis basis =
+      primaryPathPanoramicBasis(timeSample, parameters.primaryPathMotionParameters.x);
   const vec3 direction =
-    normalize(parameters.primaryPathRight.xyz * local.x + parameters.primaryPathDown.xyz * local.y +
-              parameters.primaryPathForward.xyz * local.z);
+    normalize(basis.right * local.x + basis.down * local.y + basis.forward * local.z);
 
   GpuDiffusePathStateRecord path;
-  path.ray.origin =
-    parameters.primaryPathOrigin + parameters.primaryPathMotionOriginDelta * timeSample;
+  path.ray.origin = vec4(basis.origin, 1.0);
   path.ray.direction = vec4(direction, 0.0);
   path.ray.minDistance = 0.0;
   path.ray.maxDistance = uintBitsToFloat(0x7f800000u);
@@ -847,7 +873,8 @@ GpuDiffusePathStateRecord makeFishEyePrimaryPath(uint pathIndex) {
                           2.0 / parameters.primaryPathLensParameters.y * y - 1.0);
   const float r2 = dot(point, point);
   const bool valid = r2 <= 1.0 && r2 > 0.0;
-  vec3 direction = normalize(parameters.primaryPathForward.xyz);
+  const PrimaryPathPanoramicBasis basis = primaryPathPanoramicBasis(timeSample, 0.0);
+  vec3 direction = normalize(basis.forward);
   if (valid) {
     const float r = sqrt(r2);
     const float psi = r * parameters.primaryPathLensParameters.z * 0.5;
@@ -857,13 +884,11 @@ GpuDiffusePathStateRecord makeFishEyePrimaryPath(uint pathIndex) {
     const float cosAlpha = point.x / r;
     const vec3 local = vec3(sinPsi * cosAlpha, sinPsi * sinAlpha, cosPsi);
     direction =
-      normalize(parameters.primaryPathRight.xyz * local.x + parameters.primaryPathDown.xyz * local.y +
-                parameters.primaryPathForward.xyz * local.z);
+      normalize(basis.right * local.x + basis.down * local.y + basis.forward * local.z);
   }
 
   GpuDiffusePathStateRecord path;
-  path.ray.origin =
-    parameters.primaryPathOrigin + parameters.primaryPathMotionOriginDelta * timeSample;
+  path.ray.origin = vec4(basis.origin, 1.0);
   path.ray.direction = vec4(direction, 0.0);
   path.ray.minDistance = 0.0;
   path.ray.maxDistance = uintBitsToFloat(0x7f800000u);

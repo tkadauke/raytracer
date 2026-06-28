@@ -75,16 +75,30 @@ FishEyeCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampleS
     return std::nullopt;
   }
   std::optional<Matrix4d> descriptorMatrix = fixedShutterGpuCameraMatrix();
+  std::uint32_t motionMode = gpuPrimaryPathMotionModeOriginDelta;
   Vector3d motionOriginDelta = Vector3d::null;
+  Vector3d motionTarget = Vector3d::null;
+  Vector3d motionTargetDelta = Vector3d::null;
   if (!descriptorMatrix) {
     const std::optional<detail::SampledShutterDescriptorMotion> motion =
       detail::sampledStableBasisShutterMotion(*this);
-    if (!motion) {
-      return std::nullopt;
+    if (motion) {
+      descriptorMatrix = motion->matrixAtOpen;
+      motionOriginDelta =
+        motion->matrixAtClose.translationVector() - motion->matrixAtOpen.translationVector();
+    } else {
+      const std::optional<detail::SampledShutterLookAtDescriptorMotion> lookAtMotion =
+        detail::sampledLookAtShutterMotion(*this);
+      if (!lookAtMotion) {
+        return std::nullopt;
+      }
+      descriptorMatrix =
+        Matrix4d::lookAt(lookAtMotion->positionAtOpen, lookAtMotion->targetAtOpen, Vector3d::up());
+      motionMode = gpuPrimaryPathMotionModeLookAt;
+      motionOriginDelta = lookAtMotion->positionDelta();
+      motionTarget = lookAtMotion->targetAtOpen;
+      motionTargetDelta = lookAtMotion->targetDelta();
     }
-    descriptorMatrix = motion->matrixAtOpen;
-    motionOriginDelta =
-      motion->matrixAtClose.translationVector() - motion->matrixAtOpen.translationVector();
   }
 
   const Recti actual = renderableRect(rect);
@@ -104,8 +118,11 @@ FishEyeCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampleS
 
   GpuPrimaryPathDescriptor descriptor;
   descriptor.mode = gpuPrimaryPathGenerationModeFishEye;
+  descriptor.rectilinear.motionMode = motionMode;
   descriptor.rectilinear.originOrDirection = vector4(descriptorMatrix->translationVector(), 1.0f);
   descriptor.rectilinear.motionOriginDelta = vector4(motionOriginDelta, 0.0f);
+  descriptor.rectilinear.motionTarget = vector4(motionTarget, 1.0f);
+  descriptor.rectilinear.motionTargetDelta = vector4(motionTargetDelta, 0.0f);
   descriptor.rectilinear.right =
     vector4(descriptorMatrix->transformDirection(Vector3d(1.0, 0.0, 0.0)), 0.0f);
   descriptor.rectilinear.down =

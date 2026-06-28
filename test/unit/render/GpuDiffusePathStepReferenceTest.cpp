@@ -126,23 +126,28 @@ namespace GpuDiffusePathStepReferenceTest {
       return path;
     }
 
-    Vector3d
-    equirectangularDescriptorDirection(const GpuRectilinearPrimaryPathDescriptor& descriptor,
-                                       double x, double y) {
+    Vector3d equirectangularLocalDirection(const GpuRectilinearPrimaryPathDescriptor& descriptor,
+                                           double x, double y) {
       const double viewWidth = descriptor.lensParameters[0];
       const double viewHeight = descriptor.lensParameters[1];
       const double lon = (2.0 * x / viewWidth - 1.0) * PI;
       const double lat = (1.0 - 2.0 * y / viewHeight) * (PI / 2.0);
       const double cosLat = std::cos(lat);
-      const Vector3d local(cosLat * std::sin(lon), -std::sin(lat), cosLat * std::cos(lon));
+      return Vector3d(cosLat * std::sin(lon), -std::sin(lat), cosLat * std::cos(lon));
+    }
+
+    Vector3d
+    equirectangularDescriptorDirection(const GpuRectilinearPrimaryPathDescriptor& descriptor,
+                                       double x, double y) {
+      const Vector3d local = equirectangularLocalDirection(descriptor, x, y);
       const Vector3d right(descriptor.right);
       const Vector3d down(descriptor.down);
       const Vector3d forward(descriptor.forward);
       return (right * local.x() + down * local.y() + forward * local.z()).normalized();
     }
 
-    Vector3d sphericalDescriptorDirection(const GpuRectilinearPrimaryPathDescriptor& descriptor,
-                                          double x, double y) {
+    Vector3d sphericalLocalDirection(const GpuRectilinearPrimaryPathDescriptor& descriptor,
+                                     double x, double y) {
       const double viewWidth = descriptor.lensParameters[0];
       const double viewHeight = descriptor.lensParameters[1];
       const double horizontalFov = descriptor.lensParameters[2];
@@ -153,12 +158,37 @@ namespace GpuDiffusePathStepReferenceTest {
       const double psi = pointY * 0.5 * verticalFov;
       const double phi = PI - lambda;
       const double theta = 0.5 * PI - psi;
-      const Vector3d local(std::sin(theta) * std::sin(phi), std::cos(theta),
-                           std::sin(theta) * std::cos(phi));
+      return Vector3d(std::sin(theta) * std::sin(phi), std::cos(theta),
+                      std::sin(theta) * std::cos(phi));
+    }
+
+    Vector3d sphericalDescriptorDirection(const GpuRectilinearPrimaryPathDescriptor& descriptor,
+                                          double x, double y) {
+      const Vector3d local = sphericalLocalDirection(descriptor, x, y);
       const Vector3d right(descriptor.right);
       const Vector3d down(descriptor.down);
       const Vector3d forward(descriptor.forward);
       return (right * local.x() + down * local.y() + forward * local.z()).normalized();
+    }
+
+    std::optional<Vector3d>
+    fishEyeLocalDirection(const GpuRectilinearPrimaryPathDescriptor& descriptor, double x,
+                          double y) {
+      const double viewWidth = descriptor.lensParameters[0];
+      const double viewHeight = descriptor.lensParameters[1];
+      const double fieldOfView = descriptor.lensParameters[2];
+      const Vector2d point(2.0 / viewWidth * x - 1.0, 2.0 / viewHeight * y - 1.0);
+      const double r2 = point * point;
+      if (r2 > 1.0 || r2 <= std::numeric_limits<double>::epsilon()) {
+        return std::nullopt;
+      }
+      const double r = std::sqrt(r2);
+      const double psi = r * fieldOfView / 2.0;
+      const double sinPsi = std::sin(psi);
+      const double cosPsi = std::cos(psi);
+      const double sinAlpha = point.y() / r;
+      const double cosAlpha = point.x() / r;
+      return Vector3d(sinPsi * cosAlpha, sinPsi * sinAlpha, cosPsi);
     }
 
     void fillEchoedLaunchParameters(GpuDiffusePathLoopPlatformResult& platform,
@@ -1234,6 +1264,46 @@ namespace GpuDiffusePathStepReferenceTest {
     expectGpuRayNear(generation.pathStates.front().ray, expected, 2e-5);
   }
 
+  TEST(GpuDiffusePrimaryPathStateGenerator,
+       EquirectangularDescriptorAppliesSampledShutterLookAtMotion) {
+    EquirectangularCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, -4.0));
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 4, 2));
+    camera.viewPlane()->sampler()->setup(4, 8, 42);
+    camera.setAnimationFrame(0.0);
+    camera.setShutterInterval(0.0, 1.0);
+    camera.setAnimationTrack("target",
+                             render::animation::AnimationTrack(
+                               {{0.0, Vector3d(0.0, 0.0, -4.0)}, {1.0, Vector3d(1.0, 0.0, -4.0)}}));
+
+    const GpuDiffusePrimaryPathStateGeneration generation =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 4, 2), 99, 1234);
+
+    ASSERT_TRUE(generation.primaryPathDescriptor.has_value());
+    const GpuRectilinearPrimaryPathDescriptor& descriptor =
+      generation.primaryPathDescriptor->rectilinear;
+    EXPECT_EQ(gpuPrimaryPathMotionModeLookAt, descriptor.motionMode);
+
+    const Vector2d pixelSample =
+      GpuSampleStream::sample2D(/*seed=*/1234, /*pixelIndex=*/0, /*primarySampleIndex=*/0,
+                                /*dimension=*/0);
+    const double timeSample = GpuSampleStream::sample1D(GpuSampleCoordinate{
+      /*seed=*/1234, /*pixelIndex=*/0, /*primarySampleIndex=*/0, /*dimension=*/1,
+      /*component=*/0});
+    const Vector3d position =
+      Vector3d(descriptor.originOrDirection) + Vector3d(descriptor.motionOriginDelta) * timeSample;
+    const Vector3d target =
+      Vector3d(descriptor.motionTarget) + Vector3d(descriptor.motionTargetDelta) * timeSample;
+    const Matrix4d matrix = Matrix4d::lookAt(position, target, Vector3d::up());
+    const Vector3d local =
+      equirectangularLocalDirection(descriptor, pixelSample.x(), pixelSample.y());
+    const Rayd expectedRay(matrix.translationVector(),
+                           matrix.transformDirection(local).normalized());
+    const GpuIntersectionRay expected =
+      GpuIntersectionScenePacker().packRay(expectedRay, /*rayIndex=*/0, /*minDistance=*/0.0,
+                                           std::numeric_limits<double>::infinity(), timeSample);
+    expectGpuRayNear(generation.pathStates.front().ray, expected, 2e-5);
+  }
+
   TEST(GpuDiffusePrimaryPathStateGenerator, CanLeaveEquirectangularPrimaryPathsDescriptorOnly) {
     EquirectangularCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, -4.0));
     camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 4, 2));
@@ -1331,6 +1401,46 @@ namespace GpuDiffusePathStepReferenceTest {
     expectGpuRayNear(generation.pathStates.front().ray, expected, 2e-5);
   }
 
+  TEST(GpuDiffusePrimaryPathStateGenerator, SphericalDescriptorAppliesSampledShutterLookAtMotion) {
+    SphericalCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, -4.0));
+    camera.setFieldOfView(200_degrees, 90_degrees);
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 4, 2));
+    camera.viewPlane()->sampler()->setup(4, 8, 42);
+    camera.setAnimationFrame(0.0);
+    camera.setShutterInterval(0.0, 1.0);
+    camera.setAnimationTrack("target",
+                             render::animation::AnimationTrack(
+                               {{0.0, Vector3d(0.0, 0.0, -4.0)}, {1.0, Vector3d(1.0, 0.0, -4.0)}}));
+
+    const GpuDiffusePrimaryPathStateGeneration generation =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 4, 2), 99, 1234);
+
+    ASSERT_TRUE(generation.primaryPathDescriptor.has_value());
+    const GpuRectilinearPrimaryPathDescriptor& descriptor =
+      generation.primaryPathDescriptor->rectilinear;
+    EXPECT_EQ(gpuPrimaryPathMotionModeLookAt, descriptor.motionMode);
+    EXPECT_FLOAT_EQ(5.0f, descriptor.motionParameters[0]);
+
+    const Vector2d pixelSample =
+      GpuSampleStream::sample2D(/*seed=*/1234, /*pixelIndex=*/0, /*primarySampleIndex=*/0,
+                                /*dimension=*/0);
+    const double timeSample = GpuSampleStream::sample1D(GpuSampleCoordinate{
+      /*seed=*/1234, /*pixelIndex=*/0, /*primarySampleIndex=*/0, /*dimension=*/1,
+      /*component=*/0});
+    const Vector3d position =
+      Vector3d(descriptor.originOrDirection) + Vector3d(descriptor.motionOriginDelta) * timeSample;
+    const Vector3d target =
+      Vector3d(descriptor.motionTarget) + Vector3d(descriptor.motionTargetDelta) * timeSample;
+    const Matrix4d matrix = Matrix4d::lookAt(position, target, Vector3d::up());
+    const Vector3d local = sphericalLocalDirection(descriptor, pixelSample.x(), pixelSample.y());
+    const Rayd expectedRay(matrix.transformPoint(Vector3d(0.0, 0.0, -5.0)),
+                           matrix.transformDirection(local).normalized());
+    const GpuIntersectionRay expected =
+      GpuIntersectionScenePacker().packRay(expectedRay, /*rayIndex=*/0, /*minDistance=*/0.0,
+                                           std::numeric_limits<double>::infinity(), timeSample);
+    expectGpuRayNear(generation.pathStates.front().ray, expected, 2e-5);
+  }
+
   TEST(GpuDiffusePrimaryPathStateGenerator, CanLeaveSphericalPrimaryPathsDescriptorOnly) {
     SphericalCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, -4.0));
     camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 4, 2));
@@ -1386,6 +1496,53 @@ namespace GpuDiffusePathStepReferenceTest {
                                            path.ray.direction[2] * path.ray.direction[2];
       EXPECT_NEAR(1.0f, directionLengthSquared, 1e-5f);
     }
+  }
+
+  TEST(GpuDiffusePrimaryPathStateGenerator, FishEyeDescriptorAppliesSampledShutterLookAtMotion) {
+    FishEyeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, -4.0));
+    camera.setFieldOfView(180_degrees);
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 4, 4));
+    camera.viewPlane()->sampler()->setup(4, 8, 42);
+    camera.setAnimationFrame(0.0);
+    camera.setShutterInterval(0.0, 1.0);
+    camera.setAnimationTrack("target",
+                             render::animation::AnimationTrack(
+                               {{0.0, Vector3d(0.0, 0.0, -4.0)}, {1.0, Vector3d(1.0, 0.0, -4.0)}}));
+
+    const GpuDiffusePrimaryPathStateGeneration generation =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 4, 4), 99, 1234);
+
+    ASSERT_TRUE(generation.primaryPathDescriptor.has_value());
+    ASSERT_FALSE(generation.pathStates.empty());
+    const GpuRectilinearPrimaryPathDescriptor& descriptor =
+      generation.primaryPathDescriptor->rectilinear;
+    EXPECT_EQ(gpuPrimaryPathMotionModeLookAt, descriptor.motionMode);
+
+    const GpuDiffusePathStateRecord& path = generation.pathStates.front();
+    const std::uint32_t pixelIndex = path.pixelIndex;
+    const std::uint32_t sampleIndex = path.primarySampleIndex;
+    const std::uint32_t column = pixelIndex % descriptor.requestedWidth;
+    const std::uint32_t row = pixelIndex / descriptor.requestedWidth;
+    const Vector2d pixelSample =
+      GpuSampleStream::sample2D(/*seed=*/1234, pixelIndex, sampleIndex, /*dimension=*/0);
+    const double timeSample = GpuSampleStream::sample1D(GpuSampleCoordinate{
+      /*seed=*/1234, pixelIndex, sampleIndex, /*dimension=*/1, /*component=*/0});
+    const std::optional<Vector3d> local =
+      fishEyeLocalDirection(descriptor, static_cast<double>(column) + pixelSample.x(),
+                            static_cast<double>(row) + pixelSample.y());
+    ASSERT_TRUE(local.has_value());
+
+    const Vector3d position =
+      Vector3d(descriptor.originOrDirection) + Vector3d(descriptor.motionOriginDelta) * timeSample;
+    const Vector3d target =
+      Vector3d(descriptor.motionTarget) + Vector3d(descriptor.motionTargetDelta) * timeSample;
+    const Matrix4d matrix = Matrix4d::lookAt(position, target, Vector3d::up());
+    const Rayd expectedRay(matrix.translationVector(),
+                           matrix.transformDirection(*local).normalized());
+    const GpuIntersectionRay expected =
+      GpuIntersectionScenePacker().packRay(expectedRay, path.ray.rayIndex, /*minDistance=*/0.0,
+                                           std::numeric_limits<double>::infinity(), timeSample);
+    expectGpuRayNear(path.ray, expected, 2e-5);
   }
 
   TEST(GpuDiffusePrimaryPathStateGenerator, CanLeaveFishEyePrimaryPathsDescriptorOnly) {
