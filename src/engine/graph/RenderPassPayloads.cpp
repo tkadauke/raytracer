@@ -974,6 +974,8 @@ namespace engine::graph {
       batching["residentPathLoopCapturePlatformAccumulation"] =
         settings.capturePlatformAccumulation;
       batching["residentPathLoopCaptureResolvedDisplay"] = settings.captureResolvedDisplay;
+      batching["residentPathLoopPrimarySampleChunkSize"] =
+        static_cast<double>(settings.primarySampleChunkSize);
       batching["residentPathLoopDisplayResolveTonemap"] =
         displayResolveTonemapName(settings.displayResolveTonemap);
       batching["residentPathLoopSubmittedIntersectionRays"] =
@@ -1017,6 +1019,7 @@ namespace engine::graph {
       compiledLoop["captureMetrics"] = settings.captureMetrics;
       compiledLoop["capturePlatformAccumulation"] = settings.capturePlatformAccumulation;
       compiledLoop["captureResolvedDisplay"] = settings.captureResolvedDisplay;
+      compiledLoop["primarySampleChunkSize"] = static_cast<double>(settings.primarySampleChunkSize);
       compiledLoop["displayResolveTonemap"] =
         displayResolveTonemapName(settings.displayResolveTonemap);
       compiledLoop["submittedIntersectionRays"] =
@@ -1322,6 +1325,8 @@ namespace engine::graph {
           static_cast<std::uint32_t>(state.russianRouletteDepth().value_or(3));
         settings.directLightSamples =
           static_cast<std::uint32_t>(std::max(1, state.directLightSamples().value_or(1)));
+        settings.primarySampleChunkSize =
+          static_cast<std::uint32_t>(std::max(0, state.gpuPrimarySampleChunkSize().value_or(0)));
         settings.captureMetrics = context.graph().executionTraceEnabled();
         const render::Denoiser* denoiser = wavefront.denoiser();
         const render::DenoiserFeatureRequest denoiserFeatureRequest =

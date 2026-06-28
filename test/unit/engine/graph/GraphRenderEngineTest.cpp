@@ -236,6 +236,7 @@ namespace GraphRenderEngineTest {
       m_lastCaptureResolvedDisplay = settings.captureResolvedDisplay;
       m_lastDisplayResolveTonemap = settings.displayResolveTonemap;
       m_lastDirectLightSamples = settings.directLightSamples;
+      m_lastPrimarySampleChunkSize = settings.primarySampleChunkSize;
       m_lastPrimaryHostPathStateCount = initialPathStates.size();
       render::GpuDiffusePathLoopResult result =
         render::CpuReferenceGpuDiffusePathLoopBackend::sharedInstance()->run(
@@ -303,6 +304,10 @@ namespace GraphRenderEngineTest {
       return m_lastDirectLightSamples;
     }
 
+    std::uint32_t lastPrimarySampleChunkSize() const {
+      return m_lastPrimarySampleChunkSize;
+    }
+
     bool hasLastPrimaryGeneration() const {
       return m_hasLastPrimaryGeneration;
     }
@@ -332,6 +337,7 @@ namespace GraphRenderEngineTest {
     mutable render::GpuDisplayResolveTonemap m_lastDisplayResolveTonemap{
       render::GpuDisplayResolveTonemap::Unsupported};
     mutable std::uint32_t m_lastDirectLightSamples{0};
+    mutable std::uint32_t m_lastPrimarySampleChunkSize{0};
     mutable bool m_hasLastPrimaryGeneration{false};
     mutable std::size_t m_lastPrimaryHostPathStateCount{0};
     mutable std::uint64_t m_lastPrimaryGeneratedSamples{0};
@@ -2579,6 +2585,7 @@ namespace GraphRenderEngineTest {
     intent.engineOptions.raytracer().setSamplingSeed(1357);
     intent.engineOptions.raytracer().setMaximumRecursionDepth(2);
     intent.engineOptions.raytracer().setDirectLightSamples(1);
+    intent.engineOptions.raytracer().setGpuPrimarySampleChunkSize(8);
     intent.engineOptions.raytracer().setSampleStreamMode("gpu_sample_stream");
 
     RenderSceneAnalysis analysis;
@@ -2601,6 +2608,7 @@ namespace GraphRenderEngineTest {
     EXPECT_TRUE(pathLoopBackend->lastPrimaryGeneratesOnDevice());
     EXPECT_EQ(64u, pathLoopBackend->lastPrimaryGeneratedSamples());
     EXPECT_EQ(64u, pathLoopBackend->lastPrimaryHostPathStateCount());
+    EXPECT_EQ(8u, pathLoopBackend->lastPrimarySampleChunkSize());
 
     const auto trace = engine.lastExecutionTrace();
     ASSERT_TRUE(trace);
@@ -2656,6 +2664,7 @@ namespace GraphRenderEngineTest {
     EXPECT_TRUE(batching.value("residentPathLoopCaptureDiagnostics").toBool());
     EXPECT_TRUE(batching.value("residentPathLoopCapturePlatformAccumulation").toBool());
     EXPECT_FALSE(batching.value("residentPathLoopCaptureResolvedDisplay").toBool());
+    EXPECT_EQ(8.0, batching.value("residentPathLoopPrimarySampleChunkSize").toDouble());
     EXPECT_EQ("linear",
               batching.value("residentPathLoopDisplayResolveTonemap").toString().toStdString());
 
@@ -2675,6 +2684,7 @@ namespace GraphRenderEngineTest {
     EXPECT_TRUE(loop.value("captureDiagnostics").toBool());
     EXPECT_TRUE(loop.value("capturePlatformAccumulation").toBool());
     EXPECT_FALSE(loop.value("captureResolvedDisplay").toBool());
+    EXPECT_EQ(8.0, loop.value("primarySampleChunkSize").toDouble());
     EXPECT_EQ("linear", loop.value("displayResolveTonemap").toString().toStdString());
   }
 

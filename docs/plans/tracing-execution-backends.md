@@ -119,12 +119,14 @@ end state for GPU tracing.
   fish-eye launches from the same descriptor metadata. Descriptor-backed
   launches can also carry an absolute sample offset/count, and Metal/Vulkan
   backends can opt into chunking those descriptor sample ranges while retaining
-  the platform accumulation buffer across chunks. Those descriptor-backed
-  camera models with fixed-width shutter intervals can also bake their animated
-  still-frame pose into the descriptor, and pinhole, orthographic, thin-lens,
-  tilt-shift, equirectangular, spherical, and fish-eye camera rigs with
-  position and target translated together over one linear sampled-shutter
-  segment carry a primary-origin/lens-origin/ray-plane motion delta.
+  the platform accumulation buffer across chunks. Render intent, rendercli, and
+  the modeler final render dialog can request that chunk size explicitly for
+  graph-backed GPU path-tracer runs. Those descriptor-backed camera models with
+  fixed-width shutter intervals can also bake their animated still-frame pose
+  into the descriptor, and pinhole, orthographic, thin-lens, tilt-shift,
+  equirectangular, spherical, and fish-eye camera rigs with position and target
+  translated together over one linear sampled-shutter segment carry a
+  primary-origin/lens-origin/ray-plane motion delta.
   Pinhole and orthographic rigs whose linear in-shutter position/target motion
   changes the view direction can carry look-at motion state for shader-side
   primary-ray reconstruction. General sampled-shutter camera motion for other

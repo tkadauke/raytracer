@@ -250,10 +250,11 @@ namespace engine::graph {
     return !m_maximumRecursionDepth && !m_maximumThreads && !m_queueSize && !m_integrator &&
            !m_tracingBackend && !m_tracingExecution && !m_intersectionBackend &&
            !m_russianRouletteDepth && !m_directLightSamples && !m_sampler && !m_samplesPerPixel &&
-           !m_samplingSeed && !m_sampleStreamMode && !m_viewPlane && !m_convergenceEnabled &&
-           !m_convergenceActiveSampleFractionThreshold && !m_convergenceRadianceDeltaRmsThreshold &&
-           !m_adaptiveSamplingEnabled && !m_adaptiveMinimumSamples && !m_adaptiveStddevThreshold &&
-           !m_denoiser && !m_denoiseRadius && !m_denoiseColorSigma;
+           !m_gpuPrimarySampleChunkSize && !m_samplingSeed && !m_sampleStreamMode && !m_viewPlane &&
+           !m_convergenceEnabled && !m_convergenceActiveSampleFractionThreshold &&
+           !m_convergenceRadianceDeltaRmsThreshold && !m_adaptiveSamplingEnabled &&
+           !m_adaptiveMinimumSamples && !m_adaptiveStddevThreshold && !m_denoiser &&
+           !m_denoiseRadius && !m_denoiseColorSigma;
   }
 
   QJsonObject RenderRaytracerOptions::toJson() const {
@@ -282,6 +283,8 @@ namespace engine::graph {
       options.setRussianRouletteDepth(*state.russianRouletteDepth());
     if (state.directLightSamples())
       options.setDirectLightSamples(*state.directLightSamples());
+    if (state.gpuPrimarySampleChunkSize())
+      options.setGpuPrimarySampleChunkSize(*state.gpuPrimarySampleChunkSize());
     if (state.sampler())
       options.setSampler(*state.sampler());
     if (state.samplesPerPixel())
@@ -333,6 +336,8 @@ namespace engine::graph {
       overrideOptional(result.m_russianRouletteDepth, overrides.m_russianRouletteDepth);
     result.m_directLightSamples =
       overrideOptional(result.m_directLightSamples, overrides.m_directLightSamples);
+    result.m_gpuPrimarySampleChunkSize =
+      overrideOptional(result.m_gpuPrimarySampleChunkSize, overrides.m_gpuPrimarySampleChunkSize);
     result.m_sampler = overrideOptional(result.m_sampler, overrides.m_sampler);
     result.m_samplesPerPixel =
       overrideOptional(result.m_samplesPerPixel, overrides.m_samplesPerPixel);
@@ -381,6 +386,8 @@ namespace engine::graph {
       state.setRussianRouletteDepth(*m_russianRouletteDepth);
     if (m_directLightSamples)
       state.setDirectLightSamples(*m_directLightSamples);
+    if (m_gpuPrimarySampleChunkSize)
+      state.setGpuPrimarySampleChunkSize(*m_gpuPrimarySampleChunkSize);
     if (m_sampler)
       state.setSampler(*m_sampler);
     if (m_samplesPerPixel)
@@ -469,6 +476,10 @@ namespace engine::graph {
 
   void RenderRaytracerOptions::setDirectLightSamples(int samples) {
     m_directLightSamples = std::max(1, samples);
+  }
+
+  void RenderRaytracerOptions::setGpuPrimarySampleChunkSize(int samples) {
+    m_gpuPrimarySampleChunkSize = std::max(0, samples);
   }
 
   void RenderRaytracerOptions::setSampler(std::string sampler) {
@@ -573,6 +584,10 @@ namespace engine::graph {
 
   std::optional<int> RenderRaytracerOptions::directLightSamples() const {
     return m_directLightSamples;
+  }
+
+  std::optional<int> RenderRaytracerOptions::gpuPrimarySampleChunkSize() const {
+    return m_gpuPrimarySampleChunkSize;
   }
 
   std::optional<std::string> RenderRaytracerOptions::sampler() const {

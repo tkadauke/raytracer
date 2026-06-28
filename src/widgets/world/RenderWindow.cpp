@@ -141,6 +141,7 @@ struct RenderWindow::Private {
       }
       if (settingsWidget->engine() == "Path Tracer") {
         options.setDirectLightSamples(settingsWidget->directLightSamples());
+        options.setGpuPrimarySampleChunkSize(settingsWidget->gpuPrimarySampleChunkSize());
         options.setTracingExecution(settingsWidget->tracingExecution().toLower().toStdString());
         if (settingsWidget->tracingExecution() == "CPU") {
           options.setIntersectionBackend("cpu");

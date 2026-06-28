@@ -855,6 +855,8 @@ namespace {
         << " mis_weighted_emitter_hit_samples="
         << unsignedValue(batching, "misWeightedEmitterHitSamples")
         << " direct_light_samples=" << unsignedValue(batching, "directLightSamples")
+        << " gpu_primary_sample_chunk_size="
+        << unsignedValue(batching, "residentPathLoopPrimarySampleChunkSize")
         << " direct_light_contributing_samples="
         << unsignedValue(batching, "directLightContributingSamples")
         << " direct_light_occluded_samples="
@@ -1933,6 +1935,8 @@ private:
   bool m_pathTracerRussianRouletteDepthSet;
   int m_pathTracerDirectLightSamples;
   bool m_pathTracerDirectLightSamplesSet;
+  int m_gpuPrimarySampleChunkSize;
+  bool m_gpuPrimarySampleChunkSizeSet;
   QString m_pathTracingSchedule;
   bool m_pathTracingScheduleSet;
   QString m_tracingBackend;
@@ -2146,6 +2150,8 @@ Renderer::Renderer()
       m_pathTracerRussianRouletteDepthSet(false),
       m_pathTracerDirectLightSamples(1),
       m_pathTracerDirectLightSamplesSet(false),
+      m_gpuPrimarySampleChunkSize(0),
+      m_gpuPrimarySampleChunkSizeSet(false),
       m_pathTracingSchedule("wavefront"),
       m_pathTracingScheduleSet(false),
       m_tracingBackend("auto"),
@@ -2444,6 +2450,8 @@ engine::graph::RenderEngineOptions Renderer::commandLineEngineOptions() const {
     options.raytracer().setRussianRouletteDepth(m_pathTracerRussianRouletteDepth);
   if (m_pathTracerDirectLightSamplesSet)
     options.raytracer().setDirectLightSamples(m_pathTracerDirectLightSamples);
+  if (m_gpuPrimarySampleChunkSizeSet)
+    options.raytracer().setGpuPrimarySampleChunkSize(m_gpuPrimarySampleChunkSize);
   if (pathTracingRequested()) {
     options.raytracer().setIntegrator("pathtracer");
   } else if (m_tracingBackendSet || m_tracingExecutionSet) {
@@ -3721,6 +3729,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       "Path-tracer bounce depth where Russian-roulette termination starts", "depth"},
      {"pathtracer_direct_light_samples", "Path-tracer direct-light samples per surface hit",
       "samples"},
+     {"gpu_primary_sample_chunk_size",
+      "GPU path-tracer primary sample chunk size; 0 disables chunking", "samples"},
      {{"j", "threads"}, "Number of threads", "threads"},
      {"queue_size", "Explicit queue size for thread pool; raster defaults to automatic",
       "queue_size"},
@@ -4061,6 +4071,17 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       return CommandLineError;
     }
     m_pathTracerDirectLightSamplesSet = true;
+  }
+
+  if (parser.isSet("gpu_primary_sample_chunk_size")) {
+    const QString samplesValue = parser.value("gpu_primary_sample_chunk_size");
+    bool ok = false;
+    m_gpuPrimarySampleChunkSize = samplesValue.toInt(&ok);
+    if (!ok || m_gpuPrimarySampleChunkSize < 0) {
+      *errorMessage = "GPU primary sample chunk size must be >= 0";
+      return CommandLineError;
+    }
+    m_gpuPrimarySampleChunkSizeSet = true;
   }
 
   if (parser.isSet("threads")) {
@@ -5009,6 +5030,12 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     return CommandLineError;
   }
 
+  if (m_gpuPrimarySampleChunkSizeSet && !pathTracingRequested()) {
+    *errorMessage =
+      "GPU primary sample chunk size requires --engine pathtracer or --integrator pathtracer";
+    return CommandLineError;
+  }
+
   if (m_pathTracingScheduleSet && m_engineSet) {
     if (m_engine == "raster" || m_engine == "wireframe" ||
         (m_engine == "wavefront" && scalarPathTracingScheduleSelected()) ||
@@ -5016,6 +5043,11 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       *errorMessage = "Path tracing schedule conflicts with the selected engine";
       return CommandLineError;
     }
+  }
+
+  if (m_gpuPrimarySampleChunkSizeSet && m_directEngine) {
+    *errorMessage = "GPU primary sample chunk size requires graph-backed rendering";
+    return CommandLineError;
   }
 
   const bool tracingExecutionTargetsNonTracingExecutor =

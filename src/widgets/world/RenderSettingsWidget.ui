@@ -524,6 +524,29 @@
         </item>
        </widget>
       </item>
+      <item row="14" column="0">
+       <widget class="QLabel" name="label_gpuPrimarySampleChunkSize">
+        <property name="text">
+         <string>GPU sample chunk size</string>
+        </property>
+       </widget>
+      </item>
+      <item row="14" column="1">
+       <widget class="QSpinBox" name="gpuPrimarySampleChunkSize">
+        <property name="toolTip">
+         <string>Primary samples per retained GPU accumulation chunk. 0 disables chunking.</string>
+        </property>
+        <property name="minimum">
+         <number>0</number>
+        </property>
+        <property name="maximum">
+         <number>1024</number>
+        </property>
+        <property name="value">
+         <number>0</number>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>

@@ -199,6 +199,7 @@ struct RenderSettingsWidget::Private {
       setSpinBoxValue(ui.maxRecursionDepth, *options.maximumRecursionDepth());
     }
     setSpinBoxValue(ui.pathTracerDirectLightSamples, options.directLightSamples().value_or(1));
+    setSpinBoxValue(ui.gpuPrimarySampleChunkSize, options.gpuPrimarySampleChunkSize().value_or(0));
     if (options.maximumThreads()) {
       setSpinBoxValue(ui.renderThreads, *options.maximumThreads());
     }
@@ -370,6 +371,7 @@ RenderSettingsWidget::RenderSettingsWidget(QWidget* parent)
     if (!p->updatingSamplerDefault) {
       p->samplerDefaultManaged = false;
     }
+    updateEngineControls();
     emit settingsChanged();
   });
   connect(p->ui.samplesPerPixel, QOverload<int>::of(&QSpinBox::valueChanged), this, [this] {
@@ -458,6 +460,10 @@ int RenderSettingsWidget::maxRecursionDepth() const {
 
 int RenderSettingsWidget::directLightSamples() const {
   return p->ui.pathTracerDirectLightSamples->value();
+}
+
+int RenderSettingsWidget::gpuPrimarySampleChunkSize() const {
+  return p->ui.gpuPrimarySampleChunkSize->value();
 }
 
 bool RenderSettingsWidget::denoiserOverrideEnabled() const {
@@ -581,6 +587,10 @@ void RenderSettingsWidget::updateEngineControls() {
   const bool supportsPathTracingSchedule = (eng == "Path Tracer");
   const bool supportsDirectLightSamples = pathTracingSelected;
   const bool supportsTracingExecution = pathTracingSelected;
+  const bool pathTracingUsesGpuExecution =
+    pathTracingSelected && p->ui.tracingExecution->currentText() == QStringLiteral("GPU");
+  const bool supportsGpuSampleChunkSize =
+    pathTracingUsesGpuExecution && p->gpuSampleStreamSelected();
   const bool supportsRayDenoiser = pathTracingUsesWavefront;
   const bool tracingExecutionIsHybrid =
     p->ui.tracingExecution->currentText() == QStringLiteral("Hybrid");
@@ -597,6 +607,8 @@ void RenderSettingsWidget::updateEngineControls() {
   p->ui.pathTracingSchedule->setVisible(supportsPathTracingSchedule);
   p->ui.label_pathTracerDirectLightSamples->setVisible(supportsDirectLightSamples);
   p->ui.pathTracerDirectLightSamples->setVisible(supportsDirectLightSamples);
+  p->ui.label_gpuPrimarySampleChunkSize->setVisible(supportsGpuSampleChunkSize);
+  p->ui.gpuPrimarySampleChunkSize->setVisible(supportsGpuSampleChunkSize);
   p->ui.label_tracingExecution->setVisible(supportsTracingExecution);
   p->ui.tracingExecution->setVisible(supportsTracingExecution);
   p->ui.label_wavefrontIntersectionBackend->setVisible(supportsIntersectionBackend);
@@ -663,6 +675,7 @@ void RenderSettingsWidget::setBusy(bool busy) {
   p->ui.samplesPerPixel->setEnabled(!busy);
   p->ui.maxRecursionDepth->setEnabled(!busy);
   p->ui.pathTracerDirectLightSamples->setEnabled(!busy);
+  p->ui.gpuPrimarySampleChunkSize->setEnabled(!busy);
   p->ui.rayDenoiser->setEnabled(!busy);
   p->ui.rayDenoiseRadius->setEnabled(!busy);
   p->ui.rayDenoiseColorSigma->setEnabled(!busy);

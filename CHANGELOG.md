@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Expose GPU primary-sample chunk size through render intent, rendercli, and
+  the final render dialog so retained platform accumulation chunking can be
+  exercised from graph-backed path-tracer renders. — GPT-5 Codex
 - Add opt-in GPU primary-sample chunking for descriptor-backed Metal/Vulkan
   path-loop launches so production renders can retain platform accumulation
   across chunked sample ranges. — GPT-5 Codex

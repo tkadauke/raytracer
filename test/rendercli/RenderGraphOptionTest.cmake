@@ -4224,7 +4224,7 @@ rendercli_run(
   COMMAND
     "${RENDERCLI}" --render_graph_only --render_graph_format json
     --engine wavefront --integrator pathtracer --pathtracer_russian_roulette_depth 4
-    --pathtracer_direct_light_samples 3
+    --pathtracer_direct_light_samples 3 --gpu_primary_sample_chunk_size 8
     --width 32 --height 16
     "${static_scene}" "${wavefront_pathtracer_plan}"
 )
@@ -4246,6 +4246,10 @@ endif()
 if(NOT wavefront_pathtracer_graph MATCHES "\"directLightSamples\"[ \r\n]*:[ \r\n]*3")
   message(FATAL_ERROR
           "wavefront pathtracer graph did not contain direct-light samples: ${wavefront_pathtracer_graph}")
+endif()
+if(NOT wavefront_pathtracer_graph MATCHES "\"gpuPrimarySampleChunkSize\"[ \r\n]*:[ \r\n]*8")
+  message(FATAL_ERROR
+          "wavefront pathtracer graph did not contain GPU primary sample chunk size: ${wavefront_pathtracer_graph}")
 endif()
 
 rendercli_run(

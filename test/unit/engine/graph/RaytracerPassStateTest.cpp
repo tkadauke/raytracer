@@ -32,6 +32,7 @@ namespace RaytracerPassStateTest {
     state.setIntersectionBackend("gpu");
     state.setRussianRouletteDepth(4);
     state.setDirectLightSamples(6);
+    state.setGpuPrimarySampleChunkSize(8);
     state.setSampler("Jittered");
     state.setSamplesPerPixel(16);
     state.setSamplingSeed(12345);
@@ -75,6 +76,7 @@ namespace RaytracerPassStateTest {
       json.value("execution").toObject().value("intersectionBackend").toString().toStdString());
     EXPECT_EQ(4, json.value("execution").toObject().value("russianRouletteDepth").toInt());
     EXPECT_EQ(6, json.value("execution").toObject().value("directLightSamples").toInt());
+    EXPECT_EQ(8, json.value("execution").toObject().value("gpuPrimarySampleChunkSize").toInt());
     EXPECT_EQ("Jittered",
               json.value("sampling").toObject().value("sampler").toString().toStdString());
     EXPECT_EQ(16, json.value("sampling").toObject().value("samplesPerPixel").toInt());
@@ -108,6 +110,7 @@ namespace RaytracerPassStateTest {
     ASSERT_TRUE(decoded.intersectionBackend().has_value());
     ASSERT_TRUE(decoded.russianRouletteDepth().has_value());
     ASSERT_TRUE(decoded.directLightSamples().has_value());
+    ASSERT_TRUE(decoded.gpuPrimarySampleChunkSize().has_value());
     ASSERT_TRUE(decoded.sampler().has_value());
     ASSERT_TRUE(decoded.samplesPerPixel().has_value());
     ASSERT_TRUE(decoded.samplingSeed().has_value());
@@ -134,6 +137,7 @@ namespace RaytracerPassStateTest {
     EXPECT_STREQ("gpu", decoded.intersectionBackend()->id());
     EXPECT_EQ(4, *decoded.russianRouletteDepth());
     EXPECT_EQ(6, *decoded.directLightSamples());
+    EXPECT_EQ(8, *decoded.gpuPrimarySampleChunkSize());
     EXPECT_EQ("Jittered", *decoded.sampler());
     EXPECT_EQ(16, *decoded.samplesPerPixel());
     EXPECT_EQ(12345u, *decoded.samplingSeed());
@@ -148,6 +152,15 @@ namespace RaytracerPassStateTest {
     EXPECT_EQ("bilateral", *decoded.denoiser());
     EXPECT_EQ(3, *decoded.denoiseRadius());
     EXPECT_DOUBLE_EQ(0.2, *decoded.denoiseColorSigma());
+  }
+
+  TEST(RaytracerBeautyPassState, ClampsGpuPrimarySampleChunkSizeToNonNegative) {
+    RaytracerBeautyPassState state;
+
+    state.setGpuPrimarySampleChunkSize(-5);
+
+    ASSERT_TRUE(state.gpuPrimarySampleChunkSize().has_value());
+    EXPECT_EQ(0, *state.gpuPrimarySampleChunkSize());
   }
 
   TEST(RaytracerBeautyPassState, RejectsSamplingSeedOutsideExactJsonIntegerRange) {

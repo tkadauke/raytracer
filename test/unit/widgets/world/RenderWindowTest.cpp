@@ -308,6 +308,43 @@ namespace RenderWindowTest {
     EXPECT_DOUBLE_EQ(0.3, *state->denoiseColorSigma());
   }
 
+  TEST_F(RenderWindowTest, ShouldCompileGpuPrimarySampleChunkSizeIntoRenderGraph) {
+    RenderWindow window;
+    Scene scene;
+    window.setScene(&scene);
+
+    auto* engineType = window.findChild<QComboBox*>("engineType");
+    auto* sampler = window.findChild<QComboBox*>("samplerType");
+    auto* tracingExecution = window.findChild<QComboBox*>("tracingExecution");
+    auto* chunkSize = window.findChild<QSpinBox*>("gpuPrimarySampleChunkSize");
+    ASSERT_NE(nullptr, engineType);
+    ASSERT_NE(nullptr, sampler);
+    ASSERT_NE(nullptr, tracingExecution);
+    ASSERT_NE(nullptr, chunkSize);
+
+    engineType->setCurrentText("Path Tracer");
+    sampler->setCurrentText("GPU sample stream");
+    tracingExecution->setCurrentText("GPU");
+    chunkSize->setValue(16);
+    QCoreApplication::processEvents();
+
+    auto* graphInspector = window.findChild<RenderGraphInspectorWidget*>();
+    ASSERT_NE(nullptr, graphInspector);
+    const auto plan = graphInspector->effectivePlan();
+    const auto* beautyPass = plan.findPass("wavefront_beauty");
+    ASSERT_NE(nullptr, beautyPass);
+    const auto* state = engine::graph::RaytracerBeautyPassState::fromPass(*beautyPass);
+    ASSERT_NE(nullptr, state);
+    ASSERT_TRUE(state->integrator().has_value());
+    EXPECT_EQ("pathtracer", *state->integrator());
+    ASSERT_TRUE(state->sampleStreamMode().has_value());
+    EXPECT_EQ("gpu_sample_stream", *state->sampleStreamMode());
+    ASSERT_TRUE(state->tracingExecution().has_value());
+    EXPECT_EQ(engine::graph::TracingExecutionPreference::GPU, *state->tracingExecution());
+    ASSERT_TRUE(state->gpuPrimarySampleChunkSize().has_value());
+    EXPECT_EQ(16, *state->gpuPrimarySampleChunkSize());
+  }
+
   TEST_F(RenderWindowTest, ShouldCompileScalarPathTracerScheduleIntoRenderGraph) {
     RenderWindow window;
     Scene scene;
@@ -376,6 +413,7 @@ namespace RenderWindowTest {
     intent.engineOptions.raytracer().setSampler("Jittered");
     intent.engineOptions.raytracer().setSamplesPerPixel(9);
     intent.engineOptions.raytracer().setDirectLightSamples(6);
+    intent.engineOptions.raytracer().setGpuPrimarySampleChunkSize(12);
     intent.engineOptions.raytracer().setIntersectionBackend("cpu");
     intent.engineOptions.raytracer().setDenoiser("box");
     intent.engineOptions.raytracer().setDenoiseRadius(3);
@@ -386,6 +424,7 @@ namespace RenderWindowTest {
     auto* sampler = window.findChild<QComboBox*>("samplerType");
     auto* samples = window.findChild<QSpinBox*>("samplesPerPixel");
     auto* directLightSamples = window.findChild<QSpinBox*>("pathTracerDirectLightSamples");
+    auto* gpuPrimarySampleChunkSize = window.findChild<QSpinBox*>("gpuPrimarySampleChunkSize");
     auto* intersectionBackend = window.findChild<QComboBox*>("wavefrontIntersectionBackend");
     auto* denoiser = window.findChild<QComboBox*>("rayDenoiser");
     auto* radius = window.findChild<QSpinBox*>("rayDenoiseRadius");
@@ -393,6 +432,7 @@ namespace RenderWindowTest {
     ASSERT_NE(nullptr, sampler);
     ASSERT_NE(nullptr, samples);
     ASSERT_NE(nullptr, directLightSamples);
+    ASSERT_NE(nullptr, gpuPrimarySampleChunkSize);
     ASSERT_NE(nullptr, intersectionBackend);
     ASSERT_NE(nullptr, denoiser);
     ASSERT_NE(nullptr, radius);
@@ -400,6 +440,7 @@ namespace RenderWindowTest {
     EXPECT_EQ(QString("Jittered"), sampler->currentText());
     EXPECT_EQ(9, samples->value());
     EXPECT_EQ(6, directLightSamples->value());
+    EXPECT_EQ(12, gpuPrimarySampleChunkSize->value());
     EXPECT_EQ(QString("CPU"), intersectionBackend->currentText());
     EXPECT_EQ(QString("Box"), denoiser->currentText());
     EXPECT_EQ(3, radius->value());
@@ -421,6 +462,8 @@ namespace RenderWindowTest {
     EXPECT_EQ(9, *state->samplesPerPixel());
     ASSERT_TRUE(state->directLightSamples().has_value());
     EXPECT_EQ(6, *state->directLightSamples());
+    ASSERT_TRUE(state->gpuPrimarySampleChunkSize().has_value());
+    EXPECT_EQ(12, *state->gpuPrimarySampleChunkSize());
     ASSERT_TRUE(state->intersectionBackend().has_value());
     EXPECT_STREQ("cpu", state->intersectionBackend()->id());
     ASSERT_TRUE(state->denoiser().has_value());

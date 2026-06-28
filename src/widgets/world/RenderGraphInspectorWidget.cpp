@@ -1093,6 +1093,8 @@ void RenderGraphInspectorWidget::Private::addIntersectionBackendDetailRows(
                                    batching, QStringLiteral("activePathsPerDepth"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Resident path-loop input paths"), batching,
                               QStringLiteral("residentPathLoopInputPaths"));
+  addDetailIntegerMetadataRow(rows, QStringLiteral("Resident path-loop primary sample chunk size"),
+                              batching, QStringLiteral("residentPathLoopPrimarySampleChunkSize"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Resident path-loop retained paths"), batching,
                               QStringLiteral("residentPathLoopRetainedPaths"));
   addDetailIntegerMetadataRow(rows, QStringLiteral("Resident path-loop removed paths"), batching,
@@ -1566,6 +1568,11 @@ QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode&
                 .arg(directLightSamples)
                 .arg(directLightContributing)
                 .arg(directLightOccluded);
+    }
+    const auto primarySampleChunkSize = static_cast<qulonglong>(
+      batching.value(QStringLiteral("residentPathLoopPrimarySampleChunkSize")).toDouble());
+    if (primarySampleChunkSize > 0) {
+      line += QStringLiteral(", GPU sample chunks %1").arg(primarySampleChunkSize);
     }
     const double directLightLuminance =
       batching.value(QStringLiteral("directLightRadianceLuminanceSum")).toDouble();

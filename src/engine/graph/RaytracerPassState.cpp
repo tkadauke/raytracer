@@ -136,7 +136,8 @@ namespace engine::graph {
                         {"maxRecursionDepth", "threads", "queueSize", "integrator",
                          "tracingBackend", "tracingExecution", "predictedTracingExecution",
                          "tracingExecutionFallbackReason", "intersectionBackend",
-                         "russianRouletteDepth", "directLightSamples"});
+                         "russianRouletteDepth", "directLightSamples",
+                         "gpuPrimarySampleChunkSize"});
     if (hasField(execution, "maxRecursionDepth"))
       state.setMaximumRecursionDepth(intField(execution, "maxRecursionDepth", path + ".execution"));
     if (hasField(execution, "threads"))
@@ -168,6 +169,10 @@ namespace engine::graph {
     }
     if (hasField(execution, "directLightSamples")) {
       state.setDirectLightSamples(intField(execution, "directLightSamples", path + ".execution"));
+    }
+    if (hasField(execution, "gpuPrimarySampleChunkSize")) {
+      state.setGpuPrimarySampleChunkSize(
+        intField(execution, "gpuPrimarySampleChunkSize", path + ".execution"));
     }
 
     const QJsonObject sampling = objectField(object, "sampling", path);
@@ -270,6 +275,8 @@ namespace engine::graph {
       execution["russianRouletteDepth"] = *m_russianRouletteDepth;
     if (m_directLightSamples)
       execution["directLightSamples"] = *m_directLightSamples;
+    if (m_gpuPrimarySampleChunkSize)
+      execution["gpuPrimarySampleChunkSize"] = *m_gpuPrimarySampleChunkSize;
     if (!execution.isEmpty())
       object["execution"] = execution;
 
@@ -510,6 +517,10 @@ namespace engine::graph {
     m_directLightSamples = std::max(1, samples);
   }
 
+  void RaytracerBeautyPassState::setGpuPrimarySampleChunkSize(int samples) {
+    m_gpuPrimarySampleChunkSize = std::max(0, samples);
+  }
+
   void RaytracerBeautyPassState::setSampler(std::string sampler) {
     m_sampler = std::move(sampler);
   }
@@ -615,6 +626,10 @@ namespace engine::graph {
 
   std::optional<int> RaytracerBeautyPassState::directLightSamples() const {
     return m_directLightSamples;
+  }
+
+  std::optional<int> RaytracerBeautyPassState::gpuPrimarySampleChunkSize() const {
+    return m_gpuPrimarySampleChunkSize;
   }
 
   std::optional<std::string> RaytracerBeautyPassState::sampler() const {

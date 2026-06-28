@@ -28,6 +28,7 @@ public:
   int samplesPerPixel() const;
   int maxRecursionDepth() const;
   int directLightSamples() const;
+  int gpuPrimarySampleChunkSize() const;
   bool denoiserOverrideEnabled() const;
   QString denoiser() const;
   int denoiseRadius() const;
