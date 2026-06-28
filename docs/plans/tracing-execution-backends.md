@@ -319,10 +319,12 @@ end state for GPU tracing.
   backend, and pass-level settings are all eligible; explicit GPU requests now
   keep the compiled CPU-reference loop available for convergence settings and
   report hybrid/CPU fallbacks when settings such as adaptive sampling make the
-  compiled loop ineligible. Platform Metal/Vulkan path-loop backends still
-  reject convergence until their kernels expose matching per-depth radiance
-  deltas. Backend run parity tests now pin the triangle-backed geometry subset
-  at the Metal/Vulkan path-loop boundary, including `MeshPrimitive`, `Box`, and
+  compiled loop ineligible. Platform Metal/Vulkan path-loop backends now publish
+  matching per-depth radiance-delta sums and maxima when metrics capture is
+  enabled, but still reject convergence until the backend can submit/read depth
+  frontiers incrementally and stop future bounces from that feedback. Backend
+  run parity tests now pin the triangle-backed geometry subset at the
+  Metal/Vulkan path-loop boundary, including `MeshPrimitive`, `Box`, and
   finite-width `Curve` scenes.
 - Platform full-GPU path-loop backend selection beyond the restricted Metal and
   Vulkan subsets above. The factory hook can return Metal or Vulkan platform
@@ -2912,7 +2914,11 @@ scene is large enough to amortize upload/readback costs.
      rejecting the path-loop route. The compiled CPU-reference path loop and the
      Metal/Vulkan platform full-GPU path loops now emit first-hit albedo,
      normal, and depth feature records when requested, so bilateral denoising
-     can stay on the compiled route for supported scenes.
+     can stay on the compiled route for supported scenes. Metal/Vulkan platform
+     path-loop kernels now also publish per-depth radiance-delta sums and maxima
+     behind the metrics-capture flag, providing the feedback substrate needed for
+     future GPU convergence decisions without forcing normal trace-disabled
+     renders to read it back.
      Broader
      primitive traversal, full material shading, full direct-light coverage,
      device-side compacted wavefront scheduling, Vulkan parity, and performance
@@ -2958,7 +2964,9 @@ scene is large enough to amortize upload/readback costs.
      command pool, command buffer, and path-loop compute pipelines alive across
      launches instead of rebuilding them for every render. It
      still cleanly rejects broader compiled geometry until the platform subset
-     reaches parity with Metal.
+     reaches parity with Metal. Vulkan now shares the Metal per-depth
+     radiance-delta metric contract so convergence-related diagnostics come from
+     shader-side path-state changes instead of host-side estimates.
 
 4. **Wire graph auto-selection to platform backend availability.**
    - Depends on: jobs 2 and 3.
@@ -2975,7 +2983,8 @@ scene is large enough to amortize upload/readback costs.
      denoising, adaptive sampling, and non-GPU sample streams remain CPU/hybrid
      until those paths have platform support. Convergence now stays on the
      compiled CPU-reference path, while Metal/Vulkan full-GPU kernels reject it
-     until they can publish equivalent per-depth radiance-delta feedback.
+     until a future incremental depth-frontier mode can consume their
+     per-depth radiance-delta feedback during execution.
      Execution metadata now preserves the full-GPU selection fallback reason,
      so graph traces distinguish missing platform builds, unavailable
      Metal/Vulkan devices or kernels, unsupported scene/settings subsets, and

@@ -136,6 +136,21 @@ namespace render {
         throw std::logic_error(backendMessage(
           backendDisplayName, "returned denoiser feature records when capture was disabled"));
       }
+
+      const bool hasRadianceDeltaMetrics =
+        !platformResult.radianceDeltaSquaredSumPerDepth.empty() ||
+        !platformResult.maxRadianceDeltaPerDepth.empty();
+      if (hasRadianceDeltaMetrics) {
+        if (!settings.captureMetrics) {
+          throw std::logic_error(backendMessage(
+            backendDisplayName, "returned radiance-delta metrics when capture was disabled"));
+        }
+        if (platformResult.radianceDeltaSquaredSumPerDepth.size() != echoed.maxDepth ||
+            platformResult.maxRadianceDeltaPerDepth.size() != echoed.maxDepth) {
+          throw std::logic_error(backendMessage(
+            backendDisplayName, "returned radiance-delta metrics with unexpected depth count"));
+        }
+      }
     }
 
     [[nodiscard]] ActiveAccumulationTargetShape
@@ -378,6 +393,20 @@ namespace render {
       loop.depthCount = loop.activePathsPerDepth.size();
     }
 
+    void recordRadianceDeltaMetrics(GpuDiffusePathLoopResult& loop,
+                                    const GpuDiffusePathLoopPlatformResult& platformResult) {
+      if (platformResult.radianceDeltaSquaredSumPerDepth.empty()) {
+        return;
+      }
+      const std::size_t depthCount = static_cast<std::size_t>(loop.depthCount);
+      loop.radianceDeltaSquaredSumPerDepth.assign(
+        platformResult.radianceDeltaSquaredSumPerDepth.begin(),
+        platformResult.radianceDeltaSquaredSumPerDepth.begin() + depthCount);
+      loop.maxRadianceDeltaPerDepth.assign(platformResult.maxRadianceDeltaPerDepth.begin(),
+                                           platformResult.maxRadianceDeltaPerDepth.begin() +
+                                             depthCount);
+    }
+
     std::shared_ptr<const GpuDiffusePathLoopBackend> firstAvailableFullGpuBackend(
       const std::vector<std::shared_ptr<const GpuDiffusePathLoopBackend>>& backends) {
       for (const auto& backend : backends) {
@@ -448,6 +477,25 @@ namespace render {
           throw std::overflow_error("GPU diffuse path-loop chunk active path count overflows");
         }
         target[i] += source[i];
+      }
+    }
+
+    void addRadianceDeltaSquaredSums(std::vector<double>& target,
+                                     const std::vector<double>& source) {
+      if (target.size() < source.size()) {
+        target.resize(source.size(), 0.0);
+      }
+      for (std::size_t i = 0; i != source.size(); ++i) {
+        target[i] += source[i];
+      }
+    }
+
+    void mergeMaxRadianceDeltas(std::vector<double>& target, const std::vector<double>& source) {
+      if (target.size() < source.size()) {
+        target.resize(source.size(), 0.0);
+      }
+      for (std::size_t i = 0; i != source.size(); ++i) {
+        target[i] = std::max(target[i], source[i]);
       }
     }
 
@@ -692,6 +740,9 @@ namespace render {
     }
     merged.resolvedDisplayReadbacks += chunkResult.resolvedDisplayReadbacks;
     addActivePathCounts(merged.activePathCountsPerDepth, chunkResult.activePathCountsPerDepth);
+    addRadianceDeltaSquaredSums(merged.radianceDeltaSquaredSumPerDepth,
+                                chunkResult.radianceDeltaSquaredSumPerDepth);
+    mergeMaxRadianceDeltas(merged.maxRadianceDeltaPerDepth, chunkResult.maxRadianceDeltaPerDepth);
     if (merged.retainedPathCount >
         std::numeric_limits<std::uint32_t>::max() - chunkResult.retainedPathCount) {
       throw std::overflow_error("GPU diffuse path-loop chunk retained path count overflows");
@@ -907,6 +958,7 @@ namespace render {
     loop.platformAccumulationHeight = platformResult.echoedParameters.imageHeight;
     if (settings.captureMetrics || settings.captureDiagnostics) {
       recordDepthCounts(loop, platformResult, settings);
+      recordRadianceDeltaMetrics(loop, platformResult);
       mergeStepMetrics(loop, platformResult);
     }
     loop.stepRecords = std::move(platformResult.stepRecords);

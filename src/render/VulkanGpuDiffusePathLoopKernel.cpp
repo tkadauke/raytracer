@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <cstring>
 #include <limits>
 #include <mutex>
@@ -35,7 +36,7 @@ namespace render {
 
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
     constexpr std::uint32_t kDiffusePathLoopLocalSizeX = 64u;
-    constexpr std::uint32_t kDiffusePathLoopDescriptorCount = 14u;
+    constexpr std::uint32_t kDiffusePathLoopDescriptorCount = 15u;
     constexpr VkDeviceSize kDispatchIndirectCommandBytes = 3u * sizeof(std::uint32_t);
 
     std::uint64_t pixelCount(const GpuDiffusePathLoopLaunchParameters& parameters) {
@@ -105,6 +106,25 @@ namespace render {
         result.push_back(countPrefixedIndices[static_cast<std::size_t>(index) + 1u]);
       }
       return result;
+    }
+
+    void readRadianceDeltaMetrics(const std::vector<float>& records,
+                                  const GpuDiffusePathLoopLaunchParameters& parameters,
+                                  VulkanGpuDiffusePathLoopKernelResult& result) {
+      if (parameters.captureMetrics == 0u || parameters.maxDepth == 0u) {
+        return;
+      }
+      result.radianceDeltaSquaredSumPerDepth.assign(parameters.maxDepth, 0.0);
+      result.maxRadianceDeltaPerDepth.assign(parameters.maxDepth, 0.0);
+      for (std::uint32_t pathIndex = 0; pathIndex != parameters.initialPathCount; ++pathIndex) {
+        for (std::uint32_t depth = 0; depth != parameters.maxDepth; ++depth) {
+          const double deltaSquared =
+            static_cast<double>(records[pathIndex * parameters.maxDepth + depth]);
+          result.radianceDeltaSquaredSumPerDepth[depth] += deltaSquared;
+          result.maxRadianceDeltaPerDepth[depth] =
+            std::max(result.maxRadianceDeltaPerDepth[depth], std::sqrt(deltaSquared));
+        }
+      }
     }
 
     double secondsBetween(std::chrono::steady_clock::time_point start,
@@ -197,7 +217,9 @@ namespace render {
                              nullptr);
         prepareStorageBuffer(13u, kDispatchIndirectCommandBytes, nullptr,
                              VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT);
-        prepareStorageBuffer(14u, kDispatchIndirectCommandBytes, nullptr,
+        prepareStorageBuffer(14u, static_cast<VkDeviceSize>(plan.buffers.radianceDeltaSquaredBytes),
+                             nullptr);
+        prepareStorageBuffer(15u, kDispatchIndirectCommandBytes, nullptr,
                              VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT);
 
         VkDescriptorSet descriptorSetAB = m_descriptorSetAB;
@@ -207,7 +229,7 @@ namespace render {
         updateDescriptorSet(m_device, descriptorSetAB, descriptorBuffersAB);
         std::vector<StorageBuffer> swappedFrontierBuffers = descriptorBuffersAB;
         std::swap(swappedFrontierBuffers[7], swappedFrontierBuffers[12]);
-        swappedFrontierBuffers[13] = m_buffers[14];
+        swappedFrontierBuffers[13] = m_buffers[15];
         updateDescriptorSet(m_device, descriptorSetBA, swappedFrontierBuffers);
 
         resetCommandPool();
@@ -217,7 +239,7 @@ namespace render {
           m_advancePipeline, captureResolvedDisplay ? m_resolvePipeline : VK_NULL_HANDLE,
           m_pipelineLayout, descriptorSetAB, descriptorSetBA,
           static_cast<std::uint32_t>(std::max<std::size_t>(1u, launchPathCount)),
-          m_buffers[13].buffer, m_buffers[14].buffer, plan.parameters.maxDepth,
+          m_buffers[13].buffer, m_buffers[15].buffer, plan.parameters.maxDepth,
           static_cast<std::uint32_t>(std::max<std::uint64_t>(1u, resolvedDisplayPixels)),
           captureResolvedDisplay, clearPlatformAccumulation, m_buffers[8].buffer,
           static_cast<VkDeviceSize>(plan.buffers.accumulationBytes), m_buffers[6].buffer,
@@ -231,6 +253,10 @@ namespace render {
           m_buffers[10].buffer,
           plan.parameters.captureMetrics != 0u
             ? static_cast<VkDeviceSize>(plan.buffers.activePathCountBytes)
+            : 0u,
+          m_buffers[14].buffer,
+          plan.parameters.captureMetrics != 0u
+            ? static_cast<VkDeviceSize>(plan.buffers.radianceDeltaSquaredBytes)
             : 0u);
         const std::size_t finalFrontierBufferIndex =
           finalFrontierDescriptorSet == descriptorSetAB ? 7u : 12u;
@@ -318,6 +344,13 @@ namespace render {
           result.activePathCountsPerDepth = readBackRecords<std::uint32_t>(
             m_device, m_buffers[10].memory, byteCount<std::uint32_t>(plan.parameters.maxDepth),
             plan.parameters.maxDepth, "Vulkan diffuse path-loop active-depth count mapping");
+          const std::uint64_t radianceDeltaRecordCount =
+            static_cast<std::uint64_t>(plan.parameters.initialPathCount) *
+            static_cast<std::uint64_t>(plan.parameters.maxDepth);
+          const std::vector<float> radianceDeltaRecords = readBackRecords<float>(
+            m_device, m_buffers[14].memory, byteCount<float>(radianceDeltaRecordCount),
+            radianceDeltaRecordCount, "Vulkan diffuse path-loop radiance-delta mapping");
+          readRadianceDeltaMetrics(radianceDeltaRecords, plan.parameters, result);
         }
         result.readbackWorkerSeconds =
           secondsBetween(readbackStart, std::chrono::steady_clock::now());
@@ -897,7 +930,8 @@ namespace render {
         bool captureResolvedDisplay, bool clearPlatformAccumulation, VkBuffer accumulationBuffer,
         VkDeviceSize accumulationBytes, VkBuffer stepRecordBuffer, VkDeviceSize stepRecordBytes,
         VkBuffer denoiserFeatureBuffer, VkDeviceSize denoiserFeatureBytes,
-        VkBuffer activePathCountBuffer, VkDeviceSize activePathCountBytes) const {
+        VkBuffer activePathCountBuffer, VkDeviceSize activePathCountBytes,
+        VkBuffer radianceDeltaSquaredBuffer, VkDeviceSize radianceDeltaSquaredBytes) const {
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         check(vkBeginCommandBuffer(commandBuffer, &beginInfo),
@@ -916,6 +950,7 @@ namespace render {
         fillStorageBuffer(stepRecordBuffer, stepRecordBytes);
         fillStorageBuffer(denoiserFeatureBuffer, denoiserFeatureBytes);
         fillStorageBuffer(activePathCountBuffer, activePathCountBytes);
+        fillStorageBuffer(radianceDeltaSquaredBuffer, radianceDeltaSquaredBytes);
         if (filledShaderStorage) {
           transferToShaderStorageBarrier(commandBuffer);
         }

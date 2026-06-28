@@ -26,6 +26,8 @@ namespace render {
       platform.denoiserFeatureRecords = std::move(result.denoiserFeatureRecords);
       platform.retainedPathCount = result.retainedPathCount;
       platform.activePathCountsPerDepth = std::move(result.activePathCountsPerDepth);
+      platform.radianceDeltaSquaredSumPerDepth = std::move(result.radianceDeltaSquaredSumPerDepth);
+      platform.maxRadianceDeltaPerDepth = std::move(result.maxRadianceDeltaPerDepth);
       platform.accumulationColorSums = std::move(result.accumulationColorSums);
       platform.accumulationSampleCounts = std::move(result.accumulationSampleCounts);
       platform.resolvedDisplayPixels = std::move(result.resolvedDisplayPixels);

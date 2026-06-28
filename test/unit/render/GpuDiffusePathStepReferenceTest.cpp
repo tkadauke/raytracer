@@ -3498,6 +3498,30 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(1u, result.metrics.directLightOccludedSamples);
   }
 
+  TEST(GpuDiffusePathLoopBackend, SharedPlatformResultUsesGpuRadianceDeltaMetrics) {
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 3;
+    settings.captureDiagnostics = false;
+
+    GpuDiffusePathLoopPlatformResult platform;
+    fillEchoedLaunchParameters(platform, 2, settings);
+    platform.executionPath = "test_path_loop";
+    platform.pathStateResidency = "test_path_state";
+    platform.accumulationColorSums = {{{0.25f, 0.5f, 0.75f, 0.0f}}};
+    platform.accumulationSampleCounts = {1};
+    platform.activePathCountsPerDepth = {2u, 1u, 0u};
+    platform.radianceDeltaSquaredSumPerDepth = {0.25, 0.5, 0.0};
+    platform.maxRadianceDeltaPerDepth = {0.5, 0.25, 0.0};
+
+    GpuDiffusePathLoopResult result = makePlatformGpuDiffusePathLoopResult(
+      2, settings, std::move(platform), "Test", "test", "test_path_state", "test_accumulation",
+      "test_accumulation_residency");
+
+    EXPECT_EQ((std::vector<std::uint64_t>{2u, 1u}), result.activePathsPerDepth);
+    EXPECT_EQ((std::vector<double>{0.25, 0.5}), result.radianceDeltaSquaredSumPerDepth);
+    EXPECT_EQ((std::vector<double>{0.5, 0.25}), result.maxRadianceDeltaPerDepth);
+  }
+
   TEST(GpuDiffusePathLoopBackend, SharedPlatformResultHonorsTraceDisabledNoReadback) {
     GpuDiffusePathLoopSettings settings;
     settings.maxDepth = 2;
@@ -7540,13 +7564,15 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(3u * sizeof(std::uint32_t), plan.buffers.retainedIndexBytes);
     EXPECT_EQ(0u, plan.buffers.denoiserFeatureRecordBytes);
     EXPECT_EQ(3u * sizeof(std::uint32_t), plan.buffers.activePathCountBytes);
+    EXPECT_EQ(2u * 3u * sizeof(float), plan.buffers.radianceDeltaSquaredBytes);
     EXPECT_EQ(accumulationLayout.totalBytes(), plan.buffers.accumulationBytes);
     EXPECT_EQ(plan.buffers.sceneUploadBytes + plan.buffers.initialPathStateBytes,
               plan.buffers.totalUploadBytes);
     EXPECT_EQ(plan.buffers.sceneUploadBytes + plan.buffers.activePathStateBytes +
                 plan.buffers.nextPathStateBytes + plan.buffers.stepRecordBytes +
                 plan.buffers.retainedIndexBytes + plan.buffers.denoiserFeatureRecordBytes +
-                plan.buffers.activePathCountBytes + plan.buffers.accumulationBytes,
+                plan.buffers.activePathCountBytes + plan.buffers.radianceDeltaSquaredBytes +
+                plan.buffers.accumulationBytes,
               plan.buffers.totalResidentBytes);
   }
 
@@ -7949,6 +7975,8 @@ namespace GpuDiffusePathStepReferenceTest {
     first.retainedFrontierDispatchesIndirect = true;
     first.retainedPathCount = 2u;
     first.activePathCountsPerDepth = {3u, 1u};
+    first.radianceDeltaSquaredSumPerDepth = {2.0, 3.0};
+    first.maxRadianceDeltaPerDepth = {1.0, 1.5};
     first.sceneUploadBytesWritten = 64u;
     first.kernelWorkerSeconds = 0.25;
     first.resolvedDisplayReadbacks = 1u;
@@ -7964,6 +7992,8 @@ namespace GpuDiffusePathStepReferenceTest {
     second.pathStateResidency = "platform_path_state";
     second.retainedPathCount = 1u;
     second.activePathCountsPerDepth = {2u, 4u};
+    second.radianceDeltaSquaredSumPerDepth = {5.0, 7.0};
+    second.maxRadianceDeltaPerDepth = {2.0, 1.0};
     second.sceneUploadCacheHit = true;
     second.sceneUploadBytesWritten = 0u;
     second.kernelWorkerSeconds = 0.5;
@@ -7987,6 +8017,8 @@ namespace GpuDiffusePathStepReferenceTest {
     ASSERT_EQ(2u, merged.activePathCountsPerDepth.size());
     EXPECT_EQ(5u, merged.activePathCountsPerDepth[0]);
     EXPECT_EQ(5u, merged.activePathCountsPerDepth[1]);
+    EXPECT_EQ((std::vector<double>{7.0, 10.0}), merged.radianceDeltaSquaredSumPerDepth);
+    EXPECT_EQ((std::vector<double>{2.0, 1.5}), merged.maxRadianceDeltaPerDepth);
     EXPECT_TRUE(merged.sceneUploadCacheHit);
     EXPECT_EQ(64u, merged.sceneUploadBytesWritten);
     EXPECT_DOUBLE_EQ(0.75, merged.kernelWorkerSeconds);
@@ -8232,6 +8264,7 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(24u * sizeof(GpuDiffusePathStateRecord), plan.buffers.nextPathStateBytes);
     EXPECT_EQ(24u * 3u * sizeof(GpuDiffusePathStepRecord), plan.buffers.stepRecordBytes);
     EXPECT_EQ(3u * sizeof(std::uint32_t), plan.buffers.activePathCountBytes);
+    EXPECT_EQ(24u * 3u * sizeof(float), plan.buffers.radianceDeltaSquaredBytes);
     EXPECT_EQ(plan.buffers.sceneUploadBytes, plan.buffers.totalUploadBytes);
   }
 
@@ -8482,10 +8515,12 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(2u * sizeof(std::uint32_t), plan.buffers.retainedIndexBytes);
     EXPECT_EQ(0u, plan.buffers.denoiserFeatureRecordBytes);
     EXPECT_EQ(8u * sizeof(std::uint32_t), plan.buffers.activePathCountBytes);
+    EXPECT_EQ(8u * sizeof(float), plan.buffers.radianceDeltaSquaredBytes);
     EXPECT_EQ(plan.buffers.sceneUploadBytes + plan.buffers.initialPathStateBytes,
               plan.buffers.totalUploadBytes);
     EXPECT_EQ(plan.buffers.sceneUploadBytes + plan.buffers.retainedIndexBytes +
-                plan.buffers.activePathCountBytes + plan.buffers.accumulationBytes,
+                plan.buffers.activePathCountBytes + plan.buffers.radianceDeltaSquaredBytes +
+                plan.buffers.accumulationBytes,
               plan.buffers.totalResidentBytes);
   }
 
@@ -8504,6 +8539,7 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(0u, plan.buffers.stepRecordBytes);
     EXPECT_EQ(2u * sizeof(std::uint32_t), plan.buffers.retainedIndexBytes);
     EXPECT_EQ(0u, plan.buffers.activePathCountBytes);
+    EXPECT_EQ(0u, plan.buffers.radianceDeltaSquaredBytes);
     EXPECT_EQ(plan.buffers.sceneUploadBytes + plan.buffers.initialPathStateBytes,
               plan.buffers.totalUploadBytes);
     EXPECT_EQ(plan.buffers.sceneUploadBytes + plan.buffers.retainedIndexBytes +
@@ -8530,11 +8566,12 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(6u * sizeof(GpuDiffusePathDenoiserFeatureRecord),
               plan.buffers.denoiserFeatureRecordBytes);
     EXPECT_EQ(8u * sizeof(std::uint32_t), plan.buffers.activePathCountBytes);
+    EXPECT_EQ(8u * sizeof(float), plan.buffers.radianceDeltaSquaredBytes);
     EXPECT_EQ(plan.buffers.sceneUploadBytes + plan.buffers.initialPathStateBytes,
               plan.buffers.totalUploadBytes);
     EXPECT_EQ(plan.buffers.sceneUploadBytes + plan.buffers.denoiserFeatureRecordBytes +
                 plan.buffers.retainedIndexBytes + plan.buffers.activePathCountBytes +
-                plan.buffers.accumulationBytes,
+                plan.buffers.radianceDeltaSquaredBytes + plan.buffers.accumulationBytes,
               plan.buffers.totalResidentBytes);
   }
 
@@ -8578,9 +8615,11 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(25u * sizeof(std::uint32_t), plan.buffers.retainedIndexBytes);
     EXPECT_EQ(0u, plan.buffers.denoiserFeatureRecordBytes);
     EXPECT_EQ(3u * sizeof(std::uint32_t), plan.buffers.activePathCountBytes);
+    EXPECT_EQ(24u * 3u * sizeof(float), plan.buffers.radianceDeltaSquaredBytes);
     EXPECT_EQ(plan.buffers.sceneUploadBytes, plan.buffers.totalUploadBytes);
     EXPECT_EQ(plan.buffers.sceneUploadBytes + plan.buffers.retainedIndexBytes +
-                plan.buffers.activePathCountBytes + plan.buffers.accumulationBytes,
+                plan.buffers.activePathCountBytes + plan.buffers.radianceDeltaSquaredBytes +
+                plan.buffers.accumulationBytes,
               plan.buffers.totalResidentBytes);
   }
 
@@ -9370,6 +9409,15 @@ namespace GpuDiffusePathStepReferenceTest {
     ASSERT_GE(result.activePathCountsPerDepth.size(), 2u);
     EXPECT_EQ(1u, result.activePathCountsPerDepth[0]);
     EXPECT_EQ(1u, result.activePathCountsPerDepth[1]);
+    ASSERT_EQ(expected.radianceDeltaSquaredSumPerDepth.size(),
+              result.radianceDeltaSquaredSumPerDepth.size());
+    ASSERT_EQ(expected.maxRadianceDeltaPerDepth.size(), result.maxRadianceDeltaPerDepth.size());
+    for (std::size_t depth = 0; depth != expected.radianceDeltaSquaredSumPerDepth.size(); ++depth) {
+      EXPECT_NEAR(expected.radianceDeltaSquaredSumPerDepth[depth],
+                  result.radianceDeltaSquaredSumPerDepth[depth], 1e-4);
+      EXPECT_NEAR(expected.maxRadianceDeltaPerDepth[depth], result.maxRadianceDeltaPerDepth[depth],
+                  1e-4);
+    }
     ASSERT_EQ(expected.stepRecords.size(), result.stepRecords.size());
     for (std::size_t index = 0; index != expected.stepRecords.size(); ++index) {
       EXPECT_EQ(expected.stepRecords[index].event, result.stepRecords[index].event);

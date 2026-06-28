@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Report per-depth radiance-delta sums and maxima from Metal/Vulkan full-GPU
+  path-loop kernels when metrics capture is enabled, preparing platform
+  convergence feedback without adding trace-disabled readback cost. — GPT-5 Codex
 - Let supported linearly moving instances lower into compiled GPU tracing scenes
   by carrying per-transform motion deltas through packed CPU, Metal, and Vulkan
   intersection paths. — GPT-5 Codex

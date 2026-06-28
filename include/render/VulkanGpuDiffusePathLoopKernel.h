@@ -17,6 +17,8 @@ namespace render {
     std::vector<std::uint32_t> retainedPathIndices;
     std::uint32_t retainedPathCount{0};
     std::vector<std::uint32_t> activePathCountsPerDepth;
+    std::vector<double> radianceDeltaSquaredSumPerDepth;
+    std::vector<double> maxRadianceDeltaPerDepth;
     std::vector<std::array<float, 4>> accumulationColorSums;
     std::vector<std::uint32_t> accumulationSampleCounts;
     std::vector<unsigned int> resolvedDisplayPixels;

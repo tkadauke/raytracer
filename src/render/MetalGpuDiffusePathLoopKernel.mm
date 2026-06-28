@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <cstring>
 #include <limits>
 #include <mutex>
@@ -3072,6 +3073,24 @@ namespace render {
               "  step.directLightOccludedSampleCount = 0u;\n"
               "  return step;\n"
               "}\n"
+              "float radianceDeltaSquared(GpuDiffusePathStateRecord before,\n"
+              "                            GpuDiffusePathStateRecord after) {\n"
+              "  const float3 delta = after.accumulatedRadiance.xyz -\n"
+              "      before.accumulatedRadiance.xyz;\n"
+              "  return dot(delta, delta);\n"
+              "}\n"
+              "void recordRadianceDeltaSquared(\n"
+              "    constant GpuDiffusePathLoopLaunchParameters& parameters,\n"
+              "    device float* radianceDeltaSquaredRecords,\n"
+              "    uint pathIndex,\n"
+              "    GpuDiffusePathStateRecord before,\n"
+              "    GpuDiffusePathStateRecord after) {\n"
+              "  if (parameters.captureMetrics == 0u || before.depth >= parameters.maxDepth) {\n"
+              "    return;\n"
+              "  }\n"
+              "  radianceDeltaSquaredRecords[pathIndex * parameters.maxDepth + before.depth] =\n"
+              "      radianceDeltaSquared(before, after);\n"
+              "}\n"
               "bool usesAmbientEnvironmentLayout(\n"
               "    constant GpuDiffusePathLoopLaunchParameters& parameters) {\n"
               "  return parameters.environmentCount >= 3u;\n"
@@ -3548,6 +3567,7 @@ namespace render {
               "    device GpuDiffusePathDenoiserFeatureRecord* denoiserFeatures [[buffer(10)]],\n"
               "    device atomic_uint* activePathCounts [[buffer(11)]],\n"
               "    device atomic_uint* nextFrontier [[buffer(12)]],\n"
+              "    device float* radianceDeltaSquaredRecords [[buffer(13)]],\n"
               "    uint id [[thread_position_in_grid]]) {\n"
               "  if (id == 0u) {\n"
               "    echoedParameters[0] = parameters;\n"
@@ -3575,6 +3595,8 @@ namespace render {
               "  GpuIntersectionHitRecord hit = missHitRecord(path.ray);\n"
               "  GpuDiffusePathStepRecord step = mattePathStep(\n"
               "      parameters, sceneUpload, pathIndex, path, next, hit);\n"
+              "  recordRadianceDeltaSquared(\n"
+              "      parameters, radianceDeltaSquaredRecords, pathIndex, path, next);\n"
               "  writeDenoiserFeature(parameters, sceneUpload, denoiserFeatures, path, hit);\n"
               "  if (parameters.captureDiagnostics != 0u) {\n"
               "    stepRecords[stepRecordIndex] = step;\n"
@@ -3853,6 +3875,7 @@ namespace render {
       ReusableMetalBuffer accumulation;
       ReusableMetalBuffer denoiserFeature;
       ReusableMetalBuffer activePathCount;
+      ReusableMetalBuffer radianceDeltaSquared;
       ReusableMetalBuffer resolvedDisplay;
       ReusableMetalBuffer closestHit;
     };
@@ -3957,6 +3980,26 @@ namespace render {
       const std::uint32_t retainedCount =
         retainedPathCountFromBuffer(retainedIndexBuffer, maxPathCount);
       return std::vector<std::uint32_t>(retainedIndices + 1, retainedIndices + 1 + retainedCount);
+    }
+
+    void readRadianceDeltaMetrics(id<MTLBuffer> radianceDeltaSquaredBuffer,
+                                  const GpuDiffusePathLoopLaunchParameters& parameters,
+                                  MetalGpuDiffusePathLoopKernelResult& result) {
+      if (parameters.captureMetrics == 0u || parameters.maxDepth == 0u) {
+        return;
+      }
+      result.radianceDeltaSquaredSumPerDepth.assign(parameters.maxDepth, 0.0);
+      result.maxRadianceDeltaPerDepth.assign(parameters.maxDepth, 0.0);
+      const auto* records = static_cast<const float*>([radianceDeltaSquaredBuffer contents]);
+      for (std::uint32_t pathIndex = 0; pathIndex != parameters.initialPathCount; ++pathIndex) {
+        for (std::uint32_t depth = 0; depth != parameters.maxDepth; ++depth) {
+          const float deltaSquared = records[pathIndex * parameters.maxDepth + depth];
+          const double deltaSquaredDouble = static_cast<double>(deltaSquared);
+          result.radianceDeltaSquaredSumPerDepth[depth] += deltaSquaredDouble;
+          result.maxRadianceDeltaPerDepth[depth] =
+            std::max(result.maxRadianceDeltaPerDepth[depth], std::sqrt(deltaSquaredDouble));
+        }
+      }
     }
 
     void validateUniqueActiveAccumulationTargets(
@@ -5235,6 +5278,8 @@ namespace render {
         device, reusableBuffers.denoiserFeature, plan.buffers.denoiserFeatureRecordBytes);
       id<MTLBuffer> activePathCountBuffer = prepareReusableBuffer(
         device, reusableBuffers.activePathCount, plan.buffers.activePathCountBytes);
+      id<MTLBuffer> radianceDeltaSquaredBuffer = prepareReusableBuffer(
+        device, reusableBuffers.radianceDeltaSquared, plan.buffers.radianceDeltaSquaredBytes);
       id<MTLBuffer> resolvedDisplayBuffer =
         prepareReusableBuffer(device, reusableBuffers.resolvedDisplay, resolvedDisplayBytes);
       const std::uint64_t closestHitBytes =
@@ -5256,6 +5301,10 @@ namespace render {
       if (plan.buffers.activePathCountBytes != 0u) {
         std::memset([activePathCountBuffer contents], 0,
                     static_cast<std::size_t>(plan.buffers.activePathCountBytes));
+      }
+      if (plan.buffers.radianceDeltaSquaredBytes != 0u) {
+        std::memset([radianceDeltaSquaredBuffer contents], 0,
+                    static_cast<std::size_t>(plan.buffers.radianceDeltaSquaredBytes));
       }
       MetalGpuDiffusePathLoopKernelResult result;
       result.executionPath = "metal_diffuse_path_loop_wavefront";
@@ -5326,6 +5375,7 @@ namespace render {
         [encoder setBuffer:denoiserFeatureBuffer offset:0 atIndex:10];
         [encoder setBuffer:activePathCountBuffer offset:0 atIndex:11];
         [encoder setBuffer:nextFrontierBuffer offset:0 atIndex:12];
+        [encoder setBuffer:radianceDeltaSquaredBuffer offset:0 atIndex:13];
         [encoder dispatchThreadgroupsWithIndirectBuffer:currentFrontierDispatchBuffer
                                    indirectBufferOffset:0
                                   threadsPerThreadgroup:MTLSizeMake(advanceThreadsPerThreadgroup, 1,
@@ -5364,6 +5414,7 @@ namespace render {
         std::memcpy(result.activePathCountsPerDepth.data(), [activePathCountBuffer contents],
                     result.activePathCountsPerDepth.size() * sizeof(std::uint32_t));
       }
+      readRadianceDeltaMetrics(radianceDeltaSquaredBuffer, plan.parameters, result);
       if (plan.parameters.captureMetrics != 0u || plan.parameters.captureDiagnostics != 0u) {
         result.retainedPathCount =
           retainedPathCountFromBuffer(currentFrontierBuffer, launchPathCount);

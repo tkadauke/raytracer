@@ -48,6 +48,12 @@ namespace render {
       return checkedProduct(maxDepth, sizeof(std::uint32_t), "active path depth count");
     }
 
+    std::uint64_t radianceDeltaSquaredBytes(std::uint64_t pathCount, std::uint64_t maxDepth) {
+      const std::uint64_t recordCount =
+        checkedProduct(pathCount, maxDepth, "radiance-delta record count");
+      return checkedProduct(recordCount, sizeof(float), "radiance-delta squared");
+    }
+
     std::uint64_t retainedIndexBytes(std::uint64_t pathCount) {
       const std::uint64_t retainedIndexCount =
         checkedAdd(pathCount, 1u, "retained path index count");
@@ -144,6 +150,8 @@ namespace render {
       }
       if (settings.captureMetrics) {
         plan.buffers.activePathCountBytes = activePathCountBytes(maxDepth);
+        plan.buffers.radianceDeltaSquaredBytes =
+          radianceDeltaSquaredBytes(initialPathCount, maxDepth);
       }
       plan.buffers.accumulationBytes = accumulationLayout.totalBytes();
 
@@ -163,6 +171,8 @@ namespace render {
       residentBytes = checkedAdd(residentBytes, plan.buffers.denoiserFeatureRecordBytes,
                                  "GPU diffuse path-loop resident");
       residentBytes = checkedAdd(residentBytes, plan.buffers.activePathCountBytes,
+                                 "GPU diffuse path-loop resident");
+      residentBytes = checkedAdd(residentBytes, plan.buffers.radianceDeltaSquaredBytes,
                                  "GPU diffuse path-loop resident");
       residentBytes =
         checkedAdd(residentBytes, plan.buffers.accumulationBytes, "GPU diffuse path-loop resident");

@@ -7,12 +7,27 @@ layout(std430, binding = 12) buffer NextRetainedIndices {
   uint nextRetainedIndices[];
 };
 
+layout(std430, binding = 14) buffer RadianceDeltaSquaredRecords {
+  float radianceDeltaSquaredRecords[];
+};
+
 void recordNextActivePath(uint pathIndex, GpuDiffusePathStateRecord path) {
   if (!pathStateIsActive(path)) {
     return;
   }
   const uint slot = atomicAdd(nextRetainedIndices[0], 1u);
   nextRetainedIndices[slot + 1u] = pathIndex;
+}
+
+void recordRadianceDeltaSquared(uint pathIndex,
+                                GpuDiffusePathStateRecord before,
+                                GpuDiffusePathStateRecord after) {
+  if (parameters.captureMetrics == 0u || before.depth >= parameters.maxDepth) {
+    return;
+  }
+  const vec3 delta = after.accumulatedRadiance.xyz - before.accumulatedRadiance.xyz;
+  radianceDeltaSquaredRecords[pathIndex * parameters.maxDepth + before.depth] =
+      dot(delta, delta);
 }
 
 void main() {
@@ -38,6 +53,7 @@ void main() {
   GpuIntersectionHitRecord hit;
   GpuDiffusePathStateRecord next;
   const GpuDiffusePathStepRecord step = pathStep(pathIndex, path, hit, next);
+  recordRadianceDeltaSquared(pathIndex, path, next);
   writeDenoiserFeature(path, hit);
   if (parameters.captureDiagnostics != 0u) {
     stepRecords[pathIndex * parameters.maxDepth + path.depth] = step;
