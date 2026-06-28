@@ -31,6 +31,17 @@ namespace ThinLensCameraTest {
                     descriptor.rectilinear.motionOriginDelta[2]);
   }
 
+  Vector3d descriptorMotionTarget(const GpuPrimaryPathDescriptor& descriptor) {
+    return Vector3d(descriptor.rectilinear.motionTarget[0], descriptor.rectilinear.motionTarget[1],
+                    descriptor.rectilinear.motionTarget[2]);
+  }
+
+  Vector3d descriptorMotionTargetDelta(const GpuPrimaryPathDescriptor& descriptor) {
+    return Vector3d(descriptor.rectilinear.motionTargetDelta[0],
+                    descriptor.rectilinear.motionTargetDelta[1],
+                    descriptor.rectilinear.motionTargetDelta[2]);
+  }
+
   TEST(ThinLensCamera, ShouldDefaultToCannedValues) {
     ThinLensCamera camera;
     EXPECT_DOUBLE_EQ(5.0, camera.distance());
@@ -230,6 +241,33 @@ namespace ThinLensCameraTest {
     EXPECT_EQ(gpuPrimaryPathGenerationModeThinLens, descriptor->mode);
     ASSERT_VECTOR_NEAR(Vector3d(0.0, 0.0, -10.0), descriptorOrigin(*descriptor), 1e-6);
     ASSERT_VECTOR_NEAR(Vector3d(0.0, 0.0, 2.0), descriptorMotionOriginDelta(*descriptor), 1e-6);
+    EXPECT_EQ(12u, descriptor->pathCount());
+  }
+
+  TEST(ThinLensCamera, ShouldExposeSampledShutterRotatingRigGpuPrimaryPathDescriptor) {
+    ThinLensCamera camera(Vector3d(0, 0, -5), Vector3d::null);
+    setupViewPlane(camera, 4, 3);
+    camera.viewPlane()->sampler()->setup(1, 1, 17);
+    camera.setAnimationFrame(0.0);
+    camera.setShutterInterval(0.0, 1.0);
+    camera.setAnimationTrack("position",
+                             render::animation::AnimationTrack(
+                               {{0.0, Vector3d(0.0, 0.0, -5.0)}, {1.0, Vector3d(0.0, 0.0, -3.0)}}));
+    camera.setAnimationTrack("target",
+                             render::animation::AnimationTrack(
+                               {{0.0, Vector3d(0.0, 0.0, 0.0)}, {1.0, Vector3d(1.0, 0.0, 2.0)}}));
+
+    const auto descriptor = camera.gpuPrimaryPathDescriptor(Recti(0, 0, 4, 3), 1234);
+
+    ASSERT_TRUE(descriptor);
+    EXPECT_EQ(gpuPrimaryPathGenerationModeThinLens, descriptor->mode);
+    EXPECT_EQ(gpuPrimaryPathMotionModeLookAt, descriptor->rectilinear.motionMode);
+    ASSERT_VECTOR_NEAR(Vector3d(0.0, 0.0, -5.0), descriptorOrigin(*descriptor), 1e-6);
+    ASSERT_VECTOR_NEAR(Vector3d(0.0, 0.0, 2.0), descriptorMotionOriginDelta(*descriptor), 1e-6);
+    ASSERT_VECTOR_NEAR(Vector3d::null, descriptorMotionTarget(*descriptor), 1e-6);
+    ASSERT_VECTOR_NEAR(Vector3d(1.0, 0.0, 2.0), descriptorMotionTargetDelta(*descriptor), 1e-6);
+    EXPECT_FLOAT_EQ(5.0f, descriptor->rectilinear.motionParameters[0]);
+    EXPECT_FLOAT_EQ(0.1f, descriptor->rectilinear.motionParameters[1]);
     EXPECT_EQ(12u, descriptor->pathCount());
   }
 

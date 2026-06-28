@@ -550,6 +550,12 @@ PrimaryPathPanoramicBasis primaryPathPanoramicBasis(float timeSample, float orig
   return basis;
 }
 
+vec3 primaryPathRectilinearWorldPoint(PrimaryPathPanoramicBasis basis, float cameraDistance,
+                                      vec3 localPoint) {
+  return basis.origin + basis.forward * cameraDistance + basis.right * localPoint.x +
+         basis.down * localPoint.y + basis.forward * localPoint.z;
+}
+
 GpuDiffusePathStateRecord makePinholePrimaryPath(uint pathIndex) {
   const uint sampleIndex = pathIndex % parameters.primaryPathSamplesPerPixel;
   const uint pixelOrdinal = pathIndex / parameters.primaryPathSamplesPerPixel;
@@ -692,14 +698,26 @@ GpuDiffusePathStateRecord makeThinLensPrimaryPath(uint pathIndex) {
   const vec4 pixelPoint = parameters.primaryPathTopLeft +
                           parameters.primaryPathRight * (float(column) + pixelSample.x) +
                           parameters.primaryPathDown * (float(row) + pixelSample.y);
-  const vec4 origin =
-    parameters.primaryPathOrigin + parameters.primaryPathMotionOriginDelta * timeSample;
-  const vec3 pinholeDirection = normalize(pixelPoint.xyz - origin.xyz);
-  const float t = parameters.primaryPathLensParameters.x /
-                  dot(pinholeDirection, normalize(parameters.primaryPathForward.xyz));
+  const bool lookAtMotion = parameters.primaryPathMotionMode == gpuPrimaryPathMotionModeLookAt;
+  const PrimaryPathPanoramicBasis basis = primaryPathPanoramicBasis(
+      timeSample, lookAtMotion ? parameters.primaryPathMotionParameters.x : 0.0);
+  const vec3 focalForward =
+      normalize(lookAtMotion ? basis.forward : parameters.primaryPathForward.xyz);
+  const vec3 worldPixelPoint =
+      lookAtMotion ? primaryPathRectilinearWorldPoint(
+                         basis, parameters.primaryPathMotionParameters.x, pixelPoint.xyz)
+                   : pixelPoint.xyz;
+  const vec4 origin = vec4(basis.origin, 1.0);
+  const vec3 pinholeDirection = normalize(worldPixelPoint - origin.xyz);
+  const float t = parameters.primaryPathLensParameters.x / dot(pinholeDirection, focalForward);
   const vec3 focalPoint = origin.xyz + pinholeDirection * t;
-  const vec4 lensOrigin = origin + parameters.primaryPathLensRight * lensSample.x +
-                          parameters.primaryPathLensUp * lensSample.y;
+  const vec4 lensRight = lookAtMotion
+                           ? vec4(basis.right * length(parameters.primaryPathLensRight.xyz), 0.0)
+                           : parameters.primaryPathLensRight;
+  const vec4 lensUp = lookAtMotion
+                        ? vec4(basis.down * length(parameters.primaryPathLensUp.xyz), 0.0)
+                        : parameters.primaryPathLensUp;
+  const vec4 lensOrigin = origin + lensRight * lensSample.x + lensUp * lensSample.y;
 
   GpuDiffusePathStateRecord path;
   path.ray.origin = lensOrigin;
@@ -938,14 +956,21 @@ GpuDiffusePathStateRecord makeTiltShiftPrimaryPath(uint pathIndex) {
   const vec4 pixelPoint = parameters.primaryPathTopLeft +
                           parameters.primaryPathRight * (float(column) + pixelSample.x) +
                           parameters.primaryPathDown * (float(row) + pixelSample.y);
-  const vec3 rightBasis = normalize(parameters.primaryPathRight.xyz);
-  const vec3 upBasis = normalize(parameters.primaryPathDown.xyz);
-  const vec3 focalForward = normalize(parameters.primaryPathForward.xyz);
+  const bool lookAtMotion = parameters.primaryPathMotionMode == gpuPrimaryPathMotionModeLookAt;
+  const PrimaryPathPanoramicBasis basis = primaryPathPanoramicBasis(
+      timeSample, lookAtMotion ? parameters.primaryPathMotionParameters.x : 0.0);
+  const vec3 rightBasis = normalize(lookAtMotion ? basis.right : parameters.primaryPathRight.xyz);
+  const vec3 upBasis = normalize(lookAtMotion ? basis.down : parameters.primaryPathDown.xyz);
+  const vec3 focalForward =
+    normalize(lookAtMotion ? basis.forward : parameters.primaryPathForward.xyz);
+  const vec3 worldPixelPoint =
+    lookAtMotion ? primaryPathRectilinearWorldPoint(
+                     basis, parameters.primaryPathMotionParameters.x, pixelPoint.xyz)
+                 : pixelPoint.xyz;
   const vec3 shiftedPixelPoint =
-    pixelPoint.xyz + rightBasis * parameters.primaryPathLensParameters.y +
+    worldPixelPoint + rightBasis * parameters.primaryPathLensParameters.y +
     upBasis * parameters.primaryPathLensParameters.z;
-  const vec4 origin =
-    parameters.primaryPathOrigin + parameters.primaryPathMotionOriginDelta * timeSample;
+  const vec4 origin = vec4(basis.origin, 1.0);
   const vec3 pinholeDirection = normalize(shiftedPixelPoint - origin.xyz);
   const float tilt = parameters.primaryPathLensParameters.w;
   const vec3 tiltedNormal =
@@ -957,8 +982,13 @@ GpuDiffusePathStateRecord makeTiltShiftPrimaryPath(uint pathIndex) {
     const float numerator = parameters.primaryPathLensParameters.x * dot(focalForward, tiltedNormal);
     focalPoint = origin.xyz + pinholeDirection * (numerator / denominator);
   }
-  const vec4 lensOrigin = origin + parameters.primaryPathLensRight * lensSample.x +
-                          parameters.primaryPathLensUp * lensSample.y;
+  const vec4 lensRight = lookAtMotion
+                           ? vec4(basis.right * length(parameters.primaryPathLensRight.xyz), 0.0)
+                           : parameters.primaryPathLensRight;
+  const vec4 lensUp = lookAtMotion
+                        ? vec4(basis.down * length(parameters.primaryPathLensUp.xyz), 0.0)
+                        : parameters.primaryPathLensUp;
+  const vec4 lensOrigin = origin + lensRight * lensSample.x + lensUp * lensSample.y;
   const vec3 rayDirection = valid ? normalize(focalPoint - lensOrigin.xyz) : focalForward;
 
   GpuDiffusePathStateRecord path;

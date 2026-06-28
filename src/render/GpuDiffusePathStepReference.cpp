@@ -190,11 +190,11 @@ namespace {
   };
 
   std::optional<PrimaryPathBasis>
-  panoramicBasisAt(const GpuRectilinearPrimaryPathDescriptor& descriptor,
-                   const Vector3d& originOrDirection, const Vector3d& motionOriginDelta,
-                   const Vector3d& motionTarget, const Vector3d& motionTargetDelta,
-                   const Vector3d& right, const Vector3d& down, const Vector3d& forward,
-                   double timeSample, double originOffset) {
+  primaryPathBasisAt(const GpuRectilinearPrimaryPathDescriptor& descriptor,
+                     const Vector3d& originOrDirection, const Vector3d& motionOriginDelta,
+                     const Vector3d& motionTarget, const Vector3d& motionTargetDelta,
+                     const Vector3d& right, const Vector3d& down, const Vector3d& forward,
+                     double timeSample, double originOffset) {
     if (descriptor.motionMode != gpuPrimaryPathMotionModeLookAt) {
       return PrimaryPathBasis{originOrDirection + motionOriginDelta * timeSample, right, down,
                               forward};
@@ -213,6 +213,12 @@ namespace {
       return std::nullopt;
     }
     return basis;
+  }
+
+  Vector3d rectilinearWorldPoint(const PrimaryPathBasis& basis, double cameraDistance,
+                                 const Vector3d& localPoint) {
+    return basis.origin + basis.forward * cameraDistance + basis.right * localPoint.x() +
+           basis.down * localPoint.y() + basis.forward * localPoint.z();
   }
 
   GpuDiffusePathStateRecord makePrimaryPathState(const Rayd& ray, std::uint32_t rayIndex,
@@ -325,10 +331,23 @@ namespace {
             }
             ray = Rayd(rayOrigin, (pixelPoint - rayOrigin).normalized());
           } else if (mode == gpuPrimaryPathGenerationModeThinLens) {
-            const Vector3d focalForward = forward.normalized();
+            const bool lookAtMotion = descriptor.motionMode == gpuPrimaryPathMotionModeLookAt;
+            const std::optional<PrimaryPathBasis> basis =
+              primaryPathBasisAt(descriptor, originOrDirection, motionOriginDelta, motionTarget,
+                                 motionTargetDelta, right, down, forward, timeSample,
+                                 lookAtMotion ? descriptor.motionParameters[0] : 0.0);
+            if (!basis) {
+              ++result.skippedPrimarySamples;
+              continue;
+            }
+            const Vector3d focalForward = (lookAtMotion ? basis->forward : forward).normalized();
             const double focalPlaneDistance = descriptor.lensParameters[0];
-            const Vector3d origin = originOrDirection + motionOriginDelta * timeSample;
-            const Vector3d pinholeDirection = (pixelPoint - origin).normalized();
+            const Vector3d origin = basis->origin;
+            const Vector3d worldPixelPoint =
+              lookAtMotion
+                ? rectilinearWorldPoint(*basis, descriptor.motionParameters[0], pixelPoint)
+                : pixelPoint;
+            const Vector3d pinholeDirection = (worldPixelPoint - origin).normalized();
             const double denominator = pinholeDirection * focalForward;
             if (!pinholeDirection.isDefined() || !focalForward.isDefined() ||
                 std::abs(denominator) <= std::numeric_limits<double>::epsilon()) {
@@ -340,19 +359,37 @@ namespace {
                                         /*dimension=*/2u));
             const Vector3d focalPoint =
               origin + pinholeDirection * (focalPlaneDistance / denominator);
+            const double apertureRadius = lensRight.length();
+            const Vector3d effectiveLensRight =
+              lookAtMotion ? basis->right * apertureRadius : lensRight;
+            const Vector3d effectiveLensUp = lookAtMotion ? basis->down * apertureRadius : lensUp;
             const Vector3d lensOrigin =
-              origin + lensRight * lensSample.x() + lensUp * lensSample.y();
+              origin + effectiveLensRight * lensSample.x() + effectiveLensUp * lensSample.y();
             ray = Rayd(lensOrigin, (focalPoint - lensOrigin).normalized());
           } else if (mode == gpuPrimaryPathGenerationModeTiltShift) {
-            const Vector3d focalForward = forward.normalized();
-            const Vector3d rightBasis = right.normalized();
-            const Vector3d upBasis = down.normalized();
+            const bool lookAtMotion = descriptor.motionMode == gpuPrimaryPathMotionModeLookAt;
+            const std::optional<PrimaryPathBasis> basis =
+              primaryPathBasisAt(descriptor, originOrDirection, motionOriginDelta, motionTarget,
+                                 motionTargetDelta, right, down, forward, timeSample,
+                                 lookAtMotion ? descriptor.motionParameters[0] : 0.0);
+            if (!basis) {
+              ++result.skippedPrimarySamples;
+              continue;
+            }
+            const Vector3d focalForward = (lookAtMotion ? basis->forward : forward).normalized();
+            const Vector3d rightBasis = (lookAtMotion ? basis->right : right).normalized();
+            const Vector3d upBasis = (lookAtMotion ? basis->down : down).normalized();
             const double focalPlaneDistance = descriptor.lensParameters[0];
             const double shiftX = descriptor.lensParameters[1];
             const double shiftY = descriptor.lensParameters[2];
             const double tiltRadians = descriptor.lensParameters[3];
-            const Vector3d shiftedPixelPoint = pixelPoint + rightBasis * shiftX + upBasis * shiftY;
-            const Vector3d origin = originOrDirection + motionOriginDelta * timeSample;
+            const Vector3d worldPixelPoint =
+              lookAtMotion
+                ? rectilinearWorldPoint(*basis, descriptor.motionParameters[0], pixelPoint)
+                : pixelPoint;
+            const Vector3d shiftedPixelPoint =
+              worldPixelPoint + rightBasis * shiftX + upBasis * shiftY;
+            const Vector3d origin = basis->origin;
             const Vector3d pinholeDirection = (shiftedPixelPoint - origin).normalized();
             const Vector3d tiltedNormal = focalForward * std::cos(tiltRadians) +
                                           (rightBasis ^ focalForward) * std::sin(tiltRadians);
@@ -369,8 +406,12 @@ namespace {
             const Vector3d focalPoint =
               origin +
               pinholeDirection * (focalPlaneDistance * (focalForward * tiltedNormal) / denominator);
+            const double apertureRadius = lensRight.length();
+            const Vector3d effectiveLensRight =
+              lookAtMotion ? basis->right * apertureRadius : lensRight;
+            const Vector3d effectiveLensUp = lookAtMotion ? basis->down * apertureRadius : lensUp;
             const Vector3d lensOrigin =
-              origin + lensRight * lensSample.x() + lensUp * lensSample.y();
+              origin + effectiveLensRight * lensSample.x() + effectiveLensUp * lensSample.y();
             ray = Rayd(lensOrigin, (focalPoint - lensOrigin).normalized());
           } else if (mode == gpuPrimaryPathGenerationModeEquirectangular) {
             const double viewWidth = descriptor.lensParameters[0];
@@ -386,9 +427,9 @@ namespace {
             const double cosLat = std::cos(lat);
             const Vector3d local(cosLat * std::sin(lon), -std::sin(lat), cosLat * std::cos(lon));
             const std::optional<PrimaryPathBasis> basis =
-              panoramicBasisAt(descriptor, originOrDirection, motionOriginDelta, motionTarget,
-                               motionTargetDelta, right, down, forward, timeSample,
-                               /*originOffset=*/0.0);
+              primaryPathBasisAt(descriptor, originOrDirection, motionOriginDelta, motionTarget,
+                                 motionTargetDelta, right, down, forward, timeSample,
+                                 /*originOffset=*/0.0);
             if (!basis) {
               ++result.skippedPrimarySamples;
               continue;
@@ -418,7 +459,7 @@ namespace {
             const double sinTheta = std::sin(theta);
             const double cosTheta = std::cos(theta);
             const Vector3d local(sinTheta * sinPhi, cosTheta, sinTheta * cosPhi);
-            const std::optional<PrimaryPathBasis> basis = panoramicBasisAt(
+            const std::optional<PrimaryPathBasis> basis = primaryPathBasisAt(
               descriptor, originOrDirection, motionOriginDelta, motionTarget, motionTargetDelta,
               right, down, forward, timeSample, descriptor.motionParameters[0]);
             if (!basis) {
@@ -452,9 +493,9 @@ namespace {
             const double cosAlpha = point.x() / r;
             const Vector3d local(sinPsi * cosAlpha, sinPsi * sinAlpha, cosPsi);
             const std::optional<PrimaryPathBasis> basis =
-              panoramicBasisAt(descriptor, originOrDirection, motionOriginDelta, motionTarget,
-                               motionTargetDelta, right, down, forward, timeSample,
-                               /*originOffset=*/0.0);
+              primaryPathBasisAt(descriptor, originOrDirection, motionOriginDelta, motionTarget,
+                                 motionTargetDelta, right, down, forward, timeSample,
+                                 /*originOffset=*/0.0);
             if (!basis) {
               ++result.skippedPrimarySamples;
               continue;

@@ -18,6 +18,22 @@
 using namespace render;
 
 namespace {
+  struct ThinLensDescriptorMotion {
+    std::uint32_t motionMode{gpuPrimaryPathMotionModeOriginDelta};
+    Matrix4d matrixAtOpen;
+    Vector3d originOrPosition;
+    Vector3d motionOriginOrPositionDelta{Vector3d::null};
+    Vector3d target{Vector3d::null};
+    Vector3d targetDelta{Vector3d::null};
+
+    [[nodiscard]] Matrix4d planeMatrix() const {
+      if (motionMode == gpuPrimaryPathMotionModeLookAt) {
+        return Matrix4d();
+      }
+      return matrixAtOpen;
+    }
+  };
+
   // Concentric mapping from a square sample to the unit disc (Shirley
   // 1997, "A Low Distortion Map Between Disk and Square"). Takes a 2D
   // sample in [-1, 1]² and returns a uniformly distributed point on
@@ -59,6 +75,10 @@ namespace {
   std::array<float, 4> parameters4(double x, double y, double z = 0.0, double w = 0.0) {
     return {static_cast<float>(x), static_cast<float>(y), static_cast<float>(z),
             static_cast<float>(w)};
+  }
+
+  Vector3d eyeOriginForMatrix(const Matrix4d& matrix, double distance) {
+    return matrix.transformPoint(Vector3d(0.0, 0.0, -distance));
   }
 }
 
@@ -215,17 +235,33 @@ ThinLensCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sample
       animationTrack("focalDistance")) {
     return std::nullopt;
   }
-  std::optional<Matrix4d> descriptorMatrix = fixedShutterGpuCameraMatrix();
-  Vector3d motionOriginDelta = Vector3d::null;
-  if (!descriptorMatrix) {
-    const std::optional<detail::SampledShutterDescriptorMotion> motion =
-      detail::sampledStableBasisShutterMotion(*this);
-    if (!motion) {
-      return std::nullopt;
+  std::optional<ThinLensDescriptorMotion> motion;
+  if (const std::optional<Matrix4d> descriptorMatrix = fixedShutterGpuCameraMatrix()) {
+    motion = ThinLensDescriptorMotion{gpuPrimaryPathMotionModeOriginDelta, *descriptorMatrix,
+                                      eyeOriginForMatrix(*descriptorMatrix, m_distance)};
+  } else {
+    if (const std::optional<detail::SampledShutterDescriptorMotion> stableMotion =
+          detail::sampledStableBasisShutterMotion(*this);
+        stableMotion) {
+      motion =
+        ThinLensDescriptorMotion{gpuPrimaryPathMotionModeOriginDelta, stableMotion->matrixAtOpen,
+                                 eyeOriginForMatrix(stableMotion->matrixAtOpen, m_distance),
+                                 eyeOriginForMatrix(stableMotion->matrixAtClose, m_distance) -
+                                   eyeOriginForMatrix(stableMotion->matrixAtOpen, m_distance)};
+    } else if (const std::optional<detail::SampledShutterLookAtDescriptorMotion> lookAtMotion =
+                 detail::sampledLookAtShutterMotion(*this);
+               lookAtMotion) {
+      motion = ThinLensDescriptorMotion{
+        gpuPrimaryPathMotionModeLookAt,
+        Matrix4d::lookAt(lookAtMotion->positionAtOpen, lookAtMotion->targetAtOpen, Vector3d::up()),
+        lookAtMotion->positionAtOpen,
+        lookAtMotion->positionDelta(),
+        lookAtMotion->targetAtOpen,
+        lookAtMotion->targetDelta()};
     }
-    descriptorMatrix = motion->matrixAtOpen;
-    motionOriginDelta = motion->matrixAtClose.transformPoint(Vector3d(0.0, 0.0, -m_distance)) -
-                        motion->matrixAtOpen.transformPoint(Vector3d(0.0, 0.0, -m_distance));
+  }
+  if (!motion) {
+    return std::nullopt;
   }
 
   const Recti actual = renderableRect(rect);
@@ -243,18 +279,21 @@ ThinLensCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sample
   }
   (void)checkedU32(pathCount, "GPU thin-lens primary path count");
 
-  const Vector3d eye = *descriptorMatrix * Vector4d(0, 0, -m_distance);
-  const Vector3d forward = descriptorMatrix->transformDirection(Vector3d(0, 0, 1)).normalized();
-  const Vector3d right = descriptorMatrix->transformDirection(Vector3d(1, 0, 0));
-  const Vector3d up = descriptorMatrix->transformDirection(Vector3d(0, 1, 0));
+  const Vector3d forward = motion->matrixAtOpen.transformDirection(Vector3d(0, 0, 1)).normalized();
+  const Vector3d right = motion->matrixAtOpen.transformDirection(Vector3d(1, 0, 0));
+  const Vector3d up = motion->matrixAtOpen.transformDirection(Vector3d(0, 1, 0));
 
   auto descriptorPlane = plane->clone();
-  descriptorPlane->setup(*descriptorMatrix, plane->window());
+  descriptorPlane->setup(motion->planeMatrix(), plane->window());
 
   GpuPrimaryPathDescriptor descriptor;
   descriptor.mode = gpuPrimaryPathGenerationModeThinLens;
-  descriptor.rectilinear.originOrDirection = vector4(eye, 1.0f);
-  descriptor.rectilinear.motionOriginDelta = vector4(motionOriginDelta, 0.0f);
+  descriptor.rectilinear.motionMode = motion->motionMode;
+  descriptor.rectilinear.originOrDirection = vector4(motion->originOrPosition, 1.0f);
+  descriptor.rectilinear.motionOriginDelta = vector4(motion->motionOriginOrPositionDelta, 0.0f);
+  descriptor.rectilinear.motionTarget = vector4(motion->target, 1.0f);
+  descriptor.rectilinear.motionTargetDelta = vector4(motion->targetDelta, 0.0f);
+  descriptor.rectilinear.motionParameters = parameters4(m_distance, m_apertureRadius);
   descriptor.rectilinear.topLeft = vector4(descriptorPlane->pixelAt(0.0, 0.0), 1.0f);
   descriptor.rectilinear.right =
     vector4(descriptorPlane->pixelAt(1.0, 0.0) - descriptorPlane->pixelAt(0.0, 0.0), 0.0f);

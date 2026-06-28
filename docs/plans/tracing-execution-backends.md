@@ -241,14 +241,11 @@ end state for GPU tracing.
   materialization for trace-disabled full-GPU graph launches and platform
   kernels dispatch those descriptor-only launches by descriptor path count.
   Fixed-shutter animated poses for those descriptor-backed camera models are
-  also descriptor-backed, pinhole sampled-shutter animation can carry linear
-  position/target look-at motion, orthographic sampled-shutter animation can
-  carry linear translation or look-at motion, thin-lens and tilt-shift
-  sampled-shutter animation can carry stable linear rig translation, and
+  also descriptor-backed, and pinhole, orthographic, thin-lens, tilt-shift,
   equirectangular, spherical, and fish-eye sampled-shutter animation can carry
-  linear rig translation or linear look-at motion. Other camera models without
-  descriptors, non-stable sampled-shutter animated camera motion for thin-lens
-  and tilt-shift camera models, later path-continuation records, and retained
+  linear translation or linear look-at motion. Other camera models without
+  descriptors, sampled-shutter camera motion that needs nonlinear interpolation
+  or interior shutter keys, later path-continuation records, and retained
   frontier ownership still need broader platform path-state support.
 - A higher-level backend abstraction for selecting compacted wavefront versus
   megakernel schedules per platform. Metal/Vulkan now share the path-loop
@@ -2798,10 +2795,11 @@ scene is large enough to amortize upload/readback costs.
      lens-origin, or orthographic ray-plane motion delta. Pinhole and
      orthographic rigs whose linear in-shutter motion changes the view
      direction now carry look-at motion state so shader-side primary generation
-     can reconstruct the same ray origin or ray plane as the scalar camera
-     path, and equirectangular, spherical, and fish-eye rigs now do the same for
-     per-sample panoramic basis reconstruction; general sampled shutter camera
-     motion for other camera models still falls back to host primary generation
+     can reconstruct the same ray origin, ray plane, or lens-camera basis as
+     the scalar camera path, and equirectangular, spherical, and fish-eye rigs
+     now do the same for per-sample panoramic basis reconstruction; general
+     sampled shutter camera motion for other camera models still falls back to
+     host primary generation
      until their descriptors carry camera transforms as a function of shutter
      time.
      The compiled path loop also
