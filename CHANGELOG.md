@@ -705,6 +705,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- Increase the automatic full-GPU path-tracer sample chunk budget so normal
+  640x480 high-sample renders use far fewer platform launches while staying
+  bounded. — GPT-5 Codex
 - Use shader-side any-hit traversal for Metal/Vulkan full-GPU path-tracer
   direct-light visibility so shadow rays can stop at the first occluder instead
   of resolving a full closest-hit record. — GPT-5 Codex

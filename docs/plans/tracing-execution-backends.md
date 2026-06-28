@@ -124,7 +124,9 @@ end state for GPU tracing.
   auto chunking has a smaller fallback unit than "one full-resolution sample";
   the automatic tile budget also scales down with path depth and direct-light
   samples so long-running interactive renders do not submit one oversized GPU
-  command before progress and cancellation can run.
+  command before progress and cancellation can run. The budget is still large
+  enough that normal high-sample 640x480 renders avoid thousands of tiny
+  platform launches.
   Render intent, rendercli, and the modeler final render dialog can request the
   sample chunk size explicitly for graph-backed GPU path-tracer runs. A
   requested chunk size of `0` now means backend auto-sizing: small
