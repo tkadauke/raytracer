@@ -323,9 +323,11 @@ end state for GPU tracing.
   treated as an upper bound when a smaller chunk is needed to avoid a monolithic
   path-state allocation. Per-pixel denoiser feature records are merged across
   chunks so bilateral denoiser feature capture does not disable this sample
-  chunking path. The live render loop does not yet schedule separate
-  progressive chunks across frames or retain platform accumulation across
-  render calls.
+  chunking path. Oversized graph-trace diagnostic captures now fall back before
+  the compiled loop materializes a giant host path-state/path-step record set;
+  trace-disabled display renders remain on the bounded chunked GPU path. The
+  live render loop does not yet schedule separate progressive chunks across
+  frames or retain platform accumulation across render calls.
 - Unrestricted platform GPU path-tracing loop.
 - Full platform GPU Whitted loop.
 - Hardware ray tracing backends.

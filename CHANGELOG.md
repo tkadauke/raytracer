@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Fall back before dispatch when graph-trace diagnostics for a compiled
+  full-GPU path-tracer render would materialize an oversized path-state/path-step
+  record set. — GPT-5 Codex
 - Split large descriptor-backed full-GPU path-tracer launches by pixel tiles as
   well as primary-sample ranges so interactive Metal/Vulkan renders avoid
   oversized single-sample command buffers. — GPT-5 Codex

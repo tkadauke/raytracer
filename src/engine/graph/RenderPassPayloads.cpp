@@ -1085,6 +1085,49 @@ namespace engine::graph {
       return state.compiledDiffusePathLoopFallbackReason();
     }
 
+    constexpr std::uint64_t kCompiledPathLoopDiagnosticPathStepBudget = 1024ull * 1024ull;
+
+    std::optional<std::string> compiledPathLoopDiagnosticCaptureFallbackReason(
+      const render::Camera& camera, const Recti& targetRect,
+      const std::optional<int>& samplesPerPixel,
+      const render::GpuDiffusePathLoopSettings& settings) {
+      if (!settings.captureDiagnostics) {
+        return std::nullopt;
+      }
+
+      const Recti actualRect = camera.renderableRect(targetRect);
+      if (actualRect.width() <= 0 || actualRect.height() <= 0) {
+        return std::nullopt;
+      }
+
+      const std::uint64_t pixelCount = static_cast<std::uint64_t>(actualRect.width()) *
+                                       static_cast<std::uint64_t>(actualRect.height());
+      const std::uint64_t sampleCount =
+        static_cast<std::uint64_t>(std::max(1, samplesPerPixel.value_or(camera.samplesPerPixel())));
+      const std::uint64_t primaryPathCount = pixelCount * sampleCount;
+      if (pixelCount != 0u && primaryPathCount / pixelCount != sampleCount) {
+        return "compiled diffuse path loop diagnostic capture would exceed host path-state range";
+      }
+      if (settings.maxDepth != 0u &&
+          primaryPathCount > std::numeric_limits<std::uint64_t>::max() /
+                               static_cast<std::uint64_t>(settings.maxDepth)) {
+        return "compiled diffuse path loop diagnostic capture would exceed host path-step range";
+      }
+
+      const std::uint64_t pathStepSlots =
+        primaryPathCount * static_cast<std::uint64_t>(settings.maxDepth);
+      if (pathStepSlots <= kCompiledPathLoopDiagnosticPathStepBudget) {
+        return std::nullopt;
+      }
+
+      std::ostringstream message;
+      message << "compiled diffuse path loop diagnostic capture would materialize "
+              << primaryPathCount << " primary path state(s) and " << pathStepSlots
+              << " path-step record slot(s); use a smaller traced render or disable graph trace "
+                 "for the full-GPU display path";
+      return message.str();
+    }
+
     void applyGraphBackgroundColorOverride(render::GpuTracingSceneCompilation& compilation,
                                            const GraphRenderEngine& graph) {
       if (!graph.hasBackgroundColorOverride() || compilation.sections.environment.empty()) {
@@ -1371,6 +1414,11 @@ namespace engine::graph {
         settings.captureDiagnostics = context.graph().executionTraceEnabled();
         settings.captureDenoiserFeatures = denoiserFeatureRequest.any();
         settings.displayResolveTonemap = platformDisplayResolveTonemap(wavefront.tonemap());
+        if (const auto reason = compiledPathLoopDiagnosticCaptureFallbackReason(
+              *camera, targetRect, state.samplesPerPixel(), settings)) {
+          fallbackReason = *reason;
+          return false;
+        }
         const bool wantsPlatformDisplayResolve =
           displayTarget && context.displayTargetDirectlyPublishable() && !denoiser &&
           !settings.captureDiagnostics && supportsPlatformDisplayResolve(wavefront.tonemap());
