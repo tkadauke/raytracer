@@ -18,9 +18,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   and publish progress snapshots even when later graph passes still need to run,
   avoiding oversized Metal/Vulkan path-loop launches from the render dialog. —
   GPT-5 Codex
-- Cap live-progress full-GPU path-tracer chunks at 8k primary paths so
-  high-sample, high-depth render-dialog runs do not submit long-running
-  Metal/Vulkan path-loop launches before the first progress image appears. —
+- Cap live-progress full-GPU path-tracer chunks with a depth-scaled 64k primary
+  path ceiling so high-sample, high-depth render-dialog runs avoid both
+  monolithic launches and thousands of tiny Metal/Vulkan command buffers. —
   GPT-5 Codex
 - Honor path-tracer convergence settings in the compiled diffuse path-loop
   CPU-reference route and report convergence stop metadata, while platform
@@ -509,9 +509,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Keep render-dialog full-GPU path-tracer Auto chunking from exploding into
   thousands of tiny Metal/Vulkan path-loop launches at common high-sample
   settings, avoiding black renders and driver instability. — GPT-5 Codex
-- Bound interactive full-GPU path-tracer Auto chunking to an 8K primary-path
-  per-launch cap so render-dialog `GPU sample stream` renders avoid long
-  Metal/Vulkan command buffers under high-sample final renders. — GPT-5 Codex
+- Bound interactive full-GPU path-tracer Auto chunking to a depth-scaled 64K
+  primary-path per-launch ceiling so render-dialog `GPU sample stream` renders
+  avoid both long command buffers and launch-count explosions under high-sample
+  final renders. — GPT-5 Codex
 - Make overlapping `ClosedSolidUnion` primitives fall back from the compiled
   GPU intersection scene instead of flattening their children and losing closed
   CSG interval semantics. — GPT-5 Codex

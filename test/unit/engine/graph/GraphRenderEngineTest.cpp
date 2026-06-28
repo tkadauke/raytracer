@@ -3233,9 +3233,9 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ(0u, pathLoopBackend->lastPrimarySampleChunkSize());
     EXPECT_TRUE(pathLoopBackend->lastChunkProgressObserverInstalled());
     // 640x480, 64 spp, depth 10 is the render-dialog stress case. Interactive
-    // full-GPU display launches are hard-capped at 8k primary paths, producing
-    // 40 vertical tiles per sample.
-    EXPECT_EQ(2560u, pathLoopBackend->lastChunkProgressCallbacks());
+    // full-GPU display launches are capped at 64k primary paths after depth
+    // scaling, producing 5 vertical tiles per sample.
+    EXPECT_EQ(320u, pathLoopBackend->lastChunkProgressCallbacks());
     EXPECT_EQ(65u, pathLoopBackend->lastResolvedDisplayReadbacks());
     EXPECT_EQ(static_cast<std::size_t>(width * height),
               pathLoopBackend->lastChunkProgressDisplayPixelCount());
