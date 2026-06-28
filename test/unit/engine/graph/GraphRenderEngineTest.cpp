@@ -39,12 +39,14 @@
 #include <cmath>
 #include <condition_variable>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <set>
 #include <stdexcept>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 
 namespace GraphRenderEngineTest {
@@ -240,7 +242,16 @@ namespace GraphRenderEngineTest {
       m_lastChunkProgressObserverInstalled = static_cast<bool>(settings.chunkProgressObserver);
       m_lastChunkProgressCallbacks = 0;
       m_lastChunkProgressDisplayPixelCount = 0;
+      m_lastCancellationCallbackInstalled = static_cast<bool>(settings.cancellationCallback);
+      m_lastCancellationCallbackObservedCancel = false;
       m_lastPrimaryHostPathStateCount = initialPathStates.size();
+      if (m_onRun) {
+        m_onRun();
+      }
+      if (settings.cancellationCallback && settings.cancellationCallback()) {
+        m_lastCancellationCallbackObservedCancel = true;
+        throw std::runtime_error("test full GPU path loop cancelled");
+      }
       render::GpuDiffusePathLoopResult result =
         render::CpuReferenceGpuDiffusePathLoopBackend::sharedInstance()->run(
           scene, initialPathStates, settings);
@@ -328,6 +339,14 @@ namespace GraphRenderEngineTest {
       return m_lastChunkProgressObserverInstalled;
     }
 
+    bool lastCancellationCallbackInstalled() const {
+      return m_lastCancellationCallbackInstalled;
+    }
+
+    bool lastCancellationCallbackObservedCancel() const {
+      return m_lastCancellationCallbackObservedCancel;
+    }
+
     std::uint64_t lastChunkProgressCallbacks() const {
       return m_lastChunkProgressCallbacks;
     }
@@ -360,6 +379,10 @@ namespace GraphRenderEngineTest {
       return Colord(0.75, 0.5, 0.25).rgb();
     }
 
+    void setOnRun(std::function<void()> onRun) {
+      m_onRun = std::move(onRun);
+    }
+
   private:
     mutable bool m_hasLastCaptureDiagnostics{false};
     mutable bool m_lastCaptureDiagnostics{false};
@@ -373,10 +396,13 @@ namespace GraphRenderEngineTest {
     mutable bool m_lastChunkProgressObserverInstalled{false};
     mutable std::uint64_t m_lastChunkProgressCallbacks{0};
     mutable std::size_t m_lastChunkProgressDisplayPixelCount{0};
+    mutable bool m_lastCancellationCallbackInstalled{false};
+    mutable bool m_lastCancellationCallbackObservedCancel{false};
     mutable bool m_hasLastPrimaryGeneration{false};
     mutable std::size_t m_lastPrimaryHostPathStateCount{0};
     mutable std::uint64_t m_lastPrimaryGeneratedSamples{0};
     mutable bool m_lastPrimaryGeneratesOnDevice{false};
+    std::function<void()> m_onRun;
   };
 
   class ReportingMetalFrontierCompactionBackend final
@@ -2933,6 +2959,50 @@ namespace GraphRenderEngineTest {
         EXPECT_EQ(ReportingFullGpuDiffusePathLoopBackend::resolvedDisplaySentinel(), buffer[y][x]);
       }
     }
+  }
+
+  TEST(GraphRenderEngine, WiresCancellationIntoCompiledGpuPathLoop) {
+    const Colord background(0.125, 0.25, 0.5);
+    auto scene = std::make_shared<render::Scene>();
+    scene->setBackground(background);
+    scene->setEnvironmentRadiance(background);
+    auto receiver = std::make_shared<render::Rectangle>(
+      Vector3d(-20.0, -20.0, 0.0), Vector3d(40.0, 0.0, 0.0), Vector3d(0.0, 40.0, 0.0));
+    receiver->setMaterial(matte(Colord(0.8, 0.8, 0.8)));
+    scene->add(receiver);
+    scene->addLight(
+      std::make_shared<render::PointLight>(Vector3d(0.0, 0.0, -3.0), Colord(0.5, 0.5, 0.5)));
+
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Wavefront;
+    intent.engineOptions.raytracer().setIntegrator("pathtracer");
+    intent.engineOptions.raytracer().setTracingExecution(TracingExecutionPreference::GPU);
+    intent.engineOptions.raytracer().setSamplesPerPixel(4);
+    intent.engineOptions.raytracer().setMaximumRecursionDepth(2);
+    intent.engineOptions.raytracer().setDirectLightSamples(1);
+    intent.engineOptions.raytracer().setGpuPrimarySampleChunkSize(1);
+    intent.engineOptions.raytracer().setSampleStreamMode("gpu_sample_stream");
+
+    RenderSceneAnalysis analysis;
+    analysis.setFullGpuTracingSupportFromScene(*scene);
+    const RenderPlan plan = RenderGraphCompiler().compile({8, 8, 1}, intent, analysis);
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setPlan(plan);
+    auto pathLoopBackend = std::make_shared<ReportingFullGpuDiffusePathLoopBackend>();
+    pathLoopBackend->setOnRun([&engine] { engine.cancel(); });
+    engine.setGpuDiffusePathLoopBackend(pathLoopBackend);
+
+    Buffer<unsigned int> buffer(8, 8);
+    try {
+      engine.render(buffer);
+      FAIL() << "expected render cancellation";
+    } catch (const std::runtime_error& error) {
+      EXPECT_NE(std::string(error.what()).find("cancelled"), std::string::npos);
+    }
+
+    EXPECT_TRUE(pathLoopBackend->lastCancellationCallbackInstalled());
+    EXPECT_TRUE(pathLoopBackend->lastCancellationCallbackObservedCancel());
   }
 
   TEST(GraphRenderEngine, UsesDescriptorOnlyDisplayResolveForFixedShutterAnimatedPinholeCamera) {

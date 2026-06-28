@@ -303,9 +303,10 @@ end state for GPU tracing.
   chunking can run contiguous chunks into retained Metal/Vulkan platform
   accumulation inside one backend render call, and trace-disabled graph renders
   can surface intermediate chunk display resolves into directly publishable
-  display buffers during that call. The live render loop does not yet schedule
-  separate progressive chunks across frames or retain platform accumulation
-  across render calls.
+  display buffers during that call while honoring live graph cancellation
+  between chunks. The live render loop does not yet schedule separate
+  progressive chunks across frames or retain platform accumulation across
+  render calls.
 - Unrestricted platform GPU path-tracing loop.
 - Full platform GPU Whitted loop.
 - Hardware ray tracing backends.
@@ -2922,7 +2923,10 @@ scene is large enough to amortize upload/readback costs.
      eligibility path. Trace-disabled graph renders that use descriptor-backed
      primary sample chunking now install a path-loop chunk progress observer,
      allowing Metal/Vulkan backends to publish intermediate GPU-resolved display
-     pixels into the live display buffer before the final chunk completes.
+     pixels into the live display buffer before the final chunk completes. The
+     same compiled pass now passes a live graph cancellation callback into the
+     path-loop settings so CPU-reference, Metal, and Vulkan path-loop backends
+     can stop between CPU depths or GPU sample chunks.
 
 5. **Add parity and performance gates.**
    - Depends on: jobs 2, 3, and 4.

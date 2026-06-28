@@ -1344,6 +1344,9 @@ namespace engine::graph {
           static_cast<std::uint32_t>(std::max(1, state.directLightSamples().value_or(1)));
         settings.primarySampleChunkSize =
           static_cast<std::uint32_t>(std::max(0, state.gpuPrimarySampleChunkSize().value_or(0)));
+        settings.cancellationCallback = [&graph = context.graph()] {
+          return graph.cancellationRequested();
+        };
         settings.captureMetrics = context.graph().executionTraceEnabled();
         const render::Denoiser* denoiser = wavefront.denoiser();
         const render::DenoiserFeatureRequest denoiserFeatureRequest =

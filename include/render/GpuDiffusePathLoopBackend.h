@@ -68,6 +68,8 @@ namespace render {
     const GpuDiffusePrimaryPathStateGeneration& fullPrimaryPathGeneration,
     const GpuDiffusePrimaryPathSampleChunk& chunk,
     const GpuDiffusePathLoopPlatformResult& chunkResult);
+  [[nodiscard]] bool gpuDiffusePathLoopCancelled(const GpuDiffusePathLoopSettings& settings);
+  void throwIfGpuDiffusePathLoopCancelled(const GpuDiffusePathLoopSettings& settings);
   [[nodiscard]] GpuDiffusePathLoopPlatformAccumulationPlan
   platformGpuDiffusePathLoopAccumulationPlanFor(
     const std::vector<GpuDiffusePathStateRecord>& pathStates, const char* backendDisplayName);

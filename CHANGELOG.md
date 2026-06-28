@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Let compiled full-GPU diffuse path-loop backends observe live graph
+  cancellation between CPU-reference depths or Metal/Vulkan sample chunks so
+  interactive graph-backed path-tracer renders can stop promptly. —
+  GPT-5 Codex
 - Publish intermediate Metal/Vulkan path-loop display resolves into graph-backed
   render buffers when trace-disabled full-GPU path tracing runs descriptor-backed
   primary sample chunks. — GPT-5 Codex

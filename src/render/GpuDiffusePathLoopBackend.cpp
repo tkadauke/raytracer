@@ -561,6 +561,16 @@ namespace render {
     settings.chunkProgressObserver(progress);
   }
 
+  bool gpuDiffusePathLoopCancelled(const GpuDiffusePathLoopSettings& settings) {
+    return settings.cancellationCallback && settings.cancellationCallback();
+  }
+
+  void throwIfGpuDiffusePathLoopCancelled(const GpuDiffusePathLoopSettings& settings) {
+    if (gpuDiffusePathLoopCancelled(settings)) {
+      throw std::runtime_error("GPU diffuse path-loop cancelled");
+    }
+  }
+
   GpuDiffusePathLoopBackendChoice selectFullGpuDiffusePathLoopBackend(
     const std::vector<std::shared_ptr<const GpuDiffusePathLoopBackend>>& backends,
     const GpuTracingSceneSections& scene, const GpuDiffusePathLoopSettings& settings) {

@@ -1993,6 +1993,13 @@ GpuDiffusePathLoop::run(const GpuTracingSceneSections& scene,
                         const std::vector<GpuDiffusePathStateRecord>& initialPathStates,
                         const GpuDiffusePathLoopSettings& settings,
                         const GpuDiffusePathFrontierCompactionBackend& compactionBackend) const {
+  auto throwIfCancelled = [&settings]() {
+    if (settings.cancellationCallback && settings.cancellationCallback()) {
+      throw std::runtime_error("GPU diffuse path-loop cancelled");
+    }
+  };
+  throwIfCancelled();
+
   GpuDiffusePathLoopResult result;
   result.initialPathCount = initialPathStates.size();
   result.denoiserFeatureRecordsCaptured = true;
@@ -2019,8 +2026,10 @@ GpuDiffusePathLoop::run(const GpuTracingSceneSections& scene,
 
   GpuDiffusePathStep stepper;
   while (!active.empty()) {
+    throwIfCancelled();
     result.activePathsPerDepth.push_back(active.size());
     const GpuDiffusePathStepResult step = stepper.step(scene, active, settings);
+    throwIfCancelled();
     ++result.depthCount;
     result.metrics.merge(step.metrics);
     result.stepRecords.insert(result.stepRecords.end(), step.stepRecords.begin(),

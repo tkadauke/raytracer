@@ -119,6 +119,7 @@ namespace render {
 
   using GpuDiffusePathLoopChunkProgressObserver =
     std::function<void(const GpuDiffusePathLoopChunkProgress&)>;
+  using GpuDiffusePathLoopCancellationCallback = std::function<bool()>;
 
   struct GpuDiffusePathLoopSettings {
     std::uint32_t maxDepth{8};
@@ -132,6 +133,7 @@ namespace render {
     GpuDisplayResolveTonemap displayResolveTonemap{GpuDisplayResolveTonemap::Linear};
     std::uint32_t primarySampleChunkSize{0};
     GpuDiffusePathLoopChunkProgressObserver chunkProgressObserver;
+    GpuDiffusePathLoopCancellationCallback cancellationCallback;
   };
 
   inline constexpr std::uint32_t gpuDiffusePathLoopAccumulationTargetPixel = 0u;

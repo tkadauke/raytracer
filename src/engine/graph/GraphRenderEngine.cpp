@@ -1613,6 +1613,10 @@ namespace engine::graph {
     }
   }
 
+  bool GraphRenderEngine::cancellationRequested() const {
+    return p->cancelled.load();
+  }
+
   std::list<Recti> GraphRenderEngine::activeTiles() const {
     std::vector<std::shared_ptr<render::RenderEngine>> active;
     {

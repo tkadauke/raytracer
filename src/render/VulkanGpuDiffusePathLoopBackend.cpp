@@ -126,6 +126,7 @@ namespace render {
     if (!support.supported) {
       throw std::invalid_argument(support.reason);
     }
+    throwIfGpuDiffusePathLoopCancelled(settings);
     const GpuDiffusePathLoopPlatformAccumulationPlan accumulation =
       platformGpuDiffusePathLoopAccumulationPlanFor(initialPathStates, kVulkanBackendDisplayName);
     GpuDiffusePathLoopLaunchPlan plan = GpuDiffusePathLoopLaunchPlanner().plan(
@@ -154,6 +155,7 @@ namespace render {
     if (!support.supported) {
       throw std::invalid_argument(support.reason);
     }
+    throwIfGpuDiffusePathLoopCancelled(settings);
     const std::vector<GpuDiffusePathStateRecord>& initialPathStates =
       primaryPathGeneration.pathStates;
     const GpuDiffusePathLoopPlatformAccumulationPlan accumulation =
@@ -170,6 +172,7 @@ namespace render {
       VulkanGpuDiffusePathLoopKernel kernel;
       GpuDiffusePathLoopPlatformResult mergedPlatformResult;
       for (const GpuDiffusePrimaryPathSampleChunk& chunk : chunks) {
+        throwIfGpuDiffusePathLoopCancelled(settings);
         GpuDiffusePathLoopLaunchPlan chunkPlan =
           planner.plan(scene, chunk.primaryPathGeneration, accumulation.layout, settings);
         chunkPlan.parameters.accumulationTargetMode = accumulation.targetMode;
@@ -182,6 +185,7 @@ namespace render {
           platformResultFrom(std::move(vulkanResult));
         notifyGpuDiffusePathLoopChunkProgress(settings, primaryPathGeneration, chunk,
                                               chunkPlatformResult);
+        throwIfGpuDiffusePathLoopCancelled(settings);
         mergePlatformGpuDiffusePathLoopChunkResult(mergedPlatformResult,
                                                    std::move(chunkPlatformResult));
       }

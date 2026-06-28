@@ -272,6 +272,7 @@ namespace engine::graph {
 
     void cancel() override;
     void uncancel() override;
+    [[nodiscard]] bool cancellationRequested() const;
     std::list<Recti> activeTiles() const override;
     std::list<Recti> completedTiles() const override;
 

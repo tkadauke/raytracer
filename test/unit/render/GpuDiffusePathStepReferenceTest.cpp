@@ -7233,6 +7233,29 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(0x445566u, callbacks[0].resolvedDisplayPixels->at(1));
   }
 
+  TEST(GpuDiffusePathLoopBackend, CancellationCallbackReportsCancellation) {
+    GpuDiffusePathLoopSettings settings;
+    EXPECT_FALSE(gpuDiffusePathLoopCancelled(settings));
+    EXPECT_NO_THROW(throwIfGpuDiffusePathLoopCancelled(settings));
+
+    bool cancelled = false;
+    settings.cancellationCallback = [&cancelled] { return cancelled; };
+    EXPECT_FALSE(gpuDiffusePathLoopCancelled(settings));
+    EXPECT_NO_THROW(throwIfGpuDiffusePathLoopCancelled(settings));
+
+    cancelled = true;
+    EXPECT_TRUE(gpuDiffusePathLoopCancelled(settings));
+    EXPECT_THROW(throwIfGpuDiffusePathLoopCancelled(settings), std::runtime_error);
+  }
+
+  TEST(GpuDiffusePathLoop, ThrowsWhenCancelledBeforeRun) {
+    GpuDiffusePathLoopSettings settings;
+    settings.cancellationCallback = [] { return true; };
+
+    EXPECT_THROW((void)GpuDiffusePathLoop().run(GpuTracingSceneSections(), {}, settings),
+                 std::runtime_error);
+  }
+
   TEST(GpuDiffusePathLoopLaunchPlanner, CopiesLookAtPrimaryMotionDescriptor) {
     PinholeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
     camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 3, 2));
