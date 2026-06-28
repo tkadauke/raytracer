@@ -178,6 +178,19 @@ namespace GpuDiffusePathLoopSceneSupportTest {
     expectUnsupported(supportFor(nonFiniteEnvironment), "environment");
   }
 
+  TEST(GpuDiffusePathLoopSceneSupport, RejectsNonFiniteTintedTextureParameters) {
+    const float nan = std::numeric_limits<float>::quiet_NaN();
+
+    GpuTracingSceneSections nonFiniteTinted;
+    nonFiniteTinted.textures.push_back(textureRecord(GpuTracingTextureKind::Unsupported));
+    nonFiniteTinted.textures.push_back(textureRecord(GpuTracingTextureKind::ConstantColor));
+    GpuTracingTextureRecord tinted = textureRecord(GpuTracingTextureKind::Tinted);
+    tinted.payloadOffset = 1;
+    tinted.parameters[0] = nan;
+    nonFiniteTinted.textures.push_back(tinted);
+    expectUnsupported(supportFor(nonFiniteTinted), "texture");
+  }
+
   TEST(GpuDiffusePathLoopSceneSupport, RejectsSupportedMaterialsWithMalformedTextureReferences) {
     GpuTracingSceneSections matteWithMissingAlbedo;
     matteWithMissingAlbedo.textures.push_back(textureRecord(GpuTracingTextureKind::Unsupported));
@@ -185,7 +198,7 @@ namespace GpuDiffusePathLoopSceneSupportTest {
     GpuTracingMaterialRecord matte = materialRecord(GpuTracingMaterialKind::Matte);
     matte.albedoTexture = 7;
     matteWithMissingAlbedo.materials.push_back(matte);
-    expectUnsupported(supportFor(matteWithMissingAlbedo), "material");
+    expectUnsupported(supportFor(matteWithMissingAlbedo), "texture");
 
     GpuTracingSceneSections emissiveWithMissingEmission;
     emissiveWithMissingEmission.textures.push_back(
@@ -195,7 +208,7 @@ namespace GpuDiffusePathLoopSceneSupportTest {
     GpuTracingMaterialRecord emissive = materialRecord(GpuTracingMaterialKind::Emissive);
     emissive.emissionTexture = 7;
     emissiveWithMissingEmission.materials.push_back(emissive);
-    expectUnsupported(supportFor(emissiveWithMissingEmission), "material");
+    expectUnsupported(supportFor(emissiveWithMissingEmission), "texture");
   }
 
   TEST(GpuDiffusePathLoopSceneSupport, RejectsMaterialsThatReferenceUnsupportedTextureSentinel) {
@@ -205,7 +218,7 @@ namespace GpuDiffusePathLoopSceneSupportTest {
     GpuTracingMaterialRecord matte = materialRecord(GpuTracingMaterialKind::Matte);
     matte.albedoTexture = 0;
     sentinelAlbedo.materials.push_back(matte);
-    expectUnsupported(supportFor(sentinelAlbedo), "material");
+    expectUnsupported(supportFor(sentinelAlbedo), "texture");
 
     GpuTracingSceneSections sentinelEmission;
     sentinelEmission.textures.push_back(textureRecord(GpuTracingTextureKind::Unsupported));
@@ -213,7 +226,7 @@ namespace GpuDiffusePathLoopSceneSupportTest {
     GpuTracingMaterialRecord emissive = materialRecord(GpuTracingMaterialKind::Emissive);
     emissive.emissionTexture = 0;
     sentinelEmission.materials.push_back(emissive);
-    expectUnsupported(supportFor(sentinelEmission), "material");
+    expectUnsupported(supportFor(sentinelEmission), "texture");
   }
 
   TEST(GpuDiffusePathLoopSceneSupport, ValidatesSupportedPrimitivePayloads) {

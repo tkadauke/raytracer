@@ -481,6 +481,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Reject non-finite `TintedTexture` wrapper records before selecting the
+  Metal/Vulkan full-GPU path loop, matching the finite-record validation used
+  for other supported GPU texture records. — GPT-5 Codex
 - Use a smaller automatic full-GPU path-tracer launch budget when the render
   dialog is publishing interactive progress, avoiding oversized first Metal/
   Vulkan commands for 640x480, high-depth GPU sample-stream renders. —
