@@ -60,6 +60,32 @@ namespace {
     return (target - position).length() > std::numeric_limits<double>::epsilon();
   }
 
+  bool linearDirectionSegmentStaysDefined(const Vector3d& directionAtOpen,
+                                          const Vector3d& directionAtClose) {
+    const Vector3d directionDelta = directionAtClose - directionAtOpen;
+    const double deltaLengthSquared = directionDelta * directionDelta;
+    double closestT = 0.0;
+    if (deltaLengthSquared > std::numeric_limits<double>::epsilon()) {
+      closestT = std::clamp(-(directionAtOpen * directionDelta) / deltaLengthSquared, 0.0, 1.0);
+    }
+    return (directionAtOpen + directionDelta * closestT).length() >
+           std::numeric_limits<double>::epsilon();
+  }
+
+  bool linearDirectionSegmentStaysOffUpAxis(const Vector3d& directionAtOpen,
+                                            const Vector3d& directionAtClose) {
+    const Vector3d horizontalAtOpen(directionAtOpen.x(), 0.0, directionAtOpen.z());
+    const Vector3d horizontalAtClose(directionAtClose.x(), 0.0, directionAtClose.z());
+    const Vector3d horizontalDelta = horizontalAtClose - horizontalAtOpen;
+    const double deltaLengthSquared = horizontalDelta * horizontalDelta;
+    double closestT = 0.0;
+    if (deltaLengthSquared > std::numeric_limits<double>::epsilon()) {
+      closestT = std::clamp(-(horizontalAtOpen * horizontalDelta) / deltaLengthSquared, 0.0, 1.0);
+    }
+    return (horizontalAtOpen + horizontalDelta * closestT).length() >
+           std::numeric_limits<double>::epsilon();
+  }
+
   bool hasStableOrthographicBasis(const Matrix4d& openMatrix, const Matrix4d& closeMatrix) {
     const Vector3d openRight = openMatrix.transformDirection(Vector3d(1.0, 0.0, 0.0)).normalized();
     const Vector3d closeRight =
@@ -75,8 +101,19 @@ namespace {
   }
 
   struct OrthographicDescriptorMotion {
+    std::uint32_t motionMode{gpuPrimaryPathMotionModeOriginDelta};
     Matrix4d matrixAtOpen;
+    Vector3d originOrDirection;
     Vector3d motionOriginDelta{Vector3d::null};
+    Vector3d target{Vector3d::null};
+    Vector3d targetDelta{Vector3d::null};
+
+    [[nodiscard]] Matrix4d planeMatrix() const {
+      if (motionMode == gpuPrimaryPathMotionModeLookAt) {
+        return Matrix4d();
+      }
+      return matrixAtOpen;
+    }
   };
 
   std::optional<OrthographicDescriptorMotion>
@@ -104,19 +141,27 @@ namespace {
     const Vector3d targetAtOpen = animatedVectorAt(camera, "target", camera.target(), shutterOpen);
     const Vector3d targetAtClose =
       animatedVectorAt(camera, "target", camera.target(), shutterClose);
+    const Vector3d directionAtOpen = targetAtOpen - positionAtOpen;
+    const Vector3d directionAtClose = targetAtClose - positionAtClose;
     if (!hasDefinedDirection(positionAtOpen, targetAtOpen) ||
-        !hasDefinedDirection(positionAtClose, targetAtClose)) {
+        !hasDefinedDirection(positionAtClose, targetAtClose) ||
+        !linearDirectionSegmentStaysDefined(directionAtOpen, directionAtClose) ||
+        !linearDirectionSegmentStaysOffUpAxis(directionAtOpen, directionAtClose)) {
       return std::nullopt;
     }
 
     const Matrix4d matrixAtOpen = Matrix4d::lookAt(positionAtOpen, targetAtOpen, Vector3d::up());
     const Matrix4d matrixAtClose = Matrix4d::lookAt(positionAtClose, targetAtClose, Vector3d::up());
-    if (!hasStableOrthographicBasis(matrixAtOpen, matrixAtClose)) {
-      return std::nullopt;
+    if (hasStableOrthographicBasis(matrixAtOpen, matrixAtClose)) {
+      return OrthographicDescriptorMotion{
+        gpuPrimaryPathMotionModeOriginDelta, matrixAtOpen,
+        matrixAtOpen.transformDirection(Vector3d::forward()).normalized(),
+        matrixAtClose.translationVector() - matrixAtOpen.translationVector()};
     }
 
-    return OrthographicDescriptorMotion{matrixAtOpen, matrixAtClose.translationVector() -
-                                                        matrixAtOpen.translationVector()};
+    return OrthographicDescriptorMotion{
+      gpuPrimaryPathMotionModeLookAt,   matrixAtOpen, positionAtOpen,
+      positionAtClose - positionAtOpen, targetAtOpen, targetAtClose - targetAtOpen};
   }
 
   Matrix4d animatedMatrixAt(const OrthographicCamera& camera, double time) {
@@ -207,7 +252,9 @@ OrthographicCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sa
   }
   std::optional<OrthographicDescriptorMotion> motion;
   if (const std::optional<Matrix4d> descriptorMatrix = fixedShutterGpuCameraMatrix()) {
-    motion = OrthographicDescriptorMotion{*descriptorMatrix, Vector3d::null};
+    motion = OrthographicDescriptorMotion{
+      gpuPrimaryPathMotionModeOriginDelta, *descriptorMatrix,
+      descriptorMatrix->transformDirection(Vector3d::forward()).normalized()};
   } else {
     motion = sampledShutterOrthographicMotion(*this);
   }
@@ -231,12 +278,15 @@ OrthographicCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sa
   (void)checkedU32(pathCount, "GPU orthographic primary path count");
 
   auto descriptorPlane = plane->clone();
-  descriptorPlane->setup(motion->matrixAtOpen, plane->window());
+  descriptorPlane->setup(motion->planeMatrix(), plane->window());
   GpuPrimaryPathDescriptor descriptor;
   descriptor.mode = gpuPrimaryPathGenerationModeOrthographic;
-  descriptor.rectilinear.originOrDirection =
-    vector4(motion->matrixAtOpen.transformDirection(Vector3d::forward()).normalized(), 0.0f);
+  descriptor.rectilinear.motionMode = motion->motionMode;
+  descriptor.rectilinear.originOrDirection = vector4(
+    motion->originOrDirection, motion->motionMode == gpuPrimaryPathMotionModeLookAt ? 1.0f : 0.0f);
   descriptor.rectilinear.motionOriginDelta = vector4(motion->motionOriginDelta, 0.0f);
+  descriptor.rectilinear.motionTarget = vector4(motion->target, 1.0f);
+  descriptor.rectilinear.motionTargetDelta = vector4(motion->targetDelta, 0.0f);
   descriptor.rectilinear.topLeft = vector4(descriptorPlane->pixelAt(0.0, 0.0), 1.0f);
   descriptor.rectilinear.right =
     vector4(descriptorPlane->pixelAt(1.0, 0.0) - descriptorPlane->pixelAt(0.0, 0.0), 0.0f);

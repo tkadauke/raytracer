@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Let sampled-shutter orthographic camera rigs whose linear in-shutter motion
+  changes their view direction stay on GPU primary-path descriptors by carrying
+  shader-facing look-at motion state through CPU reference, Metal, and Vulkan
+  path-loop launches. — GPT-5 Codex
 - Let sampled-shutter orthographic camera rig translations over one linear
   shutter segment lower to GPU primary-path descriptors by moving the
   orthographic ray plane through the existing motion-delta field. —

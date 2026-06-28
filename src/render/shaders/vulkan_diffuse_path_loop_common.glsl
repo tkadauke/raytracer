@@ -517,6 +517,12 @@ vec2 concentricMapToDisc(vec2 sample) {
   return vec2(r * cos(phi), r * sin(phi));
 }
 
+vec3 orthographicLookAtWorldPoint(vec3 position, vec3 forward, vec3 localPoint) {
+  const vec3 right = normalize(cross(vec3(0.0, 1.0, 0.0), forward));
+  const vec3 down = cross(right, -forward);
+  return position + right * localPoint.x + down * localPoint.y + forward * localPoint.z;
+}
+
 GpuDiffusePathStateRecord makePinholePrimaryPath(uint pathIndex) {
   const uint sampleIndex = pathIndex % parameters.primaryPathSamplesPerPixel;
   const uint pixelOrdinal = pathIndex / parameters.primaryPathSamplesPerPixel;
@@ -595,10 +601,22 @@ GpuDiffusePathStateRecord makeOrthographicPrimaryPath(uint pathIndex) {
   const vec4 pixelPoint = parameters.primaryPathTopLeft +
                           parameters.primaryPathRight * (float(column) + pixelSample.x) +
                           parameters.primaryPathDown * (float(row) + pixelSample.y);
+  vec4 rayOrigin = pixelPoint + parameters.primaryPathMotionOriginDelta * timeSample;
+  vec3 rayDirection = normalize(parameters.primaryPathOrigin.xyz);
+  if (parameters.primaryPathMotionMode == gpuPrimaryPathMotionModeLookAt) {
+    const vec3 position =
+        parameters.primaryPathOrigin.xyz +
+        parameters.primaryPathMotionOriginDelta.xyz * timeSample;
+    const vec3 target =
+        parameters.primaryPathMotionTarget.xyz +
+        parameters.primaryPathMotionTargetDelta.xyz * timeSample;
+    rayDirection = normalize(target - position);
+    rayOrigin = vec4(orthographicLookAtWorldPoint(position, rayDirection, pixelPoint.xyz), 1.0);
+  }
 
   GpuDiffusePathStateRecord path;
-  path.ray.origin = pixelPoint + parameters.primaryPathMotionOriginDelta * timeSample;
-  path.ray.direction = vec4(normalize(parameters.primaryPathOrigin.xyz), 0.0);
+  path.ray.origin = rayOrigin;
+  path.ray.direction = vec4(rayDirection, 0.0);
   path.ray.minDistance = 0.0;
   path.ray.maxDistance = uintBitsToFloat(0x7f800000u);
   path.ray.timeSample = timeSample;

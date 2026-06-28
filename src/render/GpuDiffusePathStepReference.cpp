@@ -2,6 +2,7 @@
 
 #include "core/Buffer.h"
 #include "core/math/Constants.h"
+#include "core/math/Matrix.h"
 #include "core/math/Ray.h"
 #include "render/GpuCompiledLightSampler.h"
 #include "render/GpuTracingBsdfEvaluator.h"
@@ -261,7 +262,22 @@ namespace {
                                       down * (static_cast<double>(row) + pixelSample.y());
           std::optional<Rayd> ray;
           if (mode == gpuPrimaryPathGenerationModeOrthographic) {
-            ray = Rayd(pixelPoint + motionOriginDelta * timeSample, originOrDirection.normalized());
+            if (descriptor.motionMode == gpuPrimaryPathMotionModeLookAt) {
+              const Vector3d position = originOrDirection + motionOriginDelta * timeSample;
+              const Vector3d target = motionTarget + motionTargetDelta * timeSample;
+              const Matrix4d cameraMatrix = Matrix4d::lookAt(position, target, Vector3d::up());
+              const Vector3d direction =
+                cameraMatrix.transformDirection(Vector3d::forward()).normalized();
+              const Vector3d worldPixelPoint = cameraMatrix.transformPoint(pixelPoint);
+              if (!direction.isDefined() || !worldPixelPoint.isDefined()) {
+                ++result.skippedPrimarySamples;
+                continue;
+              }
+              ray = Rayd(worldPixelPoint, direction);
+            } else {
+              ray =
+                Rayd(pixelPoint + motionOriginDelta * timeSample, originOrDirection.normalized());
+            }
           } else if (mode == gpuPrimaryPathGenerationModePinhole) {
             Vector3d rayOrigin = originOrDirection + motionOriginDelta * timeSample;
             if (descriptor.motionMode == gpuPrimaryPathMotionModeLookAt) {
