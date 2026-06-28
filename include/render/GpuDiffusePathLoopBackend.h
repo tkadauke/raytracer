@@ -83,6 +83,10 @@ namespace render {
   platformGpuDiffusePathLoopAccumulationPlanFor(
     const GpuDiffusePrimaryPathStateGeneration& primaryPathGeneration,
     const char* backendDisplayName);
+  [[nodiscard]] GpuDiffusePathLoopPlatformAccumulationPlan
+  platformGpuDiffusePathLoopAccumulationPlanFor(
+    const GpuDiffusePrimaryPathStateGeneration& primaryPathGeneration,
+    const GpuDiffusePathLoopSettings& settings, const char* backendDisplayName);
   [[nodiscard]] GpuDiffusePathLoopResult makePlatformGpuDiffusePathLoopResult(
     std::uint64_t initialPathCount, const GpuDiffusePathLoopSettings& settings,
     GpuDiffusePathLoopPlatformResult&& platformResult, const char* backendDisplayName,

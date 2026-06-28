@@ -4007,6 +4007,56 @@ namespace GpuDiffusePathStepReferenceTest {
 #endif
   }
 
+  TEST(MetalGpuDiffusePathLoopBackend, AddsSingleSampleChunksIntoPixelAccumulationWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    const MetalGpuDiffusePathLoopBackend backend;
+    if (!backend.fullGpuPathLoopAvailable()) {
+      GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
+    }
+
+    const Colord background(0.25, 0.5, 0.75);
+    Scene scene;
+    scene.setBackground(background);
+    scene.setEnvironmentRadiance(Colord(0.1, 0.2, 0.3));
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+
+    PinholeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 2, 1));
+    camera.viewPlane()->sampler()->setup(3, 4, 42);
+
+    GpuDiffusePrimaryPathStateGenerationOptions descriptorOnlyOptions;
+    descriptorOnlyOptions.materializeHostPathStates = false;
+    const GpuDiffusePrimaryPathStateGeneration descriptorOnly =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 2, 1), 99, 1234,
+                                                     descriptorOnlyOptions);
+    ASSERT_TRUE(descriptorOnly.canGeneratePrimaryPathsOnDevice());
+    ASSERT_TRUE(descriptorOnly.pathStates.empty());
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 1;
+    settings.russianRouletteDepth = 10;
+    settings.captureDiagnostics = false;
+    settings.capturePlatformAccumulation = true;
+    settings.primarySampleChunkSize = 1;
+
+    const GpuDiffusePathLoopResult result = backend.run(sections, descriptorOnly, settings);
+
+    EXPECT_TRUE(result.fullGpuPathLoopSupported());
+    EXPECT_EQ("metal", result.platformName);
+    EXPECT_EQ(3u, result.roundTrips);
+    EXPECT_EQ(gpuDiffusePathLoopAccumulationTargetPixel, result.platformAccumulationTargetMode);
+    ASSERT_EQ(2u, result.platformAccumulationColorSums.size());
+    ASSERT_EQ(2u, result.platformAccumulationSampleCounts.size());
+    EXPECT_EQ(3u, result.platformAccumulationSampleCounts[0]);
+    EXPECT_EQ(3u, result.platformAccumulationSampleCounts[1]);
+    EXPECT_NEAR(3.0 * background.r(), result.platformAccumulationColorSums[0][0], 1e-4);
+    EXPECT_NEAR(3.0 * background.g(), result.platformAccumulationColorSums[0][1], 1e-4);
+    EXPECT_NEAR(3.0 * background.b(), result.platformAccumulationColorSums[0][2], 1e-4);
+#else
+    GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
+#endif
+  }
+
   TEST(MetalGpuDiffusePathLoopBackend, RunsDuplicatePixelSamplesWithSampleSlotAccumulation) {
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
     const MetalGpuDiffusePathLoopBackend backend;
@@ -4815,6 +4865,56 @@ namespace GpuDiffusePathStepReferenceTest {
     for (const unsigned int pixel : result.platformResolvedDisplayPixels) {
       EXPECT_EQ(background.rgb(), pixel);
     }
+#else
+    GTEST_SKIP() << "Vulkan wavefront support is not enabled in this build";
+#endif
+  }
+
+  TEST(VulkanGpuDiffusePathLoopBackend, AddsSingleSampleChunksIntoPixelAccumulationWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    const VulkanGpuDiffusePathLoopBackend backend;
+    if (!backend.fullGpuPathLoopAvailable()) {
+      GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
+    }
+
+    const Colord background(0.25, 0.5, 0.75);
+    Scene scene;
+    scene.setBackground(background);
+    scene.setEnvironmentRadiance(Colord(0.1, 0.2, 0.3));
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+
+    PinholeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 2, 1));
+    camera.viewPlane()->sampler()->setup(3, 4, 42);
+
+    GpuDiffusePrimaryPathStateGenerationOptions descriptorOnlyOptions;
+    descriptorOnlyOptions.materializeHostPathStates = false;
+    const GpuDiffusePrimaryPathStateGeneration descriptorOnly =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 2, 1), 99, 1234,
+                                                     descriptorOnlyOptions);
+    ASSERT_TRUE(descriptorOnly.canGeneratePrimaryPathsOnDevice());
+    ASSERT_TRUE(descriptorOnly.pathStates.empty());
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 1;
+    settings.russianRouletteDepth = 10;
+    settings.captureDiagnostics = false;
+    settings.capturePlatformAccumulation = true;
+    settings.primarySampleChunkSize = 1;
+
+    const GpuDiffusePathLoopResult result = backend.run(sections, descriptorOnly, settings);
+
+    EXPECT_TRUE(result.fullGpuPathLoopSupported());
+    EXPECT_EQ("vulkan", result.platformName);
+    EXPECT_EQ(3u, result.roundTrips);
+    EXPECT_EQ(gpuDiffusePathLoopAccumulationTargetPixel, result.platformAccumulationTargetMode);
+    ASSERT_EQ(2u, result.platformAccumulationColorSums.size());
+    ASSERT_EQ(2u, result.platformAccumulationSampleCounts.size());
+    EXPECT_EQ(3u, result.platformAccumulationSampleCounts[0]);
+    EXPECT_EQ(3u, result.platformAccumulationSampleCounts[1]);
+    EXPECT_NEAR(3.0 * background.r(), result.platformAccumulationColorSums[0][0], 1e-4);
+    EXPECT_NEAR(3.0 * background.g(), result.platformAccumulationColorSums[0][1], 1e-4);
+    EXPECT_NEAR(3.0 * background.b(), result.platformAccumulationColorSums[0][2], 1e-4);
 #else
     GTEST_SKIP() << "Vulkan wavefront support is not enabled in this build";
 #endif
@@ -7276,6 +7376,34 @@ namespace GpuDiffusePathStepReferenceTest {
     }
   }
 
+  TEST(GpuDiffusePrimarySampleChunks, AutoChunkingUsesSingleSampleChunksForMediumImages) {
+    PinholeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 640, 480));
+    camera.viewPlane()->sampler()->setup(64, 8, 42);
+    GpuDiffusePrimaryPathStateGenerationOptions options;
+    options.materializeHostPathStates = false;
+    const GpuDiffusePrimaryPathStateGeneration generation =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 640, 480), 99, 1234,
+                                                     options);
+    ASSERT_TRUE(generation.canGeneratePrimaryPathsOnDevice());
+
+    GpuDiffusePathLoopSettings settings;
+    settings.captureDiagnostics = false;
+    settings.primarySampleChunkSize = 0u;
+
+    EXPECT_EQ(1u, resolvedGpuDiffusePrimarySampleChunkSize(generation, settings));
+    const std::vector<GpuDiffusePrimaryPathSampleChunk> chunks =
+      gpuDiffusePrimarySampleChunksFor(generation, settings);
+
+    ASSERT_EQ(64u, chunks.size());
+    EXPECT_EQ(0u,
+              chunks.front().primaryPathGeneration.primaryPathDescriptor->rectilinear.sampleOffset);
+    EXPECT_TRUE(chunks.front().firstChunk);
+    EXPECT_EQ(63u,
+              chunks.back().primaryPathGeneration.primaryPathDescriptor->rectilinear.sampleOffset);
+    EXPECT_TRUE(chunks.back().finalChunk);
+  }
+
   TEST(GpuDiffusePrimarySampleChunks, AutoChunksLargeDenoiserFeatureLaunches) {
     PinholeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
     camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 1024, 1024));
@@ -7368,6 +7496,38 @@ namespace GpuDiffusePathStepReferenceTest {
 
     EXPECT_EQ(6u, secondChunkPlan.parameters.imageWidth);
     EXPECT_EQ(4u, secondChunkPlan.parameters.imageHeight);
+    EXPECT_EQ(1u, secondChunkPlan.parameters.primaryPathSampleOffset);
+    EXPECT_EQ(1u, secondChunkPlan.parameters.primaryPathSamplesPerPixel);
+  }
+
+  TEST(GpuDiffusePrimarySampleChunks, UsesPixelAccumulationLayoutForSingleSampleChunks) {
+    PinholeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 3, 2));
+    camera.viewPlane()->sampler()->setup(4, 8, 42);
+    GpuDiffusePrimaryPathStateGenerationOptions options;
+    options.materializeHostPathStates = false;
+    const GpuDiffusePrimaryPathStateGeneration generation =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 3, 2), 99, 1234, options);
+
+    GpuDiffusePathLoopSettings settings;
+    settings.captureDiagnostics = false;
+    settings.primarySampleChunkSize = 1u;
+    const GpuDiffusePathLoopPlatformAccumulationPlan accumulation =
+      platformGpuDiffusePathLoopAccumulationPlanFor(generation, settings, "test");
+
+    ASSERT_EQ(gpuDiffusePathLoopAccumulationTargetPixel, accumulation.targetMode);
+    EXPECT_EQ(6, accumulation.layout.width);
+    EXPECT_EQ(1, accumulation.layout.height);
+
+    const GpuTracingSceneSections sections;
+    const std::vector<GpuDiffusePrimaryPathSampleChunk> chunks =
+      gpuDiffusePrimarySampleChunksFor(generation, settings);
+    ASSERT_EQ(4u, chunks.size());
+    const GpuDiffusePathLoopLaunchPlan secondChunkPlan = GpuDiffusePathLoopLaunchPlanner().plan(
+      sections, chunks[1].primaryPathGeneration, accumulation.layout, settings);
+
+    EXPECT_EQ(6u, secondChunkPlan.parameters.imageWidth);
+    EXPECT_EQ(1u, secondChunkPlan.parameters.imageHeight);
     EXPECT_EQ(1u, secondChunkPlan.parameters.primaryPathSampleOffset);
     EXPECT_EQ(1u, secondChunkPlan.parameters.primaryPathSamplesPerPixel);
   }

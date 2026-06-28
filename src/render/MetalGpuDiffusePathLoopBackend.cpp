@@ -163,7 +163,7 @@ namespace render {
     const std::vector<GpuDiffusePathStateRecord>& initialPathStates =
       primaryPathGeneration.pathStates;
     const GpuDiffusePathLoopPlatformAccumulationPlan accumulation =
-      platformGpuDiffusePathLoopAccumulationPlanFor(primaryPathGeneration,
+      platformGpuDiffusePathLoopAccumulationPlanFor(primaryPathGeneration, settings,
                                                     kMetalBackendDisplayName);
     const std::vector<GpuDiffusePrimaryPathSampleChunk> chunks =
       gpuDiffusePrimarySampleChunksFor(primaryPathGeneration, settings);

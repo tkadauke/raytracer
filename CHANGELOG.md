@@ -469,6 +469,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Keep automatic full-GPU path-tracer sample chunks on image-sized retained
+  accumulation when each chunk contains one sample per pixel, avoiding
+  sample-count-sized platform buffers for high-sample render-window previews.
+  — GPT-5 Codex
 - Bound automatic full-GPU path-tracer sample-stream launches by resolving GPU
   primary-sample chunk size `0` to a safe backend chunk size for large
   descriptor-backed renders instead of submitting one monolithic path-state

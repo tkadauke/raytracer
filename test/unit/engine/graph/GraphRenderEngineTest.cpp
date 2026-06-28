@@ -2989,6 +2989,54 @@ namespace GraphRenderEngineTest {
     }
   }
 
+  TEST(GraphRenderEngine, AutoChunksLargeTraceDisabledGpuPathLoopDisplayProgress) {
+    const Colord background(0.125, 0.25, 0.5);
+    auto scene = std::make_shared<render::Scene>();
+    scene->setBackground(background);
+    scene->setEnvironmentRadiance(background);
+    auto receiver = std::make_shared<render::Rectangle>(
+      Vector3d(-20.0, -20.0, 0.0), Vector3d(40.0, 0.0, 0.0), Vector3d(0.0, 40.0, 0.0));
+    receiver->setMaterial(matte(Colord(0.8, 0.8, 0.8)));
+    scene->add(receiver);
+    scene->addLight(
+      std::make_shared<render::PointLight>(Vector3d(0.0, 0.0, -3.0), Colord(0.5, 0.5, 0.5)));
+
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Wavefront;
+    intent.engineOptions.raytracer().setIntegrator("pathtracer");
+    intent.engineOptions.raytracer().setTracingExecution(TracingExecutionPreference::GPU);
+    intent.engineOptions.raytracer().setSamplesPerPixel(8);
+    intent.engineOptions.raytracer().setMaximumRecursionDepth(2);
+    intent.engineOptions.raytracer().setDirectLightSamples(1);
+    intent.engineOptions.raytracer().setGpuPrimarySampleChunkSize(0);
+    intent.engineOptions.raytracer().setSampleStreamMode("gpu_sample_stream");
+
+    RenderSceneAnalysis analysis;
+    analysis.setFullGpuTracingSupportFromScene(*scene);
+    constexpr int width = 1024;
+    constexpr int height = 1024;
+    const RenderPlan plan = RenderGraphCompiler().compile({width, height, 1}, intent, analysis);
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setPlan(plan);
+    auto pathLoopBackend = std::make_shared<ReportingFullGpuDiffusePathLoopBackend>();
+    engine.setGpuDiffusePathLoopBackend(pathLoopBackend);
+
+    Buffer<unsigned int> buffer(width, height);
+    engine.render(buffer);
+
+    EXPECT_TRUE(pathLoopBackend->lastCaptureResolvedDisplay());
+    EXPECT_EQ(0u, pathLoopBackend->lastPrimarySampleChunkSize());
+    EXPECT_GT(pathLoopBackend->lastPrimaryGeneratedSamples(), 1024u * 1024u);
+    EXPECT_TRUE(pathLoopBackend->lastChunkProgressObserverInstalled());
+    EXPECT_GT(pathLoopBackend->lastChunkProgressCallbacks(), 0u);
+    EXPECT_EQ(static_cast<std::size_t>(width * height),
+              pathLoopBackend->lastChunkProgressDisplayPixelCount());
+    EXPECT_EQ(
+      width * height,
+      countPixels(buffer, ReportingFullGpuDiffusePathLoopBackend::resolvedDisplaySentinel()));
+  }
+
   TEST(GraphRenderEngine, WiresCancellationIntoCompiledGpuPathLoop) {
     const Colord background(0.125, 0.25, 0.5);
     auto scene = std::make_shared<render::Scene>();

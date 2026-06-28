@@ -470,10 +470,15 @@ namespace render {
       if (pixelCount == 0u || descriptor.pathCount() <= kAutoPrimarySampleChunkPathBudget) {
         return 0u;
       }
-      const std::uint64_t budgetedSamples =
-        std::max<std::uint64_t>(1u, kAutoPrimarySampleChunkPathBudget / pixelCount);
-      return static_cast<std::uint32_t>(
-        std::min<std::uint64_t>(budgetedSamples, std::numeric_limits<std::uint32_t>::max()));
+      return 1u;
+    }
+
+    [[nodiscard]] bool canUsePixelAccumulationAcrossPrimarySampleChunks(
+      const GpuDiffusePrimaryPathStateGeneration& primaryPathGeneration,
+      const GpuDiffusePathLoopSettings& settings) {
+      return primaryGenerationCanUseSampleChunks(primaryPathGeneration, settings) &&
+             resolvedGpuDiffusePrimarySampleChunkSize(primaryPathGeneration, settings) == 1u &&
+             primaryPathGeneration.primaryPathDescriptor->rectilinear.samplesPerPixel > 1u;
     }
   }
 
@@ -714,6 +719,23 @@ namespace render {
     const char* backendDisplayName) {
     if (primaryPathGeneration.canGeneratePrimaryPathsOnDevice() &&
         primaryPathGeneration.pathStates.empty()) {
+      return platformGpuDiffusePathLoopAccumulationPlanFor(
+        *primaryPathGeneration.primaryPathDescriptor, backendDisplayName);
+    }
+    return platformGpuDiffusePathLoopAccumulationPlanFor(primaryPathGeneration.pathStates,
+                                                         backendDisplayName);
+  }
+
+  GpuDiffusePathLoopPlatformAccumulationPlan platformGpuDiffusePathLoopAccumulationPlanFor(
+    const GpuDiffusePrimaryPathStateGeneration& primaryPathGeneration,
+    const GpuDiffusePathLoopSettings& settings, const char* backendDisplayName) {
+    if (primaryPathGeneration.canGeneratePrimaryPathsOnDevice() &&
+        primaryPathGeneration.pathStates.empty()) {
+      if (canUsePixelAccumulationAcrossPrimarySampleChunks(primaryPathGeneration, settings)) {
+        const ActiveAccumulationTargetShape shape = activeAccumulationTargetShapeFor(
+          *primaryPathGeneration.primaryPathDescriptor, backendDisplayName);
+        return {pixelAccumulationLayoutFor(shape), gpuDiffusePathLoopAccumulationTargetPixel};
+      }
       return platformGpuDiffusePathLoopAccumulationPlanFor(
         *primaryPathGeneration.primaryPathDescriptor, backendDisplayName);
     }

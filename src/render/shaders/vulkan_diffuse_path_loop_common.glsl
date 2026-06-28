@@ -3048,6 +3048,18 @@ void writeAccumulation(uint pathIndex, GpuDiffusePathStateRecord path) {
   }
   const vec4 color = path.accumulatedRadiance;
   const uint colorWordOffset = accumulationIndex * 4u;
+  if (parameters.accumulationTargetMode == gpuDiffusePathLoopAccumulationTargetPixel) {
+    accumulationWords[colorWordOffset + 0u] =
+      floatBitsToUint(uintBitsToFloat(accumulationWords[colorWordOffset + 0u]) + color.x);
+    accumulationWords[colorWordOffset + 1u] =
+      floatBitsToUint(uintBitsToFloat(accumulationWords[colorWordOffset + 1u]) + color.y);
+    accumulationWords[colorWordOffset + 2u] =
+      floatBitsToUint(uintBitsToFloat(accumulationWords[colorWordOffset + 2u]) + color.z);
+    accumulationWords[colorWordOffset + 3u] =
+      floatBitsToUint(uintBitsToFloat(accumulationWords[colorWordOffset + 3u]) + color.w);
+    accumulationWords[pixelCount() * 4u + accumulationIndex] += 1u;
+    return;
+  }
   accumulationWords[colorWordOffset + 0u] = floatBitsToUint(color.x);
   accumulationWords[colorWordOffset + 1u] = floatBitsToUint(color.y);
   accumulationWords[colorWordOffset + 2u] = floatBitsToUint(color.z);
