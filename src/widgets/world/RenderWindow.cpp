@@ -111,8 +111,12 @@ struct RenderWindow::Private {
       intent.defaultExecutor = engine::graph::RenderExecutorPreference::Wireframe;
       intent.engineOptions.wireframe().setLod(settingsWidget->lod());
     } else {
+      const bool scalarPathTracer = settingsWidget->engine() == "Path Tracer" &&
+                                    settingsWidget->pathTracingSchedule() == "Scalar";
+      const bool wavefrontPathTracer =
+        settingsWidget->engine() == "Path Tracer" && !scalarPathTracer;
       if (settingsWidget->engine() == "Path Tracer") {
-        intent.defaultExecutor = settingsWidget->pathTracingSchedule() == "Scalar"
+        intent.defaultExecutor = scalarPathTracer
                                    ? engine::graph::RenderExecutorPreference::Raytracer
                                    : engine::graph::RenderExecutorPreference::PathTracer;
       } else if (settingsWidget->wavefrontTracingBackend() != "Auto") {
@@ -126,10 +130,14 @@ struct RenderWindow::Private {
       } else {
         options.setIntegrator("whitted");
       }
-      if (settingsWidget->sampleStreamMode() == "gpu_sample_stream") {
+      if (!scalarPathTracer && settingsWidget->sampleStreamMode() == "gpu_sample_stream") {
         options.setSampleStreamMode("gpu_sample_stream");
       } else {
-        options.setSampler(settingsWidget->sampler().toStdString());
+        const std::string sampler =
+          scalarPathTracer && settingsWidget->sampleStreamMode() == "gpu_sample_stream"
+            ? std::string("Halton")
+            : settingsWidget->sampler().toStdString();
+        options.setSampler(sampler);
         options.setSampleStreamMode("sampler");
       }
       options.setSamplesPerPixel(settingsWidget->samplesPerPixel());
@@ -141,16 +149,17 @@ struct RenderWindow::Private {
       }
       if (settingsWidget->engine() == "Path Tracer") {
         options.setDirectLightSamples(settingsWidget->directLightSamples());
-        options.setGpuPrimarySampleChunkSize(settingsWidget->gpuPrimarySampleChunkSize());
-        options.setTracingExecution(settingsWidget->tracingExecution().toLower().toStdString());
-        if (settingsWidget->tracingExecution() == "CPU") {
-          options.setIntersectionBackend("cpu");
-        } else if (settingsWidget->tracingExecution() == "GPU") {
-          options.setIntersectionBackend("gpu");
-        } else if (settingsWidget->pathTracingSchedule() == "Wavefront" &&
-                   settingsWidget->tracingExecution() == "Hybrid") {
-          options.setIntersectionBackend(
-            settingsWidget->wavefrontIntersectionBackend().toStdString());
+        if (wavefrontPathTracer) {
+          options.setGpuPrimarySampleChunkSize(settingsWidget->gpuPrimarySampleChunkSize());
+          options.setTracingExecution(settingsWidget->tracingExecution().toLower().toStdString());
+          if (settingsWidget->tracingExecution() == "CPU") {
+            options.setIntersectionBackend("cpu");
+          } else if (settingsWidget->tracingExecution() == "GPU") {
+            options.setIntersectionBackend("gpu");
+          } else if (settingsWidget->tracingExecution() == "Hybrid") {
+            options.setIntersectionBackend(
+              settingsWidget->wavefrontIntersectionBackend().toStdString());
+          }
         }
       }
       options.setMaximumThreads(settingsWidget->renderThreads());

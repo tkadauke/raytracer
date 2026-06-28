@@ -375,6 +375,10 @@ namespace RenderWindowTest {
     EXPECT_EQ("pathtracer", *state->integrator());
     ASSERT_TRUE(state->directLightSamples().has_value());
     EXPECT_EQ(3, *state->directLightSamples());
+    EXPECT_FALSE(state->tracingExecution().has_value());
+    EXPECT_FALSE(state->gpuPrimarySampleChunkSize().has_value());
+    ASSERT_TRUE(state->sampleStreamMode().has_value());
+    EXPECT_EQ("sampler", *state->sampleStreamMode());
   }
 
   TEST_F(RenderWindowTest, ShouldOverrideHiddenBackendForBroadTracingExecution) {

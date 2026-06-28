@@ -78,6 +78,25 @@ namespace RenderSettingsWidgetTest {
     EXPECT_EQ(QString("gpu_sample_stream"), widget.sampleStreamMode());
   }
 
+  TEST_F(RenderSettingsWidgetTest, ShouldDefaultScalarPathTracerSamplerToHalton) {
+    RenderSettingsWidget widget;
+    auto engineType = widget.findChild<QComboBox*>("engineType");
+    auto schedule = widget.findChild<QComboBox*>("pathTracingSchedule");
+    ASSERT_NE(nullptr, engineType);
+    ASSERT_NE(nullptr, schedule);
+
+    engineType->setCurrentText("Path Tracer");
+    schedule->setCurrentText("Scalar");
+
+    EXPECT_EQ(QString("Halton"), widget.sampler());
+    EXPECT_EQ(QString("sampler"), widget.sampleStreamMode());
+
+    schedule->setCurrentText("Wavefront");
+
+    EXPECT_EQ(QString("GPU sample stream"), widget.sampler());
+    EXPECT_EQ(QString("gpu_sample_stream"), widget.sampleStreamMode());
+  }
+
   TEST_F(RenderSettingsWidgetTest, ShouldRestoreRaytracerSamplerDefaultWhenUnmodified) {
     RenderSettingsWidget widget;
     auto engineType = widget.findChild<QComboBox*>("engineType");
@@ -306,7 +325,7 @@ namespace RenderSettingsWidgetTest {
     schedule->setCurrentText("Scalar");
     EXPECT_FALSE(directLightSamples->isHidden());
     EXPECT_TRUE(gpuPrimarySampleChunkSize->isHidden());
-    EXPECT_FALSE(tracingExecution->isHidden());
+    EXPECT_TRUE(tracingExecution->isHidden());
     EXPECT_TRUE(intersectionBackend->isHidden());
     EXPECT_TRUE(denoiser->isHidden());
     EXPECT_TRUE(radius->isHidden());

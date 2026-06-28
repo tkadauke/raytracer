@@ -492,6 +492,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Hide full-GPU tracing controls for scalar path tracing in the final render
+  dialog and serialize scalar path-tracer renders as sampler-backed CPU scalar
+  intent instead of attaching ignored GPU execution overrides. — GPT-5 Codex
 - Tighten the interactive full-GPU path-tracer auto-launch budget again so
   640x480, 64-sample, depth-10 render-dialog runs use smaller Metal/Vulkan
   tiles instead of issuing crash-prone high-latency path-loop chunks. —

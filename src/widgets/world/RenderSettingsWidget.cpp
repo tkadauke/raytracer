@@ -164,6 +164,9 @@ struct RenderSettingsWidget::Private {
     if (ui.engineType->currentText() != QStringLiteral("Path Tracer")) {
       return QStringLiteral("Regular");
     }
+    if (ui.pathTracingSchedule->currentText() == QStringLiteral("Scalar")) {
+      return QStringLiteral("Halton");
+    }
     if (ui.tracingExecution->currentText() == QStringLiteral("CPU")) {
       return QStringLiteral("Halton");
     }
@@ -586,9 +589,9 @@ void RenderSettingsWidget::updateEngineControls() {
     eng == "Path Tracer" && p->ui.pathTracingSchedule->currentText() == QStringLiteral("Wavefront");
   const bool supportsPathTracingSchedule = (eng == "Path Tracer");
   const bool supportsDirectLightSamples = pathTracingSelected;
-  const bool supportsTracingExecution = pathTracingSelected;
+  const bool supportsTracingExecution = pathTracingUsesWavefront;
   const bool pathTracingUsesGpuExecution =
-    pathTracingSelected && p->ui.tracingExecution->currentText() == QStringLiteral("GPU");
+    pathTracingUsesWavefront && p->ui.tracingExecution->currentText() == QStringLiteral("GPU");
   const bool supportsGpuSampleChunkSize =
     pathTracingUsesGpuExecution && p->gpuSampleStreamSelected();
   const bool supportsRayDenoiser = pathTracingUsesWavefront;
