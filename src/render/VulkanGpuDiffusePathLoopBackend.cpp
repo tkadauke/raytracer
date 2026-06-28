@@ -173,11 +173,17 @@ namespace render {
         GpuDiffusePathLoopLaunchPlan chunkPlan =
           planner.plan(scene, chunk.primaryPathGeneration, accumulation.layout, settings);
         chunkPlan.parameters.accumulationTargetMode = accumulation.targetMode;
+        const bool captureChunkResolvedDisplay =
+          settings.captureResolvedDisplay && (chunk.finalChunk || settings.chunkProgressObserver);
         VulkanGpuDiffusePathLoopKernelResult vulkanResult = kernel.runWavefrontPathLoop(
           chunkPlan, initialPathStates, chunk.finalChunk && settings.capturePlatformAccumulation,
-          chunk.finalChunk && settings.captureResolvedDisplay, chunk.firstChunk);
+          captureChunkResolvedDisplay, chunk.firstChunk);
+        GpuDiffusePathLoopPlatformResult chunkPlatformResult =
+          platformResultFrom(std::move(vulkanResult));
+        notifyGpuDiffusePathLoopChunkProgress(settings, primaryPathGeneration, chunk,
+                                              chunkPlatformResult);
         mergePlatformGpuDiffusePathLoopChunkResult(mergedPlatformResult,
-                                                   platformResultFrom(std::move(vulkanResult)));
+                                                   std::move(chunkPlatformResult));
       }
       mergedPlatformResult.echoedParameters = fullPlan.parameters;
       GpuDiffusePathLoopResult result = makePlatformGpuDiffusePathLoopResult(

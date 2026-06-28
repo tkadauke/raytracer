@@ -9,6 +9,7 @@
 
 #include <array>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <string>
 #include <vector>
@@ -106,6 +107,19 @@ namespace render {
             const std::vector<std::uint32_t>& retainedPathIndices) const override;
   };
 
+  struct GpuDiffusePathLoopChunkProgress {
+    std::uint32_t sampleOffset{0};
+    std::uint32_t sampleCount{0};
+    std::uint32_t totalSampleCount{0};
+    std::uint32_t completedSampleCount{0};
+    bool firstChunk{false};
+    bool finalChunk{false};
+    const std::vector<unsigned int>* resolvedDisplayPixels{nullptr};
+  };
+
+  using GpuDiffusePathLoopChunkProgressObserver =
+    std::function<void(const GpuDiffusePathLoopChunkProgress&)>;
+
   struct GpuDiffusePathLoopSettings {
     std::uint32_t maxDepth{8};
     std::uint32_t russianRouletteDepth{3};
@@ -117,6 +131,7 @@ namespace render {
     bool captureResolvedDisplay{false};
     GpuDisplayResolveTonemap displayResolveTonemap{GpuDisplayResolveTonemap::Linear};
     std::uint32_t primarySampleChunkSize{0};
+    GpuDiffusePathLoopChunkProgressObserver chunkProgressObserver;
   };
 
   inline constexpr std::uint32_t gpuDiffusePathLoopAccumulationTargetPixel = 0u;

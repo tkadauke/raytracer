@@ -63,6 +63,11 @@ namespace render {
     const GpuDiffusePathLoopSettings& settings);
   void mergePlatformGpuDiffusePathLoopChunkResult(GpuDiffusePathLoopPlatformResult& merged,
                                                   GpuDiffusePathLoopPlatformResult&& chunkResult);
+  void notifyGpuDiffusePathLoopChunkProgress(
+    const GpuDiffusePathLoopSettings& settings,
+    const GpuDiffusePrimaryPathStateGeneration& fullPrimaryPathGeneration,
+    const GpuDiffusePrimaryPathSampleChunk& chunk,
+    const GpuDiffusePathLoopPlatformResult& chunkResult);
   [[nodiscard]] GpuDiffusePathLoopPlatformAccumulationPlan
   platformGpuDiffusePathLoopAccumulationPlanFor(
     const std::vector<GpuDiffusePathStateRecord>& pathStates, const char* backendDisplayName);

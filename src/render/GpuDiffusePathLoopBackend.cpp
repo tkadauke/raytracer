@@ -529,6 +529,38 @@ namespace render {
     merged.readbackWorkerSeconds += chunkResult.readbackWorkerSeconds;
   }
 
+  void notifyGpuDiffusePathLoopChunkProgress(
+    const GpuDiffusePathLoopSettings& settings,
+    const GpuDiffusePrimaryPathStateGeneration& fullPrimaryPathGeneration,
+    const GpuDiffusePrimaryPathSampleChunk& chunk,
+    const GpuDiffusePathLoopPlatformResult& chunkResult) {
+    if (!settings.chunkProgressObserver || !fullPrimaryPathGeneration.primaryPathDescriptor ||
+        !chunk.primaryPathGeneration.primaryPathDescriptor) {
+      return;
+    }
+
+    const GpuRectilinearPrimaryPathDescriptor& fullDescriptor =
+      fullPrimaryPathGeneration.primaryPathDescriptor->rectilinear;
+    const GpuRectilinearPrimaryPathDescriptor& chunkDescriptor =
+      chunk.primaryPathGeneration.primaryPathDescriptor->rectilinear;
+    std::uint32_t completedSampleCount = chunkDescriptor.samplesPerPixel;
+    if (chunkDescriptor.sampleOffset >= fullDescriptor.sampleOffset) {
+      completedSampleCount += chunkDescriptor.sampleOffset - fullDescriptor.sampleOffset;
+    }
+    completedSampleCount = std::min(completedSampleCount, fullDescriptor.samplesPerPixel);
+
+    GpuDiffusePathLoopChunkProgress progress;
+    progress.sampleOffset = chunkDescriptor.sampleOffset;
+    progress.sampleCount = chunkDescriptor.samplesPerPixel;
+    progress.totalSampleCount = fullDescriptor.samplesPerPixel;
+    progress.completedSampleCount = completedSampleCount;
+    progress.firstChunk = chunk.firstChunk;
+    progress.finalChunk = chunk.finalChunk;
+    progress.resolvedDisplayPixels =
+      chunkResult.resolvedDisplayPixels.empty() ? nullptr : &chunkResult.resolvedDisplayPixels;
+    settings.chunkProgressObserver(progress);
+  }
+
   GpuDiffusePathLoopBackendChoice selectFullGpuDiffusePathLoopBackend(
     const std::vector<std::shared_ptr<const GpuDiffusePathLoopBackend>>& backends,
     const GpuTracingSceneSections& scene, const GpuDiffusePathLoopSettings& settings) {

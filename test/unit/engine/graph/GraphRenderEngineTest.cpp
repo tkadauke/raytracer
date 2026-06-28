@@ -237,6 +237,9 @@ namespace GraphRenderEngineTest {
       m_lastDisplayResolveTonemap = settings.displayResolveTonemap;
       m_lastDirectLightSamples = settings.directLightSamples;
       m_lastPrimarySampleChunkSize = settings.primarySampleChunkSize;
+      m_lastChunkProgressObserverInstalled = static_cast<bool>(settings.chunkProgressObserver);
+      m_lastChunkProgressCallbacks = 0;
+      m_lastChunkProgressDisplayPixelCount = 0;
       m_lastPrimaryHostPathStateCount = initialPathStates.size();
       render::GpuDiffusePathLoopResult result =
         render::CpuReferenceGpuDiffusePathLoopBackend::sharedInstance()->run(
@@ -271,6 +274,19 @@ namespace GraphRenderEngineTest {
         const std::size_t pixelCount =
           static_cast<std::size_t>(primaryPathGeneration.actualRect.width()) *
           static_cast<std::size_t>(primaryPathGeneration.actualRect.height());
+        const std::vector<render::GpuDiffusePrimaryPathSampleChunk> chunks =
+          render::gpuDiffusePrimarySampleChunksFor(primaryPathGeneration, settings);
+        if (settings.chunkProgressObserver && !chunks.empty()) {
+          std::vector<unsigned int> progressPixels(pixelCount, progressDisplaySentinel());
+          for (const render::GpuDiffusePrimaryPathSampleChunk& chunk : chunks) {
+            render::GpuDiffusePathLoopPlatformResult platformChunk;
+            platformChunk.resolvedDisplayPixels = progressPixels;
+            render::notifyGpuDiffusePathLoopChunkProgress(settings, primaryPathGeneration, chunk,
+                                                          platformChunk);
+            ++m_lastChunkProgressCallbacks;
+            m_lastChunkProgressDisplayPixelCount = progressPixels.size();
+          }
+        }
         result.platformResolvedDisplayPixels.assign(pixelCount, resolvedDisplaySentinel());
       }
       return result;
@@ -308,6 +324,18 @@ namespace GraphRenderEngineTest {
       return m_lastPrimarySampleChunkSize;
     }
 
+    bool lastChunkProgressObserverInstalled() const {
+      return m_lastChunkProgressObserverInstalled;
+    }
+
+    std::uint64_t lastChunkProgressCallbacks() const {
+      return m_lastChunkProgressCallbacks;
+    }
+
+    std::size_t lastChunkProgressDisplayPixelCount() const {
+      return m_lastChunkProgressDisplayPixelCount;
+    }
+
     bool hasLastPrimaryGeneration() const {
       return m_hasLastPrimaryGeneration;
     }
@@ -328,6 +356,10 @@ namespace GraphRenderEngineTest {
       return Colord(0.25, 0.5, 0.75).rgb();
     }
 
+    static unsigned int progressDisplaySentinel() {
+      return Colord(0.75, 0.5, 0.25).rgb();
+    }
+
   private:
     mutable bool m_hasLastCaptureDiagnostics{false};
     mutable bool m_lastCaptureDiagnostics{false};
@@ -338,6 +370,9 @@ namespace GraphRenderEngineTest {
       render::GpuDisplayResolveTonemap::Unsupported};
     mutable std::uint32_t m_lastDirectLightSamples{0};
     mutable std::uint32_t m_lastPrimarySampleChunkSize{0};
+    mutable bool m_lastChunkProgressObserverInstalled{false};
+    mutable std::uint64_t m_lastChunkProgressCallbacks{0};
+    mutable std::size_t m_lastChunkProgressDisplayPixelCount{0};
     mutable bool m_hasLastPrimaryGeneration{false};
     mutable std::size_t m_lastPrimaryHostPathStateCount{0};
     mutable std::uint64_t m_lastPrimaryGeneratedSamples{0};
@@ -2848,6 +2883,51 @@ namespace GraphRenderEngineTest {
     EXPECT_TRUE(pathLoopBackend->lastPrimaryGeneratesOnDevice());
     EXPECT_EQ(64u, pathLoopBackend->lastPrimaryGeneratedSamples());
     EXPECT_EQ(0u, pathLoopBackend->lastPrimaryHostPathStateCount());
+    for (int y = 0; y != buffer.height(); ++y) {
+      for (int x = 0; x != buffer.width(); ++x) {
+        EXPECT_EQ(ReportingFullGpuDiffusePathLoopBackend::resolvedDisplaySentinel(), buffer[y][x]);
+      }
+    }
+  }
+
+  TEST(GraphRenderEngine, PublishesChunkedDisplayProgressForTraceDisabledGpuPathLoop) {
+    const Colord background(0.125, 0.25, 0.5);
+    auto scene = std::make_shared<render::Scene>();
+    scene->setBackground(background);
+    scene->setEnvironmentRadiance(background);
+    auto receiver = std::make_shared<render::Rectangle>(
+      Vector3d(-20.0, -20.0, 0.0), Vector3d(40.0, 0.0, 0.0), Vector3d(0.0, 40.0, 0.0));
+    receiver->setMaterial(matte(Colord(0.8, 0.8, 0.8)));
+    scene->add(receiver);
+    scene->addLight(
+      std::make_shared<render::PointLight>(Vector3d(0.0, 0.0, -3.0), Colord(0.5, 0.5, 0.5)));
+
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Wavefront;
+    intent.engineOptions.raytracer().setIntegrator("pathtracer");
+    intent.engineOptions.raytracer().setTracingExecution(TracingExecutionPreference::GPU);
+    intent.engineOptions.raytracer().setSamplesPerPixel(4);
+    intent.engineOptions.raytracer().setMaximumRecursionDepth(2);
+    intent.engineOptions.raytracer().setDirectLightSamples(1);
+    intent.engineOptions.raytracer().setGpuPrimarySampleChunkSize(1);
+    intent.engineOptions.raytracer().setSampleStreamMode("gpu_sample_stream");
+
+    RenderSceneAnalysis analysis;
+    analysis.setFullGpuTracingSupportFromScene(*scene);
+    const RenderPlan plan = RenderGraphCompiler().compile({8, 8, 1}, intent, analysis);
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setPlan(plan);
+    auto pathLoopBackend = std::make_shared<ReportingFullGpuDiffusePathLoopBackend>();
+    engine.setGpuDiffusePathLoopBackend(pathLoopBackend);
+
+    Buffer<unsigned int> buffer(8, 8);
+    engine.render(buffer);
+
+    EXPECT_TRUE(pathLoopBackend->lastCaptureResolvedDisplay());
+    EXPECT_TRUE(pathLoopBackend->lastChunkProgressObserverInstalled());
+    EXPECT_EQ(4u, pathLoopBackend->lastChunkProgressCallbacks());
+    EXPECT_EQ(64u, pathLoopBackend->lastChunkProgressDisplayPixelCount());
     for (int y = 0; y != buffer.height(); ++y) {
       for (int x = 0; x != buffer.width(); ++x) {
         EXPECT_EQ(ReportingFullGpuDiffusePathLoopBackend::resolvedDisplaySentinel(), buffer[y][x]);

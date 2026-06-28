@@ -61,6 +61,23 @@ namespace engine::graph {
       return std::runtime_error("pass '" + pass.id + "': " + message);
     }
 
+    void copyResolvedDisplayPixels(const std::vector<unsigned int>& pixels,
+                                   Buffer<unsigned int>& target) {
+      const std::size_t expectedPixelCount =
+        static_cast<std::size_t>(target.width()) * static_cast<std::size_t>(target.height());
+      if (pixels.size() != expectedPixelCount) {
+        throw std::invalid_argument("GPU path-loop progress display pixel count does not match "
+                                    "the render target");
+      }
+
+      std::size_t index = 0;
+      for (int y = 0; y != target.height(); ++y) {
+        for (int x = 0; x != target.width(); ++x) {
+          target[y][x] = pixels[index++];
+        }
+      }
+    }
+
     void requireColorResource(const RenderResourceStorage& storage,
                               const RenderResourceId& resource, const RenderPassNode& pass) {
       if (!storage.resource(resource).colorBacked()) {
@@ -1358,6 +1375,14 @@ namespace engine::graph {
                                           generation.pathStates.empty();
         settings.capturePlatformAccumulation =
           hdrTarget || denoiser || settings.captureDiagnostics || !settings.captureResolvedDisplay;
+        if (displayTarget && settings.captureResolvedDisplay) {
+          settings.chunkProgressObserver =
+            [displayTarget](const render::GpuDiffusePathLoopChunkProgress& progress) {
+              if (progress.resolvedDisplayPixels) {
+                copyResolvedDisplayPixels(*progress.resolvedDisplayPixels, *displayTarget);
+              }
+            };
+        }
         const render::GpuDiffusePathLoopResult loop =
           pathLoopBackend->run(compilation.sections, generation, settings);
         const render::TracingAccumulationLayout layout =

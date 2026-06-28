@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Publish intermediate Metal/Vulkan path-loop display resolves into graph-backed
+  render buffers when trace-disabled full-GPU path tracing runs descriptor-backed
+  primary sample chunks. — GPT-5 Codex
 - Expose GPU primary-sample chunk size through render intent, rendercli, and
   the final render dialog so retained platform accumulation chunking can be
   exercised from graph-backed path-tracer renders. — GPT-5 Codex

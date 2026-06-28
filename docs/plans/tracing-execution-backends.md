@@ -301,9 +301,11 @@ end state for GPU tracing.
 - Retained progressive multi-frame platform accumulation buffers in the live
   render loop. Descriptor-backed primary sample ranges and opt-in backend
   chunking can run contiguous chunks into retained Metal/Vulkan platform
-  accumulation inside one backend render call, but the live render loop does
-  not yet schedule progressive chunks across frames or surface intermediate
-  resolves.
+  accumulation inside one backend render call, and trace-disabled graph renders
+  can surface intermediate chunk display resolves into directly publishable
+  display buffers during that call. The live render loop does not yet schedule
+  separate progressive chunks across frames or retain platform accumulation
+  across render calls.
 - Unrestricted platform GPU path-tracing loop.
 - Full platform GPU Whitted loop.
 - Hardware ray tracing backends.
@@ -2917,7 +2919,10 @@ scene is large enough to amortize upload/readback costs.
      in GPU tracing execution and the GPU sample stream when the scene/caller
      did not explicitly choose CPU/hybrid tracing or a sampler-backed path, so
      the default user-facing path-tracer route enters the compiled GPU path-loop
-     eligibility path.
+     eligibility path. Trace-disabled graph renders that use descriptor-backed
+     primary sample chunking now install a path-loop chunk progress observer,
+     allowing Metal/Vulkan backends to publish intermediate GPU-resolved display
+     pixels into the live display buffer before the final chunk completes.
 
 5. **Add parity and performance gates.**
    - Depends on: jobs 2, 3, and 4.

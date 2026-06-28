@@ -7197,6 +7197,42 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(0x112233u, merged.resolvedDisplayPixels[0]);
   }
 
+  TEST(GpuDiffusePrimarySampleChunks, NotifiesChunkProgressObserver) {
+    PinholeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 3, 2));
+    camera.viewPlane()->sampler()->setup(4, 8, 42);
+    GpuDiffusePrimaryPathStateGenerationOptions options;
+    options.materializeHostPathStates = false;
+    const GpuDiffusePrimaryPathStateGeneration generation =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 3, 2), 99, 1234, options);
+
+    GpuDiffusePathLoopSettings settings;
+    settings.captureDiagnostics = false;
+    settings.primarySampleChunkSize = 1u;
+    std::vector<GpuDiffusePathLoopChunkProgress> callbacks;
+    settings.chunkProgressObserver = [&callbacks](const GpuDiffusePathLoopChunkProgress& progress) {
+      callbacks.push_back(progress);
+    };
+    const std::vector<GpuDiffusePrimaryPathSampleChunk> chunks =
+      gpuDiffusePrimarySampleChunksFor(generation, settings);
+    ASSERT_EQ(4u, chunks.size());
+
+    GpuDiffusePathLoopPlatformResult platformChunk;
+    platformChunk.resolvedDisplayPixels = {0x112233u, 0x445566u};
+    notifyGpuDiffusePathLoopChunkProgress(settings, generation, chunks[1], platformChunk);
+
+    ASSERT_EQ(1u, callbacks.size());
+    EXPECT_EQ(1u, callbacks[0].sampleOffset);
+    EXPECT_EQ(1u, callbacks[0].sampleCount);
+    EXPECT_EQ(4u, callbacks[0].totalSampleCount);
+    EXPECT_EQ(2u, callbacks[0].completedSampleCount);
+    EXPECT_FALSE(callbacks[0].firstChunk);
+    EXPECT_FALSE(callbacks[0].finalChunk);
+    ASSERT_NE(nullptr, callbacks[0].resolvedDisplayPixels);
+    ASSERT_EQ(2u, callbacks[0].resolvedDisplayPixels->size());
+    EXPECT_EQ(0x445566u, callbacks[0].resolvedDisplayPixels->at(1));
+  }
+
   TEST(GpuDiffusePathLoopLaunchPlanner, CopiesLookAtPrimaryMotionDescriptor) {
     PinholeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
     camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 3, 2));
