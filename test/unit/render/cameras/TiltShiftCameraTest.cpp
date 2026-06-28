@@ -23,6 +23,12 @@ namespace TiltShiftCameraTest {
                     descriptor.rectilinear.originOrDirection[2]);
   }
 
+  Vector3d descriptorMotionOriginDelta(const GpuPrimaryPathDescriptor& descriptor) {
+    return Vector3d(descriptor.rectilinear.motionOriginDelta[0],
+                    descriptor.rectilinear.motionOriginDelta[1],
+                    descriptor.rectilinear.motionOriginDelta[2]);
+  }
+
   TEST(TiltShiftCamera, ShouldDefaultToZeroTiltAndShift) {
     TiltShiftCamera camera;
     EXPECT_DOUBLE_EQ(0.0, camera.tilt().radians());
@@ -207,15 +213,25 @@ namespace TiltShiftCameraTest {
     EXPECT_EQ(12u, descriptor->pathCount());
   }
 
-  TEST(TiltShiftCamera, ShouldRejectSampledShutterAnimatedGpuPrimaryPathDescriptor) {
+  TEST(TiltShiftCamera, ShouldExposeSampledShutterRigTranslationGpuPrimaryPathDescriptor) {
     TiltShiftCamera camera(Vector3d(0, 0, -5), Vector3d::null);
     setupViewPlane(camera, 4, 3);
     camera.viewPlane()->sampler()->setup(1, 1, 17);
+    camera.setAnimationFrame(0.0);
     camera.setShutterInterval(0.0, 1.0);
     camera.setAnimationTrack("position",
                              render::animation::AnimationTrack(
                                {{0.0, Vector3d(0.0, 0.0, -5.0)}, {1.0, Vector3d(0.0, 0.0, -3.0)}}));
+    camera.setAnimationTrack("target",
+                             render::animation::AnimationTrack(
+                               {{0.0, Vector3d(0.0, 0.0, 0.0)}, {1.0, Vector3d(0.0, 0.0, 2.0)}}));
 
-    EXPECT_FALSE(camera.gpuPrimaryPathDescriptor(Recti(0, 0, 4, 3), 1234));
+    const auto descriptor = camera.gpuPrimaryPathDescriptor(Recti(0, 0, 4, 3), 1234);
+
+    ASSERT_TRUE(descriptor);
+    EXPECT_EQ(gpuPrimaryPathGenerationModeTiltShift, descriptor->mode);
+    ASSERT_VECTOR_NEAR(Vector3d(0.0, 0.0, -10.0), descriptorOrigin(*descriptor), 1e-6);
+    ASSERT_VECTOR_NEAR(Vector3d(0.0, 0.0, 2.0), descriptorMotionOriginDelta(*descriptor), 1e-6);
+    EXPECT_EQ(12u, descriptor->pathCount());
   }
 }

@@ -294,7 +294,8 @@ namespace {
           } else if (mode == gpuPrimaryPathGenerationModeThinLens) {
             const Vector3d focalForward = forward.normalized();
             const double focalPlaneDistance = descriptor.lensParameters[0];
-            const Vector3d pinholeDirection = (pixelPoint - originOrDirection).normalized();
+            const Vector3d origin = originOrDirection + motionOriginDelta * timeSample;
+            const Vector3d pinholeDirection = (pixelPoint - origin).normalized();
             const double denominator = pinholeDirection * focalForward;
             if (!pinholeDirection.isDefined() || !focalForward.isDefined() ||
                 std::abs(denominator) <= std::numeric_limits<double>::epsilon()) {
@@ -305,9 +306,9 @@ namespace {
               GpuSampleStream::sample2D(descriptor.sampleSeed, pixelIndex, sampleIndex,
                                         /*dimension=*/2u));
             const Vector3d focalPoint =
-              originOrDirection + pinholeDirection * (focalPlaneDistance / denominator);
+              origin + pinholeDirection * (focalPlaneDistance / denominator);
             const Vector3d lensOrigin =
-              originOrDirection + lensRight * lensSample.x() + lensUp * lensSample.y();
+              origin + lensRight * lensSample.x() + lensUp * lensSample.y();
             ray = Rayd(lensOrigin, (focalPoint - lensOrigin).normalized());
           } else if (mode == gpuPrimaryPathGenerationModeTiltShift) {
             const Vector3d focalForward = forward.normalized();
@@ -318,7 +319,8 @@ namespace {
             const double shiftY = descriptor.lensParameters[2];
             const double tiltRadians = descriptor.lensParameters[3];
             const Vector3d shiftedPixelPoint = pixelPoint + rightBasis * shiftX + upBasis * shiftY;
-            const Vector3d pinholeDirection = (shiftedPixelPoint - originOrDirection).normalized();
+            const Vector3d origin = originOrDirection + motionOriginDelta * timeSample;
+            const Vector3d pinholeDirection = (shiftedPixelPoint - origin).normalized();
             const Vector3d tiltedNormal = focalForward * std::cos(tiltRadians) +
                                           (rightBasis ^ focalForward) * std::sin(tiltRadians);
             const double denominator = pinholeDirection * tiltedNormal;
@@ -332,10 +334,10 @@ namespace {
               GpuSampleStream::sample2D(descriptor.sampleSeed, pixelIndex, sampleIndex,
                                         /*dimension=*/2u));
             const Vector3d focalPoint =
-              originOrDirection +
+              origin +
               pinholeDirection * (focalPlaneDistance * (focalForward * tiltedNormal) / denominator);
             const Vector3d lensOrigin =
-              originOrDirection + lensRight * lensSample.x() + lensUp * lensSample.y();
+              origin + lensRight * lensSample.x() + lensUp * lensSample.y();
             ray = Rayd(lensOrigin, (focalPoint - lensOrigin).normalized());
           } else if (mode == gpuPrimaryPathGenerationModeEquirectangular) {
             const double viewWidth = descriptor.lensParameters[0];

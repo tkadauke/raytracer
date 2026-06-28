@@ -497,6 +497,51 @@ namespace GpuDiffusePathStepReferenceTest {
       }
       return Vector2d(r * std::cos(phi), r * std::sin(phi));
     }
+
+    Rayd thinLensDescriptorRay(const GpuRectilinearPrimaryPathDescriptor& descriptor,
+                               const Vector2d& pixelSample, const Vector2d& lensSample,
+                               double timeSample) {
+      const Vector3d origin = Vector3d(descriptor.originOrDirection) +
+                              Vector3d(descriptor.motionOriginDelta) * timeSample;
+      const Vector3d pixelPoint = Vector3d(descriptor.topLeft) +
+                                  Vector3d(descriptor.right) * pixelSample.x() +
+                                  Vector3d(descriptor.down) * pixelSample.y();
+      const Vector3d focalForward = Vector3d(descriptor.forward).normalized();
+      const Vector3d pinholeDirection = (pixelPoint - origin).normalized();
+      const double denominator = pinholeDirection * focalForward;
+      const Vector3d focalPoint =
+        origin + pinholeDirection * (descriptor.lensParameters[0] / denominator);
+      const Vector3d lensOrigin = origin + Vector3d(descriptor.lensRight) * lensSample.x() +
+                                  Vector3d(descriptor.lensUp) * lensSample.y();
+      return Rayd(lensOrigin, (focalPoint - lensOrigin).normalized());
+    }
+
+    Rayd tiltShiftDescriptorRay(const GpuRectilinearPrimaryPathDescriptor& descriptor,
+                                const Vector2d& pixelSample, const Vector2d& lensSample,
+                                double timeSample) {
+      const Vector3d origin = Vector3d(descriptor.originOrDirection) +
+                              Vector3d(descriptor.motionOriginDelta) * timeSample;
+      const Vector3d pixelPoint = Vector3d(descriptor.topLeft) +
+                                  Vector3d(descriptor.right) * pixelSample.x() +
+                                  Vector3d(descriptor.down) * pixelSample.y();
+      const Vector3d focalForward = Vector3d(descriptor.forward).normalized();
+      const Vector3d rightBasis = Vector3d(descriptor.right).normalized();
+      const Vector3d upBasis = Vector3d(descriptor.down).normalized();
+      const double shiftX = descriptor.lensParameters[1];
+      const double shiftY = descriptor.lensParameters[2];
+      const double tiltRadians = descriptor.lensParameters[3];
+      const Vector3d shiftedPixelPoint = pixelPoint + rightBasis * shiftX + upBasis * shiftY;
+      const Vector3d pinholeDirection = (shiftedPixelPoint - origin).normalized();
+      const Vector3d tiltedNormal =
+        focalForward * std::cos(tiltRadians) + (rightBasis ^ focalForward) * std::sin(tiltRadians);
+      const double denominator = pinholeDirection * tiltedNormal;
+      const Vector3d focalPoint =
+        origin + pinholeDirection *
+                   (descriptor.lensParameters[0] * (focalForward * tiltedNormal) / denominator);
+      const Vector3d lensOrigin = origin + Vector3d(descriptor.lensRight) * lensSample.x() +
+                                  Vector3d(descriptor.lensUp) * lensSample.y();
+      return Rayd(lensOrigin, (focalPoint - lensOrigin).normalized());
+    }
   }
 
   TEST(GpuDiffusePathStep, RunsClosestHitAndMaterialLookupForActivePaths) {
@@ -946,6 +991,45 @@ namespace GpuDiffusePathStepReferenceTest {
     expectGpuRayNear(generation.pathStates.front().ray, expected, 2e-5);
   }
 
+  TEST(GpuDiffusePrimaryPathStateGenerator,
+       ThinLensDescriptorAppliesSampledShutterMotionOriginDelta) {
+    ThinLensCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
+    camera.setApertureRadius(0.35);
+    camera.setFocalDistance(7.0);
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 3, 2));
+    camera.viewPlane()->sampler()->setup(4, 8, 42);
+    camera.setAnimationFrame(0.0);
+    camera.setShutterInterval(0.0, 1.0);
+    camera.setAnimationTrack("position",
+                             render::animation::AnimationTrack(
+                               {{0.0, Vector3d(0.0, 0.0, -5.0)}, {1.0, Vector3d(0.0, 0.0, -3.0)}}));
+    camera.setAnimationTrack("target",
+                             render::animation::AnimationTrack(
+                               {{0.0, Vector3d(0.0, 0.0, 0.0)}, {1.0, Vector3d(0.0, 0.0, 2.0)}}));
+
+    const GpuDiffusePrimaryPathStateGeneration generation =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 3, 2), 99, 1234);
+
+    ASSERT_TRUE(generation.primaryPathDescriptor.has_value());
+    const GpuRectilinearPrimaryPathDescriptor& descriptor =
+      generation.primaryPathDescriptor->rectilinear;
+    ASSERT_VECTOR_NEAR(Vector3d(0.0, 0.0, 2.0), Vector3d(descriptor.motionOriginDelta), 1e-6);
+
+    const Vector2d pixelSample =
+      GpuSampleStream::sample2D(/*seed=*/1234, /*pixelIndex=*/0, /*primarySampleIndex=*/0,
+                                /*dimension=*/0);
+    const Vector2d lensSample = expectedConcentricDiscSample(
+      GpuSampleStream::sample2D(/*seed=*/1234, /*pixelIndex=*/0, /*primarySampleIndex=*/0,
+                                /*dimension=*/2));
+    const double timeSample = GpuSampleStream::sample1D(GpuSampleCoordinate{
+      /*seed=*/1234, /*pixelIndex=*/0, /*primarySampleIndex=*/0, /*dimension=*/1,
+      /*component=*/0});
+    const GpuIntersectionRay expected = GpuIntersectionScenePacker().packRay(
+      thinLensDescriptorRay(descriptor, pixelSample, lensSample, timeSample), /*rayIndex=*/0,
+      /*minDistance=*/0.0, std::numeric_limits<double>::infinity(), timeSample);
+    expectGpuRayNear(generation.pathStates.front().ray, expected, 2e-5);
+  }
+
   TEST(GpuDiffusePrimaryPathStateGenerator, CanLeaveThinLensPrimaryPathsDescriptorOnly) {
     ThinLensCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
     camera.setApertureRadius(0.25);
@@ -1009,6 +1093,47 @@ namespace GpuDiffusePathStepReferenceTest {
     const GpuIntersectionRay expected =
       GpuIntersectionScenePacker().packRay(cameraRay, /*rayIndex=*/0, /*minDistance=*/0.0,
                                            std::numeric_limits<double>::infinity(), timeSample);
+    expectGpuRayNear(generation.pathStates.front().ray, expected, 2e-5);
+  }
+
+  TEST(GpuDiffusePrimaryPathStateGenerator,
+       TiltShiftDescriptorAppliesSampledShutterMotionOriginDelta) {
+    TiltShiftCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
+    camera.setApertureRadius(0.35);
+    camera.setFocalDistance(7.0);
+    camera.setTilt(20_degrees);
+    camera.setShift(Vector2d(0.2, -0.1));
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 3, 2));
+    camera.viewPlane()->sampler()->setup(4, 8, 42);
+    camera.setAnimationFrame(0.0);
+    camera.setShutterInterval(0.0, 1.0);
+    camera.setAnimationTrack("position",
+                             render::animation::AnimationTrack(
+                               {{0.0, Vector3d(0.0, 0.0, -5.0)}, {1.0, Vector3d(0.0, 0.0, -3.0)}}));
+    camera.setAnimationTrack("target",
+                             render::animation::AnimationTrack(
+                               {{0.0, Vector3d(0.0, 0.0, 0.0)}, {1.0, Vector3d(0.0, 0.0, 2.0)}}));
+
+    const GpuDiffusePrimaryPathStateGeneration generation =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 3, 2), 99, 1234);
+
+    ASSERT_TRUE(generation.primaryPathDescriptor.has_value());
+    const GpuRectilinearPrimaryPathDescriptor& descriptor =
+      generation.primaryPathDescriptor->rectilinear;
+    ASSERT_VECTOR_NEAR(Vector3d(0.0, 0.0, 2.0), Vector3d(descriptor.motionOriginDelta), 1e-6);
+
+    const Vector2d pixelSample =
+      GpuSampleStream::sample2D(/*seed=*/1234, /*pixelIndex=*/0, /*primarySampleIndex=*/0,
+                                /*dimension=*/0);
+    const Vector2d lensSample = expectedConcentricDiscSample(
+      GpuSampleStream::sample2D(/*seed=*/1234, /*pixelIndex=*/0, /*primarySampleIndex=*/0,
+                                /*dimension=*/2));
+    const double timeSample = GpuSampleStream::sample1D(GpuSampleCoordinate{
+      /*seed=*/1234, /*pixelIndex=*/0, /*primarySampleIndex=*/0, /*dimension=*/1,
+      /*component=*/0});
+    const GpuIntersectionRay expected = GpuIntersectionScenePacker().packRay(
+      tiltShiftDescriptorRay(descriptor, pixelSample, lensSample, timeSample), /*rayIndex=*/0,
+      /*minDistance=*/0.0, std::numeric_limits<double>::infinity(), timeSample);
     expectGpuRayNear(generation.pathStates.front().ray, expected, 2e-5);
   }
 

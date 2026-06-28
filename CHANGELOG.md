@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Let sampled-shutter thin-lens and tilt-shift camera rig translations over one
+  linear shutter segment lower to GPU primary-path descriptors by carrying the
+  lens-origin motion delta through CPU reference, Metal, and Vulkan path-loop
+  launches. — GPT-5 Codex
 - Let sampled-shutter equirectangular, spherical, and fish-eye camera rig
   translations over one linear shutter segment lower to GPU primary-path
   descriptors by carrying a primary-origin motion delta through CPU reference,

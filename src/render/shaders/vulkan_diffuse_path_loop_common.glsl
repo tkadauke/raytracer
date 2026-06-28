@@ -665,12 +665,13 @@ GpuDiffusePathStateRecord makeThinLensPrimaryPath(uint pathIndex) {
   const vec4 pixelPoint = parameters.primaryPathTopLeft +
                           parameters.primaryPathRight * (float(column) + pixelSample.x) +
                           parameters.primaryPathDown * (float(row) + pixelSample.y);
-  const vec3 pinholeDirection = normalize(pixelPoint.xyz - parameters.primaryPathOrigin.xyz);
+  const vec4 origin =
+    parameters.primaryPathOrigin + parameters.primaryPathMotionOriginDelta * timeSample;
+  const vec3 pinholeDirection = normalize(pixelPoint.xyz - origin.xyz);
   const float t = parameters.primaryPathLensParameters.x /
                   dot(pinholeDirection, normalize(parameters.primaryPathForward.xyz));
-  const vec3 focalPoint = parameters.primaryPathOrigin.xyz + pinholeDirection * t;
-  const vec4 lensOrigin = parameters.primaryPathOrigin +
-                          parameters.primaryPathLensRight * lensSample.x +
+  const vec3 focalPoint = origin.xyz + pinholeDirection * t;
+  const vec4 lensOrigin = origin + parameters.primaryPathLensRight * lensSample.x +
                           parameters.primaryPathLensUp * lensSample.y;
 
   GpuDiffusePathStateRecord path;
@@ -918,19 +919,20 @@ GpuDiffusePathStateRecord makeTiltShiftPrimaryPath(uint pathIndex) {
   const vec3 shiftedPixelPoint =
     pixelPoint.xyz + rightBasis * parameters.primaryPathLensParameters.y +
     upBasis * parameters.primaryPathLensParameters.z;
-  const vec3 pinholeDirection = normalize(shiftedPixelPoint - parameters.primaryPathOrigin.xyz);
+  const vec4 origin =
+    parameters.primaryPathOrigin + parameters.primaryPathMotionOriginDelta * timeSample;
+  const vec3 pinholeDirection = normalize(shiftedPixelPoint - origin.xyz);
   const float tilt = parameters.primaryPathLensParameters.w;
   const vec3 tiltedNormal =
     focalForward * cos(tilt) + cross(rightBasis, focalForward) * sin(tilt);
   const float denominator = dot(pinholeDirection, tiltedNormal);
   const bool valid = abs(denominator) > 1.0e-7;
-  vec3 focalPoint = parameters.primaryPathOrigin.xyz;
+  vec3 focalPoint = origin.xyz;
   if (valid) {
     const float numerator = parameters.primaryPathLensParameters.x * dot(focalForward, tiltedNormal);
-    focalPoint = parameters.primaryPathOrigin.xyz + pinholeDirection * (numerator / denominator);
+    focalPoint = origin.xyz + pinholeDirection * (numerator / denominator);
   }
-  const vec4 lensOrigin = parameters.primaryPathOrigin +
-                          parameters.primaryPathLensRight * lensSample.x +
+  const vec4 lensOrigin = origin + parameters.primaryPathLensRight * lensSample.x +
                           parameters.primaryPathLensUp * lensSample.y;
   const vec3 rayDirection = valid ? normalize(focalPoint - lensOrigin.xyz) : focalForward;
 

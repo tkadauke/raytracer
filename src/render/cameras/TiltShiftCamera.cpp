@@ -1,6 +1,7 @@
 #include "render/cameras/CameraFactory.h"
 #include "render/cameras/TiltShiftCamera.h"
 #include "core/math/Ray.h"
+#include "render/cameras/SampledShutterDescriptorMotion.h"
 #include "render/samplers/Sampler.h"
 #include "render/viewplanes/ViewPlane.h"
 
@@ -115,9 +116,17 @@ TiltShiftCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampl
       animationTrack("focalDistance") || animationTrack("tilt") || animationTrack("shift")) {
     return std::nullopt;
   }
-  const std::optional<Matrix4d> descriptorMatrix = fixedShutterGpuCameraMatrix();
+  std::optional<Matrix4d> descriptorMatrix = fixedShutterGpuCameraMatrix();
+  Vector3d motionOriginDelta = Vector3d::null;
   if (!descriptorMatrix) {
-    return std::nullopt;
+    const std::optional<detail::SampledShutterDescriptorMotion> motion =
+      detail::sampledStableBasisShutterMotion(*this);
+    if (!motion) {
+      return std::nullopt;
+    }
+    descriptorMatrix = motion->matrixAtOpen;
+    motionOriginDelta = motion->matrixAtClose.transformPoint(Vector3d(0.0, 0.0, -distance())) -
+                        motion->matrixAtOpen.transformPoint(Vector3d(0.0, 0.0, -distance()));
   }
 
   const Recti actual = renderableRect(rect);
@@ -140,12 +149,18 @@ TiltShiftCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampl
   const Vector3d right = descriptorMatrix->transformDirection(Vector3d(1, 0, 0));
   const Vector3d up = descriptorMatrix->transformDirection(Vector3d(0, 1, 0));
 
+  auto descriptorPlane = plane->clone();
+  descriptorPlane->setup(*descriptorMatrix, plane->window());
+
   GpuPrimaryPathDescriptor descriptor;
   descriptor.mode = gpuPrimaryPathGenerationModeTiltShift;
   descriptor.rectilinear.originOrDirection = vector4(eye, 1.0f);
-  descriptor.rectilinear.topLeft = vector4(plane->pixelAt(0.0, 0.0), 1.0f);
-  descriptor.rectilinear.right = vector4(plane->pixelAt(1.0, 0.0) - plane->pixelAt(0.0, 0.0), 0.0f);
-  descriptor.rectilinear.down = vector4(plane->pixelAt(0.0, 1.0) - plane->pixelAt(0.0, 0.0), 0.0f);
+  descriptor.rectilinear.motionOriginDelta = vector4(motionOriginDelta, 0.0f);
+  descriptor.rectilinear.topLeft = vector4(descriptorPlane->pixelAt(0.0, 0.0), 1.0f);
+  descriptor.rectilinear.right =
+    vector4(descriptorPlane->pixelAt(1.0, 0.0) - descriptorPlane->pixelAt(0.0, 0.0), 0.0f);
+  descriptor.rectilinear.down =
+    vector4(descriptorPlane->pixelAt(0.0, 1.0) - descriptorPlane->pixelAt(0.0, 0.0), 0.0f);
   descriptor.rectilinear.lensRight = vector4(right * apertureRadius(), 0.0f);
   descriptor.rectilinear.lensUp = vector4(up * apertureRadius(), 0.0f);
   descriptor.rectilinear.forward = vector4(forward, 0.0f);
