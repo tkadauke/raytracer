@@ -509,9 +509,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Describe Metal/Vulkan full-GPU path-loop geometry support as static or
   linearly moving transforms and cover moving instances in platform path-loop
   parity tests. — GPT-5 Codex
-- Keep render-dialog full-GPU path-tracer Auto chunking from exploding into
-  thousands of tiny Metal/Vulkan path-loop launches at common high-sample
-  settings, avoiding black renders and driver instability. — GPT-5 Codex
+- Keep render-dialog full-GPU path-tracer Auto chunking conservative enough for
+  common high-sample settings to avoid black renders and driver instability,
+  even when that requires many short Metal/Vulkan path-loop launches. —
+  GPT-5 Codex
 - Bound interactive full-GPU path-tracer Auto chunking to a depth-scaled 64K
   primary-path per-launch ceiling so render-dialog `GPU sample stream` renders
   avoid both long command buffers and launch-count explosions under high-sample

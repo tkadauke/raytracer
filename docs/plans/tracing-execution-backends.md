@@ -127,11 +127,12 @@ end state for GPU tracing.
   the automatic tile budget also scales down with path depth and direct-light
   samples so long-running interactive renders do not submit one oversized GPU
   command before progress and cancellation can run. Render-window progress
-  renders still use the bounded chunked path and keep the same hard per-launch
-  cap as displayless launches, so high-depth previews stay cancellable instead
-  of blocking on a full-frame sample dispatch. The budget still scales down
-  with depth and direct-light samples, and larger images still tile when needed
-  to avoid one oversized GPU command before progress and cancellation can run.
+  renders still use the bounded chunked path, but with a smaller hard
+  per-launch cap than displayless launches, so high-depth previews stay
+  cancellable instead of blocking on a full-frame sample dispatch. The
+  interactive budget still scales down with depth and direct-light samples, and
+  larger images still tile when needed to avoid one oversized GPU command before
+  progress and cancellation can run.
   Render intent, rendercli, and the modeler final render dialog can request the
   sample chunk size explicitly for graph-backed GPU path-tracer runs. A
   requested chunk size of `0` now means backend auto-sizing: small
