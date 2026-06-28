@@ -4545,8 +4545,9 @@ namespace GpuDiffusePathStepReferenceTest {
       backend.fullGpuPathLoopSupport(unsupportedSections, settings);
     EXPECT_FALSE(unsupportedSupport.supported);
     EXPECT_EQ("Vulkan diffuse path-loop backend currently supports empty geometry or "
-              "triangle, sphere, plane, rectangle, disk, open-cylinder, or torus "
-              "primitives with static transforms only",
+              "triangle-backed MeshPrimitive, Box, and finite-width Curve geometry plus "
+              "triangle, sphere, plane, rectangle, disk, open-cylinder, or torus records with "
+              "static transforms only",
               unsupportedSupport.reason);
 
     Scene unsupportedMaterialScene;

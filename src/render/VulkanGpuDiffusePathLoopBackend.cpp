@@ -99,8 +99,10 @@ namespace render {
       scene, settings,
       GpuDiffusePathLoopSceneSupportReasons{
         "Vulkan diffuse path-loop backend requires positive max depth",
-        "Vulkan diffuse path-loop backend currently supports empty geometry or triangle, sphere, "
-        "plane, rectangle, disk, open-cylinder, or torus primitives with static transforms only",
+        "Vulkan diffuse path-loop backend currently supports empty geometry or "
+        "triangle-backed MeshPrimitive, Box, and finite-width Curve geometry plus triangle, "
+        "sphere, plane, rectangle, disk, open-cylinder, or torus records with static "
+        "transforms only",
         "Vulkan diffuse path-loop backend currently supports Matte, Phong finite glossy, "
         "Reflective mirror, Transparent refraction, Emissive, and Portal materials only",
         "Vulkan diffuse path-loop backend currently supports ConstantColor, CheckerBoard texture "

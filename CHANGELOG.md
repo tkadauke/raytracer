@@ -469,6 +469,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Clarify Metal/Vulkan full-GPU path-loop unsupported-geometry diagnostics so
+  they name triangle-backed MeshPrimitive, Box, and finite-width Curve geometry
+  alongside the analytic GPU primitive records they already accept. —
+  GPT-5 Codex
 - Avoid reading back Metal full-GPU diffuse path-loop echoed launch parameters
   during trace-disabled, metrics-disabled final-image renders, matching the
   Vulkan fast path and the documented display-only route. — GPT-5 Codex

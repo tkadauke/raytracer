@@ -100,7 +100,9 @@ namespace render {
       GpuDiffusePathLoopSceneSupportReasons{
         "Metal diffuse path-loop backend requires positive max depth",
         "Metal diffuse path-loop backend currently supports empty geometry or "
-        "triangle/sphere/plane/rectangle/disk/open-cylinder/torus geometry only",
+        "triangle-backed MeshPrimitive, Box, and finite-width Curve geometry plus "
+        "triangle/sphere/plane/rectangle/disk/open-cylinder/torus records with static "
+        "transforms only",
         "Metal diffuse path-loop backend currently supports Matte, Phong finite glossy, "
         "Reflective mirror, Transparent refraction, Emissive, and Portal materials only",
         "Metal diffuse path-loop backend currently supports ConstantColor, CheckerBoard texture "

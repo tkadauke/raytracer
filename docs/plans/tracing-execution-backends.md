@@ -263,8 +263,9 @@ end state for GPU tracing.
 - Broad platform full-GPU path-loop kernels for the normal render path. A
   restricted Metal path-loop kernel can advance empty-scene and
   optionally transformed triangle/`MeshPrimitive` mesh-triangle/finite-width
-  `Curve` tessellated-triangle/sphere/plane/rectangle/disk/open-cylinder/torus
-  paths with a depth-frontier Metal schedule and Matte, Phong finite
+  `Curve` tessellated-triangle/`Box` tessellated-triangle/sphere/plane/
+  rectangle/disk/open-cylinder/torus paths with a depth-frontier Metal schedule
+  and Matte, Phong finite
   diffuse/glossy, Reflective mirror,
   Transparent perfect reflection/refraction, Portal, or Emissive materials across
   multiple depths for backend tests and explicit GPU graph requests when the
@@ -272,7 +273,8 @@ end state for GPU tracing.
   restricted Vulkan path-loop backend can execute empty-scene all-miss paths and
   a multi-depth shaded static-transform
   triangle/`MeshPrimitive` mesh-triangle/finite-width `Curve`
-  tessellated-triangle/sphere/plane/rectangle/disk/open-cylinder/torus subset with
+  tessellated-triangle/`Box` tessellated-triangle/sphere/plane/rectangle/disk/
+  open-cylinder/torus subset with
   Matte/Phong-finite-glossy/Reflective-mirror/Transparent-refraction/Portal/Emissive
   materials, ConstantColor/planar-or-UV CheckerBoard texture graphs/
   nearest-or-bilinear ImageTexture/UVColor records, bounded Tinted wrapper
@@ -2753,8 +2755,8 @@ scene is large enough to amortize upload/readback costs.
      tracer's power-heuristic MIS weight. A restricted
      `MetalGpuDiffusePathLoopBackend` now wraps
      the empty-scene and optionally transformed
-     triangle/finite-width Curve tessellated-triangle/sphere/plane/rectangle/
-     disk/open-cylinder/torus Matte, Phong finite diffuse/glossy,
+     triangle/finite-width Curve tessellated-triangle/Box tessellated-triangle/
+     sphere/plane/rectangle/disk/open-cylinder/torus Matte, Phong finite diffuse/glossy,
      Reflective-mirror, Transparent refraction, Portal, and Emissive paths with
      empty, point-light, directional-light, or rectangular-area-light scenes
      behind the platform
@@ -2859,8 +2861,8 @@ scene is large enough to amortize upload/readback costs.
      compile an embedded diffuse path-loop compute shader and expose a
      restricted `VulkanGpuDiffusePathLoopBackend` that can execute empty
      all-miss paths and a multi-depth shaded static-transform
-     triangle/finite-width Curve tessellated-triangle/sphere/plane/rectangle/
-     disk/open-cylinder/torus subset with
+     triangle/finite-width Curve tessellated-triangle/Box tessellated-triangle/
+     sphere/plane/rectangle/disk/open-cylinder/torus subset with
      Matte/Phong-finite-glossy/Reflective-mirror/Transparent-refraction/Portal/Emissive
      materials,
      ConstantColor/planar-or-UV CheckerBoard texture graphs/
