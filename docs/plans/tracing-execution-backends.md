@@ -56,11 +56,13 @@ end state for GPU tracing.
   triangle/mesh triangles, imported/static `MeshPrimitive` geometry that
   flattens to mesh triangles, finite-width `Curve` ribbon/tube tessellation,
   `Box` tessellation, sphere, plane, rectangle, disk, OpenCylinder, Torus,
-  pairwise-disjoint finite `Union` children, and static transforms.
-- Boolean/convex CSG primitives (`Difference`, `Intersection`, overlapping or
-  touching `Union`, `ConvexHull`, and `MinkowskiSum`) emit explicit unsupported
-  intersection records instead of flattening supported children and losing CSG
-  semantics.
+  pairwise-non-overlapping finite `Union` children, pairwise-non-overlapping
+  finite `ClosedSolidUnion` children, boundary-only closed-cylinder side/cap
+  pieces, and static transforms.
+- Boolean/convex CSG primitives (`Difference`, `Intersection`, overlapping
+  `Union`, overlapping `ClosedSolidUnion`, `ConvexHull`, and `MinkowskiSum`)
+  emit explicit unsupported intersection records instead of flattening
+  supported children and losing CSG semantics.
 - Compiled diffuse path-loop support diagnostics report a concrete unsupported
   primitive, material, texture, or light reason instead of a generic
   compiled-scene failure.

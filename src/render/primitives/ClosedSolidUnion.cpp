@@ -107,6 +107,21 @@ ClosedSolidUnion::intersectPacketIntervals(const Ray8& rays,
                                                                                             states);
 }
 
+void ClosedSolidUnion::appendIntersectionSceneRecords(
+  IntersectionSceneBuilder& builder, std::shared_ptr<render::Material> inheritedMaterial,
+  const Matrix4d& pointMatrix, const Matrix3d& normalMatrix,
+  const Primitive* inheritedObject) const {
+  if (hasFlattenableClosedSolidUnionChildBounds()) {
+    Composite::appendIntersectionSceneRecords(builder, std::move(inheritedMaterial), pointMatrix,
+                                              normalMatrix, inheritedObject);
+    return;
+  }
+
+  addUnsupportedCompositeIntersectionSceneRecord(
+    builder, std::move(inheritedMaterial), pointMatrix, normalMatrix, inheritedObject,
+    "closed solid union CSG is not supported by GPU intersection scene compiler");
+}
+
 Vector3d ClosedSolidUnion::farthestPoint(const Vector3d& direction) const {
   for (const auto& primitive : primitives()) {
     Vector3d point = primitive->farthestPoint(direction);

@@ -347,6 +347,16 @@ namespace render {
                                                 const Primitive* inheritedObject = nullptr) const;
 
     /**
+      * @returns true when overlapping this primitive with another child inside
+      * a ClosedSolidUnion requires interval CSG to avoid exposing internal
+      * surfaces. Boundary-only pieces such as disks, rectangles, triangles,
+      * and open-cylinder side walls override this to return false.
+      */
+    [[nodiscard]] virtual bool requiresClosedSolidUnionCsgWhenOverlapped() const {
+      return true;
+    }
+
+    /**
       * Visit semantic curve segments for image-space/debug overlay rendering.
       *
       * Unlike `tessellate()`, this path exposes curves as their original center

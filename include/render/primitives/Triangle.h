@@ -46,6 +46,9 @@ namespace render {
                                             const PrimitivePacketState8& states) const override;
     void appendIntersectionSceneRecord(IntersectionSceneBuilder& builder,
                                        const TransformedLeaf& leaf) const override;
+    [[nodiscard]] bool requiresClosedSolidUnionCsgWhenOverlapped() const override {
+      return false;
+    }
 
     /**
       * Returns a single-triangle Mesh identical to this Triangle. All three

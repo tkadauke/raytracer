@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <limits>
 #include <utility>
+#include <vector>
 
 using namespace std;
 using namespace render;
@@ -252,6 +253,46 @@ void Composite::addUnsupportedCompositeIntersectionSceneRecord(
   builder.addUnsupportedPrimitive(
     TransformedLeaf{this, effective, pointMatrix, normalMatrix, effectiveObject},
     std::move(reason));
+}
+
+bool Composite::hasPairwiseNonOverlappingFiniteChildBounds() const {
+  std::vector<BoundingBoxd> bounds;
+  for (const auto& child : m_primitives) {
+    const BoundingBoxd& childBounds = child->boundingBox();
+    if (!childBounds.isValid() || childBounds.isUndefined() || childBounds.isInfinite()) {
+      return false;
+    }
+
+    for (const BoundingBoxd& existing : bounds) {
+      const BoundingBoxd overlap = existing & childBounds;
+      if (overlap.isValid() && !overlap.isEmpty()) {
+        return false;
+      }
+    }
+    bounds.push_back(childBounds);
+  }
+  return true;
+}
+
+bool Composite::hasFlattenableClosedSolidUnionChildBounds() const {
+  std::vector<std::pair<const Primitive*, BoundingBoxd>> children;
+  for (const auto& child : m_primitives) {
+    const BoundingBoxd& childBounds = child->boundingBox();
+    if (!childBounds.isValid() || childBounds.isUndefined() || childBounds.isInfinite()) {
+      return false;
+    }
+
+    for (const auto& [existingChild, existingBounds] : children) {
+      const BoundingBoxd overlap = existingBounds & childBounds;
+      if (overlap.isValid() && !overlap.isEmpty() &&
+          (existingChild->requiresClosedSolidUnionCsgWhenOverlapped() ||
+           child->requiresClosedSolidUnionCsgWhenOverlapped())) {
+        return false;
+      }
+    }
+    children.emplace_back(child.get(), childBounds);
+  }
+  return true;
 }
 
 void Composite::forEachCurveOverlaySegment(const CurveOverlaySegmentVisitor& visitor) const {

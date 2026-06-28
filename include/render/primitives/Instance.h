@@ -168,6 +168,7 @@ namespace render {
                                         std::shared_ptr<render::Material> inheritedMaterial,
                                         const Matrix4d& pointMatrix, const Matrix3d& normalMatrix,
                                         const Primitive* inheritedObject = nullptr) const override;
+    [[nodiscard]] bool requiresClosedSolidUnionCsgWhenOverlapped() const override;
 
     /**
      * Tessellates the wrapped primitive and applies the instance

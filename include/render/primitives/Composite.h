@@ -131,6 +131,8 @@ namespace render {
       IntersectionSceneBuilder& builder, std::shared_ptr<render::Material> inheritedMaterial,
       const Matrix4d& pointMatrix, const Matrix3d& normalMatrix, const Primitive* inheritedObject,
       std::string reason) const;
+    [[nodiscard]] bool hasPairwiseNonOverlappingFiniteChildBounds() const;
+    [[nodiscard]] bool hasFlattenableClosedSolidUnionChildBounds() const;
 
     /**
       * @returns the union of every child's bounding box, or a

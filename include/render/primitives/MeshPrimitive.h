@@ -73,6 +73,9 @@ namespace render {
                                         std::shared_ptr<render::Material> inheritedMaterial,
                                         const Matrix4d& pointMatrix, const Matrix3d& normalMatrix,
                                         const Primitive* inheritedObject = nullptr) const override;
+    [[nodiscard]] bool requiresClosedSolidUnionCsgWhenOverlapped() const override {
+      return false;
+    }
 
     std::shared_ptr<Mesh> tessellate(int lod = 0) const override;
 

@@ -40,6 +40,9 @@ namespace render {
                                             const PrimitivePacketState8& states) const override;
     void appendIntersectionSceneRecord(IntersectionSceneBuilder& builder,
                                        const TransformedLeaf& leaf) const override;
+    [[nodiscard]] bool requiresClosedSolidUnionCsgWhenOverlapped() const override {
+      return false;
+    }
 
     /**
       * Returns a Mesh with 4 vertices and 2 triangles covering the rectangle.

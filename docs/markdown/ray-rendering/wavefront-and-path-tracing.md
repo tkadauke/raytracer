@@ -87,6 +87,9 @@ The current full-GPU path-loop support is intentionally narrow. Metal-enabled
 and Vulkan-enabled builds can execute explicit GPU requests for the compiled
 static geometry subset used by the path-loop kernels: triangle and mesh-triangle
 records, spheres, planes, rectangles, disks, open cylinders, and tori. The
+compiler can flatten non-overlapping composite children and boundary-only
+closed-cylinder side/cap pieces, but overlapping CSG-style unions still fall
+back because the platform path loop does not yet evaluate interval CSG. The
 supported material subset covers Matte, finite-glossy Phong, Reflective,
 Transparent, Portal, and Emissive records with ConstantColor, supported checker,
 nearest, bilinear, or base-level mipmapped image, UV-color, and bounded tinted

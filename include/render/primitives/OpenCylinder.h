@@ -46,6 +46,9 @@ namespace render {
     virtual bool intersects(const Rayd& ray, render::State& state) const override;
     void appendIntersectionSceneRecord(IntersectionSceneBuilder& builder,
                                        const TransformedLeaf& leaf) const override;
+    [[nodiscard]] bool requiresClosedSolidUnionCsgWhenOverlapped() const override {
+      return false;
+    }
     virtual Vector3d farthestPoint(const Vector3d& direction) const override;
 
     /**

@@ -33,6 +33,9 @@ namespace render {
     virtual Vector3d farthestPoint(const Vector3d& direction) const override;
     void appendIntersectionSceneRecord(IntersectionSceneBuilder& builder,
                                        const TransformedLeaf& leaf) const override;
+    [[nodiscard]] bool requiresClosedSolidUnionCsgWhenOverlapped() const override {
+      return false;
+    }
 
     /**
       * Triangle-fan tessellation: one centre vertex plus N rim

@@ -363,6 +363,14 @@ namespace IntersectionSceneCompilerTest {
     }
   }
 
+  TEST(IntersectionSceneCompiler, RejectsOverlappingClosedSolidUnionInsteadOfFlatteningChildren) {
+    auto closedUnion = std::make_shared<ClosedSolidUnion>();
+    addTwoSpheres(*closedUnion);
+    expectUnsupportedComposite(
+      closedUnion, "closed merged volume",
+      "closed solid union CSG is not supported by GPU intersection scene compiler");
+  }
+
   TEST(IntersectionSceneCompiler, CompilesDisjointUnionAsSupportedPayloads) {
     auto unionPrimitive = std::make_shared<Union>();
     auto sharedMaterial = material(Colord::blue());

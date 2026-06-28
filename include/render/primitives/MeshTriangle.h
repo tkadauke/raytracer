@@ -35,6 +35,9 @@ namespace render {
     }
     void appendIntersectionSceneRecord(IntersectionSceneBuilder& builder,
                                        const TransformedLeaf& leaf) const override;
+    [[nodiscard]] bool requiresClosedSolidUnionCsgWhenOverlapped() const override {
+      return false;
+    }
 
   protected:
     virtual BoundingBoxd calculateBoundingBox() const override;

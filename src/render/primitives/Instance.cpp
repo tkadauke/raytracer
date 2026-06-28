@@ -375,8 +375,7 @@ Instance::TransformSample Instance::transformSample(const render::State& state) 
   return transformSampleAtTime(animationSampleTime(state), 0.0, animationBaselineTime(state));
 }
 
-Instance::TransformSample Instance::transformSampleAtTime(double time,
-                                                          double shutterTimeSample,
+Instance::TransformSample Instance::transformSampleAtTime(double time, double shutterTimeSample,
                                                           double baselineTime) const {
   const Vector3d position = sampledPositionTrack(time, baselineTime);
   const Vector3d rotation = sampledVectorTrack("rotation", time, m_baseRotation);
@@ -536,6 +535,10 @@ void Instance::appendIntersectionSceneRecords(IntersectionSceneBuilder& builder,
 
   m_primitive->appendIntersectionSceneRecords(builder, effective, pointMatrix * m_pointMatrix,
                                               normalMatrix * m_normalMatrix, effectiveObject);
+}
+
+bool Instance::requiresClosedSolidUnionCsgWhenOverlapped() const {
+  return !m_primitive || m_primitive->requiresClosedSolidUnionCsgWhenOverlapped();
 }
 
 std::shared_ptr<Mesh> Instance::tessellate(int lod) const {
