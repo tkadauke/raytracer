@@ -121,6 +121,7 @@ namespace render {
   inline constexpr std::uint32_t gpuDiffusePathLoopAccumulationTargetPixel = 0u;
   inline constexpr std::uint32_t gpuDiffusePathLoopAccumulationTargetPath = 1u;
   inline constexpr std::uint32_t gpuDiffusePathLoopAccumulationTargetSampleSlot = 2u;
+  inline constexpr const char* gpuDiffusePathLoopScheduleDepthFrontier = "depth_frontier";
 
   struct GpuDiffusePathLoopResult {
     std::vector<GpuDiffusePathStateRecord> resolvedPathStates;
@@ -130,6 +131,7 @@ namespace render {
     std::vector<std::uint64_t> activePathsPerDepth;
     GpuDiffusePathStepMetrics metrics;
     std::string executionPath{"compiled_cpu_reference"};
+    std::string schedule{gpuDiffusePathLoopScheduleDepthFrontier};
     std::string pathStateResidency{"cpu_host"};
     std::string frontierCompactionExecutionPath{"cpu_diffuse_frontier_compaction"};
     std::string frontierCompactionPathStateResidency{"cpu_host"};

@@ -618,6 +618,8 @@ namespace {
              "none")
         << " resident_path_loop_execution="
         << compactTextValue(batching.value("residentPathLoopExecutionPath"), "none")
+        << " resident_path_loop_schedule="
+        << compactTextValue(batching.value("residentPathLoopSchedule"), "none")
         << " resident_path_loop_residency="
         << compactTextValue(batching.value("residentPathLoopResidency"), "none")
         << " resident_path_loop_platform="

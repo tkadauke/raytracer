@@ -21,6 +21,7 @@ namespace render {
     std::vector<std::uint32_t> accumulationSampleCounts;
     std::vector<unsigned int> resolvedDisplayPixels;
     std::string executionPath{"vulkan_diffuse_path_loop_wavefront"};
+    std::string schedule{gpuDiffusePathLoopScheduleDepthFrontier};
     std::string pathStateResidency{"vulkan_host_visible_diffuse_path_state"};
     bool retainedFrontierDispatchesIndirect{false};
     bool sceneUploadCacheHit{false};

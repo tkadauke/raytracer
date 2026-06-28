@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Report the compiled diffuse path-loop schedule explicitly in render graph
+  metadata and rendercli wavefront summaries so CPU-reference and full-GPU
+  tracing paths no longer require execution-path string parsing to distinguish
+  the current depth-frontier schedule. — GPT-5 Codex
 - Let sampled-shutter thin-lens and tilt-shift camera rigs whose linear
   in-shutter motion changes their view direction stay on GPU primary-path
   descriptors by carrying shader-facing look-at lens-camera state through CPU

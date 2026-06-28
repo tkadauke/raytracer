@@ -502,6 +502,7 @@ namespace render {
 
     GpuDiffusePathLoopResult loop;
     loop.executionPath = kFullGpuSubsetExecutionPath;
+    loop.schedule = std::move(platformResult.schedule);
     loop.pathStateResidency = pathStateResidency;
     loop.frontierCompactionExecutionPath = std::move(platformResult.executionPath);
     loop.frontierCompactionPathStateResidency = std::move(platformResult.pathStateResidency);

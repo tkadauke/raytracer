@@ -279,7 +279,7 @@ function(tracing_parity_render_compiled_gpu_execution category scene_file depth 
     NAME "rendercli tracing parity ${category} compiled GPU execution metrics"
     OUTPUT_VARIABLE gpu_execution_stdout
     STDOUT_MATCHES
-      "wavefront_metrics.*sampling_seed=1337.*sample_stream_mode=gpu_sample_stream.*integrator=pathtracer.*execution=compiled_diffuse_path_loop.*tracing_backend_request=gpu.*tracing_backend=(cpu|gpu).*tracing_backend_mode=(compiled_cpu_reference|full_gpu_subset).*tracing_backend_platform=(none|metal|vulkan).*tracing_backend_fallback=([^ ]+|none).*tracing_backend_capabilities=[1-9][0-9]*.*tracing_scene_compiled=true.*tracing_scene_materials=[1-9][0-9]*.*resident_path_loop_execution=(compiled_cpu_reference|full_gpu_subset).*resident_path_loop_residency=(cpu_host|metal_shared_diffuse_path_state|vulkan_host_visible_diffuse_path_state).*resident_path_loop_platform=(none|metal|vulkan).*resident_path_loop_depths=[1-9][0-9]*.*resident_path_loop_active_paths_per_depth=[1-9][0-9]*(,[0-9]+)*.*resident_path_loop_submitted_intersection_rays=[1-9][0-9]*.*resident_path_loop_full_platform_gpu_kernel=(false|true).*samples=[1-9][0-9]*.*accumulation_backend=(gpu_diffuse_path_loop|metal_diffuse_path_loop|vulkan_diffuse_path_loop)"
+      "wavefront_metrics.*sampling_seed=1337.*sample_stream_mode=gpu_sample_stream.*integrator=pathtracer.*execution=compiled_diffuse_path_loop.*tracing_backend_request=gpu.*tracing_backend=(cpu|gpu).*tracing_backend_mode=(compiled_cpu_reference|full_gpu_subset).*tracing_backend_platform=(none|metal|vulkan).*tracing_backend_fallback=([^ ]+|none).*tracing_backend_capabilities=[1-9][0-9]*.*tracing_scene_compiled=true.*tracing_scene_materials=[1-9][0-9]*.*resident_path_loop_execution=(compiled_cpu_reference|full_gpu_subset).*resident_path_loop_schedule=depth_frontier.*resident_path_loop_residency=(cpu_host|metal_shared_diffuse_path_state|vulkan_host_visible_diffuse_path_state).*resident_path_loop_platform=(none|metal|vulkan).*resident_path_loop_depths=[1-9][0-9]*.*resident_path_loop_active_paths_per_depth=[1-9][0-9]*(,[0-9]+)*.*resident_path_loop_submitted_intersection_rays=[1-9][0-9]*.*resident_path_loop_full_platform_gpu_kernel=(false|true).*samples=[1-9][0-9]*.*accumulation_backend=(gpu_diffuse_path_loop|metal_diffuse_path_loop|vulkan_diffuse_path_loop)"
     COMMAND
       "${RENDERCLI}" --engine pathtracer --tracing_execution gpu
       --width 32 --height 24
@@ -306,8 +306,10 @@ function(tracing_parity_render_compiled_gpu_execution category scene_file depth 
           "\"tracingBackendCapabilities\""
           "\"capability\"[ \r\n]*:[ \r\n]*\"geometry.closest_hit\""
           "\"tracingBackendRequest\"[ \r\n]*:[ \r\n]*\"gpu\""
+          "\"tracingBackendSchedule\"[ \r\n]*:[ \r\n]*\"depth_frontier\""
           "\"tracingSceneCompiled\"[ \r\n]*:[ \r\n]*true"
           "\"residentPathLoopSubmittedIntersectionRays\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
+          "\"residentPathLoopSchedule\"[ \r\n]*:[ \r\n]*\"depth_frontier\""
           "\"submittedIntersectionRays\"[ \r\n]*:[ \r\n]*[1-9][0-9]*"
           "\"requestedMode\"[ \r\n]*:[ \r\n]*\"gpu\"")
     tracing_parity_assert_json_matches(
@@ -323,7 +325,7 @@ function(tracing_parity_render_compiled_gpu_execution category scene_file depth 
     tracing_parity_assert_matches(
       "tracing parity ${category} compiled GPU execution resident path state"
       "${gpu_execution_stdout}"
-      "resident_path_loop_execution=full_gpu_subset.*resident_path_loop_residency=(metal_shared_diffuse_path_state|vulkan_host_visible_diffuse_path_state).*resident_path_loop_platform=(metal|vulkan).*resident_path_loop_full_platform_gpu_kernel=true")
+      "resident_path_loop_execution=full_gpu_subset.*resident_path_loop_schedule=depth_frontier.*resident_path_loop_residency=(metal_shared_diffuse_path_state|vulkan_host_visible_diffuse_path_state).*resident_path_loop_platform=(metal|vulkan).*resident_path_loop_full_platform_gpu_kernel=true")
     tracing_parity_assert_matches(
       "tracing parity ${category} compiled GPU execution compaction summary"
       "${gpu_execution_stdout}"
@@ -347,11 +349,13 @@ function(tracing_parity_render_compiled_gpu_execution category scene_file depth 
             "\"frontierCompactionExecutionPath\"[ \r\n]*:[ \r\n]*\"(metal_diffuse_path_loop|metal_diffuse_path_loop_wavefront|vulkan_diffuse_path_loop|vulkan_diffuse_path_loop_wavefront)\""
             "\"frontierCompactionPathStateResidency\"[ \r\n]*:[ \r\n]*\"(metal_shared_diffuse_path_state|vulkan_host_visible_diffuse_path_state)\""
             "\"intersectionBackendResidentDirectLightBatchesUnavailableReason\"[ \r\n]*:[ \r\n]*\"\""
+            "\"residentPathLoopSchedule\"[ \r\n]*:[ \r\n]*\"depth_frontier\""
             "\"residentPathLoopExecutionPath\"[ \r\n]*:[ \r\n]*\"full_gpu_subset\""
             "\"residentPathLoopResidency\"[ \r\n]*:[ \r\n]*\"(metal_shared_diffuse_path_state|vulkan_host_visible_diffuse_path_state)\""
             "\"residentPathLoopPlatformName\"[ \r\n]*:[ \r\n]*\"(metal|vulkan)\""
             "\"residentPathLoopFullPlatformGpuKernel\"[ \r\n]*:[ \r\n]*true"
             "\"platformName\"[ \r\n]*:[ \r\n]*\"(metal|vulkan)\""
+            "\"schedule\"[ \r\n]*:[ \r\n]*\"depth_frontier\""
             "\"fullPlatformGpuKernel\"[ \r\n]*:[ \r\n]*true"
             "\"predictedMode\"[ \r\n]*:[ \r\n]*\"gpu\""
             "\"actualMode\"[ \r\n]*:[ \r\n]*\"gpu\""

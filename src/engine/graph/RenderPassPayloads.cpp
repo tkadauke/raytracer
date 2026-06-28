@@ -850,6 +850,7 @@ namespace engine::graph {
       batching["integrator"] = QStringLiteral("pathtracer");
       batching["executionMode"] = QStringLiteral("compiled_diffuse_path_loop");
       batching["tracingBackendMode"] = QString::fromStdString(loop.executionPath);
+      batching["tracingBackendSchedule"] = QString::fromStdString(loop.schedule);
       batching["tracingBackend"] =
         loop.fullGpuPathLoopSupported() ? QStringLiteral("gpu") : QStringLiteral("cpu");
       batching["tracingBackendPlatform"] = QString::fromStdString(loop.platformLabel());
@@ -941,6 +942,7 @@ namespace engine::graph {
       batching["frontierCompactionReadbackWorkerSeconds"] =
         loop.frontierCompactionReadbackWorkerSeconds;
       batching["residentPathLoopExecutionPath"] = QString::fromStdString(loop.executionPath);
+      batching["residentPathLoopSchedule"] = QString::fromStdString(loop.schedule);
       batching["residentPathLoopResidency"] = QString::fromStdString(loop.pathStateResidency);
       batching["residentPathLoopPlatformName"] = QString::fromStdString(loop.platformLabel());
       batching["residentPathLoopDepths"] = static_cast<double>(loop.depthCount);
@@ -1003,6 +1005,7 @@ namespace engine::graph {
 
       QJsonObject compiledLoop;
       compiledLoop["backend"] = QString::fromStdString(loop.executionPath);
+      compiledLoop["schedule"] = QString::fromStdString(loop.schedule);
       compiledLoop["residency"] = QString::fromStdString(loop.pathStateResidency);
       compiledLoop["platformName"] = QString::fromStdString(loop.platformLabel());
       compiledLoop["fullPlatformGpuKernel"] = loop.fullGpuPathLoopSupported();

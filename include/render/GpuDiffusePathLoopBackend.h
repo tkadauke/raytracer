@@ -39,6 +39,7 @@ namespace render {
     std::vector<std::uint32_t> accumulationSampleCounts;
     std::vector<unsigned int> resolvedDisplayPixels;
     std::string executionPath;
+    std::string schedule{gpuDiffusePathLoopScheduleDepthFrontier};
     std::string pathStateResidency;
     bool retainedFrontierDispatchesIndirect{false};
     bool sceneUploadCacheHit{false};

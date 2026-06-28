@@ -23,6 +23,7 @@ namespace render {
     std::vector<std::uint32_t> accumulationSampleCounts;
     std::vector<unsigned int> resolvedDisplayPixels;
     std::string executionPath{"metal_diffuse_path_loop_launch_probe"};
+    std::string schedule{gpuDiffusePathLoopScheduleDepthFrontier};
     std::string pathStateResidency{"metal_shared_diffuse_path_state"};
     bool retainedFrontierDispatchesIndirect{false};
     bool sceneUploadCacheHit{false};

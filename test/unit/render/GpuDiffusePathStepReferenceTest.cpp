@@ -3167,6 +3167,7 @@ namespace GpuDiffusePathStepReferenceTest {
 
     EXPECT_TRUE(result.fullGpuPathLoopSupported());
     EXPECT_EQ("test", result.platformName);
+    EXPECT_EQ("depth_frontier", result.schedule);
     EXPECT_EQ("test_path_loop", result.frontierCompactionExecutionPath);
     EXPECT_EQ("test_path_state", result.pathStateResidency);
     EXPECT_EQ("test_path_state", result.frontierCompactionPathStateResidency);

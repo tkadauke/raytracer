@@ -249,9 +249,12 @@ end state for GPU tracing.
   frontier ownership still need broader platform path-state support.
 - A higher-level backend abstraction for selecting compacted wavefront versus
   megakernel schedules per platform. Metal/Vulkan now share the path-loop
-  accumulation/result bookkeeping layer, but schedule selection and Vulkan
-  shader validation/parity coverage on a Vulkan-enabled build for the new
-  depth-frontier path-loop entry points still need to land.
+  accumulation/result bookkeeping layer, and graph/rendercli metadata now
+  carries the actual path-loop schedule as `depth_frontier` instead of forcing
+  callers to infer it from backend execution-path strings. Selection between
+  compacted wavefront, megakernel, and later persistent-queue schedules and
+  Vulkan shader validation/parity coverage on a Vulkan-enabled build for the
+  current depth-frontier path-loop entry points still need to land.
 - Broad platform full-GPU path-loop kernels for the normal render path. A
   restricted Metal path-loop kernel can advance empty-scene and
   optionally transformed triangle/`MeshPrimitive` mesh-triangle/finite-width

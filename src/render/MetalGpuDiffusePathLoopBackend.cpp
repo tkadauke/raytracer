@@ -30,6 +30,7 @@ namespace render {
       platform.accumulationSampleCounts = std::move(result.accumulationSampleCounts);
       platform.resolvedDisplayPixels = std::move(result.resolvedDisplayPixels);
       platform.executionPath = std::move(result.executionPath);
+      platform.schedule = std::move(result.schedule);
       platform.pathStateResidency = std::move(result.pathStateResidency);
       platform.retainedFrontierDispatchesIndirect = result.retainedFrontierDispatchesIndirect;
       platform.sceneUploadCacheHit = result.sceneUploadCacheHit;
