@@ -11,8 +11,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Split large descriptor-backed full-GPU path-tracer launches by pixel tiles as
+  well as primary-sample ranges so interactive Metal/Vulkan renders avoid
+  oversized single-sample command buffers. — GPT-5 Codex
 - Let compiled full-GPU diffuse path-loop backends observe live graph
-  cancellation between CPU-reference depths or Metal/Vulkan sample chunks so
+  cancellation between CPU-reference depths or Metal/Vulkan sample/tile chunks so
   interactive graph-backed path-tracer renders can stop promptly. —
   GPT-5 Codex
 - Publish intermediate Metal/Vulkan path-loop display resolves into graph-backed

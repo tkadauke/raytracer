@@ -119,15 +119,18 @@ end state for GPU tracing.
   fish-eye launches from the same descriptor metadata. Descriptor-backed
   launches can also carry an absolute sample offset/count, and Metal/Vulkan
   backends can opt into chunking those descriptor sample ranges while retaining
-  the platform accumulation buffer across chunks. Render intent, rendercli, and
-  the modeler final render dialog can request that chunk size explicitly for
-  graph-backed GPU path-tracer runs. A requested chunk size of `0` now means
-  backend auto-sizing: small descriptor-backed launches stay unchunked, while
-  large launches resolve to a bounded chunk size before allocation. Trace
-  metadata reports both the requested and resolved chunk size. Denoiser feature
-  capture can use the same chunked path because per-pixel feature records merge
-  by pixel index across sample chunks instead of appending one feature buffer per
-  chunk. Those descriptor-backed camera models with
+  the platform accumulation buffer across chunks. Oversized single-sample
+  launches are further split by the descriptor's actual pixel rectangle, so
+  auto chunking has a smaller fallback unit than "one full-resolution sample."
+  Render intent, rendercli, and the modeler final render dialog can request the
+  sample chunk size explicitly for graph-backed GPU path-tracer runs. A
+  requested chunk size of `0` now means backend auto-sizing: small
+  descriptor-backed launches stay unchunked, while large launches resolve to
+  bounded sample/tile chunks before allocation. Trace metadata reports both the
+  requested and resolved sample chunk size. Denoiser feature capture can use the
+  same chunked path because per-pixel feature records merge by pixel index across
+  sample/tile chunks instead of appending one feature buffer per chunk. Those
+  descriptor-backed camera models with
   fixed-width shutter intervals can also bake their animated still-frame pose
   into the descriptor, and pinhole, orthographic, thin-lens, tilt-shift,
   equirectangular, spherical, and fish-eye camera rigs with position and target
@@ -2952,7 +2955,7 @@ scene is large enough to amortize upload/readback costs.
      pixels into the live display buffer before the final chunk completes. The
      same compiled pass now passes a live graph cancellation callback into the
      path-loop settings so CPU-reference, Metal, and Vulkan path-loop backends
-     can stop between CPU depths or GPU sample chunks.
+     can stop between CPU depths or GPU sample/tile chunks.
 
 5. **Add parity and performance gates.**
    - Depends on: jobs 2, 3, and 4.

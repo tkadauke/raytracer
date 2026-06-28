@@ -77,4 +77,28 @@ namespace render {
     result.rectilinear.samplesPerPixel = sampleCount;
     return result;
   }
+
+  GpuPrimaryPathDescriptor GpuPrimaryPathDescriptor::withActualRect(const Recti& rect) const {
+    if (!isRectangularPixelDomainMode(mode)) {
+      throw std::invalid_argument("GPU primary actual rects require a rectangular descriptor");
+    }
+    if (rect.width() <= 0 || rect.height() <= 0) {
+      throw std::invalid_argument("GPU primary actual rect requires positive dimensions");
+    }
+
+    const Recti requested = requestedRect();
+    if (rect.left() < requested.left() || rect.top() < requested.top() ||
+        rect.right() > requested.right() || rect.bottom() > requested.bottom()) {
+      throw std::out_of_range("GPU primary actual rect is outside the descriptor request domain");
+    }
+
+    GpuPrimaryPathDescriptor result = *this;
+    result.rectilinear.actualLeft = rect.left();
+    result.rectilinear.actualTop = rect.top();
+    result.rectilinear.actualWidth =
+      static_cast<std::uint32_t>(static_cast<std::uint64_t>(rect.width()));
+    result.rectilinear.actualHeight =
+      static_cast<std::uint32_t>(static_cast<std::uint64_t>(rect.height()));
+    return result;
+  }
 }

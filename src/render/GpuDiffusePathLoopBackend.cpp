@@ -451,7 +451,7 @@ namespace render {
       }
     }
 
-    constexpr std::uint64_t kAutoPrimarySampleChunkPathBudget = 1024ull * 1024ull;
+    constexpr std::uint64_t kAutoPrimaryLaunchPathBudget = 64ull * 1024ull;
 
     [[nodiscard]] bool primaryGenerationCanUseSampleChunks(
       const GpuDiffusePrimaryPathStateGeneration& primaryPathGeneration,
@@ -462,15 +462,23 @@ namespace render {
              primaryPathGeneration.primaryPathDescriptor.has_value();
     }
 
+    [[nodiscard]] std::uint64_t descriptorPixelCount(const GpuPrimaryPathDescriptor& descriptor) {
+      const GpuRectilinearPrimaryPathDescriptor& rectilinear = descriptor.rectilinear;
+      return static_cast<std::uint64_t>(rectilinear.actualWidth) *
+             static_cast<std::uint64_t>(rectilinear.actualHeight);
+    }
+
     [[nodiscard]] std::uint32_t
     budgetedSampleChunkSize(const GpuPrimaryPathDescriptor& descriptor) {
       const GpuRectilinearPrimaryPathDescriptor& rectilinear = descriptor.rectilinear;
-      const std::uint64_t pixelCount = static_cast<std::uint64_t>(rectilinear.actualWidth) *
-                                       static_cast<std::uint64_t>(rectilinear.actualHeight);
-      if (pixelCount == 0u || descriptor.pathCount() <= kAutoPrimarySampleChunkPathBudget) {
+      const std::uint64_t pixelCount = descriptorPixelCount(descriptor);
+      if (pixelCount == 0u || descriptor.pathCount() <= kAutoPrimaryLaunchPathBudget) {
         return 0u;
       }
-      return 1u;
+      const std::uint64_t samplesByBudget =
+        std::max<std::uint64_t>(1u, kAutoPrimaryLaunchPathBudget / pixelCount);
+      return static_cast<std::uint32_t>(
+        std::min<std::uint64_t>(rectilinear.samplesPerPixel, samplesByBudget));
     }
 
     [[nodiscard]] bool canUsePixelAccumulationAcrossPrimarySampleChunks(
@@ -479,6 +487,48 @@ namespace render {
       return primaryGenerationCanUseSampleChunks(primaryPathGeneration, settings) &&
              resolvedGpuDiffusePrimarySampleChunkSize(primaryPathGeneration, settings) == 1u &&
              primaryPathGeneration.primaryPathDescriptor->rectilinear.samplesPerPixel > 1u;
+    }
+
+    [[nodiscard]] bool descriptorNeedsPixelTiles(const GpuPrimaryPathDescriptor& descriptor,
+                                                 std::uint32_t sampleCount) {
+      const std::uint64_t pixelCount = descriptorPixelCount(descriptor);
+      return sampleCount != 0u && pixelCount > kAutoPrimaryLaunchPathBudget / sampleCount;
+    }
+
+    [[nodiscard]] std::vector<Recti>
+    primaryPixelTilesFor(const GpuPrimaryPathDescriptor& descriptor, std::uint32_t sampleCount) {
+      const Recti actualRect = descriptor.actualRect();
+      if (!descriptorNeedsPixelTiles(descriptor, sampleCount)) {
+        return {actualRect};
+      }
+
+      const std::uint64_t maxPixelsPerChunk =
+        std::max<std::uint64_t>(1u, kAutoPrimaryLaunchPathBudget / sampleCount);
+      std::vector<Recti> tiles;
+      for (int y = actualRect.top(); y < actualRect.bottom();) {
+        const int remainingHeight = actualRect.bottom() - y;
+        if (static_cast<std::uint64_t>(actualRect.width()) <= maxPixelsPerChunk) {
+          const int tileHeight = std::max<int>(
+            1, static_cast<int>(std::min<std::uint64_t>(
+                 static_cast<std::uint64_t>(remainingHeight),
+                 maxPixelsPerChunk / static_cast<std::uint64_t>(actualRect.width()))));
+          tiles.emplace_back(actualRect.left(), y, actualRect.width(), tileHeight);
+          y += tileHeight;
+          continue;
+        }
+
+        int x = actualRect.left();
+        while (x < actualRect.right()) {
+          const int remainingWidth = actualRect.right() - x;
+          const int tileWidth =
+            std::max<int>(1, static_cast<int>(std::min<std::uint64_t>(
+                               static_cast<std::uint64_t>(remainingWidth), maxPixelsPerChunk)));
+          tiles.emplace_back(x, y, tileWidth, 1);
+          x += tileWidth;
+        }
+        ++y;
+      }
+      return tiles;
     }
   }
 
@@ -502,49 +552,71 @@ namespace render {
   bool canChunkGpuDiffusePrimarySamples(
     const GpuDiffusePrimaryPathStateGeneration& primaryPathGeneration,
     const GpuDiffusePathLoopSettings& settings) {
+    if (!primaryGenerationCanUseSampleChunks(primaryPathGeneration, settings)) {
+      return false;
+    }
     const std::uint32_t chunkSize =
       resolvedGpuDiffusePrimarySampleChunkSize(primaryPathGeneration, settings);
     if (chunkSize == 0u) {
-      return false;
+      return descriptorNeedsPixelTiles(
+        *primaryPathGeneration.primaryPathDescriptor,
+        primaryPathGeneration.primaryPathDescriptor->rectilinear.samplesPerPixel);
     }
     const GpuRectilinearPrimaryPathDescriptor& descriptor =
       primaryPathGeneration.primaryPathDescriptor->rectilinear;
-    return descriptor.samplesPerPixel > chunkSize;
+    return descriptor.samplesPerPixel > chunkSize ||
+           descriptorNeedsPixelTiles(*primaryPathGeneration.primaryPathDescriptor, chunkSize);
   }
 
   std::vector<GpuDiffusePrimaryPathSampleChunk> gpuDiffusePrimarySampleChunksFor(
     const GpuDiffusePrimaryPathStateGeneration& primaryPathGeneration,
     const GpuDiffusePathLoopSettings& settings) {
-    if (!canChunkGpuDiffusePrimarySamples(primaryPathGeneration, settings)) {
+    if (!primaryGenerationCanUseSampleChunks(primaryPathGeneration, settings)) {
       return {};
     }
 
     const GpuPrimaryPathDescriptor& descriptor = *primaryPathGeneration.primaryPathDescriptor;
     const std::uint32_t sampleBegin = descriptor.rectilinear.sampleOffset;
     const std::uint32_t sampleCount = descriptor.rectilinear.samplesPerPixel;
+    const std::uint32_t resolvedChunkSize =
+      resolvedGpuDiffusePrimarySampleChunkSize(primaryPathGeneration, settings);
+    if (resolvedChunkSize == 0u && !descriptorNeedsPixelTiles(descriptor, sampleCount)) {
+      return {};
+    }
     if (sampleBegin > std::numeric_limits<std::uint32_t>::max() - sampleCount) {
       throw std::overflow_error("GPU diffuse primary sample chunks exceed sample index range");
     }
-    const std::uint32_t resolvedChunkSize =
-      resolvedGpuDiffusePrimarySampleChunkSize(primaryPathGeneration, settings);
+    const std::uint32_t sampleChunkSize = resolvedChunkSize == 0u ? sampleCount : resolvedChunkSize;
     const std::uint32_t sampleEnd = sampleBegin + sampleCount;
     std::vector<GpuDiffusePrimaryPathSampleChunk> chunks;
     for (std::uint32_t sampleOffset = sampleBegin; sampleOffset < sampleEnd;) {
       const std::uint32_t remaining = sampleEnd - sampleOffset;
-      const std::uint32_t chunkSampleCount = std::min(resolvedChunkSize, remaining);
+      const std::uint32_t chunkSampleCount = std::min(sampleChunkSize, remaining);
 
-      GpuDiffusePrimaryPathSampleChunk chunk;
-      chunk.primaryPathGeneration = primaryPathGeneration;
-      chunk.primaryPathGeneration.pathStates.clear();
-      chunk.primaryPathGeneration.primaryPathDescriptor =
+      const GpuPrimaryPathDescriptor sampleDescriptor =
         descriptor.withSampleRange(sampleOffset, chunkSampleCount);
-      chunk.primaryPathGeneration.generatedPrimarySamples =
-        chunk.primaryPathGeneration.primaryPathDescriptor->pathCount();
-      chunk.primaryPathGeneration.skippedPrimarySamples = 0u;
-      chunk.firstChunk = chunks.empty();
-      chunk.finalChunk = sampleOffset + chunkSampleCount == sampleEnd;
-      chunks.push_back(std::move(chunk));
+      const std::vector<Recti> pixelTiles =
+        primaryPixelTilesFor(sampleDescriptor, chunkSampleCount);
+      for (const Recti& pixelTile : pixelTiles) {
+        GpuDiffusePrimaryPathSampleChunk chunk;
+        chunk.primaryPathGeneration = primaryPathGeneration;
+        chunk.primaryPathGeneration.pathStates.clear();
+        chunk.primaryPathGeneration.primaryPathDescriptor =
+          sampleDescriptor.withActualRect(pixelTile);
+        chunk.primaryPathGeneration.requestedRect =
+          chunk.primaryPathGeneration.primaryPathDescriptor->requestedRect();
+        chunk.primaryPathGeneration.actualRect =
+          chunk.primaryPathGeneration.primaryPathDescriptor->actualRect();
+        chunk.primaryPathGeneration.generatedPrimarySamples =
+          chunk.primaryPathGeneration.primaryPathDescriptor->pathCount();
+        chunk.primaryPathGeneration.skippedPrimarySamples = 0u;
+        chunk.firstChunk = chunks.empty();
+        chunks.push_back(std::move(chunk));
+      }
       sampleOffset += chunkSampleCount;
+    }
+    if (!chunks.empty()) {
+      chunks.back().finalChunk = true;
     }
     return chunks;
   }

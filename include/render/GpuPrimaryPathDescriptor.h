@@ -56,5 +56,6 @@ namespace render {
     [[nodiscard]] std::uint64_t pathCount() const;
     [[nodiscard]] GpuPrimaryPathDescriptor withSampleRange(std::uint32_t firstSample,
                                                            std::uint32_t sampleCount) const;
+    [[nodiscard]] GpuPrimaryPathDescriptor withActualRect(const Recti& rect) const;
   };
 }
