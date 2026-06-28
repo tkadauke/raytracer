@@ -106,8 +106,8 @@ namespace render {
         "Vulkan diffuse path-loop backend currently supports Matte, Phong finite glossy, "
         "Reflective mirror, Transparent refraction, Emissive, and Portal materials only",
         "Vulkan diffuse path-loop backend currently supports ConstantColor, CheckerBoard texture "
-        "graphs, nearest/bilinear ImageTexture, UVColorTexture, and bounded Tinted wrapper chains "
-        "over those textures only",
+        "graphs, nearest, bilinear, and base-level mipmapped ImageTexture, UVColorTexture, and "
+        "bounded Tinted wrapper chains over those textures only",
         "Vulkan diffuse path-loop backend currently supports point, directional, or rectangular "
         "area lights only",
         "Vulkan diffuse path-loop backend requires finite ambient, background, and environment "

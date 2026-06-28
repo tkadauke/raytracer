@@ -2824,6 +2824,35 @@ namespace GpuDiffusePathStepReferenceTest {
     ASSERT_COLOR_NEAR(expected, Colord(result.stepRecords[0].continuationThroughput), 1e-6);
   }
 
+  TEST(GpuDiffusePathStepReference, MatteHitSamplesMipmappedImageTextureAtBaseLevel) {
+    std::vector<Colord> pixels{Colord::red(), Colord::green(), Colord::blue(), Colord::white()};
+    auto image =
+      std::make_shared<ImageTexture>(new UVMapping2D, 2, 2, pixels, ImageTextureFilter::Mipmap);
+    auto matte = std::make_shared<MatteMaterial>(image);
+    matte->setDiffuseCoefficient(1.0);
+    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    receiver->setMaterial(matte);
+
+    Scene scene;
+    scene.add(receiver);
+    GpuTracingSceneSections sections = sectionsFor(scene);
+    sections.geometry = GpuIntersectionSceneBuffers{};
+    const std::uint32_t material = firstMaterialId(sections, GpuTracingMaterialKind::Matte);
+
+    GpuIntersectionHitRecord hit = hitRecord(17, material);
+    hit.uv = {0.5f, 0.5f, 0.0f, 0.0f};
+    GpuDiffusePathLoopSettings settings;
+    settings.russianRouletteDepth = 10;
+
+    const GpuDiffusePathStepResult result =
+      GpuDiffusePathStepReference().step(sections, {activePath(17)}, {hit}, settings);
+
+    const Colord expected = image->sample(0.5, 0.5);
+    ASSERT_EQ(1u, result.pathStates.size());
+    ASSERT_COLOR_NEAR(expected, Colord(result.pathStates[0].throughput), 1e-6);
+    ASSERT_COLOR_NEAR(expected, Colord(result.stepRecords[0].continuationThroughput), 1e-6);
+  }
+
   TEST(GpuDiffusePathStepReference, MatteHitSamplesTintedTexture) {
     auto tinted = std::make_shared<TintedTexture>(
       std::make_shared<ConstantColorTexture>(Colord(0.25, 0.5, 0.75)), Colord(0.5, 0.25, 0.125));
@@ -3898,6 +3927,18 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_TRUE(bilinearImageSupport.supported);
     EXPECT_TRUE(bilinearImageSupport.reason.empty());
 
+    Scene mipmappedImageScene;
+    auto mipmappedImage =
+      std::make_shared<ImageTexture>(new PlanarMapping2D, 2, 2, pixels, ImageTextureFilter::Mipmap);
+    auto mipmappedImageMatte = std::make_shared<MatteMaterial>(mipmappedImage);
+    auto mipmappedImageSphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    mipmappedImageSphere->setMaterial(mipmappedImageMatte);
+    mipmappedImageScene.add(mipmappedImageSphere);
+    const GpuDiffusePathLoopBackendSupport mipmappedImageSupport =
+      backend.fullGpuPathLoopSupport(sectionsFor(mipmappedImageScene), settings);
+    EXPECT_TRUE(mipmappedImageSupport.supported);
+    EXPECT_TRUE(mipmappedImageSupport.reason.empty());
+
     Scene uvColorScene;
     auto uvColorMatte = std::make_shared<MatteMaterial>(std::make_shared<UVColorTexture>());
     auto uvColorSphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
@@ -4594,6 +4635,18 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_TRUE(bilinearImageSupport.supported);
     EXPECT_TRUE(bilinearImageSupport.reason.empty());
 
+    Scene mipmappedImageScene;
+    auto mipmappedImage =
+      std::make_shared<ImageTexture>(new PlanarMapping2D, 2, 2, pixels, ImageTextureFilter::Mipmap);
+    auto mipmappedImageMatte = std::make_shared<MatteMaterial>(mipmappedImage);
+    auto mipmappedImageSphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    mipmappedImageSphere->setMaterial(mipmappedImageMatte);
+    mipmappedImageScene.add(mipmappedImageSphere);
+    const GpuDiffusePathLoopBackendSupport mipmappedImageSupport =
+      backend.fullGpuPathLoopSupport(sectionsFor(mipmappedImageScene), settings);
+    EXPECT_TRUE(mipmappedImageSupport.supported);
+    EXPECT_TRUE(mipmappedImageSupport.reason.empty());
+
     Scene uvColorScene;
     auto uvColorMatte = std::make_shared<MatteMaterial>(std::make_shared<UVColorTexture>());
     auto uvColorSphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
@@ -4714,8 +4767,8 @@ namespace GpuDiffusePathStepReferenceTest {
       backend.fullGpuPathLoopSupport(unsupportedTextureSections, settings);
     EXPECT_FALSE(unsupportedTextureSupport.supported);
     EXPECT_EQ("Vulkan diffuse path-loop backend currently supports ConstantColor, CheckerBoard "
-              "texture graphs, nearest/bilinear ImageTexture, UVColorTexture, and bounded Tinted "
-              "wrapper chains over those textures only",
+              "texture graphs, nearest, bilinear, and base-level mipmapped ImageTexture, "
+              "UVColorTexture, and bounded Tinted wrapper chains over those textures only",
               unsupportedTextureSupport.reason);
 
     Scene multiLightScene;
@@ -6092,6 +6145,43 @@ namespace GpuDiffusePathStepReferenceTest {
 #endif
   }
 
+  TEST(VulkanGpuDiffusePathLoopBackend, RunsMipmappedImageTexturePathLoopWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    const VulkanGpuDiffusePathLoopBackend backend;
+    if (!backend.fullGpuPathLoopAvailable()) {
+      GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
+    }
+
+    Scene scene;
+    std::vector<Colord> pixels{Colord::red(), Colord::green(), Colord::blue(), Colord::white()};
+    auto image =
+      std::make_shared<ImageTexture>(new PlanarMapping2D, 2, 2, pixels, ImageTextureFilter::Mipmap);
+    auto matte = std::make_shared<MatteMaterial>(image);
+    matte->setDiffuseCoefficient(1.0);
+    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+    receiver->setMaterial(matte);
+    scene.add(receiver);
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+    GpuDiffusePathStateRecord path = activePath();
+    path.pixelIndex = 0;
+    path.sampleSeed = 12347;
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 1;
+    settings.russianRouletteDepth = 10;
+    const std::vector<GpuDiffusePathStateRecord> paths{path};
+
+    const GpuDiffusePathLoopResult expected = GpuDiffusePathLoop().run(sections, paths, settings);
+    const GpuDiffusePathLoopResult result = backend.run(sections, paths, settings);
+
+    EXPECT_TRUE(result.fullGpuPathLoopSupported());
+    ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
+    expectPathStateNear(result.resolvedPathStates[0], expected.resolvedPathStates[0], 1e-4);
+#else
+    GTEST_SKIP() << "Vulkan wavefront support is not enabled in this build";
+#endif
+  }
+
   TEST(VulkanGpuDiffusePathLoopBackend, RunsUvColorTexturePathLoopWhenEnabled) {
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
     const VulkanGpuDiffusePathLoopBackend backend;
@@ -6799,6 +6889,47 @@ namespace GpuDiffusePathStepReferenceTest {
     std::vector<Colord> pixels{Colord::red(), Colord::green(), Colord::blue(), Colord::white()};
     auto image = std::make_shared<ImageTexture>(new PlanarMapping2D, 2, 2, pixels,
                                                 ImageTextureFilter::Bilinear);
+    auto material = std::make_shared<MatteMaterial>(image);
+    material->setDiffuseCoefficient(1.0);
+    auto floor = std::make_shared<Plane>(Vector3d(0.0, 0.0, -1.0), 0.0);
+    floor->setMaterial(material);
+    scene.add(floor);
+    const GpuTracingSceneSections sections = sectionsFor(scene);
+    GpuDiffusePathStateRecord path =
+      activePath(Rayd(Vector4d(0.25, 0.0, -4.0, 1.0), Vector3d(0.0, 0.0, 1.0)), 17);
+    path.pixelIndex = 0;
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 1;
+    settings.russianRouletteDepth = 10;
+    settings.directLightSamples = 1;
+    const std::vector<GpuDiffusePathStateRecord> paths{path};
+
+    const GpuDiffusePathLoopResult expected = GpuDiffusePathLoop().run(sections, paths, settings);
+    const GpuDiffusePathLoopResult result = backend.run(sections, paths, settings);
+
+    EXPECT_TRUE(result.fullGpuPathLoopSupported());
+    ASSERT_EQ(expected.stepRecords.size(), result.stepRecords.size());
+    expectFloat4Near(result.stepRecords[0].continuationThroughput,
+                     expected.stepRecords[0].continuationThroughput, 1e-4);
+    ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
+    expectPathStateNear(result.resolvedPathStates[0], expected.resolvedPathStates[0], 1e-4);
+#else
+    GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
+#endif
+  }
+
+  TEST(MetalGpuDiffusePathLoopBackend, RunsMipmappedImageTextureDiffusePathLoopWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    const MetalGpuDiffusePathLoopBackend backend;
+    if (!backend.fullGpuPathLoopAvailable()) {
+      GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
+    }
+
+    Scene scene;
+    std::vector<Colord> pixels{Colord::red(), Colord::green(), Colord::blue(), Colord::white()};
+    auto image =
+      std::make_shared<ImageTexture>(new PlanarMapping2D, 2, 2, pixels, ImageTextureFilter::Mipmap);
     auto material = std::make_shared<MatteMaterial>(image);
     material->setDiffuseCoefficient(1.0);
     auto floor = std::make_shared<Plane>(Vector3d(0.0, 0.0, -1.0), 0.0);

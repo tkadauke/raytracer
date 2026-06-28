@@ -89,8 +89,9 @@ static geometry subset used by the path-loop kernels: triangle and mesh-triangle
 records, spheres, planes, rectangles, disks, open cylinders, and tori. The
 supported material subset covers Matte, finite-glossy Phong, Reflective,
 Transparent, Portal, and Emissive records with ConstantColor, supported checker,
-image, UV-color, and bounded tinted texture graphs, plus point, directional,
-and rectangular area lights. Unsupported scenes still report the CPU-reference
+nearest, bilinear, or base-level mipmapped image, UV-color, and bounded tinted
+texture graphs, plus point, directional, and rectangular area lights.
+Unsupported scenes still report the CPU-reference
 or hybrid diagnostic backend instead of pretending that the GPU owns the whole
 path tracer.
 

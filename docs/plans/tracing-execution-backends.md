@@ -91,9 +91,9 @@ end state for GPU tracing.
   Reflective mirror continuations, Transparent perfect reflection/refraction
   continuations, Portal delta redirection continuations, Emissive materials,
   ConstantColor, planar/UV CheckerBoard
-  texture graphs, nearest-or-bilinear ImageTexture, UVColorTexture, and bounded
-  Tinted wrapper chains over those supported base texture records, PointLight,
-  DirectionalLight, and RectangularAreaLight.
+  texture graphs, nearest, bilinear, and base-level mipmapped ImageTexture,
+  UVColorTexture, and bounded Tinted wrapper chains over those supported base
+  texture records, PointLight, DirectionalLight, and RectangularAreaLight.
 - Raster-only material normal maps no longer reject GPU tracing material
   compilation. The compiled path-tracing subset ignores `normalTexture()` just
   like the scalar CPU path tracer currently does, so unsupported normal-map
@@ -283,8 +283,8 @@ end state for GPU tracing.
   open-cylinder/torus subset with
   Matte/Phong-finite-glossy/Reflective-mirror/Transparent-refraction/Portal/Emissive
   materials, ConstantColor/planar-or-UV CheckerBoard texture graphs/
-  nearest-or-bilinear ImageTexture/UVColor records, bounded Tinted wrapper
-  chains over those records, and zero or more point, directional, or
+  nearest, bilinear, and base-level mipmapped ImageTexture records, UVColor
+  records, bounded Tinted wrapper chains over those records, and zero or more point, directional, or
   rectangular area lights when Vulkan is built and available, including
   sample-slot accumulation for duplicate active pixel targets, now through a
   depth-frontier Vulkan schedule.
@@ -301,8 +301,9 @@ end state for GPU tracing.
 - GPU material records for future/custom material types beyond the current
   runtime material hierarchy.
 - GPU texture records for future/custom texture or mapping types beyond
-  ConstantColor, planar/UV CheckerBoard texture graphs, nearest-or-bilinear
-  ImageTexture records, UVColorTexture, and bounded Tinted wrapper chains.
+  ConstantColor, planar/UV CheckerBoard texture graphs, nearest, bilinear, and
+  base-level mipmapped ImageTexture records, UVColorTexture, and bounded Tinted
+  wrapper chains.
 - GPU light records for future/custom light types beyond PointLight,
   DirectionalLight, and RectangularAreaLight.
 - Platform GPU BSDF, direct-light, path-continuation, and Russian-roulette
@@ -1936,8 +1937,9 @@ comparison logic.
    reasons counted for tracing scene diagnostics. Closes #581.
    - Depends on: job 1.
    - Output: records for ConstantColor, planar/UV CheckerBoard texture graphs,
-     nearest/bilinear ImageTexture records, UVColorTexture, and bounded Tinted
-     wrapper chains; unsupported reasons otherwise.
+     nearest/bilinear ImageTexture records, base-level bilinear records for
+     mipmapped image textures, UVColorTexture, and bounded Tinted wrapper
+     chains; unsupported reasons otherwise.
 
 4. ~~**Compile light records.**~~ ✅ **Done.**
    `render::GpuTracingLightCompilation` now packs PointLight,
@@ -2882,9 +2884,9 @@ scene is large enough to amortize upload/readback costs.
      Matte/Phong-finite-glossy/Reflective-mirror/Transparent-refraction/Portal/Emissive
      materials,
      ConstantColor/planar-or-UV CheckerBoard texture graphs/
-     nearest-or-bilinear ImageTexture records, UVColorTexture, plus bounded
-     Tinted wrapper chains over those records, and zero or more point,
-     directional, or rectangular area lights. It writes a Vulkan-owned resident
+     nearest, bilinear, and base-level mipmapped ImageTexture records,
+     UVColorTexture, plus bounded Tinted wrapper chains over those records, and
+     zero or more point, directional, or rectangular area lights. It writes a Vulkan-owned resident
      path-state buffer, current/next retained-frontier index buffers,
      step-record, and accumulation buffers, reports platform path-state
      residency, and now advances the path loop through depth-frontier dispatches

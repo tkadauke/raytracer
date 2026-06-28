@@ -89,8 +89,9 @@
 > triangle/sphere/plane/rectangle/disk/open-cylinder/torus
 > Matte/Phong-finite-glossy/Reflective-mirror/Transparent-refraction/Emissive
 > subset, including duplicate-pixel sample-slot accumulation. It now also
-> samples planar/UV CheckerBoard texture graphs, nearest-or-bilinear
-> ImageTexture, UVColorTexture, and bounded Tinted wrapper chains used by the
+> samples planar/UV CheckerBoard texture graphs, nearest, bilinear, and
+> base-level mipmapped ImageTexture records, UVColorTexture, and bounded Tinted
+> wrapper chains used by the
 > Metal backend,
 > and evaluates multiple point, directional, or rectangular area lights with
 > shader-side light selection and supported-scene visibility. It
