@@ -1,4 +1,5 @@
 #include "render/cameras/CameraFactory.h"
+#include "GpuPrimaryPathDescriptorPacking.h"
 #include "core/DivisionByZeroException.h"
 #include "render/cameras/PinholeCamera.h"
 #include "PinholeProjection.h"
@@ -30,17 +31,8 @@ const char* PinholeCamera::fingerprintType() const {
 }
 
 namespace {
-  std::uint32_t checkedU32(std::uint64_t value, const char* label) {
-    if (value > std::numeric_limits<std::uint32_t>::max()) {
-      throw std::overflow_error(std::string(label) + " exceeds GPU 32-bit count range");
-    }
-    return static_cast<std::uint32_t>(value);
-  }
-
-  std::array<float, 4> vector4(const Vector3d& value, float w) {
-    return {static_cast<float>(value.x()), static_cast<float>(value.y()),
-            static_cast<float>(value.z()), w};
-  }
+  using render::detail::checkedU32;
+  using render::detail::vector4;
 
   Vector3d rayOriginForMatrix(const Matrix4d& cameraMatrix, double distance) {
     return Vector3d(cameraMatrix.cell(0, 3) - cameraMatrix.cell(0, 2) * distance,
