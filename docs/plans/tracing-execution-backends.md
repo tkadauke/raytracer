@@ -127,9 +127,9 @@ end state for GPU tracing.
   the automatic tile budget also scales down with path depth and direct-light
   samples so long-running interactive renders do not submit one oversized GPU
   command before progress and cancellation can run. Render-window progress
-  renders use a larger per-launch budget than offline/displayless launches so
-  common 640x480 high-sample previews progress sample-by-sample instead of
-  exploding into hundreds of tiny tile submissions. The budget still scales down
+  renders still use the bounded chunked path and keep the same hard per-launch
+  cap as displayless launches, so high-depth previews stay cancellable instead
+  of blocking on a full-frame sample dispatch. The budget still scales down
   with depth and direct-light samples, and larger images still tile when needed
   to avoid one oversized GPU command before progress and cancellation can run.
   Render intent, rendercli, and the modeler final render dialog can request the
@@ -338,11 +338,10 @@ end state for GPU tracing.
   auto-resolves to a backend budgeted chunk size; explicit chunk sizes are
   treated as an upper bound when a smaller chunk is needed to avoid a monolithic
   path-state allocation. The pixel-tile fallback budget scales down with
-  requested path depth and direct-light sample count for batch renders, while
-  interactive display progress uses a larger bounded budget so common preview
-  renders such as 640x480 high-sample path-tracer previews report progress per
-  full-frame sample instead of spending most of their time in tiny tile
-  submissions.
+  requested path depth and direct-light sample count, including interactive
+  display-progress renders. Interactive progress can publish resolved display
+  pixels at completed sample boundaries, but it does not relax the hard
+  per-launch cap that keeps cancellation responsive.
   Per-pixel denoiser feature records are merged across chunks so bilateral
   denoiser feature capture does not disable this sample chunking path. Oversized
   graph-trace diagnostic captures now suppress only the low-level
