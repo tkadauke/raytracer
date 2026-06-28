@@ -454,9 +454,9 @@ namespace render {
     constexpr std::uint64_t kAutoPrimaryLaunchPathWorkBudget = 1024ull * 1024ull;
     constexpr std::uint64_t kAutoPrimaryLaunchMinimumPathBudget = 16ull * 1024ull;
     constexpr std::uint64_t kAutoPrimaryLaunchMaximumPathBudget = 128ull * 1024ull;
-    constexpr std::uint64_t kInteractiveAutoPrimaryLaunchPathWorkBudget = 512ull * 1024ull;
-    constexpr std::uint64_t kInteractiveAutoPrimaryLaunchMinimumPathBudget = 8ull * 1024ull;
-    constexpr std::uint64_t kInteractiveAutoPrimaryLaunchMaximumPathBudget = 32ull * 1024ull;
+    constexpr std::uint64_t kInteractiveAutoPrimaryLaunchPathWorkBudget = 128ull * 1024ull;
+    constexpr std::uint64_t kInteractiveAutoPrimaryLaunchMinimumPathBudget = 2ull * 1024ull;
+    constexpr std::uint64_t kInteractiveAutoPrimaryLaunchMaximumPathBudget = 8ull * 1024ull;
 
     [[nodiscard]] bool primaryGenerationCanUseSampleChunks(
       const GpuDiffusePrimaryPathStateGeneration& primaryPathGeneration,
@@ -659,7 +659,8 @@ namespace render {
   bool shouldCaptureGpuDiffusePathLoopChunkResolvedDisplay(
     const GpuDiffusePathLoopSettings& settings, const GpuDiffusePrimaryPathSampleChunk& chunk) {
     return settings.captureResolvedDisplay &&
-           (chunk.finalChunk || (settings.chunkProgressObserver && chunk.completesSampleRange));
+           (chunk.finalChunk ||
+            (settings.chunkProgressObserver && (chunk.firstChunk || chunk.completesSampleRange)));
   }
 
   void mergePlatformGpuDiffusePathLoopChunkResult(GpuDiffusePathLoopPlatformResult& merged,

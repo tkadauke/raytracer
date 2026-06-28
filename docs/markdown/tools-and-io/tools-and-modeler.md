@@ -932,7 +932,9 @@ auto mode; auto mode chooses depth-aware sample/tile chunks so large
 interactive path-tracer renders can publish progress and honor cancellation
 between GPU submissions. Interactive progress uses smaller chunks than
 headless rendering, keeping high-sample GPU renders responsive even when a
-single full-frame dispatch would be too large for the platform backend.
+single full-frame dispatch would be too large for the platform backend. The
+first chunk also publishes a partial display resolve so the render window does
+not stay black while the first full sample range is still tiling.
 Scalar schedule previews publish running sample averages during multi-sample
 renders, while wavefront schedule previews publish depth-frontier snapshots and
 can use wavefront denoising/adaptive sampling and the selected intersection

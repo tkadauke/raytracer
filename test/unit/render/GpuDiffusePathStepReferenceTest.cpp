@@ -7621,7 +7621,7 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_TRUE(chunks.back().finalChunk);
   }
 
-  TEST(GpuDiffusePrimarySampleChunks, CapturesProgressDisplayOnlyAtSampleCompletion) {
+  TEST(GpuDiffusePrimarySampleChunks, CapturesFirstProgressDisplayThenSampleCompletions) {
     PinholeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
     camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 640, 480));
     camera.viewPlane()->sampler()->setup(64, 8, 42);
@@ -7641,21 +7641,21 @@ namespace GpuDiffusePathStepReferenceTest {
     const std::vector<GpuDiffusePrimaryPathSampleChunk> chunks =
       gpuDiffusePrimarySampleChunksFor(generation, settings);
 
-    ASSERT_EQ(640u, chunks.size());
-    EXPECT_LE(chunks.front().primaryPathGeneration.generatedPrimarySamples, 32u * 1024u);
-    EXPECT_EQ(51, chunks.front().primaryPathGeneration.actualRect.height());
+    ASSERT_EQ(2560u, chunks.size());
+    EXPECT_LE(chunks.front().primaryPathGeneration.generatedPrimarySamples, 8u * 1024u);
+    EXPECT_EQ(12, chunks.front().primaryPathGeneration.actualRect.height());
     std::size_t capturedProgressDisplays = 0;
     for (const GpuDiffusePrimaryPathSampleChunk& chunk : chunks) {
       if (shouldCaptureGpuDiffusePathLoopChunkResolvedDisplay(settings, chunk)) {
         ++capturedProgressDisplays;
       }
     }
-    EXPECT_EQ(64u, capturedProgressDisplays);
-    EXPECT_FALSE(shouldCaptureGpuDiffusePathLoopChunkResolvedDisplay(settings, chunks.front()));
-    ASSERT_LT(9u, chunks.size());
-    EXPECT_TRUE(shouldCaptureGpuDiffusePathLoopChunkResolvedDisplay(settings, chunks[9]));
-    EXPECT_EQ(459, chunks[9].primaryPathGeneration.actualRect.top());
-    EXPECT_EQ(21, chunks[9].primaryPathGeneration.actualRect.height());
+    EXPECT_EQ(65u, capturedProgressDisplays);
+    EXPECT_TRUE(shouldCaptureGpuDiffusePathLoopChunkResolvedDisplay(settings, chunks.front()));
+    ASSERT_LT(39u, chunks.size());
+    EXPECT_TRUE(shouldCaptureGpuDiffusePathLoopChunkResolvedDisplay(settings, chunks[39]));
+    EXPECT_EQ(468, chunks[39].primaryPathGeneration.actualRect.top());
+    EXPECT_EQ(12, chunks[39].primaryPathGeneration.actualRect.height());
     EXPECT_TRUE(shouldCaptureGpuDiffusePathLoopChunkResolvedDisplay(settings, chunks.back()));
 
     settings.chunkProgressObserver = {};
@@ -7912,7 +7912,7 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(0x445566u, callbacks[0].resolvedDisplayPixels->at(1));
   }
 
-  TEST(GpuDiffusePrimarySampleChunks, ReportsTiledProgressOnlyAfterCompletedSampleRange) {
+  TEST(GpuDiffusePrimarySampleChunks, ReportsTiledProgressOnFirstChunkAndSampleCompletion) {
     PinholeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
     camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 1024, 1024));
     camera.viewPlane()->sampler()->setup(4, 8, 42);
@@ -7933,19 +7933,23 @@ namespace GpuDiffusePathStepReferenceTest {
     };
     const std::vector<GpuDiffusePrimaryPathSampleChunk> chunks =
       gpuDiffusePrimarySampleChunksFor(generation, settings);
-    ASSERT_EQ(128u, chunks.size());
+    ASSERT_EQ(512u, chunks.size());
     ASSERT_FALSE(chunks.front().completesSampleRange);
-    ASSERT_LT(31u, chunks.size());
-    ASSERT_TRUE(chunks[31].completesSampleRange);
+    ASSERT_LT(127u, chunks.size());
+    ASSERT_TRUE(chunks[127].completesSampleRange);
 
     GpuDiffusePathLoopPlatformResult platformChunk;
+    platformChunk.resolvedDisplayPixels = {0xaabbccu};
     notifyGpuDiffusePathLoopChunkProgress(settings, generation, chunks.front(), platformChunk);
+    ASSERT_EQ(1u, callbacks.size());
+    EXPECT_EQ(0u, callbacks[0].completedSampleCount);
+    ASSERT_NE(nullptr, callbacks[0].resolvedDisplayPixels);
+    EXPECT_EQ(0xaabbccu, callbacks[0].resolvedDisplayPixels->front());
+
     platformChunk.resolvedDisplayPixels = {0x112233u};
-    notifyGpuDiffusePathLoopChunkProgress(settings, generation, chunks[31], platformChunk);
+    notifyGpuDiffusePathLoopChunkProgress(settings, generation, chunks[127], platformChunk);
 
     ASSERT_EQ(2u, callbacks.size());
-    EXPECT_EQ(0u, callbacks[0].completedSampleCount);
-    EXPECT_EQ(nullptr, callbacks[0].resolvedDisplayPixels);
     EXPECT_EQ(1u, callbacks[1].completedSampleCount);
     ASSERT_NE(nullptr, callbacks[1].resolvedDisplayPixels);
     EXPECT_EQ(0x112233u, callbacks[1].resolvedDisplayPixels->front());

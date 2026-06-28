@@ -490,6 +490,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Reduce interactive GPU path-tracer auto chunks so high-sample render-dialog
   GPU renders publish progress and avoid long-running platform kernel launches.
   — GPT-5 Codex
+- Publish a first partial display resolve for chunked interactive full-GPU path
+  tracer renders so the render dialog no longer remains black until the first
+  complete sample range finishes tiling. — GPT-5 Codex
 - Reject non-finite `TintedTexture` wrapper records before selecting the
   Metal/Vulkan full-GPU path loop, matching the finite-record validation used
   for other supported GPU texture records. — GPT-5 Codex

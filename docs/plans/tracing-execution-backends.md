@@ -140,10 +140,11 @@ end state for GPU tracing.
   requested and resolved sample chunk size. Denoiser feature capture can use the
   same chunked path because per-pixel feature records merge by pixel index across
   sample/tile chunks instead of appending one feature buffer per chunk. Chunked
-  display progress resolves are throttled to completed sample ranges rather than
-  every pixel tile, and graph metadata reports the platform resolved-display
-  readback count so high-sample previews expose their GPU-to-CPU display
-  traffic. Those descriptor-backed camera models with
+  display progress resolves publish the first pixel tile immediately, then
+  throttle later readbacks to completed sample ranges rather than every pixel
+  tile, and graph metadata reports the platform resolved-display readback count
+  so high-sample previews expose their GPU-to-CPU display traffic. Those
+  descriptor-backed camera models with
   fixed-width shutter intervals can also bake their animated still-frame pose
   into the descriptor, and pinhole, orthographic, thin-lens, tilt-shift,
   equirectangular, spherical, and fish-eye camera rigs with position and target
