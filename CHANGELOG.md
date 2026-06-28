@@ -492,6 +492,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Tighten the interactive full-GPU path-tracer auto-launch budget again so
+  640x480, 64-sample, depth-10 render-dialog runs use smaller Metal/Vulkan
+  tiles instead of issuing crash-prone high-latency path-loop chunks. —
+  GPT-5 Codex
 - Describe Metal/Vulkan full-GPU path-loop geometry support as static or
   linearly moving transforms and cover moving instances in platform path-loop
   parity tests. — GPT-5 Codex
