@@ -495,6 +495,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   interactive progress than for batch renders, so common 640x480 high-sample
   previews advance one full-frame sample per platform dispatch instead of
   splitting every sample into multiple pixel tiles. — GPT-5 Codex
+- Show automatic GPU path-tracer sample chunking as `Auto` in the render dialog
+  instead of displaying the raw sentinel value `0`. — GPT-5 Codex
 - Throttle chunked Metal/Vulkan full-GPU path-tracer progress resolves to
   completed sample ranges instead of forcing a full-frame display readback for
   every pixel tile, avoiding hangs in high-sample render-window previews. —

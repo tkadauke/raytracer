@@ -257,6 +257,7 @@ namespace RenderSettingsWidgetTest {
     ASSERT_NE(nullptr, denoiser);
     ASSERT_NE(nullptr, radius);
     ASSERT_NE(nullptr, colorSigma);
+    EXPECT_EQ(QString("Auto"), gpuPrimarySampleChunkSize->specialValueText());
 
     EXPECT_TRUE(directLightSamples->isHidden());
     EXPECT_TRUE(gpuPrimarySampleChunkSize->isHidden());
