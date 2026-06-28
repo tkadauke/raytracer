@@ -285,7 +285,9 @@ end state for GPU tracing.
   Graph auto-selection can predict the platform full-GPU path loop when scene,
   backend, and pass-level settings are all eligible; explicit GPU requests now
   report hybrid/CPU fallbacks when pass-level settings such as convergence or
-  adaptive sampling make the compiled loop ineligible.
+  adaptive sampling make the compiled loop ineligible. Backend run parity tests
+  now pin the triangle-backed geometry subset at the Metal/Vulkan path-loop
+  boundary, including `MeshPrimitive`, `Box`, and finite-width `Curve` scenes.
 - Platform full-GPU path-loop backend selection beyond the restricted Metal and
   Vulkan subsets above. The factory hook can return Metal or Vulkan platform
   backends in platform-enabled builds, but ordinary builds and unsupported

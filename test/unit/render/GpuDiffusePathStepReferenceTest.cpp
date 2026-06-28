@@ -42,6 +42,7 @@
 #include "render/materials/PortalMaterial.h"
 #include "render/materials/ReflectiveMaterial.h"
 #include "render/materials/TransparentMaterial.h"
+#include "render/primitives/Box.h"
 #include "render/primitives/Curve.h"
 #include "render/primitives/Disk.h"
 #include "render/primitives/Instance.h"
@@ -328,6 +329,95 @@ namespace GpuDiffusePathStepReferenceTest {
       mesh->addVertex(Vector3d(0.0, 1.0, 0.0), Vector3d(0.0, 0.0, 1.0), Vector2d(0.0, 1.0));
       mesh->addFace({0, 1, 2});
       return mesh;
+    }
+
+    void expectFloat4Near(const std::array<float, 4>& actual, const std::array<float, 4>& expected,
+                          double tolerance);
+    void expectPathStateNear(const GpuDiffusePathStateRecord& actual,
+                             const GpuDiffusePathStateRecord& expected, double tolerance);
+
+    struct GpuPathLoopCase {
+      GpuTracingSceneSections sections;
+      std::vector<GpuDiffusePathStateRecord> paths;
+      GpuDiffusePathLoopSettings settings;
+    };
+
+    std::shared_ptr<MatteMaterial> gpuPathLoopMatte(const Colord& color = Colord(0.25, 0.5, 0.75),
+                                                    double diffuseCoefficient = 0.8) {
+      auto material =
+        std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(color));
+      material->setDiffuseCoefficient(diffuseCoefficient);
+      return material;
+    }
+
+    GpuDiffusePathLoopSettings singleBounceGpuPathLoopSettings() {
+      GpuDiffusePathLoopSettings settings;
+      settings.maxDepth = 1;
+      settings.russianRouletteDepth = 10;
+      settings.directLightSamples = 1;
+      return settings;
+    }
+
+    GpuPathLoopCase meshPrimitiveGpuPathLoopCase() {
+      Scene scene;
+      auto meshPrimitive =
+        std::make_shared<MeshPrimitive>(triangleMesh(), MeshPrimitive::NormalMode::Smooth);
+      meshPrimitive->setMaterial(gpuPathLoopMatte(Colord(0.6, 0.5, 0.4), 0.9));
+      scene.add(meshPrimitive);
+
+      GpuDiffusePathStateRecord path =
+        activePath(Rayd(Vector4d(0.25, 0.25, -4.0, 1.0), Vector3d(0.0, 0.0, 1.0)), 22);
+      path.pixelIndex = 0;
+      path.sampleSeed = 12347;
+
+      return {sectionsFor(scene), {path}, singleBounceGpuPathLoopSettings()};
+    }
+
+    GpuPathLoopCase boxGpuPathLoopCase() {
+      Scene scene;
+      auto box = std::make_shared<Box>(Vector3d(0.0, 0.0, 3.0), Vector3d(1.0, 1.0, 1.0));
+      box->setMaterial(gpuPathLoopMatte(Colord(0.25, 0.5, 0.75), 0.8));
+      scene.add(box);
+
+      GpuDiffusePathStateRecord path =
+        activePath(Rayd(Vector4d(0.25, 0.5, 0.0, 1.0), Vector3d(0.0, 0.0, 1.0)), 23);
+      path.pixelIndex = 0;
+      path.sampleSeed = 12347;
+
+      return {sectionsFor(scene), {path}, singleBounceGpuPathLoopSettings()};
+    }
+
+    GpuPathLoopCase curveGpuPathLoopCase() {
+      Scene scene;
+      auto curve =
+        std::make_shared<Curve>(core::Polyline({Vector3d(0.0, 0.0, 3.0), Vector3d(1.0, 0.0, 3.0)}),
+                                0.5, Curve::TessellationMode::Ribbon);
+      curve->setMaterial(gpuPathLoopMatte(Colord(0.7, 0.35, 0.2), 0.85));
+      scene.add(curve);
+
+      GpuDiffusePathStateRecord path =
+        activePath(Rayd(Vector4d(0.5, 1.0, 3.0, 1.0), Vector3d(0.0, -1.0, 0.0)), 24);
+      path.pixelIndex = 0;
+      path.sampleSeed = 12347;
+
+      return {sectionsFor(scene), {path}, singleBounceGpuPathLoopSettings()};
+    }
+
+    void expectBackendPathLoopMatchesReference(const GpuDiffusePathLoopBackend& backend,
+                                               const GpuPathLoopCase& testCase) {
+      const GpuDiffusePathLoopResult expected =
+        GpuDiffusePathLoop().run(testCase.sections, testCase.paths, testCase.settings);
+      const GpuDiffusePathLoopResult result =
+        backend.run(testCase.sections, testCase.paths, testCase.settings);
+
+      EXPECT_TRUE(result.fullGpuPathLoopSupported());
+      EXPECT_EQ(expected.depthCount, result.depthCount);
+      EXPECT_EQ(expected.maxDepthTerminatedPaths, result.maxDepthTerminatedPaths);
+      ASSERT_EQ(expected.stepRecords.size(), result.stepRecords.size());
+      expectFloat4Near(result.stepRecords[0].continuationThroughput,
+                       expected.stepRecords[0].continuationThroughput, 1e-4);
+      ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
+      expectPathStateNear(result.resolvedPathStates[0], expected.resolvedPathStates[0], 1e-4);
     }
 
     std::uint32_t firstMaterialId(const GpuTracingSceneSections& sections,
@@ -5384,6 +5474,21 @@ namespace GpuDiffusePathStepReferenceTest {
 #endif
   }
 
+  TEST(VulkanGpuDiffusePathLoopBackend, RunsTriangleBackedGeometryPathLoopsWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    const VulkanGpuDiffusePathLoopBackend backend;
+    if (!backend.fullGpuPathLoopAvailable()) {
+      GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
+    }
+
+    expectBackendPathLoopMatchesReference(backend, meshPrimitiveGpuPathLoopCase());
+    expectBackendPathLoopMatchesReference(backend, boxGpuPathLoopCase());
+    expectBackendPathLoopMatchesReference(backend, curveGpuPathLoopCase());
+#else
+    GTEST_SKIP() << "Vulkan wavefront support is not enabled in this build";
+#endif
+  }
+
   TEST(VulkanGpuDiffusePathLoopBackend, RunsDirectionalLightPathLoopWhenEnabled) {
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
     const VulkanGpuDiffusePathLoopBackend backend;
@@ -6872,6 +6977,21 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(expected.maxDepthTerminatedPaths, result.maxDepthTerminatedPaths);
     ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
     expectPathStateNear(result.resolvedPathStates[0], expected.resolvedPathStates[0], 1e-4);
+#else
+    GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
+#endif
+  }
+
+  TEST(MetalGpuDiffusePathLoopBackend, RunsTriangleBackedGeometryPathLoopsWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    const MetalGpuDiffusePathLoopBackend backend;
+    if (!backend.fullGpuPathLoopAvailable()) {
+      GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
+    }
+
+    expectBackendPathLoopMatchesReference(backend, meshPrimitiveGpuPathLoopCase());
+    expectBackendPathLoopMatchesReference(backend, boxGpuPathLoopCase());
+    expectBackendPathLoopMatchesReference(backend, curveGpuPathLoopCase());
 #else
     GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
 #endif
