@@ -989,6 +989,8 @@ namespace render {
       }
       if (gpuDiffusePathStateIsTerminated(path)) {
         loop.resolvedPathStates.push_back(path);
+      } else if (gpuDiffusePathStateIsActive(path)) {
+        loop.retainedFrontierPathStates.push_back(path);
       }
     }
     return loop;

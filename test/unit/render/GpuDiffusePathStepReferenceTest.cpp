@@ -3522,6 +3522,32 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ((std::vector<double>{0.5, 0.25}), result.maxRadianceDeltaPerDepth);
   }
 
+  TEST(GpuDiffusePathLoopBackend, SharedPlatformResultRetainsActiveFrontierDiagnostics) {
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 3;
+
+    GpuDiffusePathLoopPlatformResult platform;
+    fillEchoedLaunchParameters(platform, 2, settings);
+    platform.executionPath = "test_path_loop";
+    platform.pathStateResidency = "test_path_state";
+    platform.retainedPathCount = 1;
+    platform.accumulationColorSums = {{{0.25f, 0.5f, 0.75f, 0.0f}}};
+    platform.accumulationSampleCounts = {1};
+    platform.nextPathStates = {activePath(10), activePath(11)};
+    platform.nextPathStates[0].depth = 1;
+    platform.nextPathStates[1].flags = gpuDiffusePathStateTerminatedFlag;
+
+    GpuDiffusePathLoopResult result = makePlatformGpuDiffusePathLoopResult(
+      2, settings, std::move(platform), "Test", "test", "test_path_state", "test_accumulation",
+      "test_accumulation_residency");
+
+    ASSERT_EQ(1u, result.retainedFrontierPathStates.size());
+    EXPECT_TRUE(gpuDiffusePathStateIsActive(result.retainedFrontierPathStates[0]));
+    EXPECT_EQ(1u, result.retainedFrontierPathStates[0].depth);
+    ASSERT_EQ(1u, result.resolvedPathStates.size());
+    EXPECT_TRUE(gpuDiffusePathStateIsTerminated(result.resolvedPathStates[0]));
+  }
+
   TEST(GpuDiffusePathLoopBackend, SharedPlatformResultHonorsTraceDisabledNoReadback) {
     GpuDiffusePathLoopSettings settings;
     settings.maxDepth = 2;

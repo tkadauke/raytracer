@@ -150,6 +150,7 @@ namespace render {
 
   struct GpuDiffusePathLoopResult {
     std::vector<GpuDiffusePathStateRecord> resolvedPathStates;
+    std::vector<GpuDiffusePathStateRecord> retainedFrontierPathStates;
     std::vector<GpuDiffusePathStepRecord> stepRecords;
     std::vector<GpuDiffusePathDenoiserFeatureRecord> denoiserFeatureRecords;
     bool denoiserFeatureRecordsCaptured{false};
