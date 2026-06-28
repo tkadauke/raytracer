@@ -1449,7 +1449,7 @@ namespace engine::graph {
           }
         }
         const bool wantsPlatformDisplayResolve =
-          displayTarget && context.displayTargetDirectlyPublishable() && !denoiser &&
+          displayTarget && context.displayTargetDirectlyPublishable() &&
           !settings.captureDiagnostics && supportsPlatformDisplayResolve(wavefront.tonemap());
         render::GpuDiffusePrimaryPathStateGenerationOptions generationOptions;
         if (!settings.captureDiagnostics && pathLoopBackend->fullGpuPathLoopAvailable() &&
@@ -1500,7 +1500,7 @@ namespace engine::graph {
           denoise =
             applyPostPathLoopDenoiser(denoiser, *hdrTarget, featureBuffers, denoiserFeatureSeconds);
           if (displayTarget) {
-            if (settings.captureResolvedDisplay) {
+            if (settings.captureResolvedDisplay && !denoiser) {
               const render::TracingAccumulationDiagnostics displayResolve =
                 render::resolveGpuDiffusePathLoopImage(loop, layout, *displayTarget, nullptr);
               (void)displayResolve;

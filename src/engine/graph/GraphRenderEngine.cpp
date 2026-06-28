@@ -542,11 +542,6 @@ namespace engine::graph {
               *state.tracingExecution() == TracingExecutionPreference::GPU);
     }
 
-    bool denoisingDisabled(const RaytracerBeautyPassState& state) {
-      return (!state.denoiser() || *state.denoiser() == "none") && !state.denoiseRadius() &&
-             !state.denoiseColorSigma();
-    }
-
     bool canSkipTonemapFromCurrentDisplay(
       const RenderPassNode& pass, const RenderPlan& plan,
       const std::shared_ptr<render::Tonemap>& displayTonemap,
@@ -571,8 +566,7 @@ namespace engine::graph {
       }
 
       const RaytracerBeautyPassState state = RaytracerBeautyPassState::valueFromPass(pass);
-      if (!requestedOrPredictedGpuTracing(state) || state.compiledDiffusePathLoopFallbackReason() ||
-          !denoisingDisabled(state)) {
+      if (!requestedOrPredictedGpuTracing(state) || state.compiledDiffusePathLoopFallbackReason()) {
         return false;
       }
 

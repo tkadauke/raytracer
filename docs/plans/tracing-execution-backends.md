@@ -2833,9 +2833,11 @@ scene is large enough to amortize upload/readback costs.
      only that compatible final tonemap or writes the exported color directly,
      the graph executes the beauty pass as display-only, skips the CPU tonemap
      pass when one is present, marks the final output edge produced, and does
-     not ask the backend to read back HDR accumulation planes. Any denoiser,
-     graph trace, unsupported tonemap, or postprocess/HDR
-     consumer still forces accumulation materialization, but downstream
+     not ask the backend to read back HDR accumulation planes. Denoised
+     trace-disabled display renders can still request raw GPU-resolved display
+     progress while the final image is packed from the denoised HDR buffer.
+     Denoisers, graph trace, unsupported tonemap, or postprocess/HDR
+     consumers still force accumulation materialization, but downstream
      postprocess consumers no longer request an unused platform display resolve
      for the intermediate beauty preview; the final render dialog keeps graph
      trace capture off by default and exposes a diagnostic checkbox for users
