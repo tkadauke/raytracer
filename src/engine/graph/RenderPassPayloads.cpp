@@ -821,6 +821,10 @@ namespace engine::graph {
       return "compiled CPU-reference path loop resolves direct-light visibility on the host";
     }
 
+    bool compiledDiffusePathLoopExecutedWork(const std::string& executionPath) {
+      return !executionPath.empty() && executionPath != "none";
+    }
+
     QString primaryPathGenerationFallbackReason(
       const render::GpuDiffusePrimaryPathStateGeneration& generation) {
       if (generation.canGeneratePrimaryPathsOnDevice()) {
@@ -889,7 +893,8 @@ namespace engine::graph {
       batching["directLightContributionExecutionPath"] =
         QString::fromStdString(loop.metrics.directLightContributionExecutionPath);
       batching["directLightContributionFallbackReason"] =
-        loop.fullGpuPathLoopSupported()
+        loop.fullGpuPathLoopSupported() ||
+            !compiledDiffusePathLoopExecutedWork(loop.metrics.directLightContributionExecutionPath)
           ? QString()
           : QString::fromLatin1(compiledDiffusePathLoopDirectLightContributionFallbackReason());
       batching["intersectionBackendExecutionPath"] =
@@ -909,7 +914,8 @@ namespace engine::graph {
       batching["intersectionBackendSupportsResidentDirectLightBatches"] =
         loop.fullGpuPathLoopSupported();
       batching["intersectionBackendResidentDirectLightBatchesUnavailableReason"] =
-        loop.fullGpuPathLoopSupported()
+        loop.fullGpuPathLoopSupported() ||
+            !compiledDiffusePathLoopExecutedWork(loop.metrics.directLightVisibilityExecutionPath)
           ? QString()
           : QString::fromLatin1(compiledDiffusePathLoopResidentDirectLightUnavailableReason());
       batching["initialPathCount"] = static_cast<double>(loop.initialPathCount);

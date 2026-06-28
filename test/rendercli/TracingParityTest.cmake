@@ -293,6 +293,15 @@ function(tracing_parity_render_compiled_gpu_execution category scene_file depth 
   else()
     set(platform_direct_light_execution_path_regex "full_gpu_subset")
   endif()
+  if(platform_direct_light_execution_path_regex STREQUAL "none")
+    set(fallback_direct_light_fallback_reason_regex "")
+    set(fallback_resident_direct_light_reason_regex "")
+  else()
+    set(fallback_direct_light_fallback_reason_regex
+        "compiled CPU-reference path loop evaluates direct-light contribution on the host")
+    set(fallback_resident_direct_light_reason_regex
+        "compiled CPU-reference path loop resolves direct-light visibility on the host")
+  endif()
 
   rendercli_run(
     NAME "rendercli tracing parity ${category} scalar CPU baseline"
@@ -430,10 +439,10 @@ function(tracing_parity_render_compiled_gpu_execution category scene_file depth 
             "\"tracingBackend\"[ \r\n]*:[ \r\n]*\"cpu\""
             "\"tracingBackendMode\"[ \r\n]*:[ \r\n]*\"compiled_cpu_reference\""
             "\"tracingBackendPlatform\"[ \r\n]*:[ \r\n]*\"none\""
-            "\"directLightContributionFallbackReason\"[ \r\n]*:[ \r\n]*\"compiled CPU-reference path loop evaluates direct-light contribution on the host\""
+            "\"directLightContributionFallbackReason\"[ \r\n]*:[ \r\n]*\"${fallback_direct_light_fallback_reason_regex}\""
             "\"frontierCompactionExecutionPath\"[ \r\n]*:[ \r\n]*\"cpu_diffuse_frontier_compaction\""
             "\"frontierCompactionPathStateResidency\"[ \r\n]*:[ \r\n]*\"cpu_host\""
-            "\"intersectionBackendResidentDirectLightBatchesUnavailableReason\"[ \r\n]*:[ \r\n]*\"compiled CPU-reference path loop resolves direct-light visibility on the host\""
+            "\"intersectionBackendResidentDirectLightBatchesUnavailableReason\"[ \r\n]*:[ \r\n]*\"${fallback_resident_direct_light_reason_regex}\""
             "\"residentPathLoopExecutionPath\"[ \r\n]*:[ \r\n]*\"compiled_cpu_reference\""
             "\"residentPathLoopResidency\"[ \r\n]*:[ \r\n]*\"cpu_host\""
             "\"residentPathLoopPlatformName\"[ \r\n]*:[ \r\n]*\"none\""
@@ -466,7 +475,7 @@ tracing_parity_render_supported(
 tracing_parity_render_compiled_gpu_execution(
   "environment_miss" "environment_miss.json" 1 1 0.04
   "resident_direct_light_batches_unavailable_reason=none.*direct_light_contribution_execution=none.*direct_light_contribution_fallback=none"
-  "resident_direct_light_batches_unavailable_reason=compiled_CPU-reference_path_loop_resolves_direct-light_visibility_on_the_host.*direct_light_contribution_execution=none.*direct_light_contribution_fallback=compiled_CPU-reference_path_loop_evaluates_direct-light_contribution_on_the_host"
+  "resident_direct_light_batches_unavailable_reason=none.*direct_light_contribution_execution=none.*direct_light_contribution_fallback=none"
   "none")
 tracing_parity_render_compiled_gpu_execution(
   "imported_mesh" "imported_mesh.json" 1 1 0.02)

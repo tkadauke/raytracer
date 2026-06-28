@@ -484,6 +484,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Make overlapping `ClosedSolidUnion` primitives fall back from the compiled
   GPU intersection scene instead of flattening their children and losing closed
   CSG interval semantics. — GPT-5 Codex
+- Leave compiled path-loop direct-light fallback reasons empty for no-light
+  renders that execute no direct-light visibility or contribution work. —
+  GPT-5 Codex
 - Reject non-finite `TintedTexture` wrapper records before selecting the
   Metal/Vulkan full-GPU path loop, matching the finite-record validation used
   for other supported GPU texture records. — GPT-5 Codex
