@@ -338,9 +338,10 @@ end state for GPU tracing.
   auto-resolves to a backend budgeted chunk size; explicit chunk sizes are
   treated as an upper bound when a smaller chunk is needed to avoid a monolithic
   path-state allocation. The pixel-tile fallback budget scales down with
-  requested path depth and direct-light sample count, while interactive display
-  progress uses a larger bounded budget so common preview renders report
-  progress per sample instead of spending most of their time in tiny tile
+  requested path depth and direct-light sample count for batch renders, while
+  interactive display progress uses a larger bounded budget so common preview
+  renders such as 640x480 high-sample path-tracer previews report progress per
+  full-frame sample instead of spending most of their time in tiny tile
   submissions.
   Per-pixel denoiser feature records are merged across chunks so bilateral
   denoiser feature capture does not disable this sample chunking path. Oversized

@@ -491,6 +491,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   dialog is publishing interactive progress, avoiding oversized per-sample
   Metal/Vulkan commands for 640x480, high-depth GPU sample-stream renders. —
   GPT-5 Codex
+- Use a larger bounded automatic full-GPU path-tracer launch budget for
+  interactive progress than for batch renders, so common 640x480 high-sample
+  previews advance one full-frame sample per platform dispatch instead of
+  splitting every sample into multiple pixel tiles. — GPT-5 Codex
 - Throttle chunked Metal/Vulkan full-GPU path-tracer progress resolves to
   completed sample ranges instead of forcing a full-frame display readback for
   every pixel tile, avoiding hangs in high-sample render-window previews. —
