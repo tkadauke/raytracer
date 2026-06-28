@@ -116,6 +116,7 @@ namespace render {
     bool capturePlatformAccumulation{true};
     bool captureResolvedDisplay{false};
     GpuDisplayResolveTonemap displayResolveTonemap{GpuDisplayResolveTonemap::Linear};
+    std::uint32_t primarySampleChunkSize{0};
   };
 
   inline constexpr std::uint32_t gpuDiffusePathLoopAccumulationTargetPixel = 0u;

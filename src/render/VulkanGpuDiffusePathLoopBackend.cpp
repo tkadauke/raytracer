@@ -159,6 +159,34 @@ namespace render {
     const GpuDiffusePathLoopPlatformAccumulationPlan accumulation =
       platformGpuDiffusePathLoopAccumulationPlanFor(primaryPathGeneration,
                                                     kVulkanBackendDisplayName);
+    const std::vector<GpuDiffusePrimaryPathSampleChunk> chunks =
+      gpuDiffusePrimarySampleChunksFor(primaryPathGeneration, settings);
+    if (!chunks.empty()) {
+      GpuDiffusePathLoopLaunchPlanner planner;
+      GpuDiffusePathLoopLaunchPlan fullPlan =
+        planner.plan(scene, primaryPathGeneration, accumulation.layout, settings);
+      fullPlan.parameters.accumulationTargetMode = accumulation.targetMode;
+
+      VulkanGpuDiffusePathLoopKernel kernel;
+      GpuDiffusePathLoopPlatformResult mergedPlatformResult;
+      for (const GpuDiffusePrimaryPathSampleChunk& chunk : chunks) {
+        GpuDiffusePathLoopLaunchPlan chunkPlan =
+          planner.plan(scene, chunk.primaryPathGeneration, accumulation.layout, settings);
+        chunkPlan.parameters.accumulationTargetMode = accumulation.targetMode;
+        VulkanGpuDiffusePathLoopKernelResult vulkanResult = kernel.runWavefrontPathLoop(
+          chunkPlan, initialPathStates, chunk.finalChunk && settings.capturePlatformAccumulation,
+          chunk.finalChunk && settings.captureResolvedDisplay, chunk.firstChunk);
+        mergePlatformGpuDiffusePathLoopChunkResult(mergedPlatformResult,
+                                                   platformResultFrom(std::move(vulkanResult)));
+      }
+      mergedPlatformResult.echoedParameters = fullPlan.parameters;
+      GpuDiffusePathLoopResult result = makePlatformGpuDiffusePathLoopResult(
+        fullPlan.parameters.initialPathCount, settings, std::move(mergedPlatformResult),
+        kVulkanBackendDisplayName, kVulkanPlatformName, kVulkanPathStateResidency,
+        kVulkanAccumulationBackend, kVulkanAccumulationResidency);
+      result.roundTrips = chunks.size();
+      return result;
+    }
     GpuDiffusePathLoopLaunchPlan plan = GpuDiffusePathLoopLaunchPlanner().plan(
       scene, primaryPathGeneration, accumulation.layout, settings);
     plan.parameters.accumulationTargetMode = accumulation.targetMode;

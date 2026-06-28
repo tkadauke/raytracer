@@ -42,6 +42,7 @@ namespace render {
     runWavefrontPathLoop(const GpuDiffusePathLoopLaunchPlan& plan,
                          const std::vector<GpuDiffusePathStateRecord>& initialPathStates,
                          bool capturePlatformAccumulation = true,
-                         bool captureResolvedDisplay = false) const;
+                         bool captureResolvedDisplay = false,
+                         bool clearPlatformAccumulation = true) const;
   };
 }

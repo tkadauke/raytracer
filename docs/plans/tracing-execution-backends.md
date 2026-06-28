@@ -117,12 +117,12 @@ end state for GPU tracing.
   vector size; the platform backends size accumulation for descriptor-only
   pinhole, orthographic, thin-lens, tilt-shift, equirectangular, spherical, and
   fish-eye launches from the same descriptor metadata. Descriptor-backed
-  launches can also carry an absolute sample offset/count so future progressive
-  launches can render contiguous primary-sample chunks without changing camera
-  sampling. Those descriptor-backed camera models with fixed-width shutter
-  intervals can also bake their animated still-frame pose into the descriptor,
-  and pinhole, orthographic, thin-lens, tilt-shift, equirectangular, spherical,
-  and fish-eye camera rigs with
+  launches can also carry an absolute sample offset/count, and Metal/Vulkan
+  backends can opt into chunking those descriptor sample ranges while retaining
+  the platform accumulation buffer across chunks. Those descriptor-backed
+  camera models with fixed-width shutter intervals can also bake their animated
+  still-frame pose into the descriptor, and pinhole, orthographic, thin-lens,
+  tilt-shift, equirectangular, spherical, and fish-eye camera rigs with
   position and target translated together over one linear sampled-shutter
   segment carry a primary-origin/lens-origin/ray-plane motion delta.
   Pinhole and orthographic rigs whose linear in-shutter position/target motion
@@ -297,10 +297,11 @@ end state for GPU tracing.
   behavior beyond the current Matte/Phong/Reflective/Transparent/Portal/
   Emissive subset.
 - Retained progressive multi-frame platform accumulation buffers in the live
-  render loop. Descriptor-backed primary sample ranges can address chunked
-  sample domains, but the live render loop does not yet keep platform
-  accumulation buffers alive across launches or resolve intermediate sample
-  counts.
+  render loop. Descriptor-backed primary sample ranges and opt-in backend
+  chunking can run contiguous chunks into retained Metal/Vulkan platform
+  accumulation inside one backend render call, but the live render loop does
+  not yet schedule progressive chunks across frames or surface intermediate
+  resolves.
 - Unrestricted platform GPU path-tracing loop.
 - Full platform GPU Whitted loop.
 - Hardware ray tracing backends.

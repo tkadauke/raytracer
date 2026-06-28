@@ -49,6 +49,20 @@ namespace render {
     double readbackWorkerSeconds{0.0};
   };
 
+  struct GpuDiffusePrimaryPathSampleChunk {
+    GpuDiffusePrimaryPathStateGeneration primaryPathGeneration;
+    bool firstChunk{false};
+    bool finalChunk{false};
+  };
+
+  [[nodiscard]] bool canChunkGpuDiffusePrimarySamples(
+    const GpuDiffusePrimaryPathStateGeneration& primaryPathGeneration,
+    const GpuDiffusePathLoopSettings& settings);
+  [[nodiscard]] std::vector<GpuDiffusePrimaryPathSampleChunk> gpuDiffusePrimarySampleChunksFor(
+    const GpuDiffusePrimaryPathStateGeneration& primaryPathGeneration,
+    const GpuDiffusePathLoopSettings& settings);
+  void mergePlatformGpuDiffusePathLoopChunkResult(GpuDiffusePathLoopPlatformResult& merged,
+                                                  GpuDiffusePathLoopPlatformResult&& chunkResult);
   [[nodiscard]] GpuDiffusePathLoopPlatformAccumulationPlan
   platformGpuDiffusePathLoopAccumulationPlanFor(
     const std::vector<GpuDiffusePathStateRecord>& pathStates, const char* backendDisplayName);

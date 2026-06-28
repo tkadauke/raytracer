@@ -4931,7 +4931,8 @@ namespace render {
     const GpuDiffusePathLoopLaunchPlan& plan,
     const std::vector<GpuDiffusePathStateRecord>& initialPathStates,
     bool capturePlatformAccumulation,
-    bool captureResolvedDisplay) const {
+    bool captureResolvedDisplay,
+    bool clearPlatformAccumulation) const {
     const std::size_t launchPathCount =
       static_cast<std::size_t>(plan.parameters.initialPathCount);
     if (plan.parameters.layoutVersion != gpuDiffusePathLoopLaunchLayoutVersion) {
@@ -5077,10 +5078,12 @@ namespace render {
       }
 
       const NSUInteger pixels = static_cast<NSUInteger>(pixelCount(plan.parameters));
-      [encoder setComputePipelineState:clearPipeline];
-      [encoder setBuffer:parameterBuffer offset:0 atIndex:0];
-      [encoder setBuffer:accumulationBuffer offset:0 atIndex:1];
-      dispatch1D(encoder, clearPipeline, pixels);
+      if (clearPlatformAccumulation) {
+        [encoder setComputePipelineState:clearPipeline];
+        [encoder setBuffer:parameterBuffer offset:0 atIndex:0];
+        [encoder setBuffer:accumulationBuffer offset:0 atIndex:1];
+        dispatch1D(encoder, clearPipeline, pixels);
+      }
 
       id<MTLBuffer> currentFrontierBuffer = frontierABuffer;
       id<MTLBuffer> nextFrontierBuffer = frontierBBuffer;

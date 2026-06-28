@@ -149,7 +149,8 @@ namespace render {
       VulkanGpuDiffusePathLoopKernelResult
       runWavefrontPathLoop(const GpuDiffusePathLoopLaunchPlan& plan,
                            const std::vector<GpuDiffusePathStateRecord>& initialPathStates,
-                           bool capturePlatformAccumulation, bool captureResolvedDisplay) const {
+                           bool capturePlatformAccumulation, bool captureResolvedDisplay,
+                           bool clearPlatformAccumulation) const {
         std::lock_guard<std::mutex> lock(m_runMutex);
         if (!launchPathAvailable()) {
           throw std::runtime_error(launchPathUnavailableReason());
@@ -218,7 +219,7 @@ namespace render {
           static_cast<std::uint32_t>(std::max<std::size_t>(1u, launchPathCount)),
           m_buffers[13].buffer, m_buffers[14].buffer, plan.parameters.maxDepth,
           static_cast<std::uint32_t>(std::max<std::uint64_t>(1u, resolvedDisplayPixels)),
-          captureResolvedDisplay, m_buffers[8].buffer,
+          captureResolvedDisplay, clearPlatformAccumulation, m_buffers[8].buffer,
           static_cast<VkDeviceSize>(plan.buffers.accumulationBytes), m_buffers[6].buffer,
           plan.parameters.captureDiagnostics != 0u
             ? static_cast<VkDeviceSize>(plan.buffers.stepRecordBytes)
@@ -893,10 +894,10 @@ namespace render {
         VkPipelineLayout pipelineLayout, VkDescriptorSet descriptorSetAB,
         VkDescriptorSet descriptorSetBA, std::uint32_t pathCount, VkBuffer dispatchBufferA,
         VkBuffer dispatchBufferB, std::uint32_t maxDepth, std::uint32_t resolvedDisplayPixels,
-        bool captureResolvedDisplay, VkBuffer accumulationBuffer, VkDeviceSize accumulationBytes,
-        VkBuffer stepRecordBuffer, VkDeviceSize stepRecordBytes, VkBuffer denoiserFeatureBuffer,
-        VkDeviceSize denoiserFeatureBytes, VkBuffer activePathCountBuffer,
-        VkDeviceSize activePathCountBytes) const {
+        bool captureResolvedDisplay, bool clearPlatformAccumulation, VkBuffer accumulationBuffer,
+        VkDeviceSize accumulationBytes, VkBuffer stepRecordBuffer, VkDeviceSize stepRecordBytes,
+        VkBuffer denoiserFeatureBuffer, VkDeviceSize denoiserFeatureBytes,
+        VkBuffer activePathCountBuffer, VkDeviceSize activePathCountBytes) const {
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         check(vkBeginCommandBuffer(commandBuffer, &beginInfo),
@@ -909,7 +910,9 @@ namespace render {
             filledShaderStorage = true;
           }
         };
-        fillStorageBuffer(accumulationBuffer, accumulationBytes);
+        if (clearPlatformAccumulation) {
+          fillStorageBuffer(accumulationBuffer, accumulationBytes);
+        }
         fillStorageBuffer(stepRecordBuffer, stepRecordBytes);
         fillStorageBuffer(denoiserFeatureBuffer, denoiserFeatureBytes);
         fillStorageBuffer(activePathCountBuffer, activePathCountBytes);
@@ -1075,15 +1078,18 @@ namespace render {
   VulkanGpuDiffusePathLoopKernelResult VulkanGpuDiffusePathLoopKernel::runWavefrontPathLoop(
     const GpuDiffusePathLoopLaunchPlan& plan,
     const std::vector<GpuDiffusePathStateRecord>& initialPathStates,
-    bool capturePlatformAccumulation, bool captureResolvedDisplay) const {
+    bool capturePlatformAccumulation, bool captureResolvedDisplay,
+    bool clearPlatformAccumulation) const {
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
     return sharedVulkanDiffusePathLoopRuntime().runWavefrontPathLoop(
-      plan, initialPathStates, capturePlatformAccumulation, captureResolvedDisplay);
+      plan, initialPathStates, capturePlatformAccumulation, captureResolvedDisplay,
+      clearPlatformAccumulation);
 #else
     (void)plan;
     (void)initialPathStates;
     (void)capturePlatformAccumulation;
     (void)captureResolvedDisplay;
+    (void)clearPlatformAccumulation;
     throw std::runtime_error(launchPathUnavailableReason());
 #endif
   }

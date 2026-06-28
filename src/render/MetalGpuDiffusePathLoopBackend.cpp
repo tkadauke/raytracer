@@ -159,6 +159,34 @@ namespace render {
     const GpuDiffusePathLoopPlatformAccumulationPlan accumulation =
       platformGpuDiffusePathLoopAccumulationPlanFor(primaryPathGeneration,
                                                     kMetalBackendDisplayName);
+    const std::vector<GpuDiffusePrimaryPathSampleChunk> chunks =
+      gpuDiffusePrimarySampleChunksFor(primaryPathGeneration, settings);
+    if (!chunks.empty()) {
+      GpuDiffusePathLoopLaunchPlanner planner;
+      GpuDiffusePathLoopLaunchPlan fullPlan =
+        planner.plan(scene, primaryPathGeneration, accumulation.layout, settings);
+      fullPlan.parameters.accumulationTargetMode = accumulation.targetMode;
+
+      MetalGpuDiffusePathLoopKernel kernel;
+      GpuDiffusePathLoopPlatformResult mergedPlatformResult;
+      for (const GpuDiffusePrimaryPathSampleChunk& chunk : chunks) {
+        GpuDiffusePathLoopLaunchPlan chunkPlan =
+          planner.plan(scene, chunk.primaryPathGeneration, accumulation.layout, settings);
+        chunkPlan.parameters.accumulationTargetMode = accumulation.targetMode;
+        MetalGpuDiffusePathLoopKernelResult metalResult = kernel.runWavefrontPathLoop(
+          chunkPlan, initialPathStates, chunk.finalChunk && settings.capturePlatformAccumulation,
+          chunk.finalChunk && settings.captureResolvedDisplay, chunk.firstChunk);
+        mergePlatformGpuDiffusePathLoopChunkResult(mergedPlatformResult,
+                                                   platformResultFrom(std::move(metalResult)));
+      }
+      mergedPlatformResult.echoedParameters = fullPlan.parameters;
+      GpuDiffusePathLoopResult result = makePlatformGpuDiffusePathLoopResult(
+        fullPlan.parameters.initialPathCount, settings, std::move(mergedPlatformResult),
+        kMetalBackendDisplayName, kMetalPlatformName, kMetalPathStateResidency,
+        kMetalAccumulationBackend, kMetalAccumulationResidency);
+      result.roundTrips = chunks.size();
+      return result;
+    }
     GpuDiffusePathLoopLaunchPlan plan = GpuDiffusePathLoopLaunchPlanner().plan(
       scene, primaryPathGeneration, accumulation.layout, settings);
     plan.parameters.accumulationTargetMode = accumulation.targetMode;

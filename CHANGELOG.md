@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Add opt-in GPU primary-sample chunking for descriptor-backed Metal/Vulkan
+  path-loop launches so production renders can retain platform accumulation
+  across chunked sample ranges. — GPT-5 Codex
 - Add GPU primary-path sample ranges so descriptor-backed Metal/Vulkan
   path-loop launches can address absolute primary sample indices for future
   progressive GPU accumulation. — GPT-5 Codex

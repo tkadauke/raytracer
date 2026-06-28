@@ -7071,6 +7071,132 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(6u * sizeof(GpuDiffusePathStateRecord), plan.buffers.activePathStateBytes);
   }
 
+  TEST(GpuDiffusePrimarySampleChunks, SplitsDescriptorOnlyPrimarySamples) {
+    PinholeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 3, 2));
+    camera.viewPlane()->sampler()->setup(4, 8, 42);
+    GpuDiffusePrimaryPathStateGenerationOptions options;
+    options.materializeHostPathStates = false;
+    const GpuDiffusePrimaryPathStateGeneration generation =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 3, 2), 99, 1234, options);
+    ASSERT_TRUE(generation.canGeneratePrimaryPathsOnDevice());
+
+    GpuDiffusePathLoopSettings settings;
+    settings.captureDiagnostics = false;
+    settings.primarySampleChunkSize = 1u;
+
+    ASSERT_TRUE(canChunkGpuDiffusePrimarySamples(generation, settings));
+    const std::vector<GpuDiffusePrimaryPathSampleChunk> chunks =
+      gpuDiffusePrimarySampleChunksFor(generation, settings);
+
+    ASSERT_EQ(4u, chunks.size());
+    for (std::uint32_t i = 0; i != chunks.size(); ++i) {
+      ASSERT_TRUE(chunks[i].primaryPathGeneration.primaryPathDescriptor.has_value());
+      const GpuRectilinearPrimaryPathDescriptor& descriptor =
+        chunks[i].primaryPathGeneration.primaryPathDescriptor->rectilinear;
+      EXPECT_TRUE(chunks[i].primaryPathGeneration.pathStates.empty());
+      EXPECT_EQ(i, descriptor.sampleOffset);
+      EXPECT_EQ(1u, descriptor.samplesPerPixel);
+      EXPECT_EQ(6u, chunks[i].primaryPathGeneration.generatedPrimarySamples);
+      EXPECT_EQ(6u, chunks[i].primaryPathGeneration.primaryPathDescriptor->pathCount());
+      EXPECT_EQ(i == 0u, chunks[i].firstChunk);
+      EXPECT_EQ(i == 3u, chunks[i].finalChunk);
+    }
+  }
+
+  TEST(GpuDiffusePrimarySampleChunks, KeepsDiagnosticsLaunchesUnchunked) {
+    PinholeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 3, 2));
+    camera.viewPlane()->sampler()->setup(4, 8, 42);
+    GpuDiffusePrimaryPathStateGenerationOptions options;
+    options.materializeHostPathStates = false;
+    const GpuDiffusePrimaryPathStateGeneration generation =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 3, 2), 99, 1234, options);
+
+    GpuDiffusePathLoopSettings settings;
+    settings.primarySampleChunkSize = 1u;
+
+    EXPECT_FALSE(canChunkGpuDiffusePrimarySamples(generation, settings));
+    EXPECT_TRUE(gpuDiffusePrimarySampleChunksFor(generation, settings).empty());
+  }
+
+  TEST(GpuDiffusePrimarySampleChunks, ReusesFullSampleSlotAccumulationLayoutForChunks) {
+    PinholeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 3, 2));
+    camera.viewPlane()->sampler()->setup(4, 8, 42);
+    GpuDiffusePrimaryPathStateGenerationOptions options;
+    options.materializeHostPathStates = false;
+    const GpuDiffusePrimaryPathStateGeneration generation =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 3, 2), 99, 1234, options);
+
+    GpuDiffusePathLoopSettings settings;
+    settings.captureDiagnostics = false;
+    settings.primarySampleChunkSize = 1u;
+    const GpuDiffusePathLoopPlatformAccumulationPlan accumulation =
+      platformGpuDiffusePathLoopAccumulationPlanFor(generation, "test");
+    ASSERT_EQ(gpuDiffusePathLoopAccumulationTargetSampleSlot, accumulation.targetMode);
+    EXPECT_EQ(6, accumulation.layout.width);
+    EXPECT_EQ(4, accumulation.layout.height);
+
+    const GpuTracingSceneSections sections;
+    const std::vector<GpuDiffusePrimaryPathSampleChunk> chunks =
+      gpuDiffusePrimarySampleChunksFor(generation, settings);
+    ASSERT_EQ(4u, chunks.size());
+    const GpuDiffusePathLoopLaunchPlan secondChunkPlan = GpuDiffusePathLoopLaunchPlanner().plan(
+      sections, chunks[1].primaryPathGeneration, accumulation.layout, settings);
+
+    EXPECT_EQ(6u, secondChunkPlan.parameters.imageWidth);
+    EXPECT_EQ(4u, secondChunkPlan.parameters.imageHeight);
+    EXPECT_EQ(1u, secondChunkPlan.parameters.primaryPathSampleOffset);
+    EXPECT_EQ(1u, secondChunkPlan.parameters.primaryPathSamplesPerPixel);
+  }
+
+  TEST(GpuDiffusePrimarySampleChunks, MergesPlatformChunkResults) {
+    GpuDiffusePathLoopPlatformResult merged;
+    GpuDiffusePathLoopPlatformResult first;
+    first.executionPath = "platform_path_loop";
+    first.schedule = gpuDiffusePathLoopScheduleDepthFrontier;
+    first.pathStateResidency = "platform_path_state";
+    first.retainedFrontierDispatchesIndirect = true;
+    first.retainedPathCount = 2u;
+    first.activePathCountsPerDepth = {3u, 1u};
+    first.sceneUploadBytesWritten = 64u;
+    first.kernelWorkerSeconds = 0.25;
+    first.stepRecords.push_back({});
+
+    GpuDiffusePathLoopPlatformResult second;
+    second.executionPath = "platform_path_loop";
+    second.schedule = gpuDiffusePathLoopScheduleDepthFrontier;
+    second.pathStateResidency = "platform_path_state";
+    second.retainedPathCount = 1u;
+    second.activePathCountsPerDepth = {2u, 4u};
+    second.sceneUploadCacheHit = true;
+    second.sceneUploadBytesWritten = 0u;
+    second.kernelWorkerSeconds = 0.5;
+    second.accumulationColorSums = {{{1.0f, 2.0f, 3.0f, 0.0f}}};
+    second.accumulationSampleCounts = {2u};
+    second.resolvedDisplayPixels = {0x112233u};
+
+    mergePlatformGpuDiffusePathLoopChunkResult(merged, std::move(first));
+    mergePlatformGpuDiffusePathLoopChunkResult(merged, std::move(second));
+
+    EXPECT_EQ("platform_path_loop", merged.executionPath);
+    EXPECT_TRUE(merged.retainedFrontierDispatchesIndirect);
+    EXPECT_EQ(3u, merged.retainedPathCount);
+    ASSERT_EQ(2u, merged.activePathCountsPerDepth.size());
+    EXPECT_EQ(5u, merged.activePathCountsPerDepth[0]);
+    EXPECT_EQ(5u, merged.activePathCountsPerDepth[1]);
+    EXPECT_TRUE(merged.sceneUploadCacheHit);
+    EXPECT_EQ(64u, merged.sceneUploadBytesWritten);
+    EXPECT_DOUBLE_EQ(0.75, merged.kernelWorkerSeconds);
+    ASSERT_EQ(1u, merged.accumulationColorSums.size());
+    EXPECT_FLOAT_EQ(2.0f, merged.accumulationColorSums[0][1]);
+    ASSERT_EQ(1u, merged.accumulationSampleCounts.size());
+    EXPECT_EQ(2u, merged.accumulationSampleCounts[0]);
+    ASSERT_EQ(1u, merged.resolvedDisplayPixels.size());
+    EXPECT_EQ(0x112233u, merged.resolvedDisplayPixels[0]);
+  }
+
   TEST(GpuDiffusePathLoopLaunchPlanner, CopiesLookAtPrimaryMotionDescriptor) {
     PinholeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
     camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 3, 2));

@@ -13,6 +13,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <iterator>
 #include <limits>
 #include <stdexcept>
 #include <string>
@@ -402,6 +403,130 @@ namespace render {
 #endif
       return backends;
     }
+
+    void appendMovedPathStates(std::vector<GpuDiffusePathStateRecord>& target,
+                               std::vector<GpuDiffusePathStateRecord>&& source) {
+      target.insert(target.end(), std::make_move_iterator(source.begin()),
+                    std::make_move_iterator(source.end()));
+    }
+
+    void appendMovedStepRecords(std::vector<GpuDiffusePathStepRecord>& target,
+                                std::vector<GpuDiffusePathStepRecord>&& source) {
+      target.insert(target.end(), std::make_move_iterator(source.begin()),
+                    std::make_move_iterator(source.end()));
+    }
+
+    void
+    appendMovedDenoiserFeatureRecords(std::vector<GpuDiffusePathDenoiserFeatureRecord>& target,
+                                      std::vector<GpuDiffusePathDenoiserFeatureRecord>&& source) {
+      target.insert(target.end(), std::make_move_iterator(source.begin()),
+                    std::make_move_iterator(source.end()));
+    }
+
+    void addActivePathCounts(std::vector<std::uint32_t>& target,
+                             const std::vector<std::uint32_t>& source) {
+      if (target.size() < source.size()) {
+        target.resize(source.size(), 0u);
+      }
+      for (std::size_t i = 0; i != source.size(); ++i) {
+        if (target[i] > std::numeric_limits<std::uint32_t>::max() - source[i]) {
+          throw std::overflow_error("GPU diffuse path-loop chunk active path count overflows");
+        }
+        target[i] += source[i];
+      }
+    }
+  }
+
+  bool canChunkGpuDiffusePrimarySamples(
+    const GpuDiffusePrimaryPathStateGeneration& primaryPathGeneration,
+    const GpuDiffusePathLoopSettings& settings) {
+    if (settings.primarySampleChunkSize == 0u || settings.captureDiagnostics ||
+        settings.captureDenoiserFeatures) {
+      return false;
+    }
+    if (!primaryPathGeneration.canGeneratePrimaryPathsOnDevice() ||
+        !primaryPathGeneration.pathStates.empty() ||
+        !primaryPathGeneration.primaryPathDescriptor.has_value()) {
+      return false;
+    }
+    const GpuRectilinearPrimaryPathDescriptor& descriptor =
+      primaryPathGeneration.primaryPathDescriptor->rectilinear;
+    return descriptor.samplesPerPixel > settings.primarySampleChunkSize;
+  }
+
+  std::vector<GpuDiffusePrimaryPathSampleChunk> gpuDiffusePrimarySampleChunksFor(
+    const GpuDiffusePrimaryPathStateGeneration& primaryPathGeneration,
+    const GpuDiffusePathLoopSettings& settings) {
+    if (!canChunkGpuDiffusePrimarySamples(primaryPathGeneration, settings)) {
+      return {};
+    }
+
+    const GpuPrimaryPathDescriptor& descriptor = *primaryPathGeneration.primaryPathDescriptor;
+    const std::uint32_t sampleBegin = descriptor.rectilinear.sampleOffset;
+    const std::uint32_t sampleCount = descriptor.rectilinear.samplesPerPixel;
+    if (sampleBegin > std::numeric_limits<std::uint32_t>::max() - sampleCount) {
+      throw std::overflow_error("GPU diffuse primary sample chunks exceed sample index range");
+    }
+    const std::uint32_t sampleEnd = sampleBegin + sampleCount;
+    std::vector<GpuDiffusePrimaryPathSampleChunk> chunks;
+    for (std::uint32_t sampleOffset = sampleBegin; sampleOffset < sampleEnd;) {
+      const std::uint32_t remaining = sampleEnd - sampleOffset;
+      const std::uint32_t chunkSampleCount = std::min(settings.primarySampleChunkSize, remaining);
+
+      GpuDiffusePrimaryPathSampleChunk chunk;
+      chunk.primaryPathGeneration = primaryPathGeneration;
+      chunk.primaryPathGeneration.pathStates.clear();
+      chunk.primaryPathGeneration.primaryPathDescriptor =
+        descriptor.withSampleRange(sampleOffset, chunkSampleCount);
+      chunk.primaryPathGeneration.generatedPrimarySamples =
+        chunk.primaryPathGeneration.primaryPathDescriptor->pathCount();
+      chunk.primaryPathGeneration.skippedPrimarySamples = 0u;
+      chunk.firstChunk = chunks.empty();
+      chunk.finalChunk = sampleOffset + chunkSampleCount == sampleEnd;
+      chunks.push_back(std::move(chunk));
+      sampleOffset += chunkSampleCount;
+    }
+    return chunks;
+  }
+
+  void mergePlatformGpuDiffusePathLoopChunkResult(GpuDiffusePathLoopPlatformResult& merged,
+                                                  GpuDiffusePathLoopPlatformResult&& chunkResult) {
+    if (merged.executionPath.empty()) {
+      merged = std::move(chunkResult);
+      return;
+    }
+
+    appendMovedPathStates(merged.resolvedPathStates, std::move(chunkResult.resolvedPathStates));
+    appendMovedPathStates(merged.nextPathStates, std::move(chunkResult.nextPathStates));
+    appendMovedStepRecords(merged.stepRecords, std::move(chunkResult.stepRecords));
+    appendMovedDenoiserFeatureRecords(merged.denoiserFeatureRecords,
+                                      std::move(chunkResult.denoiserFeatureRecords));
+    if (!chunkResult.accumulationColorSums.empty()) {
+      merged.accumulationColorSums = std::move(chunkResult.accumulationColorSums);
+    }
+    if (!chunkResult.accumulationSampleCounts.empty()) {
+      merged.accumulationSampleCounts = std::move(chunkResult.accumulationSampleCounts);
+    }
+    if (!chunkResult.resolvedDisplayPixels.empty()) {
+      merged.resolvedDisplayPixels = std::move(chunkResult.resolvedDisplayPixels);
+    }
+    addActivePathCounts(merged.activePathCountsPerDepth, chunkResult.activePathCountsPerDepth);
+    if (merged.retainedPathCount >
+        std::numeric_limits<std::uint32_t>::max() - chunkResult.retainedPathCount) {
+      throw std::overflow_error("GPU diffuse path-loop chunk retained path count overflows");
+    }
+    merged.retainedPathCount += chunkResult.retainedPathCount;
+    merged.retainedFrontierDispatchesIndirect =
+      merged.retainedFrontierDispatchesIndirect || chunkResult.retainedFrontierDispatchesIndirect;
+    merged.sceneUploadCacheHit = chunkResult.sceneUploadCacheHit;
+    if (merged.sceneUploadBytesWritten >
+        std::numeric_limits<std::uint64_t>::max() - chunkResult.sceneUploadBytesWritten) {
+      throw std::overflow_error("GPU diffuse path-loop chunk scene upload byte count overflows");
+    }
+    merged.sceneUploadBytesWritten += chunkResult.sceneUploadBytesWritten;
+    merged.uploadWorkerSeconds += chunkResult.uploadWorkerSeconds;
+    merged.kernelWorkerSeconds += chunkResult.kernelWorkerSeconds;
+    merged.readbackWorkerSeconds += chunkResult.readbackWorkerSeconds;
   }
 
   GpuDiffusePathLoopBackendChoice selectFullGpuDiffusePathLoopBackend(
