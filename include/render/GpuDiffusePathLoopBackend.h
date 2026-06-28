@@ -58,6 +58,9 @@ namespace render {
   [[nodiscard]] bool canChunkGpuDiffusePrimarySamples(
     const GpuDiffusePrimaryPathStateGeneration& primaryPathGeneration,
     const GpuDiffusePathLoopSettings& settings);
+  [[nodiscard]] std::uint32_t resolvedGpuDiffusePrimarySampleChunkSize(
+    const GpuDiffusePrimaryPathStateGeneration& primaryPathGeneration,
+    const GpuDiffusePathLoopSettings& settings);
   [[nodiscard]] std::vector<GpuDiffusePrimaryPathSampleChunk> gpuDiffusePrimarySampleChunksFor(
     const GpuDiffusePrimaryPathStateGeneration& primaryPathGeneration,
     const GpuDiffusePathLoopSettings& settings);

@@ -2725,7 +2725,8 @@ namespace GraphRenderEngineTest {
     EXPECT_TRUE(batching.value("residentPathLoopCaptureDiagnostics").toBool());
     EXPECT_TRUE(batching.value("residentPathLoopCapturePlatformAccumulation").toBool());
     EXPECT_FALSE(batching.value("residentPathLoopCaptureResolvedDisplay").toBool());
-    EXPECT_EQ(8.0, batching.value("residentPathLoopPrimarySampleChunkSize").toDouble());
+    EXPECT_EQ(8.0, batching.value("residentPathLoopRequestedPrimarySampleChunkSize").toDouble());
+    EXPECT_EQ(0.0, batching.value("residentPathLoopPrimarySampleChunkSize").toDouble());
     EXPECT_EQ("linear",
               batching.value("residentPathLoopDisplayResolveTonemap").toString().toStdString());
 
@@ -2745,7 +2746,8 @@ namespace GraphRenderEngineTest {
     EXPECT_TRUE(loop.value("captureDiagnostics").toBool());
     EXPECT_TRUE(loop.value("capturePlatformAccumulation").toBool());
     EXPECT_FALSE(loop.value("captureResolvedDisplay").toBool());
-    EXPECT_EQ(8.0, loop.value("primarySampleChunkSize").toDouble());
+    EXPECT_EQ(8.0, loop.value("requestedPrimarySampleChunkSize").toDouble());
+    EXPECT_EQ(0.0, loop.value("primarySampleChunkSize").toDouble());
     EXPECT_EQ("linear", loop.value("displayResolveTonemap").toString().toStdString());
   }
 

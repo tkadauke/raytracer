@@ -839,6 +839,9 @@ namespace engine::graph {
                                     const render::TracingAccumulationDiagnostics& accumulation,
                                     std::optional<std::uint64_t> samplingSeed,
                                     TracingExecutionPreference requestedTracingExecution) {
+      const std::uint32_t resolvedPrimarySampleChunkSize =
+        render::resolvedGpuDiffusePrimarySampleChunkSize(generation, settings);
+
       QJsonObject input;
       input["primarySamples"] = static_cast<double>(generation.generatedPrimarySamples);
       input["skippedPrimarySamples"] = static_cast<double>(generation.skippedPrimarySamples);
@@ -991,8 +994,10 @@ namespace engine::graph {
       batching["residentPathLoopCapturePlatformAccumulation"] =
         settings.capturePlatformAccumulation;
       batching["residentPathLoopCaptureResolvedDisplay"] = settings.captureResolvedDisplay;
-      batching["residentPathLoopPrimarySampleChunkSize"] =
+      batching["residentPathLoopRequestedPrimarySampleChunkSize"] =
         static_cast<double>(settings.primarySampleChunkSize);
+      batching["residentPathLoopPrimarySampleChunkSize"] =
+        static_cast<double>(resolvedPrimarySampleChunkSize);
       batching["residentPathLoopDisplayResolveTonemap"] =
         displayResolveTonemapName(settings.displayResolveTonemap);
       batching["residentPathLoopSubmittedIntersectionRays"] =
@@ -1036,7 +1041,9 @@ namespace engine::graph {
       compiledLoop["captureMetrics"] = settings.captureMetrics;
       compiledLoop["capturePlatformAccumulation"] = settings.capturePlatformAccumulation;
       compiledLoop["captureResolvedDisplay"] = settings.captureResolvedDisplay;
-      compiledLoop["primarySampleChunkSize"] = static_cast<double>(settings.primarySampleChunkSize);
+      compiledLoop["requestedPrimarySampleChunkSize"] =
+        static_cast<double>(settings.primarySampleChunkSize);
+      compiledLoop["primarySampleChunkSize"] = static_cast<double>(resolvedPrimarySampleChunkSize);
       compiledLoop["displayResolveTonemap"] =
         displayResolveTonemapName(settings.displayResolveTonemap);
       compiledLoop["submittedIntersectionRays"] =

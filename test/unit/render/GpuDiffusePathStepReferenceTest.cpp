@@ -7225,6 +7225,77 @@ namespace GpuDiffusePathStepReferenceTest {
     }
   }
 
+  TEST(GpuDiffusePrimarySampleChunks, KeepsSmallAutomaticLaunchesUnchunked) {
+    PinholeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 3, 2));
+    camera.viewPlane()->sampler()->setup(4, 8, 42);
+    GpuDiffusePrimaryPathStateGenerationOptions options;
+    options.materializeHostPathStates = false;
+    const GpuDiffusePrimaryPathStateGeneration generation =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 3, 2), 99, 1234, options);
+    ASSERT_TRUE(generation.canGeneratePrimaryPathsOnDevice());
+
+    GpuDiffusePathLoopSettings settings;
+    settings.captureDiagnostics = false;
+    settings.primarySampleChunkSize = 0u;
+
+    EXPECT_EQ(0u, resolvedGpuDiffusePrimarySampleChunkSize(generation, settings));
+    EXPECT_FALSE(canChunkGpuDiffusePrimarySamples(generation, settings));
+    EXPECT_TRUE(gpuDiffusePrimarySampleChunksFor(generation, settings).empty());
+  }
+
+  TEST(GpuDiffusePrimarySampleChunks, AutoChunksLargeDescriptorBackedSamples) {
+    PinholeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 1024, 1024));
+    camera.viewPlane()->sampler()->setup(4, 8, 42);
+    GpuDiffusePrimaryPathStateGenerationOptions options;
+    options.materializeHostPathStates = false;
+    const GpuDiffusePrimaryPathStateGeneration generation =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 1024, 1024), 99, 1234,
+                                                     options);
+    ASSERT_TRUE(generation.canGeneratePrimaryPathsOnDevice());
+
+    GpuDiffusePathLoopSettings settings;
+    settings.captureDiagnostics = false;
+    settings.primarySampleChunkSize = 0u;
+
+    EXPECT_EQ(1u, resolvedGpuDiffusePrimarySampleChunkSize(generation, settings));
+    ASSERT_TRUE(canChunkGpuDiffusePrimarySamples(generation, settings));
+    const std::vector<GpuDiffusePrimaryPathSampleChunk> chunks =
+      gpuDiffusePrimarySampleChunksFor(generation, settings);
+
+    ASSERT_EQ(4u, chunks.size());
+    for (std::uint32_t i = 0; i != chunks.size(); ++i) {
+      ASSERT_TRUE(chunks[i].primaryPathGeneration.primaryPathDescriptor.has_value());
+      const GpuRectilinearPrimaryPathDescriptor& descriptor =
+        chunks[i].primaryPathGeneration.primaryPathDescriptor->rectilinear;
+      EXPECT_EQ(i, descriptor.sampleOffset);
+      EXPECT_EQ(1u, descriptor.samplesPerPixel);
+      EXPECT_EQ(i == 0u, chunks[i].firstChunk);
+      EXPECT_EQ(i == 3u, chunks[i].finalChunk);
+    }
+  }
+
+  TEST(GpuDiffusePrimarySampleChunks, CapsExplicitChunkSizeForLargeDescriptorBackedSamples) {
+    PinholeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 1024, 1024));
+    camera.viewPlane()->sampler()->setup(4, 8, 42);
+    GpuDiffusePrimaryPathStateGenerationOptions options;
+    options.materializeHostPathStates = false;
+    const GpuDiffusePrimaryPathStateGeneration generation =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 1024, 1024), 99, 1234,
+                                                     options);
+    ASSERT_TRUE(generation.canGeneratePrimaryPathsOnDevice());
+
+    GpuDiffusePathLoopSettings settings;
+    settings.captureDiagnostics = false;
+    settings.primarySampleChunkSize = 4u;
+
+    EXPECT_EQ(1u, resolvedGpuDiffusePrimarySampleChunkSize(generation, settings));
+    ASSERT_TRUE(canChunkGpuDiffusePrimarySamples(generation, settings));
+    EXPECT_EQ(4u, gpuDiffusePrimarySampleChunksFor(generation, settings).size());
+  }
+
   TEST(GpuDiffusePrimarySampleChunks, KeepsDiagnosticsLaunchesUnchunked) {
     PinholeCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
     camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 3, 2));
@@ -7237,6 +7308,7 @@ namespace GpuDiffusePathStepReferenceTest {
     GpuDiffusePathLoopSettings settings;
     settings.primarySampleChunkSize = 1u;
 
+    EXPECT_EQ(0u, resolvedGpuDiffusePrimarySampleChunkSize(generation, settings));
     EXPECT_FALSE(canChunkGpuDiffusePrimarySamples(generation, settings));
     EXPECT_TRUE(gpuDiffusePrimarySampleChunksFor(generation, settings).empty());
   }

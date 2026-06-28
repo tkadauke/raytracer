@@ -435,23 +435,61 @@ namespace render {
         target[i] += source[i];
       }
     }
+
+    constexpr std::uint64_t kAutoPrimarySampleChunkPathBudget = 1024ull * 1024ull;
+
+    [[nodiscard]] bool primaryGenerationCanUseSampleChunks(
+      const GpuDiffusePrimaryPathStateGeneration& primaryPathGeneration,
+      const GpuDiffusePathLoopSettings& settings) {
+      return !settings.captureDiagnostics && !settings.captureDenoiserFeatures &&
+             primaryPathGeneration.canGeneratePrimaryPathsOnDevice() &&
+             primaryPathGeneration.pathStates.empty() &&
+             primaryPathGeneration.primaryPathDescriptor.has_value();
+    }
+
+    [[nodiscard]] std::uint32_t
+    budgetedSampleChunkSize(const GpuPrimaryPathDescriptor& descriptor) {
+      const GpuRectilinearPrimaryPathDescriptor& rectilinear = descriptor.rectilinear;
+      const std::uint64_t pixelCount = static_cast<std::uint64_t>(rectilinear.actualWidth) *
+                                       static_cast<std::uint64_t>(rectilinear.actualHeight);
+      if (pixelCount == 0u || descriptor.pathCount() <= kAutoPrimarySampleChunkPathBudget) {
+        return 0u;
+      }
+      const std::uint64_t budgetedSamples =
+        std::max<std::uint64_t>(1u, kAutoPrimarySampleChunkPathBudget / pixelCount);
+      return static_cast<std::uint32_t>(
+        std::min<std::uint64_t>(budgetedSamples, std::numeric_limits<std::uint32_t>::max()));
+    }
+  }
+
+  std::uint32_t resolvedGpuDiffusePrimarySampleChunkSize(
+    const GpuDiffusePrimaryPathStateGeneration& primaryPathGeneration,
+    const GpuDiffusePathLoopSettings& settings) {
+    if (!primaryGenerationCanUseSampleChunks(primaryPathGeneration, settings)) {
+      return 0u;
+    }
+    const GpuPrimaryPathDescriptor& descriptor = *primaryPathGeneration.primaryPathDescriptor;
+    const std::uint32_t budgetedChunkSize = budgetedSampleChunkSize(descriptor);
+    if (settings.primarySampleChunkSize == 0u) {
+      return budgetedChunkSize;
+    }
+    if (budgetedChunkSize == 0u) {
+      return settings.primarySampleChunkSize;
+    }
+    return std::min(settings.primarySampleChunkSize, budgetedChunkSize);
   }
 
   bool canChunkGpuDiffusePrimarySamples(
     const GpuDiffusePrimaryPathStateGeneration& primaryPathGeneration,
     const GpuDiffusePathLoopSettings& settings) {
-    if (settings.primarySampleChunkSize == 0u || settings.captureDiagnostics ||
-        settings.captureDenoiserFeatures) {
-      return false;
-    }
-    if (!primaryPathGeneration.canGeneratePrimaryPathsOnDevice() ||
-        !primaryPathGeneration.pathStates.empty() ||
-        !primaryPathGeneration.primaryPathDescriptor.has_value()) {
+    const std::uint32_t chunkSize =
+      resolvedGpuDiffusePrimarySampleChunkSize(primaryPathGeneration, settings);
+    if (chunkSize == 0u) {
       return false;
     }
     const GpuRectilinearPrimaryPathDescriptor& descriptor =
       primaryPathGeneration.primaryPathDescriptor->rectilinear;
-    return descriptor.samplesPerPixel > settings.primarySampleChunkSize;
+    return descriptor.samplesPerPixel > chunkSize;
   }
 
   std::vector<GpuDiffusePrimaryPathSampleChunk> gpuDiffusePrimarySampleChunksFor(
@@ -467,11 +505,13 @@ namespace render {
     if (sampleBegin > std::numeric_limits<std::uint32_t>::max() - sampleCount) {
       throw std::overflow_error("GPU diffuse primary sample chunks exceed sample index range");
     }
+    const std::uint32_t resolvedChunkSize =
+      resolvedGpuDiffusePrimarySampleChunkSize(primaryPathGeneration, settings);
     const std::uint32_t sampleEnd = sampleBegin + sampleCount;
     std::vector<GpuDiffusePrimaryPathSampleChunk> chunks;
     for (std::uint32_t sampleOffset = sampleBegin; sampleOffset < sampleEnd;) {
       const std::uint32_t remaining = sampleEnd - sampleOffset;
-      const std::uint32_t chunkSampleCount = std::min(settings.primarySampleChunkSize, remaining);
+      const std::uint32_t chunkSampleCount = std::min(resolvedChunkSize, remaining);
 
       GpuDiffusePrimaryPathSampleChunk chunk;
       chunk.primaryPathGeneration = primaryPathGeneration;
