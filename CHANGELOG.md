@@ -681,6 +681,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- Make auto-selected GPU path-tracer plans fall back to the normal wavefront
+  render path when no full platform GPU path-loop backend is selected at
+  runtime; explicit GPU requests still keep the compiled CPU-reference
+  diagnostic fallback. — GPT-5 Codex
 - Auto-enable the Vulkan wavefront/full-GPU path-loop backend on Linux builds
   when Vulkan and `glslc` are available, with
   `RAYTRACER_DISABLE_VULKAN_WAVEFRONT=ON` as the opt-out. — GPT-5 Codex

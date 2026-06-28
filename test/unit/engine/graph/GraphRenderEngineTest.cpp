@@ -435,6 +435,32 @@ namespace GraphRenderEngineTest {
     }
   };
 
+  class UnavailableGpuDiffusePathLoopBackend final : public render::GpuDiffusePathLoopBackend {
+  public:
+    const char* name() const override {
+      return "unavailable_full_gpu_path_loop";
+    }
+
+    const char* fullGpuPathLoopUnavailableReason() const override {
+      return "test full-GPU path-loop backend is unavailable";
+    }
+
+    render::GpuDiffusePathLoopResult
+    run(const render::GpuTracingSceneSections&,
+        const std::vector<render::GpuDiffusePathStateRecord>&,
+        const render::GpuDiffusePathLoopSettings& = {}) const override {
+      ++m_runCalls;
+      throw std::runtime_error("unavailable full-GPU path-loop backend should not run");
+    }
+
+    int runCalls() const {
+      return m_runCalls;
+    }
+
+  private:
+    mutable int m_runCalls{0};
+  };
+
   class RecordingObserver : public RenderGraphExecutionObserver {
   public:
     void passStarted(const RenderPassId& passId) override {
@@ -3565,6 +3591,62 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ("gpu", batching.value("tracingBackend").toString().toStdString());
     EXPECT_EQ("auto", batching.value("tracingBackendRequest").toString().toStdString());
     EXPECT_TRUE(batching.value("residentPathLoopFullPlatformGpuKernel").toBool());
+  }
+
+  TEST(GraphRenderEngine,
+       AutoEligiblePathTracerFallsBackToWavefrontWhenRuntimeFullGpuBackendIsUnavailable) {
+    const Colord background(0.125, 0.25, 0.5);
+    auto scene = std::make_shared<render::Scene>();
+    scene->setBackground(background);
+    scene->setEnvironmentRadiance(background);
+    auto receiver = std::make_shared<render::Rectangle>(
+      Vector3d(-20.0, -20.0, 0.0), Vector3d(40.0, 0.0, 0.0), Vector3d(0.0, 40.0, 0.0));
+    receiver->setMaterial(matte(Colord(0.8, 0.8, 0.8)));
+    scene->add(receiver);
+
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::PathTracer;
+    intent.engineOptions.raytracer().setSamplesPerPixel(1);
+    intent.engineOptions.raytracer().setMaximumRecursionDepth(2);
+    intent.engineOptions.raytracer().setSampleStreamMode("gpu_sample_stream");
+
+    RenderSceneAnalysis analysis;
+    analysis.setFullGpuTracingSupported(true);
+    analysis.setFullGpuTracingBackendAvailable(true);
+    const RenderPlan plan = RenderGraphCompiler().compile({4, 4, 1}, intent, analysis);
+    const RenderPassNode* compiledPass = plan.findPass("wavefront_beauty");
+    ASSERT_NE(nullptr, compiledPass);
+    const auto* state = RaytracerBeautyPassState::fromPass(*compiledPass);
+    ASSERT_NE(nullptr, state);
+    EXPECT_FALSE(state->tracingExecution());
+    ASSERT_TRUE(state->predictedTracingExecution());
+    EXPECT_EQ(TracingExecutionPreference::GPU, *state->predictedTracingExecution());
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(plan);
+    auto pathLoopBackend = std::make_shared<UnavailableGpuDiffusePathLoopBackend>();
+    engine.setGpuDiffusePathLoopBackend(pathLoopBackend);
+
+    Buffer<Colord> buffer(4, 4);
+    engine.render(buffer);
+
+    EXPECT_EQ(0, pathLoopBackend->runCalls());
+
+    const auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const RenderPassTrace* wavefront = trace->findPass("wavefront_beauty");
+    ASSERT_NE(nullptr, wavefront);
+
+    const QJsonObject metadata = wavefront->metadata();
+    EXPECT_TRUE(metadata.value("compiledDiffusePathLoop").isUndefined());
+
+    const QJsonObject tracingExecution = metadata.value("tracingExecution").toObject();
+    EXPECT_EQ("auto", tracingExecution.value("requestedMode").toString().toStdString());
+    EXPECT_EQ("gpu", tracingExecution.value("predictedMode").toString().toStdString());
+    EXPECT_NE("gpu", tracingExecution.value("actualMode").toString().toStdString());
+    EXPECT_EQ("test full-GPU path-loop backend is unavailable",
+              tracingExecution.value("actualFallbackReason").toString().toStdString());
   }
 
   TEST(GraphRenderEngine, ReportsHybridGpuCompactionForCompiledGpuRequest) {

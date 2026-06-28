@@ -2917,16 +2917,22 @@ scene is large enough to amortize upload/readback costs.
      still reports precise fallback reasons. ✅ **Started.**
      Explicit GPU graph requests now ask the platform full-GPU backend hook for
      a scene/settings-supported backend and prefer it over the diagnostic
-     CPU-reference backend when available. Caller-injected test backends still
-     win. Eligible automatic path-tracer beauty passes now also predict full
-     GPU execution when the scene analysis proves the compiled full-GPU subset
-     and a platform backend are both available; incompatible settings such as
+     CPU-reference backend when available. Caller-injected full-GPU test
+     backends still win. Eligible automatic path-tracer beauty passes now also
+     predict full GPU execution when the scene analysis proves the compiled
+     full-GPU subset and a platform backend are both available; incompatible
+     settings such as
      denoising, adaptive sampling, convergence, and non-GPU sample streams
      remain CPU/hybrid until those paths have platform support.
      Execution metadata now preserves the full-GPU selection fallback reason,
      so graph traces distinguish missing platform builds, unavailable
      Metal/Vulkan devices or kernels, unsupported scene/settings subsets, and
-     explicit caller-selected CPU/hybrid backends. The Modeler render graph
+     explicit caller-selected CPU/hybrid backends.
+     Auto-selected GPU plans now fall back to the normal wavefront render path
+     when the runtime cannot select a full platform GPU path-loop backend,
+     while explicit GPU requests still keep the compiled CPU-reference
+     diagnostic fallback.
+     The Modeler render graph
      inspector also shows auto-selected tracing execution predictions before a
      render runs, with `Auto` request, predicted CPU/hybrid/GPU execution, and
      `none` when there is no fallback reason. The default macOS release build

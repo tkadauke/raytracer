@@ -1068,10 +1068,13 @@ namespace engine::graph {
              *state.predictedTracingExecution() == TracingExecutionPreference::GPU;
     }
 
+    bool explicitlyRequestedGpuTracing(const RaytracerBeautyPassState& state) {
+      return state.tracingExecution() &&
+             *state.tracingExecution() == TracingExecutionPreference::GPU;
+    }
+
     bool requestedOrPredictedGpuTracing(const RaytracerBeautyPassState& state) {
-      return predictedGpuTracing(state) ||
-             (state.tracingExecution() &&
-              *state.tracingExecution() == TracingExecutionPreference::GPU);
+      return predictedGpuTracing(state) || explicitlyRequestedGpuTracing(state);
     }
 
     std::optional<std::string>
@@ -1102,6 +1105,10 @@ namespace engine::graph {
       const std::shared_ptr<const render::GpuDiffusePathLoopBackend> configuredBackend =
         graph.gpuDiffusePathLoopBackend();
       if (graph.hasGpuDiffusePathLoopBackendOverride()) {
+        if (!explicitlyRequestedGpuTracing(state) && configuredBackend &&
+            !configuredBackend->fullGpuPathLoopAvailable()) {
+          return {nullptr, configuredBackend->fullGpuPathLoopUnavailableReason()};
+        }
         return {configuredBackend, {}};
       }
 
@@ -1110,6 +1117,9 @@ namespace engine::graph {
           render::GpuDiffusePathLoopBackend::defaultFullGpuBackendForGpuRequest(sections, settings);
         if (fullGpuBackend.backend) {
           return fullGpuBackend;
+        }
+        if (!explicitlyRequestedGpuTracing(state)) {
+          return {nullptr, std::move(fullGpuBackend.fallbackReason)};
         }
         return {configuredBackend, std::move(fullGpuBackend.fallbackReason)};
       }
@@ -1369,7 +1379,9 @@ namespace engine::graph {
         const std::shared_ptr<const render::GpuDiffusePathLoopBackend>& pathLoopBackend =
           pathLoopBackendSelection.backend;
         if (!pathLoopBackend) {
-          fallbackReason = "compiled diffuse path loop requires an execution backend";
+          fallbackReason = pathLoopBackendSelection.fallbackReason.empty()
+                             ? "compiled diffuse path loop requires an execution backend"
+                             : pathLoopBackendSelection.fallbackReason;
           return false;
         }
         render::GpuDiffusePrimaryPathStateGenerationOptions generationOptions;
