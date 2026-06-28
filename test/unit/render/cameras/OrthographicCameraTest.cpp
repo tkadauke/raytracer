@@ -21,6 +21,12 @@ namespace OrthographicCameraTest {
                     descriptor.rectilinear.originOrDirection[2]);
   }
 
+  Vector3d descriptorMotionOriginDelta(const GpuPrimaryPathDescriptor& descriptor) {
+    return Vector3d(descriptor.rectilinear.motionOriginDelta[0],
+                    descriptor.rectilinear.motionOriginDelta[1],
+                    descriptor.rectilinear.motionOriginDelta[2]);
+  }
+
   TEST(OrthographicCamera, ShouldConstructWithoutParameters) {
     OrthographicCamera camera;
   }
@@ -56,6 +62,33 @@ namespace OrthographicCameraTest {
     ASSERT_EQ(Vector3d(0, 0, 1), ray.direction());
   }
 
+  TEST(OrthographicCamera, PrimaryRayGeneratorSamplesAnimatedPose) {
+    OrthographicCamera camera(Vector3d(0, 0, -5), Vector3d::null);
+    setupViewPlane(camera, 4, 3);
+    camera.setAnimationFrame(0.0);
+    camera.setShutterInterval(0.0, 1.0);
+    camera.setAnimationTrack("position",
+                             render::animation::AnimationTrack(
+                               {{0.0, Vector3d(0.0, 0.0, -5.0)}, {1.0, Vector3d(0.0, 1.0, -5.0)}}));
+    camera.setAnimationTrack("target",
+                             render::animation::AnimationTrack(
+                               {{0.0, Vector3d(0.0, 0.0, 0.0)}, {1.0, Vector3d(0.0, 1.0, 0.0)}}));
+
+    auto pixel = camera.viewPlane()->pixelBegin(Recti(0, 0, 4, 3));
+    render::NullSampleStream stream;
+    const auto sample = camera.primaryRayGenerator()->sample(pixel, stream);
+
+    auto expectedPlane = camera.viewPlane()->clone();
+    expectedPlane->setup(
+      Matrix4d::lookAt(Vector3d(0.0, 0.5, -5.0), Vector3d(0.0, 0.5, 0.0), Vector3d::up()),
+      camera.viewPlane()->window());
+    ASSERT_TRUE(sample);
+    ASSERT_VECTOR_NEAR(expectedPlane->pixelAt(0.5, 0.5), Vector3d(sample->ray.origin()), 1e-9);
+    ASSERT_VECTOR_NEAR(Vector3d(0.0, 0.0, 1.0), sample->ray.direction(), 1e-9);
+    EXPECT_DOUBLE_EQ(0.5, sample->timeSample);
+    EXPECT_DOUBLE_EQ(0.5, sample->animationTime);
+  }
+
   TEST(OrthographicCamera, ShouldExposeFixedShutterAnimatedGpuPrimaryPathDescriptor) {
     OrthographicCamera camera(Vector3d(0, 0, -5), Vector3d::null);
     setupViewPlane(camera, 4, 3);
@@ -78,7 +111,29 @@ namespace OrthographicCameraTest {
     EXPECT_EQ(12u, descriptor->pathCount());
   }
 
-  TEST(OrthographicCamera, ShouldRejectSampledShutterAnimatedGpuPrimaryPathDescriptor) {
+  TEST(OrthographicCamera, ShouldExposeSampledShutterRigTranslationGpuPrimaryPathDescriptor) {
+    OrthographicCamera camera(Vector3d(0, 0, -5), Vector3d::null);
+    setupViewPlane(camera, 4, 3);
+    camera.viewPlane()->sampler()->setup(1, 1, 17);
+    camera.setAnimationFrame(0.0);
+    camera.setShutterInterval(0.0, 1.0);
+    camera.setAnimationTrack("position",
+                             render::animation::AnimationTrack(
+                               {{0.0, Vector3d(0.0, 0.0, -5.0)}, {1.0, Vector3d(0.0, 1.0, -5.0)}}));
+    camera.setAnimationTrack("target",
+                             render::animation::AnimationTrack(
+                               {{0.0, Vector3d(0.0, 0.0, 0.0)}, {1.0, Vector3d(0.0, 1.0, 0.0)}}));
+
+    const auto descriptor = camera.gpuPrimaryPathDescriptor(Recti(0, 0, 4, 3), 1234);
+
+    ASSERT_TRUE(descriptor);
+    EXPECT_EQ(gpuPrimaryPathGenerationModeOrthographic, descriptor->mode);
+    ASSERT_VECTOR_NEAR(Vector3d(0.0, 0.0, 1.0), descriptorDirection(*descriptor), 1e-6);
+    ASSERT_VECTOR_NEAR(Vector3d(0.0, 1.0, 0.0), descriptorMotionOriginDelta(*descriptor), 1e-6);
+    EXPECT_EQ(12u, descriptor->pathCount());
+  }
+
+  TEST(OrthographicCamera, ShouldRejectSampledShutterRotatingGpuPrimaryPathDescriptor) {
     OrthographicCamera camera(Vector3d(0, 0, -5), Vector3d::null);
     setupViewPlane(camera, 4, 3);
     camera.viewPlane()->sampler()->setup(1, 1, 17);

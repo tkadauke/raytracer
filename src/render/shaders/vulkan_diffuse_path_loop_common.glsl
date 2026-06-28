@@ -597,7 +597,7 @@ GpuDiffusePathStateRecord makeOrthographicPrimaryPath(uint pathIndex) {
                           parameters.primaryPathDown * (float(row) + pixelSample.y);
 
   GpuDiffusePathStateRecord path;
-  path.ray.origin = pixelPoint;
+  path.ray.origin = pixelPoint + parameters.primaryPathMotionOriginDelta * timeSample;
   path.ray.direction = vec4(normalize(parameters.primaryPathOrigin.xyz), 0.0);
   path.ray.minDistance = 0.0;
   path.ray.maxDistance = uintBitsToFloat(0x7f800000u);

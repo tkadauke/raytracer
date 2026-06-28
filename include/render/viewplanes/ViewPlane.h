@@ -253,6 +253,11 @@ namespace render {
       return m_window.height();
     }
 
+    /// @returns the full pixel window used by the most recent setup call.
+    inline const Recti& window() const {
+      return m_window;
+    }
+
     /**
       * Convert homogeneous clip coordinates into framebuffer pixel
       * coordinates without validating the clip vector. Intended for

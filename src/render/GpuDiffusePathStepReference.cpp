@@ -261,7 +261,7 @@ namespace {
                                       down * (static_cast<double>(row) + pixelSample.y());
           std::optional<Rayd> ray;
           if (mode == gpuPrimaryPathGenerationModeOrthographic) {
-            ray = Rayd(pixelPoint, originOrDirection.normalized());
+            ray = Rayd(pixelPoint + motionOriginDelta * timeSample, originOrDirection.normalized());
           } else if (mode == gpuPrimaryPathGenerationModePinhole) {
             Vector3d rayOrigin = originOrDirection + motionOriginDelta * timeSample;
             if (descriptor.motionMode == gpuPrimaryPathMotionModeLookAt) {

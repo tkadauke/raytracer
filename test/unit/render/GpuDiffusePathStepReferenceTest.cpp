@@ -764,6 +764,47 @@ namespace GpuDiffusePathStepReferenceTest {
     expectGpuRayNear(generation.pathStates.front().ray, expected);
   }
 
+  TEST(GpuDiffusePrimaryPathStateGenerator,
+       OrthographicDescriptorAppliesSampledShutterMotionOriginDelta) {
+    OrthographicCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 3, 2));
+    camera.viewPlane()->sampler()->setup(4, 8, 42);
+    camera.setAnimationFrame(0.0);
+    camera.setShutterInterval(0.0, 1.0);
+    camera.setAnimationTrack("position",
+                             render::animation::AnimationTrack(
+                               {{0.0, Vector3d(0.0, 0.0, -5.0)}, {1.0, Vector3d(0.0, 1.0, -5.0)}}));
+    camera.setAnimationTrack("target",
+                             render::animation::AnimationTrack(
+                               {{0.0, Vector3d(0.0, 0.0, 0.0)}, {1.0, Vector3d(0.0, 1.0, 0.0)}}));
+
+    const GpuDiffusePrimaryPathStateGeneration generation =
+      GpuDiffusePrimaryPathStateGenerator().generate(camera, Recti(0, 0, 3, 2), 99, 1234);
+
+    ASSERT_TRUE(generation.primaryPathDescriptor.has_value());
+    const GpuRectilinearPrimaryPathDescriptor& descriptor =
+      generation.primaryPathDescriptor->rectilinear;
+    ASSERT_VECTOR_NEAR(Vector3d(0.0, 1.0, 0.0), Vector3d(descriptor.motionOriginDelta), 1e-6);
+
+    ASSERT_FALSE(generation.pathStates.empty());
+    const Vector3d direction(descriptor.originOrDirection);
+    const Vector3d motionOriginDelta(descriptor.motionOriginDelta);
+    const Vector3d topLeft(descriptor.topLeft);
+    const Vector3d right(descriptor.right);
+    const Vector3d down(descriptor.down);
+    const Vector2d pixelSample =
+      GpuSampleStream::sample2D(/*seed=*/1234, /*pixelIndex=*/0, /*primarySampleIndex=*/0,
+                                /*dimension=*/0);
+    const double timeSample = GpuSampleStream::sample1D(GpuSampleCoordinate{
+      /*seed=*/1234, /*pixelIndex=*/0, /*primarySampleIndex=*/0, /*dimension=*/1,
+      /*component=*/0});
+    const Vector3d pixelPoint = topLeft + right * pixelSample.x() + down * pixelSample.y();
+    const GpuIntersectionRay expected = GpuIntersectionScenePacker().packRay(
+      Rayd(pixelPoint + motionOriginDelta * timeSample, direction.normalized()), /*rayIndex=*/0,
+      /*minDistance=*/0.0, std::numeric_limits<double>::infinity(), timeSample);
+    expectGpuRayNear(generation.pathStates.front().ray, expected);
+  }
+
   TEST(GpuDiffusePrimaryPathStateGenerator, CanLeaveOrthographicPrimaryPathsDescriptorOnly) {
     OrthographicCamera camera(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.0));
     camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 3, 2));

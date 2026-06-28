@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Let sampled-shutter orthographic camera rig translations over one linear
+  shutter segment lower to GPU primary-path descriptors by moving the
+  orthographic ray plane through the existing motion-delta field. —
+  GPT-5 Codex
 - Let sampled-shutter pinhole camera rig translations over one linear shutter
   segment lower to GPU primary-path descriptors by carrying a primary-origin
   motion delta through CPU reference, Metal, and Vulkan path-loop launches. —
