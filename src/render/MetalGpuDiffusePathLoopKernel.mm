@@ -4736,8 +4736,11 @@ namespace render {
       }
 
       const auto readbackStart = std::chrono::steady_clock::now();
-      std::memcpy(&result.echoedParameters, [echoedParameterBuffer contents],
-                  sizeof(result.echoedParameters));
+      result.echoedParameters = plan.parameters;
+      if (plan.parameters.captureMetrics != 0u || plan.parameters.captureDiagnostics != 0u) {
+        std::memcpy(&result.echoedParameters, [echoedParameterBuffer contents],
+                    sizeof(result.echoedParameters));
+      }
       if (plan.parameters.captureMetrics != 0u) {
         result.activePathCountsPerDepth.resize(plan.parameters.maxDepth);
       }
@@ -5044,8 +5047,11 @@ namespace render {
       }
 
       const auto readbackStart = std::chrono::steady_clock::now();
-      std::memcpy(&result.echoedParameters, [echoedParameterBuffer contents],
-                  sizeof(result.echoedParameters));
+      result.echoedParameters = plan.parameters;
+      if (plan.parameters.captureMetrics != 0u || plan.parameters.captureDiagnostics != 0u) {
+        std::memcpy(&result.echoedParameters, [echoedParameterBuffer contents],
+                    sizeof(result.echoedParameters));
+      }
       if (plan.parameters.captureMetrics != 0u) {
         result.activePathCountsPerDepth.resize(plan.parameters.maxDepth);
       }

@@ -2764,9 +2764,10 @@ scene is large enough to amortize upload/readback costs.
      pixels on the GPU and skip HDR accumulation-plane readback; HDR, denoiser,
      graph trace, and unsupported tonemap paths still keep the accumulation
      planes available for CPU consumers. Trace-disabled, metrics-disabled
-     platform launches also reuse the host launch descriptor for result
-     validation instead of reading back the echoed parameter buffer; trace and
-     metrics runs still read the device-written echo for diagnostics. When the
+     Metal and Vulkan production path-loop launches also reuse the host launch
+     descriptor for result validation instead of reading back the echoed
+     parameter buffer; trace and metrics runs still read the device-written echo
+     for diagnostics. When the
      live render graph receives
      such a platform-resolved display buffer, compatible tonemap passes can
      propagate that display resource as current without immediately

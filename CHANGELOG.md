@@ -425,6 +425,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Avoid reading back Metal full-GPU diffuse path-loop echoed launch parameters
+  during trace-disabled, metrics-disabled final-image renders, matching the
+  Vulkan fast path and the documented display-only route. — GPT-5 Codex
 - Reject platform full-GPU diffuse path-loop results whose echoed launch
   parameters, accumulation planes, display resolve pixels, or denoiser feature
   buffers do not match the requested GPU work. — GPT-5 Codex
