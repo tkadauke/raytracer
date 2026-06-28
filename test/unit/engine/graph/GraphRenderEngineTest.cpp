@@ -3037,7 +3037,7 @@ namespace GraphRenderEngineTest {
       countPixels(buffer, ReportingFullGpuDiffusePathLoopBackend::resolvedDisplaySentinel()));
   }
 
-  TEST(GraphRenderEngine, FallsBackBeforeOversizedTraceEnabledGpuPathLoopDiagnostics) {
+  TEST(GraphRenderEngine, SuppressesOversizedTraceEnabledGpuPathLoopDiagnosticsOnFullGpuBackend) {
     const Colord background(0.125, 0.25, 0.5);
     auto scene = std::make_shared<render::Scene>();
     scene->setBackground(background);
@@ -3065,10 +3065,77 @@ namespace GraphRenderEngineTest {
     auto pathLoopBackend = std::make_shared<ReportingFullGpuDiffusePathLoopBackend>();
     engine.setGpuDiffusePathLoopBackend(pathLoopBackend);
 
-    Buffer<Colord> buffer(width, height);
+    Buffer<unsigned int> buffer(width, height);
     engine.render(buffer);
 
-    EXPECT_FALSE(pathLoopBackend->hasLastCaptureDiagnostics());
+    EXPECT_TRUE(pathLoopBackend->hasLastCaptureDiagnostics());
+    EXPECT_FALSE(pathLoopBackend->lastCaptureDiagnostics());
+    EXPECT_TRUE(pathLoopBackend->lastCaptureMetrics());
+    EXPECT_TRUE(pathLoopBackend->lastCapturePlatformAccumulation());
+    EXPECT_FALSE(pathLoopBackend->lastCaptureResolvedDisplay());
+    EXPECT_TRUE(pathLoopBackend->hasLastPrimaryGeneration());
+    EXPECT_TRUE(pathLoopBackend->lastPrimaryGeneratesOnDevice());
+    EXPECT_EQ(0u, pathLoopBackend->lastPrimaryHostPathStateCount());
+
+    const auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const RenderPassTrace* wavefront = trace->findPass("wavefront_beauty");
+    ASSERT_NE(nullptr, wavefront);
+
+    const QJsonObject metadata = wavefront->metadata();
+    const QJsonObject tracingExecution = metadata.value("tracingExecution").toObject();
+    EXPECT_EQ("gpu", tracingExecution.value("requestedMode").toString().toStdString());
+    EXPECT_EQ("gpu", tracingExecution.value("actualMode").toString().toStdString());
+    EXPECT_TRUE(tracingExecution.value("actualFallbackReason").toString().isEmpty());
+
+    const QJsonObject batching = metadata.value("batching").toObject();
+    EXPECT_FALSE(batching.value("residentPathLoopCaptureDiagnostics").toBool());
+    EXPECT_TRUE(batching.value("residentPathLoopDiagnosticCaptureSuppressed").toBool());
+    const std::string fallback =
+      batching.value("residentPathLoopDiagnosticCaptureSuppressionReason").toString().toStdString();
+    EXPECT_NE(std::string::npos,
+              fallback.find("compiled diffuse path loop diagnostic capture would materialize"));
+    EXPECT_NE(std::string::npos, fallback.find("path-step record slot"));
+
+    const QJsonObject loop = metadata.value("compiledDiffusePathLoop").toObject();
+    EXPECT_EQ("full_gpu_subset", loop.value("backend").toString().toStdString());
+    EXPECT_FALSE(loop.value("captureDiagnostics").toBool());
+    EXPECT_TRUE(loop.value("captureMetrics").toBool());
+    EXPECT_TRUE(loop.value("capturePlatformAccumulation").toBool());
+    EXPECT_FALSE(loop.value("captureResolvedDisplay").toBool());
+    EXPECT_TRUE(loop.value("diagnosticCaptureSuppressed").toBool());
+    EXPECT_EQ(fallback, loop.value("diagnosticCaptureSuppressionReason").toString().toStdString());
+  }
+
+  TEST(GraphRenderEngine, FallsBackBeforeOversizedTraceEnabledCpuPathLoopDiagnostics) {
+    const Colord background(0.125, 0.25, 0.5);
+    auto scene = std::make_shared<render::Scene>();
+    scene->setBackground(background);
+    scene->setEnvironmentRadiance(background);
+
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Wavefront;
+    intent.engineOptions.raytracer().setIntegrator("pathtracer");
+    intent.engineOptions.raytracer().setTracingExecution(TracingExecutionPreference::GPU);
+    intent.engineOptions.raytracer().setSamplesPerPixel(3);
+    intent.engineOptions.raytracer().setMaximumRecursionDepth(3);
+    intent.engineOptions.raytracer().setDirectLightSamples(1);
+    intent.engineOptions.raytracer().setGpuPrimarySampleChunkSize(0);
+    intent.engineOptions.raytracer().setSampleStreamMode("gpu_sample_stream");
+
+    RenderSceneAnalysis analysis;
+    analysis.setFullGpuTracingSupportFromScene(*scene);
+    constexpr int width = 384;
+    constexpr int height = 384;
+    const RenderPlan plan = RenderGraphCompiler().compile({width, height, 1}, intent, analysis);
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(plan);
+    engine.setGpuDiffusePathLoopBackend(std::make_shared<UnavailableGpuDiffusePathLoopBackend>());
+
+    Buffer<Colord> buffer(width, height);
+    engine.render(buffer);
 
     const auto trace = engine.lastExecutionTrace();
     ASSERT_TRUE(trace);

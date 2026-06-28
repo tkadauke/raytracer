@@ -838,7 +838,8 @@ namespace engine::graph {
                                     const render::GpuDiffusePathLoopResult& loop,
                                     const render::TracingAccumulationDiagnostics& accumulation,
                                     std::optional<std::uint64_t> samplingSeed,
-                                    TracingExecutionPreference requestedTracingExecution) {
+                                    TracingExecutionPreference requestedTracingExecution,
+                                    const std::string& diagnosticCaptureSuppressionReason) {
       const std::uint32_t resolvedPrimarySampleChunkSize =
         render::resolvedGpuDiffusePrimarySampleChunkSize(generation, settings);
 
@@ -990,6 +991,10 @@ namespace engine::graph {
       batching["residentPathLoopSceneUploadBytesWritten"] =
         static_cast<double>(loop.platformSceneUploadBytesWritten);
       batching["residentPathLoopCaptureDiagnostics"] = settings.captureDiagnostics;
+      batching["residentPathLoopDiagnosticCaptureSuppressed"] =
+        !diagnosticCaptureSuppressionReason.empty();
+      batching["residentPathLoopDiagnosticCaptureSuppressionReason"] =
+        QString::fromStdString(diagnosticCaptureSuppressionReason);
       batching["residentPathLoopCaptureMetrics"] = settings.captureMetrics;
       batching["residentPathLoopCapturePlatformAccumulation"] =
         settings.capturePlatformAccumulation;
@@ -1038,6 +1043,9 @@ namespace engine::graph {
       compiledLoop["sceneUploadBytesWritten"] =
         static_cast<double>(loop.platformSceneUploadBytesWritten);
       compiledLoop["captureDiagnostics"] = settings.captureDiagnostics;
+      compiledLoop["diagnosticCaptureSuppressed"] = !diagnosticCaptureSuppressionReason.empty();
+      compiledLoop["diagnosticCaptureSuppressionReason"] =
+        QString::fromStdString(diagnosticCaptureSuppressionReason);
       compiledLoop["captureMetrics"] = settings.captureMetrics;
       compiledLoop["capturePlatformAccumulation"] = settings.capturePlatformAccumulation;
       compiledLoop["captureResolvedDisplay"] = settings.captureResolvedDisplay;
@@ -1087,7 +1095,7 @@ namespace engine::graph {
 
     constexpr std::uint64_t kCompiledPathLoopDiagnosticPathStepBudget = 1024ull * 1024ull;
 
-    std::optional<std::string> compiledPathLoopDiagnosticCaptureFallbackReason(
+    std::optional<std::string> compiledPathLoopDiagnosticCaptureSuppressionReason(
       const render::Camera& camera, const Recti& targetRect,
       const std::optional<int>& samplesPerPixel,
       const render::GpuDiffusePathLoopSettings& settings) {
@@ -1414,14 +1422,6 @@ namespace engine::graph {
         settings.captureDiagnostics = context.graph().executionTraceEnabled();
         settings.captureDenoiserFeatures = denoiserFeatureRequest.any();
         settings.displayResolveTonemap = platformDisplayResolveTonemap(wavefront.tonemap());
-        if (const auto reason = compiledPathLoopDiagnosticCaptureFallbackReason(
-              *camera, targetRect, state.samplesPerPixel(), settings)) {
-          fallbackReason = *reason;
-          return false;
-        }
-        const bool wantsPlatformDisplayResolve =
-          displayTarget && context.displayTargetDirectlyPublishable() && !denoiser &&
-          !settings.captureDiagnostics && supportsPlatformDisplayResolve(wavefront.tonemap());
         const render::GpuDiffusePathLoopBackendChoice pathLoopBackendSelection =
           selectGpuDiffusePathLoopBackend(context.graph(), state, compilation.sections, settings);
         const std::shared_ptr<const render::GpuDiffusePathLoopBackend>& pathLoopBackend =
@@ -1432,6 +1432,21 @@ namespace engine::graph {
                              : pathLoopBackendSelection.fallbackReason;
           return false;
         }
+        std::string diagnosticCaptureSuppressionReason;
+        if (const auto reason = compiledPathLoopDiagnosticCaptureSuppressionReason(
+              *camera, targetRect, state.samplesPerPixel(), settings)) {
+          if (pathLoopBackend->fullGpuPathLoopAvailable() &&
+              pathLoopBackend->fullGpuPathLoopSupport(compilation.sections, settings).supported) {
+            diagnosticCaptureSuppressionReason = *reason;
+            settings.captureDiagnostics = false;
+          } else {
+            fallbackReason = *reason;
+            return false;
+          }
+        }
+        const bool wantsPlatformDisplayResolve =
+          displayTarget && context.displayTargetDirectlyPublishable() && !denoiser &&
+          !settings.captureDiagnostics && supportsPlatformDisplayResolve(wavefront.tonemap());
         render::GpuDiffusePrimaryPathStateGenerationOptions generationOptions;
         if (!settings.captureDiagnostics && pathLoopBackend->fullGpuPathLoopAvailable() &&
             pathLoopBackend->fullGpuPathLoopSupport(compilation.sections, settings).supported) {
@@ -1517,7 +1532,8 @@ namespace engine::graph {
           (loop.fullGpuPathLoopSupported() ? "platform GPU" : "CPU reference") + " backend");
         QJsonObject metadata = compiledDiffusePathLoopMetadata(
           compilation, generation, settings, loop, accumulation, samplingSeed,
-          state.tracingExecution().value_or(TracingExecutionPreference::Auto));
+          state.tracingExecution().value_or(TracingExecutionPreference::Auto),
+          diagnosticCaptureSuppressionReason);
         metadata["denoise"] = denoise;
         context.setTraceMetadata(withTracingExecutionMetadata(
           metadata, context.pass(), actualTracingExecution, actualTracingFallback));
