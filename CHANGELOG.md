@@ -698,6 +698,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- Use shader-side any-hit traversal for Metal/Vulkan full-GPU path-tracer
+  direct-light visibility so shadow rays can stop at the first occluder instead
+  of resolving a full closest-hit record. — GPT-5 Codex
 - Make auto-selected GPU path-tracer plans fall back to the normal wavefront
   render path when no full platform GPU path-loop backend is selected at
   runtime; explicit GPU requests still keep the compiled CPU-reference

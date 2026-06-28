@@ -168,7 +168,10 @@ end state for GPU tracing.
   through the compiled diffuse path-loop path from the live render graph path.
   rendercli, Modeler preview, and the render dialog report whether that
   execution used the CPU reference path, hybrid frontier compaction, or a
-  supported platform full-GPU subset.
+  supported platform full-GPU subset. The Metal/Vulkan full-GPU path-loop
+  shaders use bounded any-hit traversal for direct-light visibility, so shadow
+  rays can stop at the first occluder instead of resolving a full closest-hit
+  record when only occlusion is needed.
 - Box denoising is now treated as a postprocess over the resolved compiled
   path-loop image, so it no longer forces a supported GPU path-tracing render
   back through the scalar CPU path. Feature-guided bilateral denoising can now

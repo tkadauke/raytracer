@@ -1994,6 +1994,70 @@ GpuIntersectionHitRecord closestSupportedHit(GpuIntersectionRay ray) {
   return closest;
 }
 
+bool supportedPrimitiveIntersects(GpuIntersectionRay ray,
+                                  GpuIntersectionPrimitiveRecord primitive,
+                                  float maxHitDistance) {
+  return intersectSupportedPrimitive(ray, primitive, maxHitDistance).hit;
+}
+
+bool anySupportedHit(GpuIntersectionRay ray) {
+  if (parameters.primitiveCount == 0u || ray.maxDistance <= ray.minDistance ||
+      (parameters.triangleCount == 0u && parameters.sphereCount == 0u &&
+       parameters.planeCount == 0u && parameters.rectangleCount == 0u &&
+       parameters.diskCount == 0u && parameters.openCylinderCount == 0u &&
+       parameters.torusCount == 0u)) {
+    return false;
+  }
+
+  if (parameters.bvhNodeCount == 0u) {
+    for (uint primitiveIndex = 0u; primitiveIndex != parameters.primitiveCount; ++primitiveIndex) {
+      const GpuIntersectionPrimitiveRecord primitive = readPrimitive(primitiveIndex);
+      if (!boundsIntersectsRay(primitive.bounds, ray, ray.maxDistance)) {
+        continue;
+      }
+      if (supportedPrimitiveIntersects(ray, primitive, ray.maxDistance)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  uint stack[64];
+  uint stackSize = 0u;
+  stack[stackSize++] = 0u;
+  while (stackSize != 0u) {
+    const uint nodeIndex = stack[--stackSize];
+    if (nodeIndex >= parameters.bvhNodeCount) {
+      continue;
+    }
+    const GpuIntersectionBvhNode node = readBvhNode(nodeIndex);
+    if (!boundsIntersectsRay(node.bounds, ray, ray.maxDistance)) {
+      continue;
+    }
+    if ((node.flags & gpuIntersectionLeafNodeFlag) == 0u) {
+      if (stackSize + 2u <= 64u) {
+        stack[stackSize++] = node.primitiveCount;
+        stack[stackSize++] = node.leftOrFirstPrimitive;
+      }
+      continue;
+    }
+    for (uint offset = 0u; offset != node.primitiveCount; ++offset) {
+      const uint primitiveIndex = node.leftOrFirstPrimitive + offset;
+      if (primitiveIndex >= parameters.primitiveCount) {
+        continue;
+      }
+      const GpuIntersectionPrimitiveRecord primitive = readPrimitive(primitiveIndex);
+      if (!boundsIntersectsRay(primitive.bounds, ray, ray.maxDistance)) {
+        continue;
+      }
+      if (supportedPrimitiveIntersects(ray, primitive, ray.maxDistance)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 vec4 environmentColor(uint environmentIndex) {
   if (parameters.environmentCount == 0u || environmentIndex >= parameters.environmentCount) {
     return vec4(0.0);
@@ -2655,6 +2719,14 @@ bool hitOccludesLight(GpuIntersectionHitRecord hit, float lightDistance) {
   return hit.distance < occlusionLimit;
 }
 
+float lightOcclusionMaxDistance(float lightDistance) {
+  if (isinf(lightDistance)) {
+    return rayInfinity();
+  }
+  const float endpointTolerance = max(pathLoopMinimumHitDistance, lightDistance * 1.0e-5);
+  return max(0.0, lightDistance - endpointTolerance);
+}
+
 DirectLightEstimate directLightEstimate(GpuIntersectionHitRecord hit, GpuDiffusePathStateRecord path,
                                         GpuTracingMaterialRecord material, vec4 reflectance) {
   DirectLightEstimate estimate;
@@ -2691,8 +2763,9 @@ DirectLightEstimate directLightEstimate(GpuIntersectionHitRecord hit, GpuDiffuse
     const GpuIntersectionRay visibilityRay =
         shadowRayFor(point, directLight, path.ray.timeSample);
     ++estimate.visibilityRayCount;
-    const GpuIntersectionHitRecord visibilityHit = closestSupportedHit(visibilityRay);
-    if (hitOccludesLight(visibilityHit, directLight.distance)) {
+    GpuIntersectionRay occlusionRay = visibilityRay;
+    occlusionRay.maxDistance = lightOcclusionMaxDistance(directLight.distance);
+    if (anySupportedHit(occlusionRay)) {
       ++estimate.occludedSampleCount;
       continue;
     }
