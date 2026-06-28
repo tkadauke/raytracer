@@ -478,6 +478,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Use a smaller automatic full-GPU path-tracer launch budget when the render
+  dialog is publishing interactive progress, avoiding oversized first Metal/
+  Vulkan commands for 640x480, high-depth GPU sample-stream renders. —
+  GPT-5 Codex
 - Throttle chunked Metal/Vulkan full-GPU path-tracer progress resolves to
   completed sample ranges instead of forcing a full-frame display readback for
   every pixel tile, avoiding hangs in high-sample render-window previews. —

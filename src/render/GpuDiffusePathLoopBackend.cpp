@@ -454,6 +454,9 @@ namespace render {
     constexpr std::uint64_t kAutoPrimaryLaunchPathWorkBudget = 1024ull * 1024ull;
     constexpr std::uint64_t kAutoPrimaryLaunchMinimumPathBudget = 16ull * 1024ull;
     constexpr std::uint64_t kAutoPrimaryLaunchMaximumPathBudget = 128ull * 1024ull;
+    constexpr std::uint64_t kInteractiveAutoPrimaryLaunchPathWorkBudget = 256ull * 1024ull;
+    constexpr std::uint64_t kInteractiveAutoPrimaryLaunchMinimumPathBudget = 4ull * 1024ull;
+    constexpr std::uint64_t kInteractiveAutoPrimaryLaunchMaximumPathBudget = 32ull * 1024ull;
 
     [[nodiscard]] bool primaryGenerationCanUseSampleChunks(
       const GpuDiffusePrimaryPathStateGeneration& primaryPathGeneration,
@@ -472,6 +475,17 @@ namespace render {
 
     [[nodiscard]] std::uint64_t
     autoPrimaryLaunchPathBudget(const GpuDiffusePathLoopSettings& settings) {
+      const bool interactiveProgress =
+        settings.captureResolvedDisplay && static_cast<bool>(settings.chunkProgressObserver);
+      const std::uint64_t workBudget = interactiveProgress
+                                         ? kInteractiveAutoPrimaryLaunchPathWorkBudget
+                                         : kAutoPrimaryLaunchPathWorkBudget;
+      const std::uint64_t minimumPathBudget = interactiveProgress
+                                                ? kInteractiveAutoPrimaryLaunchMinimumPathBudget
+                                                : kAutoPrimaryLaunchMinimumPathBudget;
+      const std::uint64_t maximumPathBudget = interactiveProgress
+                                                ? kInteractiveAutoPrimaryLaunchMaximumPathBudget
+                                                : kAutoPrimaryLaunchMaximumPathBudget;
       const std::uint64_t depthWork = std::max<std::uint64_t>(1u, settings.maxDepth);
       const std::uint64_t directLightWork =
         std::max<std::uint64_t>(1u, settings.directLightSamples);
@@ -479,10 +493,8 @@ namespace render {
         depthWork > std::numeric_limits<std::uint64_t>::max() / directLightWork
           ? std::numeric_limits<std::uint64_t>::max()
           : depthWork * directLightWork;
-      const std::uint64_t scaledBudget =
-        std::max<std::uint64_t>(1u, kAutoPrimaryLaunchPathWorkBudget / workScale);
-      return std::clamp(scaledBudget, kAutoPrimaryLaunchMinimumPathBudget,
-                        kAutoPrimaryLaunchMaximumPathBudget);
+      const std::uint64_t scaledBudget = std::max<std::uint64_t>(1u, workBudget / workScale);
+      return std::clamp(scaledBudget, minimumPathBudget, maximumPathBudget);
     }
 
     [[nodiscard]] std::uint32_t
