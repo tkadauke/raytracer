@@ -813,11 +813,10 @@ namespace WavefrontIntersectionBackendTest {
   }
 
   TEST(WavefrontIntersectionBackend, CompiledSceneDiagnosticsDoNotInventUploadBuffers) {
-    auto curve =
-      std::make_shared<Curve>(core::Polyline({Vector3d(0, 0, 0), Vector3d(1, 0, 0)}), 0.1);
-    curve->setName("render curve");
+    auto instance = std::make_shared<Instance>(nullptr);
+    instance->setName("render empty instance");
     Scene scene;
-    scene.add(curve);
+    scene.add(instance);
 
     const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
     const WavefrontIntersectionSceneDiagnostics diagnostics =
@@ -829,7 +828,7 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ(1u, diagnostics.unsupportedPrimitives);
     ASSERT_EQ(1u, diagnostics.unsupportedReasons.size());
     EXPECT_EQ(1u, diagnostics.unsupportedReasons.at(
-                    "primitive is not supported by GPU intersection scene compiler"));
+                    "empty instance is not supported by GPU intersection scene compiler"));
     EXPECT_EQ(0u, diagnostics.uploadBytes);
     EXPECT_FALSE(diagnostics.triangleClosestHitKernelEligible);
     EXPECT_FALSE(diagnostics.basicHitKernelEligible);
@@ -2674,11 +2673,10 @@ namespace WavefrontIntersectionBackendTest {
   }
 
   TEST(WavefrontIntersectionBackend, GpuChoiceDoesNotRetainUnsupportedCompiledScene) {
-    auto curve =
-      std::make_shared<Curve>(core::Polyline({Vector3d(0, 0, 0), Vector3d(1, 0, 0)}), 0.1);
-    curve->setName("render curve");
+    auto instance = std::make_shared<Instance>(nullptr);
+    instance->setName("render empty instance");
     Scene scene;
-    scene.add(curve);
+    scene.add(instance);
 
     const std::shared_ptr<const WavefrontIntersectionBackend> backend =
       WavefrontIntersectionBackendChoice::gpu().createBackendForScene(scene);
@@ -2690,7 +2688,8 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ(nullptr, backend->compiledScene());
     EXPECT_EQ(nullptr, backend->gpuIntersectionSceneBuffers());
     EXPECT_NE(std::string::npos, std::string(backend->fallbackReason()).find("unsupported"));
-    EXPECT_NE(std::string::npos, std::string(backend->fallbackReason()).find("render curve"));
+    EXPECT_NE(std::string::npos,
+              std::string(backend->fallbackReason()).find("render empty instance"));
 
     const WavefrontIntersectionSceneDiagnostics diagnostics = backend->compiledSceneDiagnostics();
     EXPECT_TRUE(diagnostics.compiled);
@@ -2698,7 +2697,7 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_EQ(1u, diagnostics.unsupportedPrimitives);
     ASSERT_EQ(1u, diagnostics.unsupportedReasons.size());
     EXPECT_EQ(1u, diagnostics.unsupportedReasons.at(
-                    "primitive is not supported by GPU intersection scene compiler"));
+                    "empty instance is not supported by GPU intersection scene compiler"));
     EXPECT_EQ(0u, diagnostics.uploadBytes);
     EXPECT_FALSE(diagnostics.triangleClosestHitKernelEligible);
     EXPECT_FALSE(diagnostics.basicHitKernelEligible);
@@ -2783,19 +2782,17 @@ namespace WavefrontIntersectionBackendTest {
   }
 
   TEST(WavefrontIntersectionBackend, GpuChoiceSummarizesUnsupportedReasonCounts) {
-    auto firstCurve =
-      std::make_shared<Curve>(core::Polyline({Vector3d(0, 0, 0), Vector3d(1, 0, 0)}), 0.1);
-    firstCurve->setName("first render curve");
-    auto secondCurve =
-      std::make_shared<Curve>(core::Polyline({Vector3d(0, 1, 0), Vector3d(1, 1, 0)}), 0.1);
-    secondCurve->setName("second render curve");
+    auto firstInstance = std::make_shared<Instance>(nullptr);
+    firstInstance->setName("first empty instance");
+    auto secondInstance = std::make_shared<Instance>(nullptr);
+    secondInstance->setName("second empty instance");
     auto movingInstance = std::make_shared<Instance>(std::make_shared<Sphere>(Vector3d(), 1.0));
     movingInstance->setName("moving asset instance");
     movingInstance->setVelocity(Vector3d(1, 0, 0));
     Scene scene;
-    scene.add(firstCurve);
+    scene.add(firstInstance);
     scene.add(movingInstance);
-    scene.add(secondCurve);
+    scene.add(secondInstance);
 
     const std::shared_ptr<const WavefrontIntersectionBackend> backend =
       WavefrontIntersectionBackendChoice::gpu().createBackendForScene(scene);
@@ -2804,16 +2801,16 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_STREQ("cpu", backend->name());
     EXPECT_STREQ("fallback", backend->availability());
     EXPECT_EQ(
-      "GPU intersection scene unsupported: first render curve: primitive is not supported by GPU "
-      "intersection scene compiler (3 unsupported leaves; 1x moving instances are not supported "
-      "by GPU intersection scene compiler; 2x primitive is not supported by GPU intersection "
+      "GPU intersection scene unsupported: first empty instance: empty instance is not supported by GPU "
+      "intersection scene compiler (3 unsupported leaves; 2x empty instance is not supported by "
+      "GPU intersection scene compiler; 1x moving instances are not supported by GPU intersection "
       "scene compiler)",
       std::string(backend->fallbackReason()));
 
     const WavefrontIntersectionSceneDiagnostics diagnostics = backend->compiledSceneDiagnostics();
     ASSERT_EQ(2u, diagnostics.unsupportedReasons.size());
     EXPECT_EQ(2u, diagnostics.unsupportedReasons.at(
-                    "primitive is not supported by GPU intersection scene compiler"));
+                    "empty instance is not supported by GPU intersection scene compiler"));
     EXPECT_EQ(1u, diagnostics.unsupportedReasons.at(
                     "moving instances are not supported by GPU intersection scene compiler"));
   }

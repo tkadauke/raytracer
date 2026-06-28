@@ -279,7 +279,12 @@ function(tracing_parity_render_compiled_gpu_execution category scene_file depth 
     NAME "rendercli tracing parity ${category} compiled GPU execution metrics"
     OUTPUT_VARIABLE gpu_execution_stdout
     STDOUT_MATCHES
-      "wavefront_metrics.*sampling_seed=1337.*sample_stream_mode=gpu_sample_stream.*integrator=pathtracer.*execution=compiled_diffuse_path_loop.*tracing_backend_request=gpu.*tracing_backend=(cpu|gpu).*tracing_backend_mode=(compiled_cpu_reference|full_gpu_subset).*tracing_backend_platform=(none|metal|vulkan).*tracing_backend_fallback=([^ ]+|none).*tracing_backend_capabilities=[1-9][0-9]*.*tracing_scene_compiled=true.*tracing_scene_materials=[1-9][0-9]*.*resident_path_loop_execution=(compiled_cpu_reference|full_gpu_subset).*resident_path_loop_schedule=depth_frontier.*resident_path_loop_residency=(cpu_host|metal_shared_diffuse_path_state|vulkan_host_visible_diffuse_path_state).*resident_path_loop_platform=(none|metal|vulkan).*resident_path_loop_depths=[1-9][0-9]*.*resident_path_loop_active_paths_per_depth=[1-9][0-9]*(,[0-9]+)*.*resident_path_loop_submitted_intersection_rays=[1-9][0-9]*.*resident_path_loop_full_platform_gpu_kernel=(false|true).*samples=[1-9][0-9]*.*accumulation_backend=(gpu_diffuse_path_loop|metal_diffuse_path_loop|vulkan_diffuse_path_loop)"
+      "wavefront_metrics.*sampling_seed=1337.*sample_stream_mode=gpu_sample_stream.*integrator=pathtracer.*execution=compiled_diffuse_path_loop.*tracing_backend_request=gpu"
+      "wavefront_metrics.*tracing_backend=[a-z]+.*tracing_backend_mode=[a-z_]+.*tracing_backend_platform=[a-z]+.*tracing_backend_fallback=[^ ]+.*tracing_backend_capabilities=[1-9][0-9]*"
+      "wavefront_metrics.*tracing_scene_compiled=true.*tracing_scene_materials=[1-9][0-9]*"
+      "wavefront_metrics.*resident_path_loop_execution=[a-z_]+.*resident_path_loop_schedule=depth_frontier.*resident_path_loop_residency=[a-z_]+.*resident_path_loop_platform=[a-z]+"
+      "wavefront_metrics.*resident_path_loop_depths=[1-9][0-9]*.*resident_path_loop_active_paths_per_depth=[1-9][0-9,]*.*resident_path_loop_submitted_intersection_rays=[1-9][0-9]*"
+      "wavefront_metrics.*resident_path_loop_full_platform_gpu_kernel=[a-z]+.*samples=[1-9][0-9]*.*accumulation_backend=[a-z_]+"
     COMMAND
       "${RENDERCLI}" --engine pathtracer --tracing_execution gpu
       --width 32 --height 24

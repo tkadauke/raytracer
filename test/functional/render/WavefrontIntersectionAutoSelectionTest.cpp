@@ -1,11 +1,10 @@
 #include <gtest/gtest.h>
 
-#include "core/geometry/Polyline.h"
 #include "render/GpuIntersectionScene.h"
 #include "render/IntersectionSceneCompiler.h"
 #include "render/IntersectionService.h"
 #include "render/WavefrontIntersectionBackend.h"
-#include "render/primitives/Curve.h"
+#include "render/primitives/Instance.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
 
@@ -24,10 +23,10 @@ namespace WavefrontIntersectionAutoSelectionTest {
 
     Scene unsupportedScene() {
       Scene scene;
-      auto curve =
-        std::make_shared<Curve>(core::Polyline({Vector3d(0, 0, 0), Vector3d(1, 0, 0)}), 0.1);
-      curve->setName("auto fallback curve");
-      scene.add(curve);
+      auto instance = std::make_shared<Instance>(std::make_shared<Sphere>(Vector3d(), 1.0));
+      instance->setName("auto fallback moving instance");
+      instance->setVelocity(Vector3d(1, 0, 0));
+      scene.add(instance);
       return scene;
     }
 
