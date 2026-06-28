@@ -618,7 +618,8 @@ namespace render {
         descriptor.withSampleRange(sampleOffset, chunkSampleCount);
       const std::vector<Recti> pixelTiles =
         primaryPixelTilesFor(sampleDescriptor, chunkSampleCount, settings);
-      for (const Recti& pixelTile : pixelTiles) {
+      for (std::size_t tileIndex = 0; tileIndex != pixelTiles.size(); ++tileIndex) {
+        const Recti& pixelTile = pixelTiles[tileIndex];
         GpuDiffusePrimaryPathSampleChunk chunk;
         chunk.primaryPathGeneration = primaryPathGeneration;
         chunk.primaryPathGeneration.pathStates.clear();
@@ -632,6 +633,7 @@ namespace render {
           chunk.primaryPathGeneration.primaryPathDescriptor->pathCount();
         chunk.primaryPathGeneration.skippedPrimarySamples = 0u;
         chunk.firstChunk = chunks.empty();
+        chunk.completesSampleRange = tileIndex + 1u == pixelTiles.size();
         chunks.push_back(std::move(chunk));
       }
       sampleOffset += chunkSampleCount;
@@ -640,6 +642,12 @@ namespace render {
       chunks.back().finalChunk = true;
     }
     return chunks;
+  }
+
+  bool shouldCaptureGpuDiffusePathLoopChunkResolvedDisplay(
+    const GpuDiffusePathLoopSettings& settings, const GpuDiffusePrimaryPathSampleChunk& chunk) {
+    return settings.captureResolvedDisplay &&
+           (chunk.finalChunk || (settings.chunkProgressObserver && chunk.completesSampleRange));
   }
 
   void mergePlatformGpuDiffusePathLoopChunkResult(GpuDiffusePathLoopPlatformResult& merged,
@@ -696,9 +704,13 @@ namespace render {
       fullPrimaryPathGeneration.primaryPathDescriptor->rectilinear;
     const GpuRectilinearPrimaryPathDescriptor& chunkDescriptor =
       chunk.primaryPathGeneration.primaryPathDescriptor->rectilinear;
-    std::uint32_t completedSampleCount = chunkDescriptor.samplesPerPixel;
-    if (chunkDescriptor.sampleOffset >= fullDescriptor.sampleOffset) {
+    std::uint32_t completedSampleCount =
+      chunk.completesSampleRange ? chunkDescriptor.samplesPerPixel : 0u;
+    if (chunk.completesSampleRange && chunkDescriptor.sampleOffset >= fullDescriptor.sampleOffset) {
       completedSampleCount += chunkDescriptor.sampleOffset - fullDescriptor.sampleOffset;
+    } else if (!chunk.completesSampleRange &&
+               chunkDescriptor.sampleOffset > fullDescriptor.sampleOffset) {
+      completedSampleCount = chunkDescriptor.sampleOffset - fullDescriptor.sampleOffset;
     }
     completedSampleCount = std::min(completedSampleCount, fullDescriptor.samplesPerPixel);
 

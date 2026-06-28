@@ -53,6 +53,7 @@ namespace render {
     GpuDiffusePrimaryPathStateGeneration primaryPathGeneration;
     bool firstChunk{false};
     bool finalChunk{false};
+    bool completesSampleRange{false};
   };
 
   [[nodiscard]] bool canChunkGpuDiffusePrimarySamples(
@@ -64,6 +65,8 @@ namespace render {
   [[nodiscard]] std::vector<GpuDiffusePrimaryPathSampleChunk> gpuDiffusePrimarySampleChunksFor(
     const GpuDiffusePrimaryPathStateGeneration& primaryPathGeneration,
     const GpuDiffusePathLoopSettings& settings);
+  [[nodiscard]] bool shouldCaptureGpuDiffusePathLoopChunkResolvedDisplay(
+    const GpuDiffusePathLoopSettings& settings, const GpuDiffusePrimaryPathSampleChunk& chunk);
   void mergePlatformGpuDiffusePathLoopChunkResult(GpuDiffusePathLoopPlatformResult& merged,
                                                   GpuDiffusePathLoopPlatformResult&& chunkResult);
   void notifyGpuDiffusePathLoopChunkProgress(

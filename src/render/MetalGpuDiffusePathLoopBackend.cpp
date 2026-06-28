@@ -181,7 +181,7 @@ namespace render {
           planner.plan(scene, chunk.primaryPathGeneration, accumulation.layout, settings);
         chunkPlan.parameters.accumulationTargetMode = accumulation.targetMode;
         const bool captureChunkResolvedDisplay =
-          settings.captureResolvedDisplay && (chunk.finalChunk || settings.chunkProgressObserver);
+          shouldCaptureGpuDiffusePathLoopChunkResolvedDisplay(settings, chunk);
         MetalGpuDiffusePathLoopKernelResult metalResult = kernel.runWavefrontPathLoop(
           chunkPlan, initialPathStates, chunk.finalChunk && settings.capturePlatformAccumulation,
           captureChunkResolvedDisplay, chunk.firstChunk);

@@ -475,6 +475,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Throttle chunked Metal/Vulkan full-GPU path-tracer progress resolves to
+  completed sample ranges instead of forcing a full-frame display readback for
+  every pixel tile, avoiding hangs in high-sample render-window previews. —
+  GPT-5 Codex
 - Document and test base-level mipmapped `ImageTexture` support in the compiled
   full-GPU path-loop subset, matching the scalar path tracer's derivative-free
   texture evaluation path. — GPT-5 Codex
