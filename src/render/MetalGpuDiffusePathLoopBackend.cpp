@@ -110,6 +110,8 @@ namespace render {
         "over those textures only",
         "Metal diffuse path-loop backend currently supports point, directional, and rectangular "
         "area lights only",
+        "Metal diffuse path-loop backend requires finite ambient, background, and environment "
+        "colors",
         "Metal diffuse path-loop backend requires Linear, Reinhard, or ACES display-resolve "
         "tonemapping when resolved display pixels are requested"});
 #else

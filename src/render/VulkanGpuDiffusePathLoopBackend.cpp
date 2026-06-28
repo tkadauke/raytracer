@@ -110,6 +110,8 @@ namespace render {
         "over those textures only",
         "Vulkan diffuse path-loop backend currently supports point, directional, or rectangular "
         "area lights only",
+        "Vulkan diffuse path-loop backend requires finite ambient, background, and environment "
+        "colors",
         "Vulkan diffuse path-loop backend requires Linear, Reinhard, or ACES display-resolve "
         "tonemapping when resolved display pixels are requested"});
 #else

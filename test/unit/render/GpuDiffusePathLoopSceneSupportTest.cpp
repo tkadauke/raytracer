@@ -10,7 +10,8 @@ namespace GpuDiffusePathLoopSceneSupportTest {
 
   namespace {
     GpuDiffusePathLoopSceneSupportReasons reasons() {
-      return {"max-depth", "geometry", "material", "texture", "light", "display-resolve"};
+      return {"max-depth", "geometry",    "material",       "texture",
+              "light",     "environment", "display-resolve"};
     }
 
     GpuDiffusePathLoopSettings settings() {
@@ -150,6 +151,31 @@ namespace GpuDiffusePathLoopSceneSupportTest {
     nonFiniteArea.lights.push_back(lightRecord(GpuTracingLightKind::RectangularArea));
     nonFiniteArea.lights.back().u[2] = nan;
     expectUnsupported(supportFor(nonFiniteArea), "light");
+  }
+
+  TEST(GpuDiffusePathLoopSceneSupport, RejectsNonFiniteShaderRecords) {
+    const float nan = std::numeric_limits<float>::quiet_NaN();
+
+    GpuTracingSceneSections nonFiniteMaterial;
+    nonFiniteMaterial.materials.push_back(materialRecord(GpuTracingMaterialKind::Unsupported));
+    nonFiniteMaterial.materials.push_back(materialRecord(GpuTracingMaterialKind::Matte));
+    nonFiniteMaterial.materials.back().parameters[1] = nan;
+    expectUnsupported(supportFor(nonFiniteMaterial), "material");
+
+    GpuTracingSceneSections nonFinitePortalMaterial;
+    nonFinitePortalMaterial.materials.push_back(materialRecord(GpuTracingMaterialKind::Portal));
+    nonFinitePortalMaterial.materials.back().portalOriginMatrix2[3] = nan;
+    expectUnsupported(supportFor(nonFinitePortalMaterial), "material");
+
+    GpuTracingSceneSections nonFiniteTexture;
+    nonFiniteTexture.textures.push_back(textureRecord(GpuTracingTextureKind::ConstantColor));
+    nonFiniteTexture.textures.back().parameters[0] = nan;
+    expectUnsupported(supportFor(nonFiniteTexture), "texture");
+
+    GpuTracingSceneSections nonFiniteEnvironment;
+    nonFiniteEnvironment.environment.push_back(GpuTracingEnvironmentRecord{});
+    nonFiniteEnvironment.environment.back().color[2] = nan;
+    expectUnsupported(supportFor(nonFiniteEnvironment), "environment");
   }
 
   TEST(GpuDiffusePathLoopSceneSupport, RejectsSupportedMaterialsWithMalformedTextureReferences) {

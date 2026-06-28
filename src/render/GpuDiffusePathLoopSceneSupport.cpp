@@ -44,6 +44,9 @@ namespace render {
     if (!hasSupportedLights(scene)) {
       return {false, reasons.light};
     }
+    if (!hasSupportedEnvironment(scene)) {
+      return {false, reasons.environment};
+    }
     return {true, {}};
   }
 
@@ -171,6 +174,15 @@ namespace render {
     const GpuTracingSceneSections& scene) const {
     for (std::size_t index = 0; index != scene.materials.size(); ++index) {
       const GpuTracingMaterialRecord& material = scene.materials[index];
+      if (!allFinite(material.parameters) || !allFinite(material.specularParameters) ||
+          !allFinite(material.continuationParameters) ||
+          !allFinite(material.transmissionParameters) || !allFinite(material.portalOriginMatrix0) ||
+          !allFinite(material.portalOriginMatrix1) || !allFinite(material.portalOriginMatrix2) ||
+          !allFinite(material.portalOriginMatrix3) || !allFinite(material.portalDirectionMatrix0) ||
+          !allFinite(material.portalDirectionMatrix1) ||
+          !allFinite(material.portalDirectionMatrix2)) {
+        return false;
+      }
       const auto kind = static_cast<GpuTracingMaterialKind>(material.kind);
       if (kind == GpuTracingMaterialKind::Unsupported) {
         if (index == 0u) {
@@ -226,6 +238,9 @@ namespace render {
   bool GpuDiffusePathLoopSceneSupport::supportedUntintedTexture(
     const GpuTracingSceneSections& scene, std::size_t textureIndex, std::uint32_t depth) const {
     const GpuTracingTextureRecord& texture = scene.textures[textureIndex];
+    if (!allFinite(texture.parameters)) {
+      return false;
+    }
     const auto kind = static_cast<GpuTracingTextureKind>(texture.kind);
     if (kind == GpuTracingTextureKind::Unsupported) {
       return textureIndex == 0u && depth == 0u;
@@ -322,5 +337,12 @@ namespace render {
         }
         return false;
       });
+  }
+
+  bool GpuDiffusePathLoopSceneSupport::hasSupportedEnvironment(
+    const GpuTracingSceneSections& scene) const {
+    return std::all_of(
+      scene.environment.begin(), scene.environment.end(),
+      [](const GpuTracingEnvironmentRecord& environment) { return allFinite(environment.color); });
   }
 }

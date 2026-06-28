@@ -2842,6 +2842,9 @@ scene is large enough to amortize upload/readback costs.
      Raster-only material normal maps no longer make those materials
      unsupported by the compiled path-loop subset; they remain ignored by path
      tracing, matching the scalar CPU integrator.
+     Platform path-loop support checks now reject non-finite material, texture,
+     and environment records before dispatch, matching the existing non-finite
+     light-record guard.
      Box denoising now runs after compiled path-loop image resolve instead of
      rejecting the path-loop route. The compiled CPU-reference path loop and the
      Metal/Vulkan platform full-GPU path loops now emit first-hit albedo,

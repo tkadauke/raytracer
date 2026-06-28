@@ -13,6 +13,7 @@ namespace render {
     std::string material;
     std::string texture;
     std::string light;
+    std::string environment;
     std::string displayResolve;
   };
 
@@ -27,6 +28,7 @@ namespace render {
     [[nodiscard]] bool hasSupportedMaterials(const GpuTracingSceneSections& scene) const;
     [[nodiscard]] bool hasSupportedTextures(const GpuTracingSceneSections& scene) const;
     [[nodiscard]] bool hasSupportedLights(const GpuTracingSceneSections& scene) const;
+    [[nodiscard]] bool hasSupportedEnvironment(const GpuTracingSceneSections& scene) const;
 
   private:
     struct SupportedGeometryCounts {
