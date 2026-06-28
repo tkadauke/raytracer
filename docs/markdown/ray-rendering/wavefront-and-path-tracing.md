@@ -327,9 +327,9 @@ larger of the fixed floor and the prepared scene upload size in KiB multiplied
 by `minimumGpuRaysPerSceneUploadKiB`. Today scene support is intentionally
 limited to triangle, mesh-triangle, sphere, plane, rectangle, disk,
 OpenCylinder, and Torus leaves with either no transform or static instance
-transforms that can use the first Metal/Vulkan packed closest-hit and any-hit
-kernels. Other scenes report the CPU-selection reason in metrics and graph trace
-metadata. The experimental
+transforms, including linear instance motion deltas, that can use the first
+Metal/Vulkan packed closest-hit and any-hit kernels. Other scenes report the
+CPU-selection reason in metrics and graph trace metadata. The experimental
 CMake flags
 `RAYTRACER_ENABLE_METAL_WAVEFRONT` and
 `RAYTRACER_ENABLE_VULKAN_WAVEFRONT` enable platform plumbing checks. The
@@ -356,12 +356,13 @@ rendercli, graph trace metadata, and Modeler pass details can display them
 without parsing the fallback sentence.
 For a supported scene, the GPU path names the host platform backend that would
 run next: Metal on macOS, Vulkan elsewhere. Metal and Vulkan can now execute the
-exact-primitive basic subset, including static instance transforms, when their
-build flags and platform devices are present. Scenes outside that packed
-basic-kernel contract still report CPU fallback. The metrics deliberately split
-platform GPU device availability from render-path availability: a platform may
-detect a compute device and run smoke kernels, but `auto` still selects CPU
-unless the render-path closest-hit and any-hit kernels can also be constructed.
+exact-primitive basic subset, including static instance transforms and linear
+instance motion deltas, when their build flags and platform devices are present.
+Scenes outside that packed basic-kernel contract still report CPU fallback. The
+metrics deliberately split platform GPU device availability from render-path
+availability: a platform may detect a compute device and run smoke kernels, but
+`auto` still selects CPU unless the render-path closest-hit and any-hit kernels
+can also be constructed.
 The scene-created backend object retains the compiled records it was prepared
 from and answers fallback closest-hit, packet closest-hit, and any-hit queries
 through the packed upload-buffer CPU traversal, with the compiled-scene CPU
@@ -544,24 +545,25 @@ frontiers keep the canonical host behavior, while prepared Metal/Vulkan
 frontiers can treat direct-light visibility as the same query family without
 changing the integrator's visibility boundary. The
 harness currently covers triangles, mesh triangles, box tessellations, sphere,
-plane, rectangle, disk, OpenCylinder, Torus, and static instance transforms by
-tracing in payload-local space and transforming hit data back to world space.
-It is not a render backend; it is the executable contract the Metal and Vulkan
-kernels need to match before they can be trusted in the wavefront renderer.
+plane, rectangle, disk, OpenCylinder, Torus, and static or linearly moving
+instance transforms by tracing in payload-local space and transforming hit data
+back to world space. It is not a render backend; it is the executable contract
+the Metal and Vulkan kernels need to match before they can be trusted in the
+wavefront renderer.
 
 The first GPU-facing upload seam is intentionally one step narrower than the
 compiled scene. `GpuIntersectionScenePacker` takes the compiled records and
 packs flat BVH nodes, primitive records, triangle payloads,
-sphere/plane/rectangle/disk/OpenCylinder/Torus payloads, static transform
-payloads, ray work items, and miss/hit records. Those structs are
+sphere/plane/rectangle/disk/OpenCylinder/Torus payloads, transform payloads with
+optional linear motion deltas, ray work items, and miss/hit records. Those structs are
 16-byte-aligned, row-major, and plain-layout so Metal and Vulkan can share the
 same host-side contract even if their shader source is platform-native. The
 current execution eligibility check is strict: platform basic kernels may only
 accept triangle, sphere, plane, rectangle, disk, OpenCylinder, and Torus records
-with either no transform or a static transform payload. The Torus payload uses
-the same quartic intersection contract in packed CPU traversal and in the Metal
-and Vulkan basic kernels, so exact Torus scenes no longer have to fall back only
-because their primitive is curved.
+with either no transform or a static/linearly moving transform payload. The
+Torus payload uses the same quartic intersection contract in packed CPU
+traversal and in the Metal and Vulkan basic kernels, so exact Torus scenes no
+longer have to fall back only because their primitive is curved.
 Prepared GPU fallback backends retain the packed buffers next to the compiled
 scene, and the wavefront metrics report
 `intersectionSceneUploadBytes`, payload counts such as
@@ -571,12 +573,13 @@ scene, and the wavefront metrics report
 and `intersectionScenePackedAnyHitEligible`
 so rendercli and the graph inspector can show the would-be upload workload
 before a platform kernel runs.
-For eligible exact-primitive and static-instance scenes, closest-hit and packet
-closest-hit queries already run through a packed CPU traversal that consumes
-those upload buffers and emits the same hit-record layout the GPU kernel will
-write. The Metal and Vulkan basic closest-hit and any-hit kernels use that same
-upload layout for triangle, sphere, plane, rectangle, disk, OpenCylinder,
-Torus, and static-transform scenes in the render path. Prepared Vulkan
+For eligible exact-primitive and static-or-linearly-moving-instance scenes,
+closest-hit and packet closest-hit queries already run through a packed CPU
+traversal that consumes those upload buffers and emits the same hit-record
+layout the GPU kernel will write. The Metal and Vulkan basic closest-hit and
+any-hit kernels use that same upload layout for triangle, sphere, plane,
+rectangle, disk, OpenCylinder, Torus, and transform-payload scenes in the render
+path. Prepared Vulkan
 backends now keep
 their device, pipelines, descriptor layout, command pool, and scene-side buffers
 alive for the scene, and reuse growable ray/result/count buffers across

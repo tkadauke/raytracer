@@ -530,14 +530,15 @@ smaller and all-or-nothing for a render or service call. The supported subset is
 - `Torus`;
 - pairwise-disjoint finite `Union` composites whose children compile to
   supported payloads;
-- static transforms / instances whose payloads can be represented by stable
-  compiled ids.
+- static transforms / instances and linear instance motion deltas whose payloads
+  can be represented by stable compiled ids.
 
 Unsupported CSG/boolean composites (`Difference`, `Intersection`, overlapping or
-touching `Union`, `ConvexHull`, and `MinkowskiSum`), moving transforms,
-unsupported exact primitive payloads, and materials that require runtime-only
-continuation semantics such as transparent/glass Whitted recursion must keep the
-service on the runtime CPU path or produce an explicit fallback reason. Platform
+touching `Union`, `ConvexHull`, and `MinkowskiSum`), arbitrary animated
+transforms beyond linear motion deltas, unsupported exact primitive payloads,
+and materials that require runtime-only continuation semantics such as
+transparent/glass Whitted recursion must keep the service on the runtime CPU
+path or produce an explicit fallback reason. Platform
 Metal and Vulkan backends may also reject a scene that the packed CPU service
 can compile until matching platform kernels exist.
 
@@ -1859,12 +1860,14 @@ for tracing, shadows, visibility, and graph passes.
 2. ~~**Close parity gaps for existing supported primitives.**~~ ✅ **Done.**
    Issue #570 adds explicit packed CPU closest-hit/any-hit parity coverage for
    triangle, mesh triangle, finite-width Curve tessellation, sphere, plane,
-   rectangle, disk, OpenCylinder, Torus, and static transforms, and keeps mesh
-   triangles represented in optional Metal/Vulkan triangle smoke parity scenes.
+   rectangle, disk, OpenCylinder, Torus, static transforms, and linear instance
+   motion deltas, and keeps mesh triangles represented in optional
+   Metal/Vulkan triangle smoke parity scenes.
    - Depends on: job 1.
    - Output: CPU runtime, packed CPU, Metal, and Vulkan closest-hit/any-hit
      parity tests for triangle, mesh triangle, finite-width Curve tessellation,
-     sphere, plane, rectangle, disk, OpenCylinder, Torus, and static transforms.
+     sphere, plane, rectangle, disk, OpenCylinder, Torus, static transforms, and
+     linear instance motion deltas.
 
 3. ~~**Stabilize explicit fallback behavior.**~~ ✅ **Done.** Issue #571 pinned
    deterministic GPU-intersection fallback reasons; transparent/glass now has
@@ -2923,7 +2926,7 @@ scene is large enough to amortize upload/readback costs.
      or no device is available. ✅ **Started.** Vulkan-enabled builds now
      compile an embedded diffuse path-loop compute shader and expose a
      restricted `VulkanGpuDiffusePathLoopBackend` that can execute empty
-     all-miss paths and a multi-depth shaded static-transform
+     all-miss paths and a multi-depth shaded static-or-linearly-moving-transform
      triangle/finite-width Curve tessellated-triangle/Box tessellated-triangle/
      sphere/plane/rectangle/disk/open-cylinder/torus subset with
      Matte/Phong-finite-glossy/Reflective-mirror/Transparent-refraction/Portal/Emissive

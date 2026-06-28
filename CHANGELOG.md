@@ -492,6 +492,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Describe Metal/Vulkan full-GPU path-loop geometry support as static or
+  linearly moving transforms and cover moving instances in platform path-loop
+  parity tests. — GPT-5 Codex
 - Keep render-dialog full-GPU path-tracer Auto chunking from exploding into
   thousands of tiny Metal/Vulkan path-loop launches at common high-sample
   settings, avoiding black renders and driver instability. — GPT-5 Codex

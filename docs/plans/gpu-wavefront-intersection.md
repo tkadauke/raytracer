@@ -21,9 +21,9 @@
 > leaves, ids, transforms, bounds, and unsupported reasons. Scene-created GPU
 > fallback stubs retain supported compiled scenes and packed upload buffers;
 > exact closest-hit, packet closest-hit, and bounded any-hit queries for
-> triangle, sphere, plane, rectangle, disk, exact OpenCylinder, exact Torus, and
-> static-transform payloads can run through the packed CPU kernel contract and
-> the platform basic-kernel contract.
+> triangle, sphere, plane, rectangle, disk, exact OpenCylinder, exact Torus,
+> static-transform payloads, and linear instance motion deltas can run through
+> the packed CPU kernel contract and the platform basic-kernel contract.
 > Transparent-material leaves now explicitly opt out of the packed
 > intersection scene so glass/refraction renders stay on the runtime CPU
 > intersection path until the packed/GPU hit metadata contract is precise
@@ -31,10 +31,11 @@
 > Metal-only smoke kernels prove optional compute dispatch
 > outside the render path, and render-path Metal basic closest-hit and any-hit
 > kernels can execute for prepared triangle, sphere, plane, rectangle, disk,
-> OpenCylinder, and Torus scenes, including static transform payloads, when a
-> Metal device is available. Vulkan-enabled builds can run basic closest-hit and
-> any-hit kernels for prepared triangle, sphere, plane, rectangle, disk,
-> OpenCylinder, and Torus scenes, including static transform payloads. Supported
+> OpenCylinder, and Torus scenes, including static transform payloads and linear
+> instance motion deltas, when a Metal device is available. Vulkan-enabled
+> builds can run basic closest-hit and any-hit kernels for prepared triangle,
+> sphere, plane, rectangle, disk, OpenCylinder, and Torus scenes, including
+> static transform payloads and linear instance motion deltas. Supported
 > GPU-requested diffuse path-tracing scenes now also route through the compiled
 > diffuse path-loop CPU reference from the live graph path and report that
 > execution honestly as `compiled_cpu_reference`; platform full-GPU path-loop

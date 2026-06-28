@@ -387,6 +387,28 @@ namespace GpuDiffusePathStepReferenceTest {
       return {sectionsFor(scene), {path}, singleBounceGpuPathLoopSettings()};
     }
 
+    [[maybe_unused]] GpuPathLoopCase movingInstanceSphereGpuPathLoopCase() {
+      Scene scene;
+      scene.setEnvironmentRadiance(Colord(0.1, 0.2, 0.3));
+      auto material = gpuPathLoopMatte(Colord(0.25, 0.5, 0.75), 0.8);
+      auto sphere = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+      sphere->setMaterial(material);
+      auto instance = std::make_shared<Instance>(sphere);
+      instance->setMatrix(Matrix4d::translate(0.0, 0.0, 3.0));
+      instance->setVelocity(Vector3d(3.0, 0.0, 0.0));
+      scene.add(instance);
+      scene.addLight(std::make_shared<PointLight>(Vector3d(1.5, 0.0, -3.0), Colord::white()));
+
+      GpuDiffusePathStateRecord path =
+        activePath(Rayd(Vector4d(1.5, 0.0, -4.0, 1.0), Vector3d(0.0, 0.0, 1.0)), 25);
+      path.ray.timeSample = 0.5f;
+      path.pixelIndex = 0;
+      path.sampleSeed = 12347;
+      path.throughput = {0.5f, 0.25f, 0.125f, 0.0f};
+
+      return {sectionsFor(scene), {path}, singleBounceGpuPathLoopSettings()};
+    }
+
     [[maybe_unused]] GpuPathLoopCase curveGpuPathLoopCase() {
       Scene scene;
       auto curve =
@@ -2857,6 +2879,23 @@ namespace GpuDiffusePathStepReferenceTest {
     ASSERT_COLOR_NEAR(Colord(0.2, 0.3, 0.4), Colord(result.denoiserFeatureRecords[0].albedo), 1e-6);
   }
 
+  TEST(GpuDiffusePathLoop, RunsMovingInstanceSpherePathLoop) {
+    const GpuPathLoopCase testCase = movingInstanceSphereGpuPathLoopCase();
+
+    const GpuDiffusePathLoopResult result =
+      GpuDiffusePathLoop().run(testCase.sections, testCase.paths, testCase.settings);
+
+    EXPECT_EQ(1u, result.depthCount);
+    EXPECT_EQ(1u, result.maxDepthTerminatedPaths);
+    ASSERT_EQ(1u, result.stepRecords.size());
+    EXPECT_EQ(static_cast<std::uint32_t>(GpuDiffusePathStepEvent::Hit),
+              result.stepRecords[0].event);
+    ASSERT_EQ(1u, result.resolvedPathStates.size());
+    EXPECT_TRUE(gpuDiffusePathStateIsTerminated(result.resolvedPathStates[0]));
+    EXPECT_FLOAT_EQ(testCase.paths[0].ray.timeSample, result.resolvedPathStates[0].ray.timeSample);
+    EXPECT_GT(Colord(result.resolvedPathStates[0].accumulatedRadiance).max(), 0.0);
+  }
+
   TEST(GpuDiffusePathStepReference, MatteHitSamplesNearestImageTexture) {
     std::vector<Colord> pixels{Colord::red(), Colord::green(), Colord::blue(), Colord::white()};
     auto image =
@@ -4702,6 +4741,18 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_TRUE(transformedSupport.supported);
     EXPECT_TRUE(transformedSupport.reason.empty());
 
+    Scene movingTransformedScene;
+    auto movingTransformedSphere =
+      std::make_shared<Instance>(std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0));
+    movingTransformedSphere->setMatrix(Matrix4d::translate(1.0, 0.0, 0.0));
+    movingTransformedSphere->setVelocity(Vector3d(2.0, 0.0, 0.0));
+    movingTransformedSphere->setMaterial(matte);
+    movingTransformedScene.add(movingTransformedSphere);
+    const GpuDiffusePathLoopBackendSupport movingTransformedSupport =
+      backend.fullGpuPathLoopSupport(sectionsFor(movingTransformedScene), settings);
+    EXPECT_TRUE(movingTransformedSupport.supported);
+    EXPECT_TRUE(movingTransformedSupport.reason.empty());
+
     Scene phongScene;
     auto phong = std::make_shared<PhongMaterial>(
       std::make_shared<ConstantColorTexture>(Colord(0.25, 0.5, 0.75)), Colord::white(), 16.0);
@@ -4899,7 +4950,7 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ("Vulkan diffuse path-loop backend currently supports empty geometry or "
               "triangle-backed MeshPrimitive, Box, and finite-width Curve geometry plus "
               "triangle, sphere, plane, rectangle, disk, open-cylinder, or torus records with "
-              "static transforms only",
+              "static or linearly moving transforms only",
               unsupportedSupport.reason);
 
     Scene unsupportedMaterialScene;
@@ -5772,6 +5823,33 @@ namespace GpuDiffusePathStepReferenceTest {
 
     const GpuDiffusePathLoopResult expected = GpuDiffusePathLoop().run(sections, paths, settings);
     const GpuDiffusePathLoopResult result = backend.run(sections, paths, settings);
+
+    EXPECT_TRUE(result.fullGpuPathLoopSupported());
+    EXPECT_EQ(expected.depthCount, result.depthCount);
+    EXPECT_EQ(expected.maxDepthTerminatedPaths, result.maxDepthTerminatedPaths);
+    ASSERT_EQ(expected.stepRecords.size(), result.stepRecords.size());
+    expectFloat4Near(result.stepRecords[0].continuationThroughput,
+                     expected.stepRecords[0].continuationThroughput, 1e-4);
+    ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
+    expectPathStateNear(result.resolvedPathStates[0], expected.resolvedPathStates[0], 1e-4);
+#else
+    GTEST_SKIP() << "Vulkan wavefront support is not enabled in this build";
+#endif
+  }
+
+  TEST(VulkanGpuDiffusePathLoopBackend, RunsMovingInstanceSphereDiffusePathLoopWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
+    const VulkanGpuDiffusePathLoopBackend backend;
+    if (!backend.fullGpuPathLoopAvailable()) {
+      GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
+    }
+
+    const GpuPathLoopCase testCase = movingInstanceSphereGpuPathLoopCase();
+
+    const GpuDiffusePathLoopResult expected =
+      GpuDiffusePathLoop().run(testCase.sections, testCase.paths, testCase.settings);
+    const GpuDiffusePathLoopResult result =
+      backend.run(testCase.sections, testCase.paths, testCase.settings);
 
     EXPECT_TRUE(result.fullGpuPathLoopSupported());
     EXPECT_EQ(expected.depthCount, result.depthCount);
@@ -7314,6 +7392,33 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_TRUE(result.fullGpuPathLoopSupported());
     EXPECT_EQ(expected.depthCount, result.depthCount);
     EXPECT_EQ(expected.maxDepthTerminatedPaths, result.maxDepthTerminatedPaths);
+    ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
+    expectPathStateNear(result.resolvedPathStates[0], expected.resolvedPathStates[0], 1e-4);
+#else
+    GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
+#endif
+  }
+
+  TEST(MetalGpuDiffusePathLoopBackend, RunsMovingInstanceSphereDiffusePathLoopWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    const MetalGpuDiffusePathLoopBackend backend;
+    if (!backend.fullGpuPathLoopAvailable()) {
+      GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
+    }
+
+    const GpuPathLoopCase testCase = movingInstanceSphereGpuPathLoopCase();
+
+    const GpuDiffusePathLoopResult expected =
+      GpuDiffusePathLoop().run(testCase.sections, testCase.paths, testCase.settings);
+    const GpuDiffusePathLoopResult result =
+      backend.run(testCase.sections, testCase.paths, testCase.settings);
+
+    EXPECT_TRUE(result.fullGpuPathLoopSupported());
+    EXPECT_EQ(expected.depthCount, result.depthCount);
+    EXPECT_EQ(expected.maxDepthTerminatedPaths, result.maxDepthTerminatedPaths);
+    ASSERT_EQ(expected.stepRecords.size(), result.stepRecords.size());
+    expectFloat4Near(result.stepRecords[0].continuationThroughput,
+                     expected.stepRecords[0].continuationThroughput, 1e-4);
     ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
     expectPathStateNear(result.resolvedPathStates[0], expected.resolvedPathStates[0], 1e-4);
 #else
