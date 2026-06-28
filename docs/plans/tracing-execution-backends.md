@@ -3028,7 +3028,10 @@ scene is large enough to amortize upload/readback costs.
      descriptor-only pinhole launches with trace/metrics/accumulation capture
      disabled and platform display resolve enabled, so the final-display route
      is covered at the backend boundary rather than only through graph-level
-     fake-backend tests.
+     fake-backend tests. Metal backend tests now also match the Vulkan
+     end-to-end direct-light gate for directional, rectangular-area, and
+     multiple-light path-loop renders, proving those light records survive
+     backend dispatch rather than only lower-level support checks.
 
 6. ~~**Update user-facing docs and examples.**~~ ✅ **Done.**
    - Depends on: job 5.

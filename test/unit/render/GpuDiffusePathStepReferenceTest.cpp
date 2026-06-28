@@ -403,6 +403,64 @@ namespace GpuDiffusePathStepReferenceTest {
       return {sectionsFor(scene), {path}, singleBounceGpuPathLoopSettings()};
     }
 
+    std::shared_ptr<MatteMaterial> directLightTestMatte() {
+      auto matte =
+        std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::white()));
+      matte->setDiffuseCoefficient(1.0);
+      return matte;
+    }
+
+    GpuDiffusePathStateRecord directLightTestPath() {
+      GpuDiffusePathStateRecord path = activePath();
+      path.pixelIndex = 0;
+      path.sampleSeed = 12347;
+      path.throughput = {0.5f, 0.25f, 0.125f, 0.0f};
+      return path;
+    }
+
+    GpuDiffusePathLoopSettings directLightTestSettings(std::uint32_t directLightSamples = 1u) {
+      GpuDiffusePathLoopSettings settings;
+      settings.maxDepth = 1;
+      settings.russianRouletteDepth = 10;
+      settings.directLightSamples = directLightSamples;
+      return settings;
+    }
+
+    GpuPathLoopCase directionalLightGpuPathLoopCase() {
+      Scene scene;
+      auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+      receiver->setMaterial(directLightTestMatte());
+      scene.add(receiver);
+      scene.addLight(
+        std::make_shared<DirectionalLight>(Vector3d(0.0, 0.0, -1.0), Colord(0.8, 0.6, 0.4)));
+      return {sectionsFor(scene), {directLightTestPath()}, directLightTestSettings()};
+    }
+
+    GpuPathLoopCase rectangularAreaLightGpuPathLoopCase() {
+      Scene scene;
+      auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+      receiver->setMaterial(directLightTestMatte());
+      scene.add(receiver);
+      scene.addLight(
+        std::make_shared<RectangularAreaLight>(Vector3d(0.0, 2.0, -3.0), Vector3d(2.0, 0.0, 0.0),
+                                               Vector3d(0.0, 2.0, 0.0), Colord(0.8, 0.6, 0.4)));
+      return {sectionsFor(scene), {directLightTestPath()}, directLightTestSettings()};
+    }
+
+    GpuPathLoopCase multipleLightGpuPathLoopCase() {
+      Scene scene;
+      auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
+      receiver->setMaterial(directLightTestMatte());
+      scene.add(receiver);
+      scene.addLight(std::make_shared<PointLight>(Vector3d(0.0, 0.0, -3.0), Colord(0.8, 0.2, 0.1)));
+      scene.addLight(
+        std::make_shared<DirectionalLight>(Vector3d(0.0, 0.0, -1.0), Colord(0.1, 0.7, 0.2)));
+      scene.addLight(
+        std::make_shared<RectangularAreaLight>(Vector3d(0.0, 2.0, -3.0), Vector3d(2.0, 0.0, 0.0),
+                                               Vector3d(0.0, 2.0, 0.0), Colord(0.3, 0.4, 0.9)));
+      return {sectionsFor(scene), {directLightTestPath()}, directLightTestSettings(4u)};
+    }
+
     void expectBackendPathLoopMatchesReference(const GpuDiffusePathLoopBackend& backend,
                                                const GpuPathLoopCase& testCase) {
       const GpuDiffusePathLoopResult expected =
@@ -416,6 +474,21 @@ namespace GpuDiffusePathStepReferenceTest {
       ASSERT_EQ(expected.stepRecords.size(), result.stepRecords.size());
       expectFloat4Near(result.stepRecords[0].continuationThroughput,
                        expected.stepRecords[0].continuationThroughput, 1e-4);
+      ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
+      expectPathStateNear(result.resolvedPathStates[0], expected.resolvedPathStates[0], 1e-4);
+    }
+
+    void expectBackendDirectLightPathLoopMatchesReference(const GpuDiffusePathLoopBackend& backend,
+                                                          const GpuPathLoopCase& testCase) {
+      const GpuDiffusePathLoopResult expected =
+        GpuDiffusePathLoop().run(testCase.sections, testCase.paths, testCase.settings);
+      const GpuDiffusePathLoopResult result =
+        backend.run(testCase.sections, testCase.paths, testCase.settings);
+
+      EXPECT_TRUE(result.fullGpuPathLoopSupported());
+      ASSERT_EQ(expected.stepRecords.size(), result.stepRecords.size());
+      expectFloat4Near(result.stepRecords[0].directLightRadiance,
+                       expected.stepRecords[0].directLightRadiance, 1e-4);
       ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
       expectPathStateNear(result.resolvedPathStates[0], expected.resolvedPathStates[0], 1e-4);
     }
@@ -5699,36 +5772,7 @@ namespace GpuDiffusePathStepReferenceTest {
       GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
     }
 
-    Scene scene;
-    auto matte =
-      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::white()));
-    matte->setDiffuseCoefficient(1.0);
-    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
-    receiver->setMaterial(matte);
-    scene.add(receiver);
-    scene.addLight(
-      std::make_shared<DirectionalLight>(Vector3d(0.0, 0.0, -1.0), Colord(0.8, 0.6, 0.4)));
-    const GpuTracingSceneSections sections = sectionsFor(scene);
-    GpuDiffusePathStateRecord path = activePath();
-    path.pixelIndex = 0;
-    path.sampleSeed = 12347;
-    path.throughput = {0.5f, 0.25f, 0.125f, 0.0f};
-
-    GpuDiffusePathLoopSettings settings;
-    settings.maxDepth = 1;
-    settings.russianRouletteDepth = 10;
-    settings.directLightSamples = 1;
-    const std::vector<GpuDiffusePathStateRecord> paths{path};
-
-    const GpuDiffusePathLoopResult expected = GpuDiffusePathLoop().run(sections, paths, settings);
-    const GpuDiffusePathLoopResult result = backend.run(sections, paths, settings);
-
-    EXPECT_TRUE(result.fullGpuPathLoopSupported());
-    ASSERT_EQ(expected.stepRecords.size(), result.stepRecords.size());
-    expectFloat4Near(result.stepRecords[0].directLightRadiance,
-                     expected.stepRecords[0].directLightRadiance, 1e-4);
-    ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
-    expectPathStateNear(result.resolvedPathStates[0], expected.resolvedPathStates[0], 1e-4);
+    expectBackendDirectLightPathLoopMatchesReference(backend, directionalLightGpuPathLoopCase());
 #else
     GTEST_SKIP() << "Vulkan wavefront support is not enabled in this build";
 #endif
@@ -5741,37 +5785,8 @@ namespace GpuDiffusePathStepReferenceTest {
       GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
     }
 
-    Scene scene;
-    auto matte =
-      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::white()));
-    matte->setDiffuseCoefficient(1.0);
-    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
-    receiver->setMaterial(matte);
-    scene.add(receiver);
-    scene.addLight(
-      std::make_shared<RectangularAreaLight>(Vector3d(0.0, 2.0, -3.0), Vector3d(2.0, 0.0, 0.0),
-                                             Vector3d(0.0, 2.0, 0.0), Colord(0.8, 0.6, 0.4)));
-    const GpuTracingSceneSections sections = sectionsFor(scene);
-    GpuDiffusePathStateRecord path = activePath();
-    path.pixelIndex = 0;
-    path.sampleSeed = 12347;
-    path.throughput = {0.5f, 0.25f, 0.125f, 0.0f};
-
-    GpuDiffusePathLoopSettings settings;
-    settings.maxDepth = 1;
-    settings.russianRouletteDepth = 10;
-    settings.directLightSamples = 1;
-    const std::vector<GpuDiffusePathStateRecord> paths{path};
-
-    const GpuDiffusePathLoopResult expected = GpuDiffusePathLoop().run(sections, paths, settings);
-    const GpuDiffusePathLoopResult result = backend.run(sections, paths, settings);
-
-    EXPECT_TRUE(result.fullGpuPathLoopSupported());
-    ASSERT_EQ(expected.stepRecords.size(), result.stepRecords.size());
-    expectFloat4Near(result.stepRecords[0].directLightRadiance,
-                     expected.stepRecords[0].directLightRadiance, 1e-4);
-    ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
-    expectPathStateNear(result.resolvedPathStates[0], expected.resolvedPathStates[0], 1e-4);
+    expectBackendDirectLightPathLoopMatchesReference(backend,
+                                                     rectangularAreaLightGpuPathLoopCase());
 #else
     GTEST_SKIP() << "Vulkan wavefront support is not enabled in this build";
 #endif
@@ -5784,40 +5799,7 @@ namespace GpuDiffusePathStepReferenceTest {
       GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
     }
 
-    Scene scene;
-    auto matte =
-      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::white()));
-    matte->setDiffuseCoefficient(1.0);
-    auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
-    receiver->setMaterial(matte);
-    scene.add(receiver);
-    scene.addLight(std::make_shared<PointLight>(Vector3d(0.0, 0.0, -3.0), Colord(0.8, 0.2, 0.1)));
-    scene.addLight(
-      std::make_shared<DirectionalLight>(Vector3d(0.0, 0.0, -1.0), Colord(0.1, 0.7, 0.2)));
-    scene.addLight(
-      std::make_shared<RectangularAreaLight>(Vector3d(0.0, 2.0, -3.0), Vector3d(2.0, 0.0, 0.0),
-                                             Vector3d(0.0, 2.0, 0.0), Colord(0.3, 0.4, 0.9)));
-    const GpuTracingSceneSections sections = sectionsFor(scene);
-    GpuDiffusePathStateRecord path = activePath();
-    path.pixelIndex = 0;
-    path.sampleSeed = 12347;
-    path.throughput = {0.5f, 0.25f, 0.125f, 0.0f};
-
-    GpuDiffusePathLoopSettings settings;
-    settings.maxDepth = 1;
-    settings.russianRouletteDepth = 10;
-    settings.directLightSamples = 4;
-    const std::vector<GpuDiffusePathStateRecord> paths{path};
-
-    const GpuDiffusePathLoopResult expected = GpuDiffusePathLoop().run(sections, paths, settings);
-    const GpuDiffusePathLoopResult result = backend.run(sections, paths, settings);
-
-    EXPECT_TRUE(result.fullGpuPathLoopSupported());
-    ASSERT_EQ(expected.stepRecords.size(), result.stepRecords.size());
-    expectFloat4Near(result.stepRecords[0].directLightRadiance,
-                     expected.stepRecords[0].directLightRadiance, 1e-4);
-    ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
-    expectPathStateNear(result.resolvedPathStates[0], expected.resolvedPathStates[0], 1e-4);
+    expectBackendDirectLightPathLoopMatchesReference(backend, multipleLightGpuPathLoopCase());
 #else
     GTEST_SKIP() << "Vulkan wavefront support is not enabled in this build";
 #endif
@@ -6712,6 +6694,46 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(expected.maxDepthTerminatedPaths, result.maxDepthTerminatedPaths);
     ASSERT_EQ(expected.resolvedPathStates.size(), result.resolvedPathStates.size());
     expectPathStateNear(result.resolvedPathStates[0], expected.resolvedPathStates[0], 1e-4);
+#else
+    GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
+#endif
+  }
+
+  TEST(MetalGpuDiffusePathLoopBackend, RunsDirectionalLightPathLoopWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    const MetalGpuDiffusePathLoopBackend backend;
+    if (!backend.fullGpuPathLoopAvailable()) {
+      GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
+    }
+
+    expectBackendDirectLightPathLoopMatchesReference(backend, directionalLightGpuPathLoopCase());
+#else
+    GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
+#endif
+  }
+
+  TEST(MetalGpuDiffusePathLoopBackend, RunsRectangularAreaLightPathLoopWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    const MetalGpuDiffusePathLoopBackend backend;
+    if (!backend.fullGpuPathLoopAvailable()) {
+      GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
+    }
+
+    expectBackendDirectLightPathLoopMatchesReference(backend,
+                                                     rectangularAreaLightGpuPathLoopCase());
+#else
+    GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
+#endif
+  }
+
+  TEST(MetalGpuDiffusePathLoopBackend, RunsMultipleLightPathLoopWhenEnabled) {
+#if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
+    const MetalGpuDiffusePathLoopBackend backend;
+    if (!backend.fullGpuPathLoopAvailable()) {
+      GTEST_SKIP() << backend.fullGpuPathLoopUnavailableReason();
+    }
+
+    expectBackendDirectLightPathLoopMatchesReference(backend, multipleLightGpuPathLoopCase());
 #else
     GTEST_SKIP() << "Metal wavefront support is not enabled in this build";
 #endif
