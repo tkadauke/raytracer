@@ -487,6 +487,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Leave compiled path-loop direct-light fallback reasons empty for no-light
   renders that execute no direct-light visibility or contribution work. —
   GPT-5 Codex
+- Reduce interactive GPU path-tracer auto chunks so high-sample render-dialog
+  GPU renders publish progress and avoid long-running platform kernel launches.
+  — GPT-5 Codex
 - Reject non-finite `TintedTexture` wrapper records before selecting the
   Metal/Vulkan full-GPU path loop, matching the finite-record validation used
   for other supported GPU texture records. — GPT-5 Codex

@@ -930,7 +930,9 @@ sampler override because compiled full-GPU path-loop renders own their sampling
 dimensions on the backend side. The GPU sample chunk-size override keeps `0` as
 auto mode; auto mode chooses depth-aware sample/tile chunks so large
 interactive path-tracer renders can publish progress and honor cancellation
-between GPU submissions.
+between GPU submissions. Interactive progress uses smaller chunks than
+headless rendering, keeping high-sample GPU renders responsive even when a
+single full-frame dispatch would be too large for the platform backend.
 Scalar schedule previews publish running sample averages during multi-sample
 renders, while wavefront schedule previews publish depth-frontier snapshots and
 can use wavefront denoising/adaptive sampling and the selected intersection
