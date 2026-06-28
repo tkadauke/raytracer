@@ -157,24 +157,6 @@ namespace {
     result.maxRadianceDeltaPerDepth.push_back(step.maxRadianceDelta);
   }
 
-  bool compiledPathLoopReachedConvergence(std::uint64_t activePathCount,
-                                          std::uint64_t retainedPathCount,
-                                          std::uint64_t totalPathCount,
-                                          const GpuDiffusePathStepResult& step,
-                                          const GpuDiffusePathLoopSettings& settings) {
-    if (!settings.convergenceEnabled || totalPathCount == 0u) {
-      return false;
-    }
-    const double activeFraction =
-      static_cast<double>(retainedPathCount) / static_cast<double>(totalPathCount);
-    const double radianceDeltaRms =
-      activePathCount == 0u
-        ? 0.0
-        : std::sqrt(step.radianceDeltaSquaredSum / static_cast<double>(activePathCount));
-    return activeFraction <= settings.convergenceActiveSampleFractionThreshold &&
-           radianceDeltaRms <= settings.convergenceRadianceDeltaRmsThreshold;
-  }
-
   double fraction(std::uint64_t numerator, std::uint64_t denominator) {
     if (denominator == 0u) {
       return 0.0;
@@ -1395,6 +1377,24 @@ std::uint64_t GpuDiffusePathFrontierCompactionResult::retainedIndexBytes() const
   return retainedPathIndices.size() * sizeof(std::uint32_t);
 }
 
+bool render::gpuDiffusePathLoopReachedConvergence(std::uint64_t activePathCount,
+                                                  std::uint64_t retainedPathCount,
+                                                  std::uint64_t totalPathCount,
+                                                  double radianceDeltaSquaredSum,
+                                                  const GpuDiffusePathLoopSettings& settings) {
+  if (!settings.convergenceEnabled || totalPathCount == 0u) {
+    return false;
+  }
+  const double activeFraction =
+    static_cast<double>(retainedPathCount) / static_cast<double>(totalPathCount);
+  const double radianceDeltaRms =
+    activePathCount == 0u
+      ? 0.0
+      : std::sqrt(radianceDeltaSquaredSum / static_cast<double>(activePathCount));
+  return activeFraction <= settings.convergenceActiveSampleFractionThreshold &&
+         radianceDeltaRms <= settings.convergenceRadianceDeltaRmsThreshold;
+}
+
 const CpuReferenceGpuDiffusePathFrontierCompactionBackend&
 CpuReferenceGpuDiffusePathFrontierCompactionBackend::instance() {
   static const CpuReferenceGpuDiffusePathFrontierCompactionBackend backend;
@@ -2135,8 +2135,9 @@ GpuDiffusePathLoop::run(const GpuTracingSceneSections& scene,
     result.frontierCompactionPathStateResidency = compaction.pathStateResidency;
 
     active = compaction.retainedRecords;
-    if (compiledPathLoopReachedConvergence(result.activePathsPerDepth.back(), active.size(),
-                                           result.initialPathCount, step, settings)) {
+    if (gpuDiffusePathLoopReachedConvergence(result.activePathsPerDepth.back(), active.size(),
+                                             result.initialPathCount, step.radianceDeltaSquaredSum,
+                                             settings)) {
       result.stoppedByConvergence = true;
       result.stoppedAfterDepth = result.depthCount;
       for (GpuDiffusePathStateRecord& pathState : active) {

@@ -936,6 +936,10 @@ namespace render {
     loop.retainedFrontierDispatchesIndirect = platformResult.retainedFrontierDispatchesIndirect;
     loop.platformName = platformName;
     loop.initialPathCount = initialPathCount;
+    loop.convergenceEnabled = settings.convergenceEnabled;
+    loop.convergenceActiveSampleFractionThreshold =
+      settings.convergenceActiveSampleFractionThreshold;
+    loop.convergenceRadianceDeltaRmsThreshold = settings.convergenceRadianceDeltaRmsThreshold;
     if (settings.captureMetrics || settings.captureDiagnostics) {
       loop.retainedIndexBytes =
         static_cast<std::uint64_t>(platformResult.retainedPathCount) * sizeof(std::uint32_t);

@@ -145,10 +145,10 @@ end state for GPU tracing.
   throttle later readbacks to completed sample ranges rather than every pixel
   tile, and graph metadata reports the platform resolved-display readback count
   so high-sample previews expose their GPU-to-CPU display traffic. Those
-  progress renders now use the same depth-aware per-launch cap as displayless
-  renders, avoiding the thousands of tiny synchronous Metal/Vulkan submissions
-  that made `GPU sample stream` render-dialog auto mode unstable at 640x480,
-  64 spp, and high path depths. Explicit host sampler streams can also keep the
+  progress renders now use a smaller depth-aware per-launch cap than
+  displayless renders, avoiding long high-latency Metal/Vulkan submissions that
+  made `GPU sample stream` render-dialog auto mode unstable at 640x480, 64 spp,
+  and high path depths. Explicit host sampler streams can also keep the
   sampler-owned CPU primary-ray generation while routing supported scenes
   through the platform path-loop backend; graph metadata reports that path as
   hybrid instead of mislabeling it as full device-primary GPU execution. Those
@@ -323,10 +323,13 @@ end state for GPU tracing.
   compiled loop ineligible. Platform Metal/Vulkan path-loop backends now publish
   matching per-depth radiance-delta sums and maxima when metrics capture is
   enabled, but still reject convergence until the backend can submit/read depth
-  frontiers incrementally and stop future bounces from that feedback. Backend
-  run parity tests now pin the triangle-backed geometry subset at the
-  Metal/Vulkan path-loop boundary, including `MeshPrimitive`, `Box`, and
-  finite-width `Curve` scenes.
+  frontiers incrementally and stop future bounces from that feedback. The CPU
+  reference loop now uses a shared active-fraction/radiance-RMS convergence
+  helper, and platform result metadata preserves the same convergence settings,
+  so the future Metal/Vulkan controller can consume the same stop contract
+  instead of reimplementing it. Backend run parity tests now pin the
+  triangle-backed geometry subset at the Metal/Vulkan path-loop boundary,
+  including `MeshPrimitive`, `Box`, and finite-width `Curve` scenes.
 - Platform full-GPU path-loop backend selection beyond the restricted Metal and
   Vulkan subsets above. The factory hook can return Metal or Vulkan platform
   backends in platform-enabled builds, but ordinary builds and unsupported
@@ -353,11 +356,11 @@ end state for GPU tracing.
   treated as an upper bound when a smaller chunk is needed to avoid a monolithic
   path-state allocation. The pixel-tile fallback budget scales down with
   requested path depth and direct-light sample count, including interactive
-  display-progress renders. Interactive progress uses a depth-scaled 64k-path
-  per-launch ceiling, so high-sample GPU path-tracer renders can report progress
-  without submitting one monolithic platform kernel or thousands of tiny command
-  buffers. It can publish resolved display pixels at completed sample
-  boundaries while keeping cancellation responsive between launches.
+  display-progress renders. Interactive progress uses a smaller depth-scaled
+  per-launch ceiling than displayless renders, so high-sample GPU path-tracer
+  renders can report progress without submitting one monolithic platform kernel.
+  It can publish resolved display pixels at completed sample boundaries while
+  keeping cancellation responsive between launches.
   Per-pixel denoiser feature records are merged across chunks so bilateral
   denoiser feature capture does not disable this sample chunking path. Oversized
   graph-trace diagnostic captures now suppress only the low-level

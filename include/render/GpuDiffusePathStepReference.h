@@ -143,6 +143,10 @@ namespace render {
     GpuDiffusePathLoopCancellationCallback cancellationCallback;
   };
 
+  [[nodiscard]] bool gpuDiffusePathLoopReachedConvergence(
+    std::uint64_t activePathCount, std::uint64_t retainedPathCount, std::uint64_t totalPathCount,
+    double radianceDeltaSquaredSum, const GpuDiffusePathLoopSettings& settings);
+
   inline constexpr std::uint32_t gpuDiffusePathLoopAccumulationTargetPixel = 0u;
   inline constexpr std::uint32_t gpuDiffusePathLoopAccumulationTargetPath = 1u;
   inline constexpr std::uint32_t gpuDiffusePathLoopAccumulationTargetSampleSlot = 2u;

@@ -3331,6 +3331,48 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_TRUE(gpuDiffusePathStateIsTerminated(result.resolvedPathStates[0]));
   }
 
+  TEST(GpuDiffusePathLoopConvergence, DisabledSettingsNeverStop) {
+    GpuDiffusePathLoopSettings settings;
+    settings.convergenceEnabled = false;
+    settings.convergenceActiveSampleFractionThreshold = 1.0;
+    settings.convergenceRadianceDeltaRmsThreshold = 1.0;
+
+    EXPECT_FALSE(gpuDiffusePathLoopReachedConvergence(
+      /*activePathCount=*/4, /*retainedPathCount=*/0, /*totalPathCount=*/4,
+      /*radianceDeltaSquaredSum=*/0.0, settings));
+  }
+
+  TEST(GpuDiffusePathLoopConvergence, RequiresActiveFractionAndRadianceRmsThresholds) {
+    GpuDiffusePathLoopSettings settings;
+    settings.convergenceEnabled = true;
+    settings.convergenceActiveSampleFractionThreshold = 0.25;
+    settings.convergenceRadianceDeltaRmsThreshold = 0.1;
+
+    EXPECT_TRUE(gpuDiffusePathLoopReachedConvergence(
+      /*activePathCount=*/4, /*retainedPathCount=*/1, /*totalPathCount=*/4,
+      /*radianceDeltaSquaredSum=*/0.01, settings));
+    EXPECT_FALSE(gpuDiffusePathLoopReachedConvergence(
+      /*activePathCount=*/4, /*retainedPathCount=*/2, /*totalPathCount=*/4,
+      /*radianceDeltaSquaredSum=*/0.01, settings));
+    EXPECT_FALSE(gpuDiffusePathLoopReachedConvergence(
+      /*activePathCount=*/4, /*retainedPathCount=*/1, /*totalPathCount=*/4,
+      /*radianceDeltaSquaredSum=*/1.0, settings));
+  }
+
+  TEST(GpuDiffusePathLoopConvergence, HandlesEmptyActiveAndTotalCounts) {
+    GpuDiffusePathLoopSettings settings;
+    settings.convergenceEnabled = true;
+    settings.convergenceActiveSampleFractionThreshold = 0.0;
+    settings.convergenceRadianceDeltaRmsThreshold = 0.0;
+
+    EXPECT_TRUE(gpuDiffusePathLoopReachedConvergence(
+      /*activePathCount=*/0, /*retainedPathCount=*/0, /*totalPathCount=*/4,
+      /*radianceDeltaSquaredSum=*/0.0, settings));
+    EXPECT_FALSE(gpuDiffusePathLoopReachedConvergence(
+      /*activePathCount=*/0, /*retainedPathCount=*/0, /*totalPathCount=*/0,
+      /*radianceDeltaSquaredSum=*/0.0, settings));
+  }
+
   TEST(GpuDiffusePathLoopResult, ReportsEmptyActivePathShapeAsZero) {
     const GpuDiffusePathLoopResult result;
 
@@ -3502,6 +3544,9 @@ namespace GpuDiffusePathStepReferenceTest {
     GpuDiffusePathLoopSettings settings;
     settings.maxDepth = 3;
     settings.captureDiagnostics = false;
+    settings.convergenceEnabled = true;
+    settings.convergenceActiveSampleFractionThreshold = 0.25;
+    settings.convergenceRadianceDeltaRmsThreshold = 0.125;
 
     GpuDiffusePathLoopPlatformResult platform;
     fillEchoedLaunchParameters(platform, 2, settings);
@@ -3520,6 +3565,9 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ((std::vector<std::uint64_t>{2u, 1u}), result.activePathsPerDepth);
     EXPECT_EQ((std::vector<double>{0.25, 0.5}), result.radianceDeltaSquaredSumPerDepth);
     EXPECT_EQ((std::vector<double>{0.5, 0.25}), result.maxRadianceDeltaPerDepth);
+    EXPECT_TRUE(result.convergenceEnabled);
+    EXPECT_EQ(0.25, result.convergenceActiveSampleFractionThreshold);
+    EXPECT_EQ(0.125, result.convergenceRadianceDeltaRmsThreshold);
   }
 
   TEST(GpuDiffusePathLoopBackend, SharedPlatformResultRetainsActiveFrontierDiagnostics) {
