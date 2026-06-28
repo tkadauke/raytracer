@@ -481,6 +481,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Retune interactive full-GPU path-tracer auto chunking so render-dialog
+  `GPU sample stream` renders use the normal depth-aware per-launch cap instead
+  of thousands of 8K micro-tiles that could hang or crash the system under
+  high-sample final renders. — GPT-5 Codex
 - Make overlapping `ClosedSolidUnion` primitives fall back from the compiled
   GPU intersection scene instead of flattening their children and losing closed
   CSG interval semantics. — GPT-5 Codex

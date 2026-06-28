@@ -1229,34 +1229,37 @@ GpuDiffusePrimaryPathStateGeneration GpuDiffusePrimaryPathStateGenerator::genera
     return result;
   }
 
-  result.primaryPathDescriptor = camera.gpuPrimaryPathDescriptor(rect, sampleSeed);
-  if (result.primaryPathDescriptor && result.primaryPathDescriptor->generatesOnDevice()) {
-    if (options.sampleOffset != 0u || options.sampleCount) {
-      const std::uint32_t descriptorSampleCount =
-        result.primaryPathDescriptor->rectilinear.samplesPerPixel;
-      const std::uint32_t remainingSampleCount = options.sampleOffset <= descriptorSampleCount
-                                                   ? descriptorSampleCount - options.sampleOffset
-                                                   : 0u;
-      result.primaryPathDescriptor = result.primaryPathDescriptor->withSampleRange(
-        options.sampleOffset, options.sampleCount.value_or(remainingSampleCount));
-    }
-    result.requestedRect = result.primaryPathDescriptor->requestedRect();
-    result.actualRect = result.primaryPathDescriptor->actualRect();
-    result.primaryPathExecutionPath = primaryPathExecutionPath(result.primaryPathDescriptor->mode);
-    if (result.primaryPathDescriptor->mode == gpuPrimaryPathGenerationModePinhole ||
-        result.primaryPathDescriptor->mode == gpuPrimaryPathGenerationModeOrthographic ||
-        result.primaryPathDescriptor->mode == gpuPrimaryPathGenerationModeThinLens ||
-        result.primaryPathDescriptor->mode == gpuPrimaryPathGenerationModeEquirectangular ||
-        result.primaryPathDescriptor->mode == gpuPrimaryPathGenerationModeSpherical ||
-        result.primaryPathDescriptor->mode == gpuPrimaryPathGenerationModeFishEye ||
-        result.primaryPathDescriptor->mode == gpuPrimaryPathGenerationModeTiltShift) {
-      if (!options.materializeHostPathStates) {
-        result.generatedPrimarySamples = result.primaryPathDescriptor->pathCount();
+  if (!options.forceHostPrimaryRayGenerator) {
+    result.primaryPathDescriptor = camera.gpuPrimaryPathDescriptor(rect, sampleSeed);
+    if (result.primaryPathDescriptor && result.primaryPathDescriptor->generatesOnDevice()) {
+      if (options.sampleOffset != 0u || options.sampleCount) {
+        const std::uint32_t descriptorSampleCount =
+          result.primaryPathDescriptor->rectilinear.samplesPerPixel;
+        const std::uint32_t remainingSampleCount = options.sampleOffset <= descriptorSampleCount
+                                                     ? descriptorSampleCount - options.sampleOffset
+                                                     : 0u;
+        result.primaryPathDescriptor = result.primaryPathDescriptor->withSampleRange(
+          options.sampleOffset, options.sampleCount.value_or(remainingSampleCount));
+      }
+      result.requestedRect = result.primaryPathDescriptor->requestedRect();
+      result.actualRect = result.primaryPathDescriptor->actualRect();
+      result.primaryPathExecutionPath =
+        primaryPathExecutionPath(result.primaryPathDescriptor->mode);
+      if (result.primaryPathDescriptor->mode == gpuPrimaryPathGenerationModePinhole ||
+          result.primaryPathDescriptor->mode == gpuPrimaryPathGenerationModeOrthographic ||
+          result.primaryPathDescriptor->mode == gpuPrimaryPathGenerationModeThinLens ||
+          result.primaryPathDescriptor->mode == gpuPrimaryPathGenerationModeEquirectangular ||
+          result.primaryPathDescriptor->mode == gpuPrimaryPathGenerationModeSpherical ||
+          result.primaryPathDescriptor->mode == gpuPrimaryPathGenerationModeFishEye ||
+          result.primaryPathDescriptor->mode == gpuPrimaryPathGenerationModeTiltShift) {
+        if (!options.materializeHostPathStates) {
+          result.generatedPrimarySamples = result.primaryPathDescriptor->pathCount();
+          return result;
+        }
+        generateDescriptorPrimaryPathStates(result.primaryPathDescriptor->mode,
+                                            result.primaryPathDescriptor->rectilinear, result);
         return result;
       }
-      generateDescriptorPrimaryPathStates(result.primaryPathDescriptor->mode,
-                                          result.primaryPathDescriptor->rectilinear, result);
-      return result;
     }
   }
 

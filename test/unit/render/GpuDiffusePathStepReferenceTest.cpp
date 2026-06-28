@@ -461,8 +461,9 @@ namespace GpuDiffusePathStepReferenceTest {
       return {sectionsFor(scene), {directLightTestPath()}, directLightTestSettings(4u)};
     }
 
-    [[maybe_unused]] void expectBackendPathLoopMatchesReference(
-      const GpuDiffusePathLoopBackend& backend, const GpuPathLoopCase& testCase) {
+    [[maybe_unused]] void
+    expectBackendPathLoopMatchesReference(const GpuDiffusePathLoopBackend& backend,
+                                          const GpuPathLoopCase& testCase) {
       const GpuDiffusePathLoopResult expected =
         GpuDiffusePathLoop().run(testCase.sections, testCase.paths, testCase.settings);
       const GpuDiffusePathLoopResult result =
@@ -7641,9 +7642,9 @@ namespace GpuDiffusePathStepReferenceTest {
     const std::vector<GpuDiffusePrimaryPathSampleChunk> chunks =
       gpuDiffusePrimarySampleChunksFor(generation, settings);
 
-    ASSERT_EQ(2560u, chunks.size());
-    EXPECT_LE(chunks.front().primaryPathGeneration.generatedPrimarySamples, 8u * 1024u);
-    EXPECT_EQ(12, chunks.front().primaryPathGeneration.actualRect.height());
+    ASSERT_EQ(192u, chunks.size());
+    EXPECT_LE(chunks.front().primaryPathGeneration.generatedPrimarySamples, 128u * 1024u);
+    EXPECT_EQ(163, chunks.front().primaryPathGeneration.actualRect.height());
     std::size_t capturedProgressDisplays = 0;
     for (const GpuDiffusePrimaryPathSampleChunk& chunk : chunks) {
       if (shouldCaptureGpuDiffusePathLoopChunkResolvedDisplay(settings, chunk)) {
@@ -7652,10 +7653,10 @@ namespace GpuDiffusePathStepReferenceTest {
     }
     EXPECT_EQ(65u, capturedProgressDisplays);
     EXPECT_TRUE(shouldCaptureGpuDiffusePathLoopChunkResolvedDisplay(settings, chunks.front()));
-    ASSERT_LT(39u, chunks.size());
-    EXPECT_TRUE(shouldCaptureGpuDiffusePathLoopChunkResolvedDisplay(settings, chunks[39]));
-    EXPECT_EQ(468, chunks[39].primaryPathGeneration.actualRect.top());
-    EXPECT_EQ(12, chunks[39].primaryPathGeneration.actualRect.height());
+    ASSERT_LT(2u, chunks.size());
+    EXPECT_TRUE(shouldCaptureGpuDiffusePathLoopChunkResolvedDisplay(settings, chunks[2]));
+    EXPECT_EQ(326, chunks[2].primaryPathGeneration.actualRect.top());
+    EXPECT_EQ(154, chunks[2].primaryPathGeneration.actualRect.height());
     EXPECT_TRUE(shouldCaptureGpuDiffusePathLoopChunkResolvedDisplay(settings, chunks.back()));
 
     settings.chunkProgressObserver = {};

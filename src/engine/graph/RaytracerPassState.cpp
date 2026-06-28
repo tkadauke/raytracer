@@ -344,15 +344,9 @@ namespace engine::graph {
   }
 
   std::optional<std::string>
-  RaytracerBeautyPassState::compiledDiffusePathLoopFallbackReason() const {
+  RaytracerBeautyPassState::compiledDiffusePathLoopBackendFallbackReason() const {
     if (integrator().value_or("whitted") != "pathtracer") {
       return "compiled diffuse path loop currently supports only the pathtracer integrator";
-    }
-    if (sampleStreamMode() && *sampleStreamMode() != "gpu_sample_stream") {
-      return "compiled diffuse path loop requires the GPU sample stream";
-    }
-    if (!sampleStreamMode() && sampler()) {
-      return "compiled diffuse path loop requires the GPU sample stream";
     }
     if (convergenceEnabled().value_or(false)) {
       return "compiled diffuse path loop does not support wavefront convergence yet";
@@ -361,6 +355,25 @@ namespace engine::graph {
       return "compiled diffuse path loop does not support adaptive sampling yet";
     }
     return std::nullopt;
+  }
+
+  std::optional<std::string>
+  RaytracerBeautyPassState::compiledDiffusePathLoopDevicePrimaryFallbackReason() const {
+    if (sampleStreamMode() && *sampleStreamMode() != "gpu_sample_stream") {
+      return "compiled diffuse path loop requires the GPU sample stream";
+    }
+    if (!sampleStreamMode() && sampler()) {
+      return "compiled diffuse path loop requires the GPU sample stream";
+    }
+    return std::nullopt;
+  }
+
+  std::optional<std::string>
+  RaytracerBeautyPassState::compiledDiffusePathLoopFallbackReason() const {
+    if (const auto backendReason = compiledDiffusePathLoopBackendFallbackReason()) {
+      return backendReason;
+    }
+    return compiledDiffusePathLoopDevicePrimaryFallbackReason();
   }
 
   void RaytracerBeautyPassState::applyTo(Raytracer& raytracer) const {

@@ -591,7 +591,10 @@ the normal full-GPU final-render path is the trace-disabled, display-only path
 with GPU sample stream primary rays generated from a camera descriptor. Enabling
 graph trace deliberately switches back to diagnostic buffers and HDR
 accumulation readback so the graph tool can inspect pass inputs, outputs, and
-metadata.
+metadata. If a Path Tracer render explicitly keeps a host sampler stream, the
+compiled path-loop can still run supported bounces on Metal or Vulkan, but the
+primary rays remain CPU-generated; the graph reports that as hybrid execution
+and records the host-sampler fallback reason in the pass metadata.
 The compact summary prints total `tiles`, `tile_grid`,
 `max_tile_width`, `max_tile_height`, `max_tile_pixels`, `avg_tile_pixels`,
 `nonempty_tiles`, `min_tile_samples`, `avg_tile_samples`, `max_tile_samples`,

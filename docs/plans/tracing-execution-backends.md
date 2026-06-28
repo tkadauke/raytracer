@@ -144,6 +144,13 @@ end state for GPU tracing.
   throttle later readbacks to completed sample ranges rather than every pixel
   tile, and graph metadata reports the platform resolved-display readback count
   so high-sample previews expose their GPU-to-CPU display traffic. Those
+  progress renders now use the same depth-aware per-launch cap as displayless
+  renders, avoiding the thousands of tiny synchronous Metal/Vulkan submissions
+  that made `GPU sample stream` render-dialog auto mode unstable at 640x480,
+  64 spp, and high path depths. Explicit host sampler streams can also keep the
+  sampler-owned CPU primary-ray generation while routing supported scenes
+  through the platform path-loop backend; graph metadata reports that path as
+  hybrid instead of mislabeling it as full device-primary GPU execution. Those
   descriptor-backed camera models with
   fixed-width shutter intervals can also bake their animated still-frame pose
   into the descriptor, and pinhole, orthographic, thin-lens, tilt-shift,

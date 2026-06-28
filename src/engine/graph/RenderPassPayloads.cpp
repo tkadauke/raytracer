@@ -825,10 +825,33 @@ namespace engine::graph {
       return !executionPath.empty() && executionPath != "none";
     }
 
+    bool compiledDiffusePathLoopUsesHostSamplerPrimaryPaths(const RaytracerBeautyPassState& state) {
+      if (state.sampleStreamMode()) {
+        return *state.sampleStreamMode() != "gpu_sample_stream";
+      }
+      return state.sampler().has_value();
+    }
+
+    QString compiledDiffusePathLoopSampleStreamMode(const RaytracerBeautyPassState& state) {
+      if (state.sampleStreamMode()) {
+        return QString::fromStdString(*state.sampleStreamMode());
+      }
+      if (state.sampler()) {
+        return QStringLiteral("sampler");
+      }
+      return QStringLiteral("gpu_sample_stream");
+    }
+
     QString primaryPathGenerationFallbackReason(
-      const render::GpuDiffusePrimaryPathStateGeneration& generation) {
+      const render::GpuDiffusePrimaryPathStateGeneration& generation,
+      const RaytracerBeautyPassState& state) {
       if (generation.canGeneratePrimaryPathsOnDevice()) {
         return {};
+      }
+      if (compiledDiffusePathLoopUsesHostSamplerPrimaryPaths(state)) {
+        return QStringLiteral(
+          "camera primary path generation ran on the CPU because the render pass requested a "
+          "host sampler stream");
       }
       return QStringLiteral(
         "camera primary path generation ran on the CPU because no GPU primary-path descriptor "
@@ -842,6 +865,7 @@ namespace engine::graph {
                                     const render::GpuDiffusePathLoopResult& loop,
                                     const render::TracingAccumulationDiagnostics& accumulation,
                                     std::optional<std::uint64_t> samplingSeed,
+                                    const RaytracerBeautyPassState& state,
                                     TracingExecutionPreference requestedTracingExecution,
                                     const std::string& diagnosticCaptureSuppressionReason) {
       const std::uint32_t resolvedPrimarySampleChunkSize =
@@ -850,7 +874,7 @@ namespace engine::graph {
       QJsonObject input;
       input["primarySamples"] = static_cast<double>(generation.generatedPrimarySamples);
       input["skippedPrimarySamples"] = static_cast<double>(generation.skippedPrimarySamples);
-      input["sampleStreamMode"] = QStringLiteral("gpu_sample_stream");
+      input["sampleStreamMode"] = compiledDiffusePathLoopSampleStreamMode(state);
       if (samplingSeed) {
         input["samplingSeed"] = static_cast<double>(*samplingSeed);
       }
@@ -858,7 +882,7 @@ namespace engine::graph {
         QString::fromStdString(generation.primaryPathExecutionPath);
       input["primaryPathGeneratesOnDevice"] = generation.canGeneratePrimaryPathsOnDevice();
       input["primaryPathGenerationFallbackReason"] =
-        primaryPathGenerationFallbackReason(generation);
+        primaryPathGenerationFallbackReason(generation, state);
       input["requestedX"] = generation.requestedRect.x();
       input["requestedY"] = generation.requestedRect.y();
       input["requestedWidth"] = generation.requestedRect.width();
@@ -1100,7 +1124,7 @@ namespace engine::graph {
       if (!requestedOrPredictedGpuTracing(state)) {
         return "compiled diffuse path loop requires requested or predicted GPU tracing execution";
       }
-      return state.compiledDiffusePathLoopFallbackReason();
+      return state.compiledDiffusePathLoopBackendFallbackReason();
     }
 
     constexpr std::uint64_t kCompiledPathLoopDiagnosticPathStepBudget = 1024ull * 1024ull;
@@ -1191,8 +1215,9 @@ namespace engine::graph {
     QString actualCompiledDiffusePathLoopFallbackReason(
       const render::GpuDiffusePathLoopResult& loop,
       const render::GpuDiffusePathLoopBackendChoice& selection,
-      const render::GpuDiffusePrimaryPathStateGeneration& generation) {
-      const QString primaryPathFallback = primaryPathGenerationFallbackReason(generation);
+      const render::GpuDiffusePrimaryPathStateGeneration& generation,
+      const RaytracerBeautyPassState& state) {
+      const QString primaryPathFallback = primaryPathGenerationFallbackReason(generation, state);
       if (!primaryPathFallback.isEmpty()) {
         return primaryPathFallback;
       }
@@ -1458,7 +1483,10 @@ namespace engine::graph {
           displayTarget && context.displayTargetDirectlyPublishable() &&
           !settings.captureDiagnostics && supportsPlatformDisplayResolve(wavefront.tonemap());
         render::GpuDiffusePrimaryPathStateGenerationOptions generationOptions;
-        if (!settings.captureDiagnostics && pathLoopBackend->fullGpuPathLoopAvailable() &&
+        generationOptions.forceHostPrimaryRayGenerator =
+          compiledDiffusePathLoopUsesHostSamplerPrimaryPaths(state);
+        if (!generationOptions.forceHostPrimaryRayGenerator && !settings.captureDiagnostics &&
+            pathLoopBackend->fullGpuPathLoopAvailable() &&
             pathLoopBackend->fullGpuPathLoopSupport(compilation.sections, settings).supported) {
           generationOptions.materializeHostPathStates = false;
         }
@@ -1533,15 +1561,15 @@ namespace engine::graph {
             ? (generation.canGeneratePrimaryPathsOnDevice() ? QStringLiteral("gpu")
                                                             : QStringLiteral("hybrid"))
             : (frontierCompactionUsesGpu ? QStringLiteral("hybrid") : QStringLiteral("cpu"));
-        const QString actualTracingFallback =
-          actualCompiledDiffusePathLoopFallbackReason(loop, pathLoopBackendSelection, generation);
+        const QString actualTracingFallback = actualCompiledDiffusePathLoopFallbackReason(
+          loop, pathLoopBackendSelection, generation, state);
         context.recordTraceMessage(
           "compiled diffuse path loop rendered " +
           std::to_string(generation.generatedPrimarySamples) +
           " primary path state(s) through the " +
           (loop.fullGpuPathLoopSupported() ? "platform GPU" : "CPU reference") + " backend");
         QJsonObject metadata = compiledDiffusePathLoopMetadata(
-          compilation, generation, settings, loop, accumulation, samplingSeed,
+          compilation, generation, settings, loop, accumulation, samplingSeed, state,
           state.tracingExecution().value_or(TracingExecutionPreference::Auto),
           diagnosticCaptureSuppressionReason);
         metadata["denoise"] = denoise;

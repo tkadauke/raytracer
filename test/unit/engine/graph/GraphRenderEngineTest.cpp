@@ -1072,10 +1072,9 @@ namespace GraphRenderEngineTest {
 
     const QJsonObject reasons = service.value("sceneUnsupportedReasons").toObject();
     ASSERT_EQ(1, reasons.size());
-    EXPECT_EQ(
-      1.0,
-      reasons.value("moving instances are not supported by GPU intersection scene compiler")
-        .toDouble());
+    EXPECT_EQ(1.0,
+              reasons.value("moving instances are not supported by GPU intersection scene compiler")
+                .toDouble());
   }
 
   TEST(GraphRenderEngine, ExecutesSampleStddevAOVViewAndRecordsColorTrace) {
@@ -2008,7 +2007,7 @@ namespace GraphRenderEngineTest {
     engine.render(buffer);
 
     const std::vector<std::string> expected = {"start:raytrace_beauty", "finish:raytrace_beauty",
-                                               "start:post_fxaa",       "finish:post_fxaa"};
+                                               "start:post_fxaa", "finish:post_fxaa"};
     EXPECT_EQ(expected, observer->events);
   }
 
@@ -2818,10 +2817,9 @@ namespace GraphRenderEngineTest {
       std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
     animatedCamera->setShutterInterval(0.0, 1.0);
     animatedCamera->setAnimationTrack(
-      "position", render::animation::AnimationTrack(
-                    {{0.0, Vector3d(0.0, 0.0, -5.0)},
-                     {0.5, Vector3d(0.0, 0.0, -4.5)},
-                     {1.0, Vector3d(0.0, 0.0, -4.0)}}));
+      "position", render::animation::AnimationTrack({{0.0, Vector3d(0.0, 0.0, -5.0)},
+                                                     {0.5, Vector3d(0.0, 0.0, -4.5)},
+                                                     {1.0, Vector3d(0.0, 0.0, -4.0)}}));
     GraphRenderEngine engine(animatedCamera, scene);
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(plan);
@@ -2858,6 +2856,87 @@ namespace GraphRenderEngineTest {
       "camera primary path generation ran on the CPU because no GPU primary-path descriptor was "
       "available",
       input.value("primaryPathGenerationFallbackReason").toString().toStdString());
+
+    const QJsonObject loop = metadata.value("compiledDiffusePathLoop").toObject();
+    EXPECT_EQ("full_gpu_subset", loop.value("backend").toString().toStdString());
+    EXPECT_TRUE(loop.value("fullPlatformGpuKernel").toBool());
+  }
+
+  TEST(GraphRenderEngine, RunsFullGpuPathLoopWithExplicitHostSamplerPrimaryRays) {
+    const Colord background(0.125, 0.25, 0.5);
+    auto scene = std::make_shared<render::Scene>();
+    scene->setBackground(background);
+    scene->setEnvironmentRadiance(background);
+    auto receiver = std::make_shared<render::Rectangle>(
+      Vector3d(-20.0, -20.0, 0.0), Vector3d(40.0, 0.0, 0.0), Vector3d(0.0, 40.0, 0.0));
+    receiver->setMaterial(matte(Colord(0.8, 0.8, 0.8)));
+    scene->add(receiver);
+
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Wavefront;
+    intent.engineOptions.raytracer().setIntegrator("pathtracer");
+    intent.engineOptions.raytracer().setTracingExecution(TracingExecutionPreference::GPU);
+    intent.engineOptions.raytracer().setSampler("Halton");
+    intent.engineOptions.raytracer().setSamplesPerPixel(1);
+    intent.engineOptions.raytracer().setMaximumRecursionDepth(2);
+    intent.engineOptions.raytracer().setDirectLightSamples(1);
+
+    RenderSceneAnalysis analysis;
+    analysis.setFullGpuTracingSupportFromScene(*scene);
+    const RenderPlan plan = RenderGraphCompiler().compile({8, 8, 1}, intent, analysis);
+
+    const auto* pass = plan.findPass("wavefront_beauty");
+    ASSERT_NE(nullptr, pass);
+    const auto* state = RaytracerBeautyPassState::fromPass(*pass);
+    ASSERT_NE(nullptr, state);
+    ASSERT_TRUE(state->predictedTracingExecution().has_value());
+    EXPECT_EQ(TracingExecutionPreference::Hybrid, *state->predictedTracingExecution());
+    EXPECT_EQ("compiled diffuse path loop requires the GPU sample stream",
+              state->tracingExecutionFallbackReason());
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(plan);
+    auto pathLoopBackend = std::make_shared<ReportingFullGpuDiffusePathLoopBackend>();
+    engine.setGpuDiffusePathLoopBackend(pathLoopBackend);
+
+    Buffer<Colord> buffer(8, 8);
+    engine.render(buffer);
+
+    EXPECT_TRUE(pathLoopBackend->hasLastPrimaryGeneration());
+    EXPECT_FALSE(pathLoopBackend->lastPrimaryGeneratesOnDevice());
+    EXPECT_EQ(64u, pathLoopBackend->lastPrimaryGeneratedSamples());
+    EXPECT_EQ(64u, pathLoopBackend->lastPrimaryHostPathStateCount());
+
+    const auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const RenderPassTrace* wavefront = trace->findPass("wavefront_beauty");
+    ASSERT_NE(nullptr, wavefront);
+
+    const QJsonObject metadata = wavefront->metadata();
+    const QJsonObject tracingExecution = metadata.value("tracingExecution").toObject();
+    EXPECT_EQ("gpu", tracingExecution.value("requestedMode").toString().toStdString());
+    EXPECT_EQ("hybrid", tracingExecution.value("predictedMode").toString().toStdString());
+    EXPECT_EQ("hybrid", tracingExecution.value("actualMode").toString().toStdString());
+    EXPECT_EQ(
+      "camera primary path generation ran on the CPU because the render pass requested a host "
+      "sampler stream",
+      tracingExecution.value("actualFallbackReason").toString().toStdString());
+
+    const QJsonObject input = metadata.value("input").toObject();
+    EXPECT_EQ("sampler", input.value("sampleStreamMode").toString().toStdString());
+    EXPECT_FALSE(input.value("primaryPathGeneratesOnDevice").toBool());
+    EXPECT_EQ("cpu_camera_primary_ray_generator",
+              input.value("primaryPathExecutionPath").toString().toStdString());
+    EXPECT_EQ(
+      "camera primary path generation ran on the CPU because the render pass requested a host "
+      "sampler stream",
+      input.value("primaryPathGenerationFallbackReason").toString().toStdString());
+
+    const QJsonObject batching = metadata.value("batching").toObject();
+    EXPECT_EQ("compiled_diffuse_path_loop",
+              batching.value("executionMode").toString().toStdString());
+    EXPECT_EQ("full_gpu_subset", batching.value("tracingBackendMode").toString().toStdString());
 
     const QJsonObject loop = metadata.value("compiledDiffusePathLoop").toObject();
     EXPECT_EQ("full_gpu_subset", loop.value("backend").toString().toStdString());
