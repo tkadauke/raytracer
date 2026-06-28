@@ -18,6 +18,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   and publish progress snapshots even when later graph passes still need to run,
   avoiding oversized Metal/Vulkan path-loop launches from the render dialog. —
   GPT-5 Codex
+- Cap live-progress full-GPU path-tracer chunks at 8k primary paths so
+  high-sample, high-depth render-dialog runs do not submit long-running
+  Metal/Vulkan path-loop launches before the first progress image appears. —
+  GPT-5 Codex
 - Honor path-tracer convergence settings in the compiled diffuse path-loop
   CPU-reference route and report convergence stop metadata, while platform
   Metal/Vulkan path-loop kernels reject convergence until they can expose

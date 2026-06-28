@@ -350,7 +350,7 @@ end state for GPU tracing.
   treated as an upper bound when a smaller chunk is needed to avoid a monolithic
   path-state allocation. The pixel-tile fallback budget scales down with
   requested path depth and direct-light sample count, including interactive
-  display-progress renders. Interactive progress uses a smaller 8k-path
+  display-progress renders. Interactive progress uses a hard 8k-path
   per-launch cap, so high-sample GPU path-tracer renders can report progress
   without submitting long-running platform kernels. It can publish resolved
   display pixels at completed sample boundaries, but it does not relax the hard
