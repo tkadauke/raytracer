@@ -272,15 +272,15 @@ void MeshPrimitive::forEachTransformedLeafInBounds(
 
 void MeshPrimitive::appendIntersectionSceneRecords(
   IntersectionSceneBuilder& builder, std::shared_ptr<render::Material> inheritedMaterial,
-  const Matrix4d& pointMatrix, const Matrix3d& normalMatrix,
-  const Primitive* inheritedObject) const {
+  const Matrix4d& pointMatrix, const Matrix3d& normalMatrix, const Primitive* inheritedObject,
+  const Vector3d& motionDelta) const {
   auto own = material();
   auto effective = own ? own : inheritedMaterial;
   const Primitive* effectiveObject = own ? this : inheritedObject;
 
   for (const auto& leaf : m_leaves) {
     leaf->appendIntersectionSceneRecords(builder, effective, pointMatrix, normalMatrix,
-                                         effectiveObject);
+                                         effectiveObject, motionDelta);
   }
 }
 

@@ -296,17 +296,16 @@ GPU v1 should support:
    GPU-style payload set, and Box uses the canonical triangle payload path.
    These cover many educational scenes while avoiding raster-style tessellation
    drift for the exact primitives that already have packed/platform kernels.
-3. **Static instances.** Static object transforms are captured by compiled
-   transformed leaves and consumed by the packed/platform traversal paths.
-   Moving instances and shutter-time transforms can wait until the ray/time
-   contract is explicit in GPU payloads.
+3. **Static and linearly moving instances.** Object transforms are captured by
+   compiled transformed leaves and consumed by the packed/platform traversal
+   paths. Instance velocity is represented as a per-transform motion delta and
+   evaluated from the ray's shutter-time sample.
 
 GPU v1 platform kernels should reject:
 
 - CSG/boolean composites;
 - curve, convex operation, and other exact primitives that have not been given
   packed/platform traversal kernels;
-- moving instances;
 - scenes with primitive/material references that cannot be represented by
   stable ids.
 

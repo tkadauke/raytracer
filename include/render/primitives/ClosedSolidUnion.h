@@ -15,10 +15,12 @@ namespace render {
     intersectPacketIntervals(const Ray4& rays, const PrimitivePacketState4& states) const override;
     PrimitivePacketInterval8
     intersectPacketIntervals(const Ray8& rays, const PrimitivePacketState8& states) const override;
-    void appendIntersectionSceneRecords(IntersectionSceneBuilder& builder,
-                                        std::shared_ptr<render::Material> inheritedMaterial,
-                                        const Matrix4d& pointMatrix, const Matrix3d& normalMatrix,
-                                        const Primitive* inheritedObject = nullptr) const override;
+    void
+    appendIntersectionSceneRecords(IntersectionSceneBuilder& builder,
+                                   std::shared_ptr<render::Material> inheritedMaterial,
+                                   const Matrix4d& pointMatrix, const Matrix3d& normalMatrix,
+                                   const Primitive* inheritedObject = nullptr,
+                                   const Vector3d& motionDelta = Vector3d::null) const override;
     virtual Vector3d farthestPoint(const Vector3d& direction) const override;
 
   private:

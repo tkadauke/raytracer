@@ -96,6 +96,7 @@ struct TransformPayload {
   vec4 inverseDirectionMatrix1;
   vec4 inverseDirectionMatrix2;
   vec4 inverseDirectionMatrix3;
+  vec4 motionDelta;
 };
 
 struct RayRecord {
@@ -249,9 +250,11 @@ vec4 transformDirection(vec4 row0, vec4 row1, vec4 row2, vec4 direction) {
 
 RayRecord transformRay(RayRecord ray, TransformPayload transform) {
   RayRecord result = ray;
+  const vec4 shiftedOrigin =
+    vec4(ray.origin.xyz - transform.motionDelta.xyz * ray.timeSample, ray.origin.w);
   result.origin =
     transformPoint(transform.inversePointMatrix0, transform.inversePointMatrix1,
-                   transform.inversePointMatrix2, transform.inversePointMatrix3, ray.origin);
+                   transform.inversePointMatrix2, transform.inversePointMatrix3, shiftedOrigin);
   result.direction =
     transformDirection(transform.inverseDirectionMatrix0, transform.inverseDirectionMatrix1,
                        transform.inverseDirectionMatrix2, ray.direction);

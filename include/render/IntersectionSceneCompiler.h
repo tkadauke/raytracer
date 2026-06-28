@@ -103,6 +103,7 @@ namespace render {
     Matrix3d normalMatrix;
     Matrix4d inversePointMatrix;
     Matrix3d inverseDirectionMatrix;
+    Vector3d motionDelta{Vector3d::null};
   };
 
   struct FlatIntersectionBvhNode {

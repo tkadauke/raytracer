@@ -91,7 +91,11 @@ BoundingBoxd Primitive::TransformedLeaf::boundingBox() const {
 
   BoundingBoxd result;
   for (const Vector3d& vertex : bounds.vertices()) {
-    result.include(transformPoint(vertex));
+    const Vector3d transformed = transformPoint(vertex);
+    result.include(transformed);
+    if (motionDelta != Vector3d::null) {
+      result.include(transformed + motionDelta);
+    }
   }
   return result;
 }
@@ -206,11 +210,12 @@ void Primitive::appendIntersectionSceneRecords(IntersectionSceneBuilder& builder
                                                std::shared_ptr<render::Material> inheritedMaterial,
                                                const Matrix4d& pointMatrix,
                                                const Matrix3d& normalMatrix,
-                                               const Primitive* inheritedObject) const {
+                                               const Primitive* inheritedObject,
+                                               const Vector3d& motionDelta) const {
   auto own = material();
   const Primitive* object = own ? this : inheritedObject;
-  const TransformedLeaf leaf{this, own ? own : inheritedMaterial, pointMatrix, normalMatrix,
-                             object};
+  const TransformedLeaf leaf{
+    this, own ? own : inheritedMaterial, pointMatrix, normalMatrix, object, motionDelta};
   if (leaf.material && !leaf.material->supportsPackedWavefrontIntersection()) {
     builder.addUnsupportedPrimitive(leaf,
                                     leaf.material->packedWavefrontIntersectionUnsupportedReason());

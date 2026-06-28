@@ -97,6 +97,7 @@ namespace render {
     std::array<float, 16> normalMatrix{};
     std::array<float, 16> inversePointMatrix{};
     std::array<float, 16> inverseDirectionMatrix{};
+    std::array<float, 4> motionDelta{};
   };
 
   struct alignas(16) GpuIntersectionRay {
@@ -263,7 +264,8 @@ namespace render {
     transformRay(const GpuIntersectionRay& ray,
                  const GpuIntersectionTransformPayload& transform) const;
     [[nodiscard]] ClosestHit transformHit(const ClosestHit& hit,
-                                          const GpuIntersectionTransformPayload& transform) const;
+                                          const GpuIntersectionTransformPayload& transform,
+                                          float timeSample) const;
     [[nodiscard]] std::array<float, 4> transformPoint(const std::array<float, 16>& matrix,
                                                       const std::array<float, 4>& point) const;
     [[nodiscard]] std::array<float, 4>

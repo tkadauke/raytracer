@@ -316,6 +316,12 @@ to enter this expanded box. The BVH traversal then includes
 the moving instance in any ray that the expanded box overlaps,
 even if the *static* box would have been missed.
 
+The compiled GPU tracing path uses the same model for supported leaves. It
+stores the instance velocity as a transform-local motion delta, subtracts that
+delta from incoming rays at the ray's shutter-time sample, and transforms hit
+points back into world space at the same time. That keeps CPU and GPU
+motion-blur semantics aligned for linearly moving instances.
+
 ## <a id="sampling-the-shutter"></a>Sampling the shutter
 The motion-blur quality depends on how many samples per pixel
 cover the shutter. With one sample, every ray sees the instance

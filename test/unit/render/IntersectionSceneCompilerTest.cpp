@@ -463,11 +463,10 @@ namespace IntersectionSceneCompilerTest {
   TEST(IntersectionSceneCompiler, CountsUnsupportedPrimitiveReasonsInFirstSeenOrder) {
     auto firstUnsupported = unsupportedPrimitive();
     auto secondUnsupported = unsupportedPrimitive();
-    auto movingInstance = std::make_shared<Instance>(std::make_shared<Sphere>(Vector3d(), 1.0));
-    movingInstance->setVelocity(Vector3d(1, 0, 0));
+    auto emptyInstance = std::make_shared<Instance>(nullptr);
     Scene scene;
     scene.add(firstUnsupported);
-    scene.add(movingInstance);
+    scene.add(emptyInstance);
     scene.add(secondUnsupported);
 
     const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
@@ -479,7 +478,7 @@ namespace IntersectionSceneCompilerTest {
     EXPECT_EQ("primitive is not supported by GPU intersection scene compiler",
               reasonCounts[0].reason);
     EXPECT_EQ(2u, reasonCounts[0].count);
-    EXPECT_EQ("moving instances are not supported by GPU intersection scene compiler",
+    EXPECT_EQ("empty instance is not supported by GPU intersection scene compiler",
               reasonCounts[1].reason);
     EXPECT_EQ(1u, reasonCounts[1].count);
   }
@@ -540,7 +539,7 @@ namespace IntersectionSceneCompilerTest {
     EXPECT_EQ(instance.get(), compiled.objects()[compiled.primitives()[0].object]);
   }
 
-  TEST(IntersectionSceneCompiler, RejectsMovingInstancesBeforeFlattening) {
+  TEST(IntersectionSceneCompiler, RecordsMovingInstanceMotionTransformPayloads) {
     auto sphere = std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0);
     auto instance = std::make_shared<Instance>(sphere);
     instance->setVelocity(Vector3d(1, 0, 0));
@@ -550,11 +549,17 @@ namespace IntersectionSceneCompilerTest {
     const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
 
     ASSERT_EQ(1u, compiled.primitives().size());
-    ASSERT_EQ(1u, compiled.unsupportedPrimitives().size());
-    EXPECT_EQ(IntersectionPrimitiveKind::Unsupported, compiled.primitives()[0].kind);
-    EXPECT_EQ(instance.get(), compiled.objects()[compiled.primitives()[0].object]);
-    EXPECT_EQ("moving instances are not supported by GPU intersection scene compiler",
-              compiled.unsupportedPrimitives()[0].reason);
+    EXPECT_TRUE(compiled.unsupportedPrimitives().empty());
+    EXPECT_TRUE(compiled.fullySupported());
+    EXPECT_EQ(IntersectionPrimitiveKind::Sphere, compiled.primitives()[0].kind);
+
+    const IntersectionTransformId transformId = compiled.primitives()[0].transform;
+    ASSERT_NE(0u, transformId);
+    ASSERT_GT(compiled.transforms().size(), transformId);
+    EXPECT_EQ(Vector3d(1, 0, 0), compiled.transforms()[transformId].motionDelta);
+    EXPECT_EQ(Matrix4d(), compiled.transforms()[transformId].pointMatrix);
+    EXPECT_EQ(BoundingBoxd(Vector3d(-1, -1, -1), Vector3d(2, 1, 1)),
+              compiled.primitives()[0].bounds);
   }
 
   TEST(IntersectionSceneCompiler, RecordsEmptyInstanceUnsupportedReason) {

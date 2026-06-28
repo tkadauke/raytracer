@@ -1295,7 +1295,8 @@ scene subset.
 **Initial supported subset:**
 
 - Pinhole camera.
-- Static geometry from the compiled intersection subset.
+- Static geometry and linearly moving instances from the compiled intersection
+  subset.
 - Matte diffuse material.
 - Emissive material or rectangular area light.
 - Constant-color texture.
@@ -1303,7 +1304,8 @@ scene subset.
 - Environment/miss color.
 - Transparent perfect reflection/refraction delta continuations.
 - No procedural textures except explicit first subset.
-- No motion blur.
+- Motion blur is limited to per-instance linear velocity on supported compiled
+  leaves.
 - No DOF until lens sampling is included.
 
 **Execution options:**

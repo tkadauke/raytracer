@@ -4,7 +4,7 @@
 #include "render/IntersectionSceneCompiler.h"
 #include "render/IntersectionService.h"
 #include "render/WavefrontIntersectionBackend.h"
-#include "render/primitives/Instance.h"
+#include "render/primitives/Difference.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
 
@@ -23,10 +23,11 @@ namespace WavefrontIntersectionAutoSelectionTest {
 
     Scene unsupportedScene() {
       Scene scene;
-      auto instance = std::make_shared<Instance>(std::make_shared<Sphere>(Vector3d(), 1.0));
-      instance->setName("auto fallback moving instance");
-      instance->setVelocity(Vector3d(1, 0, 0));
-      scene.add(instance);
+      auto difference = std::make_shared<Difference>();
+      difference->setName("auto fallback difference");
+      difference->add(std::make_shared<Sphere>(Vector3d(0, 0, 3), 1.0));
+      difference->add(std::make_shared<Sphere>(Vector3d(0.5, 0, 3), 1.0));
+      scene.add(difference);
       return scene;
     }
 

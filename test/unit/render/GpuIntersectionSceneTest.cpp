@@ -480,6 +480,41 @@ namespace GpuIntersectionSceneTest {
     EXPECT_FLOAT_EQ(1.0f, transform.normalMatrix[5]);
     EXPECT_FLOAT_EQ(1.0f, transform.normalMatrix[10]);
     EXPECT_FLOAT_EQ(1.0f, transform.normalMatrix[15]);
+    expectVector(transform.motionDelta, 0.0f, 0.0f, 0.0f, 0.0f);
+  }
+
+  TEST(GpuIntersectionScene, PackedMovingInstanceClosestHitUsesRayTimeSample) {
+    auto sphere = std::make_shared<Sphere>(Vector3d(0, 0, 5), 1.0);
+    auto instance = std::make_shared<Instance>(sphere);
+    instance->setVelocity(Vector3d(4, 0, 0));
+    Scene scene;
+    scene.add(instance);
+
+    const GpuIntersectionSceneBuffers buffers =
+      GpuIntersectionScenePacker().packScene(IntersectionSceneCompiler().compile(scene));
+    ASSERT_EQ(1u, buffers.primitives.size());
+    const std::uint32_t transformId = buffers.primitives[0].transform;
+    ASSERT_NE(0u, transformId);
+    ASSERT_GT(buffers.transforms.size(), transformId);
+    expectVector(buffers.transforms[transformId].motionDelta, 4.0f, 0.0f, 0.0f, 0.0f);
+
+    const Rayd ray(Vector4d(2, 0, 0, 1), Vector3d(0, 0, 1));
+    const GpuIntersectionRay openShutterRay =
+      GpuIntersectionScenePacker().packRay(ray, 18, 0.0, 100.0, 0.0);
+    const GpuIntersectionRay midShutterRay =
+      GpuIntersectionScenePacker().packRay(ray, 19, 0.0, 100.0, 0.5);
+
+    EXPECT_FALSE(GpuIntersectionIntersector().intersectClosest(buffers, openShutterRay).hit);
+    EXPECT_FALSE(GpuIntersectionIntersector().intersectAny(buffers, openShutterRay));
+
+    const GpuIntersectionHitRecord hit =
+      GpuIntersectionIntersector().intersectClosest(buffers, midShutterRay);
+    ASSERT_TRUE(hit.hit);
+    EXPECT_EQ(19u, hit.rayIndex);
+    EXPECT_NEAR(4.0f, hit.distance, 1e-5f);
+    expectVectorNear(hit.point, Vector4d(2, 0, 4, 1));
+    expectVectorNear(hit.normal, Vector3d(0, 0, -1));
+    EXPECT_TRUE(GpuIntersectionIntersector().intersectAny(buffers, midShutterRay));
   }
 
   TEST(GpuIntersectionScene, PackedTriangleClosestHitMatchesCompiledSceneHit) {

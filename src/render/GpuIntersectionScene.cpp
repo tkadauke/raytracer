@@ -327,7 +327,8 @@ GpuIntersectionTransformPayload GpuIntersectionScenePacker::packTransformPayload
   const IntersectionTransformPayload& payload) const {
   return GpuIntersectionTransformPayload{
     packMatrix(payload.pointMatrix), packMatrix(payload.normalMatrix),
-    packMatrix(payload.inversePointMatrix), packMatrix(payload.inverseDirectionMatrix)};
+    packMatrix(payload.inversePointMatrix), packMatrix(payload.inverseDirectionMatrix),
+    payload.motionDelta.toFloat4(0.0f)};
 }
 
 GpuIntersectionHitRecord
@@ -873,7 +874,7 @@ GpuIntersectionIntersector::intersectPrimitive(
     if (!hit) {
       return std::nullopt;
     }
-    return transformHit(*hit, transform);
+    return transformHit(*hit, transform, ray.timeSample);
   }
 
   return intersectPrimitivePayload(scene, ray, primitive);
@@ -983,16 +984,22 @@ GpuIntersectionRay
 GpuIntersectionIntersector::transformRay(const GpuIntersectionRay& ray,
                                          const GpuIntersectionTransformPayload& transform) const {
   GpuIntersectionRay transformed = ray;
-  transformed.origin = transformPoint(transform.inversePointMatrix, ray.origin);
+  std::array<float, 4> origin = ray.origin;
+  origin[0] -= transform.motionDelta[0] * ray.timeSample;
+  origin[1] -= transform.motionDelta[1] * ray.timeSample;
+  origin[2] -= transform.motionDelta[2] * ray.timeSample;
+  transformed.origin = transformPoint(transform.inversePointMatrix, origin);
   transformed.direction = transformDirection(transform.inverseDirectionMatrix, ray.direction);
   return transformed;
 }
 
-GpuIntersectionIntersector::ClosestHit
-GpuIntersectionIntersector::transformHit(const ClosestHit& hit,
-                                         const GpuIntersectionTransformPayload& transform) const {
+GpuIntersectionIntersector::ClosestHit GpuIntersectionIntersector::transformHit(
+  const ClosestHit& hit, const GpuIntersectionTransformPayload& transform, float timeSample) const {
   ClosestHit transformed = hit;
   transformed.point = transformPoint(transform.pointMatrix, hit.point);
+  transformed.point[0] += transform.motionDelta[0] * timeSample;
+  transformed.point[1] += transform.motionDelta[1] * timeSample;
+  transformed.point[2] += transform.motionDelta[2] * timeSample;
   transformed.normal = normalize3(transformDirection(transform.normalMatrix, hit.normal));
   return transformed;
 }

@@ -217,6 +217,7 @@ struct GpuIntersectionTransformPayload {
   vec4 inverseDirectionMatrix1;
   vec4 inverseDirectionMatrix2;
   vec4 inverseDirectionMatrix3;
+  vec4 motionDelta;
 };
 
 struct GpuIntersectionRay {
@@ -1227,7 +1228,7 @@ GpuIntersectionTorusPayload readTorus(uint index) {
 }
 
 GpuIntersectionTransformPayload readTransform(uint index) {
-  const uint wordOffset = byteOffsetWords(parameters.transformByteOffset) + index * 64u;
+  const uint wordOffset = byteOffsetWords(parameters.transformByteOffset) + index * 68u;
   GpuIntersectionTransformPayload transform;
   transform.pointMatrix0 = readVec4(wordOffset);
   transform.pointMatrix1 = readVec4(wordOffset + 4u);
@@ -1245,6 +1246,7 @@ GpuIntersectionTransformPayload readTransform(uint index) {
   transform.inverseDirectionMatrix1 = readVec4(wordOffset + 52u);
   transform.inverseDirectionMatrix2 = readVec4(wordOffset + 56u);
   transform.inverseDirectionMatrix3 = readVec4(wordOffset + 60u);
+  transform.motionDelta = readVec4(wordOffset + 64u);
   return transform;
 }
 
@@ -1349,11 +1351,13 @@ vec4 transformDirection(vec4 row0, vec4 row1, vec4 row2, vec4 direction) {
 GpuIntersectionRay transformRay(GpuIntersectionRay ray,
                                 GpuIntersectionTransformPayload transform) {
   GpuIntersectionRay result = ray;
+  const vec4 shiftedOrigin =
+      vec4(ray.origin.xyz - transform.motionDelta.xyz * ray.timeSample, ray.origin.w);
   result.origin = transformPoint(transform.inversePointMatrix0,
                                  transform.inversePointMatrix1,
                                  transform.inversePointMatrix2,
                                  transform.inversePointMatrix3,
-                                 ray.origin);
+                                 shiftedOrigin);
   result.direction = transformDirection(transform.inverseDirectionMatrix0,
                                         transform.inverseDirectionMatrix1,
                                         transform.inverseDirectionMatrix2,
@@ -1362,12 +1366,14 @@ GpuIntersectionRay transformRay(GpuIntersectionRay ray,
 }
 
 LocalPrimitiveHit transformHit(LocalPrimitiveHit hit,
-                               GpuIntersectionTransformPayload transform) {
+                               GpuIntersectionTransformPayload transform,
+                               float timeSample) {
   if (!hit.hit) {
     return hit;
   }
   hit.point = transformPoint(transform.pointMatrix0, transform.pointMatrix1,
                              transform.pointMatrix2, transform.pointMatrix3, hit.point);
+  hit.point.xyz += transform.motionDelta.xyz * timeSample;
   hit.normal = normalize3(transformDirection(transform.normalMatrix0, transform.normalMatrix1,
                                              transform.normalMatrix2, hit.normal));
   return hit;
@@ -1812,7 +1818,7 @@ LocalPrimitiveHit intersectSupportedPrimitive(GpuIntersectionRay ray,
     LocalPrimitiveHit triangleHit =
         intersectTriangle(primitiveRay, readTriangle(primitive.payloadOffset), maxHitDistance);
     if (hasTransform) {
-      triangleHit = transformHit(triangleHit, transform);
+      triangleHit = transformHit(triangleHit, transform, ray.timeSample);
     }
     return triangleHit;
   }
@@ -1823,7 +1829,7 @@ LocalPrimitiveHit intersectSupportedPrimitive(GpuIntersectionRay ray,
     LocalPrimitiveHit sphereHit =
         intersectSphere(primitiveRay, readSphere(primitive.payloadOffset), maxHitDistance);
     if (hasTransform) {
-      sphereHit = transformHit(sphereHit, transform);
+      sphereHit = transformHit(sphereHit, transform, ray.timeSample);
     }
     return sphereHit;
   }
@@ -1834,7 +1840,7 @@ LocalPrimitiveHit intersectSupportedPrimitive(GpuIntersectionRay ray,
     LocalPrimitiveHit planeHit =
         intersectPlane(primitiveRay, readPlane(primitive.payloadOffset), maxHitDistance);
     if (hasTransform) {
-      planeHit = transformHit(planeHit, transform);
+      planeHit = transformHit(planeHit, transform, ray.timeSample);
     }
     return planeHit;
   }
@@ -1845,7 +1851,7 @@ LocalPrimitiveHit intersectSupportedPrimitive(GpuIntersectionRay ray,
     LocalPrimitiveHit rectangleHit =
         intersectRectangle(primitiveRay, readRectangle(primitive.payloadOffset), maxHitDistance);
     if (hasTransform) {
-      rectangleHit = transformHit(rectangleHit, transform);
+      rectangleHit = transformHit(rectangleHit, transform, ray.timeSample);
     }
     return rectangleHit;
   }
@@ -1856,7 +1862,7 @@ LocalPrimitiveHit intersectSupportedPrimitive(GpuIntersectionRay ray,
     LocalPrimitiveHit diskHit =
         intersectDisk(primitiveRay, readDisk(primitive.payloadOffset), maxHitDistance);
     if (hasTransform) {
-      diskHit = transformHit(diskHit, transform);
+      diskHit = transformHit(diskHit, transform, ray.timeSample);
     }
     return diskHit;
   }
@@ -1868,7 +1874,7 @@ LocalPrimitiveHit intersectSupportedPrimitive(GpuIntersectionRay ray,
         intersectOpenCylinder(primitiveRay, readOpenCylinder(primitive.payloadOffset),
                               maxHitDistance);
     if (hasTransform) {
-      openCylinderHit = transformHit(openCylinderHit, transform);
+      openCylinderHit = transformHit(openCylinderHit, transform, ray.timeSample);
     }
     return openCylinderHit;
   }
@@ -1879,7 +1885,7 @@ LocalPrimitiveHit intersectSupportedPrimitive(GpuIntersectionRay ray,
     LocalPrimitiveHit torusHit =
         intersectTorus(primitiveRay, readTorus(primitive.payloadOffset), maxHitDistance);
     if (hasTransform) {
-      torusHit = transformHit(torusHit, transform);
+      torusHit = transformHit(torusHit, transform, ray.timeSample);
     }
     return torusHit;
   }

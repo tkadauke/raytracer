@@ -512,29 +512,25 @@ void Instance::appendIntersectionSceneRecords(IntersectionSceneBuilder& builder,
                                               std::shared_ptr<render::Material> inheritedMaterial,
                                               const Matrix4d& pointMatrix,
                                               const Matrix3d& normalMatrix,
-                                              const Primitive* inheritedObject) const {
+                                              const Primitive* inheritedObject,
+                                              const Vector3d& motionDelta) const {
   auto own = Primitive::material();
   auto effective = own ? own : inheritedMaterial;
   const Primitive* effectiveObject = own ? this : inheritedObject;
+  const Vector3d composedMotionDelta = motionDelta + pointMatrix.transformDirection(m_velocity);
   if (!m_primitive) {
     builder.addUnsupportedPrimitive(TransformedLeaf{this, effective, pointMatrix, normalMatrix,
-                                                    effectiveObject ? effectiveObject : this},
+                                                    effectiveObject ? effectiveObject : this,
+                                                    composedMotionDelta},
                                     BoundingBoxd::undefined,
                                     "empty instance is not supported by GPU intersection scene "
                                     "compiler");
     return;
   }
 
-  if (m_velocity != Vector3d::null) {
-    builder.addUnsupportedPrimitive(TransformedLeaf{this, effective, pointMatrix, normalMatrix,
-                                                    effectiveObject ? effectiveObject : this},
-                                    "moving instances are not supported by GPU intersection scene "
-                                    "compiler");
-    return;
-  }
-
   m_primitive->appendIntersectionSceneRecords(builder, effective, pointMatrix * m_pointMatrix,
-                                              normalMatrix * m_normalMatrix, effectiveObject);
+                                              normalMatrix * m_normalMatrix, effectiveObject,
+                                              composedMotionDelta);
 }
 
 bool Instance::requiresClosedSolidUnionCsgWhenOverlapped() const {

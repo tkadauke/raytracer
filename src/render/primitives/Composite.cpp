@@ -231,27 +231,28 @@ void Composite::appendIntersectionSceneRecords(IntersectionSceneBuilder& builder
                                                std::shared_ptr<render::Material> inheritedMaterial,
                                                const Matrix4d& pointMatrix,
                                                const Matrix3d& normalMatrix,
-                                               const Primitive* inheritedObject) const {
+                                               const Primitive* inheritedObject,
+                                               const Vector3d& motionDelta) const {
   auto own = material();
   auto effective = own ? own : inheritedMaterial;
   const Primitive* effectiveObject = own ? this : inheritedObject;
 
   for (const auto& primitive : m_primitives) {
     primitive->appendIntersectionSceneRecords(builder, effective, pointMatrix, normalMatrix,
-                                              effectiveObject);
+                                              effectiveObject, motionDelta);
   }
 }
 
 void Composite::addUnsupportedCompositeIntersectionSceneRecord(
   IntersectionSceneBuilder& builder, std::shared_ptr<render::Material> inheritedMaterial,
   const Matrix4d& pointMatrix, const Matrix3d& normalMatrix, const Primitive* inheritedObject,
-  std::string reason) const {
+  const Vector3d& motionDelta, std::string reason) const {
   auto own = material();
   auto effective = own ? own : inheritedMaterial;
   const Primitive* effectiveObject = own ? this : inheritedObject;
 
   builder.addUnsupportedPrimitive(
-    TransformedLeaf{this, effective, pointMatrix, normalMatrix, effectiveObject},
+    TransformedLeaf{this, effective, pointMatrix, normalMatrix, effectiveObject, motionDelta},
     std::move(reason));
 }
 

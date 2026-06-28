@@ -150,9 +150,10 @@ void Difference::appendIntersectionSceneRecords(IntersectionSceneBuilder& builde
                                                 std::shared_ptr<render::Material> inheritedMaterial,
                                                 const Matrix4d& pointMatrix,
                                                 const Matrix3d& normalMatrix,
-                                                const Primitive* inheritedObject) const {
+                                                const Primitive* inheritedObject,
+                                                const Vector3d& motionDelta) const {
   addUnsupportedCompositeIntersectionSceneRecord(
-    builder, std::move(inheritedMaterial), pointMatrix, normalMatrix, inheritedObject,
+    builder, std::move(inheritedMaterial), pointMatrix, normalMatrix, inheritedObject, motionDelta,
     "difference CSG is not supported by GPU intersection scene compiler");
 }
 

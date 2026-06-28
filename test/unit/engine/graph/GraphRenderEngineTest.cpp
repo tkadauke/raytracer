@@ -19,6 +19,7 @@
 #include "render/materials/MatteMaterial.h"
 #include "render/primitives/Box.h"
 #include "render/primitives/Curve.h"
+#include "render/primitives/Difference.h"
 #include "render/primitives/Instance.h"
 #include "render/primitives/Rectangle.h"
 #include "render/primitives/Scene.h"
@@ -1038,11 +1039,11 @@ namespace GraphRenderEngineTest {
 
   TEST(GraphRenderEngine, RecordsHybridVisibilityUnsupportedServiceSceneReasons) {
     auto scene = std::make_shared<render::Scene>();
-    auto instance =
-      std::make_shared<render::Instance>(std::make_shared<render::Sphere>(Vector3d(), 1.0));
-    instance->setName("debug moving instance");
-    instance->setVelocity(Vector3d(1, 0, 0));
-    scene->add(instance);
+    auto difference = std::make_shared<render::Difference>();
+    difference->setName("debug difference");
+    difference->add(std::make_shared<render::Sphere>(Vector3d(0, 0, 0), 1.0));
+    difference->add(std::make_shared<render::Sphere>(Vector3d(0.5, 0, 0), 1.0));
+    scene->add(difference);
 
     RenderIntent intent;
     intent.defaultExecutor = RenderExecutorPreference::Wavefront;
@@ -1073,7 +1074,7 @@ namespace GraphRenderEngineTest {
     const QJsonObject reasons = service.value("sceneUnsupportedReasons").toObject();
     ASSERT_EQ(1, reasons.size());
     EXPECT_EQ(1.0,
-              reasons.value("moving instances are not supported by GPU intersection scene compiler")
+              reasons.value("difference CSG is not supported by GPU intersection scene compiler")
                 .toDouble());
   }
 

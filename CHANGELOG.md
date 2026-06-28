@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Let supported linearly moving instances lower into compiled GPU tracing scenes
+  by carrying per-transform motion deltas through packed CPU, Metal, and Vulkan
+  intersection paths. — GPT-5 Codex
 - Keep interactive GPU path-tracer renders on a conservative auto chunk budget
   and publish progress snapshots even when later graph passes still need to run,
   avoiding oversized Metal/Vulkan path-loop launches from the render dialog. —
@@ -489,6 +492,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Keep render-dialog full-GPU path-tracer Auto chunking from exploding into
+  thousands of tiny Metal/Vulkan path-loop launches at common high-sample
+  settings, avoiding black renders and driver instability. — GPT-5 Codex
 - Bound interactive full-GPU path-tracer Auto chunking to an 8K primary-path
   per-launch cap so render-dialog `GPU sample stream` renders avoid long
   Metal/Vulkan command buffers under high-sample final renders. — GPT-5 Codex

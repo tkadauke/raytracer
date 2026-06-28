@@ -15,6 +15,7 @@
 #include "render/materials/MatteMaterial.h"
 #include "render/materials/TransparentMaterial.h"
 #include "render/primitives/Curve.h"
+#include "render/primitives/Difference.h"
 #include "render/primitives/Disk.h"
 #include "render/primitives/Instance.h"
 #include "render/primitives/OpenCylinder.h"
@@ -2331,11 +2332,11 @@ namespace WavefrontRaytracerTest {
 
   TEST(WavefrontRaytracer, RecordsGpuIntersectionSceneUnsupportedFallbackMetrics) {
     auto scene = std::make_shared<render::Scene>(Colord::black());
-    auto instance =
-      std::make_shared<render::Instance>(std::make_shared<render::Sphere>(Vector3d(), 1.0));
-    instance->setName("render moving instance");
-    instance->setVelocity(Vector3d(1, 0, 0));
-    scene->add(instance);
+    auto difference = std::make_shared<render::Difference>();
+    difference->setName("render difference");
+    difference->add(std::make_shared<render::Sphere>(Vector3d(0, 0, 3), 1.0));
+    difference->add(std::make_shared<render::Sphere>(Vector3d(0.5, 0, 3), 1.0));
+    scene->add(difference);
     auto renderer = std::make_shared<WavefrontRaytracer>(camera(), scene);
     renderer->setMaximumThreads(1);
     renderer->setQueueSize(1);
@@ -2350,7 +2351,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ("cpu", metrics.batching.intersectionBackend);
     EXPECT_EQ("fallback", metrics.batching.intersectionBackendAvailability);
     EXPECT_NE(std::string::npos,
-              metrics.batching.intersectionBackendFallbackReason.find("render moving instance"));
+              metrics.batching.intersectionBackendFallbackReason.find("render difference"));
     EXPECT_NE(std::string::npos,
               metrics.batching.intersectionBackendFallbackReason.find("unsupported"));
     EXPECT_EQ(std::string::npos,
@@ -2363,7 +2364,7 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(1u, metrics.batching.intersectionSceneUnsupportedPrimitives);
     ASSERT_EQ(1u, metrics.batching.intersectionSceneUnsupportedReasons.size());
     EXPECT_EQ(1u, metrics.batching.intersectionSceneUnsupportedReasons.at(
-                    "moving instances are not supported by GPU intersection scene compiler"));
+                    "difference CSG is not supported by GPU intersection scene compiler"));
     EXPECT_EQ(0u, metrics.batching.intersectionSceneUploadBytes);
     EXPECT_FALSE(metrics.batching.intersectionSceneTriangleClosestHitEligible);
     EXPECT_FALSE(metrics.batching.intersectionSceneBasicHitEligible);
@@ -2373,9 +2374,9 @@ namespace WavefrontRaytracerTest {
     const QJsonObject batching = metrics.toJson().value("batching").toObject();
     const QJsonObject unsupportedReasons =
       batching.value("intersectionSceneUnsupportedReasons").toObject();
-    EXPECT_EQ(
-      1.0, unsupportedReasons.value("moving instances are not supported by GPU intersection scene compiler")
-             .toDouble());
+    EXPECT_EQ(1.0, unsupportedReasons
+                     .value("difference CSG is not supported by GPU intersection scene compiler")
+                     .toDouble());
   }
 
   TEST(WavefrontRaytracer, RecordsTransparentIntersectionScenePackedMetrics) {

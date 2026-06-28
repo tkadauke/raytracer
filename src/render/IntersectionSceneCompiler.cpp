@@ -18,7 +18,8 @@ namespace {
   constexpr std::uint32_t maxBvhLeafPrimitiveCount = 4;
 
   bool isIdentityTransform(const Primitive::TransformedLeaf& leaf) {
-    return leaf.pointMatrix == Matrix4d() && leaf.normalMatrix == Matrix3d();
+    return leaf.pointMatrix == Matrix4d() && leaf.normalMatrix == Matrix3d() &&
+           leaf.motionDelta == Vector3d::null;
   }
 
   class FlatIntersectionBvhBuilder {
@@ -453,19 +454,21 @@ IntersectionSceneBuilder::transformIdFor(const Primitive::TransformedLeaf& leaf)
 
   if (m_scene.m_transforms.empty())
     m_scene.m_transforms.push_back(
-      IntersectionTransformPayload{Matrix4d(), Matrix3d(), Matrix4d(), Matrix3d()});
+      IntersectionTransformPayload{Matrix4d(), Matrix3d(), Matrix4d(), Matrix3d(), Vector3d::null});
 
   for (std::size_t index = 1; index != m_scene.m_transforms.size(); ++index) {
     const IntersectionTransformPayload& transform = m_scene.m_transforms[index];
-    if (transform.pointMatrix == leaf.pointMatrix && transform.normalMatrix == leaf.normalMatrix)
+    if (transform.pointMatrix == leaf.pointMatrix && transform.normalMatrix == leaf.normalMatrix &&
+        transform.motionDelta == leaf.motionDelta)
       return static_cast<IntersectionTransformId>(index);
   }
 
   const IntersectionTransformId id =
     static_cast<IntersectionTransformId>(m_scene.m_transforms.size());
   const Matrix4d inversePointMatrix = leaf.pointMatrix.inverted();
-  m_scene.m_transforms.push_back(IntersectionTransformPayload{
-    leaf.pointMatrix, leaf.normalMatrix, inversePointMatrix, Matrix3d(inversePointMatrix)});
+  m_scene.m_transforms.push_back(
+    IntersectionTransformPayload{leaf.pointMatrix, leaf.normalMatrix, inversePointMatrix,
+                                 Matrix3d(inversePointMatrix), leaf.motionDelta});
   return id;
 }
 

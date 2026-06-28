@@ -113,15 +113,16 @@ void Union::appendIntersectionSceneRecords(IntersectionSceneBuilder& builder,
                                            std::shared_ptr<render::Material> inheritedMaterial,
                                            const Matrix4d& pointMatrix,
                                            const Matrix3d& normalMatrix,
-                                           const Primitive* inheritedObject) const {
+                                           const Primitive* inheritedObject,
+                                           const Vector3d& motionDelta) const {
   if (hasPairwiseNonOverlappingFiniteChildBounds()) {
     Composite::appendIntersectionSceneRecords(builder, std::move(inheritedMaterial), pointMatrix,
-                                              normalMatrix, inheritedObject);
+                                              normalMatrix, inheritedObject, motionDelta);
     return;
   }
 
   addUnsupportedCompositeIntersectionSceneRecord(
-    builder, std::move(inheritedMaterial), pointMatrix, normalMatrix, inheritedObject,
+    builder, std::move(inheritedMaterial), pointMatrix, normalMatrix, inheritedObject, motionDelta,
     "union CSG is not supported by GPU intersection scene compiler");
 }
 

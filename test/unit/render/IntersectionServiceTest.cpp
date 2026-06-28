@@ -3,7 +3,7 @@
 #include "render/IntersectionService.h"
 #include "render/GpuIntersectionScene.h"
 #include "render/State.h"
-#include "render/primitives/Instance.h"
+#include "render/primitives/Difference.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
 
@@ -612,10 +612,11 @@ namespace IntersectionServiceTest {
 
   TEST(IntersectionService, ReportsFallbackForUnsupportedGpuScene) {
     Scene scene;
-    auto instance = std::make_shared<Instance>(std::make_shared<Sphere>(Vector3d(), 1.0));
-    instance->setName("debug moving instance");
-    instance->setVelocity(Vector3d(1, 0, 0));
-    scene.add(instance);
+    auto difference = std::make_shared<Difference>();
+    difference->setName("debug difference");
+    difference->add(std::make_shared<Sphere>(Vector3d(0, 0, 3), 1.0));
+    difference->add(std::make_shared<Sphere>(Vector3d(0.5, 0, 3), 1.0));
+    scene.add(difference);
 
     IntersectionService service(scene, WavefrontIntersectionBackendChoice::gpu());
 
@@ -624,8 +625,7 @@ namespace IntersectionServiceTest {
     EXPECT_EQ("fallback", service.diagnostics().availability);
     EXPECT_EQ("runtime_scene", service.diagnostics().executionPath);
     EXPECT_NE(std::string::npos, service.diagnostics().fallbackReason.find("unsupported"));
-    EXPECT_NE(std::string::npos,
-              service.diagnostics().fallbackReason.find("debug moving instance"));
+    EXPECT_NE(std::string::npos, service.diagnostics().fallbackReason.find("debug difference"));
     EXPECT_TRUE(service.diagnostics().scene.compiled);
     EXPECT_EQ(1u, service.diagnostics().scene.unsupportedPrimitives);
   }

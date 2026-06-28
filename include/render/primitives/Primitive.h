@@ -183,6 +183,7 @@ namespace render {
       Matrix4d pointMatrix;
       Matrix3d normalMatrix;
       const Primitive* object{nullptr};
+      Vector3d motionDelta{Vector3d::null};
 
       [[nodiscard]] const Primitive* objectPrimitive() const;
       Vector3d transformPoint(const Vector3d& point) const;
@@ -344,7 +345,8 @@ namespace render {
                                                 std::shared_ptr<render::Material> inheritedMaterial,
                                                 const Matrix4d& pointMatrix,
                                                 const Matrix3d& normalMatrix,
-                                                const Primitive* inheritedObject = nullptr) const;
+                                                const Primitive* inheritedObject = nullptr,
+                                                const Vector3d& motionDelta = Vector3d::null) const;
 
     /**
       * @returns true when overlapping this primitive with another child inside

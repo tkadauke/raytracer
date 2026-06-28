@@ -2786,12 +2786,8 @@ namespace WavefrontIntersectionBackendTest {
     firstInstance->setName("first empty instance");
     auto secondInstance = std::make_shared<Instance>(nullptr);
     secondInstance->setName("second empty instance");
-    auto movingInstance = std::make_shared<Instance>(std::make_shared<Sphere>(Vector3d(), 1.0));
-    movingInstance->setName("moving asset instance");
-    movingInstance->setVelocity(Vector3d(1, 0, 0));
     Scene scene;
     scene.add(firstInstance);
-    scene.add(movingInstance);
     scene.add(secondInstance);
 
     const std::shared_ptr<const WavefrontIntersectionBackend> backend =
@@ -2801,18 +2797,16 @@ namespace WavefrontIntersectionBackendTest {
     EXPECT_STREQ("cpu", backend->name());
     EXPECT_STREQ("fallback", backend->availability());
     EXPECT_EQ(
-      "GPU intersection scene unsupported: first empty instance: empty instance is not supported by GPU "
-      "intersection scene compiler (3 unsupported leaves; 2x empty instance is not supported by "
-      "GPU intersection scene compiler; 1x moving instances are not supported by GPU intersection "
-      "scene compiler)",
+      "GPU intersection scene unsupported: first empty instance: empty instance is not supported "
+      "by GPU "
+      "intersection scene compiler (2 unsupported leaves; 2x empty instance is not supported by "
+      "GPU intersection scene compiler)",
       std::string(backend->fallbackReason()));
 
     const WavefrontIntersectionSceneDiagnostics diagnostics = backend->compiledSceneDiagnostics();
-    ASSERT_EQ(2u, diagnostics.unsupportedReasons.size());
+    ASSERT_EQ(1u, diagnostics.unsupportedReasons.size());
     EXPECT_EQ(2u, diagnostics.unsupportedReasons.at(
                     "empty instance is not supported by GPU intersection scene compiler"));
-    EXPECT_EQ(1u, diagnostics.unsupportedReasons.at(
-                    "moving instances are not supported by GPU intersection scene compiler"));
   }
 
   TEST(WavefrontIntersectionBackend, GpuChoiceDoesNotEstimateTransferForIneligiblePreparedScene) {

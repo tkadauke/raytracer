@@ -108,10 +108,12 @@ namespace render {
                                         std::shared_ptr<render::Material> inheritedMaterial,
                                         const Matrix4d& pointMatrix, const Matrix3d& normalMatrix,
                                         const TransformedLeafVisitor& visitor) const override;
-    void appendIntersectionSceneRecords(IntersectionSceneBuilder& builder,
-                                        std::shared_ptr<render::Material> inheritedMaterial,
-                                        const Matrix4d& pointMatrix, const Matrix3d& normalMatrix,
-                                        const Primitive* inheritedObject = nullptr) const override;
+    void
+    appendIntersectionSceneRecords(IntersectionSceneBuilder& builder,
+                                   std::shared_ptr<render::Material> inheritedMaterial,
+                                   const Matrix4d& pointMatrix, const Matrix3d& normalMatrix,
+                                   const Primitive* inheritedObject = nullptr,
+                                   const Vector3d& motionDelta = Vector3d::null) const override;
     void forEachCurveOverlaySegment(const CurveOverlaySegmentVisitor& visitor) const override;
 
     /**
@@ -130,7 +132,7 @@ namespace render {
     void addUnsupportedCompositeIntersectionSceneRecord(
       IntersectionSceneBuilder& builder, std::shared_ptr<render::Material> inheritedMaterial,
       const Matrix4d& pointMatrix, const Matrix3d& normalMatrix, const Primitive* inheritedObject,
-      std::string reason) const;
+      const Vector3d& motionDelta, std::string reason) const;
     [[nodiscard]] bool hasPairwiseNonOverlappingFiniteChildBounds() const;
     [[nodiscard]] bool hasFlattenableClosedSolidUnionChildBounds() const;
 
