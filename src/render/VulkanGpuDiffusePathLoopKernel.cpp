@@ -239,7 +239,7 @@ namespace render {
           m_advancePipeline, captureResolvedDisplay ? m_resolvePipeline : VK_NULL_HANDLE,
           m_pipelineLayout, descriptorSetAB, descriptorSetBA,
           static_cast<std::uint32_t>(std::max<std::size_t>(1u, launchPathCount)),
-          m_buffers[13].buffer, m_buffers[15].buffer, plan.parameters.maxDepth,
+          m_buffers[13].buffer, m_buffers[15].buffer, plan.frontierDispatchDepthLimit,
           static_cast<std::uint32_t>(std::max<std::uint64_t>(1u, resolvedDisplayPixels)),
           captureResolvedDisplay, clearPlatformAccumulation, m_buffers[8].buffer,
           static_cast<VkDeviceSize>(plan.buffers.accumulationBytes), m_buffers[6].buffer,
@@ -926,12 +926,13 @@ namespace render {
         VkPipeline advanceFrontierPipeline, VkPipeline resolvePipeline,
         VkPipelineLayout pipelineLayout, VkDescriptorSet descriptorSetAB,
         VkDescriptorSet descriptorSetBA, std::uint32_t pathCount, VkBuffer dispatchBufferA,
-        VkBuffer dispatchBufferB, std::uint32_t maxDepth, std::uint32_t resolvedDisplayPixels,
-        bool captureResolvedDisplay, bool clearPlatformAccumulation, VkBuffer accumulationBuffer,
-        VkDeviceSize accumulationBytes, VkBuffer stepRecordBuffer, VkDeviceSize stepRecordBytes,
-        VkBuffer denoiserFeatureBuffer, VkDeviceSize denoiserFeatureBytes,
-        VkBuffer activePathCountBuffer, VkDeviceSize activePathCountBytes,
-        VkBuffer radianceDeltaSquaredBuffer, VkDeviceSize radianceDeltaSquaredBytes) const {
+        VkBuffer dispatchBufferB, std::uint32_t frontierDispatchDepthLimit,
+        std::uint32_t resolvedDisplayPixels, bool captureResolvedDisplay,
+        bool clearPlatformAccumulation, VkBuffer accumulationBuffer, VkDeviceSize accumulationBytes,
+        VkBuffer stepRecordBuffer, VkDeviceSize stepRecordBytes, VkBuffer denoiserFeatureBuffer,
+        VkDeviceSize denoiserFeatureBytes, VkBuffer activePathCountBuffer,
+        VkDeviceSize activePathCountBytes, VkBuffer radianceDeltaSquaredBuffer,
+        VkDeviceSize radianceDeltaSquaredBytes) const {
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         check(vkBeginCommandBuffer(commandBuffer, &beginInfo),
@@ -978,7 +979,7 @@ namespace render {
         dispatch1D(commandBuffer, pathCount);
         shaderStorageBarrier(commandBuffer);
 
-        for (std::uint32_t depth = 0; depth != maxDepth; ++depth) {
+        for (std::uint32_t depth = 0; depth != frontierDispatchDepthLimit; ++depth) {
           (void)depth;
           vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, clearFrontierPipeline);
           vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0,

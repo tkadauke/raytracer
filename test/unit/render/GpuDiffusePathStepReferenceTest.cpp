@@ -7488,6 +7488,7 @@ namespace GpuDiffusePathStepReferenceTest {
     const auto layouts = sections.sectionLayouts();
 
     EXPECT_EQ(gpuDiffusePathLoopLaunchLayoutVersion, plan.parameters.layoutVersion);
+    EXPECT_EQ(3u, plan.frontierDispatchDepthLimit);
     EXPECT_EQ(3u, plan.parameters.maxDepth);
     EXPECT_EQ(2u, plan.parameters.russianRouletteDepth);
     EXPECT_EQ(4u, plan.parameters.directLightSamples);
@@ -7574,6 +7575,27 @@ namespace GpuDiffusePathStepReferenceTest {
                 plan.buffers.activePathCountBytes + plan.buffers.radianceDeltaSquaredBytes +
                 plan.buffers.accumulationBytes,
               plan.buffers.totalResidentBytes);
+  }
+
+  TEST(GpuDiffusePathLoopLaunchPlanner, ClampsFrontierDispatchDepthLimit) {
+    const GpuTracingSceneSections sections;
+    const TracingAccumulationLayout accumulationLayout = TracingAccumulationLayout::image(3, 2);
+    const std::vector<GpuDiffusePathStateRecord> paths{activePath(), activePath()};
+
+    GpuDiffusePathLoopSettings settings;
+    settings.maxDepth = 5;
+    settings.frontierDispatchDepthLimit = 2;
+
+    GpuDiffusePathLoopLaunchPlan plan =
+      GpuDiffusePathLoopLaunchPlanner().plan(sections, paths, accumulationLayout, settings);
+    EXPECT_EQ(2u, plan.frontierDispatchDepthLimit);
+    EXPECT_EQ(5u, plan.parameters.maxDepth);
+    EXPECT_EQ(2u * 5u * sizeof(GpuDiffusePathStepRecord), plan.buffers.stepRecordBytes);
+
+    settings.frontierDispatchDepthLimit = 9;
+    plan = GpuDiffusePathLoopLaunchPlanner().plan(sections, paths, accumulationLayout, settings);
+    EXPECT_EQ(5u, plan.frontierDispatchDepthLimit);
+    EXPECT_EQ(5u, plan.parameters.maxDepth);
   }
 
   TEST(GpuDiffusePathLoopLaunchPlanner, UsesGpuPrimaryDescriptorToSkipInitialPathUpload) {

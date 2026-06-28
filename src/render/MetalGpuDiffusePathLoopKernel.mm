@@ -5352,7 +5352,7 @@ namespace render {
       [encoder setBuffer:accumulationBuffer offset:0 atIndex:8];
       dispatch1D(encoder, initializeFrontierPipeline, static_cast<NSUInteger>(launchPathCount));
 
-      for (std::uint32_t depth = 0; depth != plan.parameters.maxDepth; ++depth) {
+      for (std::uint32_t depth = 0; depth != plan.frontierDispatchDepthLimit; ++depth) {
         [encoder setComputePipelineState:clearFrontierPipeline];
         [encoder setBuffer:nextFrontierBuffer offset:0 atIndex:0];
         dispatch1D(encoder, clearFrontierPipeline, 1);

@@ -105,6 +105,7 @@ namespace render {
     GpuDiffusePathLoopLaunchParameters parameters;
     GpuDiffusePathLoopLaunchBufferSizes buffers;
     std::vector<std::uint8_t> sceneUpload;
+    std::uint32_t frontierDispatchDepthLimit{0};
 
     [[nodiscard]] bool generatesPrimaryPathsOnDevice() const;
   };

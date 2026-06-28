@@ -1,5 +1,6 @@
 #include "render/GpuDiffusePathLoopLaunch.h"
 
+#include <algorithm>
 #include <limits>
 #include <stdexcept>
 #include <string>
@@ -77,6 +78,10 @@ namespace render {
       const std::uint64_t maxDepth = settings.maxDepth;
 
       GpuDiffusePathLoopLaunchPlan plan;
+      plan.frontierDispatchDepthLimit =
+        settings.frontierDispatchDepthLimit == 0u
+          ? settings.maxDepth
+          : std::min(settings.frontierDispatchDepthLimit, settings.maxDepth);
       plan.parameters.layoutVersion = gpuDiffusePathLoopLaunchLayoutVersion;
       plan.parameters.maxDepth = settings.maxDepth;
       plan.parameters.russianRouletteDepth = settings.russianRouletteDepth;

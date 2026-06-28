@@ -2984,7 +2984,11 @@ scene is large enough to amortize upload/readback costs.
      until those paths have platform support. Convergence now stays on the
      compiled CPU-reference path, while Metal/Vulkan full-GPU kernels reject it
      until a future incremental depth-frontier mode can consume their
-     per-depth radiance-delta feedback during execution.
+     per-depth radiance-delta feedback during execution. The platform launch
+     plan now keeps that next step mechanically possible by separating the
+     host-recorded frontier dispatch depth limit from shader-visible `maxDepth`,
+     so a future controller can submit partial depth frontiers without
+     prematurely terminating active paths.
      Execution metadata now preserves the full-GPU selection fallback reason,
      so graph traces distinguish missing platform builds, unavailable
      Metal/Vulkan devices or kernels, unsupported scene/settings subsets, and
