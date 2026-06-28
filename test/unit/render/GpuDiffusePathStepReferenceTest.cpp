@@ -426,7 +426,7 @@ namespace GpuDiffusePathStepReferenceTest {
       return settings;
     }
 
-    GpuPathLoopCase directionalLightGpuPathLoopCase() {
+    [[maybe_unused]] GpuPathLoopCase directionalLightGpuPathLoopCase() {
       Scene scene;
       auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
       receiver->setMaterial(directLightTestMatte());
@@ -436,7 +436,7 @@ namespace GpuDiffusePathStepReferenceTest {
       return {sectionsFor(scene), {directLightTestPath()}, directLightTestSettings()};
     }
 
-    GpuPathLoopCase rectangularAreaLightGpuPathLoopCase() {
+    [[maybe_unused]] GpuPathLoopCase rectangularAreaLightGpuPathLoopCase() {
       Scene scene;
       auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
       receiver->setMaterial(directLightTestMatte());
@@ -447,7 +447,7 @@ namespace GpuDiffusePathStepReferenceTest {
       return {sectionsFor(scene), {directLightTestPath()}, directLightTestSettings()};
     }
 
-    GpuPathLoopCase multipleLightGpuPathLoopCase() {
+    [[maybe_unused]] GpuPathLoopCase multipleLightGpuPathLoopCase() {
       Scene scene;
       auto receiver = std::make_shared<Sphere>(Vector3d(0.0, 0.0, 0.0), 1.0);
       receiver->setMaterial(directLightTestMatte());
@@ -478,8 +478,9 @@ namespace GpuDiffusePathStepReferenceTest {
       expectPathStateNear(result.resolvedPathStates[0], expected.resolvedPathStates[0], 1e-4);
     }
 
-    void expectBackendDirectLightPathLoopMatchesReference(const GpuDiffusePathLoopBackend& backend,
-                                                          const GpuPathLoopCase& testCase) {
+    [[maybe_unused]] void
+    expectBackendDirectLightPathLoopMatchesReference(const GpuDiffusePathLoopBackend& backend,
+                                                     const GpuPathLoopCase& testCase) {
       const GpuDiffusePathLoopResult expected =
         GpuDiffusePathLoop().run(testCase.sections, testCase.paths, testCase.settings);
       const GpuDiffusePathLoopResult result =
