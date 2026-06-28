@@ -7677,9 +7677,9 @@ namespace GpuDiffusePathStepReferenceTest {
     const std::vector<GpuDiffusePrimaryPathSampleChunk> chunks =
       gpuDiffusePrimarySampleChunksFor(generation, settings);
 
-    ASSERT_EQ(768u, chunks.size());
-    EXPECT_LE(chunks.front().primaryPathGeneration.generatedPrimarySamples, 32u * 1024u);
-    EXPECT_EQ(40, chunks.front().primaryPathGeneration.actualRect.height());
+    ASSERT_EQ(3072u, chunks.size());
+    EXPECT_LE(chunks.front().primaryPathGeneration.generatedPrimarySamples, 8u * 1024u);
+    EXPECT_EQ(10, chunks.front().primaryPathGeneration.actualRect.height());
     std::size_t capturedProgressDisplays = 0;
     for (const GpuDiffusePrimaryPathSampleChunk& chunk : chunks) {
       if (shouldCaptureGpuDiffusePathLoopChunkResolvedDisplay(settings, chunk)) {
@@ -7688,10 +7688,10 @@ namespace GpuDiffusePathStepReferenceTest {
     }
     EXPECT_EQ(65u, capturedProgressDisplays);
     EXPECT_TRUE(shouldCaptureGpuDiffusePathLoopChunkResolvedDisplay(settings, chunks.front()));
-    ASSERT_LT(11u, chunks.size());
-    EXPECT_TRUE(shouldCaptureGpuDiffusePathLoopChunkResolvedDisplay(settings, chunks[11]));
-    EXPECT_EQ(440, chunks[11].primaryPathGeneration.actualRect.top());
-    EXPECT_EQ(40, chunks[11].primaryPathGeneration.actualRect.height());
+    ASSERT_LT(47u, chunks.size());
+    EXPECT_TRUE(shouldCaptureGpuDiffusePathLoopChunkResolvedDisplay(settings, chunks[47]));
+    EXPECT_EQ(470, chunks[47].primaryPathGeneration.actualRect.top());
+    EXPECT_EQ(10, chunks[47].primaryPathGeneration.actualRect.height());
     EXPECT_TRUE(shouldCaptureGpuDiffusePathLoopChunkResolvedDisplay(settings, chunks.back()));
 
     settings.chunkProgressObserver = {};
@@ -7969,10 +7969,10 @@ namespace GpuDiffusePathStepReferenceTest {
     };
     const std::vector<GpuDiffusePrimaryPathSampleChunk> chunks =
       gpuDiffusePrimarySampleChunksFor(generation, settings);
-    ASSERT_EQ(164u, chunks.size());
+    ASSERT_EQ(684u, chunks.size());
     ASSERT_FALSE(chunks.front().completesSampleRange);
-    ASSERT_LT(40u, chunks.size());
-    ASSERT_TRUE(chunks[40].completesSampleRange);
+    ASSERT_LT(170u, chunks.size());
+    ASSERT_TRUE(chunks[170].completesSampleRange);
 
     GpuDiffusePathLoopPlatformResult platformChunk;
     platformChunk.resolvedDisplayPixels = {0xaabbccu};
@@ -7983,7 +7983,7 @@ namespace GpuDiffusePathStepReferenceTest {
     EXPECT_EQ(0xaabbccu, callbacks[0].resolvedDisplayPixels->front());
 
     platformChunk.resolvedDisplayPixels = {0x112233u};
-    notifyGpuDiffusePathLoopChunkProgress(settings, generation, chunks[40], platformChunk);
+    notifyGpuDiffusePathLoopChunkProgress(settings, generation, chunks[170], platformChunk);
 
     ASSERT_EQ(2u, callbacks.size());
     EXPECT_EQ(1u, callbacks[1].completedSampleCount);

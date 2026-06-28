@@ -3231,7 +3231,7 @@ namespace GraphRenderEngineTest {
     EXPECT_TRUE(pathLoopBackend->lastCaptureResolvedDisplay());
     EXPECT_EQ(0u, pathLoopBackend->lastPrimarySampleChunkSize());
     EXPECT_TRUE(pathLoopBackend->lastChunkProgressObserverInstalled());
-    EXPECT_EQ(768u, pathLoopBackend->lastChunkProgressCallbacks());
+    EXPECT_EQ(3072u, pathLoopBackend->lastChunkProgressCallbacks());
     EXPECT_EQ(65u, pathLoopBackend->lastResolvedDisplayReadbacks());
     EXPECT_EQ(static_cast<std::size_t>(width * height),
               pathLoopBackend->lastChunkProgressDisplayPixelCount());
