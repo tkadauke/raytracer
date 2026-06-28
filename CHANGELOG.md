@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Keep interactive GPU path-tracer renders on a conservative auto chunk budget
+  and publish progress snapshots even when later graph passes still need to run,
+  avoiding oversized Metal/Vulkan path-loop launches from the render dialog. —
+  GPT-5 Codex
 - Honor path-tracer convergence settings in the compiled diffuse path-loop
   CPU-reference route and report convergence stop metadata, while platform
   Metal/Vulkan path-loop kernels reject convergence until they can expose

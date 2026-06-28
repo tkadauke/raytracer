@@ -476,7 +476,8 @@ namespace render {
     [[nodiscard]] std::uint64_t
     autoPrimaryLaunchPathBudget(const GpuDiffusePathLoopSettings& settings) {
       const bool interactiveProgress =
-        settings.captureResolvedDisplay && static_cast<bool>(settings.chunkProgressObserver);
+        settings.interactiveDisplay ||
+        (settings.captureResolvedDisplay && static_cast<bool>(settings.chunkProgressObserver));
       const std::uint64_t workBudget = interactiveProgress
                                          ? kInteractiveAutoPrimaryLaunchPathWorkBudget
                                          : kAutoPrimaryLaunchPathWorkBudget;

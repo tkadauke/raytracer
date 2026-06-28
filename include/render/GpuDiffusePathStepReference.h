@@ -132,6 +132,7 @@ namespace render {
     bool captureDenoiserFeatures{false};
     bool capturePlatformAccumulation{true};
     bool captureResolvedDisplay{false};
+    bool interactiveDisplay{false};
     bool convergenceEnabled{false};
     double convergenceActiveSampleFractionThreshold{0.0};
     double convergenceRadianceDeltaRmsThreshold{0.0};

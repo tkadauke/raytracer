@@ -1037,6 +1037,7 @@ namespace engine::graph {
       batching["residentPathLoopCapturePlatformAccumulation"] =
         settings.capturePlatformAccumulation;
       batching["residentPathLoopCaptureResolvedDisplay"] = settings.captureResolvedDisplay;
+      batching["residentPathLoopInteractiveDisplay"] = settings.interactiveDisplay;
       batching["residentPathLoopResolvedDisplayReadbacks"] =
         static_cast<double>(loop.platformResolvedDisplayReadbacks);
       batching["residentPathLoopRequestedPrimarySampleChunkSize"] =
@@ -1101,6 +1102,7 @@ namespace engine::graph {
       compiledLoop["captureMetrics"] = settings.captureMetrics;
       compiledLoop["capturePlatformAccumulation"] = settings.capturePlatformAccumulation;
       compiledLoop["captureResolvedDisplay"] = settings.captureResolvedDisplay;
+      compiledLoop["interactiveDisplay"] = settings.interactiveDisplay;
       compiledLoop["resolvedDisplayReadbacks"] =
         static_cast<double>(loop.platformResolvedDisplayReadbacks);
       compiledLoop["requestedPrimarySampleChunkSize"] =
@@ -1503,6 +1505,8 @@ namespace engine::graph {
         settings.captureDiagnostics = context.graph().executionTraceEnabled();
         settings.captureDenoiserFeatures = denoiserFeatureRequest.any();
         settings.displayResolveTonemap = platformDisplayResolveTonemap(wavefront.tonemap());
+        settings.interactiveDisplay =
+          displayTarget != nullptr && context.graph().progressiveDisplayEnabled();
         const render::GpuDiffusePathLoopBackendChoice pathLoopBackendSelection =
           selectGpuDiffusePathLoopBackend(context.graph(), state, compilation.sections, settings);
         const std::shared_ptr<const render::GpuDiffusePathLoopBackend>& pathLoopBackend =
@@ -1526,8 +1530,9 @@ namespace engine::graph {
           }
         }
         const bool wantsPlatformDisplayResolve =
-          displayTarget && context.displayTargetDirectlyPublishable() &&
-          !settings.captureDiagnostics && supportsPlatformDisplayResolve(wavefront.tonemap());
+          displayTarget && settings.interactiveDisplay &&
+          !context.graph().executionTraceEnabled() && !settings.captureDiagnostics &&
+          supportsPlatformDisplayResolve(wavefront.tonemap());
         render::GpuDiffusePrimaryPathStateGenerationOptions generationOptions;
         generationOptions.forceHostPrimaryRayGenerator =
           compiledDiffusePathLoopUsesHostSamplerPrimaryPaths(state);
