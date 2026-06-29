@@ -13,17 +13,14 @@ namespace render {
       return layout;
     }
 
-    Colord squared(const Colord& color) {
-      return Colord(color.r() * color.r(), color.g() * color.g(), color.b() * color.b());
-    }
   }
 
   TracingAccumulationBuffer::TracingAccumulationBuffer(const TracingAccumulationLayout& layout)
       : m_layout(validatedLayout(layout)),
         m_colorSum(m_layout.width, m_layout.height),
         m_sampleCount(m_layout.width, m_layout.height),
-        m_diagnostics(TracingAccumulationDiagnostics::forLayout(m_layout, "cpu_reference",
-                                                                "cpu_host")) {
+        m_diagnostics(
+          TracingAccumulationDiagnostics::forLayout(m_layout, "cpu_reference", "cpu_host")) {
     if (m_layout.hasMomentBuffer()) {
       m_secondMoment = std::make_unique<Buffer<Colord>>(m_layout.width, m_layout.height);
     }
@@ -89,7 +86,7 @@ namespace render {
     m_colorSum[y][x] += color;
     ++m_sampleCount[y][x];
     if (m_secondMoment) {
-      (*m_secondMoment)[y][x] += squared(color);
+      (*m_secondMoment)[y][x] += color.squared();
     }
     m_diagnostics.recordAdd(1);
   }
@@ -105,7 +102,7 @@ namespace render {
         m_colorSum[y][x] += colors[y][x];
         ++m_sampleCount[y][x];
         if (m_secondMoment) {
-          (*m_secondMoment)[y][x] += squared(colors[y][x]);
+          (*m_secondMoment)[y][x] += colors[y][x].squared();
         }
       }
     }

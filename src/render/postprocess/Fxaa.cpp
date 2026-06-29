@@ -6,10 +6,6 @@
 #include <cmath>
 
 namespace {
-  double luma(const Colord& color) {
-    return color.r() * 0.299 + color.g() * 0.587 + color.b() * 0.114;
-  }
-
   Colord sampleBilinear(const Buffer<Colord>& buffer, double x, double y) {
     x = std::clamp(x, 0.0, static_cast<double>(buffer.width() - 1));
     y = std::clamp(y, 0.0, static_cast<double>(buffer.height() - 1));
@@ -48,11 +44,11 @@ void render::postprocess::applyFxaa(Buffer<Colord>& buffer) {
 
   for (int y = 1; y < height - 1; ++y) {
     for (int x = 1; x < width - 1; ++x) {
-      const double lumaM = luma(source[y][x]);
-      const double lumaNW = luma(source[y - 1][x - 1]);
-      const double lumaNE = luma(source[y - 1][x + 1]);
-      const double lumaSW = luma(source[y + 1][x - 1]);
-      const double lumaSE = luma(source[y + 1][x + 1]);
+      const double lumaM = source[y][x].luminance();
+      const double lumaNW = source[y - 1][x - 1].luminance();
+      const double lumaNE = source[y - 1][x + 1].luminance();
+      const double lumaSW = source[y + 1][x - 1].luminance();
+      const double lumaSE = source[y + 1][x + 1].luminance();
 
       const double minLuma = std::min({lumaM, lumaNW, lumaNE, lumaSW, lumaSE});
       const double maxLuma = std::max({lumaM, lumaNW, lumaNE, lumaSW, lumaSE});
@@ -74,7 +70,7 @@ void render::postprocess::applyFxaa(Buffer<Colord>& buffer) {
       const Colord rgbB = rgbA * 0.5 + (sampleBilinear(source, x + dirX * -0.5, y + dirY * -0.5) +
                                         sampleBilinear(source, x + dirX * 0.5, y + dirY * 0.5)) *
                                          0.25;
-      const double lumaB = luma(rgbB);
+      const double lumaB = rgbB.luminance();
       buffer[y][x] = (lumaB < minLuma || lumaB > maxLuma) ? rgbA : rgbB;
     }
   }

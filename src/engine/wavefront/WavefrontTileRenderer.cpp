@@ -56,8 +56,7 @@ namespace engine::wavefront::detail {
       }
 
       double colorDeltaSquared(const Colord& before, const Colord& after) const {
-        const Colord delta = after - before;
-        return delta.r() * delta.r() + delta.g() * delta.g() + delta.b() * delta.b();
+        return (after - before).squaredMagnitude();
       }
 
       bool m_hasPrevious{false};

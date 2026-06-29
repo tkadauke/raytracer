@@ -179,6 +179,19 @@ public:
     return std::min(r(), std::min(g(), b()));
   }
 
+  inline double luminance() const {
+    return r() * 0.299 + g() * 0.587 + b() * 0.114;
+  }
+
+  inline Color<double> squared() const {
+    return *this * *this;
+  }
+
+  inline double squaredMagnitude() const {
+    const Color<double> components = squared();
+    return components.r() + components.g() + components.b();
+  }
+
   inline Color<double> operator+(const Color<double>& other) const {
     Color<double> result;
     result.m_vector[0] = _mm_add_pd(m_vector[0], other.m_vector[0]);

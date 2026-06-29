@@ -209,6 +209,22 @@ namespace ColorTest {
     ASSERT_EQ(0.5, color.min());
   }
 
+  TYPED_TEST(ColorTest, ShouldReturnLuminance) {
+    Color<TypeParam> color(0.25, 0.5, 0.75);
+    ASSERT_NEAR(0.25 * 0.299 + 0.5 * 0.587 + 0.75 * 0.114, color.luminance(), 0.0001);
+  }
+
+  TYPED_TEST(ColorTest, ShouldReturnSquaredColor) {
+    Color<TypeParam> color(0.25, 0.5, 0.75);
+    Color<TypeParam> expected(0.0625, 0.25, 0.5625);
+    ASSERT_COLOR_NEAR(expected, color.squared(), 0.0001);
+  }
+
+  TYPED_TEST(ColorTest, ShouldReturnSquaredMagnitude) {
+    Color<TypeParam> color(0.25, 0.5, 0.75);
+    ASSERT_NEAR(0.0625 + 0.25 + 0.5625, color.squaredMagnitude(), 0.0001);
+  }
+
   TYPED_TEST(ColorTest, ShouldAdd) {
     Color<TypeParam> color1(0.3, 0.1, 0.4), color2(0.1, 0.1, 0.2);
     Color<TypeParam> color3 = color1 + color2;
