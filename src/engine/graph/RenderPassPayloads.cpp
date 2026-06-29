@@ -1544,9 +1544,11 @@ namespace engine::graph {
         const render::GpuDiffusePrimaryPathStateGeneration generation =
           render::GpuDiffusePrimaryPathStateGenerator().generate(*camera, targetRect, samplingSeed,
                                                                  sampleSeed, generationOptions);
-        settings.captureResolvedDisplay = wantsPlatformDisplayResolve &&
-                                          generation.canGeneratePrimaryPathsOnDevice() &&
-                                          generation.pathStates.empty();
+        settings.captureResolvedDisplay =
+          wantsPlatformDisplayResolve && generation.canGeneratePrimaryPathsOnDevice() &&
+          generation.pathStates.empty() &&
+          (context.displayTargetDirectlyPublishable() ||
+           render::canChunkGpuDiffusePrimarySamples(generation, settings));
         settings.capturePlatformAccumulation =
           hdrTarget || denoiser || settings.captureDiagnostics || !settings.captureResolvedDisplay;
         if (displayTarget && settings.captureResolvedDisplay) {
