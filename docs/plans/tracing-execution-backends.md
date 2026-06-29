@@ -1835,6 +1835,9 @@ E9 + E10
   -> E11 Textbook, examples, and rendered comparisons
   -> E12 Performance gates and automatic selection
 
+E2 + E3 + E4 + E5 + E7 + E8 + E9 + E10 + E12
+  -> E15 Platform full-GPU diffuse path loop v1
+
 E1 + E6
   -> E13 Hybrid visibility and ray-traced shadows
 
