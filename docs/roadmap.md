@@ -15,7 +15,7 @@
 
 A renderer is the *core*, not the *whole product*. The goal is a working 3D content creation tool that:
 
-- ships several rendering backends (wireframe, software raster, OpenGL viewport, **WebGL/WebGPU preview**, CPU raytracer, CPU path tracer) over a single scene representation, with a render-pass graph that can mix engines in one frame, plus web-based previews for static scenes — and, as a stretch goal, animations,
+- ships several rendering backends (wireframe, software raster, OpenGL viewport, **WebGL/WebGPU preview**, CPU raytracer, CPU path tracer, and restricted Metal/Vulkan tracing backends) over a single scene representation, with a render-pass graph that can mix engines in one frame, plus web-based previews for static scenes — and, as a stretch goal, animations,
 - carries a rich material library with physically-based BSDFs, NPR variants, subsurface scattering, volumetrics, and a complete shading-normal pipeline (smooth normals → bump → normal map → displacement),
 - grounds all mesh geometry in a **comprehensive computational geometry library** with first-class spatial acceleration (BVH, octrees, kd-trees, uniform grids — selected per workload),
 - imports and exports the formats the rest of the world uses (OBJ, glTF, USD, EXR, PLY, STL, FBX, OpenVDB), reading and writing where reasonable,
@@ -260,17 +260,19 @@ Beyond the existing `Raytracer`, factor in (in suggested order):
   ~~Scalar megakernel integrator over the BSDF/light sampling substrate.~~ ✅ **Done.** `render::PathTracingIntegrator` now walks paths iteratively, consumes `SampleStream`, samples lights for next-event estimation, applies Russian roulette, and remains selectable as ray-family graph state while Whitted stays the default transport policy.
   ~~Initial wavefront executor surface.~~ ✅ **Done.** `engine::wavefront::WavefrontRaytracer` now ships as a sibling `RenderEngine`, with render-intent, graph, rendercli, Modeler render-settings selection, depth-pass preview publication, and graph trace metrics for tiles, samples, active samples per depth, radiance deltas per depth, convergence thresholds/stop decisions, batch mode, queue choice, and timing. It owns primary-ray tile sampling and submits samples through `Integrator::radianceBatch`; `WhittedIntegrator` now processes material-published continuation queues depth-major, `PathTracingIntegrator` processes compatible path batches depth-major, and path batches can stop early from active-sample/RMS-delta thresholds. Built-in Matte, Phong, Reflective, Transparent, and Portal materials publish BSDF or delta continuation samples, including reflection/transmission/portal-redirection deltas, while trace metadata still reports compatibility fallback counts for custom or future unsupported materials.
   These completed bullets are **path-tracing foundations**, not a finished production path tracer: no soft area-light shadows ship, wavefront scheduling still needs explicit material/light/shadow queue specialization, denoising is not wired in, and the default transport policy remains `render::WhittedIntegrator`.
-- **GPU tracing backends.** Vulkan compute and Metal are now active hybrid
-  tracing backend work rather than a far-future aspiration. The shipped
-  substrate includes optional platform presets, packed CPU/Metal/Vulkan
-  closest-hit and any-hit kernels for the supported intersection subset,
-  `render::IntersectionService`, compiled GPU tracing scene records for the
-  first material/texture/light subset, deterministic GPU sample streams,
-  CPU/Metal/Vulkan accumulation surfaces, execution capability diagnostics, and
-  cross-backend parity fixtures. Remaining work is full GPU-owned path state,
-  GPU BSDF/direct-light/path-continuation kernels, render-loop integration of
-  GPU accumulation, full GPU path-tracing/Whitted loops, and eventual hardware
-  ray tracing. `docs/plans/tracing-execution-backends.md` is the active parent
+- **GPU tracing backends.** Vulkan compute and Metal are now active tracing
+  backend work rather than a far-future aspiration. The shipped substrate
+  includes normal-build platform enablement when the toolchain is available,
+  packed CPU/Metal/Vulkan closest-hit and any-hit kernels for the supported
+  intersection subset, `render::IntersectionService`, compiled GPU tracing
+  scene records for the first material/texture/light subset, deterministic GPU
+  sample streams, CPU/Metal/Vulkan accumulation surfaces, execution capability
+  diagnostics, cross-backend parity fixtures, and restricted Metal/Vulkan
+  full-GPU diffuse path-loop backends for supported compiled scenes. Remaining
+  work is broader GPU-owned path state, unrestricted GPU BSDF/direct-light/
+  path-continuation coverage, render-loop progressive accumulation across
+  calls, broad full GPU path-tracing/Whitted loops, and eventual hardware ray
+  tracing. `docs/plans/tracing-execution-backends.md` is the active parent
   plan; `docs/plans/gpu-wavefront-intersection.md` remains the
   intersection-service child slice. OptiX remains a later NVIDIA-only backend
   option.
@@ -1082,7 +1084,7 @@ The eight refactors from §3 (R0–R7). Gatekeeping nothing else runs well witho
 
 ### T2. More engines
 
-Wireframe → Software rasterizer → render-pass graph → OpenGL viewport → Path tracer → WebGL preview. Each engine starts self-contained once R4 (tessellate) and R5 (`RenderEngine` abstraction) land, then graduates into pass executors behind the §4.1.a `RenderPlan`. Suggested order: wireframe (cheapest), software raster (most educational about the pipeline and already in progress), render-pass graph (the composability bridge), OpenGL (most immediately useful for the UI once pass resources exist), path tracer (the pedagogical centrepiece), WebGL (most shareable). GPU backends (Vulkan/OptiX/Metal) are their own long-tail item.
+Wireframe → Software rasterizer → render-pass graph → OpenGL viewport → Path tracer → WebGL preview. Each engine starts self-contained once R4 (tessellate) and R5 (`RenderEngine` abstraction) land, then graduates into pass executors behind the §4.1.a `RenderPlan`. Suggested order: wireframe (cheapest), software raster (most educational about the pipeline and already in progress), render-pass graph (the composability bridge), OpenGL (most immediately useful for the UI once pass resources exist), path tracer (the pedagogical centrepiece), WebGL (most shareable). Metal/Vulkan tracing backends are now active under §4.1's GPU tracing backend work; OptiX and hardware ray tracing remain later backend variants.
 
 ### T3. Better shading
 
@@ -1130,7 +1132,7 @@ These need decisions before specific work starts. Calling them out so they don't
 - **Material library distribution model.** Bundled in-tree, downloaded on first use, or referenced from a community repo (like Blender's asset library)?
 - **UI undo/redo granularity.** Per-property change, per-tool action, or per-scene-mutation? Affects the serialization design.
 - **AI agent: cloud LLM or local?** Cloud (Claude via API) is more capable today; local (llama.cpp, Ollama) is private and free at idle. Both are viable; the tool-call surface is the same. Probably default to cloud with a local-fallback knob.
-- **GPU backend: Vulkan compute, OptiX, or Metal?** Vulkan is portable but verbose. OptiX is NVIDIA-only but mature. Metal is macOS-only. This is a far-future decision; flagged here so it doesn't get re-litigated every quarter.
+- **GPU backend beyond the current compute path.** Metal and Vulkan compute are the first tracing backend targets and are already active. The remaining open decision is when, or whether, to add hardware ray tracing APIs such as Vulkan RT, Metal ray tracing, or NVIDIA-only OptiX after the flat-BVH compute path is measured.
 - **Compatibility: maintain the existing C++ scene-construction API forever, or sunset it once UI/serialization land?** It still backs several tests and scene-construction helpers, but the Modeler and JSON scenes are now the primary interactive path.
 
 ---
