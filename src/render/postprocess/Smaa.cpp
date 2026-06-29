@@ -17,10 +17,6 @@ namespace {
     int spanPositiveDy;
   };
 
-  double luma(const Colord& color) {
-    return color.r() * 0.299 + color.g() * 0.587 + color.b() * 0.114;
-  }
-
   Colord sampleClamped(const Buffer<Colord>& buffer, int x, int y) {
     x = std::clamp(x, 0, buffer.width() - 1);
     y = std::clamp(y, 0, buffer.height() - 1);
@@ -37,14 +33,14 @@ namespace {
     for (int step = 1; step <= maxSearchSteps; ++step) {
       const int sx = x + axis.spanNegativeDx * step;
       const int sy = y + axis.spanNegativeDy * step;
-      if (std::abs(luma(sampleClamped(source, sx, sy)) - centerLuma) < searchThreshold)
+      if (std::abs(sampleClamped(source, sx, sy).luminance() - centerLuma) < searchThreshold)
         break;
       negativeSteps = step;
     }
     for (int step = 1; step <= maxSearchSteps; ++step) {
       const int sx = x + axis.spanPositiveDx * step;
       const int sy = y + axis.spanPositiveDy * step;
-      if (std::abs(luma(sampleClamped(source, sx, sy)) - centerLuma) < searchThreshold)
+      if (std::abs(sampleClamped(source, sx, sy).luminance() - centerLuma) < searchThreshold)
         break;
       positiveSteps = step;
     }
@@ -62,8 +58,10 @@ namespace {
     const EdgeAxis* best = &axes[0];
     double bestContrast = -1.0;
     for (const auto& axis : axes) {
-      const double negative = luma(sampleClamped(source, x + axis.negativeDx, y + axis.negativeDy));
-      const double positive = luma(sampleClamped(source, x + axis.positiveDx, y + axis.positiveDy));
+      const double negative =
+        sampleClamped(source, x + axis.negativeDx, y + axis.negativeDy).luminance();
+      const double positive =
+        sampleClamped(source, x + axis.positiveDx, y + axis.positiveDy).luminance();
       const double contrast = std::abs(negative - positive);
       if (contrast > bestContrast) {
         best = &axis;
@@ -92,13 +90,13 @@ void render::postprocess::applySmaa(Buffer<Colord>& buffer) {
 
   for (int y = 1; y < height - 1; ++y) {
     for (int x = 1; x < width - 1; ++x) {
-      const double center = luma(source[y][x]);
+      const double center = source[y][x].luminance();
 
       const EdgeAxis& axis = strongestEdgeAxis(source, x, y);
       const Colord negativeSide = sampleClamped(source, x + axis.negativeDx, y + axis.negativeDy);
       const Colord positiveSide = sampleClamped(source, x + axis.positiveDx, y + axis.positiveDy);
-      const double negative = luma(negativeSide);
-      const double positive = luma(positiveSide);
+      const double negative = negativeSide.luminance();
+      const double positive = positiveSide.luminance();
       const double edgeDelta = std::max(std::abs(center - negative), std::abs(center - positive));
       if (edgeDelta < edgeThreshold)
         continue;

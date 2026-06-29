@@ -180,6 +180,19 @@ public:
     return std::min(r(), std::min(g(), b()));
   }
 
+  inline float luminance() const {
+    return r() * 0.299f + g() * 0.587f + b() * 0.114f;
+  }
+
+  inline Color<float> squared() const {
+    return *this * *this;
+  }
+
+  inline float squaredMagnitude() const {
+    const Color<float> components = squared();
+    return components.r() + components.g() + components.b();
+  }
+
   inline Color<float> operator+(const Color<float>& other) const {
     return Color<float>(_mm_add_ps(m_vector, other.m_vector));
   }

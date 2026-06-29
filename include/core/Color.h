@@ -329,6 +329,27 @@ public:
   }
 
   /**
+    * @returns the Rec. 601 luminance for this color.
+    */
+  inline T luminance() const {
+    return r() * T(0.299) + g() * T(0.587) + b() * T(0.114);
+  }
+
+  /**
+    * @returns a color containing each component squared.
+    */
+  inline Color<T> squared() const {
+    return *this * *this;
+  }
+
+  /**
+    * @returns the sum of the squared color components.
+    */
+  inline T squaredMagnitude() const {
+    return squared().r() + squared().g() + squared().b();
+  }
+
+  /**
     * @returns a color that is the sum between this color and @p other. The sum
     *   is calculated component-wise.
     */

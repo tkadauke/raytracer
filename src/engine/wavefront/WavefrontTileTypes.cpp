@@ -112,8 +112,7 @@ namespace engine::wavefront::detail {
         continue;
       }
       const Colord delta = sampleColors[index] - means[pixelIndex];
-      varianceSums[pixelIndex] +=
-        Colord(delta.r() * delta.r(), delta.g() * delta.g(), delta.b() * delta.b());
+      varianceSums[pixelIndex] += delta.squared();
     }
 
     for (std::size_t pixelIndex = 0; pixelIndex != pixels.size(); ++pixelIndex) {

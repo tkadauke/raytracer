@@ -1447,7 +1447,7 @@ namespace render {
   }
 
   double IntegratorBatchMetrics::contributionLuminance(const Colord& contribution) const {
-    return contribution.r() * 0.299 + contribution.g() * 0.587 + contribution.b() * 0.114;
+    return contribution.luminance();
   }
 
   const WavefrontIntersectionBackend& IntegratorBatchSettings::resolvedIntersectionBackend() const {
@@ -1547,7 +1547,6 @@ namespace render {
   }
 
   double Integrator::radianceDeltaSquared(const Colord& before, const Colord& after) const {
-    const Colord delta = after - before;
-    return delta.r() * delta.r() + delta.g() * delta.g() + delta.b() * delta.b();
+    return (after - before).squaredMagnitude();
   }
 }
