@@ -830,8 +830,7 @@ GpuIntersectionIntersector::intersectTorus(const GpuIntersectionRay& ray,
                                            const GpuIntersectionTorusPayload& torus) const {
   const IntersectionTorusPayload payload{static_cast<double>(torus.sweptTubeRadius[0]),
                                          static_cast<double>(torus.sweptTubeRadius[1])};
-  const Rayd localRay(Vector4d(ray.origin[0], ray.origin[1], ray.origin[2], ray.origin[3]),
-                      Vector3d(ray.direction[0], ray.direction[1], ray.direction[2]));
+  const Rayd localRay(Vector4d(ray.origin), Vector3d(ray.direction));
   const SortedResult<double, 4> distances = payload.sortedIntersectionDistances(localRay);
 
   double bestDistance = std::numeric_limits<double>::infinity();
@@ -852,10 +851,8 @@ GpuIntersectionIntersector::intersectTorus(const GpuIntersectionRay& ray,
   const Vector3d normal = payload.normalAt(Vector3d(point));
   ClosestHit hit;
   hit.distance = static_cast<float>(bestDistance);
-  hit.point = {static_cast<float>(point.x()), static_cast<float>(point.y()),
-               static_cast<float>(point.z()), static_cast<float>(point.w())};
-  hit.normal = {static_cast<float>(normal.x()), static_cast<float>(normal.y()),
-                static_cast<float>(normal.z()), 0.0f};
+  hit.point = point.toFloat4();
+  hit.normal = normal.toFloat4();
   return hit;
 }
 

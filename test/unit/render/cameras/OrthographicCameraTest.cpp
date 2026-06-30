@@ -16,15 +16,11 @@ namespace OrthographicCameraTest {
   using test::setupViewPlane;
 
   Vector3d descriptorDirection(const GpuPrimaryPathDescriptor& descriptor) {
-    return Vector3d(descriptor.rectilinear.originOrDirection[0],
-                    descriptor.rectilinear.originOrDirection[1],
-                    descriptor.rectilinear.originOrDirection[2]);
+    return Vector3d(descriptor.rectilinear.originOrDirection);
   }
 
   Vector3d descriptorMotionOriginDelta(const GpuPrimaryPathDescriptor& descriptor) {
-    return Vector3d(descriptor.rectilinear.motionOriginDelta[0],
-                    descriptor.rectilinear.motionOriginDelta[1],
-                    descriptor.rectilinear.motionOriginDelta[2]);
+    return Vector3d(descriptor.rectilinear.motionOriginDelta);
   }
 
   TEST(OrthographicCamera, ShouldConstructWithoutParameters) {

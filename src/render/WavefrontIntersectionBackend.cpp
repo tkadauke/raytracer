@@ -1631,9 +1631,8 @@ namespace render {
     if (!result.material) {
       result.material = primitive->material();
     }
-    result.hitPoint = HitPoint(
-      primitive, hit.distance, Vector4d(hit.point[0], hit.point[1], hit.point[2], hit.point[3]),
-      Vector3d(hit.normal[0], hit.normal[1], hit.normal[2]), Vector2d(hit.uv[0], hit.uv[1]));
+    result.hitPoint = HitPoint(primitive, hit.distance, Vector4d(hit.point),
+                               Vector3d(hit.normal), Vector2d(hit.uv));
     if (state) {
       state->hit(primitive, reason);
     }
@@ -2010,9 +2009,8 @@ namespace render {
         }
 
         const Primitive* primitive = scene->objects()[hit.object];
-        const HitPoint hitPoint(
-          primitive, hit.distance, Vector4d(hit.point[0], hit.point[1], hit.point[2], hit.point[3]),
-          Vector3d(hit.normal[0], hit.normal[1], hit.normal[2]), Vector2d(hit.uv[0], hit.uv[1]));
+        const HitPoint hitPoint(primitive, hit.distance, Vector4d(hit.point),
+                                Vector3d(hit.normal), Vector2d(hit.uv));
         result.setHit(lane, primitive, hitPoint);
         state->hit(primitive, "Packed GPU intersection scene");
       }
@@ -2072,9 +2070,8 @@ namespace render {
         }
 
         const Primitive* primitive = scene->objects()[hit.object];
-        const HitPoint hitPoint(
-          primitive, hit.distance, Vector4d(hit.point[0], hit.point[1], hit.point[2], hit.point[3]),
-          Vector3d(hit.normal[0], hit.normal[1], hit.normal[2]), Vector2d(hit.uv[0], hit.uv[1]));
+        const HitPoint hitPoint(primitive, hit.distance, Vector4d(hit.point),
+                                Vector3d(hit.normal), Vector2d(hit.uv));
         result.setHit(lane, primitive, hitPoint);
         state->hit(primitive, "Packed GPU intersection scene");
       }
