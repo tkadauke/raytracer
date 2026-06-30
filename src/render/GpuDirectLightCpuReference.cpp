@@ -77,8 +77,7 @@ namespace render {
       visibility.rayOrigin = Vector3d(shifted.origin()).toFloat4(1.0f);
       visibility.rayDirection = shifted.direction().toFloat4();
       visibility.lightRadiance = sample.radiance.toFloat4();
-      visibility.lightSample = {static_cast<float>(sample.surfaceSample.x()),
-                                static_cast<float>(sample.surfaceSample.y()), 0.0f, 0.0f};
+      visibility.lightSample = sample.surfaceSample.toFloat4();
       visibility.minDistance = static_cast<float>(Rayd::epsilon);
       visibility.maxDistance = static_cast<float>(sample.distance);
       visibility.lightPdf = static_cast<float>(sample.pdf);
@@ -87,9 +86,7 @@ namespace render {
     }
 
     Rayd visibilityRay(const GpuDirectLightVisibilityRecord& visibility) {
-      return Rayd(Vector4d(visibility.rayOrigin[0], visibility.rayOrigin[1],
-                           visibility.rayOrigin[2], visibility.rayOrigin[3]),
-                  Vector3d(visibility.rayDirection));
+      return Rayd(Vector4d(visibility.rayOrigin), Vector3d(visibility.rayDirection));
     }
 
     GpuIntersectionHitRecord surfaceHitRecord(const GpuDirectLightSurfaceRecord& surface) {

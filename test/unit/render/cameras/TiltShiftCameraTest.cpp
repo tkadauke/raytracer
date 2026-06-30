@@ -18,26 +18,19 @@ namespace TiltShiftCameraTest {
   using test::setupViewPlane;
 
   Vector3d descriptorOrigin(const GpuPrimaryPathDescriptor& descriptor) {
-    return Vector3d(descriptor.rectilinear.originOrDirection[0],
-                    descriptor.rectilinear.originOrDirection[1],
-                    descriptor.rectilinear.originOrDirection[2]);
+    return Vector3d(descriptor.rectilinear.originOrDirection);
   }
 
   Vector3d descriptorMotionOriginDelta(const GpuPrimaryPathDescriptor& descriptor) {
-    return Vector3d(descriptor.rectilinear.motionOriginDelta[0],
-                    descriptor.rectilinear.motionOriginDelta[1],
-                    descriptor.rectilinear.motionOriginDelta[2]);
+    return Vector3d(descriptor.rectilinear.motionOriginDelta);
   }
 
   Vector3d descriptorMotionTarget(const GpuPrimaryPathDescriptor& descriptor) {
-    return Vector3d(descriptor.rectilinear.motionTarget[0], descriptor.rectilinear.motionTarget[1],
-                    descriptor.rectilinear.motionTarget[2]);
+    return Vector3d(descriptor.rectilinear.motionTarget);
   }
 
   Vector3d descriptorMotionTargetDelta(const GpuPrimaryPathDescriptor& descriptor) {
-    return Vector3d(descriptor.rectilinear.motionTargetDelta[0],
-                    descriptor.rectilinear.motionTargetDelta[1],
-                    descriptor.rectilinear.motionTargetDelta[2]);
+    return Vector3d(descriptor.rectilinear.motionTargetDelta);
   }
 
   TEST(TiltShiftCamera, ShouldDefaultToZeroTiltAndShift) {

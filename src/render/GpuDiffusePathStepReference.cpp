@@ -84,10 +84,6 @@ namespace {
     return Rayd(Vector4d(ray.origin), Vector3d(ray.direction));
   }
 
-  Vector3d vector3FromArray(const std::array<float, 4>& value) {
-    return Vector3d(value[0], value[1], value[2]);
-  }
-
   GpuIntersectionRay packRay(const Rayd& ray, std::uint32_t rayIndex, double minDistance,
                              double maxDistance, double timeSample) {
     return GpuIntersectionScenePacker().packRay(ray, rayIndex, minDistance, maxDistance,
@@ -279,16 +275,16 @@ namespace {
   void generateDescriptorPrimaryPathStates(std::uint32_t mode,
                                            const GpuRectilinearPrimaryPathDescriptor& descriptor,
                                            GpuDiffusePrimaryPathStateGeneration& result) {
-    const Vector3d originOrDirection = vector3FromArray(descriptor.originOrDirection);
-    const Vector3d motionOriginDelta = vector3FromArray(descriptor.motionOriginDelta);
-    const Vector3d motionTarget = vector3FromArray(descriptor.motionTarget);
-    const Vector3d motionTargetDelta = vector3FromArray(descriptor.motionTargetDelta);
-    const Vector3d topLeft = vector3FromArray(descriptor.topLeft);
-    const Vector3d right = vector3FromArray(descriptor.right);
-    const Vector3d down = vector3FromArray(descriptor.down);
-    const Vector3d lensRight = vector3FromArray(descriptor.lensRight);
-    const Vector3d lensUp = vector3FromArray(descriptor.lensUp);
-    const Vector3d forward = vector3FromArray(descriptor.forward);
+    const Vector3d originOrDirection(descriptor.originOrDirection);
+    const Vector3d motionOriginDelta(descriptor.motionOriginDelta);
+    const Vector3d motionTarget(descriptor.motionTarget);
+    const Vector3d motionTargetDelta(descriptor.motionTargetDelta);
+    const Vector3d topLeft(descriptor.topLeft);
+    const Vector3d right(descriptor.right);
+    const Vector3d down(descriptor.down);
+    const Vector3d lensRight(descriptor.lensRight);
+    const Vector3d lensUp(descriptor.lensUp);
+    const Vector3d forward(descriptor.forward);
     const std::uint64_t estimatedPathCount = static_cast<std::uint64_t>(descriptor.actualWidth) *
                                              static_cast<std::uint64_t>(descriptor.actualHeight) *
                                              static_cast<std::uint64_t>(descriptor.samplesPerPixel);
