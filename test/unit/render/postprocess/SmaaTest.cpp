@@ -2,19 +2,10 @@
 
 #include "core/Buffer.h"
 #include "render/postprocess/Smaa.h"
+#include "test/helpers/BufferTestHelper.h"
 
 namespace SmaaTest {
-  static int countIntermediatePixels(const Buffer<Colord>& buffer) {
-    int count = 0;
-    for (int y = 0; y < buffer.height(); ++y) {
-      for (int x = 0; x < buffer.width(); ++x) {
-        const double r = buffer[y][x].r();
-        if (r > 0.0 && r < 1.0)
-          ++count;
-      }
-    }
-    return count;
-  }
+  using test::helpers::countIntermediatePixels;
 
   TEST(Smaa, ShouldLeaveFlatImageUnchanged) {
     Buffer<Colord> buffer(8, 8);

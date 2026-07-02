@@ -34,4 +34,7 @@ namespace testing {
 #define ASSERT_COLOR_NEAR(val1, val2, abs_error)                                                   \
   ASSERT_PRED_FORMAT3(::testing::internal::ColorNearPredFormat, val1, val2, abs_error)
 
+#define EXPECT_COLOR_NEAR(val1, val2, abs_error)                                                   \
+  EXPECT_PRED_FORMAT3(::testing::internal::ColorNearPredFormat, val1, val2, abs_error)
+
 #endif

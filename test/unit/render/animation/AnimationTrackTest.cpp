@@ -10,28 +10,14 @@
 #include "core/math/Vector.h"
 #include "core/math/interpolation/Interpolation.h"
 #include "render/animation/AnimationTrack.h"
+#include "test/helpers/ColorTestHelper.h"
 #include "test/helpers/MatrixTestHelper.h"
+#include "test/helpers/VectorTestHelper.h"
 
 using core::math::interpolation::InterpolationMode;
 using render::animation::AnimationTrack;
 using render::animation::AnimationValue;
 using render::animation::Keyframe;
-
-namespace {
-
-  void expectVectorNear(const Vector3d& expected, const Vector3d& actual, double epsilon) {
-    EXPECT_NEAR(expected.x(), actual.x(), epsilon);
-    EXPECT_NEAR(expected.y(), actual.y(), epsilon);
-    EXPECT_NEAR(expected.z(), actual.z(), epsilon);
-  }
-
-  void expectColorNear(const Colord& expected, const Colord& actual, double epsilon) {
-    EXPECT_NEAR(expected.r(), actual.r(), epsilon);
-    EXPECT_NEAR(expected.g(), actual.g(), epsilon);
-    EXPECT_NEAR(expected.b(), actual.b(), epsilon);
-  }
-
-} // namespace
 
 TEST(RenderAnimationValueTest, ReportsExplicitSupportedTypes) {
   EXPECT_TRUE(AnimationValue::supports<double>());
@@ -134,13 +120,13 @@ TEST(RenderAnimationTrackTest, NonInterpolatableLinearTracksFailClearlyBetweenKe
 TEST(RenderAnimationTrackTest, InterpolatesVector3dValues) {
   const AnimationTrack track({{0.0, Vector3d(0, 10, 20)}, {0.5, Vector3d(10, 20, 40)}});
 
-  expectVectorNear(Vector3d(5, 15, 30), track.sample(0.25).get<Vector3d>(), 1e-12);
+  EXPECT_VECTOR_NEAR(Vector3d(5, 15, 30), track.sample(0.25).get<Vector3d>(), 1e-12);
 }
 
 TEST(RenderAnimationTrackTest, InterpolatesColordValues) {
   const AnimationTrack track({{0.0, Colord(0.0, 0.2, 0.4)}, {0.5, Colord(1.0, 0.4, 0.8)}});
 
-  expectColorNear(Colord(0.5, 0.3, 0.6), track.sample(0.25).get<Colord>(), 1e-12);
+  EXPECT_COLOR_NEAR(Colord(0.5, 0.3, 0.6), track.sample(0.25).get<Colord>(), 1e-12);
 }
 
 TEST(RenderAnimationTrackTest, InterpolatesMatrix4dValues) {
@@ -157,7 +143,7 @@ TEST(RenderAnimationTrackTest, MatchesCoreAnimationInterpolationForFrameTimes) {
   const AnimationTrack renderTrack({{0.0, Vector3d(0, 10, 20)}, {10.0, Vector3d(10, 20, 40)}},
                                    InterpolationMode::SmoothStep);
 
-  expectVectorNear(coreTrack.sample(2), renderTrack.sample(2.0).get<Vector3d>(), 1e-12);
-  expectVectorNear(coreTrack.sample(5), renderTrack.sample(5.0).get<Vector3d>(), 1e-12);
-  expectVectorNear(coreTrack.sample(8), renderTrack.sample(8.0).get<Vector3d>(), 1e-12);
+  EXPECT_VECTOR_NEAR(coreTrack.sample(2), renderTrack.sample(2.0).get<Vector3d>(), 1e-12);
+  EXPECT_VECTOR_NEAR(coreTrack.sample(5), renderTrack.sample(5.0).get<Vector3d>(), 1e-12);
+  EXPECT_VECTOR_NEAR(coreTrack.sample(8), renderTrack.sample(8.0).get<Vector3d>(), 1e-12);
 }

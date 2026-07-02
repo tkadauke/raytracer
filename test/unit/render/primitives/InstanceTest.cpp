@@ -6,6 +6,7 @@
 #include "render/materials/MatteMaterial.h"
 #include "render/primitives/Instance.h"
 #include "render/primitives/Sphere.h"
+#include "test/helpers/VectorTestHelper.h"
 #include "test/mocks/raytracer/MockPrimitive.h"
 
 namespace InstanceTest {
@@ -14,12 +15,6 @@ namespace InstanceTest {
   using namespace render;
   using namespace render;
   using core::math::interpolation::InterpolationMode;
-
-  void expectVectorNear(const Vector3d& expected, const Vector3d& actual, double epsilon) {
-    EXPECT_NEAR(expected.x(), actual.x(), epsilon);
-    EXPECT_NEAR(expected.y(), actual.y(), epsilon);
-    EXPECT_NEAR(expected.z(), actual.z(), epsilon);
-  }
 
   TEST(Instance, ShouldReturnChildPrimitiveIfTransformedRayIntersects) {
     auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
@@ -237,7 +232,7 @@ namespace InstanceTest {
     HitPointInterval hitPoints;
     instance.intersect(Rayd(Vector3d(5, 0, 0), Vector3d(0, 0, 1)), hitPoints, state);
 
-    expectVectorNear(Vector3d(0, 0, 0), Vector3d(capturedRay.origin()), 1e-9);
+    EXPECT_VECTOR_NEAR(Vector3d(0, 0, 0), Vector3d(capturedRay.origin()), 1e-9);
   }
 
   TEST(Instance, ShouldComposeVelocityAfterExplicitPositionTrack) {
@@ -259,7 +254,7 @@ namespace InstanceTest {
     HitPointInterval hitPoints;
     instance.intersect(Rayd(Vector3d(6, 0, 0), Vector3d(0, 0, 1)), hitPoints, state);
 
-    expectVectorNear(Vector3d(0, 0, 0), Vector3d(capturedRay.origin()), 1e-9);
+    EXPECT_VECTOR_NEAR(Vector3d(0, 0, 0), Vector3d(capturedRay.origin()), 1e-9);
   }
 
   TEST(Instance, ShouldLetVelocityTrackOverrideStaticVelocity) {
@@ -281,7 +276,7 @@ namespace InstanceTest {
     HitPointInterval hitPoints;
     instance.intersect(Rayd(Vector3d(1, 0, 0), Vector3d(0, 0, 1)), hitPoints, state);
 
-    expectVectorNear(Vector3d(0, 0, 0), Vector3d(capturedRay.origin()), 1e-9);
+    EXPECT_VECTOR_NEAR(Vector3d(0, 0, 0), Vector3d(capturedRay.origin()), 1e-9);
   }
 
   TEST(Instance, ShouldMaterializeRay4PacketHitsThroughStaticTransform) {

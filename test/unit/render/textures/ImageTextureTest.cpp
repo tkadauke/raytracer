@@ -3,15 +3,10 @@
 #include "core/math/HitPoint.h"
 #include "render/textures/ImageTexture.h"
 #include "render/textures/mappings/UVMapping2D.h"
+#include "test/helpers/ColorTestHelper.h"
 
 namespace ImageTextureTest {
   using namespace render;
-
-  void expectColorNear(const Colord& expected, const Colord& actual) {
-    EXPECT_NEAR(expected.r(), actual.r(), 1e-9);
-    EXPECT_NEAR(expected.g(), actual.g(), 1e-9);
-    EXPECT_NEAR(expected.b(), actual.b(), 1e-9);
-  }
 
   std::vector<Colord> quadPixels() {
     return {Colord::red(), Colord::green(), Colord::blue(), Colord::white()};
@@ -34,7 +29,7 @@ namespace ImageTextureTest {
     ImageTexture texture(new UVMapping2D, 2, 2, quadPixels(), ImageTextureFilter::Bilinear);
 
     EXPECT_EQ(Colord::red(), texture.sample(0.25, 0.25));
-    expectColorNear(Colord(0.5, 0.5, 0.5), texture.sample(0.5, 0.5));
+    EXPECT_COLOR_NEAR(Colord(0.5, 0.5, 0.5), texture.sample(0.5, 0.5), 1e-9);
   }
 
   TEST(ImageTexture, RepeatWrapsCoordinatesOutsideTheUnitSquare) {
@@ -72,8 +67,8 @@ namespace ImageTextureTest {
     ImageTexture texture(new UVMapping2D, 4, 4, pixels, ImageTextureFilter::Mipmap);
 
     ASSERT_EQ(3, texture.mipLevelCount());
-    expectColorNear(Colord(0.5, 0.5, 0.5),
-                    texture.sample(0.3, 0.7, Vector2d(1.0, 0.0), Vector2d(0.0, 0.0)));
+    EXPECT_COLOR_NEAR(Colord(0.5, 0.5, 0.5),
+                    texture.sample(0.3, 0.7, Vector2d(1.0, 0.0), Vector2d(0.0, 0.0)), 1e-9);
   }
 
   TEST(ImageTexture, ExposesGeneratedLevelPixelsForRenderBackends) {
@@ -83,7 +78,7 @@ namespace ImageTextureTest {
     ASSERT_EQ(4u, texture.pixels(0).size());
     EXPECT_EQ(Colord::red(), texture.pixels(0)[0]);
     ASSERT_EQ(1u, texture.pixels(1).size());
-    expectColorNear(Colord(0.5, 0.5, 0.5), texture.pixels(1)[0]);
+    EXPECT_COLOR_NEAR(Colord(0.5, 0.5, 0.5), texture.pixels(1)[0], 1e-9);
   }
 
   TEST(ImageTexture, EvaluateUsesConfiguredMapping) {
