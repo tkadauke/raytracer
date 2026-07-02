@@ -5,24 +5,10 @@
 #include "core/Color.h"
 #include "core/math/Vector.h"
 #include "core/math/interpolation/Interpolation.h"
+#include "test/helpers/ColorTestHelper.h"
+#include "test/helpers/VectorTestHelper.h"
 
 using namespace core::math::interpolation;
-
-namespace {
-
-  void expectVectorNear(const Vector3d& expected, const Vector3d& actual, double epsilon) {
-    EXPECT_NEAR(expected.x(), actual.x(), epsilon);
-    EXPECT_NEAR(expected.y(), actual.y(), epsilon);
-    EXPECT_NEAR(expected.z(), actual.z(), epsilon);
-  }
-
-  void expectColorNear(const Colord& expected, const Colord& actual, double epsilon) {
-    EXPECT_NEAR(expected.r(), actual.r(), epsilon);
-    EXPECT_NEAR(expected.g(), actual.g(), epsilon);
-    EXPECT_NEAR(expected.b(), actual.b(), epsilon);
-  }
-
-} // namespace
 
 TEST(InterpolationModesTest, ParsesSupportedNames) {
   EXPECT_EQ(InterpolationMode::Step, InterpolationModes::fromName("step"));
@@ -51,14 +37,14 @@ TEST(LinearInterpolatorTest, InterpolatesVectorValues) {
   const auto actual =
     LinearInterpolator<Vector3d>::interpolate(Vector3d(0, 10, 20), Vector3d(10, 20, 40), 0.25);
 
-  expectVectorNear(Vector3d(2.5, 12.5, 25), actual, 1e-12);
+  EXPECT_VECTOR_NEAR(Vector3d(2.5, 12.5, 25), actual, 1e-12);
 }
 
 TEST(LinearInterpolatorTest, InterpolatesColorValues) {
   const auto actual =
     LinearInterpolator<Colord>::interpolate(Colord(0.0, 0.2, 0.4), Colord(1.0, 0.4, 0.8), 0.25);
 
-  expectColorNear(Colord(0.25, 0.25, 0.5), actual, 1e-12);
+  EXPECT_COLOR_NEAR(Colord(0.25, 0.25, 0.5), actual, 1e-12);
 }
 
 TEST(SmoothStepInterpolatorTest, RemapsInterpolationWeight) {

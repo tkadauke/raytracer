@@ -1,5 +1,6 @@
 #include "core/formats/stl/StlFile.h"
 
+#include "core/formats/BinaryRead.h"
 #include "core/formats/stl/StlParseError.h"
 #include "core/geometry/Mesh.h"
 
@@ -8,7 +9,6 @@
 #include <cctype>
 #include <cmath>
 #include <cstdint>
-#include <cstring>
 #include <iterator>
 #include <limits>
 #include <sstream>
@@ -34,19 +34,8 @@ namespace {
            std::equal(prefix.begin(), prefix.end(), first);
   }
 
-  std::uint32_t readUint32LE(const unsigned char* data) {
-    return static_cast<std::uint32_t>(data[0]) |
-           (static_cast<std::uint32_t>(data[1]) << 8) |
-           (static_cast<std::uint32_t>(data[2]) << 16) |
-           (static_cast<std::uint32_t>(data[3]) << 24);
-  }
-
-  float readFloat32LE(const unsigned char* data) {
-    const std::uint32_t bits = readUint32LE(data);
-    float value;
-    std::memcpy(&value, &bits, sizeof(value));
-    return value;
-  }
+  using core::formats::readFloat32Le;
+  using core::formats::readUint32Le;
 
   Vector3d normalFromWinding(const std::array<Vector3d, 3>& vertices) {
     Vector3d normal = (vertices[2] - vertices[0]) ^ (vertices[1] - vertices[0]);
@@ -125,8 +114,8 @@ namespace core::formats::stl {
 
   void StlFile::parse(Mesh* mesh) {
     if (m_bytes.size() >= kBinaryHeaderBytes + kBinaryCountBytes) {
-      const auto* data = reinterpret_cast<const unsigned char*>(m_bytes.data());
-      const std::uint32_t count = readUint32LE(data + kBinaryHeaderBytes);
+      const auto* data = reinterpret_cast<const std::uint8_t*>(m_bytes.data());
+      const std::uint32_t count = readUint32Le(data + kBinaryHeaderBytes);
       const std::uint64_t expectedSize =
         static_cast<std::uint64_t>(kBinaryHeaderBytes + kBinaryCountBytes) +
         static_cast<std::uint64_t>(count) * kBinaryTriangleBytes;
@@ -184,22 +173,22 @@ namespace core::formats::stl {
   }
 
   void StlFile::parseBinary(Mesh* mesh) {
-    const auto* data = reinterpret_cast<const unsigned char*>(m_bytes.data());
-    const std::uint32_t count = readUint32LE(data + kBinaryHeaderBytes);
+    const auto* data = reinterpret_cast<const std::uint8_t*>(m_bytes.data());
+    const std::uint32_t count = readUint32Le(data + kBinaryHeaderBytes);
     m_triangleCount = count;
 
-    const unsigned char* cursor = data + kBinaryHeaderBytes + kBinaryCountBytes;
+    const std::uint8_t* cursor = data + kBinaryHeaderBytes + kBinaryCountBytes;
     for (std::uint32_t triangle = 0; triangle != count; ++triangle) {
-      const Vector3d facetNormal(readFloat32LE(cursor + 0),
-                                 readFloat32LE(cursor + 4),
-                                 readFloat32LE(cursor + 8));
+      const Vector3d facetNormal(readFloat32Le(cursor + 0),
+                                 readFloat32Le(cursor + 4),
+                                 readFloat32Le(cursor + 8));
       std::array<Vector3d, 3> vertices = {
-        Vector3d(readFloat32LE(cursor + 12), readFloat32LE(cursor + 16),
-                 readFloat32LE(cursor + 20)),
-        Vector3d(readFloat32LE(cursor + 24), readFloat32LE(cursor + 28),
-                 readFloat32LE(cursor + 32)),
-        Vector3d(readFloat32LE(cursor + 36), readFloat32LE(cursor + 40),
-                 readFloat32LE(cursor + 44)),
+        Vector3d(readFloat32Le(cursor + 12), readFloat32Le(cursor + 16),
+                 readFloat32Le(cursor + 20)),
+        Vector3d(readFloat32Le(cursor + 24), readFloat32Le(cursor + 28),
+                 readFloat32Le(cursor + 32)),
+        Vector3d(readFloat32Le(cursor + 36), readFloat32Le(cursor + 40),
+                 readFloat32Le(cursor + 44)),
       };
 
       if (!finiteVector(vertices[0]) || !finiteVector(vertices[1]) || !finiteVector(vertices[2]))

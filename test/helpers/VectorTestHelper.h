@@ -38,4 +38,7 @@ namespace testing {
 #define ASSERT_VECTOR_NEAR(val1, val2, abs_error)                                                  \
   ASSERT_PRED_FORMAT3(::testing::internal::VectorNearPredFormat, val1, val2, abs_error)
 
+#define EXPECT_VECTOR_NEAR(val1, val2, abs_error)                                                  \
+  EXPECT_PRED_FORMAT3(::testing::internal::VectorNearPredFormat, val1, val2, abs_error)
+
 #endif

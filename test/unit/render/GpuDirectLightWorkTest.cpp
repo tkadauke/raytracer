@@ -17,6 +17,9 @@
 #include "render/primitives/Sphere.h"
 #include "render/samplers/GpuSampleStream.h"
 
+#include "test/helpers/ColorTestHelper.h"
+#include "test/helpers/VectorTestHelper.h"
+
 #include <cmath>
 #include <memory>
 #include <type_traits>
@@ -96,18 +99,6 @@ namespace GpuDirectLightWorkTest {
       return diffuse + glossy;
     }
 
-    void expectVectorNear(const Vector3d& actual, const Vector3d& expected) {
-      EXPECT_NEAR(expected.x(), actual.x(), 1e-12);
-      EXPECT_NEAR(expected.y(), actual.y(), 1e-12);
-      EXPECT_NEAR(expected.z(), actual.z(), 1e-12);
-    }
-
-    void expectColorNear(const Colord& actual, const Colord& expected) {
-      EXPECT_NEAR(expected.r(), actual.r(), 1e-12);
-      EXPECT_NEAR(expected.g(), actual.g(), 1e-12);
-      EXPECT_NEAR(expected.b(), actual.b(), 1e-12);
-    }
-
     void expectCompiledSampleMatchesRuntime(const GpuTracingLightRecord& record,
                                             const Light& runtimeLight, const Vector3d& point,
                                             const Vector2d& surfaceSample) {
@@ -115,8 +106,8 @@ namespace GpuDirectLightWorkTest {
       const LightSample runtime = runtimeLight.sample(point, surfaceSample);
 
       ASSERT_TRUE(compiled.valid());
-      expectVectorNear(compiled.direction, runtime.direction);
-      expectColorNear(compiled.radiance, runtime.radiance);
+      EXPECT_VECTOR_NEAR(runtime.direction, compiled.direction, 1e-12);
+      EXPECT_COLOR_NEAR(runtime.radiance, compiled.radiance, 1e-12);
       EXPECT_DOUBLE_EQ(runtime.distance, compiled.distance);
       EXPECT_NEAR(runtime.pdf, compiled.pdf, 1e-12);
       EXPECT_EQ(runtime.delta, compiled.delta);

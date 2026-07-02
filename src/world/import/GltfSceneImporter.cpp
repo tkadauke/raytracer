@@ -1,5 +1,6 @@
 #include "world/import/GltfSceneImporter.h"
 
+#include "core/formats/BinaryRead.h"
 #include "core/geometry/Mesh.h"
 #include "core/formats/gltf/GltfReader.h"
 #include "core/json/JsonValue.h"
@@ -383,24 +384,9 @@ namespace world {
       return buffer.data.data() + offset;
     }
 
-    float readFloat32Le(const std::uint8_t* data) {
-      std::uint32_t bits =
-        static_cast<std::uint32_t>(data[0]) | (static_cast<std::uint32_t>(data[1]) << 8u) |
-        (static_cast<std::uint32_t>(data[2]) << 16u) | (static_cast<std::uint32_t>(data[3]) << 24u);
-      float value = 0.0f;
-      std::memcpy(&value, &bits, sizeof(value));
-      return value;
-    }
-
-    std::uint32_t readUint16Le(const std::uint8_t* data) {
-      return static_cast<std::uint32_t>(data[0]) | (static_cast<std::uint32_t>(data[1]) << 8u);
-    }
-
-    std::uint32_t readUint32Le(const std::uint8_t* data) {
-      return static_cast<std::uint32_t>(data[0]) | (static_cast<std::uint32_t>(data[1]) << 8u) |
-             (static_cast<std::uint32_t>(data[2]) << 16u) |
-             (static_cast<std::uint32_t>(data[3]) << 24u);
-    }
+    using core::formats::readFloat32Le;
+    using core::formats::readUint16Le;
+    using core::formats::readUint32Le;
 
     std::vector<Vector3d> readVec3Accessor(const core::gltf::Asset& asset,
                                            std::size_t accessorIndex, const char* semantic) {
