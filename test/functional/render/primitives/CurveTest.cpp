@@ -7,11 +7,10 @@
 #include "engine/raster/Rasterizer.h"
 #include "engine/wireframe/Wireframe.h"
 #include "render/cameras/PinholeCamera.h"
-#include "render/materials/MatteMaterial.h"
 #include "render/primitives/Curve.h"
 #include "render/primitives/Scene.h"
-#include "render/textures/ConstantColorTexture.h"
 #include "test/helpers/BufferTestHelper.h"
+#include "test/helpers/MaterialTestHelper.h"
 
 #include <QFile>
 #include <QJsonArray>
@@ -27,6 +26,7 @@ namespace CurveFunctionalTest {
   using namespace render;
   using test::helpers::countPixels;
   using test::helpers::countPixelsNotEqualTo;
+  using test::helpers::matte;
 
   core::Curve::AttributeValue attributeValueFromJson(const QJsonValue& value) {
     if (value.isBool())
@@ -95,10 +95,6 @@ namespace CurveFunctionalTest {
 
   std::shared_ptr<PinholeCamera> headOnCamera() {
     return std::make_shared<PinholeCamera>(Vector3d::null, Vector3d::forward());
-  }
-
-  std::shared_ptr<MatteMaterial> matte(const Colord& color) {
-    return std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(color));
   }
 
   std::shared_ptr<Scene> sceneWithCurve(std::shared_ptr<Curve> curve) {

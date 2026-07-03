@@ -1,14 +1,14 @@
 #include "test/functional/support/EngineFeatureTest.h"
 #include "test/functional/support/GivenWhenThen.h"
+#include "test/helpers/BufferTestHelper.h"
+#include "test/helpers/MaterialTestHelper.h"
 
 #include "engine/raster/Rasterizer.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/lights/DirectionalLight.h"
-#include "render/materials/MatteMaterial.h"
 #include "render/primitives/Box.h"
 #include "render/primitives/Rectangle.h"
 #include "render/primitives/Scene.h"
-#include "render/textures/ConstantColorTexture.h"
 
 #include <cmath>
 #include <memory>
@@ -88,9 +88,7 @@ namespace {
       engine::raster::Rasterizer::ShadowFilterMode::PCF};
   };
 
-  std::shared_ptr<MatteMaterial> matte(const Colord& color) {
-    return std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(color));
-  }
+  using test::helpers::matte;
 
   RasterizerFeatureTest* rasterizerTest(EngineFeatureTest* test) {
     auto* rasterizer = dynamic_cast<RasterizerFeatureTest*>(test);
@@ -118,40 +116,9 @@ namespace {
     return buffer[y][x];
   }
 
-  int countPixelsBrightenedByFiltering(const Buffer<Colord>& hardShadow,
-                                       const Buffer<Colord>& filteredShadow) {
-    int count = 0;
-    for (int y = 0; y < hardShadow.height(); ++y) {
-      for (int x = 0; x < hardShadow.width(); ++x) {
-        if (filteredShadow[y][x].r() > hardShadow[y][x].r() + 0.03)
-          ++count;
-      }
-    }
-    return count;
-  }
-
-  int countPixelsDarkenedByFiltering(const Buffer<Colord>& hardShadow,
-                                     const Buffer<Colord>& filteredShadow) {
-    int count = 0;
-    for (int y = 0; y < hardShadow.height(); ++y) {
-      for (int x = 0; x < hardShadow.width(); ++x) {
-        if (hardShadow[y][x].r() > filteredShadow[y][x].r() + 0.03)
-          ++count;
-      }
-    }
-    return count;
-  }
-
-  int countPixelsDifferent(const Buffer<Colord>& lhs, const Buffer<Colord>& rhs, double threshold) {
-    int count = 0;
-    for (int y = 0; y < lhs.height(); ++y) {
-      for (int x = 0; x < lhs.width(); ++x) {
-        if (std::abs(lhs[y][x].r() - rhs[y][x].r()) > threshold)
-          ++count;
-      }
-    }
-    return count;
-  }
+  using test::helpers::countPixelsBrightenedByFiltering;
+  using test::helpers::countPixelsDarkenedByFiltering;
+  using test::helpers::countPixelsDifferent;
 }
 
 GIVEN(EngineFeatureTest, "a rasterizer directional shadow scene") {

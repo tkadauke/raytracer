@@ -36,6 +36,7 @@
 #include "render/textures/mappings/PlanarMapping2D.h"
 #include "render/textures/mappings/UVMapping2D.h"
 #include "test/helpers/BufferTestHelper.h"
+#include "test/helpers/MaterialTestHelper.h"
 
 #include <QThreadPool>
 
@@ -54,6 +55,9 @@ namespace RasterizerTest {
   using namespace engine::raster;
   using test::helpers::countPixels;
   using test::helpers::countPixelsNotEqualTo;
+  using test::helpers::countPixelsBrightenedByFiltering;
+  using test::helpers::countPixelsDarkenedByFiltering;
+  using test::helpers::matte;
 
   class HitPointUVTexture : public Texturec {
   public:
@@ -522,10 +526,6 @@ namespace RasterizerTest {
     return std::make_shared<PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
   }
 
-  static std::shared_ptr<MatteMaterial> matte(const Colord& color) {
-    return std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(color));
-  }
-
   static std::shared_ptr<Scene> sceneWithFrontOccluderAndDenseBackLayer(int backRectangleCount) {
     auto scene = std::make_shared<Scene>(Colord::black());
     auto addRectangle = [&](double z) {
@@ -574,30 +574,6 @@ namespace RasterizerTest {
     if (x < 0 || y < 0 || x >= buffer.width() || y >= buffer.height())
       return Colord::black();
     return buffer[y][x];
-  }
-
-  static int countPixelsBrightenedByFiltering(const Buffer<Colord>& hardShadow,
-                                              const Buffer<Colord>& filteredShadow) {
-    int count = 0;
-    for (int y = 0; y < hardShadow.height(); ++y) {
-      for (int x = 0; x < hardShadow.width(); ++x) {
-        if (filteredShadow[y][x].r() > hardShadow[y][x].r() + 0.03)
-          ++count;
-      }
-    }
-    return count;
-  }
-
-  static int countPixelsDarkenedByFiltering(const Buffer<Colord>& hardShadow,
-                                            const Buffer<Colord>& filteredShadow) {
-    int count = 0;
-    for (int y = 0; y < hardShadow.height(); ++y) {
-      for (int x = 0; x < hardShadow.width(); ++x) {
-        if (hardShadow[y][x].r() > filteredShadow[y][x].r() + 0.03)
-          ++count;
-      }
-    }
-    return count;
   }
 
   static int countFiniteDepthSamples(const Buffer<double>& depth) {
