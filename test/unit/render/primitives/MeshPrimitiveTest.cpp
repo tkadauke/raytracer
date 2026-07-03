@@ -17,8 +17,8 @@
 #include "render/primitives/MeshPrimitive.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/SmoothMeshTriangle.h"
-#include "render/textures/ConstantColorTexture.h"
 #include "test/helpers/BufferTestHelper.h"
+#include "test/helpers/MaterialTestHelper.h"
 
 #include <memory>
 
@@ -27,6 +27,7 @@ namespace MeshPrimitiveTest {
   using namespace render;
   using test::helpers::countPixels;
   using test::helpers::countPixelsNotEqualTo;
+  using test::helpers::matte;
 
   Mesh makeQuadMesh() {
     Mesh mesh;
@@ -69,10 +70,6 @@ namespace MeshPrimitiveTest {
     mesh.addFace({0, 1, 2});
     mesh.addFace({0, 1, 3});
     return mesh;
-  }
-
-  std::shared_ptr<MatteMaterial> matte(const Colord& color) {
-    return std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(color));
   }
 
   std::shared_ptr<Scene> sceneWithPrimitive(std::shared_ptr<Primitive> primitive) {
