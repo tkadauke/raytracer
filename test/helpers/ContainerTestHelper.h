@@ -48,49 +48,14 @@ namespace testing {
     }
   }
 
-  template<class T>
-  std::vector<T> makeStdVector(const T& v0) {
-    return std::vector<T>({v0});
+  template<class T, class... Args>
+  std::vector<T> makeStdVector(const T& first, const Args&... rest) {
+    return std::vector<T>({first, T(rest)...});
   }
 
-  template<class T>
-  std::vector<T> makeStdVector(const T& v0, const T& v1) {
-    return std::vector<T>({v0, v1});
-  }
-
-  template<class T>
-  std::vector<T> makeStdVector(const T& v0, const T& v1, const T& v2) {
-    return std::vector<T>({v0, v1, v2});
-  }
-
-  template<class T>
-  std::vector<T> makeStdVector(const T& v0, const T& v1, const T& v2, const T& v3) {
-    return std::vector<T>({v0, v1, v2, v3});
-  }
-
-  template<class T>
-  std::vector<T> makeStdVector(const T& v0, const T& v1, const T& v2, const T& v3, const T& v4) {
-    return std::vector<T>({v0, v1, v2, v3, v4});
-  }
-
-  template<class T>
-  std::list<T> makeStdList(const T& v0) {
-    return std::list<T>({v0});
-  }
-
-  template<class T>
-  std::list<T> makeStdList(const T& v0, const T& v1) {
-    return std::list<T>({v0, v1});
-  }
-
-  template<class T>
-  std::list<T> makeStdList(const T& v0, const T& v1, const T& v2) {
-    return std::list<T>({v0, v1, v2});
-  }
-
-  template<class T>
-  std::list<T> makeStdList(const T& v0, const T& v1, const T& v2, const T& v3) {
-    return std::list<T>({v0, v1, v2, v3});
+  template<class T, class... Args>
+  std::list<T> makeStdList(const T& first, const Args&... rest) {
+    return std::list<T>({first, T(rest)...});
   }
 }
 

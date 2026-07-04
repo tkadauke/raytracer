@@ -2,6 +2,7 @@
 #include "render/IntersectionSceneCompiler.h"
 #include "render/Stats.h"
 #include "render/primitives/Sphere.h"
+#include "PacketStateHelpers.h"
 #include "core/SimdFeatures.h"
 #include "core/geometry/Mesh.h"
 #include "core/math/Constants.h"
@@ -14,25 +15,6 @@
 using namespace std;
 using namespace render;
 
-#if RAYTRACER_SIMD_SSE || RAYTRACER_SIMD_NEON
-namespace {
-  void packetHit(State& state, const Primitive* primitive, const std::string& reason) {
-    if (state.traceEvents) {
-      state.hit(primitive, reason);
-    } else {
-      ++state.intersectionHits;
-    }
-  }
-
-  void packetMiss(State& state, const Primitive* primitive, const std::string& reason) {
-    if (state.traceEvents) {
-      state.miss(primitive, reason);
-    } else {
-      ++state.intersectionMisses;
-    }
-  }
-}
-#endif
 
 const Primitive* Sphere::intersect(const Rayd& ray, HitPointInterval& hitPoints,
                                    render::State& state) const {

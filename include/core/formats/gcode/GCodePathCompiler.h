@@ -8,6 +8,8 @@
 
 enum class GCodePathMoveType { Travel, Extrusion };
 
+std::string moveTypeName(GCodePathMoveType moveType);
+
 struct GCodePath {
   int tool = 0;
   int layerIndex = -1;

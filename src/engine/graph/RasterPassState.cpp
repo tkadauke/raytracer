@@ -3,6 +3,7 @@
 #include "engine/graph/RenderPlan.h"
 #include "engine/graph/detail/JsonStateHelpers.h"
 #include "engine/raster/OpenGLRasterizer.h"
+#include "core/util/QStringUtil.h"
 
 #include <algorithm>
 #include <cmath>
@@ -15,14 +16,6 @@
 namespace engine::graph {
   namespace {
     using Rasterizer = engine::raster::Rasterizer;
-
-    QString qstr(const std::string& value) {
-      return QString::fromStdString(value);
-    }
-
-    QString qstr(const char* value) {
-      return QString::fromUtf8(value);
-    }
 
     [[noreturn]] void stateError(const std::string& path, const std::string& message) {
       throw std::runtime_error("Invalid raster pass state at " + path + ": " + message);

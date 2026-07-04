@@ -3,6 +3,7 @@
 #include "engine/graph/RenderGraphExecutionTrace.h"
 #include "engine/graph/RenderPassState.h"
 #include "engine/graph/RaytracerPassState.h"
+#include "core/util/QStringUtil.h"
 
 #include <QBrush>
 #include <QEvent>
@@ -61,10 +62,6 @@ namespace {
   constexpr double OriginY = 44.0;
   constexpr double NodeTextInset = 10.0;
   constexpr auto LiveExecutionDelay = std::chrono::milliseconds(500);
-
-  QString qstr(const std::string& value) {
-    return QString::fromStdString(value);
-  }
 
   QString dashIfEmpty(const QString& value) {
     return value.isEmpty() ? QStringLiteral("-") : value;

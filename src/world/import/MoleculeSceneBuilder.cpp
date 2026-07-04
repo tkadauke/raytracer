@@ -1,6 +1,7 @@
 #include "world/import/MoleculeSceneBuilder.h"
 
 #include "core/math/Quaternion.h"
+#include "MoleculeNormalization.h"
 #include "world/objects/ConstantColorTexture.h"
 #include "world/objects/Cylinder.h"
 #include "world/objects/Group.h"
@@ -9,27 +10,12 @@
 
 #include <QString>
 
-#include <algorithm>
-#include <cctype>
 #include <cmath>
 #include <limits>
 #include <map>
 
 namespace world {
   namespace {
-    std::string normalizedElement(std::string element) {
-      element.erase(std::remove_if(element.begin(), element.end(),
-                                   [](unsigned char ch) { return std::isspace(ch) != 0; }),
-                    element.end());
-      if (element.empty())
-        return "X";
-
-      element[0] = static_cast<char>(std::toupper(static_cast<unsigned char>(element[0])));
-      for (size_t i = 1; i < element.size(); ++i)
-        element[i] = static_cast<char>(std::tolower(static_cast<unsigned char>(element[i])));
-      return element;
-    }
-
     const std::map<std::string, MoleculeElementStyle>& elementStyles() {
       static const std::map<std::string, MoleculeElementStyle> styles = {
         {"H", {Colord(1.0, 1.0, 1.0), 1.20, 0.31}},

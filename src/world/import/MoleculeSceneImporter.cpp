@@ -2,6 +2,8 @@
 
 #include "core/formats/molecule/MoleculeParser.h"
 #include "core/math/Quaternion.h"
+#include "core/util/QStringUtil.h"
+#include "MoleculeNormalization.h"
 #include "world/import/MoleculeSceneBuilder.h"
 #include "world/import/SceneImporterRegistry.h"
 #include "world/objects/ConstantColorTexture.h"
@@ -26,23 +28,6 @@ using namespace std;
 
 namespace world {
   namespace {
-    QString qstr(const string& value) {
-      return QString::fromStdString(value);
-    }
-
-    string normalizedElement(string element) {
-      element.erase(remove_if(element.begin(), element.end(),
-                              [](unsigned char ch) { return std::isspace(ch) != 0; }),
-                    element.end());
-      if (element.empty())
-        return "X";
-
-      element[0] = static_cast<char>(std::toupper(static_cast<unsigned char>(element[0])));
-      for (size_t i = 1; i < element.size(); ++i)
-        element[i] = static_cast<char>(std::tolower(static_cast<unsigned char>(element[i])));
-      return element;
-    }
-
     string trimmedAtomName(string value) {
       value.erase(value.begin(), find_if(value.begin(), value.end(),
                                          [](unsigned char ch) { return !std::isspace(ch); }));
