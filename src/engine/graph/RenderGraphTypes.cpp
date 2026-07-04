@@ -5,6 +5,7 @@
 #include "engine/graph/RenderExecutor.h"
 #include "engine/graph/RenderPassState.h"
 #include "core/json/JsonValue.h"
+#include "core/util/QStringUtil.h"
 
 #include <QJsonArray>
 
@@ -24,10 +25,6 @@
 
 namespace engine::graph {
   namespace {
-    QString qstr(const std::string& value) {
-      return QString::fromStdString(value);
-    }
-
     [[noreturn]] void jsonError(const std::string& path, const std::string& message) {
       throw std::runtime_error("Invalid render graph JSON at " + path + ": " + message);
     }

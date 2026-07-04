@@ -1,6 +1,7 @@
 #include "engine/graph/RaytracerPassState.h"
 
 #include "engine/graph/RenderGraphTypes.h"
+#include "core/util/QStringUtil.h"
 #include "engine/graph/RenderPlan.h"
 #include "engine/raytracer/Raytracer.h"
 #include "engine/wavefront/WavefrontRaytracer.h"
@@ -101,10 +102,6 @@ namespace engine::graph {
       if (!value.isString())
         stateError(path + "." + key, "expected string");
       return value.toString().toStdString();
-    }
-
-    QString qstr(const std::string& value) {
-      return QString::fromStdString(value);
     }
 
     std::string samplerFactoryId(const std::string& name) {

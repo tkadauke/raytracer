@@ -1,6 +1,7 @@
 #include "widgets/world/RenderGraphTracePreviewWidget.h"
 
 #include "core/Buffer.h"
+#include "core/util/QStringUtil.h"
 #include "engine/graph/RenderGraphExecutionTrace.h"
 
 #include <QFont>
@@ -20,10 +21,6 @@ using namespace engine::graph;
 
 namespace {
   constexpr int MinimumPreviewWidth = 640;
-
-  QString qstr(const std::string& value) {
-    return QString::fromStdString(value);
-  }
 
   QString dashIfEmpty(const QString& value) {
     return value.isEmpty() ? QStringLiteral("-") : value;

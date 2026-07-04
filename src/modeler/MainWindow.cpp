@@ -105,6 +105,7 @@
 #include "world/import/ImportResult.h"
 #include "world/import/SceneImporter.h"
 #include "world/import/SceneImporterRegistry.h"
+#include "core/util/QStringUtil.h"
 
 namespace {
   using PropertyRows = QVector<QPair<QString, QString>>;
@@ -115,10 +116,6 @@ namespace {
     int last{0};
     int count{0};
   };
-
-  QString qstr(const std::string& value) {
-    return QString::fromStdString(value);
-  }
 
   QString dashIfEmpty(const QString& value) {
     return value.isEmpty() ? QStringLiteral("-") : value;

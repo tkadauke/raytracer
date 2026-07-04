@@ -6,6 +6,10 @@
 #include <optional>
 #include <vector>
 
+std::string moveTypeName(GCodePathMoveType moveType) {
+  return moveType == GCodePathMoveType::Extrusion ? "extrusion" : "travel";
+}
+
 namespace {
   constexpr double PointTolerance = 1e-12;
 
@@ -21,10 +25,6 @@ namespace {
 
   GCodePathMoveType moveTypeFor(const GCodeMotion& motion) {
     return motion.isExtruding() ? GCodePathMoveType::Extrusion : GCodePathMoveType::Travel;
-  }
-
-  std::string moveTypeName(GCodePathMoveType moveType) {
-    return moveType == GCodePathMoveType::Extrusion ? "extrusion" : "travel";
   }
 
   int normalizedLayerIndex(const GCodeMotion& motion) {

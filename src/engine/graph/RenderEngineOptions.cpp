@@ -6,6 +6,7 @@
 #include "engine/graph/WireframePassState.h"
 #include "engine/graph/detail/JsonStateHelpers.h"
 #include "engine/raster/Rasterizer.h"
+#include "core/util/QStringUtil.h"
 
 #include <algorithm>
 #include <cmath>
@@ -78,14 +79,6 @@ namespace engine::graph {
       if (!value.isString())
         optionsError(path + "." + key, "expected string");
       return value.toString().toStdString();
-    }
-
-    QString qstr(const std::string& value) {
-      return QString::fromStdString(value);
-    }
-
-    QString qstr(const char* value) {
-      return QString::fromUtf8(value);
     }
 
     std::string colorWriteMaskString(std::uint8_t mask) {

@@ -2,6 +2,7 @@
 
 #include "core/formats/gcode/GCodePathCompiler.h"
 #include "core/formats/gcode/GCodeParser.h"
+#include "core/util/QStringUtil.h"
 #include "core/geometry/AttributeColorMap.h"
 #include "render/primitives/Curve.h"
 #include "world/import/SceneImporterRegistry.h"
@@ -24,11 +25,6 @@
 #include <optional>
 
 namespace {
-  QString moveTypeName(GCodePathMoveType moveType) {
-    return moveType == GCodePathMoveType::Extrusion ? QStringLiteral("extrusion")
-                                                    : QStringLiteral("travel");
-  }
-
   QString featureName(const std::string& featureType) {
     return featureType.empty() ? QStringLiteral("Unclassified")
                                : QString::fromStdString(featureType);
@@ -234,7 +230,7 @@ namespace {
       std::make_shared<render::Curve>(path.polyline, 0.25, render::Curve::TessellationMode::Tube);
     curve->setSegmentColorMap(colorMapForMode(visualizationMode, stats));
     curve->setMetadataValue("source.format", "gcode");
-    curve->setMetadataValue("gcode.moveType", moveTypeName(path.moveType).toStdString());
+    curve->setMetadataValue("gcode.moveType", moveTypeName(path.moveType));
     curve->setMetadataValue("gcode.tool", std::to_string(path.tool));
     curve->setMetadataValue("gcode.layerIndex", std::to_string(path.layerIndex));
     curve->setMetadataValue("gcode.lineStart", std::to_string(path.lineStart));
@@ -349,10 +345,10 @@ namespace world {
 
         auto surface = std::make_unique<CompiledPrimitive>(
           curveForPath(path, stats, settings.visualizationMode));
-        surface->setName(QStringLiteral("%1 path").arg(moveTypeName(path.moveType)));
+        surface->setName(QStringLiteral("%1 path").arg(qstr(moveTypeName(path.moveType))));
         surface->setMetadata(QJsonObject{
           {"sourceFormat", "gcode"},
-          {"moveType", moveTypeName(path.moveType)},
+          {"moveType", qstr(moveTypeName(path.moveType))},
           {"tool", path.tool},
           {"layerIndex", path.layerIndex},
           {"lineStart", path.lineStart},
