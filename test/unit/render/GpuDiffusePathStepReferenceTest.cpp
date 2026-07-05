@@ -7,6 +7,7 @@
 #include "core/math/Constants.h"
 #include "core/math/Matrix.h"
 #include "test/helpers/ColorTestHelper.h"
+#include "test/helpers/MeshTestHelper.h"
 #include "test/helpers/VectorTestHelper.h"
 
 #include "render/GpuDiffusePathLoopBackend.h"
@@ -322,15 +323,6 @@ namespace GpuDiffusePathStepReferenceTest {
       return sections;
     }
 
-    [[maybe_unused]] std::shared_ptr<Mesh> triangleMesh() {
-      auto mesh = std::make_shared<Mesh>();
-      mesh->addVertex(Vector3d(0.0, 0.0, 0.0), Vector3d(0.0, 0.0, 1.0), Vector2d(0.0, 0.0));
-      mesh->addVertex(Vector3d(1.0, 0.0, 0.0), Vector3d(0.0, 0.0, 1.0), Vector2d(1.0, 0.0));
-      mesh->addVertex(Vector3d(0.0, 1.0, 0.0), Vector3d(0.0, 0.0, 1.0), Vector2d(0.0, 1.0));
-      mesh->addFace({0, 1, 2});
-      return mesh;
-    }
-
     void expectFloat4Near(const std::array<float, 4>& actual, const std::array<float, 4>& expected,
                           double tolerance);
     void expectPathStateNear(const GpuDiffusePathStateRecord& actual,
@@ -361,7 +353,7 @@ namespace GpuDiffusePathStepReferenceTest {
     [[maybe_unused]] GpuPathLoopCase meshPrimitiveGpuPathLoopCase() {
       Scene scene;
       auto meshPrimitive =
-        std::make_shared<MeshPrimitive>(triangleMesh(), MeshPrimitive::NormalMode::Smooth);
+        std::make_shared<MeshPrimitive>(test::helpers::sharedTriangleMesh(), MeshPrimitive::NormalMode::Smooth);
       meshPrimitive->setMaterial(gpuPathLoopMatte(Colord(0.6, 0.5, 0.4), 0.9));
       scene.add(meshPrimitive);
 
@@ -4247,7 +4239,7 @@ namespace GpuDiffusePathStepReferenceTest {
 
     Scene meshPrimitiveScene;
     auto meshPrimitive =
-      std::make_shared<MeshPrimitive>(triangleMesh(), MeshPrimitive::NormalMode::Smooth);
+      std::make_shared<MeshPrimitive>(test::helpers::sharedTriangleMesh(), MeshPrimitive::NormalMode::Smooth);
     meshPrimitive->setMaterial(matte);
     meshPrimitiveScene.add(meshPrimitive);
     const GpuDiffusePathLoopBackendSupport meshPrimitiveSupport =
@@ -4802,7 +4794,7 @@ namespace GpuDiffusePathStepReferenceTest {
 
     Scene meshPrimitiveScene;
     auto meshPrimitive =
-      std::make_shared<MeshPrimitive>(triangleMesh(), MeshPrimitive::NormalMode::Smooth);
+      std::make_shared<MeshPrimitive>(test::helpers::sharedTriangleMesh(), MeshPrimitive::NormalMode::Smooth);
     meshPrimitive->setMaterial(matte);
     meshPrimitiveScene.add(meshPrimitive);
     const GpuDiffusePathLoopBackendSupport meshPrimitiveSupport =

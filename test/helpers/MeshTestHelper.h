@@ -3,6 +3,8 @@
 
 #include <gtest/gtest.h>
 
+#include <memory>
+
 #include "core/geometry/Mesh.h"
 
 namespace test {
@@ -13,6 +15,27 @@ namespace test {
       mesh->addVertex(Vector3d(-1, -1, 0), Vector3d(0, 0, 1).normalized());
       mesh->addVertex(Vector3d(-1, 1, 0), Vector3d(0, 0, 1).normalized());
       mesh->addVertex(Vector3d(1, -1, 0), Vector3d(0, 0, 1).normalized());
+      return mesh;
+    }
+
+    // A right-triangle mesh in the XY plane: vertices at (0,0,0), (1,0,0), (0,1,0)
+    // with +Z normals and UV coordinates matching the XY positions.
+    inline std::unique_ptr<Mesh> triangleMesh() {
+      auto mesh = std::make_unique<Mesh>();
+      mesh->addVertex(Vector3d(0, 0, 0), Vector3d(0, 0, 1), Vector2d(0, 0));
+      mesh->addVertex(Vector3d(1, 0, 0), Vector3d(0, 0, 1), Vector2d(1, 0));
+      mesh->addVertex(Vector3d(0, 1, 0), Vector3d(0, 0, 1), Vector2d(0, 1));
+      mesh->addFace({0, 1, 2});
+      return mesh;
+    }
+
+    // Same triangle as triangleMesh() but returned as shared_ptr.
+    inline std::shared_ptr<Mesh> sharedTriangleMesh() {
+      auto mesh = std::make_shared<Mesh>();
+      mesh->addVertex(Vector3d(0, 0, 0), Vector3d(0, 0, 1), Vector2d(0, 0));
+      mesh->addVertex(Vector3d(1, 0, 0), Vector3d(0, 0, 1), Vector2d(1, 0));
+      mesh->addVertex(Vector3d(0, 1, 0), Vector3d(0, 0, 1), Vector2d(0, 1));
+      mesh->addFace({0, 1, 2});
       return mesh;
     }
 

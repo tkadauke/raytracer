@@ -28,15 +28,13 @@
 
 #include "core/geometry/Mesh.h"
 #include "core/geometry/Polyline.h"
+#include "test/helpers/MaterialTestHelper.h"
+#include "test/helpers/MeshTestHelper.h"
 
 namespace GpuIntersectionSceneTest {
   using namespace render;
 
   namespace {
-    std::shared_ptr<MatteMaterial> material(const Colord& color = Colord::white()) {
-      return std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(color));
-    }
-
     template<typename Record>
     void expectKernelRecordLayout() {
       EXPECT_TRUE(std::is_standard_layout_v<Record>);
@@ -78,19 +76,10 @@ namespace GpuIntersectionSceneTest {
     CompiledIntersectionScene compileSingleTriangleScene() {
       auto triangle =
         std::make_shared<Triangle>(Vector3d(-1, -2, 3), Vector3d(4, -2, 3), Vector3d(-1, 5, 3));
-      triangle->setMaterial(material(Colord::red()));
+      triangle->setMaterial(test::helpers::matte(Colord::red()));
       Scene scene;
       scene.add(triangle);
       return IntersectionSceneCompiler().compile(scene);
-    }
-
-    std::unique_ptr<Mesh> triangleMesh() {
-      auto mesh = std::make_unique<Mesh>();
-      mesh->addVertex(Vector3d(0, 0, 0), Vector3d(0, 0, 1), Vector2d(0, 0));
-      mesh->addVertex(Vector3d(1, 0, 0), Vector3d(0, 0, 1), Vector2d(1, 0));
-      mesh->addVertex(Vector3d(0, 1, 0), Vector3d(0, 0, 1), Vector2d(0, 1));
-      mesh->addFace({0, 1, 2});
-      return mesh;
     }
 
     void expectPackedClosestHitMatchesCompiled(const Scene& scene, const Rayd& ray,
@@ -552,7 +541,7 @@ namespace GpuIntersectionSceneTest {
         scene, Rayd(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1)), 4.0, 2.0, 101, true, true);
     }
     {
-      auto mesh = triangleMesh();
+      auto mesh = test::helpers::triangleMesh();
       Scene scene;
       scene.add(std::make_shared<FlatMeshTriangle>(mesh.get(), 0, 1, 2));
       expectPackedClosestAndAnyHitMatchCompiled(
@@ -638,7 +627,7 @@ namespace GpuIntersectionSceneTest {
   }
 
   TEST(GpuIntersectionScene, PackedTriangleHonorsCompiledMinimumHitDistance) {
-    auto mesh = triangleMesh();
+    auto mesh = test::helpers::triangleMesh();
     auto primitive = std::make_shared<FlatMeshTriangle>(mesh.get(), 0, 1, 2);
     Scene scene;
     scene.add(primitive);

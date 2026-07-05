@@ -9,7 +9,7 @@
 
 namespace test {
   namespace helpers {
-    inline std::shared_ptr<render::MatteMaterial> matte(const Colord& color) {
+    inline std::shared_ptr<render::MatteMaterial> matte(const Colord& color = Colord::white()) {
       return std::make_shared<render::MatteMaterial>(
         std::make_shared<render::ConstantColorTexture>(color));
     }

@@ -36,6 +36,7 @@
 #include "render/textures/mappings/PlanarMapping2D.h"
 #include "render/textures/mappings/UVMapping2D.h"
 #include "test/helpers/BufferTestHelper.h"
+#include "test/helpers/ColorTestHelper.h"
 #include "test/helpers/MaterialTestHelper.h"
 
 #include <QThreadPool>
@@ -223,11 +224,6 @@ namespace RasterizerTest {
         EXPECT_EQ(expected[y][x], actual[y][x]) << "at (" << x << ", " << y << ")";
   }
 
-  static void expectColorNear(const Colord& expected, const Colord& actual, double epsilon) {
-    EXPECT_NEAR(expected.r(), actual.r(), epsilon);
-    EXPECT_NEAR(expected.g(), actual.g(), epsilon);
-    EXPECT_NEAR(expected.b(), actual.b(), epsilon);
-  }
 
   static std::shared_ptr<Scene> sceneWithBox() {
     auto scene = std::make_shared<Scene>(Colord::white());
@@ -2087,7 +2083,7 @@ namespace RasterizerTest {
     Buffer<Colord> buffer(64, 64);
     engine.render(buffer);
 
-    expectColorNear(Colord(0.1, 0.9, 0.3), buffer[32][32], 1e-12);
+    EXPECT_COLOR_NEAR(Colord(0.1, 0.9, 0.3), buffer[32][32], 1e-12);
   }
 
   TEST(Rasterizer, BlendStateCombinesSourceAndDestinationColor) {
@@ -2103,7 +2099,7 @@ namespace RasterizerTest {
     Buffer<Colord> buffer(64, 64);
     engine.render(buffer);
 
-    expectColorNear(Colord(0.4, 0.3, 0.45), buffer[32][32], 1e-12);
+    EXPECT_COLOR_NEAR(Colord(0.4, 0.3, 0.45), buffer[32][32], 1e-12);
   }
 
   TEST(Rasterizer, SourceAlphaBlendUsesTextureSourcedAlpha) {
@@ -2118,7 +2114,7 @@ namespace RasterizerTest {
     Buffer<Colord> buffer(64, 64);
     engine.render(buffer);
 
-    expectColorNear(Colord(0.35, 0.2, 0.3), buffer[32][32], 1e-12);
+    EXPECT_COLOR_NEAR(Colord(0.35, 0.2, 0.3), buffer[32][32], 1e-12);
   }
 
   TEST(Rasterizer, SourceAlphaBlendUsesTransparentMaterialOpacity) {
@@ -2136,7 +2132,7 @@ namespace RasterizerTest {
     Buffer<Colord> buffer(64, 64);
     engine.render(buffer);
 
-    expectColorNear(Colord(0.4, 0.3, 0.45), buffer[32][32], 1e-12);
+    EXPECT_COLOR_NEAR(Colord(0.4, 0.3, 0.45), buffer[32][32], 1e-12);
   }
 
   TEST(Rasterizer, AlphaTestFailureSkipsColorAndDepthWrites) {
