@@ -34,14 +34,14 @@
 #include "core/geometry/Mesh.h"
 #include "core/math/HitPointInterval.h"
 #include "core/math/Matrix.h"
+#include "test/helpers/MaterialTestHelper.h"
+#include "test/helpers/MeshTestHelper.h"
+#include "test/helpers/VectorTestHelper.h"
 
 namespace IntersectionSceneCompilerTest {
   using namespace render;
 
   namespace {
-    std::shared_ptr<MatteMaterial> material(const Colord& color = Colord::white()) {
-      return std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(color));
-    }
 
     std::size_t countPrimitivesOfKind(const CompiledIntersectionScene& scene,
                                       IntersectionPrimitiveKind kind) {
@@ -125,42 +125,6 @@ namespace IntersectionSceneCompilerTest {
       EXPECT_EQ(expectedReason, compiled.unsupportedPrimitives()[0].reason);
     }
 
-    std::unique_ptr<Mesh> triangleMesh() {
-      auto mesh = std::make_unique<Mesh>();
-      mesh->addVertex(Vector3d(0, 0, 0), Vector3d(0, 0, 1), Vector2d(0, 0));
-      mesh->addVertex(Vector3d(1, 0, 0), Vector3d(0, 0, 1), Vector2d(1, 0));
-      mesh->addVertex(Vector3d(0, 1, 0), Vector3d(0, 0, 1), Vector2d(0, 1));
-      mesh->addFace({0, 1, 2});
-      return mesh;
-    }
-
-    std::shared_ptr<Mesh> sharedTriangleMesh() {
-      auto mesh = std::make_shared<Mesh>();
-      mesh->addVertex(Vector3d(0, 0, 0), Vector3d(0, 0, 1), Vector2d(0, 0));
-      mesh->addVertex(Vector3d(1, 0, 0), Vector3d(0, 0, 1), Vector2d(1, 0));
-      mesh->addVertex(Vector3d(0, 1, 0), Vector3d(0, 0, 1), Vector2d(0, 1));
-      mesh->addFace({0, 1, 2});
-      return mesh;
-    }
-
-    void expectVectorNear(const Vector2d& actual, const Vector2d& expected, double tolerance) {
-      EXPECT_NEAR(expected.x(), actual.x(), tolerance);
-      EXPECT_NEAR(expected.y(), actual.y(), tolerance);
-    }
-
-    void expectVectorNear(const Vector3d& actual, const Vector3d& expected, double tolerance) {
-      EXPECT_NEAR(expected.x(), actual.x(), tolerance);
-      EXPECT_NEAR(expected.y(), actual.y(), tolerance);
-      EXPECT_NEAR(expected.z(), actual.z(), tolerance);
-    }
-
-    void expectVectorNear(const Vector4d& actual, const Vector4d& expected, double tolerance) {
-      EXPECT_NEAR(expected.x(), actual.x(), tolerance);
-      EXPECT_NEAR(expected.y(), actual.y(), tolerance);
-      EXPECT_NEAR(expected.z(), actual.z(), tolerance);
-      EXPECT_NEAR(expected.w(), actual.w(), tolerance);
-    }
-
     void expectCompiledClosestHitMatchesRuntime(Scene& scene, const Rayd& ray,
                                                 double tolerance = 1e-9) {
       const CompiledIntersectionScene compiled = IntersectionSceneCompiler().compile(scene);
@@ -176,9 +140,9 @@ namespace IntersectionSceneCompilerTest {
       ASSERT_GT(compiled.objects().size(), compiledHit.object);
       EXPECT_EQ(runtimeHit, compiled.objects()[compiledHit.object]);
       EXPECT_NEAR(hitPoints.min().distance(), compiledHit.distance, tolerance);
-      expectVectorNear(compiledHit.point, hitPoints.min().point(), tolerance);
-      expectVectorNear(compiledHit.normal, hitPoints.min().normal(), tolerance);
-      expectVectorNear(compiledHit.uv, hitPoints.min().uv(), tolerance);
+      EXPECT_VECTOR_NEAR(compiledHit.point, hitPoints.min().point(), tolerance);
+      EXPECT_VECTOR_NEAR(compiledHit.normal, hitPoints.min().normal(), tolerance);
+      EXPECT_VECTOR_NEAR(compiledHit.uv, hitPoints.min().uv(), tolerance);
     }
 
     void expectCompiledAnyHitMatchesRuntime(Scene& scene, const Rayd& ray, double maxDistance) {
@@ -222,7 +186,7 @@ namespace IntersectionSceneCompilerTest {
   }
 
   TEST(IntersectionSceneCompiler, CompilesMeshTrianglesAsTrianglePayloads) {
-    auto mesh = triangleMesh();
+    auto mesh = test::helpers::triangleMesh();
     auto primitive = std::make_shared<FlatMeshTriangle>(mesh.get(), 0, 1, 2);
     Scene scene;
     scene.add(primitive);
@@ -237,9 +201,9 @@ namespace IntersectionSceneCompilerTest {
   }
 
   TEST(IntersectionSceneCompiler, CompilesMeshPrimitiveAsTrianglePayloads) {
-    auto mesh = sharedTriangleMesh();
+    auto mesh = test::helpers::sharedTriangleMesh();
     auto meshPrimitive = std::make_shared<MeshPrimitive>(mesh, MeshPrimitive::NormalMode::Smooth);
-    meshPrimitive->setMaterial(material(Colord(0.2, 0.4, 0.6)));
+    meshPrimitive->setMaterial(test::helpers::matte(Colord(0.2, 0.4, 0.6)));
     Scene scene;
     scene.add(meshPrimitive);
 
@@ -259,7 +223,7 @@ namespace IntersectionSceneCompilerTest {
   }
 
   TEST(IntersectionSceneCompiler, CompilesMeshTriangleMinimumHitDistance) {
-    auto flatMesh = triangleMesh();
+    auto flatMesh = test::helpers::triangleMesh();
     auto flatTriangle = std::make_shared<FlatMeshTriangle>(flatMesh.get(), 0, 1, 2);
     Scene flatScene;
     flatScene.add(flatTriangle);
@@ -269,7 +233,7 @@ namespace IntersectionSceneCompilerTest {
     ASSERT_EQ(1u, flatCompiled.triangles().size());
     EXPECT_DOUBLE_EQ(0.0001, flatCompiled.triangles()[0].minimumHitDistance);
 
-    auto smoothMesh = triangleMesh();
+    auto smoothMesh = test::helpers::triangleMesh();
     auto smoothTriangle = std::make_shared<SmoothMeshTriangle>(smoothMesh.get(), 0, 1, 2);
     Scene smoothScene;
     smoothScene.add(smoothTriangle);
@@ -343,7 +307,7 @@ namespace IntersectionSceneCompilerTest {
 
   TEST(IntersectionSceneCompiler, CompilesUnbeveledCylinderCompositeAsSupportedPayloads) {
     auto cylinder = unbeveledCylinderComposite();
-    auto sharedMaterial = material(Colord::green());
+    auto sharedMaterial = test::helpers::matte(Colord::green());
     cylinder->setMaterial(sharedMaterial);
     Scene scene;
     scene.add(cylinder);
@@ -373,7 +337,7 @@ namespace IntersectionSceneCompilerTest {
 
   TEST(IntersectionSceneCompiler, CompilesDisjointUnionAsSupportedPayloads) {
     auto unionPrimitive = std::make_shared<Union>();
-    auto sharedMaterial = material(Colord::blue());
+    auto sharedMaterial = test::helpers::matte(Colord::blue());
     unionPrimitive->setMaterial(sharedMaterial);
     unionPrimitive->add(std::make_shared<Sphere>(Vector3d(-3.0, 0.0, 0.0), 1.0));
     unionPrimitive->add(std::make_shared<Sphere>(Vector3d(3.0, 0.0, 0.0), 1.0));
@@ -484,7 +448,7 @@ namespace IntersectionSceneCompilerTest {
   }
 
   TEST(IntersectionSceneCompiler, RoundTripsMaterialAndObjectIds) {
-    auto sharedMaterial = material(Colord::red());
+    auto sharedMaterial = test::helpers::matte(Colord::red());
     auto first = std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0);
     first->setMaterial(sharedMaterial);
     auto second = std::make_shared<Sphere>(Vector3d(3, 0, 0), 1.0);
@@ -1048,7 +1012,7 @@ namespace IntersectionSceneCompilerTest {
   }
 
   TEST(CompiledIntersectionSceneIntersector, HonorsFlatMeshTriangleMinimumHitDistance) {
-    auto mesh = triangleMesh();
+    auto mesh = test::helpers::triangleMesh();
     auto primitive = std::make_shared<FlatMeshTriangle>(mesh.get(), 0, 1, 2);
     Scene scene;
     scene.add(primitive);

@@ -25,6 +25,9 @@
 
 #include <memory>
 
+#include "test/helpers/ColorTestHelper.h"
+#include "test/helpers/VectorTestHelper.h"
+
 namespace GltfSceneImporterTest {
   namespace {
     QString writeGltf(const QByteArray& source) {
@@ -36,17 +39,6 @@ namespace GltfSceneImporterTest {
       file.close();
       EXPECT_TRUE(QFile::rename(file.fileName(), path));
       return path;
-    }
-
-    void expectVectorNear(const Vector3d& actual, const Vector3d& expected) {
-      EXPECT_NEAR(expected.x(), actual.x(), 0.0001);
-      EXPECT_NEAR(expected.y(), actual.y(), 0.0001);
-      EXPECT_NEAR(expected.z(), actual.z(), 0.0001);
-    }
-
-    void expectVectorNear(const Vector2d& actual, const Vector2d& expected) {
-      EXPECT_NEAR(expected.x(), actual.x(), 0.0001);
-      EXPECT_NEAR(expected.y(), actual.y(), 0.0001);
     }
 
     render::MeshPrimitive* importedMeshPrimitive(const world::ImportResult& result) {
@@ -65,11 +57,6 @@ namespace GltfSceneImporterTest {
       return meshPrimitive->leaves()[0]->material();
     }
 
-    void expectColorNear(const Colord& actual, const Colord& expected) {
-      EXPECT_NEAR(expected.r(), actual.r(), 0.0001);
-      EXPECT_NEAR(expected.g(), actual.g(), 0.0001);
-      EXPECT_NEAR(expected.b(), actual.b(), 0.0001);
-    }
   }
 
   TEST(GltfSceneImporter, RegistersForGltfAndGlbFiles) {
@@ -112,7 +99,7 @@ namespace GltfSceneImporterTest {
     EXPECT_EQ(QString("nodes/0"), armature->metadataValue(GroupMetadata::sourceIdKey()).toString());
     EXPECT_EQ(QString("glTF"),
               armature->metadataValue(GroupMetadata::sourceFormatKey()).toString());
-    expectVectorNear(armature->position(), Vector3d(1.0, 2.0, 3.0));
+    EXPECT_VECTOR_NEAR(armature->position(), Vector3d(1.0, 2.0, 3.0), 0.0001);
 
     const auto armatureProvenance = world::importProvenance(*armature);
     ASSERT_TRUE(armatureProvenance.has_value());
@@ -123,9 +110,9 @@ namespace GltfSceneImporterTest {
     auto* hand = qobject_cast<Group*>(armature->childElements()[0]);
     ASSERT_NE(nullptr, hand);
     EXPECT_EQ(QString("Hand"), hand->name());
-    expectVectorNear(hand->position(), Vector3d(4.0, 0.0, 0.0));
-    expectVectorNear(hand->globalTransform().translationVector(), Vector3d(5.0, 2.0, 3.0));
-    expectVectorNear(hand->scale(), Vector3d(2.0, 2.0, 2.0));
+    EXPECT_VECTOR_NEAR(hand->position(), Vector3d(4.0, 0.0, 0.0), 0.0001);
+    EXPECT_VECTOR_NEAR(hand->globalTransform().translationVector(), Vector3d(5.0, 2.0, 3.0), 0.0001);
+    EXPECT_VECTOR_NEAR(hand->scale(), Vector3d(2.0, 2.0, 2.0), 0.0001);
   }
 
   TEST(GltfSceneImporter, ImportsMultipleScenesAsSceneGroups) {
@@ -185,7 +172,7 @@ namespace GltfSceneImporterTest {
     auto* child = qobject_cast<Group*>(scene->childElements()[1]);
     ASSERT_NE(nullptr, child);
     EXPECT_EQ(QString("Child"), child->name());
-    expectVectorNear(child->position(), Vector3d(1.0, 2.0, 0.0));
+    EXPECT_VECTOR_NEAR(child->position(), Vector3d(1.0, 2.0, 0.0), 0.0001);
   }
 
   TEST(GltfSceneImporter, ImportsAnimatedNodeMetadataAndTimelineTracks) {
@@ -221,7 +208,7 @@ namespace GltfSceneImporterTest {
     EXPECT_EQ(QString("unsupported target path"), channels[1].toObject()["reason"].toString());
 
     scene->evaluateAnimationAtFrame(24);
-    expectVectorNear(animatedNode->position(), Vector3d(1.0, 2.0, 3.0));
+    EXPECT_VECTOR_NEAR(animatedNode->position(), Vector3d(1.0, 2.0, 3.0), 0.0001);
   }
 
   TEST(GltfSceneImporter, ConfiguresStandaloneSceneForProductView) {
@@ -261,7 +248,7 @@ namespace GltfSceneImporterTest {
     ASSERT_NE(nullptr, group);
     EXPECT_NEAR(std::acos(-1.0), group->rotation().z(), 1e-9);
     const Vector3d mappedSourceUp = group->localTransform() * Vector4d(0, 1, 0);
-    expectVectorNear(mappedSourceUp, Vector3d(0, -1, 0));
+    EXPECT_VECTOR_NEAR(mappedSourceUp, Vector3d(0, -1, 0), 0.0001);
     EXPECT_EQ(QString("gltf_y_up_to_product_view_up"),
               group->metadataValue("coordinateConversion").toString());
     EXPECT_TRUE(scene.toRaytracerScene()->boundingBox().isValid());
@@ -370,8 +357,8 @@ namespace GltfSceneImporterTest {
     ASSERT_NE(nullptr, material);
     ASSERT_NE(nullptr, material->diffuseTexture());
     const HitPoint texturedHit(nullptr, 0.0, Vector4d::null, Vector3d::null, Vector2d(0.0, 0.0));
-    expectColorNear(material->diffuseTexture()->evaluate(Rayd::undefined, texturedHit),
-                    Colord::red());
+    EXPECT_COLOR_NEAR(material->diffuseTexture()->evaluate(Rayd::undefined, texturedHit),
+                      Colord::red(), 0.0001);
 
     auto* cameraNode = qobject_cast<Group*>(scene->childElements()[1]);
     ASSERT_NE(nullptr, cameraNode);
@@ -409,8 +396,8 @@ namespace GltfSceneImporterTest {
     auto* perspective = qobject_cast<PinholeCamera*>(perspectiveNode->childElements()[0]);
     ASSERT_NE(nullptr, perspective);
     EXPECT_EQ(QString("Hero Perspective"), perspective->name());
-    expectVectorNear(perspective->position(), Vector3d(1.0, 2.0, 3.0));
-    expectVectorNear(perspective->target(), Vector3d(1.0, 2.0, 2.0));
+    EXPECT_VECTOR_NEAR(perspective->position(), Vector3d(1.0, 2.0, 3.0), 0.0001);
+    EXPECT_VECTOR_NEAR(perspective->target(), Vector3d(1.0, 2.0, 2.0), 0.0001);
     EXPECT_NEAR(1.2, perspective->zoom(), 0.0001);
     EXPECT_EQ(QString("perspective"), perspective->metadataValue("gltfCameraType").toString());
     EXPECT_EQ(1.5, perspective->metadataValue("gltfAspectRatio").toDouble());
@@ -421,8 +408,8 @@ namespace GltfSceneImporterTest {
     auto* orthographic = qobject_cast<OrthographicCamera*>(orthographicNode->childElements()[0]);
     ASSERT_NE(nullptr, orthographic);
     EXPECT_EQ(QString("Plan Orthographic"), orthographic->name());
-    expectVectorNear(orthographic->position(), Vector3d(4.0, 5.0, 6.0));
-    expectVectorNear(orthographic->target(), Vector3d(4.0, 5.0, 5.0));
+    EXPECT_VECTOR_NEAR(orthographic->position(), Vector3d(4.0, 5.0, 6.0), 0.0001);
+    EXPECT_VECTOR_NEAR(orthographic->target(), Vector3d(4.0, 5.0, 5.0), 0.0001);
     EXPECT_NEAR(1.5, orthographic->zoom(), 0.0001);
     EXPECT_EQ(8.0, orthographic->metadataValue("gltfXmag").toDouble());
   }
@@ -463,7 +450,7 @@ namespace GltfSceneImporterTest {
     EXPECT_EQ(QString("Sun"), sun->name());
     EXPECT_EQ(Colord(1.0, 0.8, 0.6), sun->color());
     EXPECT_EQ(2.5, sun->intensity());
-    expectVectorNear(sun->direction(), Vector3d(0.0, 0.0, -1.0));
+    EXPECT_VECTOR_NEAR(sun->direction(), Vector3d(0.0, 0.0, -1.0), 0.0001);
 
     auto* bulbNode = qobject_cast<Group*>(scene->childElements()[1]);
     ASSERT_NE(nullptr, bulbNode);
@@ -528,9 +515,9 @@ namespace GltfSceneImporterTest {
     ASSERT_EQ(2u, meshPrimitive->mesh()->faces().size());
     EXPECT_EQ((Mesh::Face{0, 1, 2}), meshPrimitive->mesh()->faces()[0]);
     EXPECT_EQ((Mesh::Face{0, 2, 3}), meshPrimitive->mesh()->faces()[1]);
-    expectVectorNear(meshPrimitive->mesh()->vertices()[2].point, Vector3d(1.0, 1.0, 0.0));
-    expectVectorNear(meshPrimitive->mesh()->vertices()[2].normal, Vector3d(0.0, 0.0, 1.0));
-    expectVectorNear(meshPrimitive->mesh()->vertices()[2].uv, Vector2d(1.0, 1.0));
+    EXPECT_VECTOR_NEAR(meshPrimitive->mesh()->vertices()[2].point, Vector3d(1.0, 1.0, 0.0), 0.0001);
+    EXPECT_VECTOR_NEAR(meshPrimitive->mesh()->vertices()[2].normal, Vector3d(0.0, 0.0, 1.0), 0.0001);
+    EXPECT_VECTOR_NEAR(meshPrimitive->mesh()->vertices()[2].uv, Vector2d(1.0, 1.0), 0.0001);
     ASSERT_EQ(2u, meshPrimitive->leaves().size());
     EXPECT_NE(nullptr, meshPrimitive->leaves()[0]->material());
     EXPECT_NE(nullptr, meshPrimitive->leaves()[1]->material());
@@ -574,8 +561,8 @@ namespace GltfSceneImporterTest {
     auto material = std::dynamic_pointer_cast<render::MatteMaterial>(importedMaterial(result));
     ASSERT_NE(nullptr, material);
     ASSERT_NE(nullptr, material->diffuseTexture());
-    expectColorNear(material->diffuseTexture()->evaluate(Rayd::undefined, HitPoint::undefined()),
-                    Colord(0.2, 0.4, 0.6));
+    EXPECT_COLOR_NEAR(material->diffuseTexture()->evaluate(Rayd::undefined, HitPoint::undefined()),
+                      Colord(0.2, 0.4, 0.6), 0.0001);
     EXPECT_TRUE(result.hasWarnings());
   }
 
@@ -630,8 +617,8 @@ namespace GltfSceneImporterTest {
     ASSERT_NE(nullptr, texture);
     EXPECT_EQ(render::ImageTextureFilter::Nearest, texture->filter());
     EXPECT_EQ(render::ImageTextureWrap::Clamp, texture->wrap());
-    expectColorNear(texture->sample(0.1, 0.1), Colord::red());
-    expectColorNear(texture->sample(0.75, 0.75), Colord::white());
+    EXPECT_COLOR_NEAR(texture->sample(0.1, 0.1), Colord::red(), 0.0001);
+    EXPECT_COLOR_NEAR(texture->sample(0.75, 0.75), Colord::white(), 0.0001);
   }
 
   TEST(GltfSceneImporter, ImportsNonIndexedTrianglesWithDeterministicFallbackAttributes) {
@@ -663,11 +650,11 @@ namespace GltfSceneImporterTest {
     ASSERT_EQ(3u, meshPrimitive->mesh()->vertices().size());
     ASSERT_EQ(1u, meshPrimitive->mesh()->faces().size());
     EXPECT_EQ((Mesh::Face{0, 1, 2}), meshPrimitive->mesh()->faces()[0]);
-    expectVectorNear(meshPrimitive->mesh()->vertices()[0].point, Vector3d(0.0, 0.0, 0.0));
-    expectVectorNear(meshPrimitive->mesh()->vertices()[1].point, Vector3d(0.0, 1.0, 0.0));
-    expectVectorNear(meshPrimitive->mesh()->vertices()[2].point, Vector3d(1.0, 0.0, 0.0));
-    expectVectorNear(meshPrimitive->mesh()->vertices()[0].uv, Vector2d(0.0, 0.0));
-    expectVectorNear(meshPrimitive->mesh()->vertices()[0].normal, Vector3d(0.0, 0.0, 1.0));
+    EXPECT_VECTOR_NEAR(meshPrimitive->mesh()->vertices()[0].point, Vector3d(0.0, 0.0, 0.0), 0.0001);
+    EXPECT_VECTOR_NEAR(meshPrimitive->mesh()->vertices()[1].point, Vector3d(0.0, 1.0, 0.0), 0.0001);
+    EXPECT_VECTOR_NEAR(meshPrimitive->mesh()->vertices()[2].point, Vector3d(1.0, 0.0, 0.0), 0.0001);
+    EXPECT_VECTOR_NEAR(meshPrimitive->mesh()->vertices()[0].uv, Vector2d(0.0, 0.0), 0.0001);
+    EXPECT_VECTOR_NEAR(meshPrimitive->mesh()->vertices()[0].normal, Vector3d(0.0, 0.0, 1.0), 0.0001);
     ASSERT_EQ(1u, meshPrimitive->leaves().size());
   }
 
