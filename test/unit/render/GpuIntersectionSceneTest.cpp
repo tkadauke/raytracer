@@ -28,6 +28,7 @@
 
 #include "core/geometry/Mesh.h"
 #include "core/geometry/Polyline.h"
+#include "test/helpers/GpuTestHelper.h"
 #include "test/helpers/MaterialTestHelper.h"
 #include "test/helpers/MeshTestHelper.h"
 
@@ -35,19 +36,7 @@ namespace GpuIntersectionSceneTest {
   using namespace render;
 
   namespace {
-    template<typename Record>
-    void expectKernelRecordLayout() {
-      EXPECT_TRUE(std::is_standard_layout_v<Record>);
-      EXPECT_EQ(16u, alignof(Record));
-      EXPECT_EQ(0u, sizeof(Record) % 16u);
-    }
-
-    void expectVector(const std::array<float, 4>& actual, float x, float y, float z, float w) {
-      EXPECT_FLOAT_EQ(x, actual[0]);
-      EXPECT_FLOAT_EQ(y, actual[1]);
-      EXPECT_FLOAT_EQ(z, actual[2]);
-      EXPECT_FLOAT_EQ(w, actual[3]);
-    }
+    using namespace test::helpers;
 
     void expectVectorNear(const std::array<float, 4>& actual, const Vector4d& expected,
                           float tolerance = 1e-5f) {
@@ -172,8 +161,8 @@ namespace GpuIntersectionSceneTest {
     EXPECT_EQ(gpuIntersectionLeafNodeFlag, buffers.bvh[0].flags);
     EXPECT_EQ(0u, buffers.bvh[0].leftOrFirstPrimitive);
     EXPECT_EQ(1u, buffers.bvh[0].primitiveCount);
-    expectVector(buffers.bvh[0].bounds.minimum, -1.0f, -2.0f, 3.0f, 0.0f);
-    expectVector(buffers.bvh[0].bounds.maximum, 4.0f, 5.0f, 3.0f, 0.0f);
+    expectFloat4(buffers.bvh[0].bounds.minimum, -1.0f, -2.0f, 3.0f, 0.0f);
+    expectFloat4(buffers.bvh[0].bounds.maximum, 4.0f, 5.0f, 3.0f, 0.0f);
 
     ASSERT_EQ(1u, buffers.primitives.size());
     const GpuIntersectionPrimitiveRecord& primitive = buffers.primitives[0];
@@ -183,19 +172,19 @@ namespace GpuIntersectionSceneTest {
     EXPECT_EQ(0u, primitive.transform);
     EXPECT_EQ(0u, primitive.payloadOffset);
     EXPECT_EQ(1u, primitive.payloadCount);
-    expectVector(primitive.bounds.minimum, -1.0f, -2.0f, 3.0f, 0.0f);
-    expectVector(primitive.bounds.maximum, 4.0f, 5.0f, 3.0f, 0.0f);
+    expectFloat4(primitive.bounds.minimum, -1.0f, -2.0f, 3.0f, 0.0f);
+    expectFloat4(primitive.bounds.maximum, 4.0f, 5.0f, 3.0f, 0.0f);
 
     ASSERT_EQ(1u, buffers.triangles.size());
     const GpuIntersectionTrianglePayload& triangle = buffers.triangles[0];
-    expectVector(triangle.point0, -1.0f, -2.0f, 3.0f, 0.0f);
-    expectVector(triangle.point1, 4.0f, -2.0f, 3.0f, 0.0f);
-    expectVector(triangle.point2, -1.0f, 5.0f, 3.0f, 0.0f);
-    expectVector(triangle.normal0, 0.0f, 0.0f, 1.0f, 0.0f);
-    expectVector(triangle.uv0, 0.0f, 0.0f, 0.0f, 0.0f);
-    expectVector(triangle.uv1, 1.0f, 0.0f, 0.0f, 0.0f);
-    expectVector(triangle.uv2, 0.0f, 1.0f, 0.0f, 0.0f);
-    expectVector(triangle.minimumHitDistance, 0.0f, 0.0f, 0.0f, 0.0f);
+    expectFloat4(triangle.point0, -1.0f, -2.0f, 3.0f, 0.0f);
+    expectFloat4(triangle.point1, 4.0f, -2.0f, 3.0f, 0.0f);
+    expectFloat4(triangle.point2, -1.0f, 5.0f, 3.0f, 0.0f);
+    expectFloat4(triangle.normal0, 0.0f, 0.0f, 1.0f, 0.0f);
+    expectFloat4(triangle.uv0, 0.0f, 0.0f, 0.0f, 0.0f);
+    expectFloat4(triangle.uv1, 1.0f, 0.0f, 0.0f, 0.0f);
+    expectFloat4(triangle.uv2, 0.0f, 1.0f, 0.0f, 0.0f);
+    expectFloat4(triangle.minimumHitDistance, 0.0f, 0.0f, 0.0f, 0.0f);
 
     EXPECT_TRUE(buffers.transforms.empty());
     EXPECT_TRUE(buffers.spheres.empty());
@@ -238,20 +227,20 @@ namespace GpuIntersectionSceneTest {
     EXPECT_EQ(0u, buffers.primitives[3].payloadOffset);
 
     ASSERT_EQ(1u, buffers.spheres.size());
-    expectVector(buffers.spheres[0].centerRadius, 1.0f, 2.0f, 3.0f, 4.0f);
+    expectFloat4(buffers.spheres[0].centerRadius, 1.0f, 2.0f, 3.0f, 4.0f);
 
     ASSERT_EQ(1u, buffers.planes.size());
-    expectVector(buffers.planes[0].normalDistance, 0.0f, 1.0f, 0.0f, -2.0f);
+    expectFloat4(buffers.planes[0].normalDistance, 0.0f, 1.0f, 0.0f, -2.0f);
 
     ASSERT_EQ(1u, buffers.rectangles.size());
-    expectVector(buffers.rectangles[0].corner, 3.0f, 4.0f, 5.0f, 0.0f);
-    expectVector(buffers.rectangles[0].leg1, 6.0f, 0.0f, 0.0f, 0.0f);
-    expectVector(buffers.rectangles[0].leg2, 0.0f, 7.0f, 0.0f, 0.0f);
-    expectVector(buffers.rectangles[0].normal, 0.0f, 0.0f, 1.0f, 0.0f);
+    expectFloat4(buffers.rectangles[0].corner, 3.0f, 4.0f, 5.0f, 0.0f);
+    expectFloat4(buffers.rectangles[0].leg1, 6.0f, 0.0f, 0.0f, 0.0f);
+    expectFloat4(buffers.rectangles[0].leg2, 0.0f, 7.0f, 0.0f, 0.0f);
+    expectFloat4(buffers.rectangles[0].normal, 0.0f, 0.0f, 1.0f, 0.0f);
 
     ASSERT_EQ(1u, buffers.disks.size());
-    expectVector(buffers.disks[0].centerRadius, 8.0f, 9.0f, 10.0f, 11.0f);
-    expectVector(buffers.disks[0].normalMinimumHitDistance, 0.0f, 0.0f, 1.0f, 0.0001f);
+    expectFloat4(buffers.disks[0].centerRadius, 8.0f, 9.0f, 10.0f, 11.0f);
+    expectFloat4(buffers.disks[0].normalMinimumHitDistance, 0.0f, 0.0f, 1.0f, 0.0001f);
 
     EXPECT_EQ(buffers.bvh.size() * sizeof(GpuIntersectionBvhNode) +
                 buffers.primitives.size() * sizeof(GpuIntersectionPrimitiveRecord) +
@@ -273,8 +262,8 @@ namespace GpuIntersectionSceneTest {
       GpuIntersectionScenePacker().packRay(ray, 42, 0.125, 123.5, 0.75, 0x10u);
     const GpuIntersectionHitRecord miss = GpuIntersectionScenePacker().packMiss(42);
 
-    expectVector(packed.origin, 1.0f, 2.0f, 3.0f, 1.0f);
-    expectVector(packed.direction, 0.25f, -0.5f, 0.75f, 0.0f);
+    expectFloat4(packed.origin, 1.0f, 2.0f, 3.0f, 1.0f);
+    expectFloat4(packed.direction, 0.25f, -0.5f, 0.75f, 0.0f);
     EXPECT_FLOAT_EQ(0.125f, packed.minDistance);
     EXPECT_FLOAT_EQ(123.5f, packed.maxDistance);
     EXPECT_FLOAT_EQ(0.75f, packed.timeSample);
@@ -333,7 +322,7 @@ namespace GpuIntersectionSceneTest {
     EXPECT_EQ(0u, buffers.primitives[0].payloadOffset);
 
     ASSERT_EQ(1u, buffers.openCylinders.size());
-    expectVector(buffers.openCylinders[0].radiusHalfHeight, 1.5f, 2.0f, 1.0f / 1.5f, 0.0f);
+    expectFloat4(buffers.openCylinders[0].radiusHalfHeight, 1.5f, 2.0f, 1.0f / 1.5f, 0.0f);
 
     EXPECT_FALSE(buffers.triangleClosestHitKernelEligible());
     EXPECT_TRUE(buffers.basicHitKernelEligible());
@@ -358,7 +347,7 @@ namespace GpuIntersectionSceneTest {
     EXPECT_EQ(0u, buffers.primitives[0].payloadOffset);
 
     ASSERT_EQ(1u, buffers.tori.size());
-    expectVector(buffers.tori[0].sweptTubeRadius, 2.0f, 0.5f, 0.0f, 0.0f);
+    expectFloat4(buffers.tori[0].sweptTubeRadius, 2.0f, 0.5f, 0.0f, 0.0f);
 
     EXPECT_FALSE(buffers.triangleClosestHitKernelEligible());
     EXPECT_TRUE(buffers.basicHitKernelEligible());
@@ -469,7 +458,7 @@ namespace GpuIntersectionSceneTest {
     EXPECT_FLOAT_EQ(1.0f, transform.normalMatrix[5]);
     EXPECT_FLOAT_EQ(1.0f, transform.normalMatrix[10]);
     EXPECT_FLOAT_EQ(1.0f, transform.normalMatrix[15]);
-    expectVector(transform.motionDelta, 0.0f, 0.0f, 0.0f, 0.0f);
+    expectFloat4(transform.motionDelta, 0.0f, 0.0f, 0.0f, 0.0f);
   }
 
   TEST(GpuIntersectionScene, PackedMovingInstanceClosestHitUsesRayTimeSample) {
@@ -485,7 +474,7 @@ namespace GpuIntersectionSceneTest {
     const std::uint32_t transformId = buffers.primitives[0].transform;
     ASSERT_NE(0u, transformId);
     ASSERT_GT(buffers.transforms.size(), transformId);
-    expectVector(buffers.transforms[transformId].motionDelta, 4.0f, 0.0f, 0.0f, 0.0f);
+    expectFloat4(buffers.transforms[transformId].motionDelta, 4.0f, 0.0f, 0.0f, 0.0f);
 
     const Rayd ray(Vector4d(2, 0, 0, 1), Vector3d(0, 0, 1));
     const GpuIntersectionRay openShutterRay =

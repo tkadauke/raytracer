@@ -12,11 +12,6 @@
 namespace testing {
   using namespace render;
 
-  inline Rayd toRayd(const Rayf& ray) {
-    return Rayd(Vector3d(ray.origin().x(), ray.origin().y(), ray.origin().z()),
-                Vector3d(ray.direction().x(), ray.direction().y(), ray.direction().z()));
-  }
-
   template<class MT>
   struct AbstractMeshTriangleTest : public ::testing::Test {
     inline void SetUp() {
@@ -90,7 +85,7 @@ namespace testing {
     for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
       State scalarState;
       HitPointInterval hitPoints;
-      const auto primitive = triangle.intersect(toRayd(rayArray[lane]), hitPoints, scalarState);
+      const auto primitive = triangle.intersect(Rayd(rayArray[lane]), hitPoints, scalarState);
       ASSERT_EQ(primitive != nullptr, result.hit(lane)) << "lane " << lane;
       if (primitive != nullptr) {
         ASSERT_NEAR(hitPoints.min().distance(), result.tNear[lane], 1e-5) << "lane " << lane;
@@ -114,7 +109,7 @@ namespace testing {
     for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
       State scalarState;
       HitPointInterval hitPoints;
-      const auto primitive = triangle.intersect(toRayd(rayArray[lane]), hitPoints, scalarState);
+      const auto primitive = triangle.intersect(Rayd(rayArray[lane]), hitPoints, scalarState);
       ASSERT_EQ(primitive != nullptr, result.hit(lane)) << "lane " << lane;
       if (primitive == nullptr) {
         continue;

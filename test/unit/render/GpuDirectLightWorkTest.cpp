@@ -18,6 +18,7 @@
 #include "render/samplers/GpuSampleStream.h"
 
 #include "test/helpers/ColorTestHelper.h"
+#include "test/helpers/GpuTestHelper.h"
 #include "test/helpers/VectorTestHelper.h"
 
 #include <cmath>
@@ -28,12 +29,7 @@ namespace GpuDirectLightWorkTest {
   using namespace render;
 
   namespace {
-    template<typename Record>
-    void expectKernelRecordLayout() {
-      EXPECT_TRUE(std::is_standard_layout_v<Record>);
-      EXPECT_EQ(16u, alignof(Record));
-      EXPECT_EQ(0u, sizeof(Record) % 16u);
-    }
+    using namespace test::helpers;
 
     GpuTracingSceneSections oneMattePointLightScene() {
       GpuTracingSceneSections scene;
