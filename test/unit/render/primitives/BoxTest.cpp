@@ -8,11 +8,6 @@
 namespace BoxTest {
   using namespace render;
 
-  Rayd toRayd(const Rayf& ray) {
-    return Rayd(Vector3d(ray.origin().x(), ray.origin().y(), ray.origin().z()),
-                Vector3d(ray.direction().x(), ray.direction().y(), ray.direction().z()));
-  }
-
   TEST(Box, ShouldInitializeWithValues) {
     Box box(Vector3d(), Vector3d(1, 1, 1));
   }
@@ -153,7 +148,7 @@ namespace BoxTest {
     for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
       State scalarState;
       HitPointInterval hitPoints;
-      const auto primitive = box.intersect(toRayd(rayArray[lane]), hitPoints, scalarState);
+      const auto primitive = box.intersect(Rayd(rayArray[lane]), hitPoints, scalarState);
       ASSERT_EQ(primitive != nullptr, result.hit(lane)) << "lane " << lane;
       if (primitive != nullptr) {
         ASSERT_NEAR(hitPoints.min().distance(), result.tNear[lane], 1e-5) << "lane " << lane;

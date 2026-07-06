@@ -767,6 +767,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- Add converting constructor `Ray<T>(const Ray<U>&)` so float/double ray
+  conversions use the constructor directly instead of scattered `toRayd()`
+  helpers; consolidate duplicate `expectKernelRecordLayout` and
+  `expectFloat4`/`expectVector` test helpers into `test/helpers/GpuTestHelper.h`.
+  — Claude Sonnet 4.6
 - Increase the automatic full-GPU path-tracer sample chunk budget so normal
   640x480 high-sample renders use far fewer platform launches while staying
   bounded. — GPT-5 Codex

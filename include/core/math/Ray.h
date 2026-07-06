@@ -41,6 +41,17 @@ public:
   }
 
   /**
+    * Converting constructor: constructs a Ray<T> from a Ray<U>, converting
+    * each vector component. Follows the same pattern as Vector's converting
+    * constructor.
+    */
+  template<class U>
+  inline explicit Ray(const Ray<U>& other)
+      : m_origin(other.origin()),
+        m_direction(other.direction()) {
+  }
+
+  /**
     * @returns a Ray with the same direction as this one, but the origin shifted
     *   by epsilon along the direction: \f$o' = o + \epsilon d\f$.
     */

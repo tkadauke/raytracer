@@ -14,11 +14,6 @@ using namespace std;
 namespace BoundingBoxTest {
   using namespace ::testing;
 
-  Rayd toRayd(const Rayf& ray) {
-    return Rayd(Vector3d(ray.origin().x(), ray.origin().y(), ray.origin().z()),
-                Vector3d(ray.direction().x(), ray.direction().y(), ray.direction().z()));
-  }
-
   template<class T>
   int packetMask(const BoundingBox<T>& bbox, const std::array<Rayf, 4>& rays) {
     return core::simd::movemask(bbox.intersects4(Ray4(rays)));
@@ -76,7 +71,7 @@ namespace BoundingBoxTest {
     for (const auto& rayArray : packets) {
       const int mask = packetMask(bbox, rayArray);
       for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
-        ASSERT_EQ(bbox.intersects(toRayd(rayArray[lane])), (mask & (1 << lane)) != 0)
+        ASSERT_EQ(bbox.intersects(Rayd(rayArray[lane])), (mask & (1 << lane)) != 0)
           << "lane " << lane;
       }
     }

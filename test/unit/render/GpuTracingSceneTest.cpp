@@ -29,6 +29,8 @@
 
 #include "core/geometry/Polyline.h"
 
+#include "test/helpers/GpuTestHelper.h"
+
 #include <cstddef>
 #include <cstring>
 #include <memory>
@@ -40,12 +42,7 @@ namespace GpuTracingSceneTest {
   using namespace render;
 
   namespace {
-    template<typename Record>
-    void expectKernelRecordLayout() {
-      EXPECT_TRUE(std::is_standard_layout_v<Record>);
-      EXPECT_EQ(16u, alignof(Record));
-      EXPECT_EQ(0u, sizeof(Record) % 16u);
-    }
+    using namespace test::helpers;
 
     template<typename Record>
     Record recordAt(const std::vector<std::uint8_t>& bytes, std::size_t offset) {
@@ -90,13 +87,6 @@ namespace GpuTracingSceneTest {
         return Colord::black();
       }
     };
-
-    void expectFloat4(const std::array<float, 4>& actual, float x, float y, float z, float w) {
-      EXPECT_FLOAT_EQ(x, actual[0]);
-      EXPECT_FLOAT_EQ(y, actual[1]);
-      EXPECT_FLOAT_EQ(z, actual[2]);
-      EXPECT_FLOAT_EQ(w, actual[3]);
-    }
 
     void expectDiffusePathLoopUnsupportedReason(const GpuTracingSceneCompilation& compilation,
                                                 const Scene& scene,
