@@ -73,13 +73,19 @@
 
 ### Where I'd take it
 
-- **Quick win**: extend `render_size` to accept aspect-ratio overrides
-  (`render_size(5, aspect: :panoramic)` → 2:1). One day's work.
-- **Medium**: add a content-hash-based staleness check so
+- ✅ **Quick win**: extend `render_size` to accept aspect-ratio overrides
+  (`render_size(5, aspect: :panoramic)` → 2:1). Done — `class_doc`,
+  `property_doc`, and `rainbow_doc` all accept `aspect: :default |
+  :panoramic | :square`; `test_render_size.rb` pins the contracts.
+- ✅ **Medium**: add a content-hash-based staleness check so
   `rake docs:render` knows to re-render when the driver changes. Plus
   a CI check that every `@image html` reference in headers points to a
-  file the doc-render produces — would catch typos and broken renames
-  automatically.
+  file the doc-render produces. Done — `Scene.scene_hash` computes a
+  UUID-normalised structural hash written as a `.png.hash` sidecar so
+  `--missing` re-renders when the driver script changes; `test_staleness.rb`
+  pins the collision/diff/options contracts; `rake check:doc-images` runs
+  `scripts/lint_doc_images.rb` to enforce that every `@image html` reference
+  resolves to a file under `docs/images/`.
 - **Strategic**: code-generate the `scripts/lib/scene.rb` Ruby DSL
   from the C++ Q_PROPERTY metadata. Eliminates the parallel-hierarchy
   drift entirely. Day-to-week scoped.
@@ -314,9 +320,9 @@ feature, in descending order of leverage:
    Small. Removes a real class of silent bugs you've already been
    burned by. ~Half a day.
 
-2. **Add `class_doc` / `property_doc` aspect-ratio overrides.** Small.
-   Unblocks any future panoramic / tilt-shift / anamorphic /
-   cylindrical / ODS-stereo camera. ~Half a day.
+2. ~~**Add `class_doc` / `property_doc` aspect-ratio overrides.**~~ ✅
+   **Done.** `aspect: :panoramic | :square` accepted by all three doc
+   helpers; `test_render_size.rb` pins the contracts.
 
 3. **Generate `scripts/lib/scene.rb` from the C++ Q_PROPERTY
    metadata.** Medium. Eliminates the third parallel hierarchy. ~Day-
@@ -326,15 +332,17 @@ feature, in descending order of leverage:
    Medium. Removes ~6 files of boilerplate from every future camera
    with parameters. ~Day-to-day-and-a-half.
 
-5. **`Path` and `Slider` primitives in `figure.js`.** Small. Opens up
-   the widget design space. ~Half a day.
+5. ~~**`Path` and `Slider` primitives in `figure.js`.**~~ ✅ **Done.**
+   See §2 "Where I'd take it" above.
 
-6. **Tests for the doc-render framework.** Small but high-impact —
-   would have caught the `blue` / `@green` typo immediately. ~Half a
-   day if scoped tightly.
+6. ~~**Tests for the doc-render framework.**~~ ✅ **Done.**
+   `test_colors.rb`, `test_render_size.rb`, `test_staleness.rb` in
+   `scripts/test/` cover colours, aspect sizing, and hash-based
+   staleness; `test_figure_js.js` covers the JS widget library.
 
-#1 and #2 each are about a half-day. #6 is also about half a day if
-scoped tightly. The other three are days-to-week scope.
+Open items: #1 (`qRegisterMetaType` lift), #3 (Ruby DSL codegen), and
+#4 (`CameraParameterWidget` retirement). #3 is still deferred until
+there is more than one concrete consumer; the advice stands.
 
 Hold off on #3 and a WebGL `Scene3D` widget primitive until there's a
 concrete driver — building a code-generator for one consumer is rarely
