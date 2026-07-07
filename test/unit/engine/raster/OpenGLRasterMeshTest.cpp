@@ -20,6 +20,8 @@
 #include "render/textures/mappings/PlanarMapping2D.h"
 #include "render/textures/mappings/UVMapping2D.h"
 #include "render/viewplanes/ViewPlane.h"
+#include "test/helpers/CameraTestHelper.h"
+#include "test/helpers/MaterialTestHelper.h"
 
 #include <atomic>
 #include <memory>
@@ -28,15 +30,8 @@ namespace OpenGLRasterMeshTest {
   using engine::raster::Rasterizer;
   using engine::raster::detail::OpenGLRasterMesh;
   using engine::raster::detail::OpenGLRasterMeshBuilder;
-
-  std::shared_ptr<render::PinholeCamera> camera() {
-    return std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
-  }
-
-  std::shared_ptr<render::MatteMaterial> matte(const Colord& color) {
-    return std::make_shared<render::MatteMaterial>(
-      std::make_shared<render::ConstantColorTexture>(color));
-  }
+  using test::helpers::matte;
+  using test::helpers::standardCamera;
 
   TEST(OpenGLRasterMesh, BuildsIndexedVerticesFromVisibleTriangle) {
     auto scene = std::make_shared<render::Scene>(Colord::black());
@@ -46,7 +41,7 @@ namespace OpenGLRasterMeshTest {
     scene->add(triangle);
     std::atomic<bool> cancelled{false};
 
-    const auto mesh = OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48),
+    const auto mesh = OpenGLRasterMeshBuilder(scene.get(), standardCamera(), 0, Recti(64, 48),
                                               Rasterizer::CullMode::Both, false, cancelled)
                         .build();
 
@@ -91,11 +86,11 @@ namespace OpenGLRasterMeshTest {
     scene->add(triangle);
     std::atomic<bool> cancelled{false};
 
-    const auto unbiased = OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48),
+    const auto unbiased = OpenGLRasterMeshBuilder(scene.get(), standardCamera(), 0, Recti(64, 48),
                                                   Rasterizer::CullMode::Both, false, cancelled)
                             .build();
     const auto biased =
-      OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48), Rasterizer::CullMode::Both,
+      OpenGLRasterMeshBuilder(scene.get(), standardCamera(), 0, Recti(64, 48), Rasterizer::CullMode::Both,
                               false, cancelled, nullptr, 1.0)
         .build();
 
@@ -113,7 +108,7 @@ namespace OpenGLRasterMeshTest {
     scene->add(triangle);
     std::atomic<bool> cancelled{false};
 
-    const auto mesh = OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48),
+    const auto mesh = OpenGLRasterMeshBuilder(scene.get(), standardCamera(), 0, Recti(64, 48),
                                               Rasterizer::CullMode::Both, false, cancelled)
                         .build();
 
@@ -144,7 +139,7 @@ namespace OpenGLRasterMeshTest {
     scene->add(triangle);
     std::atomic<bool> cancelled{false};
 
-    const auto mesh = OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48),
+    const auto mesh = OpenGLRasterMeshBuilder(scene.get(), standardCamera(), 0, Recti(64, 48),
                                               Rasterizer::CullMode::Both, false, cancelled)
                         .build();
 
@@ -173,7 +168,7 @@ namespace OpenGLRasterMeshTest {
     scene->add(triangle);
     std::atomic<bool> cancelled{false};
 
-    const auto mesh = OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48),
+    const auto mesh = OpenGLRasterMeshBuilder(scene.get(), standardCamera(), 0, Recti(64, 48),
                                               Rasterizer::CullMode::Both, false, cancelled)
                         .build();
 
@@ -197,7 +192,7 @@ namespace OpenGLRasterMeshTest {
     scene->add(triangle);
     std::atomic<bool> cancelled{false};
 
-    const auto mesh = OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48),
+    const auto mesh = OpenGLRasterMeshBuilder(scene.get(), standardCamera(), 0, Recti(64, 48),
                                               Rasterizer::CullMode::Both, false, cancelled)
                         .build();
 
@@ -225,7 +220,7 @@ namespace OpenGLRasterMeshTest {
     scene->add(triangle);
     std::atomic<bool> cancelled{false};
 
-    const auto mesh = OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48),
+    const auto mesh = OpenGLRasterMeshBuilder(scene.get(), standardCamera(), 0, Recti(64, 48),
                                               Rasterizer::CullMode::Both, false, cancelled)
                         .build();
 
@@ -251,7 +246,7 @@ namespace OpenGLRasterMeshTest {
     scene->add(triangle);
     std::atomic<bool> cancelled{false};
 
-    const auto mesh = OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48),
+    const auto mesh = OpenGLRasterMeshBuilder(scene.get(), standardCamera(), 0, Recti(64, 48),
                                               Rasterizer::CullMode::Both, false, cancelled)
                         .build();
 
@@ -273,7 +268,7 @@ namespace OpenGLRasterMeshTest {
     scene->add(triangle);
     std::atomic<bool> cancelled{false};
 
-    const auto mesh = OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48),
+    const auto mesh = OpenGLRasterMeshBuilder(scene.get(), standardCamera(), 0, Recti(64, 48),
                                               Rasterizer::CullMode::Both, false, cancelled)
                         .build();
 
@@ -307,7 +302,7 @@ namespace OpenGLRasterMeshTest {
     scene->add(triangle);
     std::atomic<bool> cancelled{false};
 
-    const auto mesh = OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48),
+    const auto mesh = OpenGLRasterMeshBuilder(scene.get(), standardCamera(), 0, Recti(64, 48),
                                               Rasterizer::CullMode::Both, false, cancelled)
                         .build();
 
@@ -348,11 +343,11 @@ namespace OpenGLRasterMeshTest {
     cascades.push_back({shadowCamera, std::move(depthBuffer), 0.0, 10.0});
     engine::raster::detail::ShadowMaps shadowMaps;
     shadowMaps.add(engine::raster::detail::DirectionalShadowMap(
-      light.get(), camera(), std::move(cascades), 0.0, 0.0, 0, Rasterizer::ShadowFilterMode::PCF));
+      light.get(), standardCamera(), std::move(cascades), 0.0, 0.0, 0, Rasterizer::ShadowFilterMode::PCF));
     std::atomic<bool> cancelled{false};
 
     const auto mesh =
-      OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48), Rasterizer::CullMode::Both,
+      OpenGLRasterMeshBuilder(scene.get(), standardCamera(), 0, Recti(64, 48), Rasterizer::CullMode::Both,
                               false, cancelled, &shadowMaps)
         .build();
 
@@ -387,7 +382,7 @@ namespace OpenGLRasterMeshTest {
     scene->add(triangle);
     std::atomic<bool> cancelled{false};
 
-    const auto mesh = OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48),
+    const auto mesh = OpenGLRasterMeshBuilder(scene.get(), standardCamera(), 0, Recti(64, 48),
                                               Rasterizer::CullMode::Both, false, cancelled)
                         .build();
 
@@ -411,10 +406,10 @@ namespace OpenGLRasterMeshTest {
     scene->add(std::make_shared<render::Sphere>(Vector3d::null, 1.0));
     std::atomic<bool> cancelled{false};
 
-    const auto lod0 = OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48),
+    const auto lod0 = OpenGLRasterMeshBuilder(scene.get(), standardCamera(), 0, Recti(64, 48),
                                               Rasterizer::CullMode::Both, false, cancelled)
                         .build();
-    const auto lod1 = OpenGLRasterMeshBuilder(scene.get(), camera(), 1, Recti(64, 48),
+    const auto lod1 = OpenGLRasterMeshBuilder(scene.get(), standardCamera(), 1, Recti(64, 48),
                                               Rasterizer::CullMode::Both, false, cancelled)
                         .build();
 
@@ -440,7 +435,7 @@ namespace OpenGLRasterMeshTest {
                                    1);
 
     const auto mesh =
-      OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48), Rasterizer::CullMode::Both,
+      OpenGLRasterMeshBuilder(scene.get(), standardCamera(), 0, Recti(64, 48), Rasterizer::CullMode::Both,
                               false, cancelled, nullptr, 0.0, visibilitySet)
         .build();
 
@@ -452,7 +447,7 @@ namespace OpenGLRasterMeshTest {
     scene->add(std::make_shared<render::Sphere>(Vector3d::null, 1.0));
     std::atomic<bool> cancelled{true};
 
-    const auto mesh = OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48),
+    const auto mesh = OpenGLRasterMeshBuilder(scene.get(), standardCamera(), 0, Recti(64, 48),
                                               Rasterizer::CullMode::Both, false, cancelled)
                         .build();
 
@@ -467,10 +462,10 @@ namespace OpenGLRasterMeshTest {
     scene->add(triangle);
     std::atomic<bool> cancelled{false};
 
-    const auto unculled = OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48),
+    const auto unculled = OpenGLRasterMeshBuilder(scene.get(), standardCamera(), 0, Recti(64, 48),
                                                   Rasterizer::CullMode::Both, true, cancelled)
                             .build();
-    const auto backfaceCulled = OpenGLRasterMeshBuilder(scene.get(), camera(), 0, Recti(64, 48),
+    const auto backfaceCulled = OpenGLRasterMeshBuilder(scene.get(), standardCamera(), 0, Recti(64, 48),
                                                         Rasterizer::CullMode::Back, true, cancelled)
                                   .build();
 

@@ -38,30 +38,6 @@ namespace GpuIntersectionSceneTest {
   namespace {
     using namespace test::helpers;
 
-    void expectVectorNear(const std::array<float, 4>& actual, const Vector4d& expected,
-                          float tolerance = 1e-5f) {
-      EXPECT_NEAR(static_cast<float>(expected.x()), actual[0], tolerance);
-      EXPECT_NEAR(static_cast<float>(expected.y()), actual[1], tolerance);
-      EXPECT_NEAR(static_cast<float>(expected.z()), actual[2], tolerance);
-      EXPECT_NEAR(static_cast<float>(expected.w()), actual[3], tolerance);
-    }
-
-    void expectVectorNear(const std::array<float, 4>& actual, const Vector3d& expected,
-                          float tolerance = 1e-5f) {
-      EXPECT_NEAR(static_cast<float>(expected.x()), actual[0], tolerance);
-      EXPECT_NEAR(static_cast<float>(expected.y()), actual[1], tolerance);
-      EXPECT_NEAR(static_cast<float>(expected.z()), actual[2], tolerance);
-      EXPECT_FLOAT_EQ(0.0f, actual[3]);
-    }
-
-    void expectVectorNear(const std::array<float, 4>& actual, const Vector2d& expected,
-                          float tolerance = 1e-5f) {
-      EXPECT_NEAR(static_cast<float>(expected.x()), actual[0], tolerance);
-      EXPECT_NEAR(static_cast<float>(expected.y()), actual[1], tolerance);
-      EXPECT_FLOAT_EQ(0.0f, actual[2]);
-      EXPECT_FLOAT_EQ(0.0f, actual[3]);
-    }
-
     CompiledIntersectionScene compileSingleTriangleScene() {
       auto triangle =
         std::make_shared<Triangle>(Vector3d(-1, -2, 3), Vector3d(4, -2, 3), Vector3d(-1, 5, 3));

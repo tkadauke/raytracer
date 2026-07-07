@@ -5,6 +5,7 @@
 #include "engine/raster/detail/RasterShadowMaps.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/viewplanes/ViewPlane.h"
+#include "test/helpers/CameraTestHelper.h"
 
 #include <cstddef>
 #include <limits>
@@ -19,14 +20,11 @@ namespace OpenGLShadowTextureDataTest {
   using engine::raster::detail::OpenGLShadowSamplingPlan;
   using engine::raster::detail::OpenGLShadowTextureData;
   using engine::raster::detail::ShadowMaps;
+  using test::helpers::standardCamera;
 
   constexpr int kWidth = 2;
   constexpr int kHeight = 2;
   constexpr int kFilterRadius = 2;
-
-  std::shared_ptr<render::PinholeCamera> camera() {
-    return std::make_shared<render::PinholeCamera>(Vector3d(0.0, 0.0, -5.0), Vector3d::null);
-  }
 
   constexpr double kShadowBias = 0.01;
 
@@ -53,7 +51,7 @@ namespace OpenGLShadowTextureDataTest {
     cascades.push_back(cascade());
 
     ShadowMaps maps;
-    maps.add(DirectionalShadowMap(nullptr, camera(), std::move(cascades), kShadowBias, 0.0,
+    maps.add(DirectionalShadowMap(nullptr, standardCamera(), std::move(cascades), kShadowBias, 0.0,
                                   kFilterRadius, Rasterizer::ShadowFilterMode::PCF));
     return maps;
   }

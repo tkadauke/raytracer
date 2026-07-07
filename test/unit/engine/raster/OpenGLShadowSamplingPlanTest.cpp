@@ -6,6 +6,7 @@
 #include "render/lights/DirectionalLight.h"
 #include "render/viewplanes/ViewPlane.h"
 #include "render/primitives/Scene.h"
+#include "test/helpers/CameraTestHelper.h"
 
 #include <limits>
 #include <memory>
@@ -19,10 +20,7 @@ namespace OpenGLShadowSamplingPlanTest {
   using engine::raster::detail::OpenGLShadowSamplingPlan;
   using engine::raster::detail::ShadowMaps;
   using render::DirectionalLight;
-
-  std::shared_ptr<render::PinholeCamera> camera() {
-    return std::make_shared<render::PinholeCamera>(Vector3d(0.0, 0.0, -5.0), Vector3d::null);
-  }
+  using test::helpers::standardCamera;
 
   DirectionalShadowCascade cascade() {
     auto shadowCamera =
@@ -42,7 +40,7 @@ namespace OpenGLShadowSamplingPlanTest {
     cascades.push_back(cascade());
 
     ShadowMaps maps;
-    maps.add(DirectionalShadowMap(light, camera(), std::move(cascades), 0.01, slopeBias,
+    maps.add(DirectionalShadowMap(light, standardCamera(), std::move(cascades), 0.01, slopeBias,
                                   filterRadius, filterMode));
     return maps;
   }
