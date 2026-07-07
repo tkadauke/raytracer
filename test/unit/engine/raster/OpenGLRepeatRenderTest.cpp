@@ -10,6 +10,7 @@
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
 #include "render/textures/ConstantColorTexture.h"
+#include "test/helpers/CameraTestHelper.h"
 #include "test/helpers/GuiTestHelper.h"
 
 #include <QThread>
@@ -24,6 +25,8 @@ namespace OpenGLRepeatRenderTest {
 
   class OpenGLRepeatRender : public ::testing::GuiTest {};
 
+  using test::helpers::standardCamera;
+
   namespace {
     std::shared_ptr<Scene> sphereScene() {
       auto scene = std::make_shared<Scene>(Colord(0.1, 0.1, 0.1));
@@ -33,10 +36,6 @@ namespace OpenGLRepeatRenderTest {
       scene->add(sphere);
       scene->addLight(std::make_shared<DirectionalLight>(Vector3d(0, 0, -1), Colord::white()));
       return scene;
-    }
-
-    std::shared_ptr<PinholeCamera> camera() {
-      return std::make_shared<PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
     }
 
     template<typename Engine>
@@ -55,8 +54,8 @@ namespace OpenGLRepeatRenderTest {
     for (int size : {512, 1024, 1920}) {
       Buffer<Colord> bufCpu(size, size);
       Buffer<Colord> bufGpu(size, size);
-      Rasterizer cpu(camera(), sphereScene());
-      OpenGLRasterizer gpu(camera(), sphereScene());
+      Rasterizer cpu(standardCamera(), sphereScene());
+      OpenGLRasterizer gpu(standardCamera(), sphereScene());
 
       cpu.render(bufCpu);
       gpu.render(bufGpu);
@@ -90,7 +89,7 @@ namespace OpenGLRepeatRenderTest {
     double subsequentTotal = 0.0;
     const int iterations = 5;
     for (int i = 0; i < iterations + 1; ++i) {
-      OpenGLRasterizer fresh(camera(), sphereScene());
+      OpenGLRasterizer fresh(standardCamera(), sphereScene());
       const double ms = timeRender(fresh, buffer);
       if (i == 0) {
         firstFrame = ms;
@@ -152,7 +151,7 @@ namespace OpenGLRepeatRenderTest {
     // linked program, image textures, and VBOs instead of paying the
     // ~70 ms cold cost every frame.
     auto scene = sphereScene();
-    auto cam = camera();
+    auto cam = standardCamera();
 
     double firstFrame = 0.0;
     double subsequentTotal = 0.0;

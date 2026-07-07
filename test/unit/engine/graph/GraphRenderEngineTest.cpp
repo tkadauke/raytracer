@@ -30,6 +30,7 @@
 #include "render/tonemap/ReinhardTonemap.h"
 #include "render/animation/AnimationTrack.h"
 #include "test/helpers/BufferTestHelper.h"
+#include "test/helpers/CameraTestHelper.h"
 #include "test/helpers/ColorTestHelper.h"
 #include "test/helpers/VectorTestHelper.h"
 
@@ -54,10 +55,7 @@
 namespace GraphRenderEngineTest {
   using namespace engine::graph;
   using test::helpers::countPixels;
-
-  std::shared_ptr<render::Camera> camera() {
-    return std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
-  }
+  using test::helpers::standardCamera;
 
   std::shared_ptr<render::Camera> shadowReceiverCamera() {
     return std::make_shared<render::PinholeCamera>(Vector3d(0.0, 0.0, -5.0),
@@ -885,7 +883,7 @@ namespace GraphRenderEngineTest {
     intent.postProcessAA = postAA;
 
     RenderGraphCompiler compiler;
-    GraphRenderEngine engine(camera(), highContrastScene());
+    GraphRenderEngine engine(standardCamera(), highContrastScene());
     engine.setPlan(compiler.compile({64, 64, 1}, intent));
     engine.render(buffer);
   }
@@ -915,7 +913,7 @@ namespace GraphRenderEngineTest {
     intent.defaultExecutor = RenderExecutorPreference::Wavefront;
 
     RenderGraphCompiler compiler;
-    GraphRenderEngine engine(camera(), highContrastScene());
+    GraphRenderEngine engine(standardCamera(), highContrastScene());
     engine.setPlan(compiler.compile({32, 32, 1}, intent));
 
     Buffer<unsigned int> buffer(32, 32);
@@ -931,7 +929,7 @@ namespace GraphRenderEngineTest {
     auto input = std::make_shared<Buffer<Colord>>(1, 1);
     (*input)[0][0] = Colord(0.75, 0.25, 0.125);
 
-    GraphRenderEngine engine(camera(), renderTextureReceiverScene("monitor-feed"));
+    GraphRenderEngine engine(standardCamera(), renderTextureReceiverScene("monitor-feed"));
     engine.setPlan(renderTextureReceiverPlan(RenderExecutorKind::Rasterizer));
     engine.setExternalColorResource("subview_monitor_feed_main_color", input);
 
@@ -945,7 +943,7 @@ namespace GraphRenderEngineTest {
     auto input = std::make_shared<Buffer<Colord>>(1, 1);
     (*input)[0][0] = Colord(0.2, 0.6, 0.9);
 
-    GraphRenderEngine engine(camera(), renderTextureReceiverScene("monitor-feed"));
+    GraphRenderEngine engine(standardCamera(), renderTextureReceiverScene("monitor-feed"));
     engine.setPlan(renderTextureReceiverPlan(RenderExecutorKind::Raytracer));
     engine.setExternalColorResource("subview_monitor_feed_main_color", input);
 
@@ -959,7 +957,7 @@ namespace GraphRenderEngineTest {
     auto input = std::make_shared<Buffer<Colord>>(1, 1);
     (*input)[0][0] = Colord::red();
 
-    GraphRenderEngine engine(camera(), renderTextureReceiverScene("other-feed"));
+    GraphRenderEngine engine(standardCamera(), renderTextureReceiverScene("other-feed"));
     engine.setPlan(renderTextureReceiverPlan(RenderExecutorKind::Rasterizer));
     engine.setExternalColorResource("subview_monitor_feed_main_color", input);
 
@@ -974,7 +972,7 @@ namespace GraphRenderEngineTest {
     intent.defaultViewMode = RenderViewMode::Depth;
 
     RenderGraphCompiler compiler;
-    GraphRenderEngine engine(camera(), highContrastScene());
+    GraphRenderEngine engine(standardCamera(), highContrastScene());
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({32, 32, 1}, intent));
 
@@ -1001,7 +999,7 @@ namespace GraphRenderEngineTest {
     intent.engineOptions.raytracer().setIntersectionBackend("cpu");
 
     RenderGraphCompiler compiler;
-    GraphRenderEngine engine(camera(), highContrastScene());
+    GraphRenderEngine engine(standardCamera(), highContrastScene());
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({32, 32, 1}, intent));
 
@@ -1051,7 +1049,7 @@ namespace GraphRenderEngineTest {
     intent.engineOptions.raytracer().setIntersectionBackend("gpu");
 
     RenderGraphCompiler compiler;
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({16, 16, 1}, intent));
 
@@ -1085,7 +1083,7 @@ namespace GraphRenderEngineTest {
     intent.engineOptions.raytracer().setSamplesPerPixel(2);
 
     RenderGraphCompiler compiler;
-    GraphRenderEngine engine(camera(), highContrastScene());
+    GraphRenderEngine engine(standardCamera(), highContrastScene());
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({32, 32, 1}, intent));
 
@@ -1114,7 +1112,7 @@ namespace GraphRenderEngineTest {
     intent.engineOptions.raytracer().setSamplesPerPixel(2);
 
     RenderGraphCompiler compiler;
-    GraphRenderEngine engine(camera(), highContrastScene());
+    GraphRenderEngine engine(standardCamera(), highContrastScene());
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({32, 32, 1}, intent));
 
@@ -1158,7 +1156,7 @@ namespace GraphRenderEngineTest {
     tonemap.addWrite("main_color");
     plan.addPass(tonemap);
 
-    GraphRenderEngine engine(camera(), highContrastScene());
+    GraphRenderEngine engine(standardCamera(), highContrastScene());
     engine.setPlan(plan);
     Buffer<unsigned int> buffer(2, 2);
 
@@ -1193,7 +1191,7 @@ namespace GraphRenderEngineTest {
 
     auto awayCamera =
       std::make_shared<render::PinholeCamera>(Vector3d(0.0, 0.0, -5.0), Vector3d(10.0, 0.0, 0.0));
-    auto objectCamera = camera();
+    auto objectCamera = standardCamera();
     GraphRenderEngine engine(awayCamera, highContrastScene());
     engine.setSceneCamera("object-camera", objectCamera);
     engine.setPlan(plan);
@@ -1205,7 +1203,7 @@ namespace GraphRenderEngineTest {
   }
 
   TEST(GraphRenderEngine, DerivesPortalCameraFromReceiverSourceAndBaseCamera) {
-    GraphRenderEngine engine(camera(), highContrastScene());
+    GraphRenderEngine engine(standardCamera(), highContrastScene());
 
     auto activeCamera =
       std::make_shared<render::PinholeCamera>(Vector3d(2.0, 3.0, -5.0), Vector3d(2.0, 3.0, 0.0));
@@ -1231,7 +1229,7 @@ namespace GraphRenderEngineTest {
   }
 
   TEST(GraphRenderEngine, DerivesMirrorCameraByReflectingAcrossPlane) {
-    GraphRenderEngine engine(camera(), highContrastScene());
+    GraphRenderEngine engine(standardCamera(), highContrastScene());
 
     auto activeCamera =
       std::make_shared<render::PinholeCamera>(Vector3d(1.0, 3.0, -4.0), Vector3d(1.0, 1.0, 0.0));
@@ -1283,7 +1281,7 @@ namespace GraphRenderEngineTest {
     tonemap.addWrite("main_color");
     plan.addPass(tonemap);
 
-    GraphRenderEngine engine(camera(), highContrastScene());
+    GraphRenderEngine engine(standardCamera(), highContrastScene());
     engine.setPlan(plan);
     Buffer<unsigned int> buffer(16, 16);
 
@@ -1298,7 +1296,7 @@ namespace GraphRenderEngineTest {
     intent.engineOptions.rasterizer().setVisibilityCulling(RenderVisibilityCulling::On);
 
     RenderGraphCompiler compiler;
-    GraphRenderEngine engine(camera(), highContrastScene());
+    GraphRenderEngine engine(standardCamera(), highContrastScene());
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({32, 32, 1}, intent));
 
@@ -1330,7 +1328,7 @@ namespace GraphRenderEngineTest {
     intent.engineOptions.rasterizer().setVisibilityCulling(RenderVisibilityCulling::On);
 
     RenderGraphCompiler compiler;
-    GraphRenderEngine engine(camera(), visibleAndOffscreenBoxScene());
+    GraphRenderEngine engine(standardCamera(), visibleAndOffscreenBoxScene());
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({32, 32, 1}, intent));
 
@@ -1371,7 +1369,7 @@ namespace GraphRenderEngineTest {
     intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
     intent.engineOptions.rasterizer().setVisibilityCulling(RenderVisibilityCulling::On);
 
-    auto cam = camera();
+    auto cam = standardCamera();
     RenderGraphCompiler compiler;
     GraphRenderEngine engine(cam, visibleAndOffscreenBoxScene());
     engine.setExecutionTraceEnabled(true);
@@ -1450,7 +1448,7 @@ namespace GraphRenderEngineTest {
     intent.engineOptions.rasterizer().setVisibilityCulling(RenderVisibilityCulling::On);
 
     RenderGraphCompiler compiler;
-    GraphRenderEngine engine(camera(), partiallyClippedBoxScene());
+    GraphRenderEngine engine(standardCamera(), partiallyClippedBoxScene());
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({32, 32, 1}, intent));
 
@@ -1475,7 +1473,7 @@ namespace GraphRenderEngineTest {
     intent.engineOptions.rasterizer().setVisibilityCulling(RenderVisibilityCulling::On);
 
     RenderGraphCompiler compiler;
-    GraphRenderEngine engine(camera(), twoVisibleDepthBoxScene());
+    GraphRenderEngine engine(standardCamera(), twoVisibleDepthBoxScene());
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({32, 32, 1}, intent));
 
@@ -1500,7 +1498,7 @@ namespace GraphRenderEngineTest {
     intent.engineOptions.rasterizer().setBlendingEnabled(true);
 
     RenderGraphCompiler compiler;
-    GraphRenderEngine engine(camera(), visibleAndOffscreenBoxScene());
+    GraphRenderEngine engine(standardCamera(), visibleAndOffscreenBoxScene());
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({32, 32, 1}, intent));
 
@@ -1525,7 +1523,7 @@ namespace GraphRenderEngineTest {
     intent.engineOptions.rasterizer().setCullMode("back");
 
     RenderGraphCompiler compiler;
-    GraphRenderEngine engine(camera(), frontAndBackFacingTriangleScene());
+    GraphRenderEngine engine(standardCamera(), frontAndBackFacingTriangleScene());
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({32, 32, 1}, intent));
 
@@ -1550,7 +1548,7 @@ namespace GraphRenderEngineTest {
     intent.engineOptions.rasterizer().setVisibilityCulling(RenderVisibilityCulling::On);
 
     RenderGraphCompiler compiler;
-    GraphRenderEngine engine(camera(),
+    GraphRenderEngine engine(standardCamera(),
                              frontAndBackFacingTriangleScene(render::Material::Sidedness::Front));
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({32, 32, 1}, intent));
@@ -1577,7 +1575,7 @@ namespace GraphRenderEngineTest {
 
     RenderGraphCompiler compiler;
     GraphRenderEngine engine(
-      camera(), frontAndBackFacingTriangleScene(render::Material::Sidedness::TwoSided));
+      standardCamera(), frontAndBackFacingTriangleScene(render::Material::Sidedness::TwoSided));
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({32, 32, 1}, intent));
 
@@ -1604,12 +1602,12 @@ namespace GraphRenderEngineTest {
     const auto scene = visibleAndOffscreenBoxScene();
 
     Buffer<unsigned int> full(32, 32);
-    GraphRenderEngine fullEngine(camera(), scene);
+    GraphRenderEngine fullEngine(standardCamera(), scene);
     fullEngine.setPlan(compiler.compile({32, 32, 1}, fullIntent));
     fullEngine.render(full);
 
     Buffer<unsigned int> culled(32, 32);
-    GraphRenderEngine culledEngine(camera(), scene);
+    GraphRenderEngine culledEngine(standardCamera(), scene);
     culledEngine.setPlan(compiler.compile({32, 32, 1}, culledIntent));
     culledEngine.render(culled);
 
@@ -1621,7 +1619,7 @@ namespace GraphRenderEngineTest {
     intent.defaultViewMode = RenderViewMode::Stencil;
 
     RenderGraphCompiler compiler;
-    GraphRenderEngine engine(camera(), highContrastScene());
+    GraphRenderEngine engine(standardCamera(), highContrastScene());
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({32, 32, 1}, intent));
 
@@ -1646,7 +1644,7 @@ namespace GraphRenderEngineTest {
     intent.defaultViewMode = RenderViewMode::Normal;
 
     RenderGraphCompiler compiler;
-    GraphRenderEngine engine(camera(), highContrastScene());
+    GraphRenderEngine engine(standardCamera(), highContrastScene());
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({32, 32, 1}, intent));
 
@@ -1671,7 +1669,7 @@ namespace GraphRenderEngineTest {
     intent.defaultViewMode = RenderViewMode::ObjectId;
 
     RenderGraphCompiler compiler;
-    GraphRenderEngine engine(camera(), highContrastScene());
+    GraphRenderEngine engine(standardCamera(), highContrastScene());
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({32, 32, 1}, intent));
 
@@ -1696,7 +1694,7 @@ namespace GraphRenderEngineTest {
     intent.defaultViewMode = RenderViewMode::MaterialId;
 
     RenderGraphCompiler compiler;
-    GraphRenderEngine engine(camera(), highContrastScene());
+    GraphRenderEngine engine(standardCamera(), highContrastScene());
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({32, 32, 1}, intent));
 
@@ -1723,7 +1721,7 @@ namespace GraphRenderEngineTest {
     objectIntent.defaultExecutor = RenderExecutorPreference::Rasterizer;
     objectIntent.defaultViewMode = RenderViewMode::ObjectId;
     objectIntent.engineOptions.rasterizer().setBackend(engine::raster::RasterBackend::openGL());
-    GraphRenderEngine objectEngine(camera(), highContrastScene());
+    GraphRenderEngine objectEngine(standardCamera(), highContrastScene());
     objectEngine.setExecutionTraceEnabled(true);
     objectEngine.setPlan(compiler.compile({32, 32, 1}, objectIntent));
 
@@ -1740,7 +1738,7 @@ namespace GraphRenderEngineTest {
     materialIntent.defaultExecutor = RenderExecutorPreference::Rasterizer;
     materialIntent.defaultViewMode = RenderViewMode::MaterialId;
     materialIntent.engineOptions.rasterizer().setBackend(engine::raster::RasterBackend::openGL());
-    GraphRenderEngine materialEngine(camera(), highContrastScene());
+    GraphRenderEngine materialEngine(standardCamera(), highContrastScene());
     materialEngine.setExecutionTraceEnabled(true);
     materialEngine.setPlan(compiler.compile({32, 32, 1}, materialIntent));
 
@@ -1761,7 +1759,7 @@ namespace GraphRenderEngineTest {
     intent.engineOptions.rasterizer().setBackend(engine::raster::RasterBackend::openGL());
 
     RenderGraphCompiler compiler;
-    GraphRenderEngine engine(camera(), highContrastScene());
+    GraphRenderEngine engine(standardCamera(), highContrastScene());
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({32, 32, 1}, intent));
 
@@ -1780,7 +1778,7 @@ namespace GraphRenderEngineTest {
     intent.defaultViewMode = RenderViewMode::WorldPosition;
 
     RenderGraphCompiler compiler;
-    GraphRenderEngine engine(camera(), highContrastScene());
+    GraphRenderEngine engine(standardCamera(), highContrastScene());
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({32, 32, 1}, intent));
 
@@ -1810,13 +1808,13 @@ namespace GraphRenderEngineTest {
     rasterIntent.defaultViewMode = RenderViewMode::Depth;
 
     Buffer<unsigned int> raytracedOutput(48, 48);
-    GraphRenderEngine raytraced(camera(), highContrastScene());
+    GraphRenderEngine raytraced(standardCamera(), highContrastScene());
     raytraced.setExecutionTraceEnabled(true);
     raytraced.setPlan(compiler.compile({48, 48, 1}, raytracedIntent));
     raytraced.render(raytracedOutput);
 
     Buffer<unsigned int> rasterOutput(48, 48);
-    GraphRenderEngine raster(camera(), highContrastScene());
+    GraphRenderEngine raster(standardCamera(), highContrastScene());
     raster.setExecutionTraceEnabled(true);
     raster.setPlan(compiler.compile({48, 48, 1}, rasterIntent));
     raster.render(rasterOutput);
@@ -1860,7 +1858,7 @@ namespace GraphRenderEngineTest {
       intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
       intent.defaultViewMode = aov.first;
 
-      GraphRenderEngine engine(camera(), highContrastScene());
+      GraphRenderEngine engine(standardCamera(), highContrastScene());
       engine.setExecutionTraceEnabled(true);
       engine.setPlan(compiler.compile({32, 32, 1}, intent));
 
@@ -1883,7 +1881,7 @@ namespace GraphRenderEngineTest {
     intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
     intent.defaultViewMode = RenderViewMode::RasterColorWriteCount;
 
-    GraphRenderEngine engine(camera(), singleRectangleScene());
+    GraphRenderEngine engine(standardCamera(), singleRectangleScene());
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({32, 32, 1}, intent));
 
@@ -1914,7 +1912,7 @@ namespace GraphRenderEngineTest {
     intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
     intent.defaultViewMode = RenderViewMode::Stencil;
 
-    GraphRenderEngine engine(camera(), highContrastScene());
+    GraphRenderEngine engine(standardCamera(), highContrastScene());
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({32, 32, 4}, intent));
 
@@ -1937,7 +1935,7 @@ namespace GraphRenderEngineTest {
     intent.defaultViewMode = RenderViewMode::StencilComposite;
     intent.exportedAOVs = {RenderViewMode::Stencil};
 
-    GraphRenderEngine engine(camera(), highContrastScene());
+    GraphRenderEngine engine(standardCamera(), highContrastScene());
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({32, 32, 1}, intent));
 
@@ -1970,7 +1968,7 @@ namespace GraphRenderEngineTest {
     intent.exportedAOVs = {RenderViewMode::Depth, RenderViewMode::Normal};
 
     RenderGraphCompiler compiler;
-    GraphRenderEngine engine(camera(), highContrastScene());
+    GraphRenderEngine engine(standardCamera(), highContrastScene());
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({32, 32, 1}, intent));
 
@@ -1999,7 +1997,7 @@ namespace GraphRenderEngineTest {
     intent.postProcessAA = RenderPostProcessAA::FXAA;
 
     RenderGraphCompiler compiler;
-    GraphRenderEngine engine(camera(), highContrastScene());
+    GraphRenderEngine engine(standardCamera(), highContrastScene());
     engine.setPlan(compiler.compile({16, 16, 1}, intent));
     auto observer = std::make_shared<RecordingObserver>();
     engine.setExecutionObserver(observer);
@@ -2017,7 +2015,7 @@ namespace GraphRenderEngineTest {
     intent.postProcessAA = RenderPostProcessAA::FXAA;
 
     RenderGraphCompiler compiler;
-    GraphRenderEngine engine(camera(), highContrastScene());
+    GraphRenderEngine engine(standardCamera(), highContrastScene());
     engine.setPlan(compiler.compile({16, 16, 1}, intent));
     auto observer = std::make_shared<GenerationRecordingObserver>();
     engine.setExecutionObserver(observer);
@@ -2036,7 +2034,7 @@ namespace GraphRenderEngineTest {
   }
 
   TEST(GraphRenderEngine, CopiesExecutionObserverToRenderClone) {
-    GraphRenderEngine engine(camera(), highContrastScene());
+    GraphRenderEngine engine(standardCamera(), highContrastScene());
     auto observer = std::make_shared<RecordingObserver>();
     engine.setExecutionObserver(observer);
 
@@ -2049,7 +2047,7 @@ namespace GraphRenderEngineTest {
   }
 
   TEST(GraphRenderEngine, DoesNotRecordExecutionTraceByDefault) {
-    GraphRenderEngine engine(camera(), highContrastScene());
+    GraphRenderEngine engine(standardCamera(), highContrastScene());
 
     Buffer<unsigned int> buffer(8, 8);
     engine.render(buffer);
@@ -2062,7 +2060,7 @@ namespace GraphRenderEngineTest {
     auto scene = directionalShadowScene();
     scene->addLight(
       std::make_shared<render::PointLight>(Vector3d(1.0, 2.0, -3.0), Colord(0.25, 0.5, 0.75)));
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setTonemap(std::make_shared<render::ReinhardTonemap>());
 
     const std::string fingerprint = engine.executionInputFingerprint();
@@ -2080,7 +2078,7 @@ namespace GraphRenderEngineTest {
     intent.postProcessAA = RenderPostProcessAA::FXAA;
 
     RenderGraphCompiler compiler;
-    GraphRenderEngine engine(camera(), highContrastScene());
+    GraphRenderEngine engine(standardCamera(), highContrastScene());
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({64, 64, 1}, intent));
 
@@ -2132,7 +2130,7 @@ namespace GraphRenderEngineTest {
 
   TEST(GraphRenderEngine, RejectsExecutionTraceAfterInputChange) {
     RenderGraphCompiler compiler;
-    GraphRenderEngine engine(camera(), highContrastScene());
+    GraphRenderEngine engine(standardCamera(), highContrastScene());
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({16, 16, 1}, RenderIntent()));
 
@@ -2156,7 +2154,7 @@ namespace GraphRenderEngineTest {
     RenderIntent intent;
     intent.postProcessAA = RenderPostProcessAA::FXAA;
 
-    GraphRenderEngine engine(camera(), highContrastScene());
+    GraphRenderEngine engine(standardCamera(), highContrastScene());
     engine.setIntent(intent);
     engine.setExecutionTraceEnabled(true);
 
@@ -2173,7 +2171,7 @@ namespace GraphRenderEngineTest {
   }
 
   TEST(GraphRenderEngine, MaterializesDefaultLdrTraceSnapshots) {
-    GraphRenderEngine engine(camera(), highContrastScene());
+    GraphRenderEngine engine(standardCamera(), highContrastScene());
     engine.setExecutionTraceEnabled(true);
 
     Buffer<unsigned int> buffer(8, 8);
@@ -2199,7 +2197,7 @@ namespace GraphRenderEngineTest {
   }
 
   TEST(GraphRenderEngine, DisablingExecutionTraceClearsLastTrace) {
-    GraphRenderEngine engine(camera(), highContrastScene());
+    GraphRenderEngine engine(standardCamera(), highContrastScene());
     engine.setExecutionTraceEnabled(true);
 
     Buffer<unsigned int> buffer(8, 8);
@@ -2349,7 +2347,7 @@ namespace GraphRenderEngineTest {
     intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
     RenderGraphCompiler compiler;
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setPlan(compiler.compile({4, 4, 1}, intent));
 
     Buffer<Colord> buffer(4, 4);
@@ -2370,7 +2368,7 @@ namespace GraphRenderEngineTest {
     intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
     RenderGraphCompiler compiler;
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({32, 32, 1}, intent));
 
@@ -2412,7 +2410,7 @@ namespace GraphRenderEngineTest {
     intent.engineOptions.raytracer().setDenoiseRadius(2);
     RenderGraphCompiler compiler;
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({16, 16, 1}, intent));
 
@@ -2542,7 +2540,7 @@ namespace GraphRenderEngineTest {
     ASSERT_TRUE(state->predictedTracingExecution());
     EXPECT_EQ(TracingExecutionPreference::Hybrid, *state->predictedTracingExecution());
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(plan);
 
@@ -2703,7 +2701,7 @@ namespace GraphRenderEngineTest {
     analysis.setFullGpuTracingSupportFromScene(*scene);
     const RenderPlan plan = RenderGraphCompiler().compile({8, 8, 1}, intent, analysis);
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(plan);
     auto pathLoopBackend = std::make_shared<ReportingFullGpuDiffusePathLoopBackend>();
@@ -2907,7 +2905,7 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ("compiled diffuse path loop requires the GPU sample stream",
               state->tracingExecutionFallbackReason());
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(plan);
     auto pathLoopBackend = std::make_shared<ReportingFullGpuDiffusePathLoopBackend>();
@@ -2975,7 +2973,7 @@ namespace GraphRenderEngineTest {
     analysis.setFullGpuTracingSupportFromScene(*scene);
     const RenderPlan plan = RenderGraphCompiler().compile({4, 4, 1}, intent, analysis);
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(plan);
     engine.setBackgroundColor(graphBackground);
@@ -3026,7 +3024,7 @@ namespace GraphRenderEngineTest {
     analysis.setFullGpuTracingSupportFromScene(*scene);
     const RenderPlan plan = RenderGraphCompiler().compile({8, 8, 1}, intent, analysis);
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setPlan(plan);
     auto pathLoopBackend = std::make_shared<ReportingFullGpuDiffusePathLoopBackend>();
     engine.setGpuDiffusePathLoopBackend(pathLoopBackend);
@@ -3079,7 +3077,7 @@ namespace GraphRenderEngineTest {
     analysis.setFullGpuTracingSupportFromScene(*scene);
     const RenderPlan plan = RenderGraphCompiler().compile({8, 8, 1}, intent, analysis);
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setPlan(plan);
     auto pathLoopBackend = std::make_shared<ReportingFullGpuDiffusePathLoopBackend>();
     engine.setGpuDiffusePathLoopBackend(pathLoopBackend);
@@ -3127,7 +3125,7 @@ namespace GraphRenderEngineTest {
     analysis.setFullGpuTracingSupportFromScene(*scene);
     const RenderPlan plan = RenderGraphCompiler().compile({8, 8, 1}, intent, analysis);
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setPlan(plan);
     auto pathLoopBackend = std::make_shared<ReportingFullGpuDiffusePathLoopBackend>();
     engine.setGpuDiffusePathLoopBackend(pathLoopBackend);
@@ -3171,7 +3169,7 @@ namespace GraphRenderEngineTest {
     constexpr int height = 1024;
     const RenderPlan plan = RenderGraphCompiler().compile({width, height, 1}, intent, analysis);
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setPlan(plan);
     auto pathLoopBackend = std::make_shared<ReportingFullGpuDiffusePathLoopBackend>();
     engine.setGpuDiffusePathLoopBackend(pathLoopBackend);
@@ -3220,7 +3218,7 @@ namespace GraphRenderEngineTest {
     constexpr int height = 480;
     const RenderPlan plan = RenderGraphCompiler().compile({width, height, 1}, intent, analysis);
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setPlan(plan);
     auto pathLoopBackend = std::make_shared<ReportingFullGpuDiffusePathLoopBackend>();
     engine.setGpuDiffusePathLoopBackend(pathLoopBackend);
@@ -3265,7 +3263,7 @@ namespace GraphRenderEngineTest {
     constexpr int height = 384;
     const RenderPlan plan = RenderGraphCompiler().compile({width, height, 1}, intent, analysis);
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(plan);
     auto pathLoopBackend = std::make_shared<ReportingFullGpuDiffusePathLoopBackend>();
@@ -3335,7 +3333,7 @@ namespace GraphRenderEngineTest {
     constexpr int height = 384;
     const RenderPlan plan = RenderGraphCompiler().compile({width, height, 1}, intent, analysis);
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(plan);
     engine.setGpuDiffusePathLoopBackend(std::make_shared<UnavailableGpuDiffusePathLoopBackend>());
@@ -3386,7 +3384,7 @@ namespace GraphRenderEngineTest {
     analysis.setFullGpuTracingSupportFromScene(*scene);
     const RenderPlan plan = RenderGraphCompiler().compile({8, 8, 1}, intent, analysis);
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setPlan(plan);
     auto pathLoopBackend = std::make_shared<ReportingFullGpuDiffusePathLoopBackend>();
     pathLoopBackend->setOnRun([&engine] { engine.cancel(); });
@@ -3485,7 +3483,7 @@ namespace GraphRenderEngineTest {
     analysis.setFullGpuTracingSupportFromScene(*scene);
     const RenderPlan plan = RenderGraphCompiler().compile({8, 8, 1}, intent, analysis);
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setPlan(plan);
     auto pathLoopBackend = std::make_shared<ReportingFullGpuDiffusePathLoopBackend>();
     engine.setGpuDiffusePathLoopBackend(pathLoopBackend);
@@ -3537,7 +3535,7 @@ namespace GraphRenderEngineTest {
     analysis.setFullGpuTracingSupportFromScene(*scene);
     const RenderPlan plan = RenderGraphCompiler().compile({8, 8, 1}, intent, analysis);
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setPlan(plan);
     engine.setTonemap(std::make_shared<render::ReinhardTonemap>());
     auto pathLoopBackend = std::make_shared<ReportingFullGpuDiffusePathLoopBackend>();
@@ -3589,7 +3587,7 @@ namespace GraphRenderEngineTest {
     analysis.setFullGpuTracingSupportFromScene(*scene);
     const RenderPlan plan = RenderGraphCompiler().compile({8, 8, 1}, intent, analysis);
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setPlan(plan);
     engine.setTonemap(std::make_shared<render::AcesTonemap>());
     auto pathLoopBackend = std::make_shared<ReportingFullGpuDiffusePathLoopBackend>();
@@ -3646,7 +3644,7 @@ namespace GraphRenderEngineTest {
     state.writeTo(beauty);
     plan.addPass(beauty);
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setPlan(plan);
     auto pathLoopBackend = std::make_shared<ReportingFullGpuDiffusePathLoopBackend>();
     engine.setGpuDiffusePathLoopBackend(pathLoopBackend);
@@ -3723,7 +3721,7 @@ namespace GraphRenderEngineTest {
     tonemap.writes.push_back({"display_color"});
     plan.addPass(tonemap);
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setPlan(plan);
     auto pathLoopBackend = std::make_shared<ReportingFullGpuDiffusePathLoopBackend>();
     engine.setGpuDiffusePathLoopBackend(pathLoopBackend);
@@ -3765,7 +3763,7 @@ namespace GraphRenderEngineTest {
     analysis.setFullGpuTracingSupportFromScene(*scene);
     const RenderPlan plan = RenderGraphCompiler().compile({8, 8, 1}, intent, analysis);
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(plan);
     auto pathLoopBackend = std::make_shared<ReportingFullGpuDiffusePathLoopBackend>();
@@ -3830,7 +3828,7 @@ namespace GraphRenderEngineTest {
     analysis.setFullGpuTracingSupportFromScene(*scene);
     const RenderPlan plan = RenderGraphCompiler().compile({8, 8, 1}, intent, analysis);
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(plan);
 
@@ -3888,7 +3886,7 @@ namespace GraphRenderEngineTest {
     analysis.setFullGpuTracingSupportFromScene(*scene);
     const RenderPlan plan = RenderGraphCompiler().compile({8, 8, 1}, intent, analysis);
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setPlan(plan);
     auto pathLoopBackend = std::make_shared<ReportingFullGpuDiffusePathLoopBackend>();
     engine.setGpuDiffusePathLoopBackend(pathLoopBackend);
@@ -3936,7 +3934,7 @@ namespace GraphRenderEngineTest {
     ASSERT_TRUE(state->predictedTracingExecution());
     EXPECT_EQ(TracingExecutionPreference::GPU, *state->predictedTracingExecution());
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(plan);
     engine.setGpuDiffusePathLoopBackend(std::make_shared<ReportingFullGpuDiffusePathLoopBackend>());
@@ -3993,7 +3991,7 @@ namespace GraphRenderEngineTest {
     ASSERT_TRUE(state->predictedTracingExecution());
     EXPECT_EQ(TracingExecutionPreference::GPU, *state->predictedTracingExecution());
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(plan);
     auto pathLoopBackend = std::make_shared<UnavailableGpuDiffusePathLoopBackend>();
@@ -4045,7 +4043,7 @@ namespace GraphRenderEngineTest {
     auto pathLoopBackend =
       std::make_shared<render::CompactingGpuDiffusePathLoopBackend>(compactionBackend);
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(plan);
     engine.setGpuDiffusePathLoopBackend(pathLoopBackend);
@@ -4124,7 +4122,7 @@ namespace GraphRenderEngineTest {
     ASSERT_TRUE(state->predictedTracingExecution());
     EXPECT_EQ(TracingExecutionPreference::CPU, *state->predictedTracingExecution());
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(plan);
 
@@ -4152,7 +4150,7 @@ namespace GraphRenderEngineTest {
     RenderSceneAnalysis analysis;
     analysis.recordVisibleSurface();
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setIntent(intent);
     engine.setSceneAnalysis(analysis);
 
@@ -4181,7 +4179,7 @@ namespace GraphRenderEngineTest {
     beauty.enabled = false;
     plan.addPass(beauty);
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setPlan(plan);
 
     Buffer<Colord> buffer(2, 2);
@@ -4214,7 +4212,7 @@ namespace GraphRenderEngineTest {
     tonemap.writes.push_back({"display_color"});
     plan.addPass(tonemap);
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setTonemap(std::make_shared<render::ReinhardTonemap>());
     engine.setPlan(plan);
 
@@ -4247,7 +4245,7 @@ namespace GraphRenderEngineTest {
     beauty.writes.push_back({"hdr_color"});
     plan.addPass(beauty);
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setTonemap(std::make_shared<render::ReinhardTonemap>());
     engine.setPlan(plan);
 
@@ -4282,7 +4280,7 @@ namespace GraphRenderEngineTest {
     second.writes = {{"display_color"}};
     plan.addPass(second);
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setPlan(plan);
     engine.setExecutionTraceEnabled(true);
     auto observer = std::make_shared<BlockingObserver>();
@@ -4343,7 +4341,7 @@ namespace GraphRenderEngineTest {
     unsafe.addPass(second);
 
     const RenderPlan imported = RenderPlan::fromJson(unsafe.toJson());
-    GraphRenderEngine engine(camera(), highContrastScene());
+    GraphRenderEngine engine(standardCamera(), highContrastScene());
     engine.setPlan(imported);
 
     Buffer<Colord> buffer(1, 1);
@@ -4383,7 +4381,7 @@ namespace GraphRenderEngineTest {
     second.writes = {{"display_color"}};
     plan.addPass(second);
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setPlan(plan);
     auto observer = std::make_shared<BlockingObserver>();
     engine.setExecutionObserver(observer);
@@ -4448,7 +4446,7 @@ namespace GraphRenderEngineTest {
     third.writes = {{"display_color"}};
     plan.addPass(third);
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setPlan(plan);
     auto observer = std::make_shared<BlockingObserver>();
     engine.setExecutionObserver(observer);
@@ -4516,7 +4514,7 @@ namespace GraphRenderEngineTest {
     second.writes = {{"display_color"}};
     plan.addPass(second);
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setPlan(plan);
     auto observer = std::make_shared<BlockingObserver>();
     engine.setExecutionObserver(observer);
@@ -4565,7 +4563,7 @@ namespace GraphRenderEngineTest {
     dependent.writes.push_back({"display_color"});
     plan.addPass(dependent);
 
-    GraphRenderEngine engine(camera(), highContrastScene());
+    GraphRenderEngine engine(standardCamera(), highContrastScene());
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(plan);
 
@@ -4610,7 +4608,7 @@ namespace GraphRenderEngineTest {
     tonemap.writes.push_back({"display_color"});
     plan.addPass(tonemap);
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setPlan(plan);
     auto observer = std::make_shared<BlockingObserver>();
     engine.setExecutionObserver(observer);
@@ -4669,7 +4667,7 @@ namespace GraphRenderEngineTest {
     tonemap.enabled = false;
     plan.addPass(tonemap);
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setTonemap(std::make_shared<render::ReinhardTonemap>());
     engine.setPlan(plan);
 
@@ -4703,7 +4701,7 @@ namespace GraphRenderEngineTest {
     readback.supportedResourceDomains = {RenderResourceDomain::CPU, RenderResourceDomain::GPU};
     plan.addPass(readback);
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(plan);
 
@@ -4738,7 +4736,7 @@ namespace GraphRenderEngineTest {
     plan.addPass(readback);
     ASSERT_TRUE(plan.validate().valid());
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setPlan(plan);
 
     Buffer<Colord> buffer(2, 2);
@@ -4768,7 +4766,7 @@ namespace GraphRenderEngineTest {
     plan.addPass(tonemap);
     ASSERT_TRUE(plan.validate().valid());
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setPlan(plan);
 
     Buffer<Colord> buffer(2, 2);
@@ -4801,7 +4799,7 @@ namespace GraphRenderEngineTest {
     auto history = std::make_shared<Buffer<Colord>>(2, 2);
     history->clear(Colord(0.25, 0.5, 0.75));
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setPlan(plan);
     engine.setExternalColorResource("history_color", history);
 
@@ -4835,7 +4833,7 @@ namespace GraphRenderEngineTest {
     (*depth)[1][0] = 2.0;
     (*depth)[1][1] = 3.0;
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setPlan(plan);
     engine.setExternalDepthResource("history_depth", depth);
 
@@ -4867,7 +4865,7 @@ namespace GraphRenderEngineTest {
     objectIds->clear(0);
     (*objectIds)[0][1] = 7;
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setPlan(plan);
     engine.setExternalObjectIdResource("history_object_id", objectIds);
 
@@ -4908,7 +4906,7 @@ namespace GraphRenderEngineTest {
     (*stencil)[0][1] = 1;
     (*stencil)[1][0] = 1;
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setPlan(plan);
     engine.setExternalColorResource("base_color", baseColor);
     engine.setExternalColorResource("foreground_color", foregroundColor);
@@ -4958,7 +4956,7 @@ namespace GraphRenderEngineTest {
     (*foregroundDepth)[1][0] = std::numeric_limits<double>::infinity();
     (*foregroundDepth)[1][1] = 0.25;
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setPlan(plan);
     engine.setExternalColorResource("base_color", baseColor);
     engine.setExternalColorResource("foreground_color", foregroundColor);
@@ -5004,7 +5002,7 @@ namespace GraphRenderEngineTest {
     foregroundColor->clear(Colord(1.0, 0.0, 0.0));
     stencil->clear(1);
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setPlan(plan);
     engine.setExternalColorResource("base_color", baseColor);
     engine.setExternalColorResource("foreground_color", foregroundColor);
@@ -5042,7 +5040,7 @@ namespace GraphRenderEngineTest {
     tonemap.writes.push_back({"display_color"});
     plan.addPass(tonemap);
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setTonemap(std::make_shared<render::ReinhardTonemap>());
     engine.setPlan(plan);
 
@@ -5078,7 +5076,7 @@ namespace GraphRenderEngineTest {
     tonemap.writes.push_back({"display_color"});
     plan.addPass(tonemap);
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setPlan(plan);
 
     Buffer<unsigned int> buffer(1, 2);
@@ -5131,7 +5129,7 @@ namespace GraphRenderEngineTest {
     tonemap.writes.push_back({"display_color"});
     plan.addPass(tonemap);
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setPlan(plan);
 
     Buffer<unsigned int> buffer(1, 2);
@@ -5156,7 +5154,7 @@ namespace GraphRenderEngineTest {
     intent.enableWireframeOverlay = true;
     RenderGraphCompiler compiler;
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setPlan(compiler.compile({64, 64, 1}, intent));
 
     Buffer<Colord> buffer(64, 64);
@@ -5178,7 +5176,7 @@ namespace GraphRenderEngineTest {
     intent.enableCurveOverlay = true;
     RenderGraphCompiler compiler;
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setPlan(compiler.compile({64, 64, 1}, intent));
 
     Buffer<Colord> buffer(64, 64);
@@ -5197,7 +5195,7 @@ namespace GraphRenderEngineTest {
     intent.enablePreviewShadows = true;
     RenderGraphCompiler compiler;
 
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setPlan(compiler.compile({4, 4, 1}, intent));
 
     Buffer<Colord> buffer(4, 4);
@@ -5428,7 +5426,7 @@ namespace GraphRenderEngineTest {
 
   TEST(GraphRenderEngine, RejectsUnsupportedMultiPassPlans) {
     auto scene = std::make_shared<render::Scene>();
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
 
     RenderPlan plan;
     RenderResourceDescriptor color;

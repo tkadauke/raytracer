@@ -18,7 +18,9 @@
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
 #include "render/textures/ConstantColorTexture.h"
+#include "test/helpers/CameraTestHelper.h"
 #include "test/helpers/GuiTestHelper.h"
+#include "test/helpers/MaterialTestHelper.h"
 #include "test/helpers/Slot.h"
 
 #include <QApplication>
@@ -40,6 +42,8 @@
 
 namespace RenderGraphInspectorWidgetTest {
   using namespace engine::graph;
+  using test::helpers::matte;
+  using test::helpers::standardCamera;
 
   class RenderGraphInspectorWidgetTest : public ::testing::GuiTest {};
 
@@ -333,16 +337,11 @@ namespace RenderGraphInspectorWidgetTest {
     return compiler.compile({64, 32, 1}, intent, analysis);
   }
 
-  std::shared_ptr<render::Camera> camera() {
-    return std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
-  }
-
   std::shared_ptr<render::Scene> highContrastScene() {
     auto scene = std::make_shared<render::Scene>();
     scene->setBackground(Colord::black());
     auto sphere = std::make_shared<render::Sphere>(Vector3d::null, 1.25);
-    sphere->setMaterial(std::make_shared<render::MatteMaterial>(
-      std::make_shared<render::ConstantColorTexture>(Colord::white())));
+    sphere->setMaterial(matte(Colord::white()));
     scene->add(sphere);
     return scene;
   }
@@ -382,7 +381,7 @@ namespace RenderGraphInspectorWidgetTest {
     intent.postProcessAA = RenderPostProcessAA::FXAA;
 
     RenderGraphCompiler compiler;
-    GraphRenderEngine engine(camera(), highContrastScene());
+    GraphRenderEngine engine(standardCamera(), highContrastScene());
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({24, 24, 1}, intent));
 
@@ -396,7 +395,7 @@ namespace RenderGraphInspectorWidgetTest {
     intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
 
     RenderGraphCompiler compiler;
-    GraphRenderEngine engine(camera(), highContrastScene());
+    GraphRenderEngine engine(standardCamera(), highContrastScene());
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({24, 24, 1}, intent));
 
@@ -417,7 +416,7 @@ namespace RenderGraphInspectorWidgetTest {
     intent.engineOptions.raytracer().setConvergenceRadianceDeltaRmsThreshold(10.0);
 
     RenderGraphCompiler compiler;
-    GraphRenderEngine engine(camera(), highContrastScene());
+    GraphRenderEngine engine(standardCamera(), highContrastScene());
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({24, 24, 1}, intent));
 
@@ -434,7 +433,7 @@ namespace RenderGraphInspectorWidgetTest {
     intent.engineOptions.raytracer().setIntersectionBackend("gpu");
 
     RenderGraphCompiler compiler;
-    GraphRenderEngine engine(camera(), litHighContrastScene());
+    GraphRenderEngine engine(standardCamera(), litHighContrastScene());
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({24, 24, 1}, intent));
 
@@ -458,7 +457,7 @@ namespace RenderGraphInspectorWidgetTest {
     analysis.setFullGpuTracingSupportFromScene(*scene);
 
     RenderGraphCompiler compiler;
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({8, 8, 1}, intent, analysis));
 
@@ -474,7 +473,7 @@ namespace RenderGraphInspectorWidgetTest {
     intent.engineOptions.raytracer().setIntersectionBackend("cpu");
 
     RenderGraphCompiler compiler;
-    GraphRenderEngine engine(camera(), highContrastScene());
+    GraphRenderEngine engine(standardCamera(), highContrastScene());
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({24, 24, 1}, intent));
 
@@ -497,7 +496,7 @@ namespace RenderGraphInspectorWidgetTest {
     intent.engineOptions.raytracer().setIntersectionBackend("gpu");
 
     RenderGraphCompiler compiler;
-    GraphRenderEngine engine(camera(), scene);
+    GraphRenderEngine engine(standardCamera(), scene);
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({12, 12, 1}, intent));
 
@@ -514,7 +513,7 @@ namespace RenderGraphInspectorWidgetTest {
     intent.engineOptions.raytracer().setIntersectionBackend("cpu");
 
     RenderGraphCompiler compiler;
-    GraphRenderEngine engine(camera(), litHighContrastScene());
+    GraphRenderEngine engine(standardCamera(), litHighContrastScene());
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({24, 24, 1}, intent));
 
@@ -531,7 +530,7 @@ namespace RenderGraphInspectorWidgetTest {
     intent.engineOptions.raytracer().setIntersectionBackend("gpu");
 
     RenderGraphCompiler compiler;
-    GraphRenderEngine engine(camera(), unsupportedExactScene());
+    GraphRenderEngine engine(standardCamera(), unsupportedExactScene());
     engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({12, 12, 1}, intent));
 

@@ -32,7 +32,9 @@
 #include "core/math/Constants.h"
 #include "core/math/Matrix.h"
 
+#include "test/helpers/CameraTestHelper.h"
 #include "test/helpers/ColorTestHelper.h"
+#include "test/helpers/MaterialTestHelper.h"
 
 #include <QJsonArray>
 #include <QJsonObject>
@@ -46,6 +48,8 @@
 
 namespace WavefrontRaytracerTest {
   using engine::wavefront::WavefrontRaytracer;
+  using test::helpers::matte;
+  using test::helpers::standardCamera;
 
   class FillDenoiser final : public render::Denoiser {
   public:
@@ -362,10 +366,6 @@ namespace WavefrontRaytracerTest {
     return scene;
   }
 
-  std::shared_ptr<render::PinholeCamera> camera() {
-    return std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
-  }
-
   void expectPlatformGpuFallbackReason(const std::string& reason) {
     const bool disabled = reason.find("not enabled") != std::string::npos;
     const bool enabledWithoutClosestHitKernel =
@@ -421,7 +421,7 @@ namespace WavefrontRaytracerTest {
 
     std::unique_ptr<Buffer<Colord>>
     renderWith(const render::WavefrontIntersectionBackendChoice& backend) const {
-      auto renderer = std::make_shared<WavefrontRaytracer>(camera(), m_scene);
+      auto renderer = std::make_shared<WavefrontRaytracer>(standardCamera(), m_scene);
       renderer->setMaximumThreads(1);
       renderer->setQueueSize(1);
       renderer->setMetricsEnabled(true);
@@ -491,10 +491,6 @@ namespace WavefrontRaytracerTest {
     }
 
   private:
-    std::shared_ptr<render::PinholeCamera> camera() const {
-      return std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d(0, 0, 0));
-    }
-
     std::shared_ptr<render::Scene> m_scene;
     bool m_usePathTracing{false};
     int m_maximumRecursionDepth{0};
@@ -571,11 +567,6 @@ namespace WavefrontRaytracerTest {
       return scene;
     }
 
-  private:
-    std::shared_ptr<render::MatteMaterial> matte(const Colord& color) const {
-      return std::make_shared<render::MatteMaterial>(
-        std::make_shared<render::ConstantColorTexture>(color));
-    }
   };
 
   TEST(WavefrontRaytracer, DefaultsToWhittedIntegrator) {
@@ -631,7 +622,7 @@ namespace WavefrontRaytracerTest {
   }
 
   TEST(WavefrontRaytracer, ClonesConfigurationForRenderThreadSnapshots) {
-    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), testScene());
+    auto renderer = std::make_shared<WavefrontRaytracer>(standardCamera(), testScene());
     renderer->setMaximumThreads(1);
     renderer->setQueueSize(3);
     renderer->setSamplingSeed(42);
@@ -668,7 +659,7 @@ namespace WavefrontRaytracerTest {
   }
 
   TEST(WavefrontRaytracer, AppliesDenoiserAfterHdrRender) {
-    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), testScene());
+    auto renderer = std::make_shared<WavefrontRaytracer>(standardCamera(), testScene());
     renderer->setMaximumThreads(1);
     renderer->setQueueSize(1);
     renderer->setDenoiser(std::make_unique<FillDenoiser>(Colord(0.25, 0.5, 0.75)));
@@ -684,7 +675,7 @@ namespace WavefrontRaytracerTest {
   }
 
   TEST(WavefrontRaytracer, AppliesDenoiserBeforeDisplayConversion) {
-    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), testScene());
+    auto renderer = std::make_shared<WavefrontRaytracer>(standardCamera(), testScene());
     renderer->setMaximumThreads(1);
     renderer->setQueueSize(1);
     renderer->setDenoiser(std::make_unique<FillDenoiser>(Colord(0.25, 0.5, 0.75)));
@@ -700,7 +691,7 @@ namespace WavefrontRaytracerTest {
   }
 
   TEST(WavefrontRaytracer, DenoisesDualOutputHdrBeforeDisplayConversion) {
-    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), testScene());
+    auto renderer = std::make_shared<WavefrontRaytracer>(standardCamera(), testScene());
     renderer->setMaximumThreads(1);
     renderer->setQueueSize(1);
     renderer->setDenoiser(std::make_unique<FillDenoiser>(Colord(0.25, 0.5, 0.75)));
@@ -718,7 +709,7 @@ namespace WavefrontRaytracerTest {
   }
 
   TEST(WavefrontRaytracer, CancellationStopsTileSampleSubmission) {
-    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), testScene());
+    auto renderer = std::make_shared<WavefrontRaytracer>(standardCamera(), testScene());
     renderer->setMaximumThreads(1);
     renderer->setQueueSize(1);
     renderer->setMetricsEnabled(true);
@@ -737,7 +728,7 @@ namespace WavefrontRaytracerTest {
   }
 
   TEST(WavefrontRaytracer, RecordsDenoiserMetrics) {
-    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), testScene());
+    auto renderer = std::make_shared<WavefrontRaytracer>(standardCamera(), testScene());
     renderer->setMaximumThreads(1);
     renderer->setQueueSize(1);
     renderer->setMetricsEnabled(true);
@@ -780,7 +771,7 @@ namespace WavefrontRaytracerTest {
   TEST(WavefrontRaytracer, ReportsActiveTilesDuringDenoiserFeaturePrepass) {
     auto scene = std::make_shared<render::Scene>(Colord::black());
     scene->add(std::make_shared<SlowMissPrimitive>(std::chrono::milliseconds(2)));
-    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), scene);
+    auto renderer = std::make_shared<WavefrontRaytracer>(standardCamera(), scene);
     renderer->setMaximumThreads(1);
     renderer->setQueueSize(1);
     renderer->setMetricsEnabled(true);
@@ -811,7 +802,7 @@ namespace WavefrontRaytracerTest {
   }
 
   TEST(WavefrontRaytracer, SuppliesPrimaryHitFeatureBuffersToDenoiser) {
-    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), featureScene());
+    auto renderer = std::make_shared<WavefrontRaytracer>(standardCamera(), featureScene());
     renderer->setMaximumThreads(1);
     renderer->setQueueSize(1);
     auto denoiser = std::make_unique<FeatureRecordingDenoiser>();
@@ -832,7 +823,7 @@ namespace WavefrontRaytracerTest {
   }
 
   TEST(WavefrontRaytracer, DenoisesDepthProgressSnapshotsBeforeFinalDenoise) {
-    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), featureScene());
+    auto renderer = std::make_shared<WavefrontRaytracer>(standardCamera(), featureScene());
     renderer->setMaximumThreads(1);
     renderer->setQueueSize(1);
     renderer->setIntegrator(std::make_unique<ProgressPublishingIntegrator>());
@@ -847,7 +838,7 @@ namespace WavefrontRaytracerTest {
   }
 
   TEST(WavefrontRaytracer, SkipsDepthProgressSnapshotsWhenProgressiveDisplayDisabled) {
-    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), featureScene());
+    auto renderer = std::make_shared<WavefrontRaytracer>(standardCamera(), featureScene());
     renderer->setMaximumThreads(1);
     renderer->setQueueSize(1);
     renderer->setProgressiveDisplayEnabled(false);
@@ -861,7 +852,7 @@ namespace WavefrontRaytracerTest {
   }
 
   TEST(WavefrontRaytracer, UsesDenoisedProgressForConvergenceFeedbackWhenDisplayIsDisabled) {
-    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), featureScene());
+    auto renderer = std::make_shared<WavefrontRaytracer>(standardCamera(), featureScene());
     renderer->setMaximumThreads(1);
     renderer->setQueueSize(1);
     renderer->setProgressiveDisplayEnabled(false);
@@ -883,7 +874,7 @@ namespace WavefrontRaytracerTest {
   }
 
   TEST(WavefrontRaytracer, SendsBatchMetricsOnlyWhenMetricsEnabled) {
-    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), featureScene());
+    auto renderer = std::make_shared<WavefrontRaytracer>(standardCamera(), featureScene());
     renderer->setMaximumThreads(1);
     renderer->setQueueSize(1);
     auto progressState = std::make_shared<SharedProgressState>();
@@ -901,7 +892,7 @@ namespace WavefrontRaytracerTest {
   }
 
   TEST(WavefrontRaytracer, ClearsLastMetricsWhenMetricsAreDisabled) {
-    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), testScene());
+    auto renderer = std::make_shared<WavefrontRaytracer>(standardCamera(), testScene());
     renderer->setMaximumThreads(1);
     renderer->setQueueSize(1);
 
@@ -922,8 +913,8 @@ namespace WavefrontRaytracerTest {
 
   TEST(WavefrontRaytracer, MatchesRecursiveRaytracerForSimpleWhittedScene) {
     auto scene = testScene();
-    auto recursive = std::make_shared<engine::raytracer::Raytracer>(camera(), scene);
-    auto wavefront = std::make_shared<WavefrontRaytracer>(camera(), scene);
+    auto recursive = std::make_shared<engine::raytracer::Raytracer>(standardCamera(), scene);
+    auto wavefront = std::make_shared<WavefrontRaytracer>(standardCamera(), scene);
     recursive->setMaximumThreads(1);
     recursive->setQueueSize(1);
     wavefront->setMaximumThreads(1);
@@ -942,7 +933,7 @@ namespace WavefrontRaytracerTest {
   }
 
   TEST(WavefrontRaytracer, RecordsLastRenderMetrics) {
-    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), testScene());
+    auto renderer = std::make_shared<WavefrontRaytracer>(standardCamera(), testScene());
     renderer->setMaximumThreads(1);
     renderer->setQueueSize(1);
     renderer->setMetricsEnabled(true);
@@ -1404,7 +1395,7 @@ namespace WavefrontRaytracerTest {
   }
 
   TEST(WavefrontRaytracer, RecordsPathTracingIntersectionBackendWorkloadEstimate) {
-    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), testScene());
+    auto renderer = std::make_shared<WavefrontRaytracer>(standardCamera(), testScene());
     auto integrator = std::make_unique<render::PathTracingIntegrator>();
     integrator->setMaximumRecursionDepth(3);
     integrator->setDirectLightSamples(2);
@@ -1431,7 +1422,7 @@ namespace WavefrontRaytracerTest {
   }
 
   TEST(WavefrontRaytracer, DerivesIntersectionBackendExpectedRaysFromQueryFamilies) {
-    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), testScene());
+    auto renderer = std::make_shared<WavefrontRaytracer>(standardCamera(), testScene());
     renderer->setIntegrator(std::make_unique<StaleTotalEstimateIntegrator>());
     renderer->setMaximumThreads(1);
     renderer->setQueueSize(1);
@@ -1799,7 +1790,7 @@ namespace WavefrontRaytracerTest {
   }
 
   TEST(WavefrontRaytracer, RecordsGpuIntersectionBackendFallbackMetrics) {
-    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), testScene());
+    auto renderer = std::make_shared<WavefrontRaytracer>(standardCamera(), testScene());
     renderer->setMaximumThreads(1);
     renderer->setQueueSize(1);
     renderer->setMetricsEnabled(true);
@@ -1941,7 +1932,7 @@ namespace WavefrontRaytracerTest {
     auto instance = std::make_shared<render::Instance>(triangle);
     instance->setMatrix(Matrix4d::translate(0, 0, 1));
     scene->add(instance);
-    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), scene);
+    auto renderer = std::make_shared<WavefrontRaytracer>(standardCamera(), scene);
     renderer->setMaximumThreads(1);
     renderer->setQueueSize(1);
     renderer->setMetricsEnabled(true);
@@ -1997,7 +1988,7 @@ namespace WavefrontRaytracerTest {
     triangle->setMaterial(std::make_shared<render::MatteMaterial>(
       std::make_shared<render::ConstantColorTexture>(Colord::white())));
     scene->add(triangle);
-    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), scene);
+    auto renderer = std::make_shared<WavefrontRaytracer>(standardCamera(), scene);
     renderer->setMaximumThreads(1);
     renderer->setQueueSize(1);
     renderer->setMetricsEnabled(true);
@@ -2337,7 +2328,7 @@ namespace WavefrontRaytracerTest {
     difference->add(std::make_shared<render::Sphere>(Vector3d(0, 0, 3), 1.0));
     difference->add(std::make_shared<render::Sphere>(Vector3d(0.5, 0, 3), 1.0));
     scene->add(difference);
-    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), scene);
+    auto renderer = std::make_shared<WavefrontRaytracer>(standardCamera(), scene);
     renderer->setMaximumThreads(1);
     renderer->setQueueSize(1);
     renderer->setMetricsEnabled(true);
@@ -2385,7 +2376,7 @@ namespace WavefrontRaytracerTest {
     sphere->setName("glass sphere");
     sphere->setMaterial(std::make_shared<render::TransparentMaterial>());
     scene->add(sphere);
-    auto renderer = std::make_shared<WavefrontRaytracer>(camera(), scene);
+    auto renderer = std::make_shared<WavefrontRaytracer>(standardCamera(), scene);
     renderer->setMaximumThreads(1);
     renderer->setQueueSize(1);
     renderer->setMetricsEnabled(true);
@@ -2754,7 +2745,7 @@ namespace WavefrontRaytracerTest {
   }
 
   TEST(WavefrontRaytracer, MetricsRecordPerPixelSampleRadianceVariance) {
-    auto renderCamera = camera();
+    auto renderCamera = standardCamera();
     auto sampler = std::make_shared<render::HaltonSampler>();
     sampler->setup(/*numSamples=*/2, /*numSets=*/1);
     renderCamera->viewPlane()->setSampler(sampler);
@@ -2783,7 +2774,7 @@ namespace WavefrontRaytracerTest {
   }
 
   TEST(WavefrontRaytracer, CapturesPerPixelSampleRadianceStddevWithoutMetrics) {
-    auto renderCamera = camera();
+    auto renderCamera = standardCamera();
     auto sampler = std::make_shared<render::HaltonSampler>();
     sampler->setup(/*numSamples=*/2, /*numSets=*/1);
     renderCamera->viewPlane()->setSampler(sampler);
@@ -2820,7 +2811,7 @@ namespace WavefrontRaytracerTest {
   }
 
   TEST(WavefrontRaytracer, AdaptiveSamplingStopsStablePixelsAtMinimumSamples) {
-    auto renderCamera = camera();
+    auto renderCamera = standardCamera();
     auto sampler = std::make_shared<render::HaltonSampler>();
     sampler->setup(/*numSamples=*/4, /*numSets=*/1);
     renderCamera->viewPlane()->setSampler(sampler);
@@ -2857,7 +2848,7 @@ namespace WavefrontRaytracerTest {
   }
 
   TEST(WavefrontRaytracer, AdaptiveSamplingKeepsNoisyPixelsAtMaximumSamples) {
-    auto renderCamera = camera();
+    auto renderCamera = standardCamera();
     auto sampler = std::make_shared<render::HaltonSampler>();
     sampler->setup(/*numSamples=*/4, /*numSets=*/1);
     renderCamera->viewPlane()->setSampler(sampler);

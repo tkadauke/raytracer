@@ -13,6 +13,7 @@
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
 #include "render/textures/ConstantColorTexture.h"
+#include "test/helpers/CameraTestHelper.h"
 #include "test/helpers/GuiTestHelper.h"
 
 #include <cmath>
@@ -30,6 +31,8 @@ namespace OpenGLRasterizerParityTest {
   using render::Rectangle;
   using render::Scene;
   using render::Sphere;
+
+  using test::helpers::standardCamera;
 
   namespace {
     constexpr int kBufferSize = 64;
@@ -67,10 +70,6 @@ namespace OpenGLRasterizerParityTest {
       scene->addLight(
         std::make_shared<DirectionalLight>(Vector3d(0.0, 0.0, -1.0), Colord::white()));
       return scene;
-    }
-
-    std::shared_ptr<PinholeCamera> camera() {
-      return std::make_shared<PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
     }
 
     struct ChannelStats {
@@ -116,7 +115,7 @@ namespace OpenGLRasterizerParityTest {
     }
 
     auto scene = litSphereScene();
-    auto cam = camera();
+    auto cam = standardCamera();
 
     Rasterizer cpuEngine(cam, scene);
     Buffer<Colord> cpuBuffer(kBufferSize, kBufferSize);
@@ -139,7 +138,7 @@ namespace OpenGLRasterizerParityTest {
     }
 
     auto scene = litRectangleScene();
-    auto cam = camera();
+    auto cam = standardCamera();
 
     Rasterizer cpuEngine(cam, scene);
     Buffer<Colord> cpuBuffer(kBufferSize, kBufferSize);
@@ -221,7 +220,7 @@ namespace OpenGLRasterizerParityTest {
     }
 
     auto scene = orientedSphereScene(Vector3d(0, 1.5, 0), Colord(0.8, 0.2, 0.2));
-    auto cam = camera();
+    auto cam = standardCamera();
 
     OpenGLRasterizer gpuEngine(cam, scene);
     Buffer<Colord> gpuBuffer(kBufferSize, kBufferSize);
@@ -240,7 +239,7 @@ namespace OpenGLRasterizerParityTest {
     }
 
     auto scene = orientedSphereScene(Vector3d(1.5, 0, 0), Colord(0.2, 0.8, 0.2));
-    auto cam = camera();
+    auto cam = standardCamera();
 
     OpenGLRasterizer gpuEngine(cam, scene);
     Buffer<Colord> gpuBuffer(kBufferSize, kBufferSize);
@@ -255,7 +254,7 @@ namespace OpenGLRasterizerParityTest {
 
   TEST_F(OpenGLRasterizerParity, CpuReferenceRendersSphereInLowerHalfWhenCenteredAtPositiveY) {
     auto scene = orientedSphereScene(Vector3d(0, 1.5, 0), Colord(0.8, 0.2, 0.2));
-    auto cam = camera();
+    auto cam = standardCamera();
 
     Rasterizer cpuEngine(cam, scene);
     Buffer<Colord> cpuBuffer(kBufferSize, kBufferSize);
@@ -275,7 +274,7 @@ namespace OpenGLRasterizerParityTest {
     }
 
     auto scene = backFacingRectangleScene();
-    auto cam = camera();
+    auto cam = standardCamera();
 
     Rasterizer cpuEngine(cam, scene);
     cpuEngine.setCullMode(Rasterizer::CullMode::Back);

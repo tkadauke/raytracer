@@ -7,6 +7,7 @@
 #include "core/math/Constants.h"
 #include "core/math/Matrix.h"
 #include "test/helpers/ColorTestHelper.h"
+#include "test/helpers/GpuTestHelper.h"
 #include "test/helpers/MeshTestHelper.h"
 #include "test/helpers/VectorTestHelper.h"
 
@@ -74,6 +75,7 @@
 
 namespace GpuDiffusePathStepReferenceTest {
   using namespace render;
+  using test::helpers::expectFloat4Near;
 
   namespace {
     class UnsupportedGpuTracingMaterial final : public Material {
@@ -323,8 +325,6 @@ namespace GpuDiffusePathStepReferenceTest {
       return sections;
     }
 
-    void expectFloat4Near(const std::array<float, 4>& actual, const std::array<float, 4>& expected,
-                          double tolerance);
     void expectPathStateNear(const GpuDiffusePathStateRecord& actual,
                              const GpuDiffusePathStateRecord& expected, double tolerance);
 
@@ -540,13 +540,6 @@ namespace GpuDiffusePathStepReferenceTest {
         std::make_shared<ConstantColorTexture>(Colord(0.75, 0.5, 0.25)), Colord(0.25, 0.5, 0.75));
       return std::make_shared<CheckerBoardTexture>(mapping, nestedTintedConstantTexture(),
                                                    darkTexture);
-    }
-
-    void expectFloat4Near(const std::array<float, 4>& actual, const std::array<float, 4>& expected,
-                          double tolerance = 1e-5) {
-      for (std::size_t index = 0; index != actual.size(); ++index) {
-        EXPECT_NEAR(expected[index], actual[index], tolerance);
-      }
     }
 
     void expectHitRecordNear(const GpuIntersectionHitRecord& actual,
