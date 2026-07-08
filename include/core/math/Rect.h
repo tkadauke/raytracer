@@ -99,6 +99,14 @@ public:
     return m_y + m_height;
   }
 
+  /**
+    * Returns the height-to-width aspect ratio. Returns 0 if width is zero.
+    */
+  inline double aspectRatio() const {
+    if (m_width == T()) return 0.0;
+    return static_cast<double>(m_height) / m_width;
+  }
+
 private:
   T m_x, m_y, m_width, m_height;
 };

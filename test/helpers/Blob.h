@@ -134,4 +134,19 @@ namespace testing {
   /// Find the largest blob (by area) of `color`-coloured pixels.
   /// Returns `std::nullopt` if no such blob exists.
   std::optional<Blob> findLargestBlob(const Buffer<unsigned int>& buffer, const Colord& color);
+
+  // Shared implementation details used by Blob and Silhouette.
+
+  struct CentroidAndBbox {
+    Pixel centroid;
+    Recti bbox;
+  };
+
+  /// Single-pass centroid and tight bounding box over a non-empty pixel set.
+  /// Callers must guarantee `points` is non-empty.
+  CentroidAndBbox computeCentroidAndBbox(const std::vector<Pixel>& points);
+
+  /// Coefficient of variation of boundary-point distances from `centroid`.
+  /// Returns 0 if `points` is empty or all points coincide with the centroid.
+  double computeRadialVariance(const std::vector<Pixel>& points, Pixel centroid);
 }

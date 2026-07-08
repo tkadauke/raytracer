@@ -4,17 +4,17 @@
 #include <cmath>
 #include <queue>
 
-namespace testing {
-  Blob::Blob(std::vector<Pixel> pixels, int bufferWidth, int bufferHeight)
-      : m_pixels(std::move(pixels)) {
-    if (m_pixels.empty())
-      return;
+namespace {
+  constexpr int kDx[] = {-1, 1, 0, 0};
+  constexpr int kDy[] = {0, 0, -1, 1};
+}
 
-    // Bounding box + centroid in a single pass.
-    int minX = m_pixels.front().x, maxX = minX;
-    int minY = m_pixels.front().y, maxY = minY;
+namespace testing {
+  CentroidAndBbox computeCentroidAndBbox(const std::vector<Pixel>& points) {
+    int minX = points.front().x, maxX = minX;
+    int minY = points.front().y, maxY = minY;
     long long sumX = 0, sumY = 0;
-    for (const auto& p : m_pixels) {
+    for (const auto& p : points) {
       minX = std::min(minX, p.x);
       maxX = std::max(maxX, p.x);
       minY = std::min(minY, p.y);
@@ -22,9 +22,45 @@ namespace testing {
       sumX += p.x;
       sumY += p.y;
     }
-    const int n = static_cast<int>(m_pixels.size());
-    m_centroid = {static_cast<int>(sumX / n), static_cast<int>(sumY / n)};
-    m_bbox = Recti(minX, minY, maxX - minX + 1, maxY - minY + 1);
+    const int n = static_cast<int>(points.size());
+    return {{static_cast<int>(sumX / n), static_cast<int>(sumY / n)},
+            Recti(minX, minY, maxX - minX + 1, maxY - minY + 1)};
+  }
+
+  double computeRadialVariance(const std::vector<Pixel>& points, Pixel centroid) {
+    if (points.empty())
+      return 0.0;
+    const double cx = centroid.x;
+    const double cy = centroid.y;
+
+    double sumD = 0.0;
+    for (const auto& p : points) {
+      const double dx = p.x - cx;
+      const double dy = p.y - cy;
+      sumD += std::sqrt(dx * dx + dy * dy);
+    }
+    const double mean = sumD / points.size();
+    if (mean == 0.0)
+      return 0.0;
+
+    double sumSq = 0.0;
+    for (const auto& p : points) {
+      const double dx = p.x - cx;
+      const double dy = p.y - cy;
+      const double d = std::sqrt(dx * dx + dy * dy);
+      sumSq += (d - mean) * (d - mean);
+    }
+    return std::sqrt(sumSq / points.size()) / mean;
+  }
+
+  Blob::Blob(std::vector<Pixel> pixels, int bufferWidth, int bufferHeight)
+      : m_pixels(std::move(pixels)) {
+    if (m_pixels.empty())
+      return;
+
+    auto [centroid, bbox] = computeCentroidAndBbox(m_pixels);
+    m_centroid = centroid;
+    m_bbox = bbox;
 
     // Boundary extraction — a pixel is on the boundary if at least
     // one of its 4-neighbours is outside the blob (or off the buffer).
@@ -36,12 +72,10 @@ namespace testing {
       mask[static_cast<size_t>(p.y) * bufferWidth + p.x] = true;
     }
 
-    constexpr int dx[] = {-1, 1, 0, 0};
-    constexpr int dy[] = {0, 0, -1, 1};
     for (const auto& p : m_pixels) {
       for (int k = 0; k < 4; ++k) {
-        const int nx = p.x + dx[k];
-        const int ny = p.y + dy[k];
+        const int nx = p.x + kDx[k];
+        const int ny = p.y + kDy[k];
         if (nx < 0 || nx >= bufferWidth || ny < 0 || ny >= bufferHeight ||
             !mask[static_cast<size_t>(ny) * bufferWidth + nx]) {
           m_boundary.push_back(p);
@@ -60,35 +94,11 @@ namespace testing {
   }
 
   double Blob::aspectRatio() const {
-    if (m_bbox.width() == 0)
-      return 0.0;
-    return static_cast<double>(m_bbox.height()) / m_bbox.width();
+    return m_bbox.aspectRatio();
   }
 
   double Blob::radialVariance() const {
-    if (m_boundary.empty())
-      return 0.0;
-    const double cx = m_centroid.x;
-    const double cy = m_centroid.y;
-
-    double sumD = 0.0;
-    for (const auto& p : m_boundary) {
-      const double dx = p.x - cx;
-      const double dy = p.y - cy;
-      sumD += std::sqrt(dx * dx + dy * dy);
-    }
-    const double mean = sumD / m_boundary.size();
-    if (mean == 0.0)
-      return 0.0;
-
-    double sumSq = 0.0;
-    for (const auto& p : m_boundary) {
-      const double dx = p.x - cx;
-      const double dy = p.y - cy;
-      const double d = std::sqrt(dx * dx + dy * dy);
-      sumSq += (d - mean) * (d - mean);
-    }
-    return std::sqrt(sumSq / m_boundary.size()) / mean;
+    return computeRadialVariance(m_boundary, m_centroid);
   }
 
   double Blob::extent() const {
@@ -104,9 +114,6 @@ namespace testing {
     const int h = buffer.height();
     std::vector<bool> visited(static_cast<size_t>(w) * h, false);
     std::vector<Blob> blobs;
-
-    constexpr int dx[] = {-1, 1, 0, 0};
-    constexpr int dy[] = {0, 0, -1, 1};
 
     for (int y = 0; y < h; ++y) {
       for (int x = 0; x < w; ++x) {
@@ -126,8 +133,8 @@ namespace testing {
           pixels.push_back(p);
 
           for (int k = 0; k < 4; ++k) {
-            const int nx = p.x + dx[k];
-            const int ny = p.y + dy[k];
+            const int nx = p.x + kDx[k];
+            const int ny = p.y + kDy[k];
             if (nx < 0 || nx >= w || ny < 0 || ny >= h)
               continue;
             const size_t nIdx = static_cast<size_t>(ny) * w + nx;
