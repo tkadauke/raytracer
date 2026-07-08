@@ -18,6 +18,7 @@
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
 
+#include "test/helpers/CameraTestHelper.h"
 #include "test/helpers/ColorTestHelper.h"
 #include "test/mocks/raytracer/MockPrimitive.h"
 
@@ -25,6 +26,7 @@ namespace RaytracerTest {
   using namespace ::testing;
   using namespace engine::raytracer;
   using namespace render;
+  using test::helpers::standardCamera;
 
   // Tests for the orchestration class itself (issue #20). render() is not
   // exercised here because it spins up a QThreadPool; that path is covered
@@ -93,7 +95,7 @@ namespace RaytracerTest {
 
   TEST(Raytracer, ShouldUseExplicitCameraWhenProvided) {
     auto scene = std::make_shared<Scene>(Colord::black());
-    auto camera = std::make_shared<PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
+    auto camera = standardCamera();
     Raytracer raytracer(camera, scene);
     ASSERT_EQ(camera, raytracer.camera());
   }

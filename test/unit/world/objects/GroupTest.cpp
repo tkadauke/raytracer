@@ -19,12 +19,15 @@
 #include "render/primitives/Primitive.h"
 #include "render/primitives/Scene.h"
 #include "test/helpers/BufferTestHelper.h"
+#include "test/helpers/CameraTestHelper.h"
 
 #include <memory>
 #include <QJsonArray>
 #include <QJsonObject>
 
 namespace GroupTest {
+  using test::helpers::standardCamera;
+
   namespace {
     int countLeaves(const render::Scene& scene) {
       int count = 0;
@@ -41,10 +44,6 @@ namespace GroupTest {
           ++count;
       });
       return count;
-    }
-
-    std::shared_ptr<render::PinholeCamera> camera() {
-      return std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
     }
 
     std::unique_ptr<Scene>
@@ -80,7 +79,7 @@ namespace GroupTest {
 
     template<class Engine>
     int renderedNonBackgroundPixels(const std::shared_ptr<render::Scene>& scene) {
-      auto engine = std::make_shared<Engine>(camera(), scene);
+      auto engine = std::make_shared<Engine>(standardCamera(), scene);
       Buffer<Colord> buffer(64, 64);
       engine->render(buffer);
       return test::helpers::countPixelsNotEqualTo(buffer, Colord::black());

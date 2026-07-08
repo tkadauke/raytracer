@@ -8,6 +8,7 @@
 #include "engine/raster/detail/RasterShadowMaps.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/primitives/Scene.h"
+#include "test/helpers/CameraTestHelper.h"
 
 #include <QJsonObject>
 
@@ -16,6 +17,7 @@
 
 namespace RenderGraphArtifactCacheTest {
   using namespace engine::graph;
+  using test::helpers::standardCamera;
 
   RenderResourceDescriptor colorResource(const std::string& id) {
     RenderResourceDescriptor descriptor;
@@ -167,7 +169,7 @@ namespace RenderGraphArtifactCacheTest {
 
   TEST(RenderGraphArtifactCache, GraphRenderEngineClonesShareCache) {
     auto scene = std::make_shared<render::Scene>();
-    auto camera = std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
+    auto camera = standardCamera();
     GraphRenderEngine engine(camera, scene);
     auto clone = std::dynamic_pointer_cast<GraphRenderEngine>(engine.cloneForRender());
     ASSERT_TRUE(clone);

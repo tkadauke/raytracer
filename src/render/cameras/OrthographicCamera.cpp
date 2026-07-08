@@ -18,6 +18,8 @@ using namespace render;
 
 namespace {
   using render::detail::checkedU32;
+  using render::detail::checkGpuPathCount;
+  using render::detail::fillGpuDescriptorViewport;
   using render::detail::vector4;
 
   bool isLinearVectorTrack(const render::animation::AnimationTrack* track) {
@@ -259,15 +261,7 @@ OrthographicCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sa
     return std::nullopt;
   }
 
-  const std::uint64_t pixelCount =
-    static_cast<std::uint64_t>(actual.width()) * static_cast<std::uint64_t>(actual.height());
-  const std::uint64_t pathCount =
-    pixelCount * static_cast<std::uint64_t>(plane->sampler()->numSamples());
-  if (pixelCount != 0 &&
-      pathCount / pixelCount != static_cast<std::uint64_t>(plane->sampler()->numSamples())) {
-    throw std::overflow_error("GPU orthographic primary path count overflows");
-  }
-  (void)checkedU32(pathCount, "GPU orthographic primary path count");
+  checkGpuPathCount(actual, plane->sampler()->numSamples());
 
   auto descriptorPlane = plane->clone();
   descriptorPlane->setup(motion->planeMatrix(), plane->window());
@@ -284,22 +278,8 @@ OrthographicCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sa
     vector4(descriptorPlane->pixelAt(1.0, 0.0) - descriptorPlane->pixelAt(0.0, 0.0), 0.0f);
   descriptor.rectilinear.down =
     vector4(descriptorPlane->pixelAt(0.0, 1.0) - descriptorPlane->pixelAt(0.0, 0.0), 0.0f);
-  descriptor.rectilinear.requestedLeft = rect.left();
-  descriptor.rectilinear.requestedTop = rect.top();
-  descriptor.rectilinear.requestedWidth =
-    checkedU32(static_cast<std::uint64_t>(rect.width()), "GPU orthographic requested width");
-  descriptor.rectilinear.requestedHeight =
-    checkedU32(static_cast<std::uint64_t>(rect.height()), "GPU orthographic requested height");
-  descriptor.rectilinear.actualLeft = actual.left();
-  descriptor.rectilinear.actualTop = actual.top();
-  descriptor.rectilinear.actualWidth =
-    checkedU32(static_cast<std::uint64_t>(actual.width()), "GPU orthographic actual width");
-  descriptor.rectilinear.actualHeight =
-    checkedU32(static_cast<std::uint64_t>(actual.height()), "GPU orthographic actual height");
-  descriptor.rectilinear.samplesPerPixel =
-    checkedU32(static_cast<std::uint64_t>(plane->sampler()->numSamples()),
-               "GPU orthographic samples per pixel");
-  descriptor.rectilinear.sampleSeed = sampleSeed;
+  fillGpuDescriptorViewport(descriptor.rectilinear, rect, actual,
+                             plane->sampler()->numSamples(), sampleSeed);
   return descriptor;
 }
 
