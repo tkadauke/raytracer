@@ -373,7 +373,8 @@ namespace RaytracerPassStateTest {
 
     state.applyTo(wavefront);
 
-    const auto& backend = wavefront.intersectionBackend().resolvedBackend();
+    const auto choice = wavefront.intersectionBackend();
+    const auto& backend = choice.resolvedBackend();
     EXPECT_STREQ("gpu", backend.requestedName());
     EXPECT_STREQ("cpu", backend.name());
     EXPECT_STREQ("fallback", backend.availability());

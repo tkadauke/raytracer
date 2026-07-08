@@ -12,6 +12,7 @@
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
 #include "render/textures/ConstantColorTexture.h"
+#include "test/helpers/CameraTestHelper.h"
 #include "test/helpers/GuiTestHelper.h"
 
 #include "engine/raster/gl/AttachmentSet.h"
@@ -24,6 +25,7 @@
 #include <string>
 
 namespace OpenGLRasterizerTest {
+  using test::helpers::standardCamera;
   TEST(OpenGLOffscreenContext, ProbeReportsAvailabilityOrActionableError) {
     const engine::raster::OpenGLAvailability availability =
       engine::raster::OpenGLOffscreenContext::probe();
@@ -292,7 +294,7 @@ namespace OpenGLRasterizerTest {
     }
 
     auto scene = simpleSphereScene();
-    auto cam = std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
+    auto cam = standardCamera();
 
     engine::raster::OpenGLRasterizer rasterizer(cam, scene);
     Buffer<Colord> buffer(32, 32);
@@ -311,7 +313,7 @@ namespace OpenGLRasterizerTest {
     }
 
     auto scene = simpleSphereScene();
-    auto cam = std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
+    auto cam = standardCamera();
 
     engine::raster::OpenGLRasterizer rasterizer(cam, scene);
     Buffer<Colord> buffer(32, 32);
@@ -331,7 +333,7 @@ namespace OpenGLRasterizerTest {
       GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
     }
 
-    auto cam = std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
+    auto cam = standardCamera();
 
     auto firstScene = simpleSphereScene();
     engine::raster::OpenGLRasterizer firstRasterizer(cam, firstScene);
@@ -354,7 +356,7 @@ namespace OpenGLRasterizerTest {
     }
 
     auto scene = simpleSphereScene();
-    auto cam = std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
+    auto cam = standardCamera();
     cam->setAspectMode(render::AspectMode::FitWidth);
 
     engine::raster::OpenGLRasterizer rasterizer(cam, scene);
@@ -400,7 +402,7 @@ namespace OpenGLRasterizerTest {
     }
 
     auto scene = simpleSphereScene();
-    auto cam = std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
+    auto cam = standardCamera();
 
     engine::raster::OpenGLRasterizer rasterizer(cam, scene);
     Buffer<Colord> buffer(32, 32);
@@ -427,7 +429,7 @@ namespace OpenGLRasterizerTest {
     auto sceneA = simpleSphereScene();
     auto sceneB = simpleSphereScene();
     auto sceneC = simpleSphereScene();
-    auto cam = std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
+    auto cam = standardCamera();
     Buffer<Colord> buffer(16, 16);
 
     engine::raster::OpenGLRasterizer rA(cam, sceneA);
@@ -453,7 +455,7 @@ namespace OpenGLRasterizerTest {
     }
 
     auto scene = simpleSphereScene();
-    auto cam = std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
+    auto cam = standardCamera();
 
     engine::raster::OpenGLRasterizer rasterizer(cam, scene);
     // A non-zero depth bias forces the CPU-projected path because the
@@ -486,7 +488,7 @@ namespace OpenGLRasterizerTest {
     }
     auto scene = std::make_shared<render::Scene>(Colord::black());
     engine::raster::OpenGLRasterizer rasterizer(
-      std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null), scene);
+      standardCamera(), scene);
     rasterizer.setColorLoadOp(engine::raster::Rasterizer::AttachmentLoadOp::Load);
     Buffer<Colord> buffer(8, 8);
     EXPECT_THROW(rasterizer.render(buffer), std::runtime_error);
@@ -498,7 +500,7 @@ namespace OpenGLRasterizerTest {
     }
     auto scene = std::make_shared<render::Scene>(Colord::black());
     engine::raster::OpenGLRasterizer rasterizer(
-      std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null), scene);
+      standardCamera(), scene);
     rasterizer.setColorLoadOp(engine::raster::Rasterizer::AttachmentLoadOp::Load);
     Buffer<Colord> source(8, 8);
     source.clear(Colord(0.25, 0.5, 0.75));
@@ -513,7 +515,7 @@ namespace OpenGLRasterizerTest {
     }
     auto scene = std::make_shared<render::Scene>(Colord::black());
     engine::raster::OpenGLRasterizer rasterizer(
-      std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null), scene);
+      standardCamera(), scene);
     rasterizer.setDepthLoadOp(engine::raster::Rasterizer::AttachmentLoadOp::Load);
     Buffer<Colord> buffer(8, 8);
     // (a) no source buffer when Load → throws.
@@ -531,7 +533,7 @@ namespace OpenGLRasterizerTest {
     }
     auto scene = std::make_shared<render::Scene>(Colord::black());
     engine::raster::OpenGLRasterizer rasterizer(
-      std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null), scene);
+      standardCamera(), scene);
     rasterizer.setStencilLoadOp(engine::raster::Rasterizer::AttachmentLoadOp::Load);
     Buffer<Colord> buffer(8, 8);
     EXPECT_THROW(rasterizer.render(buffer), std::runtime_error);
@@ -555,7 +557,7 @@ namespace OpenGLRasterizerTest {
     scene->addLight(
       std::make_shared<render::DirectionalLight>(Vector3d(0.0, 0.0, -1.0), Colord::white()));
 
-    auto cam = std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
+    auto cam = standardCamera();
     cam->setAspectMode(render::AspectMode::FitExact);
     cam->setAspectRatio(1.0);
 

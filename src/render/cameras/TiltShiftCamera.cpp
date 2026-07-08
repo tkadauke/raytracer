@@ -18,6 +18,8 @@ using namespace render;
 
 namespace {
   using render::detail::checkedU32;
+  using render::detail::checkGpuPathCount;
+  using render::detail::fillGpuDescriptorViewport;
   using render::detail::parameters4;
   using render::detail::vector4;
 
@@ -158,15 +160,7 @@ TiltShiftCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampl
     return std::nullopt;
   }
 
-  const std::uint64_t pixelCount =
-    static_cast<std::uint64_t>(actual.width()) * static_cast<std::uint64_t>(actual.height());
-  const std::uint64_t pathCount =
-    pixelCount * static_cast<std::uint64_t>(plane->sampler()->numSamples());
-  if (pixelCount != 0 &&
-      pathCount / pixelCount != static_cast<std::uint64_t>(plane->sampler()->numSamples())) {
-    throw std::overflow_error("GPU tilt-shift primary path count overflows");
-  }
-  (void)checkedU32(pathCount, "GPU tilt-shift primary path count");
+  checkGpuPathCount(actual, plane->sampler()->numSamples());
 
   const Vector3d forward = motion->matrixAtOpen.transformDirection(Vector3d(0, 0, 1)).normalized();
   const Vector3d right = motion->matrixAtOpen.transformDirection(Vector3d(1, 0, 0));
@@ -193,21 +187,8 @@ TiltShiftCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampl
   descriptor.rectilinear.forward = vector4(forward, 0.0f);
   descriptor.rectilinear.lensParameters =
     parameters4(distance() + focalDistance(), shift().x(), shift().y(), tilt().radians());
-  descriptor.rectilinear.requestedLeft = rect.left();
-  descriptor.rectilinear.requestedTop = rect.top();
-  descriptor.rectilinear.requestedWidth =
-    checkedU32(static_cast<std::uint64_t>(rect.width()), "GPU tilt-shift requested width");
-  descriptor.rectilinear.requestedHeight =
-    checkedU32(static_cast<std::uint64_t>(rect.height()), "GPU tilt-shift requested height");
-  descriptor.rectilinear.actualLeft = actual.left();
-  descriptor.rectilinear.actualTop = actual.top();
-  descriptor.rectilinear.actualWidth =
-    checkedU32(static_cast<std::uint64_t>(actual.width()), "GPU tilt-shift actual width");
-  descriptor.rectilinear.actualHeight =
-    checkedU32(static_cast<std::uint64_t>(actual.height()), "GPU tilt-shift actual height");
-  descriptor.rectilinear.samplesPerPixel = checkedU32(
-    static_cast<std::uint64_t>(plane->sampler()->numSamples()), "GPU tilt-shift samples per pixel");
-  descriptor.rectilinear.sampleSeed = sampleSeed;
+  fillGpuDescriptorViewport(descriptor.rectilinear, rect, actual,
+                             plane->sampler()->numSamples(), sampleSeed);
   return descriptor;
 }
 

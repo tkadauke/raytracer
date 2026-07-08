@@ -20,6 +20,8 @@ using namespace render;
 
 namespace {
   using render::detail::checkedU32;
+  using render::detail::checkGpuPathCount;
+  using render::detail::fillGpuDescriptorViewport;
   using render::detail::parameters4;
   using render::detail::vector4;
 }
@@ -103,15 +105,7 @@ SphericalCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampl
     return std::nullopt;
   }
 
-  const std::uint64_t pixelCount =
-    static_cast<std::uint64_t>(actual.width()) * static_cast<std::uint64_t>(actual.height());
-  const std::uint64_t pathCount =
-    pixelCount * static_cast<std::uint64_t>(plane->sampler()->numSamples());
-  if (pixelCount != 0 &&
-      pathCount / pixelCount != static_cast<std::uint64_t>(plane->sampler()->numSamples())) {
-    throw std::overflow_error("GPU spherical primary path count overflows");
-  }
-  (void)checkedU32(pathCount, "GPU spherical primary path count");
+  checkGpuPathCount(actual, plane->sampler()->numSamples());
 
   GpuPrimaryPathDescriptor descriptor;
   descriptor.mode = gpuPrimaryPathGenerationModeSpherical;
@@ -131,21 +125,8 @@ SphericalCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampl
   descriptor.rectilinear.lensParameters =
     parameters4(plane->width(), plane->height(), m_horizontalFieldOfView.radians(),
                 m_verticalFieldOfView.radians());
-  descriptor.rectilinear.requestedLeft = rect.left();
-  descriptor.rectilinear.requestedTop = rect.top();
-  descriptor.rectilinear.requestedWidth =
-    checkedU32(static_cast<std::uint64_t>(rect.width()), "GPU spherical requested width");
-  descriptor.rectilinear.requestedHeight =
-    checkedU32(static_cast<std::uint64_t>(rect.height()), "GPU spherical requested height");
-  descriptor.rectilinear.actualLeft = actual.left();
-  descriptor.rectilinear.actualTop = actual.top();
-  descriptor.rectilinear.actualWidth =
-    checkedU32(static_cast<std::uint64_t>(actual.width()), "GPU spherical actual width");
-  descriptor.rectilinear.actualHeight =
-    checkedU32(static_cast<std::uint64_t>(actual.height()), "GPU spherical actual height");
-  descriptor.rectilinear.samplesPerPixel = checkedU32(
-    static_cast<std::uint64_t>(plane->sampler()->numSamples()), "GPU spherical samples per pixel");
-  descriptor.rectilinear.sampleSeed = sampleSeed;
+  fillGpuDescriptorViewport(descriptor.rectilinear, rect, actual,
+                             plane->sampler()->numSamples(), sampleSeed);
   return descriptor;
 }
 
