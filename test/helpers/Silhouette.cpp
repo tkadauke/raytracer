@@ -9,52 +9,17 @@ namespace testing {
     if (m_points.empty())
       return;
 
-    int minX = m_points.front().x, maxX = minX;
-    int minY = m_points.front().y, maxY = minY;
-    long long sumX = 0, sumY = 0;
-    for (const auto& p : m_points) {
-      minX = std::min(minX, p.x);
-      maxX = std::max(maxX, p.x);
-      minY = std::min(minY, p.y);
-      maxY = std::max(maxY, p.y);
-      sumX += p.x;
-      sumY += p.y;
-    }
-    const int n = static_cast<int>(m_points.size());
-    m_centroid = {static_cast<int>(sumX / n), static_cast<int>(sumY / n)};
-    m_bbox = Recti(minX, minY, maxX - minX + 1, maxY - minY + 1);
+    auto [centroid, bbox] = computeCentroidAndBbox(m_points);
+    m_centroid = centroid;
+    m_bbox = bbox;
   }
 
   double Silhouette::aspectRatio() const {
-    if (m_bbox.width() == 0)
-      return 0.0;
-    return static_cast<double>(m_bbox.height()) / m_bbox.width();
+    return m_bbox.aspectRatio();
   }
 
   double Silhouette::radialVariance() const {
-    if (m_points.empty())
-      return 0.0;
-    const double cx = m_centroid.x;
-    const double cy = m_centroid.y;
-
-    double sumD = 0.0;
-    for (const auto& p : m_points) {
-      const double dx = p.x - cx;
-      const double dy = p.y - cy;
-      sumD += std::sqrt(dx * dx + dy * dy);
-    }
-    const double mean = sumD / m_points.size();
-    if (mean == 0.0)
-      return 0.0;
-
-    double sumSq = 0.0;
-    for (const auto& p : m_points) {
-      const double dx = p.x - cx;
-      const double dy = p.y - cy;
-      const double d = std::sqrt(dx * dx + dy * dy);
-      sumSq += (d - mean) * (d - mean);
-    }
-    return std::sqrt(sumSq / m_points.size()) / mean;
+    return computeRadialVariance(m_points, m_centroid);
   }
 
   Silhouette extractSilhouette(const Buffer<unsigned int>& buffer, const Colord& color) {

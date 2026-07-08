@@ -108,6 +108,23 @@ namespace GpuIntersectionSceneTest {
       expectPackedAnyHitMatchesCompiled(scene, ray, occludedMaxDistance);
       expectPackedAnyHitMatchesCompiled(scene, ray, visibleMaxDistance);
     }
+
+    GpuIntersectionBounds bounds(float minX, float minY, float minZ,
+                                 float maxX, float maxY, float maxZ) {
+      return GpuIntersectionBounds{{minX, minY, minZ, 0.0f}, {maxX, maxY, maxZ, 0.0f}};
+    }
+
+    GpuIntersectionTrianglePayload triangleAt(float z) {
+      return GpuIntersectionTrianglePayload{{-1.0f, -1.0f, z, 0.0f},
+                                            {1.0f, -1.0f, z, 0.0f},
+                                            {0.0f, 1.0f, z, 0.0f},
+                                            {0.0f, 0.0f, 1.0f, 0.0f},
+                                            {0.0f, 0.0f, 1.0f, 0.0f},
+                                            {0.0f, 0.0f, 1.0f, 0.0f},
+                                            {},
+                                            {},
+                                            {}};
+    }
   }
 
   TEST(GpuIntersectionScene, PackedRecordsHaveStableKernelFriendlyLayout) {
@@ -336,10 +353,6 @@ namespace GpuIntersectionSceneTest {
   }
 
   TEST(GpuIntersectionScene, PackedKernelEligibilityRejectsInvalidPayloadReferences) {
-    const auto bounds = [](float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {
-      return GpuIntersectionBounds{{minX, minY, minZ, 0.0f}, {maxX, maxY, maxZ, 0.0f}};
-    };
-
     GpuIntersectionSceneBuffers buffers;
     buffers.bvh.push_back(GpuIntersectionBvhNode{bounds(-1.0f, -1.0f, 3.0f, 1.0f, 1.0f, 3.0f), 0, 1,
                                                  gpuIntersectionLeafNodeFlag, 0});
@@ -367,10 +380,6 @@ namespace GpuIntersectionSceneTest {
   }
 
   TEST(GpuIntersectionScene, PackedTraversalRejectsInvalidPayloadReferences) {
-    const auto bounds = [](float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {
-      return GpuIntersectionBounds{{minX, minY, minZ, 0.0f}, {maxX, maxY, maxZ, 0.0f}};
-    };
-
     GpuIntersectionSceneBuffers buffers;
     buffers.bvh.push_back(GpuIntersectionBvhNode{bounds(-1.0f, -1.0f, 3.0f, 1.0f, 1.0f, 3.0f), 0, 1,
                                                  gpuIntersectionLeafNodeFlag, 0});
@@ -757,10 +766,6 @@ namespace GpuIntersectionSceneTest {
   }
 
   TEST(GpuIntersectionScene, PackedTraversalCullsPrimitiveRecordsByBounds) {
-    const auto bounds = [](float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {
-      return GpuIntersectionBounds{{minX, minY, minZ, 0.0f}, {maxX, maxY, maxZ, 0.0f}};
-    };
-
     GpuIntersectionSceneBuffers buffers;
     buffers.bvh.push_back(GpuIntersectionBvhNode{bounds(-10.0f, -10.0f, -1.0f, 10.0f, 10.0f, 5.0f),
                                                  0, 1, gpuIntersectionLeafNodeFlag, 0});
@@ -791,21 +796,6 @@ namespace GpuIntersectionSceneTest {
   }
 
   TEST(GpuIntersectionScene, PackedClosestTraversalPrunesBoundsBeyondCurrentHit) {
-    const auto bounds = [](float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {
-      return GpuIntersectionBounds{{minX, minY, minZ, 0.0f}, {maxX, maxY, maxZ, 0.0f}};
-    };
-    const auto triangleAt = [](float z) {
-      return GpuIntersectionTrianglePayload{{-1.0f, -1.0f, z, 0.0f},
-                                            {1.0f, -1.0f, z, 0.0f},
-                                            {0.0f, 1.0f, z, 0.0f},
-                                            {0.0f, 0.0f, 1.0f, 0.0f},
-                                            {0.0f, 0.0f, 1.0f, 0.0f},
-                                            {0.0f, 0.0f, 1.0f, 0.0f},
-                                            {},
-                                            {},
-                                            {}};
-    };
-
     GpuIntersectionSceneBuffers buffers;
     buffers.bvh.push_back(GpuIntersectionBvhNode{bounds(-10.0f, -10.0f, -1.0f, 10.0f, 10.0f, 20.0f),
                                                  0, 2, gpuIntersectionLeafNodeFlag, 0});
@@ -842,21 +832,6 @@ namespace GpuIntersectionSceneTest {
   }
 
   TEST(GpuIntersectionScene, PackedClosestTraversalVisitsNearBvhChildFirst) {
-    const auto bounds = [](float minX, float minY, float minZ, float maxX, float maxY, float maxZ) {
-      return GpuIntersectionBounds{{minX, minY, minZ, 0.0f}, {maxX, maxY, maxZ, 0.0f}};
-    };
-    const auto triangleAt = [](float z) {
-      return GpuIntersectionTrianglePayload{{-1.0f, -1.0f, z, 0.0f},
-                                            {1.0f, -1.0f, z, 0.0f},
-                                            {0.0f, 1.0f, z, 0.0f},
-                                            {0.0f, 0.0f, 1.0f, 0.0f},
-                                            {0.0f, 0.0f, 1.0f, 0.0f},
-                                            {0.0f, 0.0f, 1.0f, 0.0f},
-                                            {},
-                                            {},
-                                            {}};
-    };
-
     GpuIntersectionSceneBuffers buffers;
     buffers.bvh.push_back(
       GpuIntersectionBvhNode{bounds(-10.0f, -10.0f, -1.0f, 10.0f, 10.0f, 20.0f), 1, 2, 0, 0});

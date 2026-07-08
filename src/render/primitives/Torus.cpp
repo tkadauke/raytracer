@@ -243,12 +243,5 @@ HitPoint Torus::closestPositiveHit(const Rayd& ray,
 }
 
 Vector3d Torus::computeNormal(const Vector3d& p) const {
-  double paramSquared = m_sweptRadius * m_sweptRadius + m_tubeRadius * m_tubeRadius;
-  double sumSquared = p * p;
-
-  Vector3d result(4.0 * p.x() * (sumSquared - paramSquared),
-                  4.0 * p.y() * (sumSquared - paramSquared + 2.0 * m_sweptRadius * m_sweptRadius),
-                  4.0 * p.z() * (sumSquared - paramSquared));
-
-  return result.normalized();
+  return IntersectionTorusPayload{m_sweptRadius, m_tubeRadius}.normalAt(p);
 }
