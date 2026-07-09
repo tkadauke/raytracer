@@ -44,21 +44,6 @@ namespace RaytracerTest {
       return sphere;
     }
 
-    // Builds a NiceMock<MockPrimitive> that always reports a hit at the given
-    // distance along the ray, with an outward-facing normal. Used by tests
-    // that need rayColor() to enter the "primitive hit" branch without
-    // bringing a real geometric primitive (and its bounding-box accessors)
-    // into scope.
-    std::shared_ptr<NiceMock<MockPrimitive>> makeAlwaysHit(double distance = 1.0) {
-      auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
-      BoundingBoxd bbox(Vector3d(-100, -100, -100), Vector3d(100, 100, 100));
-      HitPoint hit(primitive.get(), distance, Vector4d(0, 0, distance, 1), Vector3d(0, 0, -1));
-      ON_CALL(*primitive, calculateBoundingBox()).WillByDefault(Return(bbox));
-      ON_CALL(*primitive, intersect(_, _, _))
-        .WillByDefault(DoAll(AddHitPoint(hit), Return(primitive.get())));
-      return primitive;
-    }
-
     class FixedIntegrator final : public Integrator {
     public:
       FixedIntegrator(Colord color, const Primitive* hitPrimitive = nullptr)

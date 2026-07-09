@@ -21,6 +21,7 @@
 #include "render/textures/ConstantColorTexture.h"
 
 #include "test/helpers/ColorTestHelper.h"
+#include "test/helpers/IntegratorTestHelper.h"
 
 #include <array>
 #include <cmath>
@@ -33,6 +34,7 @@
 
 namespace PathTracingIntegratorTest {
   using namespace render;
+  using test::helpers::RecordingBatchObserver;
 
   namespace {
     class FallbackRayCaster final : public RayCaster {
@@ -44,23 +46,6 @@ namespace PathTracingIntegratorTest {
       }
 
       mutable bool sawCall{false};
-    };
-
-    class RecordingBatchObserver final : public IntegratorBatchObserver {
-    public:
-      IntegratorBatchFeedback depthCompleted(std::uint64_t completedDepth,
-                                             const std::vector<Colord>& sampleColors,
-                                             std::uint64_t activeSamples) override {
-        completedDepths.push_back(completedDepth);
-        snapshots.push_back(sampleColors);
-        activeSampleCounts.push_back(activeSamples);
-        return feedback;
-      }
-
-      IntegratorBatchFeedback feedback;
-      std::vector<std::uint64_t> completedDepths;
-      std::vector<std::vector<Colord>> snapshots;
-      std::vector<std::uint64_t> activeSampleCounts;
     };
 
     class UnsupportedMaterial final : public Material {

@@ -19,6 +19,8 @@
 #include "core/math/HitPointInterval.h"
 
 #include "test/helpers/ColorTestHelper.h"
+#include "test/helpers/IntegratorTestHelper.h"
+#include "test/helpers/RecordingRayCaster.h"
 #include "test/mocks/raytracer/MockPrimitive.h"
 
 #include <stdexcept>
@@ -26,16 +28,10 @@
 namespace WhittedIntegratorTest {
   using namespace ::testing;
   using namespace render;
+  using test::helpers::FixedRayCaster;
+  using test::helpers::RecordingBatchObserver;
 
   namespace {
-    class FixedRayCaster final : public RayCaster {
-    public:
-      Colord rayColor(const Rayd&, State& state) const override {
-        state.numRays += 10;
-        return Colord(0.25, 0.5, 0.75);
-      }
-    };
-
     class IntegratorRayCaster final : public RayCaster {
     public:
       IntegratorRayCaster(const Scene& scene, const WhittedIntegrator& integrator)
@@ -50,23 +46,6 @@ namespace WhittedIntegratorTest {
     private:
       const Scene& m_scene;
       const WhittedIntegrator& m_integrator;
-    };
-
-    class RecordingBatchObserver final : public IntegratorBatchObserver {
-    public:
-      IntegratorBatchFeedback depthCompleted(std::uint64_t completedDepth,
-                                             const std::vector<Colord>& sampleColors,
-                                             std::uint64_t activeSamples) override {
-        completedDepths.push_back(completedDepth);
-        snapshots.push_back(sampleColors);
-        activeSampleCounts.push_back(activeSamples);
-        return feedback;
-      }
-
-      IntegratorBatchFeedback feedback;
-      std::vector<std::uint64_t> completedDepths;
-      std::vector<std::vector<Colord>> snapshots;
-      std::vector<std::uint64_t> activeSampleCounts;
     };
 
     class CancellingBatchObserver final : public IntegratorBatchObserver {
@@ -399,16 +378,6 @@ namespace WhittedIntegratorTest {
 
       mutable std::vector<std::size_t> requestedQueryCounts;
     };
-
-    std::shared_ptr<NiceMock<MockPrimitive>> makeAlwaysHit(double distance = 1.0) {
-      auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
-      BoundingBoxd bbox(Vector3d(-100, -100, -100), Vector3d(100, 100, 100));
-      HitPoint hit(primitive.get(), distance, Vector4d(0, 0, distance, 1), Vector3d(0, 0, -1));
-      ON_CALL(*primitive, calculateBoundingBox()).WillByDefault(Return(bbox));
-      ON_CALL(*primitive, intersect(_, _, _))
-        .WillByDefault(DoAll(AddHitPoint(hit), Return(primitive.get())));
-      return primitive;
-    }
 
     std::shared_ptr<NiceMock<MockPrimitive>> makePrimaryOnlyHit() {
       auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
