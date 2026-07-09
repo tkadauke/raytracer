@@ -3,9 +3,14 @@
 #include "gmock/gmock.h"
 #include "render/State.h"
 #include "render/primitives/Primitive.h"
-#include "core/math/Ray.h"
+#include "core/math/BoundingBox.h"
+#include "core/math/HitPoint.h"
 #include "core/math/HitPointInterval.h"
+#include "core/math/Ray.h"
+#include "core/math/Vector.h"
 #include "test/mocks/MockDestructor.h"
+
+#include <memory>
 
 namespace testing {
   class MockPrimitive : public render::Primitive, public MockDestructor {
@@ -31,5 +36,15 @@ namespace testing {
 
   ACTION_P2(AddHitPoints, hitPoint1, hitPoint2) {
     arg1.add(hitPoint1, hitPoint2);
+  }
+
+  inline std::shared_ptr<NiceMock<MockPrimitive>> makeAlwaysHit(double distance = 1.0) {
+    auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
+    BoundingBoxd bbox(Vector3d(-100, -100, -100), Vector3d(100, 100, 100));
+    HitPoint hit(primitive.get(), distance, Vector4d(0, 0, distance, 1), Vector3d(0, 0, -1));
+    ON_CALL(*primitive, calculateBoundingBox()).WillByDefault(Return(bbox));
+    ON_CALL(*primitive, intersect(_, _, _))
+      .WillByDefault(DoAll(AddHitPoint(hit), Return(primitive.get())));
+    return primitive;
   }
 }

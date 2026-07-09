@@ -8,6 +8,14 @@
 
 namespace test::helpers {
 
+  class FixedRayCaster final : public render::RayCaster {
+  public:
+    Colord rayColor(const Rayd&, render::State& state) const override {
+      state.numRays += 10;
+      return Colord(0.25, 0.5, 0.75);
+    }
+  };
+
   class RecordingRayCaster final : public render::RayCaster {
   public:
     explicit RecordingRayCaster(Colord fallbackColor = Colord::black())

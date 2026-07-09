@@ -12,19 +12,13 @@
 #include "render/primitives/Triangle.h"
 
 #include "test/helpers/ColorTestHelper.h"
+#include "test/helpers/RecordingRayCaster.h"
 
 namespace IntegratorTest {
   using namespace render;
+  using test::helpers::FixedRayCaster;
 
   namespace {
-    class FixedRayCaster final : public RayCaster {
-    public:
-      Colord rayColor(const Rayd&, State& state) const override {
-        state.numRays += 10;
-        return Colord(0.25, 0.5, 0.75);
-      }
-    };
-
     class RecursiveProbeIntegrator final : public Integrator {
     public:
       std::unique_ptr<Integrator> clone() const override {

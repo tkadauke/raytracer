@@ -32,6 +32,8 @@
 #include "test/helpers/BufferTestHelper.h"
 #include "test/helpers/CameraTestHelper.h"
 #include "test/helpers/ColorTestHelper.h"
+#include "test/helpers/MaterialTestHelper.h"
+#include "test/helpers/SceneTestHelper.h"
 #include "test/helpers/VectorTestHelper.h"
 
 #include <QJsonArray>
@@ -55,6 +57,8 @@
 namespace GraphRenderEngineTest {
   using namespace engine::graph;
   using test::helpers::countPixels;
+  using test::helpers::highContrastScene;
+  using test::helpers::matte;
   using test::helpers::standardCamera;
 
   std::shared_ptr<render::Camera> shadowReceiverCamera() {
@@ -683,20 +687,6 @@ namespace GraphRenderEngineTest {
       }
     }
     return count;
-  }
-
-  std::shared_ptr<render::Material> matte(const Colord& color) {
-    return std::make_shared<render::MatteMaterial>(
-      std::make_shared<render::ConstantColorTexture>(color));
-  }
-
-  std::shared_ptr<render::Scene> highContrastScene() {
-    auto scene = std::make_shared<render::Scene>();
-    scene->setBackground(Colord::black());
-    auto sphere = std::make_shared<render::Sphere>(Vector3d::null, 1.25);
-    sphere->setMaterial(matte(Colord::white()));
-    scene->add(sphere);
-    return scene;
   }
 
   std::shared_ptr<render::Scene> singleRectangleScene() {

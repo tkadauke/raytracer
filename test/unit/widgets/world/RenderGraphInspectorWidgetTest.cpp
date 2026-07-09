@@ -21,6 +21,7 @@
 #include "test/helpers/CameraTestHelper.h"
 #include "test/helpers/GuiTestHelper.h"
 #include "test/helpers/MaterialTestHelper.h"
+#include "test/helpers/SceneTestHelper.h"
 #include "test/helpers/Slot.h"
 
 #include <QApplication>
@@ -42,6 +43,7 @@
 
 namespace RenderGraphInspectorWidgetTest {
   using namespace engine::graph;
+  using test::helpers::highContrastScene;
   using test::helpers::matte;
   using test::helpers::standardCamera;
 
@@ -335,15 +337,6 @@ namespace RenderGraphInspectorWidgetTest {
                                        Vector3d(0.0, 1.0, 0.0));
 
     return compiler.compile({64, 32, 1}, intent, analysis);
-  }
-
-  std::shared_ptr<render::Scene> highContrastScene() {
-    auto scene = std::make_shared<render::Scene>();
-    scene->setBackground(Colord::black());
-    auto sphere = std::make_shared<render::Sphere>(Vector3d::null, 1.25);
-    sphere->setMaterial(matte(Colord::white()));
-    scene->add(sphere);
-    return scene;
   }
 
   std::shared_ptr<render::Scene> litHighContrastScene() {
