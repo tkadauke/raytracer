@@ -75,6 +75,15 @@ namespace test {
       }
       return count;
     }
+
+    inline int countFiniteDepths(const Buffer<double>& buffer) {
+      int count = 0;
+      for (int y = 0; y < buffer.height(); ++y)
+        for (int x = 0; x < buffer.width(); ++x)
+          if (std::isfinite(buffer[y][x]))
+            ++count;
+      return count;
+    }
   }
 }
 

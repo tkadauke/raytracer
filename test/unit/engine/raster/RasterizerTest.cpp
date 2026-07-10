@@ -36,6 +36,7 @@
 #include "render/textures/mappings/PlanarMapping2D.h"
 #include "render/textures/mappings/UVMapping2D.h"
 #include "test/helpers/BufferTestHelper.h"
+#include "test/helpers/CameraTestHelper.h"
 #include "test/helpers/ColorTestHelper.h"
 #include "test/helpers/MaterialTestHelper.h"
 
@@ -54,11 +55,14 @@ namespace RasterizerTest {
   using namespace ::testing;
   using namespace render;
   using namespace engine::raster;
+  using test::helpers::angledCamera;
+  using test::helpers::countFiniteDepths;
   using test::helpers::countPixels;
   using test::helpers::countPixelsNotEqualTo;
   using test::helpers::countPixelsBrightenedByFiltering;
   using test::helpers::countPixelsDarkenedByFiltering;
   using test::helpers::matte;
+  using test::helpers::standardCamera;
 
   class HitPointUVTexture : public Texturec {
   public:
@@ -514,14 +518,6 @@ namespace RasterizerTest {
     return triangle;
   }
 
-  static std::shared_ptr<PinholeCamera> camera() {
-    return std::make_shared<PinholeCamera>(Vector3d(2, 2, -5), Vector3d::null);
-  }
-
-  static std::shared_ptr<PinholeCamera> headOnCamera() {
-    return std::make_shared<PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
-  }
-
   static std::shared_ptr<Scene> sceneWithFrontOccluderAndDenseBackLayer(int backRectangleCount) {
     auto scene = std::make_shared<Scene>(Colord::black());
     auto addRectangle = [&](double z) {
@@ -572,17 +568,6 @@ namespace RasterizerTest {
     return buffer[y][x];
   }
 
-  static int countFiniteDepthSamples(const Buffer<double>& depth) {
-    int count = 0;
-    for (int y = 0; y < depth.height(); ++y) {
-      for (int x = 0; x < depth.width(); ++x) {
-        if (std::isfinite(depth[y][x]))
-          ++count;
-      }
-    }
-    return count;
-  }
-
   static engine::raster::detail::DirectionalShadowMap
   syntheticShadowMap(double constantBias, double slopeBias, int filterRadius = 0,
                      Rasterizer::ShadowFilterMode filterMode = Rasterizer::ShadowFilterMode::PCF) {
@@ -604,7 +589,7 @@ namespace RasterizerTest {
 
   TEST(Rasterizer, EmptySceneRendersBackgroundOnly) {
     auto scene = std::make_shared<Scene>(Colord::white());
-    Rasterizer engine(camera(), scene);
+    Rasterizer engine(angledCamera(), scene);
     engine.setBackgroundColor(Colord(0.1, 0.2, 0.3));
     Buffer<Colord> buffer(64, 64);
 
@@ -614,7 +599,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, SceneWithBoxFillsSomePixels) {
-    Rasterizer engine(camera(), sceneWithBox());
+    Rasterizer engine(angledCamera(), sceneWithBox());
     Buffer<Colord> buffer(128, 128);
     engine.render(buffer);
 
@@ -633,7 +618,7 @@ namespace RasterizerTest {
     // Wireframe directly here (that would couple the test to two
     // engines) — just assert the filled count is "large", indicating
     // the interior is being filled.
-    Rasterizer engine(camera(), sceneWithSphere());
+    Rasterizer engine(angledCamera(), sceneWithSphere());
     Buffer<Colord> buffer(128, 128);
     engine.render(buffer);
 
@@ -646,7 +631,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, SceneWithCurveTubeFillsSomePixels) {
-    Rasterizer engine(headOnCamera(), sceneWithCurveTube());
+    Rasterizer engine(standardCamera(), sceneWithCurveTube());
     Buffer<Colord> buffer(128, 128);
 
     engine.render(buffer);
@@ -668,7 +653,7 @@ namespace RasterizerTest {
 
   TEST(Rasterizer, BackgroundColorIsConfigurable) {
     auto scene = std::make_shared<Scene>(Colord::white());
-    Rasterizer engine(camera(), scene);
+    Rasterizer engine(angledCamera(), scene);
     engine.setBackgroundColor(Colord(0.5, 0.0, 0.5));
     Buffer<Colord> buffer(32, 32);
 
@@ -686,13 +671,13 @@ namespace RasterizerTest {
     // strict mathematical claim for arbitrary scenes.
     auto scene = sceneWithSphere();
 
-    Rasterizer engineLow(camera(), scene);
+    Rasterizer engineLow(angledCamera(), scene);
     engineLow.setLod(0);
     Buffer<Colord> bufferLow(256, 256);
     engineLow.render(bufferLow);
     const int filledLow = countPixelsNotEqualTo(bufferLow, Colord::black());
 
-    Rasterizer engineHigh(camera(), scene);
+    Rasterizer engineHigh(angledCamera(), scene);
     engineHigh.setLod(2);
     Buffer<Colord> bufferHigh(256, 256);
     engineHigh.render(bufferHigh);
@@ -706,7 +691,7 @@ namespace RasterizerTest {
     auto scene = std::make_shared<Scene>(Colord::white());
     scene->add(std::make_shared<CountingPrimitive>(
       BoundingBoxd(Vector3d(1000.0, -1.0, 0.0), Vector3d(1001.0, 1.0, 1.0)), &tessellateCalls));
-    Rasterizer engine(headOnCamera(), scene);
+    Rasterizer engine(standardCamera(), scene);
     Buffer<Colord> buffer(32, 32);
 
     engine.render(buffer);
@@ -719,7 +704,7 @@ namespace RasterizerTest {
     auto scene = std::make_shared<Scene>(Colord::white());
     scene->add(std::make_shared<CountingPrimitive>(
       BoundingBoxd(Vector3d(-1.0, -1.0, 0.0), Vector3d(1.0, 1.0, 1.0)), &tessellateCalls));
-    Rasterizer engine(headOnCamera(), scene);
+    Rasterizer engine(standardCamera(), scene);
     Buffer<Colord> buffer(32, 32);
 
     engine.render(buffer);
@@ -735,7 +720,7 @@ namespace RasterizerTest {
     group->add(std::make_shared<CountingPrimitive>(
       BoundingBoxd(Vector3d(1000.0, -1.0, 0.0), Vector3d(1001.0, 1.0, 1.0)), &tessellateCalls));
     scene->add(group);
-    Rasterizer engine(headOnCamera(), scene);
+    Rasterizer engine(standardCamera(), scene);
     Buffer<Colord> buffer(32, 32);
 
     engine.render(buffer);
@@ -752,7 +737,7 @@ namespace RasterizerTest {
     group->add(std::make_shared<CountingPrimitive>(
       BoundingBoxd(Vector3d(1000.0, -1.0, 0.0), Vector3d(1001.0, 1.0, 1.0)), &tessellateCalls));
     scene->add(group);
-    Rasterizer engine(headOnCamera(), scene);
+    Rasterizer engine(standardCamera(), scene);
     Buffer<Colord> buffer(32, 32);
 
     engine.render(buffer);
@@ -766,7 +751,7 @@ namespace RasterizerTest {
     auto scene = std::make_shared<Scene>(Colord::white());
     scene->add(std::make_shared<CountingPrimitive>(
       BoundingBoxd(Vector3d(1000.0, -1.0, 0.0), Vector3d(1001.0, 1.0, 1.0)), &tessellateCalls));
-    Rasterizer engine(headOnCamera(), scene);
+    Rasterizer engine(standardCamera(), scene);
     engine.setVertexShader([](const Rasterizer::VertexInput& vertex) {
       return Rasterizer::VertexOutput{vertex.worldPosition, vertex.normal, vertex.uv,
                                       vertex.clipPosition, vertex.screenPosition};
@@ -791,7 +776,7 @@ namespace RasterizerTest {
     visibilitySet->addVisibleLeaf(0);
     visibilitySet->addRejectedLeaf(RasterVisibilitySet::RejectionReason::Frustum, 0);
 
-    Rasterizer engine(headOnCamera(), scene);
+    Rasterizer engine(standardCamera(), scene);
     engine.setVisibilitySet(visibilitySet);
     engine.setVertexShader([](const Rasterizer::VertexInput& vertex) {
       return Rasterizer::VertexOutput{vertex.worldPosition, vertex.normal, vertex.uv,
@@ -818,7 +803,7 @@ namespace RasterizerTest {
     visibilitySet->addVisibleLeaf(0);
     visibilitySet->setVisibleLeafOrder({2, 0});
 
-    Rasterizer engine(headOnCamera(), scene);
+    Rasterizer engine(standardCamera(), scene);
     engine.setVisibilitySet(visibilitySet);
     Buffer<Colord> buffer(32, 32);
 
@@ -828,7 +813,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, HandlesNullSceneGracefully) {
-    Rasterizer engine(camera(), nullptr);
+    Rasterizer engine(angledCamera(), nullptr);
     engine.setBackgroundColor(Colord(0.1, 0.1, 0.1));
     Buffer<Colord> buffer(32, 32);
 
@@ -838,7 +823,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, CancelStopsFurtherDrawing) {
-    Rasterizer engine(camera(), sceneWithBox());
+    Rasterizer engine(angledCamera(), sceneWithBox());
     engine.setBackgroundColor(Colord::black());
     Buffer<Colord> buffer(64, 64);
 
@@ -893,7 +878,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, DepthStencilAndShaderDefaultsMatchFixedPipeline) {
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
 
     EXPECT_EQ(Rasterizer::DepthFunc::Less, engine.depthFunc());
     EXPECT_TRUE(engine.depthWriteEnabled());
@@ -955,7 +940,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, ClonePreservesPostProcessAAAndShadowFilterMode) {
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
     engine.setPostProcessAA(Rasterizer::PostProcessAA::SMAA);
     engine.setMSAAShadingMode(Rasterizer::MSAAShadingMode::PerFragment);
     engine.setPostProcessAA(Rasterizer::PostProcessAA::TAA);
@@ -1039,7 +1024,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, TemporalAATracksHistoryLifecycle) {
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
     engine.setPostProcessAA(Rasterizer::PostProcessAA::TAA);
     Buffer<Colord> color(64, 64);
 
@@ -1061,7 +1046,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, TemporalAAResetsHistoryWhenRenderTargetResizes) {
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
     engine.setPostProcessAA(Rasterizer::PostProcessAA::TAA);
     Buffer<Colord> color64(64, 64);
     Buffer<Colord> color32(32, 32);
@@ -1076,7 +1061,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, TemporalAAResetsHistoryWhenCameraChanges) {
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
     engine.setPostProcessAA(Rasterizer::PostProcessAA::TAA);
     Buffer<Colord> color(64, 64);
 
@@ -1084,14 +1069,14 @@ namespace RasterizerTest {
     engine.render(color);
     EXPECT_EQ(2, engine.temporalFrameIndex());
 
-    engine.setCamera(camera());
+    engine.setCamera(angledCamera());
     engine.render(color);
     EXPECT_TRUE(engine.temporalHistoryValid());
     EXPECT_EQ(1, engine.temporalFrameIndex());
   }
 
   TEST(Rasterizer, ClonePreservesDisabledScissorRectangle) {
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
     engine.setScissorRect(12, 14, 20, 22);
     engine.setScissorTestEnabled(false);
 
@@ -1107,7 +1092,7 @@ namespace RasterizerTest {
 
   TEST(Rasterizer, DiagnosticOutputBuffersCapturePassingFragmentData) {
     auto tracked = sceneWithTrackedFrontFacingTriangle();
-    Rasterizer engine(headOnCamera(), tracked.scene);
+    Rasterizer engine(standardCamera(), tracked.scene);
     engine.setStencilTestEnabled(true);
     engine.setStencilFunc(Rasterizer::StencilFunc::Always, 7);
     engine.setStencilOps(Rasterizer::StencilOp::Keep, Rasterizer::StencilOp::Keep,
@@ -1174,7 +1159,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, DiagnosticCounterBuffersCaptureRasterWorkBeforeVisibility) {
-    Rasterizer engine(headOnCamera(), sceneWithDuplicateTriangles());
+    Rasterizer engine(standardCamera(), sceneWithDuplicateTriangles());
     engine.setQueueSize(1);
 
     Buffer<Colord> color(64, 64);
@@ -1208,7 +1193,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, VisibilitySetReducesDiagnosticCounterWork) {
-    Rasterizer engine(headOnCamera(), sceneWithDuplicateTriangles());
+    Rasterizer engine(standardCamera(), sceneWithDuplicateTriangles());
     engine.setQueueSize(1);
     auto visibilitySet = std::make_shared<RasterVisibilitySet>();
     visibilitySet->addVisibleLeaf(1, 1);
@@ -1240,7 +1225,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, MetricsCaptureRasterWorkWithoutDiagnosticOutputBuffers) {
-    Rasterizer engine(headOnCamera(), sceneWithDuplicateTriangles());
+    Rasterizer engine(standardCamera(), sceneWithDuplicateTriangles());
     engine.setQueueSize(4);
 
     Buffer<Colord> color(64, 64);
@@ -1300,7 +1285,7 @@ namespace RasterizerTest {
     instance->setMatrix(Matrix4d::translate(0.0, 0.0, 60.0));
     scene->add(instance);
 
-    Rasterizer preview(headOnCamera(), scene);
+    Rasterizer preview(standardCamera(), scene);
     preview.setLod(3);
     preview.setTessellationQuality(Rasterizer::TessellationQuality::Preview);
     Buffer<Colord> previewColor(64, 64);
@@ -1312,7 +1297,7 @@ namespace RasterizerTest {
     EXPECT_GT(preview.lastMetrics().tessellation.maxProjectedPrimitivePixels, 0.0);
 
     requestedLods.clear();
-    Rasterizer final(headOnCamera(), scene);
+    Rasterizer final(standardCamera(), scene);
     final.setLod(3);
     final.setTessellationQuality(Rasterizer::TessellationQuality::Final);
     Buffer<Colord> finalColor(64, 64);
@@ -1331,7 +1316,7 @@ namespace RasterizerTest {
     instance->setMatrix(Matrix4d::translate(0.0, 0.0, 60.0));
     scene->add(instance);
 
-    Rasterizer engine(headOnCamera(), scene);
+    Rasterizer engine(standardCamera(), scene);
     engine.setLod(3);
     engine.setTessellationQuality(Rasterizer::TessellationQuality::Final);
     engine.setMaximumScreenSpaceError(8.0);
@@ -1352,7 +1337,7 @@ namespace RasterizerTest {
       scene->add(instance);
     }
 
-    Rasterizer engine(headOnCamera(), scene);
+    Rasterizer engine(standardCamera(), scene);
     engine.setLod(3);
     engine.setTessellationQuality(Rasterizer::TessellationQuality::Preview);
     Buffer<Colord> color(64, 64);
@@ -1365,7 +1350,7 @@ namespace RasterizerTest {
 
   TEST(Rasterizer, ConservativeDepthOcclusionReducesCoverageAndDepthTestsOnDenseOcclusion) {
     auto scene = sceneWithFrontOccluderAndDenseBackLayer(24);
-    Rasterizer occluding(headOnCamera(), scene);
+    Rasterizer occluding(standardCamera(), scene);
     occluding.setMaximumThreads(2);
     occluding.setQueueSize(4);
     occluding.setCullMode(Rasterizer::CullMode::Front);
@@ -1373,7 +1358,7 @@ namespace RasterizerTest {
     Buffer<Colord> occludingColor(64, 64);
     occluding.render(occludingColor);
 
-    Rasterizer fallback(headOnCamera(), scene);
+    Rasterizer fallback(standardCamera(), scene);
     fallback.setMaximumThreads(2);
     fallback.setQueueSize(4);
     fallback.setCullMode(Rasterizer::CullMode::Front);
@@ -1393,7 +1378,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, ConservativeDepthOcclusionFallsBackForTwoSidedPasses) {
-    Rasterizer engine(headOnCamera(), sceneWithDuplicateTriangles());
+    Rasterizer engine(standardCamera(), sceneWithDuplicateTriangles());
     engine.setMaximumThreads(2);
     engine.setQueueSize(4);
 
@@ -1407,7 +1392,7 @@ namespace RasterizerTest {
 
   TEST(Rasterizer, DepthPrepassRunsOnlyWhenExplicitlyRequestedAndEligible) {
     auto scene = sceneWithFrontOccluderAndDenseBackLayer(12);
-    Rasterizer baseline(headOnCamera(), scene);
+    Rasterizer baseline(standardCamera(), scene);
     baseline.setMaximumThreads(2);
     baseline.setQueueSize(4);
     baseline.setCullMode(Rasterizer::CullMode::Front);
@@ -1415,7 +1400,7 @@ namespace RasterizerTest {
     Buffer<Colord> baselineColor(64, 64);
     baseline.render(baselineColor);
 
-    Rasterizer prepass(headOnCamera(), scene);
+    Rasterizer prepass(standardCamera(), scene);
     prepass.setMaximumThreads(2);
     prepass.setQueueSize(4);
     prepass.setCullMode(Rasterizer::CullMode::Front);
@@ -1437,7 +1422,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, DepthPrepassAutoSuppressesCheapOpaquePasses) {
-    Rasterizer engine(headOnCamera(), sceneWithDuplicateTriangles());
+    Rasterizer engine(standardCamera(), sceneWithDuplicateTriangles());
     engine.setMaximumThreads(2);
     engine.setQueueSize(4);
     engine.setDepthPrepassMode(Rasterizer::DepthPrepassMode::Auto);
@@ -1452,7 +1437,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, DepthPrepassSuppressesUnsupportedFixedFunctionState) {
-    Rasterizer engine(headOnCamera(), sceneWithDuplicateTriangles());
+    Rasterizer engine(standardCamera(), sceneWithDuplicateTriangles());
     engine.setMaximumThreads(2);
     engine.setQueueSize(4);
     engine.setDepthPrepassMode(Rasterizer::DepthPrepassMode::On);
@@ -1470,7 +1455,7 @@ namespace RasterizerTest {
     auto tracked = sceneWithTrackedFrontFacingTriangle();
     tracked.scene->addLight(
       std::make_shared<DirectionalLight>(Vector3d(0.0, 0.0, -1.0), Colord::white()));
-    Rasterizer engine(headOnCamera(), tracked.scene);
+    Rasterizer engine(standardCamera(), tracked.scene);
 
     Buffer<Colord> color(64, 64);
     engine.render(color);
@@ -1484,7 +1469,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, DiagnosticOutputBuffersIgnoreMismatchedBuffers) {
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
     Buffer<Colord> color(64, 64);
     Buffer<double> depth(32, 32);
     depth.clear(123.0);
@@ -1499,7 +1484,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, ClearDiagnosticOutputBuffersStopsWrites) {
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
     Buffer<Colord> color(64, 64);
     Buffer<double> depth(64, 64);
     depth.clear(123.0);
@@ -1516,7 +1501,7 @@ namespace RasterizerTest {
 
   TEST(Rasterizer, ColorLoadOpLoadPreservesExistingFramebufferWhenNothingDraws) {
     const Colord loadedColor(0.1, 0.2, 0.9);
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
     engine.setColorLoadOp(Rasterizer::AttachmentLoadOp::Load);
     engine.setDepthFunc(Rasterizer::DepthFunc::Never);
     Buffer<Colord> buffer(64, 64);
@@ -1530,7 +1515,7 @@ namespace RasterizerTest {
 
   TEST(Rasterizer, ColorLoadOpLoadPreservesExistingFramebufferThroughTiledMSAA) {
     const Colord loadedColor(0.1, 0.2, 0.9);
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
     engine.setColorLoadOp(Rasterizer::AttachmentLoadOp::Load);
     engine.setDepthFunc(Rasterizer::DepthFunc::Never);
     engine.setMSAASamples(4);
@@ -1546,7 +1531,7 @@ namespace RasterizerTest {
 
   TEST(Rasterizer, ColorStoreOpDiscardLeavesFramebufferUnchanged) {
     const Colord loadedColor(0.1, 0.2, 0.9);
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
     engine.setColorStoreOp(Rasterizer::AttachmentStoreOp::Discard);
     engine.setFragmentShader([](const Rasterizer::FragmentInput&) { return Colord::red(); });
     Buffer<Colord> buffer(64, 64);
@@ -1559,7 +1544,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, ColorLoadOpLoadPreservesDisplayFramebufferWhenNothingDraws) {
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
     engine.setColorLoadOp(Rasterizer::AttachmentLoadOp::Load);
     engine.setDepthFunc(Rasterizer::DepthFunc::Never);
     Buffer<unsigned int> buffer(64, 64);
@@ -1572,7 +1557,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, ColorStoreOpDiscardLeavesDisplayFramebufferUnchanged) {
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
     engine.setColorStoreOp(Rasterizer::AttachmentStoreOp::Discard);
     engine.setFragmentShader([](const Rasterizer::FragmentInput&) { return Colord::red(); });
     Buffer<unsigned int> buffer(64, 64);
@@ -1585,12 +1570,12 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, TiledDisplayFramebufferMatchesSingleTileDisplayFramebuffer) {
-    Rasterizer singleTile(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer singleTile(standardCamera(), sceneWithFrontFacingTriangle());
     singleTile.setMSAASamples(4);
     singleTile.setQueueSize(1);
     configureScreenSpaceEdgeTriangle(singleTile);
 
-    Rasterizer tiled(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer tiled(standardCamera(), sceneWithFrontFacingTriangle());
     tiled.setMSAASamples(4);
     tiled.setMaximumThreads(2);
     tiled.setQueueSize(4);
@@ -1607,7 +1592,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, DepthAttachmentLoadCanRejectFragments) {
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
     engine.setBackgroundColor(Colord::black());
     engine.setDepthLoadOp(Rasterizer::AttachmentLoadOp::Load);
     engine.setDepthStoreOp(Rasterizer::AttachmentStoreOp::Discard);
@@ -1626,7 +1611,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, DepthAttachmentStoreWritesCommittedDepth) {
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
     Buffer<Colord> color(64, 64);
     Buffer<double> depth(64, 64);
     depth.clear(123.0);
@@ -1641,7 +1626,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, DepthAttachmentStoreDiscardLeavesAttachmentUnchanged) {
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
     engine.setDepthStoreOp(Rasterizer::AttachmentStoreOp::Discard);
     Buffer<Colord> color(64, 64);
     Buffer<double> depth(64, 64);
@@ -1657,7 +1642,7 @@ namespace RasterizerTest {
 
   TEST(Rasterizer, StencilAttachmentLoadSeedsStencilTest) {
     const Colord shaderColor(0.0, 0.5, 1.0);
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
     engine.setBackgroundColor(Colord::black());
     engine.setStencilTestEnabled(true);
     engine.setStencilLoadOp(Rasterizer::AttachmentLoadOp::Load);
@@ -1681,7 +1666,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, StencilAttachmentStoreWritesPassingStencilValue) {
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
     engine.setStencilTestEnabled(true);
     engine.setStencilFunc(Rasterizer::StencilFunc::Always, 7);
     engine.setStencilOps(Rasterizer::StencilOp::Keep, Rasterizer::StencilOp::Keep,
@@ -1701,7 +1686,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, StencilAttachmentStoreDiscardLeavesAttachmentUnchanged) {
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
     engine.setStencilTestEnabled(true);
     engine.setStencilStoreOp(Rasterizer::AttachmentStoreOp::Discard);
     engine.setStencilFunc(Rasterizer::StencilFunc::Always, 7);
@@ -1721,7 +1706,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, ShadowCascadeCountClampsToSupportedRange) {
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
 
     engine.setShadowCascadeCount(3);
     EXPECT_EQ(3, engine.shadowCascadeCount());
@@ -1734,7 +1719,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, ShadowCascadeSplitLambdaClampsToSupportedRange) {
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
 
     engine.setShadowCascadeSplitLambda(0.75);
     EXPECT_DOUBLE_EQ(0.75, engine.shadowCascadeSplitLambda());
@@ -1765,7 +1750,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, ShadowFilterRadiusClampsOnlyNegativeValues) {
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
 
     engine.setShadowFilterRadius(3);
     EXPECT_EQ(3, engine.shadowFilterRadius());
@@ -1776,7 +1761,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, ShadowSlopeBiasClampsOnlyNegativeValues) {
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
 
     engine.setShadowSlopeBias(0.25);
     EXPECT_DOUBLE_EQ(0.25, engine.shadowSlopeBias());
@@ -1890,11 +1875,11 @@ namespace RasterizerTest {
         .renderFirstDirectionalDepth(depth);
 
     EXPECT_TRUE(rendered);
-    EXPECT_GT(countFiniteDepthSamples(depth), 0);
+    EXPECT_GT(countFiniteDepths(depth), 0);
   }
 
   TEST(Rasterizer, ClipDepthsClampToValidRange) {
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
 
     engine.setNearClipDepth(-1.0);
     EXPECT_GT(engine.nearClipDepth(), 0.0);
@@ -1907,7 +1892,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, NearClipDepthCanClipGeometryBeforeRasterization) {
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
     engine.setBackgroundColor(Colord::black());
     engine.setNearClipDepth(100.0);
     Buffer<Colord> buffer(64, 64);
@@ -1918,7 +1903,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, FarClipDepthCanClipGeometryBeforeRasterization) {
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
     engine.setBackgroundColor(Colord::black());
     engine.setFarClipDepth(1.0);
     Buffer<Colord> buffer(64, 64);
@@ -1929,7 +1914,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, DepthFuncNeverRejectsFragments) {
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
     engine.setBackgroundColor(Colord::black());
     engine.setDepthFunc(Rasterizer::DepthFunc::Never);
     Buffer<Colord> buffer(64, 64);
@@ -1943,12 +1928,12 @@ namespace RasterizerTest {
     const Colord shaderColor(1.0, 0.0, 0.0);
     auto scene = sceneWithFrontFacingTriangle();
 
-    Rasterizer unbiased(headOnCamera(), scene);
+    Rasterizer unbiased(standardCamera(), scene);
     unbiased.setBackgroundColor(Colord::black());
     unbiased.setDepthClearValue(10.5);
     unbiased.setFragmentShader([&](const Rasterizer::FragmentInput&) { return shaderColor; });
 
-    Rasterizer biased(headOnCamera(), scene);
+    Rasterizer biased(standardCamera(), scene);
     biased.setBackgroundColor(Colord::black());
     biased.setDepthClearValue(10.5);
     biased.setDepthBias(1.0);
@@ -1967,12 +1952,12 @@ namespace RasterizerTest {
     const Colord shaderColor(0.0, 1.0, 0.0);
     auto scene = sceneWithFrontFacingTriangle();
 
-    Rasterizer unbiased(headOnCamera(), scene);
+    Rasterizer unbiased(standardCamera(), scene);
     unbiased.setBackgroundColor(Colord::black());
     unbiased.setDepthClearValue(9.75);
     unbiased.setFragmentShader([&](const Rasterizer::FragmentInput&) { return shaderColor; });
 
-    Rasterizer biased(headOnCamera(), scene);
+    Rasterizer biased(standardCamera(), scene);
     biased.setBackgroundColor(Colord::black());
     biased.setDepthClearValue(9.75);
     biased.setDepthBias(-0.5);
@@ -1988,7 +1973,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, DiagnosticDepthOutputIncludesDepthBias) {
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
     engine.setDepthBias(0.25);
     Buffer<Colord> color(64, 64);
     Buffer<double> depth(64, 64);
@@ -2005,12 +1990,12 @@ namespace RasterizerTest {
     const Colord nearColor(1.0, 0.0, 0.0);
     const Colord farColor(0.0, 1.0, 0.0);
 
-    Rasterizer defaultDepth(headOnCamera(), sceneWithOverlappingTriangles());
+    Rasterizer defaultDepth(standardCamera(), sceneWithOverlappingTriangles());
     defaultDepth.setFragmentShader([&](const Rasterizer::FragmentInput& fragment) {
       return fragment.faceIdx == 0 ? nearColor : farColor;
     });
 
-    Rasterizer noDepthWrites(headOnCamera(), sceneWithOverlappingTriangles());
+    Rasterizer noDepthWrites(standardCamera(), sceneWithOverlappingTriangles());
     noDepthWrites.setDepthWriteEnabled(false);
     noDepthWrites.setFragmentShader([&](const Rasterizer::FragmentInput& fragment) {
       return fragment.faceIdx == 0 ? nearColor : farColor;
@@ -2028,7 +2013,7 @@ namespace RasterizerTest {
   TEST(Rasterizer, StencilFailOpCanSeedLaterGeometry) {
     const Colord secondTriangleColor(0.0, 0.5, 1.0);
 
-    Rasterizer engine(headOnCamera(), sceneWithDuplicateTriangles());
+    Rasterizer engine(standardCamera(), sceneWithDuplicateTriangles());
     engine.setStencilTestEnabled(true);
     engine.setStencilFunc(Rasterizer::StencilFunc::Equal, 1);
     engine.setStencilOps(Rasterizer::StencilOp::Replace, Rasterizer::StencilOp::Keep,
@@ -2044,7 +2029,7 @@ namespace RasterizerTest {
   TEST(Rasterizer, SharedTriangleEdgeDoesNotDoubleApplyStencil) {
     const Colord overlapColor(1.0, 0.0, 0.0);
 
-    Rasterizer engine(headOnCamera(), sceneWithAdjacentQuadTriangles());
+    Rasterizer engine(standardCamera(), sceneWithAdjacentQuadTriangles());
     engine.setBackgroundColor(Colord::black());
     engine.setDepthFunc(Rasterizer::DepthFunc::Always);
     engine.setStencilTestEnabled(true);
@@ -2061,8 +2046,8 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, StencilEnabledBuiltInFragmentMatchesDefaultWhenAlwaysPasses) {
-    Rasterizer fixedPipeline(headOnCamera(), sceneWithFrontFacingTriangle());
-    Rasterizer stencilPipeline(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer fixedPipeline(standardCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer stencilPipeline(standardCamera(), sceneWithFrontFacingTriangle());
     stencilPipeline.setStencilTestEnabled(true);
 
     Buffer<Colord> fixedBuffer(64, 64);
@@ -2074,7 +2059,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, ColorWriteMaskPreservesDisabledChannels) {
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
     engine.setBackgroundColor(Colord(0.1, 0.2, 0.3));
     engine.setColorWriteMask(false, true, false);
     engine.setFragmentShader(
@@ -2087,7 +2072,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, BlendStateCombinesSourceAndDestinationColor) {
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
     engine.setBackgroundColor(Colord(0.2, 0.4, 0.6));
     engine.setBlendingEnabled(true);
     engine.setBlendFactors(Rasterizer::BlendFactor::ConstantAlpha,
@@ -2105,7 +2090,7 @@ namespace RasterizerTest {
   TEST(Rasterizer, SourceAlphaBlendUsesTextureSourcedAlpha) {
     auto scene = sceneWithTexturedFrontFacingTriangle(
       std::make_shared<ConstantColorTexture>(Colord(0.5, 0.0, 0.0)));
-    Rasterizer engine(headOnCamera(), scene);
+    Rasterizer engine(standardCamera(), scene);
     engine.setBackgroundColor(Colord(0.2, 0.4, 0.6));
     engine.setBlendingEnabled(true);
     engine.setBlendFactors(Rasterizer::BlendFactor::SourceAlpha,
@@ -2123,7 +2108,7 @@ namespace RasterizerTest {
     material->setTransmissionCoefficient(0.75);
     auto scene = sceneWithMaterialFrontFacingTriangle(material);
     scene->setAmbient(Colord::white());
-    Rasterizer engine(headOnCamera(), scene);
+    Rasterizer engine(standardCamera(), scene);
     engine.setBackgroundColor(Colord(0.2, 0.4, 0.6));
     engine.setBlendingEnabled(true);
     engine.setBlendFactors(Rasterizer::BlendFactor::SourceAlpha,
@@ -2138,7 +2123,7 @@ namespace RasterizerTest {
   TEST(Rasterizer, AlphaTestFailureSkipsColorAndDepthWrites) {
     auto scene = sceneWithTexturedFrontFacingTriangle(
       std::make_shared<ConstantColorTexture>(Colord(0.25, 0.0, 0.0)));
-    Rasterizer engine(headOnCamera(), scene);
+    Rasterizer engine(standardCamera(), scene);
     engine.setBackgroundColor(Colord::black());
     engine.setAlphaTestEnabled(true);
     engine.setAlphaFunc(Rasterizer::AlphaFunc::Greater, 0.5);
@@ -2158,7 +2143,7 @@ namespace RasterizerTest {
   TEST(Rasterizer, AlphaTestPassWritesColorAndDepth) {
     auto scene = sceneWithTexturedFrontFacingTriangle(
       std::make_shared<ConstantColorTexture>(Colord(0.75, 0.0, 0.0)));
-    Rasterizer engine(headOnCamera(), scene);
+    Rasterizer engine(standardCamera(), scene);
     engine.setBackgroundColor(Colord::black());
     engine.setAlphaTestEnabled(true);
     engine.setAlphaFunc(Rasterizer::AlphaFunc::Greater, 0.5);
@@ -2187,10 +2172,10 @@ namespace RasterizerTest {
         [](const Rasterizer::FragmentInput&) { return Colord(1.0, 0.0, 0.0); });
     };
 
-    Rasterizer singleTile(headOnCamera(), scene);
+    Rasterizer singleTile(standardCamera(), scene);
     configure(singleTile);
 
-    Rasterizer tiled(headOnCamera(), scene);
+    Rasterizer tiled(standardCamera(), scene);
     tiled.setQueueSize(4);
     configure(tiled);
 
@@ -2203,7 +2188,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, AutomaticQueueSizeSelectsTilingForModerateScreenHeavyScene) {
-    Rasterizer engine(headOnCamera(), sceneWithTriangleGrid(10, 8));
+    Rasterizer engine(standardCamera(), sceneWithTriangleGrid(10, 8));
     engine.setMaximumThreads(4);
     engine.setFragmentShader([](const Rasterizer::FragmentInput&) { return Colord::white(); });
     Buffer<Colord> buffer(128, 128);
@@ -2221,7 +2206,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, AutomaticQueueSizeKeepsDenseTessellationSingleTile) {
-    Rasterizer engine(headOnCamera(), sceneWithTriangleGrid(80, 60));
+    Rasterizer engine(standardCamera(), sceneWithTriangleGrid(80, 60));
     engine.setMaximumThreads(4);
     engine.setFragmentShader([](const Rasterizer::FragmentInput&) { return Colord::white(); });
     Buffer<Colord> buffer(128, 128);
@@ -2240,7 +2225,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, AutomaticQueueSizeUsesCoarseTilesWhenCandidateDuplicatesReferences) {
-    Rasterizer engine(headOnCamera(), sceneWithRepeatedQuadrantTriangles(8));
+    Rasterizer engine(standardCamera(), sceneWithRepeatedQuadrantTriangles(8));
     engine.setMaximumThreads(4);
     engine.setFragmentShader([](const Rasterizer::FragmentInput&) { return Colord::white(); });
     Buffer<Colord> buffer(128, 128);
@@ -2258,7 +2243,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, AutomaticQueueSizeKeepsLargeTriangleDuplicationSingleTile) {
-    Rasterizer engine(headOnCamera(), sceneWithLargeScreenTriangles());
+    Rasterizer engine(standardCamera(), sceneWithLargeScreenTriangles());
     engine.setMaximumThreads(4);
     engine.setFragmentShader([](const Rasterizer::FragmentInput&) { return Colord::white(); });
     Buffer<Colord> buffer(128, 128);
@@ -2273,7 +2258,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, ExplicitQueueSizeOverridesAutomaticPolicy) {
-    Rasterizer forcedSingle(headOnCamera(), sceneWithTriangleGrid(10, 8));
+    Rasterizer forcedSingle(standardCamera(), sceneWithTriangleGrid(10, 8));
     forcedSingle.setMaximumThreads(4);
     forcedSingle.setQueueSize(1);
     forcedSingle.setFragmentShader(
@@ -2285,7 +2270,7 @@ namespace RasterizerTest {
     EXPECT_TRUE(forcedSingle.hasExplicitQueueSize());
     EXPECT_EQ(1, forcedSingle.lastResolvedQueueSize());
 
-    Rasterizer forcedTiled(headOnCamera(), sceneWithLargeScreenTriangles());
+    Rasterizer forcedTiled(standardCamera(), sceneWithLargeScreenTriangles());
     forcedTiled.setMaximumThreads(4);
     forcedTiled.setQueueSize(4);
     forcedTiled.setFragmentShader([](const Rasterizer::FragmentInput&) { return Colord::white(); });
@@ -2298,7 +2283,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, SetAutomaticQueueSizeRestoresDefaultPolicy) {
-    Rasterizer engine(headOnCamera(), sceneWithTriangleGrid(10, 8));
+    Rasterizer engine(standardCamera(), sceneWithTriangleGrid(10, 8));
     engine.setMaximumThreads(4);
     engine.setQueueSize(1);
     engine.setAutomaticQueueSize();
@@ -2313,7 +2298,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, ClonePreservesQueueSizePolicyMode) {
-    Rasterizer automatic(headOnCamera(), sceneWithTriangleGrid(10, 8));
+    Rasterizer automatic(standardCamera(), sceneWithTriangleGrid(10, 8));
     automatic.setMaximumThreads(4);
     auto automaticClone = std::dynamic_pointer_cast<Rasterizer>(automatic.cloneForRender());
 
@@ -2321,7 +2306,7 @@ namespace RasterizerTest {
     EXPECT_FALSE(automaticClone->hasExplicitQueueSize());
     EXPECT_EQ(16, automaticClone->queueSize());
 
-    Rasterizer explicitQueue(headOnCamera(), sceneWithTriangleGrid(10, 8));
+    Rasterizer explicitQueue(standardCamera(), sceneWithTriangleGrid(10, 8));
     explicitQueue.setMaximumThreads(4);
     explicitQueue.setQueueSize(7);
     auto explicitClone = std::dynamic_pointer_cast<Rasterizer>(explicitQueue.cloneForRender());
@@ -2333,7 +2318,7 @@ namespace RasterizerTest {
 
   TEST(Rasterizer, FragmentShaderOverridesBuiltInShading) {
     const Colord shaderColor(0.25, 0.5, 0.75);
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
     engine.setFragmentShader([&](const Rasterizer::FragmentInput&) { return shaderColor; });
     Buffer<Colord> buffer(64, 64);
 
@@ -2343,7 +2328,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, FragmentShaderReceivesInterpolatedUV) {
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
     engine.setFragmentShader([&](const Rasterizer::FragmentInput& fragment) {
       return Colord(fragment.uv.x(), fragment.uv.y(), 0.0);
     });
@@ -2355,7 +2340,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, BuiltInMaterialTextureReceivesInterpolatedUV) {
-    Rasterizer engine(headOnCamera(), sceneWithTexturedFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithTexturedFrontFacingTriangle());
     Buffer<Colord> buffer(64, 64);
 
     engine.render(buffer);
@@ -2364,7 +2349,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, BuiltInMaterialFallbackTextureReceivesInterpolatedUV) {
-    Rasterizer engine(headOnCamera(),
+    Rasterizer engine(standardCamera(),
                       sceneWithTexturedFrontFacingTriangle(std::make_shared<HitPointUVTexture>()));
     Buffer<Colord> buffer(64, 64);
 
@@ -2600,7 +2585,7 @@ namespace RasterizerTest {
     const Colord albedo(0.25, 0.5, 0.75);
     auto scene =
       sceneWithTexturedFrontFacingTriangle(std::make_shared<ConstantColorTexture>(albedo));
-    Rasterizer engine(headOnCamera(), scene);
+    Rasterizer engine(standardCamera(), scene);
     Buffer<Colord> buffer(64, 64);
 
     engine.render(buffer);
@@ -2614,7 +2599,7 @@ namespace RasterizerTest {
     material->setAmbientCoefficient(0.25);
     auto scene = sceneWithMaterialFrontFacingTriangle(material);
     scene->setAmbient(Colord(0.4, 0.4, 0.4));
-    Rasterizer engine(headOnCamera(), scene);
+    Rasterizer engine(standardCamera(), scene);
     Buffer<Colord> buffer(64, 64);
 
     engine.render(buffer);
@@ -2635,7 +2620,7 @@ namespace RasterizerTest {
     auto scene = sceneWithMaterialFrontFacingTriangle(material);
     scene->setAmbient(Colord::black());
     scene->addLight(std::make_shared<DirectionalLight>(Vector3d(0.0, 0.0, -1.0), Colord::white()));
-    Rasterizer engine(headOnCamera(), scene);
+    Rasterizer engine(standardCamera(), scene);
     Buffer<Colord> buffer(64, 64);
 
     engine.render(buffer);
@@ -2648,7 +2633,7 @@ namespace RasterizerTest {
   TEST(Rasterizer, BuiltInMaterialKeepsVirtualTextureBehaviorForConstantTextureSubclasses) {
     auto scene =
       sceneWithTexturedFrontFacingTriangle(std::make_shared<OverridingConstantColorTexture>());
-    Rasterizer engine(headOnCamera(), scene);
+    Rasterizer engine(standardCamera(), scene);
     Buffer<Colord> buffer(64, 64);
 
     engine.render(buffer);
@@ -2658,7 +2643,7 @@ namespace RasterizerTest {
 
   TEST(Rasterizer, BuiltInMaterialKeepsVirtualTextureBehaviorForUVColorTextureSubclasses) {
     auto scene = sceneWithTexturedFrontFacingTriangle(std::make_shared<OverridingUVColorTexture>());
-    Rasterizer engine(headOnCamera(), scene);
+    Rasterizer engine(standardCamera(), scene);
     Buffer<Colord> buffer(64, 64);
 
     engine.render(buffer);
@@ -2733,7 +2718,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, VertexShaderCanAdjustProjectedPosition) {
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
     engine.setBackgroundColor(Colord::black());
     engine.setVertexShader([](const Rasterizer::VertexInput& vertex) {
       return Rasterizer::VertexOutput{vertex.worldPosition, vertex.normal, vertex.uv,
@@ -2748,7 +2733,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, CullModeDefaultsToBothSides) {
-    Rasterizer engine(headOnCamera(), sceneWithBackFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithBackFacingTriangle());
     EXPECT_EQ(Rasterizer::CullMode::Both, engine.cullMode());
     EXPECT_FALSE(engine.hasCullModeOverride());
 
@@ -2763,7 +2748,7 @@ namespace RasterizerTest {
     material->setSidedness(render::Material::Sidedness::Front);
     auto scene = sceneWithMaterialBackFacingTriangle(material);
     scene->setAmbient(Colord::white());
-    Rasterizer engine(headOnCamera(), scene);
+    Rasterizer engine(standardCamera(), scene);
     engine.setBackgroundColor(Colord::black());
     Buffer<Colord> buffer(64, 64);
 
@@ -2779,7 +2764,7 @@ namespace RasterizerTest {
     auto scene =
       sceneWithMeshBackFacingTriangle(material, Mesh::FaceMetadata::WindingReliability::Unknown);
     scene->setAmbient(Colord::white());
-    Rasterizer engine(headOnCamera(), scene);
+    Rasterizer engine(standardCamera(), scene);
     engine.setBackgroundColor(Colord::black());
     Buffer<Colord> buffer(64, 64);
 
@@ -2795,7 +2780,7 @@ namespace RasterizerTest {
     auto scene =
       sceneWithMeshBackFacingTriangle(material, Mesh::FaceMetadata::WindingReliability::Corrected);
     scene->setAmbient(Colord::white());
-    Rasterizer engine(headOnCamera(), scene);
+    Rasterizer engine(standardCamera(), scene);
     engine.setBackgroundColor(Colord::black());
     Buffer<Colord> buffer(64, 64);
 
@@ -2811,7 +2796,7 @@ namespace RasterizerTest {
     auto scene =
       sceneWithMeshBackFacingTriangle(material, Mesh::FaceMetadata::WindingReliability::Unknown);
     scene->setAmbient(Colord::white());
-    Rasterizer engine(headOnCamera(), scene);
+    Rasterizer engine(standardCamera(), scene);
     engine.setBackgroundColor(Colord::black());
     engine.setCullMode(Rasterizer::CullMode::Back);
     Buffer<Colord> buffer(64, 64);
@@ -2827,7 +2812,7 @@ namespace RasterizerTest {
     material->setSidedness(render::Material::Sidedness::Back);
     auto scene = sceneWithMaterialFrontFacingTriangle(material);
     scene->setAmbient(Colord::white());
-    Rasterizer engine(headOnCamera(), scene);
+    Rasterizer engine(standardCamera(), scene);
     engine.setBackgroundColor(Colord::black());
     Buffer<Colord> buffer(64, 64);
 
@@ -2841,7 +2826,7 @@ namespace RasterizerTest {
     material->setSidedness(render::Material::Sidedness::TwoSided);
     auto scene = sceneWithMaterialBackFacingTriangle(material);
     scene->setAmbient(Colord::white());
-    Rasterizer engine(headOnCamera(), scene);
+    Rasterizer engine(standardCamera(), scene);
     engine.setBackgroundColor(Colord::black());
     Buffer<Colord> buffer(64, 64);
 
@@ -2855,7 +2840,7 @@ namespace RasterizerTest {
     material->setSidedness(render::Material::Sidedness::Front);
     auto scene = sceneWithMaterialBackFacingTriangle(material);
     scene->setAmbient(Colord::white());
-    Rasterizer engine(headOnCamera(), scene);
+    Rasterizer engine(standardCamera(), scene);
     engine.setBackgroundColor(Colord::black());
     engine.setCullMode(Rasterizer::CullMode::Both);
     Buffer<Colord> buffer(64, 64);
@@ -2867,7 +2852,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, MetricsCountDegenerateProjectedTriangles) {
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
     engine.setVertexShader([](const Rasterizer::VertexInput& vertex) {
       return Rasterizer::VertexOutput{vertex.worldPosition, vertex.normal, vertex.uv,
                                       vertex.clipPosition, Vector3d(32.0, 32.0, 1.0)};
@@ -2883,7 +2868,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, BackfaceCullingSkipsBackFacingTriangles) {
-    Rasterizer engine(headOnCamera(), sceneWithBackFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithBackFacingTriangle());
     engine.setBackgroundColor(Colord::black());
     engine.setCullMode(Rasterizer::CullMode::Back);
     Buffer<Colord> buffer(64, 64);
@@ -2894,7 +2879,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, BackfaceCullingKeepsFrontFacingTriangles) {
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
     engine.setCullMode(Rasterizer::CullMode::Back);
     Buffer<Colord> buffer(64, 64);
 
@@ -2904,7 +2889,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, FrontfaceCullingSkipsFrontFacingTriangles) {
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
     engine.setBackgroundColor(Colord::black());
     engine.setCullMode(Rasterizer::CullMode::Front);
     Buffer<Colord> buffer(64, 64);
@@ -2915,7 +2900,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, BackfaceCullingAppliesToTiledPath) {
-    Rasterizer engine(headOnCamera(), sceneWithBackFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithBackFacingTriangle());
     engine.setBackgroundColor(Colord::black());
     engine.setCullMode(Rasterizer::CullMode::Back);
     engine.setMaximumThreads(2);
@@ -2928,7 +2913,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, ViewportClippedGeometryFillsFramebuffer) {
-    Rasterizer engine(headOnCamera(), sceneWithOversizedRectangle());
+    Rasterizer engine(standardCamera(), sceneWithOversizedRectangle());
     Buffer<Colord> buffer(64, 64);
 
     engine.render(buffer);
@@ -2937,7 +2922,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, ViewportRectMapsClipSpaceIntoFramebufferSubrect) {
-    Rasterizer engine(headOnCamera(), sceneWithOversizedRectangle());
+    Rasterizer engine(standardCamera(), sceneWithOversizedRectangle());
     engine.setBackgroundColor(Colord::black());
     engine.setViewportRect(16, 12, 32, 24);
     Buffer<Colord> buffer(64, 64);
@@ -2950,7 +2935,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, ViewportRectUsesConfiguredProjectionBeforeFramebufferClipping) {
-    auto cam = headOnCamera();
+    auto cam = standardCamera();
     Rasterizer engine(cam, sceneWithOversizedRectangle());
     engine.setBackgroundColor(Colord::black());
     engine.setViewportRect(-16, -12, 32, 24);
@@ -2964,7 +2949,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, ScissorRectRejectsFragmentsOutsideSubrect) {
-    Rasterizer engine(headOnCamera(), sceneWithOversizedRectangle());
+    Rasterizer engine(standardCamera(), sceneWithOversizedRectangle());
     engine.setBackgroundColor(Colord::black());
     engine.setScissorRect(20, 16, 24, 32);
     Buffer<Colord> buffer(64, 64);
@@ -3003,13 +2988,13 @@ namespace RasterizerTest {
   TEST(Rasterizer, TiledRenderMatchesSingleTileRenderWithViewportAndScissor) {
     auto scene = sceneWithOversizedRectangle();
 
-    Rasterizer singleTile(headOnCamera(), scene);
+    Rasterizer singleTile(standardCamera(), scene);
     singleTile.setViewportRect(8, 6, 48, 44);
     singleTile.setScissorRect(18, 14, 22, 24);
     singleTile.setMaximumThreads(1);
     singleTile.setQueueSize(1);
 
-    Rasterizer tiled(headOnCamera(), scene);
+    Rasterizer tiled(standardCamera(), scene);
     tiled.setViewportRect(8, 6, 48, 44);
     tiled.setScissorRect(18, 14, 22, 24);
     tiled.setMaximumThreads(4);
@@ -3050,11 +3035,11 @@ namespace RasterizerTest {
   TEST(Rasterizer, TiledRenderMatchesSingleTileRenderAcrossSharedTriangleEdge) {
     const Colord fillColor(0.2, 0.4, 0.8);
 
-    Rasterizer singleTile(headOnCamera(), sceneWithAdjacentQuadTriangles());
+    Rasterizer singleTile(standardCamera(), sceneWithAdjacentQuadTriangles());
     configureScreenSpaceQuad(singleTile);
     singleTile.setFragmentShader([&](const Rasterizer::FragmentInput&) { return fillColor; });
 
-    Rasterizer tiled(headOnCamera(), sceneWithAdjacentQuadTriangles());
+    Rasterizer tiled(standardCamera(), sceneWithAdjacentQuadTriangles());
     tiled.setMaximumThreads(2);
     tiled.setQueueSize(4);
     configureScreenSpaceQuad(tiled);
@@ -3090,12 +3075,12 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, TiledOversizedTriangleMatchesSingleTileRender) {
-    Rasterizer singleTile(headOnCamera(), sceneWithOversizedScreenTriangle());
+    Rasterizer singleTile(standardCamera(), sceneWithOversizedScreenTriangle());
     singleTile.setMaximumThreads(1);
     singleTile.setQueueSize(1);
     configureOversizedScreenTriangle(singleTile);
 
-    Rasterizer tiled(headOnCamera(), sceneWithOversizedScreenTriangle());
+    Rasterizer tiled(standardCamera(), sceneWithOversizedScreenTriangle());
     tiled.setMaximumThreads(4);
     tiled.setQueueSize(16);
     configureOversizedScreenTriangle(tiled);
@@ -3109,11 +3094,11 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, SubpixelScreenCoordinatesDoNotRoundAtHalfPixel) {
-    Rasterizer beforeHalfPixel(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer beforeHalfPixel(standardCamera(), sceneWithFrontFacingTriangle());
     beforeHalfPixel.setBackgroundColor(Colord::black());
     configureScreenSpaceSubpixelTriangle(beforeHalfPixel, 18.49);
 
-    Rasterizer afterHalfPixel(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer afterHalfPixel(standardCamera(), sceneWithFrontFacingTriangle());
     afterHalfPixel.setBackgroundColor(Colord::black());
     configureScreenSpaceSubpixelTriangle(afterHalfPixel, 18.51);
 
@@ -3126,11 +3111,11 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, SubpixelScreenCoordinatesChangeCoverageAtSamplePoint) {
-    Rasterizer beforeSamplePoint(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer beforeSamplePoint(standardCamera(), sceneWithFrontFacingTriangle());
     beforeSamplePoint.setBackgroundColor(Colord::black());
     configureScreenSpaceSubpixelTriangle(beforeSamplePoint, 18.99);
 
-    Rasterizer afterSamplePoint(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer afterSamplePoint(standardCamera(), sceneWithFrontFacingTriangle());
     afterSamplePoint.setBackgroundColor(Colord::black());
     configureScreenSpaceSubpixelTriangle(afterSamplePoint, 19.01);
 
@@ -3144,10 +3129,10 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, TiledRenderMatchesSingleTileRenderWithSubpixelVertices) {
-    Rasterizer singleTile(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer singleTile(standardCamera(), sceneWithFrontFacingTriangle());
     configureScreenSpaceSubpixelTriangle(singleTile, 18.51);
 
-    Rasterizer tiled(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer tiled(standardCamera(), sceneWithFrontFacingTriangle());
     tiled.setMaximumThreads(2);
     tiled.setQueueSize(4);
     configureScreenSpaceSubpixelTriangle(tiled, 18.51);
@@ -3161,7 +3146,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, MSAAResolveBlendsPartiallyCoveredEdge) {
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
     engine.setBackgroundColor(Colord::black());
     engine.setMSAASamples(4);
     configureScreenSpaceEdgeTriangle(engine);
@@ -3175,7 +3160,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, MSAASampleOffsetsUseSubpixelScreenCoordinates) {
-    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer engine(standardCamera(), sceneWithFrontFacingTriangle());
     engine.setBackgroundColor(Colord::black());
     engine.setMSAASamples(2);
     configureScreenSpaceMSAASubpixelTriangle(engine);
@@ -3190,7 +3175,7 @@ namespace RasterizerTest {
 
   TEST(Rasterizer, PerFragmentMSAAReusesShadedColorAcrossCoveredSamples) {
     int perSampleCalls = 0;
-    Rasterizer perSample(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer perSample(standardCamera(), sceneWithFrontFacingTriangle());
     perSample.setBackgroundColor(Colord::black());
     perSample.setMSAASamples(4);
     configureScreenSpaceEdgeTriangle(perSample);
@@ -3200,7 +3185,7 @@ namespace RasterizerTest {
     });
 
     int perFragmentCalls = 0;
-    Rasterizer perFragment(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer perFragment(standardCamera(), sceneWithFrontFacingTriangle());
     perFragment.setBackgroundColor(Colord::black());
     perFragment.setMSAASamples(4);
     perFragment.setMSAAShadingMode(Rasterizer::MSAAShadingMode::PerFragment);
@@ -3222,11 +3207,11 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, TiledMSAAMatchesSingleTileMSAA) {
-    Rasterizer singleTile(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer singleTile(standardCamera(), sceneWithFrontFacingTriangle());
     singleTile.setMSAASamples(4);
     configureScreenSpaceEdgeTriangle(singleTile);
 
-    Rasterizer tiled(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer tiled(standardCamera(), sceneWithFrontFacingTriangle());
     tiled.setMSAASamples(4);
     tiled.setMaximumThreads(2);
     tiled.setQueueSize(4);
@@ -3241,11 +3226,11 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, TiledMSAAReusesTileScratchAcrossFrames) {
-    Rasterizer singleTile(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer singleTile(standardCamera(), sceneWithFrontFacingTriangle());
     singleTile.setMSAASamples(4);
     configureScreenSpaceEdgeTriangle(singleTile);
 
-    Rasterizer tiled(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer tiled(standardCamera(), sceneWithFrontFacingTriangle());
     tiled.setMSAASamples(4);
     tiled.setMaximumThreads(2);
     tiled.setQueueSize(4);
@@ -3273,12 +3258,12 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, TiledPerFragmentMSAAMatchesSingleTileMSAAWithUnevenTileSizes) {
-    Rasterizer singleTile(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer singleTile(standardCamera(), sceneWithFrontFacingTriangle());
     singleTile.setMSAASamples(4);
     singleTile.setMSAAShadingMode(Rasterizer::MSAAShadingMode::PerFragment);
     configureScreenSpaceEdgeTriangle(singleTile);
 
-    Rasterizer tiled(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer tiled(standardCamera(), sceneWithFrontFacingTriangle());
     tiled.setMSAASamples(4);
     tiled.setMSAAShadingMode(Rasterizer::MSAAShadingMode::PerFragment);
     tiled.setMaximumThreads(3);
@@ -3296,7 +3281,7 @@ namespace RasterizerTest {
   TEST(Rasterizer, TiledMSAAMatchesSingleTileMSAAWithStencil) {
     const Colord secondTriangleColor(0.0, 0.5, 1.0);
 
-    Rasterizer singleTile(headOnCamera(), sceneWithDuplicateTriangles());
+    Rasterizer singleTile(standardCamera(), sceneWithDuplicateTriangles());
     singleTile.setMSAASamples(4);
     singleTile.setStencilTestEnabled(true);
     singleTile.setStencilFunc(Rasterizer::StencilFunc::Equal, 1);
@@ -3305,7 +3290,7 @@ namespace RasterizerTest {
     singleTile.setFragmentShader(
       [&](const Rasterizer::FragmentInput&) { return secondTriangleColor; });
 
-    Rasterizer tiled(headOnCamera(), sceneWithDuplicateTriangles());
+    Rasterizer tiled(standardCamera(), sceneWithDuplicateTriangles());
     tiled.setMSAASamples(4);
     tiled.setMaximumThreads(2);
     tiled.setQueueSize(4);
@@ -3324,7 +3309,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, UncancelAllowsSubsequentRender) {
-    Rasterizer engine(camera(), sceneWithBox());
+    Rasterizer engine(angledCamera(), sceneWithBox());
     Buffer<Colord> buffer(64, 64);
 
     engine.cancel();

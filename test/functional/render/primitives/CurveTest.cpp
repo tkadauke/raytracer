@@ -6,10 +6,10 @@
 #include "core/json/JsonValue.h"
 #include "engine/raster/Rasterizer.h"
 #include "engine/wireframe/Wireframe.h"
-#include "render/cameras/PinholeCamera.h"
 #include "render/primitives/Curve.h"
 #include "render/primitives/Scene.h"
 #include "test/helpers/BufferTestHelper.h"
+#include "test/helpers/CameraTestHelper.h"
 #include "test/helpers/MaterialTestHelper.h"
 
 #include <QFile>
@@ -26,6 +26,7 @@ namespace CurveFunctionalTest {
   using namespace render;
   using test::helpers::countPixels;
   using test::helpers::countPixelsNotEqualTo;
+  using test::helpers::headOnCamera;
   using test::helpers::matte;
 
   core::Curve::AttributeValue attributeValueFromJson(const QJsonValue& value) {
@@ -91,10 +92,6 @@ namespace CurveFunctionalTest {
     }
 
     return polyline;
-  }
-
-  std::shared_ptr<PinholeCamera> headOnCamera() {
-    return std::make_shared<PinholeCamera>(Vector3d::null, Vector3d::forward());
   }
 
   std::shared_ptr<Scene> sceneWithCurve(std::shared_ptr<Curve> curve) {
