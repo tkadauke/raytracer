@@ -3,7 +3,6 @@
 #include "core/Buffer.h"
 #include "core/geometry/Mesh.h"
 #include "engine/wireframe/Wireframe.h"
-#include "render/cameras/PinholeCamera.h"
 #include "render/primitives/Box.h"
 #include "render/primitives/Curve.h"
 #include "render/primitives/Instance.h"
@@ -11,13 +10,16 @@
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
 #include "test/helpers/BufferTestHelper.h"
+#include "test/helpers/CameraTestHelper.h"
 
 #include <memory>
 
 namespace WireframeTest {
   using namespace render;
   using namespace engine::wireframe;
+  using test::helpers::angledCamera;
   using test::helpers::countPixels;
+  using test::helpers::headOnCamera;
 
   class NearPlaneTrianglePrimitive : public Primitive {
   public:
@@ -40,27 +42,15 @@ namespace WireframeTest {
     }
   };
 
-  // Helper: build a scene with one centered axis-aligned box.
   static std::shared_ptr<render::Scene> sceneWithBox() {
     auto scene = std::make_shared<Scene>(Colord::black());
     scene->add(std::make_shared<Box>(Vector3d::null, Vector3d(1, 1, 1)));
     return scene;
   }
 
-  // Helper: a pinhole camera positioned to see the centred box from
-  // outside it. Eye at (2, 2, -5) looking at origin; the box
-  // straddles origin so it's safely in front of the camera.
-  static std::shared_ptr<PinholeCamera> camera() {
-    return std::make_shared<PinholeCamera>(Vector3d(2, 2, -5), Vector3d::null);
-  }
-
-  static std::shared_ptr<PinholeCamera> headOnCamera() {
-    return std::make_shared<PinholeCamera>(Vector3d::null, Vector3d::forward());
-  }
-
   TEST(Wireframe, EmptySceneRendersBackground) {
     auto scene = std::make_shared<Scene>(Colord::black());
-    Wireframe engine(camera(), scene);
+    Wireframe engine(angledCamera(), scene);
     Buffer<Colord> buffer(64, 64);
 
     engine.render(buffer);
@@ -70,7 +60,7 @@ namespace WireframeTest {
   }
 
   TEST(Wireframe, SceneWithBoxProducesEdgePixels) {
-    Wireframe engine(camera(), sceneWithBox());
+    Wireframe engine(angledCamera(), sceneWithBox());
     Buffer<Colord> buffer(128, 128);
 
     engine.render(buffer);
@@ -150,7 +140,7 @@ namespace WireframeTest {
 
   TEST(Wireframe, BackgroundColorIsConfigurable) {
     auto scene = std::make_shared<Scene>(Colord::black());
-    Wireframe engine(camera(), scene);
+    Wireframe engine(angledCamera(), scene);
     engine.setBackgroundColor(Colord(0.2, 0.3, 0.4));
     Buffer<Colord> buffer(32, 32);
 
@@ -160,7 +150,7 @@ namespace WireframeTest {
   }
 
   TEST(Wireframe, EdgeColorIsConfigurable) {
-    Wireframe engine(camera(), sceneWithBox());
+    Wireframe engine(angledCamera(), sceneWithBox());
     engine.setEdgeColor(Colord(1.0, 0.0, 0.5));
     Buffer<Colord> buffer(128, 128);
 
@@ -172,7 +162,7 @@ namespace WireframeTest {
   }
 
   TEST(Wireframe, NearClipDepthIsConfigurable) {
-    Wireframe engine(camera(), sceneWithBox());
+    Wireframe engine(angledCamera(), sceneWithBox());
 
     EXPECT_DOUBLE_EQ(0.1, engine.nearClipDepth());
     engine.setNearClipDepth(0.5);
@@ -182,7 +172,7 @@ namespace WireframeTest {
   }
 
   TEST(Wireframe, ClonePreservesNearClipDepth) {
-    Wireframe engine(camera(), sceneWithBox());
+    Wireframe engine(angledCamera(), sceneWithBox());
     engine.setNearClipDepth(0.5);
 
     auto clone = std::dynamic_pointer_cast<Wireframe>(engine.cloneForRender());
@@ -209,13 +199,13 @@ namespace WireframeTest {
     auto sphere = std::make_shared<Sphere>(Vector3d::null, 1.0);
     scene->add(sphere);
 
-    Wireframe engineLow(camera(), scene);
+    Wireframe engineLow(angledCamera(), scene);
     engineLow.setLod(0);
     Buffer<Colord> bufferLow(256, 256);
     engineLow.render(bufferLow);
     int edgeLow = countPixels(bufferLow, Colord::white());
 
-    Wireframe engineHigh(camera(), scene);
+    Wireframe engineHigh(angledCamera(), scene);
     engineHigh.setLod(2);
     Buffer<Colord> bufferHigh(256, 256);
     engineHigh.render(bufferHigh);
@@ -225,7 +215,7 @@ namespace WireframeTest {
   }
 
   TEST(Wireframe, HandlesNullSceneGracefully) {
-    Wireframe engine(camera(), nullptr);
+    Wireframe engine(angledCamera(), nullptr);
     engine.setBackgroundColor(Colord(0.1, 0.1, 0.1));
     Buffer<Colord> buffer(32, 32);
 
@@ -236,7 +226,7 @@ namespace WireframeTest {
   }
 
   TEST(Wireframe, CancelStopsFurtherDrawing) {
-    Wireframe engine(camera(), sceneWithBox());
+    Wireframe engine(angledCamera(), sceneWithBox());
     Buffer<Colord> buffer(64, 64);
 
     // Pre-cancel — the render loop checks the flag at face boundaries
@@ -250,7 +240,7 @@ namespace WireframeTest {
   }
 
   TEST(Wireframe, UncancelAllowsSubsequentRender) {
-    Wireframe engine(camera(), sceneWithBox());
+    Wireframe engine(angledCamera(), sceneWithBox());
     Buffer<Colord> buffer(64, 64);
 
     engine.cancel();

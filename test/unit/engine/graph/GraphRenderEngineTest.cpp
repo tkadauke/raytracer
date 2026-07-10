@@ -56,6 +56,7 @@
 
 namespace GraphRenderEngineTest {
   using namespace engine::graph;
+  using test::helpers::countFiniteDepths;
   using test::helpers::countPixels;
   using test::helpers::highContrastScene;
   using test::helpers::matte;
@@ -659,17 +660,6 @@ namespace GraphRenderEngineTest {
         if ((buffer[y][x] & 0x00ffffff) != 0) {
           ++count;
         }
-      }
-    }
-    return count;
-  }
-
-  int countFiniteDepths(const Buffer<double>& buffer) {
-    int count = 0;
-    for (int y = 0; y != buffer.height(); ++y) {
-      for (int x = 0; x != buffer.width(); ++x) {
-        if (std::isfinite(buffer[y][x]))
-          ++count;
       }
     }
     return count;

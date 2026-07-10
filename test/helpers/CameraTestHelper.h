@@ -18,5 +18,18 @@ namespace test {
     inline std::shared_ptr<render::PinholeCamera> standardCamera() {
       return std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
     }
+
+    // Camera at the origin looking straight forward (+Z). Used when the scene
+    // is centred at Z=0 and the test needs a frontal, no-offset viewpoint.
+    inline std::shared_ptr<render::PinholeCamera> headOnCamera() {
+      return std::make_shared<render::PinholeCamera>(Vector3d::null, Vector3d::forward());
+    }
+
+    // Camera at (2, 2, -5) looking at the origin. Used when the scene is
+    // centred at the origin and the test benefits from an off-axis viewpoint
+    // (e.g. to see all faces of an axis-aligned box simultaneously).
+    inline std::shared_ptr<render::PinholeCamera> angledCamera() {
+      return std::make_shared<render::PinholeCamera>(Vector3d(2, 2, -5), Vector3d::null);
+    }
   }
 }
