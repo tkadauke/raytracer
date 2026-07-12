@@ -10,8 +10,6 @@
 
 namespace InstanceTessellateTest {
   using namespace render;
-  using namespace render;
-  using namespace render;
 
   static constexpr double kEps = 1e-9;
 

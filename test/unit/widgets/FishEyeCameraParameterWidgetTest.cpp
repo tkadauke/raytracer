@@ -8,7 +8,6 @@
 namespace FishEyeCameraParameterWidgetTest {
   using namespace ::testing;
   using namespace render;
-  using namespace render;
 
   class FishEyeCameraParameterWidgetTest : public GuiTest {};
 

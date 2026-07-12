@@ -8,8 +8,6 @@
 
 namespace TorusTest {
   using namespace render;
-  using namespace render;
-  using namespace render;
 
   TEST(Torus, ShouldInitializeWithValues) {
     Torus torus(2, 1);

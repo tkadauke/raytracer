@@ -4,8 +4,6 @@
 
 namespace ConvexHullTessellateTest {
   using namespace render;
-  using namespace render;
-  using namespace render;
 
   TEST(ConvexHullTessellate, ShouldReturnEmptyMesh) {
     // CSG mesh booleans are not implemented; not implemented.

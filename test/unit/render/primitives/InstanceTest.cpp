@@ -12,8 +12,6 @@
 namespace InstanceTest {
   using namespace ::testing;
   using namespace render;
-  using namespace render;
-  using namespace render;
   using core::math::interpolation::InterpolationMode;
 
   TEST(Instance, ShouldReturnChildPrimitiveIfTransformedRayIntersects) {

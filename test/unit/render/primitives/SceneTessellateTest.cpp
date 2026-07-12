@@ -6,8 +6,6 @@
 
 namespace SceneTessellateTest {
   using namespace render;
-  using namespace render;
-  using namespace render;
 
   // Scene inherits tessellate() from Composite and provides no override —
   // this is intentional: lights are not part of the geometry tree and are

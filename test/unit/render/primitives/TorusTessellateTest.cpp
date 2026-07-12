@@ -6,8 +6,6 @@
 
 namespace TorusTessellateTest {
   using namespace render;
-  using namespace render;
-  using namespace render;
 
   const double kEps = 1e-10;
 

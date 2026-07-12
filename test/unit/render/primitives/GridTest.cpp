@@ -9,8 +9,6 @@
 namespace GridTest {
   using namespace ::testing;
   using namespace render;
-  using namespace render;
-  using namespace render;
 
   // Convenience: wire a MockPrimitive's bounding box and (optionally) its
   // intersect/intersects expectations with sensible NiceMock-friendly defaults.

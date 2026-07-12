@@ -7,8 +7,6 @@
 
 namespace CompositeTessellateTest {
   using namespace render;
-  using namespace render;
-  using namespace render;
 
   TEST(CompositeTessellate, ShouldReturnEmptyMeshForNoChildren) {
     Composite composite;

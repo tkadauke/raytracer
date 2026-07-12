@@ -5,7 +5,6 @@
 namespace PointShuffledViewPlaneTest {
   using namespace ::testing;
   using namespace render;
-  using namespace render;
 
   TEST(PointShuffledViewPlane, ShouldInitialize) {
     PointShuffledViewPlane plane;

@@ -1,6 +1,6 @@
 #include "core/formats/ldraw/LDrawColorTable.h"
 
-#include "core/formats/ldraw/LDrawParseError.h"
+#include "LDrawParseHelpers.h"
 #include "core/formats/ldraw/LDrawParser.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/materials/PhongMaterial.h"
@@ -8,43 +8,23 @@
 #include "render/materials/TransparentMaterial.h"
 #include "render/textures/ConstantColorTexture.h"
 
-#include <cerrno>
-#include <cstdlib>
 #include <filesystem>
 #include <fstream>
-#include <limits>
 #include <sstream>
 #include <variant>
 
 using namespace std;
 
 namespace {
-  [[noreturn]] void throwParseError(int lineNumber, const string& detail) {
-    throw LDrawParseError(lineNumber, detail, __FILE__, __LINE__);
-  }
-
-  int parseInt(const string& text, int lineNumber, const string& fieldName) {
-    char* end = nullptr;
-    errno = 0;
-    int base = 10;
-    if (text.size() > 2 && text[0] == '0' && (text[1] == 'x' || text[1] == 'X'))
-      base = 16;
-    const long value = strtol(text.c_str(), &end, base);
-    if (errno != 0 || end == text.c_str() || *end != '\0' || value < numeric_limits<int>::min() ||
-        value > numeric_limits<int>::max())
-      throwParseError(lineNumber, "invalid integer for " + fieldName + ": '" + text + "'");
-    return static_cast<int>(value);
-  }
-
   Colord parseHexColor(const string& text, int lineNumber, const string& fieldName) {
     if (text.size() != 7 || text[0] != '#')
-      throwParseError(lineNumber, fieldName + " expects #RRGGBB, got '" + text + "'");
+      LDRAW_THROW_PARSE_ERROR(lineNumber, fieldName + " expects #RRGGBB, got '" + text + "'");
 
     char* end = nullptr;
     errno = 0;
     const long value = strtol(text.c_str() + 1, &end, 16);
     if (errno != 0 || end == text.c_str() + 1 || *end != '\0' || value < 0 || value > 0xffffff)
-      throwParseError(lineNumber, "invalid color for " + fieldName + ": '" + text + "'");
+      LDRAW_THROW_PARSE_ERROR(lineNumber, "invalid color for " + fieldName + ": '" + text + "'");
 
     return Colord::fromRGB((static_cast<unsigned int>(value) >> 16) & 0xff,
                            (static_cast<unsigned int>(value) >> 8) & 0xff,
@@ -115,7 +95,7 @@ LDrawColorDefinition LDrawColorTable::parseColourRecord(const string& text, int 
   const auto tokens = split(text);
   const size_t begin = !tokens.empty() && tokens[0] == "0" ? 1 : 0;
   if (tokens.size() < begin + 8 || tokens[begin] != "!COLOUR")
-    throwParseError(lineNumber, "!COLOUR expects name, CODE, VALUE, and EDGE fields");
+    LDRAW_THROW_PARSE_ERROR(lineNumber, "!COLOUR expects name, CODE, VALUE, and EDGE fields");
 
   LDrawColorDefinition definition;
   definition.lineNumber = lineNumber;
@@ -128,36 +108,36 @@ LDrawColorDefinition LDrawColorTable::parseColourRecord(const string& text, int 
     const string& token = tokens[i];
     if (token == "CODE" || token == "ALPHA" || token == "LUMINANCE") {
       if (i + 1 >= tokens.size())
-        throwParseError(lineNumber, token + " missing value");
-      const int value = parseInt(tokens[i + 1], lineNumber, token);
+        LDRAW_THROW_PARSE_ERROR(lineNumber, token + " missing value");
+      const int value = LDRAW_PARSE_INT(tokens[i + 1], lineNumber, token);
       if (token == "CODE") {
         definition.code = value;
         hasCode = true;
       } else if (token == "ALPHA") {
         if (value < 0 || value > 255)
-          throwParseError(lineNumber, "ALPHA expects 0..255");
+          LDRAW_THROW_PARSE_ERROR(lineNumber, "ALPHA expects 0..255");
         definition.alpha = value;
       } else {
         if (value < 0 || value > 255)
-          throwParseError(lineNumber, "LUMINANCE expects 0..255");
+          LDRAW_THROW_PARSE_ERROR(lineNumber, "LUMINANCE expects 0..255");
         definition.luminance = value;
       }
       i += 2;
     } else if (token == "VALUE") {
       if (i + 1 >= tokens.size())
-        throwParseError(lineNumber, "VALUE missing value");
+        LDRAW_THROW_PARSE_ERROR(lineNumber, "VALUE missing value");
       definition.value = parseHexColor(tokens[i + 1], lineNumber, "VALUE");
       hasValue = true;
       i += 2;
     } else if (token == "EDGE") {
       if (i + 1 >= tokens.size())
-        throwParseError(lineNumber, "EDGE missing value");
+        LDRAW_THROW_PARSE_ERROR(lineNumber, "EDGE missing value");
       if (!tokens[i + 1].empty() && tokens[i + 1][0] == '#')
         definition.edge =
           LDrawColorReference::fromDirectRgb(parseHexColor(tokens[i + 1], lineNumber, "EDGE"));
       else
         definition.edge =
-          LDrawColorReference::fromCode(parseInt(tokens[i + 1], lineNumber, "EDGE"));
+          LDrawColorReference::fromCode(LDRAW_PARSE_INT(tokens[i + 1], lineNumber, "EDGE"));
       hasEdge = true;
       i += 2;
     } else {
@@ -183,7 +163,7 @@ LDrawColorDefinition LDrawColorTable::parseColourRecord(const string& text, int 
   }
 
   if (!hasCode || !hasValue || !hasEdge)
-    throwParseError(lineNumber, "!COLOUR missing required CODE, VALUE, or EDGE field");
+    LDRAW_THROW_PARSE_ERROR(lineNumber, "!COLOUR missing required CODE, VALUE, or EDGE field");
 
   return definition;
 }

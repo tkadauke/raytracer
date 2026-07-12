@@ -8,7 +8,6 @@
 namespace SphericalCameraParameterWidgetTest {
   using namespace ::testing;
   using namespace render;
-  using namespace render;
 
   class SphericalCameraParameterWidgetTest : public GuiTest {};
 

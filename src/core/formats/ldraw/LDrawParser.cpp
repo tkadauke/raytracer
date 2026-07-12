@@ -1,10 +1,7 @@
 #include "core/formats/ldraw/LDrawParser.h"
 
-#include "core/formats/ldraw/LDrawParseError.h"
+#include "LDrawParseHelpers.h"
 
-#include <cerrno>
-#include <cstdlib>
-#include <limits>
 #include <sstream>
 #include <utility>
 #include <variant>
@@ -51,21 +48,8 @@ namespace {
     return tokens;
   }
 
-  [[noreturn]] void throwParseError(int lineNumber, const string& detail) {
-    throw LDrawParseError(lineNumber, detail, __FILE__, __LINE__);
-  }
-
   int parseInt(const Token& token, int lineNumber, const string& fieldName) {
-    char* end = nullptr;
-    errno = 0;
-    int base = 10;
-    if (token.text.size() > 2 && token.text[0] == '0' && (token.text[1] == 'x' || token.text[1] == 'X'))
-      base = 16;
-    const long value = strtol(token.text.c_str(), &end, base);
-    if (errno != 0 || end == token.text.c_str() || *end != '\0' ||
-        value < numeric_limits<int>::min() || value > numeric_limits<int>::max())
-      throwParseError(lineNumber, "invalid integer for " + fieldName + ": '" + token.text + "'");
-    return static_cast<int>(value);
+    return LDRAW_PARSE_INT(token.text, lineNumber, fieldName);
   }
 
   double parseDouble(const Token& token, int lineNumber, const string& fieldName) {
@@ -73,7 +57,7 @@ namespace {
     errno = 0;
     const double value = strtod(token.text.c_str(), &end);
     if (errno != 0 || end == token.text.c_str() || *end != '\0')
-      throwParseError(lineNumber, "invalid number for " + fieldName + ": '" + token.text + "'");
+      LDRAW_THROW_PARSE_ERROR(lineNumber, "invalid number for " + fieldName + ": '" + token.text + "'");
     return value;
   }
 
@@ -82,7 +66,7 @@ namespace {
       ostringstream message;
       message << "line type " << tokens.front().text << " expects " << (expected - 1)
               << " fields, got " << (tokens.size() - 1);
-      throwParseError(lineNumber, message.str());
+      LDRAW_THROW_PARSE_ERROR(lineNumber, message.str());
     }
   }
 
@@ -148,7 +132,7 @@ namespace {
 
   LDrawCommand parseTexmap(const string& line, int lineNumber, const vector<Token>& tokens) {
     if (tokens.size() < 3)
-      throwParseError(lineNumber, "!TEXMAP missing command");
+      LDRAW_THROW_PARSE_ERROR(lineNumber, "!TEXMAP missing command");
 
     LDrawTexmap command;
     command.lineNumber = lineNumber;
@@ -159,18 +143,18 @@ namespace {
       command.command =
         texmapCommand == "START" ? LDrawTexmapCommand::Start : LDrawTexmapCommand::Next;
       if (tokens.size() < 4)
-        throwParseError(lineNumber, "!TEXMAP " + texmapCommand + " missing projection");
+        LDRAW_THROW_PARSE_ERROR(lineNumber, "!TEXMAP " + texmapCommand + " missing projection");
       command.projection = parseTexmapProjection(tokens[3].text);
       if (command.projection == LDrawTexmapProjection::Planar) {
         if (tokens.size() < 14)
-          throwParseError(lineNumber, "!TEXMAP " + texmapCommand +
+          LDRAW_THROW_PARSE_ERROR(lineNumber, "!TEXMAP " + texmapCommand +
                                         " PLANAR expects 3 points and a texture file");
         command.points[0] = parsePoint(tokens, lineNumber, 4, "texmap.point1");
         command.points[1] = parsePoint(tokens, lineNumber, 7, "texmap.point2");
         command.points[2] = parsePoint(tokens, lineNumber, 10, "texmap.point3");
         command.textureFile = lineRemainderAfterToken(line, tokens[12]);
         if (command.textureFile.empty())
-          throwParseError(lineNumber, "!TEXMAP " + texmapCommand + " missing texture file");
+          LDRAW_THROW_PARSE_ERROR(lineNumber, "!TEXMAP " + texmapCommand + " missing texture file");
       } else {
         command.textureFile = tokens.size() > 4 ? tokens.back().text : "";
       }
@@ -187,7 +171,7 @@ namespace {
       return command;
     }
 
-    throwParseError(lineNumber, "unknown !TEXMAP command '" + texmapCommand + "'");
+    LDRAW_THROW_PARSE_ERROR(lineNumber, "unknown !TEXMAP command '" + texmapCommand + "'");
   }
 }
 
@@ -286,7 +270,7 @@ LDrawCommand LDrawParser::parseLine(const string& line, int lineNumber) const {
 
   if (lineType == "1") {
     if (tokens.size() < 15)
-      throwParseError(lineNumber, "line type 1 expects color, translation, matrix, and filename");
+      LDRAW_THROW_PARSE_ERROR(lineNumber, "line type 1 expects color, translation, matrix, and filename");
 
     LDrawSubfileReference command;
     command.lineNumber = lineNumber;
@@ -296,7 +280,7 @@ LDrawCommand LDrawParser::parseLine(const string& line, int lineNumber) const {
       command.matrix[i] = parseDouble(tokens[5 + i], lineNumber, "matrix");
     command.filename = lineRemainderAfterToken(line, tokens[13]);
     if (command.filename.empty())
-      throwParseError(lineNumber, "line type 1 missing filename");
+      LDRAW_THROW_PARSE_ERROR(lineNumber, "line type 1 missing filename");
     return command;
   }
 

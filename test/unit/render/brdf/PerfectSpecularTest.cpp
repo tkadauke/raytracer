@@ -5,8 +5,6 @@
 
 namespace PerfectSpecularTest {
   using namespace render;
-  using namespace render;
-  using namespace render;
 
   TEST(PerfectSpecular, ShouldInitialize) {
     PerfectSpecular specular;

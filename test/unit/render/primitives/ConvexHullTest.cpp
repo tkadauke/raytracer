@@ -6,8 +6,6 @@
 namespace ConvexHullTest {
   using namespace ::testing;
   using namespace render;
-  using namespace render;
-  using namespace render;
 
   TEST(ConvexHull, ShouldReturnFarthestPoint) {
     auto hull = std::make_shared<ConvexHull>();

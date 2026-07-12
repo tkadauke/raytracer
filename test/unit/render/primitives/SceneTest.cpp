@@ -11,8 +11,6 @@
 namespace SceneTest {
   using namespace ::testing;
   using namespace render;
-  using namespace render;
-  using namespace render;
 
   TEST(Scene, ShouldInitialize) {
     Scene scene;

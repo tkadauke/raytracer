@@ -7,8 +7,6 @@
 
 namespace PerfectTransmitterTest {
   using namespace render;
-  using namespace render;
-  using namespace render;
 
   // Construct a hit point at the origin with the given outward normal. The
   // primitive pointer is irrelevant for these tests; PerfectTransmitter only

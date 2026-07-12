@@ -10,8 +10,6 @@
 namespace DifferenceTest {
   using namespace ::testing;
   using namespace render;
-  using namespace render;
-  using namespace render;
 
   TEST(Difference, ShouldReturnClosestPrimitiveForDifference) {
     Difference i;

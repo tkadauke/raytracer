@@ -6,8 +6,6 @@
 
 namespace ConstantColorTextureTest {
   using namespace render;
-  using namespace render;
-  using namespace render;
 
   TEST(ConstantColorTexture, ShouldInitialize) {
     ConstantColorTexture texture;

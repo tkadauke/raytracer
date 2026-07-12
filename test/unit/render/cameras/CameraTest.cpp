@@ -11,7 +11,6 @@
 namespace CameraTest {
   using namespace ::testing;
   using namespace render;
-  using namespace render;
 
   class ConcreteCamera : public Camera {
   public:

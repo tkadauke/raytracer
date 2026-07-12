@@ -10,8 +10,6 @@
 namespace IntersectionTest {
   using namespace ::testing;
   using namespace render;
-  using namespace render;
-  using namespace render;
 
   TEST(Intersection, ShouldReturnClosestPrimitiveForIntersection) {
     Intersection i;

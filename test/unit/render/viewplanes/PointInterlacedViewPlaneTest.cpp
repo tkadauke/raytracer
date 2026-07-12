@@ -5,7 +5,6 @@
 namespace PointInterlacedViewPlaneTest {
   using namespace ::testing;
   using namespace render;
-  using namespace render;
 
   TEST(PointInterlacedViewPlane, ShouldInitialize) {
     render::PointInterlacedViewPlane plane;

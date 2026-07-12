@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include "core/math/HitPoint.h"
-#include "render/primitives/Box.h"
+#include "test/helpers/PrimitiveTestHelper.h"
 
 #include <cmath>
 
@@ -9,7 +9,8 @@
 using namespace std;
 
 namespace HitPointTest {
-  static render::Box* box = new render::Box(Vector3d::null, Vector3d::one);
+  using test::helpers::unitBox;
+  static render::Box* box = unitBox();
 
   TEST(HitPoint, ShouldInitialize) {
     HitPoint point;

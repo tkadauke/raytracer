@@ -4,8 +4,6 @@
 
 namespace IntersectionTessellateTest {
   using namespace render;
-  using namespace render;
-  using namespace render;
 
   TEST(IntersectionTessellate, ShouldReturnEmptyMesh) {
     // CSG mesh booleans are not implemented; not implemented.

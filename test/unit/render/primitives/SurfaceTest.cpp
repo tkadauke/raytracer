@@ -4,8 +4,6 @@
 
 namespace PrimitiveTest {
   using namespace render;
-  using namespace render;
-  using namespace render;
 
   class ConcretePrimitive : public Primitive {
   public:

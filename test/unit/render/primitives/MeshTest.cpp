@@ -8,8 +8,6 @@
 namespace MeshTest {
   using namespace ::testing;
   using namespace render;
-  using namespace render;
-  using namespace render;
 
   struct MeshTest : public ::testing::Test {
     inline void SetUp() {
