@@ -18,8 +18,6 @@ namespace testing {
 namespace ConvexOperationTest {
   using namespace ::testing;
   using namespace render;
-  using namespace render;
-  using namespace render;
 
   TEST(ConvexOperation, ShouldReturnSelfForConvexOperation) {
     MockConvexOperation i;

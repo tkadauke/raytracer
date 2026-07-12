@@ -8,7 +8,6 @@
 namespace PinholeCameraParameterWidgetTest {
   using namespace ::testing;
   using namespace render;
-  using namespace render;
 
   class PinholeCameraParameterWidgetTest : public GuiTest {};
 

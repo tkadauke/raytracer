@@ -7,8 +7,6 @@
 
 namespace RectangleTest {
   using namespace render;
-  using namespace render;
-  using namespace render;
 
   TEST(Rectangle, ShouldInitializeWithValues) {
     Rectangle rectangle(Vector3d(-1, -1, 0), Vector3d(1, 0, 0), Vector3d(0, 1, 0));

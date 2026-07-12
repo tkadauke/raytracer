@@ -8,7 +8,6 @@
 namespace JitteredSamplerTest {
   using namespace ::testing;
   using namespace render;
-  using namespace render;
 
   TEST(JitteredSampler, ShouldConstructWithParameters) {
     render::JitteredSampler sampler;

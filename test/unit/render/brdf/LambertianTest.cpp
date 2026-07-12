@@ -6,8 +6,6 @@
 
 namespace LambertianTest {
   using namespace render;
-  using namespace render;
-  using namespace render;
 
   TEST(Lambertian, ShouldInitialize) {
     Lambertian lambertian;

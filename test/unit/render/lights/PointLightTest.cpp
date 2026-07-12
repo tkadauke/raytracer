@@ -3,7 +3,6 @@
 
 namespace PointLightTest {
   using namespace render;
-  using namespace render;
 
   TEST(PointLight, ShouldInitializeWithValues) {
     PointLight light(Vector3d(1, 0, 0), Colord::white());

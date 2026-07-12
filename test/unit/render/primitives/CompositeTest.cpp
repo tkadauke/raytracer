@@ -11,8 +11,6 @@
 namespace CompositeTest {
   using namespace ::testing;
   using namespace render;
-  using namespace render;
-  using namespace render;
 
   TEST(Composite, ShouldInitializeWithEmptyList) {
     Composite composite;

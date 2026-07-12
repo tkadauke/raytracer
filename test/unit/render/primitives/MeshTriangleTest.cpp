@@ -8,8 +8,6 @@
 namespace MeshTriangleTest {
   using namespace ::testing;
   using namespace render;
-  using namespace render;
-  using namespace render;
 
   class ConcreteMeshTriangle : public MeshTriangle {
   public:

@@ -15,10 +15,6 @@
 namespace PhongMaterialTest {
   using namespace render;
   using namespace engine::raytracer;
-  using namespace render;
-  using namespace engine::raytracer;
-  using namespace render;
-  using namespace engine::raytracer;
 
   TEST(PhongMaterial, ShouldInitialize) {
     PhongMaterial material;

@@ -1,10 +1,11 @@
 #include <gtest/gtest.h>
 #include "core/math/HitPointInterval.h"
-#include "render/primitives/Box.h"
 #include "test/helpers/AllocationCounter.h"
+#include "test/helpers/PrimitiveTestHelper.h"
 
 namespace HitPointIntervalTest {
-  static render::Box* box = new render::Box(Vector3d::null, Vector3d::one);
+  using test::helpers::unitBox;
+  static render::Box* box = unitBox();
 
   TEST(HitPointInterval, ShouldInitialize) {
     HitPointInterval interval;

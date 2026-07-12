@@ -15,10 +15,6 @@
 namespace MatteMaterialTest {
   using namespace render;
   using namespace engine::raytracer;
-  using namespace render;
-  using namespace engine::raytracer;
-  using namespace render;
-  using namespace engine::raytracer;
 
   TEST(MatteMaterial, ShouldInitialize) {
     MatteMaterial material;

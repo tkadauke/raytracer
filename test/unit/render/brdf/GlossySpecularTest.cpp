@@ -1,16 +1,15 @@
 #include <gtest/gtest.h>
 #include "render/brdf/GlossySpecular.h"
-#include "render/primitives/Box.h"
 
 #include "core/math/Constants.h"
 #include "core/math/HitPoint.h"
+#include "test/helpers/PrimitiveTestHelper.h"
 
 namespace GlossySpecularTest {
   using namespace render;
-  using namespace render;
-  using namespace render;
+  using test::helpers::unitBox;
 
-  static Box* box = new Box(Vector3d::null, Vector3d::one);
+  static render::Box* box = unitBox();
 
   TEST(GlossySpecular, ShouldInitialize) {
     GlossySpecular glossy;

@@ -8,8 +8,6 @@
 namespace FlatMeshTriangleTest {
   using namespace ::testing;
   using namespace render;
-  using namespace render;
-  using namespace render;
 
   TEST(FlatMeshTriangle, ShouldBuildFromMesh) {
     Mesh mesh;

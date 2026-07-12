@@ -8,8 +8,6 @@
 
 namespace SphereTest {
   using namespace render;
-  using namespace render;
-  using namespace render;
 
   TEST(Sphere, ShouldInitializeWithValues) {
     Sphere sphere(Vector3d(), 1);

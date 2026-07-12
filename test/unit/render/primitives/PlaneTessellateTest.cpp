@@ -4,8 +4,6 @@
 
 namespace PlaneTessellateTest {
   using namespace render;
-  using namespace render;
-  using namespace render;
 
   TEST(PlaneTessellate, ShouldReturnEmptyMesh) {
     // Plane is infinite and has no finite tessellation — empty Mesh by design.

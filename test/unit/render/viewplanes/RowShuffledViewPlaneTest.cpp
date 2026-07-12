@@ -5,7 +5,6 @@
 namespace RowShuffledViewPlaneTest {
   using namespace ::testing;
   using namespace render;
-  using namespace render;
 
   TEST(RowShuffledViewPlane, ShouldInitialize) {
     RowShuffledViewPlane plane;

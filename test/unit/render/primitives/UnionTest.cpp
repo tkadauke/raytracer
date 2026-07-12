@@ -10,8 +10,6 @@
 namespace UnionTest {
   using namespace ::testing;
   using namespace render;
-  using namespace render;
-  using namespace render;
 
   TEST(Union, ShouldReturnClosestPrimitiveForUnion) {
     Union u;

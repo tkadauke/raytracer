@@ -9,8 +9,6 @@
 
 namespace OpenCylinderTest {
   using namespace render;
-  using namespace render;
-  using namespace render;
 
   TEST(OpenCylinder, ShouldInitializeWithValues) {
     OpenCylinder cylinder(1, 2);

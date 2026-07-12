@@ -5,8 +5,6 @@
 
 namespace RectangleTessellateTest {
   using namespace render;
-  using namespace render;
-  using namespace render;
 
   TEST(RectangleTessellate, ShouldHave4VerticesAnd2Faces) {
     Rectangle rect(Vector3d(), Vector3d(1, 0, 0), Vector3d(0, 1, 0));

@@ -4,8 +4,6 @@
 
 namespace DifferenceTessellateTest {
   using namespace render;
-  using namespace render;
-  using namespace render;
 
   TEST(DifferenceTessellate, ShouldReturnEmptyMesh) {
     // CSG mesh booleans are not implemented; not implemented.

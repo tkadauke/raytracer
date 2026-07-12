@@ -4,8 +4,6 @@
 
 namespace SmoothMeshTriangleTessellateTest {
   using namespace render;
-  using namespace render;
-  using namespace render;
 
   // Triangle in XY-plane with distinct per-vertex normals.
   static Mesh makeTriangleMesh() {

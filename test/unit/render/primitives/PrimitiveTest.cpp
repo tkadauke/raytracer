@@ -9,8 +9,6 @@
 
 namespace PrimitiveTest {
   using namespace render;
-  using namespace render;
-  using namespace render;
   using namespace testing;
 
   TEST(Primitive, ShouldReturnTrueForIntersectsIfIntersectReturnsObject) {

@@ -5,7 +5,6 @@
 namespace RowInterlacedViewPlaneTest {
   using namespace ::testing;
   using namespace render;
-  using namespace render;
 
   TEST(RowInterlacedViewPlane, ShouldInitialize) {
     RowInterlacedViewPlane plane;
