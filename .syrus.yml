@@ -53,12 +53,12 @@ grade:
       # Placed after build-test so a fast correctness failure skips the
       # slower instrumented build.
       run: |
-        python3 -m pip install --user --quiet gcovr || true
+        python3 -m pip install --target /tmp/gcovr-pkg --quiet gcovr || true
         cmake --preset coverage && \
         cmake --build --preset coverage --parallel && \
         QT_QPA_PLATFORM=offscreen LIBGL_ALWAYS_SOFTWARE=1 \
           ctest --test-dir build/coverage --output-on-failure && \
-        python3 -m gcovr --root . \
+        PYTHONPATH=/tmp/gcovr-pkg python3 -m gcovr --root . \
           --filter '^include/' \
           --filter '^src/' \
           --exclude '.*Test\.cpp' \
