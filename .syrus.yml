@@ -23,6 +23,9 @@
 #     post-grade primitive that runs once per workflow rather than per
 #     iteration, the slow gates move here.
 
+adversarial_review:
+  rounds: 1
+
 grade:
   max_iterations: 5
   steps:
