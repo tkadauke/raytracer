@@ -26,20 +26,9 @@
 
 namespace MoleculeSceneImporterTest {
   namespace {
-    Group* groupChild(Group* parent, int index) {
-      return qobject_cast<Group*>(parent->childElements()[index]);
-    }
-
-    Sphere* sphereChild(Group* parent, int index) {
-      return qobject_cast<Sphere*>(parent->childElements()[index]);
-    }
-
-    Curve* curveChild(Group* parent, int index) {
-      return qobject_cast<Curve*>(parent->childElements()[index]);
-    }
-
-    Cylinder* cylinderChild(Group* parent, int index) {
-      return qobject_cast<Cylinder*>(parent->childElements()[index]);
+    template<typename T>
+    T* childAs(Group* parent, int index) {
+      return qobject_cast<T*>(parent->childElements()[index]);
     }
 
     Colord materialColor(const Surface& surface) {
@@ -56,61 +45,25 @@ namespace MoleculeSceneImporterTest {
       return scene.renderGraphAnalysis().visibleSurfaceCount();
     }
 
-    Group* findGroupByMetadata(Element* root, const QString& key, const QString& value) {
-      if (auto* group = qobject_cast<Group*>(root)) {
-        if (group->metadataValue(key).toString() == value)
-          return group;
+    template<typename T>
+    T* findByMetadata(Element* root, const QString& key, const QString& value) {
+      if (auto* item = qobject_cast<T*>(root)) {
+        if (item->metadataValue(key).toString() == value)
+          return item;
       }
       for (auto* child : root->childElements()) {
-        if (auto* group = findGroupByMetadata(child, key, value))
-          return group;
+        if (auto* found = findByMetadata<T>(child, key, value))
+          return found;
       }
       return nullptr;
     }
 
-    Curve* findCurveByMetadata(Element* root, const QString& key, const QString& value) {
-      if (auto* curve = qobject_cast<Curve*>(root)) {
-        if (curve->metadataValue(key).toString() == value)
-          return curve;
-      }
-      for (auto* child : root->childElements()) {
-        if (auto* curve = findCurveByMetadata(child, key, value))
-          return curve;
-      }
-      return nullptr;
-    }
-
-    Sphere* findSphereByMetadata(Element* root, const QString& key, const QString& value) {
-      if (auto* sphere = qobject_cast<Sphere*>(root)) {
-        if (sphere->metadataValue(key).toString() == value)
-          return sphere;
-      }
-      for (auto* child : root->childElements()) {
-        if (auto* sphere = findSphereByMetadata(child, key, value))
-          return sphere;
-      }
-      return nullptr;
-    }
-
-    void collectCylinders(Element* root, std::vector<Cylinder*>& cylinders) {
-      if (auto* cylinder = qobject_cast<Cylinder*>(root))
-        cylinders.push_back(cylinder);
+    template<typename T>
+    void collect(Element* root, std::vector<T*>& items) {
+      if (auto* item = qobject_cast<T*>(root))
+        items.push_back(item);
       for (auto* child : root->childElements())
-        collectCylinders(child, cylinders);
-    }
-
-    void collectCurves(Element* root, std::vector<Curve*>& curves) {
-      if (auto* curve = qobject_cast<Curve*>(root))
-        curves.push_back(curve);
-      for (auto* child : root->childElements())
-        collectCurves(child, curves);
-    }
-
-    void collectSpheres(Element* root, std::vector<Sphere*>& spheres) {
-      if (auto* sphere = qobject_cast<Sphere*>(root))
-        spheres.push_back(sphere);
-      for (auto* child : root->childElements())
-        collectSpheres(child, spheres);
+        collect<T>(child, items);
     }
 
     int recursiveElementCount(Element* root) {
@@ -142,21 +95,21 @@ namespace MoleculeSceneImporterTest {
     auto root = world::MoleculeSceneCompiler().compile(parsed.molecule(), source);
 
     ASSERT_EQ(1, root->childElements().size());
-    auto* model = groupChild(root.get(), 0);
+    auto* model = childAs<Group>(root.get(), 0);
     ASSERT_NE(nullptr, model);
     EXPECT_EQ(QString("model"), model->metadataValue("molecule.kind").toString());
     EXPECT_EQ(7, model->metadataValue("modelId").toInt());
 
     ASSERT_EQ(2, model->childElements().size());
-    auto* chainA = groupChild(model, 0);
-    auto* chainB = groupChild(model, 1);
+    auto* chainA = childAs<Group>(model, 0);
+    auto* chainB = childAs<Group>(model, 1);
     ASSERT_NE(nullptr, chainA);
     ASSERT_NE(nullptr, chainB);
     EXPECT_EQ(QString("A"), chainA->metadataValue("chainId").toString());
     EXPECT_EQ(QString("model/7/chain/A"),
               chainA->metadataValue(GroupMetadata::sourceIdKey()).toString());
 
-    auto* gly = groupChild(chainA, 0);
+    auto* gly = childAs<Group>(chainA, 0);
     ASSERT_NE(nullptr, gly);
     EXPECT_EQ(QString("residue"), gly->metadataValue("molecule.kind").toString());
     EXPECT_EQ(QString("A"), gly->metadataValue("chainId").toString());
@@ -165,7 +118,7 @@ namespace MoleculeSceneImporterTest {
     EXPECT_EQ(QString("polymer"), gly->metadataValue("molecule.category").toString());
 
     ASSERT_EQ(2, gly->childElements().size());
-    auto* atom = sphereChild(gly, 0);
+    auto* atom = childAs<Sphere>(gly, 0);
     ASSERT_NE(nullptr, atom);
     ASSERT_NE(nullptr, atom->material());
     EXPECT_EQ(QString("ball-and-stick"), atom->metadataValue("molecule.representation").toString());
@@ -184,16 +137,16 @@ namespace MoleculeSceneImporterTest {
     ASSERT_TRUE(atomProvenance->lineStart.has_value());
     EXPECT_EQ(4, *atomProvenance->lineStart);
 
-    auto* ligand = groupChild(chainB, 0);
+    auto* ligand = childAs<Group>(chainB, 0);
     ASSERT_NE(nullptr, ligand);
     EXPECT_EQ(QString("LIG"), ligand->metadataValue("residueName").toString());
     EXPECT_EQ(201, ligand->metadataValue("residueIndex").toInt());
     EXPECT_EQ(QString("ligand"), ligand->metadataValue("molecule.category").toString());
 
-    auto* bonds = groupChild(chainA, 1);
+    auto* bonds = childAs<Group>(chainA, 1);
     ASSERT_NE(nullptr, bonds);
     EXPECT_EQ(QString("bonds"), bonds->metadataValue("molecule.kind").toString());
-    auto* bond = cylinderChild(bonds, 0);
+    auto* bond = childAs<Cylinder>(bonds, 0);
     ASSERT_NE(nullptr, bond);
     EXPECT_EQ(QString("bond"), bond->metadataValue("molecule.kind").toString());
     EXPECT_FALSE(bond->metadataValue("moleculeBondInferred").toBool());
@@ -215,10 +168,10 @@ namespace MoleculeSceneImporterTest {
 
     world::ImportSourceMetadata source;
     auto root = world::MoleculeSceneCompiler().compile(parsed.molecule(), source);
-    auto* model = groupChild(root.get(), 0);
-    auto* chainA = groupChild(model, 0);
-    auto* chainB = groupChild(model, 1);
-    auto* ligand = groupChild(chainB, 0);
+    auto* model = childAs<Group>(root.get(), 0);
+    auto* chainA = childAs<Group>(model, 0);
+    auto* chainB = childAs<Group>(model, 1);
+    auto* ligand = childAs<Group>(chainB, 0);
 
     Scene scene;
     scene.addChild(std::move(root));
@@ -248,10 +201,10 @@ namespace MoleculeSceneImporterTest {
 
     auto root = world::MoleculeSceneCompiler().compile(parsed.molecule(), source, options);
 
-    auto* model = groupChild(root.get(), 0);
-    auto* chainA = groupChild(model, 0);
+    auto* model = childAs<Group>(root.get(), 0);
+    auto* chainA = childAs<Group>(model, 0);
     ASSERT_NE(nullptr, chainA);
-    auto* backbone = curveChild(chainA, 0);
+    auto* backbone = childAs<Curve>(chainA, 0);
     ASSERT_NE(nullptr, backbone);
 
     EXPECT_EQ(QString("backbone"), backbone->metadataValue("molecule.kind").toString());
@@ -290,7 +243,7 @@ namespace MoleculeSceneImporterTest {
     tubeOptions.backboneMode = "tube";
     tubeOptions.backboneWidth = 0.6;
     auto withTube = world::MoleculeSceneCompiler().compile(parsed.molecule(), source, tubeOptions);
-    auto* tubeBackbone = curveChild(groupChild(groupChild(withTube.get(), 0), 0), 0);
+    auto* tubeBackbone = childAs<Curve>(childAs<Group>(childAs<Group>(withTube.get(), 0), 0), 0);
     ASSERT_NE(nullptr, tubeBackbone);
     EXPECT_DOUBLE_EQ(0.6, tubeBackbone->width());
     EXPECT_EQ(QString("tube"), tubeBackbone->tessellationMode());
@@ -300,7 +253,7 @@ namespace MoleculeSceneImporterTest {
     noBackboneOptions.backboneWidth = 0.6;
     auto withoutBackbone =
       world::MoleculeSceneCompiler().compile(parsed.molecule(), source, noBackboneOptions);
-    auto* chainA = groupChild(groupChild(withoutBackbone.get(), 0), 0);
+    auto* chainA = childAs<Group>(childAs<Group>(withoutBackbone.get(), 0), 0);
     ASSERT_NE(nullptr, chainA);
     ASSERT_FALSE(chainA->childElements().isEmpty());
     EXPECT_EQ(nullptr, qobject_cast<Curve*>(chainA->childElements().front()));
@@ -328,12 +281,12 @@ namespace MoleculeSceneImporterTest {
     decoded.read(json);
     decoded.resolveElementReferences();
 
-    auto* root = findGroupByMetadata(&decoded, "molecule.kind", "molecule");
+    auto* root = findByMetadata<Group>(&decoded, "molecule.kind", "molecule");
     ASSERT_NE(nullptr, root);
-    auto* model = groupChild(root, 0);
-    auto* chainA = groupChild(model, 0);
-    auto* gly = groupChild(chainA, 0);
-    auto* atom = sphereChild(gly, 0);
+    auto* model = childAs<Group>(root, 0);
+    auto* chainA = childAs<Group>(model, 0);
+    auto* gly = childAs<Group>(chainA, 0);
+    auto* atom = childAs<Sphere>(gly, 0);
     ASSERT_NE(nullptr, atom);
 
     EXPECT_EQ(QString("A"), gly->metadataValue("chainId").toString());
@@ -357,8 +310,8 @@ namespace MoleculeSceneImporterTest {
     auto* rootGroup = qobject_cast<Group*>(root.get());
     ASSERT_NE(nullptr, rootGroup);
 
-    auto* nitrogen = findSphereByMetadata(rootGroup, "sourceRecord", "ATOM 1");
-    auto* carbon = findSphereByMetadata(rootGroup, "sourceRecord", "ATOM 2");
+    auto* nitrogen = findByMetadata<Sphere>(rootGroup, "sourceRecord", "ATOM 1");
+    auto* carbon = findByMetadata<Sphere>(rootGroup, "sourceRecord", "ATOM 2");
     ASSERT_NE(nullptr, nitrogen);
     ASSERT_NE(nullptr, carbon);
     EXPECT_EQ(world::moleculeElementStyle("N").color, materialColor(*nitrogen));
@@ -371,7 +324,7 @@ namespace MoleculeSceneImporterTest {
     ASSERT_TRUE(world::importProvenance(*nitrogen).has_value());
 
     std::vector<Cylinder*> cylinders;
-    collectCylinders(rootGroup, cylinders);
+    collect<Cylinder>(rootGroup, cylinders);
     ASSERT_GE(cylinders.size(), 1u);
     EXPECT_TRUE(cylinders[0]->metadataValue("moleculeBondInferred").toBool());
     EXPECT_EQ(QString("bond"), cylinders[0]->metadataValue("molecule.kind").toString());
@@ -417,7 +370,7 @@ covale A LIG 1 C1 A LIG 1 O1
 
     ASSERT_TRUE(result.succeeded());
     std::vector<Cylinder*> cylinders;
-    collectCylinders(result.groupRoot(), cylinders);
+    collect<Cylinder>(result.groupRoot(), cylinders);
     ASSERT_EQ(1u, cylinders.size());
     EXPECT_FALSE(cylinders[0]->metadataValue("moleculeBondInferred").toBool());
     EXPECT_EQ(QString("BOND 1-2"), cylinders[0]->metadataValue("sourceRecord").toString());
@@ -434,7 +387,7 @@ covale A LIG 1 C1 A LIG 1 O1
     auto root = result.takeRoot();
     ASSERT_NE(nullptr, root);
     std::vector<Cylinder*> cylinders;
-    collectCylinders(root.get(), cylinders);
+    collect<Cylinder>(root.get(), cylinders);
     EXPECT_TRUE(cylinders.empty());
   }
 
@@ -454,11 +407,11 @@ covale A LIG 1 C1 A LIG 1 O1
       world::MoleculeSceneCompiler().compile(parsed.molecule(), source, ballAndStickOptions);
     std::vector<Sphere*> ballAndStickSpheres;
     std::vector<Cylinder*> ballAndStickCylinders;
-    collectSpheres(ballAndStick.get(), ballAndStickSpheres);
-    collectCylinders(ballAndStick.get(), ballAndStickCylinders);
+    collect<Sphere>(ballAndStick.get(), ballAndStickSpheres);
+    collect<Cylinder>(ballAndStick.get(), ballAndStickCylinders);
     ASSERT_EQ(3u, ballAndStickSpheres.size());
     ASSERT_EQ(1u, ballAndStickCylinders.size());
-    auto* ballAndStickNitrogen = findSphereByMetadata(ballAndStick.get(), "sourceRecord", "ATOM 1");
+    auto* ballAndStickNitrogen = findByMetadata<Sphere>(ballAndStick.get(), "sourceRecord", "ATOM 1");
     ASSERT_NE(nullptr, ballAndStickNitrogen);
     EXPECT_EQ(world::moleculeElementStyle("N").color, materialColor(*ballAndStickNitrogen));
     EXPECT_DOUBLE_EQ(world::moleculeElementStyle("N").displayRadius * 0.25,
@@ -472,11 +425,11 @@ covale A LIG 1 C1 A LIG 1 O1
       world::MoleculeSceneCompiler().compile(parsed.molecule(), source, spaceFillingOptions);
     std::vector<Sphere*> spaceFillingSpheres;
     std::vector<Cylinder*> spaceFillingCylinders;
-    collectSpheres(spaceFilling.get(), spaceFillingSpheres);
-    collectCylinders(spaceFilling.get(), spaceFillingCylinders);
+    collect<Sphere>(spaceFilling.get(), spaceFillingSpheres);
+    collect<Cylinder>(spaceFilling.get(), spaceFillingCylinders);
     ASSERT_EQ(3u, spaceFillingSpheres.size());
     EXPECT_TRUE(spaceFillingCylinders.empty());
-    auto* spaceFillingNitrogen = findSphereByMetadata(spaceFilling.get(), "sourceRecord", "ATOM 1");
+    auto* spaceFillingNitrogen = findByMetadata<Sphere>(spaceFilling.get(), "sourceRecord", "ATOM 1");
     ASSERT_NE(nullptr, spaceFillingNitrogen);
     EXPECT_EQ(world::moleculeElementStyle("N").color, materialColor(*spaceFillingNitrogen));
     EXPECT_DOUBLE_EQ(world::moleculeElementStyle("N").displayRadius,
@@ -489,11 +442,11 @@ covale A LIG 1 C1 A LIG 1 O1
     auto atoms = world::MoleculeSceneCompiler().compile(parsed.molecule(), source, atomOptions);
     std::vector<Sphere*> atomSpheres;
     std::vector<Cylinder*> atomCylinders;
-    collectSpheres(atoms.get(), atomSpheres);
-    collectCylinders(atoms.get(), atomCylinders);
+    collect<Sphere>(atoms.get(), atomSpheres);
+    collect<Cylinder>(atoms.get(), atomCylinders);
     ASSERT_EQ(3u, atomSpheres.size());
     EXPECT_TRUE(atomCylinders.empty());
-    auto* atomNitrogen = findSphereByMetadata(atoms.get(), "sourceRecord", "ATOM 1");
+    auto* atomNitrogen = findByMetadata<Sphere>(atoms.get(), "sourceRecord", "ATOM 1");
     ASSERT_NE(nullptr, atomNitrogen);
     EXPECT_EQ(world::moleculeElementStyle("N").color, materialColor(*atomNitrogen));
     EXPECT_DOUBLE_EQ(world::moleculeElementStyle("N").displayRadius * 0.25,
@@ -566,11 +519,11 @@ covale A LIG 1 C1 A LIG 1 O1
     ASSERT_EQ(1, asset.childElements().size());
     const int ballAndStickElementCount = recursiveElementCount(asset.childElements().front());
     std::vector<Cylinder*> cylinders;
-    collectCylinders(asset.childElements().front(), cylinders);
+    collect<Cylinder>(asset.childElements().front(), cylinders);
     ASSERT_FALSE(cylinders.empty());
     std::vector<Sphere*> spheres;
-    collectSpheres(asset.childElements().front(), spheres);
-    auto* nitrogen = findSphereByMetadata(asset.childElements().front(), "sourceRecord", "ATOM 1");
+    collect<Sphere>(asset.childElements().front(), spheres);
+    auto* nitrogen = findByMetadata<Sphere>(asset.childElements().front(), "sourceRecord", "ATOM 1");
     ASSERT_NE(nullptr, nitrogen);
     const double ballAndStickRadius = nitrogen->radius();
 
@@ -580,12 +533,12 @@ covale A LIG 1 C1 A LIG 1 O1
     ASSERT_EQ(1, asset.childElements().size());
     const int spaceFillingElementCount = recursiveElementCount(asset.childElements().front());
     cylinders.clear();
-    collectCylinders(asset.childElements().front(), cylinders);
+    collect<Cylinder>(asset.childElements().front(), cylinders);
     EXPECT_TRUE(cylinders.empty());
     spheres.clear();
-    collectSpheres(asset.childElements().front(), spheres);
+    collect<Sphere>(asset.childElements().front(), spheres);
     EXPECT_EQ(3u, spheres.size());
-    nitrogen = findSphereByMetadata(asset.childElements().front(), "sourceRecord", "ATOM 1");
+    nitrogen = findByMetadata<Sphere>(asset.childElements().front(), "sourceRecord", "ATOM 1");
     ASSERT_NE(nullptr, nitrogen);
     EXPECT_DOUBLE_EQ(world::moleculeElementStyle("N").displayRadius, nitrogen->radius());
     EXPECT_GT(nitrogen->radius(), ballAndStickRadius);
@@ -601,12 +554,12 @@ covale A LIG 1 C1 A LIG 1 O1
     EXPECT_EQ(QStringLiteral("mmcif"), asset.importOptions().value("format").toString());
     ASSERT_EQ(1, asset.childElements().size());
     cylinders.clear();
-    collectCylinders(asset.childElements().front(), cylinders);
+    collect<Cylinder>(asset.childElements().front(), cylinders);
     EXPECT_TRUE(cylinders.empty());
     spheres.clear();
-    collectSpheres(asset.childElements().front(), spheres);
+    collect<Sphere>(asset.childElements().front(), spheres);
     EXPECT_EQ(3u, spheres.size());
-    nitrogen = findSphereByMetadata(asset.childElements().front(), "sourceRecord", "ATOM 1");
+    nitrogen = findByMetadata<Sphere>(asset.childElements().front(), "sourceRecord", "ATOM 1");
     ASSERT_NE(nullptr, nitrogen);
     EXPECT_DOUBLE_EQ(ballAndStickRadius, nitrogen->radius());
 
@@ -626,7 +579,7 @@ covale A LIG 1 C1 A LIG 1 O1
     decoded.read(json);
     ASSERT_EQ(1, decoded.childElements().size());
     cylinders.clear();
-    collectCylinders(decoded.childElements().front(), cylinders);
+    collect<Cylinder>(decoded.childElements().front(), cylinders);
     EXPECT_TRUE(cylinders.empty());
     EXPECT_EQ(QStringLiteral("test/fixtures/molecules/small.cif"), decoded.sourcePath());
     EXPECT_EQ(QStringLiteral("molecule"), decoded.format());
@@ -645,14 +598,14 @@ covale A LIG 1 C1 A LIG 1 O1
     auto root = result.takeRoot();
     auto* rootGroup = qobject_cast<Group*>(root.get());
     ASSERT_NE(nullptr, rootGroup);
-    auto* model = groupChild(rootGroup, 0);
-    auto* chainA = groupChild(model, 0);
-    auto* chainB = groupChild(model, 1);
-    auto* gly = groupChild(chainA, 0);
-    auto* ligand = groupChild(chainB, 0);
-    auto* nitrogen = sphereChild(gly, 0);
-    auto* carbon = sphereChild(gly, 1);
-    auto* ligandCarbon = sphereChild(ligand, 0);
+    auto* model = childAs<Group>(rootGroup, 0);
+    auto* chainA = childAs<Group>(model, 0);
+    auto* chainB = childAs<Group>(model, 1);
+    auto* gly = childAs<Group>(chainA, 0);
+    auto* ligand = childAs<Group>(chainB, 0);
+    auto* nitrogen = childAs<Sphere>(gly, 0);
+    auto* carbon = childAs<Sphere>(gly, 1);
+    auto* ligandCarbon = childAs<Sphere>(ligand, 0);
 
     ASSERT_NE(nullptr, nitrogen);
     ASSERT_NE(nullptr, carbon);
@@ -695,15 +648,15 @@ HETATM 3 O O HOH A 2 5.0 0.0 0.0
     auto root = result.takeRoot();
     auto* rootGroup = qobject_cast<Group*>(root.get());
     ASSERT_NE(nullptr, rootGroup);
-    auto* gly = findGroupByMetadata(rootGroup, "residueName", "GLY");
+    auto* gly = findByMetadata<Group>(rootGroup, "residueName", "GLY");
     ASSERT_NE(nullptr, gly);
     EXPECT_EQ(QString("model/1/chain/A/residue/GLY/1"),
               gly->metadataValue(GroupMetadata::sourceIdKey()).toString());
-    EXPECT_EQ(nullptr, findSphereByMetadata(rootGroup, "atomSerialNumber", "2"));
-    EXPECT_EQ(nullptr, findGroupByMetadata(rootGroup, "residueName", "HOH"));
+    EXPECT_EQ(nullptr, findByMetadata<Sphere>(rootGroup, "atomSerialNumber", "2"));
+    EXPECT_EQ(nullptr, findByMetadata<Group>(rootGroup, "residueName", "HOH"));
 
     std::vector<Sphere*> spheres;
-    collectSpheres(rootGroup, spheres);
+    collect<Sphere>(rootGroup, spheres);
     ASSERT_EQ(1u, spheres.size());
     EXPECT_EQ(1, spheres[0]->metadataValue("atomSerialNumber").toInt());
   }
@@ -737,13 +690,13 @@ ATOM 2 C C1 LIG A 1 3.0 0.0 0.0 2
     auto* rootGroup = qobject_cast<Group*>(root.get());
     ASSERT_NE(nullptr, rootGroup);
     ASSERT_EQ(1, rootGroup->childElements().size());
-    auto* model = groupChild(rootGroup, 0);
+    auto* model = childAs<Group>(rootGroup, 0);
     ASSERT_NE(nullptr, model);
     EXPECT_EQ(2, model->metadataValue("modelId").toInt());
-    EXPECT_EQ(nullptr, findGroupByMetadata(rootGroup, "sourceId", "model/1"));
+    EXPECT_EQ(nullptr, findByMetadata<Group>(rootGroup, "sourceId", "model/1"));
 
     std::vector<Sphere*> spheres;
-    collectSpheres(rootGroup, spheres);
+    collect<Sphere>(rootGroup, spheres);
     ASSERT_EQ(1u, spheres.size());
     EXPECT_EQ(2, spheres[0]->metadataValue("atomSerialNumber").toInt());
   }
@@ -772,11 +725,11 @@ ATOM 2 C C1 LIG A 1 3.0 0.0 0.0 2
     auto root = result.takeRoot();
     auto* rootGroup = qobject_cast<Group*>(root.get());
     ASSERT_NE(nullptr, rootGroup);
-    auto* model = groupChild(rootGroup, 0);
-    auto* chainA = groupChild(model, 0);
+    auto* model = childAs<Group>(rootGroup, 0);
+    auto* chainA = childAs<Group>(model, 0);
     ASSERT_NE(nullptr, chainA);
     ASSERT_EQ(4, chainA->childElements().size());
-    auto* backbone = curveChild(chainA, 0);
+    auto* backbone = childAs<Curve>(chainA, 0);
     ASSERT_NE(nullptr, backbone);
     EXPECT_EQ(QString("tube"), backbone->metadataValue("molecule.representation").toString());
     EXPECT_DOUBLE_EQ(0.35, backbone->width());
@@ -798,9 +751,9 @@ ATOM 2 C C1 LIG A 1 3.0 0.0 0.0 2
     std::vector<Sphere*> spheres;
     std::vector<Cylinder*> cylinders;
     std::vector<Curve*> curves;
-    collectSpheres(root.get(), spheres);
-    collectCylinders(root.get(), cylinders);
-    collectCurves(root.get(), curves);
+    collect<Sphere>(root.get(), spheres);
+    collect<Cylinder>(root.get(), cylinders);
+    collect<Curve>(root.get(), curves);
     EXPECT_FALSE(spheres.empty());
     EXPECT_TRUE(cylinders.empty());
     EXPECT_TRUE(curves.empty());
@@ -827,7 +780,7 @@ ATOM 2 C C1 LIG A 1 3.0 0.0 0.0 2
     decoded.read(json);
     decoded.resolveElementReferences();
 
-    auto* backbone = findCurveByMetadata(&decoded, "molecule.kind", "backbone");
+    auto* backbone = findByMetadata<Curve>(&decoded, "molecule.kind", "backbone");
     ASSERT_NE(nullptr, backbone);
     EXPECT_DOUBLE_EQ(0.75, backbone->width());
     EXPECT_EQ(QString("tube"), backbone->tessellationMode());

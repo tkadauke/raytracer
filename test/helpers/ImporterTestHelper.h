@@ -7,6 +7,7 @@
 
 #include <vector>
 
+class Element;
 class Group;
 
 namespace test::importers {
@@ -39,5 +40,7 @@ namespace test::importers {
                          const std::vector<ExpectedDiagnostic>& expected);
 
   void expectGroupTree(const Group& actual, const ExpectedGroup& expected);
+
+  Group* childGroup(Element* parent, int index);
 
 }

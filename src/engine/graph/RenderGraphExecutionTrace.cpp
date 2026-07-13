@@ -3,6 +3,7 @@
 #include "core/Buffer.h"
 #include "core/util/BufferUtils.h"
 #include "engine/graph/RenderResourceStorage.h"
+#include "engine/graph/RenderGraphPreviewHelpers.h"
 #include "engine/raster/RasterVisibilitySet.h"
 #include "engine/raster/detail/OpenGLRasterResource.h"
 
@@ -52,18 +53,6 @@ namespace engine::graph {
         }
       }
       return result;
-    }
-
-    Colord colorForObjectId(std::uint32_t id) {
-      if (id == 0) {
-        return Colord::black();
-      }
-
-      std::uint32_t hash = id * 2654435761u;
-      hash ^= hash >> 16;
-      return Colord(static_cast<double>((hash >> 16) & 0xffu) / 255.0,
-                    static_cast<double>((hash >> 8) & 0xffu) / 255.0,
-                    static_cast<double>(hash & 0xffu) / 255.0);
     }
 
     std::shared_ptr<const Buffer<Colord>> objectIdPreviewFor(const Buffer<std::uint32_t>& source) {
@@ -159,17 +148,6 @@ namespace engine::graph {
       return std::isfinite(minValues[0]) && std::isfinite(minValues[1]) &&
              std::isfinite(minValues[2]) && std::isfinite(maxValues[0]) &&
              std::isfinite(maxValues[1]) && std::isfinite(maxValues[2]);
-    }
-
-    double normalizedComponent(double value, double minimum, double maximum) {
-      if (!std::isfinite(value)) {
-        return 0.0;
-      }
-      const double range = maximum - minimum;
-      if (range <= 1e-9) {
-        return 0.5;
-      }
-      return std::clamp((value - minimum) / range, 0.0, 1.0);
     }
 
     std::shared_ptr<const Buffer<Colord>> worldPositionPreviewFor(const Buffer<Colord>& source) {

@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "render/primitives/Scene.h"
+#include "test/helpers/ImporterTestHelper.h"
 #include "world/import/LDrawSceneImporter.h"
 #include "world/objects/ElementFactory.h"
 #include "world/objects/Group.h"
@@ -20,6 +21,7 @@ namespace fs = std::filesystem;
 
 namespace LDrawSceneImporterTest {
   using namespace render;
+  using test::importers::childGroup;
 
   class TempTree {
   public:
@@ -55,12 +57,6 @@ namespace LDrawSceneImporterTest {
   };
 
   int TempTree::s_nextId = 0;
-
-  Group* childGroup(Element* parent, int index) {
-    auto* group = dynamic_cast<Group*>(parent->childElements()[index]);
-    EXPECT_NE(nullptr, group);
-    return group;
-  }
 
   TEST(LDrawSceneImporter, PreservesStepBoundariesAsOrderedGroups) {
     TempTree tree;

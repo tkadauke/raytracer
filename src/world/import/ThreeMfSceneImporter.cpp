@@ -20,13 +20,6 @@
 
 namespace world {
   namespace {
-    QString normalizedPartName(QString name) {
-      name.replace('\\', '/');
-      while (name.startsWith('/'))
-        name.remove(0, 1);
-      return name;
-    }
-
     QString modelPartName(const core::threemf::ThreeMfPackage& package) {
       if (package.contains("_rels/.rels")) {
         QXmlStreamReader xml(package.part("_rels/.rels"));
@@ -37,7 +30,7 @@ namespace world {
                 const QString type = xml.attributes().value("Type").toString();
                 const QString target = xml.attributes().value("Target").toString();
                 if (type.contains("/3dmodel") && !target.isEmpty())
-                  return normalizedPartName(target);
+                  return core::threemf::normalizedPartName(target);
               }
               xml.skipCurrentElement();
             }

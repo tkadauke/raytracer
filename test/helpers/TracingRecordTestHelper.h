@@ -53,10 +53,6 @@ namespace testing {
       return {value.x(), value.y(), 0.0, 0.0};
     }
 
-    inline std::array<double, 4> tracingRecordBarycentric4(const Vector3d& value) {
-      return {value.x(), value.y(), value.z(), 0.0};
-    }
-
     inline void tracingRecordAppendScalarDiff(::testing::Message& message, const char* field,
                                               double expected, double actual, double tolerance) {
       if (!tracingRecordScalarNear(expected, actual, tolerance))
@@ -176,7 +172,7 @@ namespace testing {
         tracingRecordAppendArrayDiff(message, "uv", tracingRecordVector4(expected.uv), actual.uv,
                                      tolerance.uv);
         tracingRecordAppendArrayDiff(message, "barycentric",
-                                     tracingRecordBarycentric4(expected.barycentric),
+                                     tracingRecordVector4(expected.barycentric),
                                      actual.barycentric, tolerance.barycentric);
       }
       return tracingRecordResult(message);
