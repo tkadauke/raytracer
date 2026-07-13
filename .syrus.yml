@@ -62,6 +62,7 @@ grade:
         QT_QPA_PLATFORM=offscreen LIBGL_ALWAYS_SOFTWARE=1 \
           ctest --test-dir build/coverage --output-on-failure && \
         PYTHONPATH=/tmp/gcovr-pkg python3 -m gcovr --root . \
+          --gcov-ignore-parse-errors=negative_hits.warn_once_per_file \
           --filter '^include/' \
           --filter '^src/' \
           --exclude '.*Test\.cpp' \
