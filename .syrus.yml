@@ -46,6 +46,35 @@ grade:
           ctest --preset release --parallel $(nproc) --output-on-failure
       timeout_minutes: 20
 
+    - name: coverage
+      # Measures line coverage with gcovr and enforces a 60% floor.
+      # The floor matches COVERAGE_LINE_FLOOR in
+      # docs/plans/github_actions/ci.yml and should only ever increase.
+      # gcovr is installed via pip3 --user if absent from the worker image.
+      # The coverage build (build/coverage/) is independent of the release
+      # build (build/release/) so no incremental-build state is shared.
+      # Placed after build-test so a fast correctness failure skips the
+      # slower instrumented build.
+      run: |
+        python3 -m pip install --user --quiet gcovr 2>/dev/null || true
+        cmake --preset coverage && \
+        cmake --build --preset coverage --parallel && \
+        QT_QPA_PLATFORM=offscreen LIBGL_ALWAYS_SOFTWARE=1 \
+          ctest --test-dir build/coverage --output-on-failure && \
+        ~/.local/bin/gcovr --root . \
+          --filter '^include/' \
+          --filter '^src/' \
+          --exclude '.*Test\.cpp' \
+          --exclude '.*\.moc' \
+          --exclude 'build/.*' \
+          --txt -o coverage.txt \
+          --print-summary | tee coverage-summary.txt && \
+        line_pct=$(grep -oE 'lines: *[0-9.]+%' coverage-summary.txt \
+          | grep -oE '[0-9.]+' | head -1) && \
+        echo "Coverage: ${line_pct}% (floor: 60%)" && \
+        awk -v p="$line_pct" 'BEGIN { exit (p+0 < 60) }'
+      timeout_minutes: 30
+
     - name: opengl-egl
       # Dedicated lane for the OpenGL-touching unit tests so we get
       # explicit visibility into whether the GL pipeline is exercised
