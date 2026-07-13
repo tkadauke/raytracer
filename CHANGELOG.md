@@ -11,6 +11,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Add `coverage` grader step to `.syrus.yml` enforcing a 60% line-coverage floor via gcovr, matching the floor in `docs/plans/github_actions/ci.yml`. — Claude Sonnet 4.6
 - Report per-depth radiance-delta sums and maxima from Metal/Vulkan full-GPU
   path-loop kernels when metrics capture is enabled, preparing platform
   convergence feedback without adding trace-disabled readback cost. — GPT-5 Codex
