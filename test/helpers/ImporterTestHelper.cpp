@@ -1,5 +1,6 @@
 #include "test/helpers/ImporterTestHelper.h"
 
+#include "world/objects/Element.h"
 #include "world/objects/Group.h"
 
 #include <gtest/gtest.h>
@@ -37,6 +38,12 @@ namespace test::importers {
       EXPECT_EQ(expected[i].line, actual[i].line) << "diagnostic " << i;
       EXPECT_EQ(expected[i].column, actual[i].column) << "diagnostic " << i;
     }
+  }
+
+  Group* childGroup(Element* parent, int index) {
+    auto* group = dynamic_cast<Group*>(parent->childElements()[index]);
+    EXPECT_NE(nullptr, group);
+    return group;
   }
 
   void expectGroupTree(const Group& actual, const ExpectedGroup& expected) {

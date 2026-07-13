@@ -9,6 +9,13 @@
 
 namespace core::threemf {
 
+  inline QString normalizedPartName(QString name) {
+    name.replace('\\', '/');
+    while (name.startsWith('/'))
+      name.remove(0, 1);
+    return name;
+  }
+
   class ThreeMfPackageError : public std::runtime_error {
   public:
     explicit ThreeMfPackageError(const std::string& message);

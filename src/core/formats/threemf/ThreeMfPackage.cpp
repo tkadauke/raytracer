@@ -32,13 +32,6 @@ namespace core::threemf {
                                         (data[3] << 24));
     }
 
-    QString normalizedPartName(QString name) {
-      name.replace('\\', '/');
-      while (name.startsWith('/'))
-        name.remove(0, 1);
-      return name;
-    }
-
     qsizetype findEndOfCentralDirectory(const QByteArray& bytes) {
       const qsizetype maxComment = 0xffff;
       const qsizetype first = std::max<qsizetype>(0, bytes.size() - maxComment - 22);

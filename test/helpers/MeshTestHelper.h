@@ -31,12 +31,7 @@ namespace test {
 
     // Same triangle as triangleMesh() but returned as shared_ptr.
     inline std::shared_ptr<Mesh> sharedTriangleMesh() {
-      auto mesh = std::make_shared<Mesh>();
-      mesh->addVertex(Vector3d(0, 0, 0), Vector3d(0, 0, 1), Vector2d(0, 0));
-      mesh->addVertex(Vector3d(1, 0, 0), Vector3d(0, 0, 1), Vector2d(1, 0));
-      mesh->addVertex(Vector3d(0, 1, 0), Vector3d(0, 0, 1), Vector2d(0, 1));
-      mesh->addFace({0, 1, 2});
-      return mesh;
+      return std::shared_ptr<Mesh>(triangleMesh());
     }
 
     // Same triangle displaced far off-screen along +Y for displacement tests.

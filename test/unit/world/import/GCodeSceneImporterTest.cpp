@@ -4,6 +4,7 @@
 #include "render/primitives/Scene.h"
 #include "render/cameras/Camera.h"
 #include "core/geometry/Mesh.h"
+#include "test/helpers/ImporterTestHelper.h"
 #include "world/objects/Camera.h"
 #include "world/import/GCodeSceneImporter.h"
 #include "world/import/SceneImporterRegistry.h"
@@ -14,11 +15,7 @@
 #include <vector>
 
 namespace GCodeSceneImporterTest {
-  Group* childGroup(Element* parent, int index) {
-    auto* group = dynamic_cast<Group*>(parent->childElements()[index]);
-    EXPECT_NE(nullptr, group);
-    return group;
-  }
+  using test::importers::childGroup;
 
   Group* firstGroupWithSourceFormat(Element* parent, const QString& sourceFormat) {
     for (Element* child : parent->childElements()) {
