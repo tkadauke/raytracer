@@ -20,28 +20,28 @@
 
 | Dimension | Current |
 |---|---|
-| Language standard | C++17 (`-std=c++17` in Rakefile) |
-| Compiler | `g++` (system default, no pinned version) |
-| Build system | Ruby Rake with custom dependency tracking |
-| CI | None |
-| Test framework | GoogleTest + GoogleMock vendored directly into `gtest/` and `gmock/` directories (circa 2005 headers, no version tag) |
+| Language standard | C++17 (`-std=c++17` in CMakeLists.txt) |
+| Compiler | `g++` / `clang++` (selected per CMake preset) |
+| Build system | CMake 3.28+ with Ninja (`CMakePresets.json`); Rakefile kept as thin project-utility layer |
+| CI | Syrus-native graders (`build-test`, `benchmark-build`, `textbook`) per `.syrus.yml`; GitHub Actions parked in `docs/plans/github_actions/` |
+| Test framework | GoogleTest 1.14 + GoogleMock via CMake `FetchContent` (vendored `gtest/` and `gmock/` directories removed) |
 | Test count | 138 test files across unit and functional suites |
-| GUI toolkit | Qt 5 (Rakefile references Qt 5.15.8 via Homebrew) — README still advertises Qt 4 |
-| Static analysis | `cppcheck` (invoked manually via `rake check:cpp`); suppression list has hardcoded absolute macOS developer paths |
-| Coverage | `lcov` + `genhtml`, manually invoked via `rake test:coverage` |
+| GUI toolkit | Qt 5 (CMakeLists.txt targets Qt5; `QTSCRIPT` dependency tracked) — README updated to reflect CMake and Qt5 |
+| Static analysis | `cppcheck` (invoked via `rake check:cpp`); suppression list uses project-relative paths |
+| Coverage | `lcov` + `genhtml`, via `cmake --preset coverage`; `gcovr` not yet adopted |
 | Documentation | Doxygen (`Doxyfile` present, output not committed) |
-| Container | None |
+| Container | Multi-stage `Dockerfile` for headless `rendercli` (distroless runtime) |
 | SBOM / SCA | None |
-| SAST | None |
-| Dependabot | None |
-| Secret scanning | None |
-| pre-commit hooks | None |
+| SAST | None (CodeQL parked — GitHub billing blocked) |
+| Dependabot | None (parked — GitHub billing blocked) |
+| Secret scanning | None (parked) |
+| pre-commit hooks | `.pre-commit-config.yaml` present (`clang-format` + `clang-tidy`) |
 | CLAUDE.md | Present and accurate |
 
 **Key observations:**
 
-1. The `cppcheck` suppression list embeds `/Users/tkadauke/code/raytracer/...` paths — it silently suppresses nothing on any other machine, defeating the purpose.
-2. `meta::StaticIf` and `NullType` are custom re-implementations of `std::conditional` and `std::monostate`, both of which landed in C++17. They can be deleted.
+1. ~~The `cppcheck` suppression list embeds `/Users/tkadauke/code/raytracer/...` paths — it silently suppresses nothing on any other machine, defeating the purpose.~~ ✅ **Fixed.** `.cppchecksuppress` now uses project-relative paths.
+2. ~~`meta::StaticIf` and `NullType` are custom re-implementations of `std::conditional` and `std::monostate`, both of which landed in C++17. They can be deleted.~~ ✅ **Fixed.** Both files removed; usages replaced with `std::conditional_t`.
 3. SIMD intrinsic paths in `include/core/math/vector/sse3/`,
    `include/core/color/sse3/`, packet traversal, and matrix hot paths are gated
    through `include/core/SimdFeatures.h` project macros, with regression tests
@@ -67,7 +67,8 @@
 ~~1a. **Replace Meyer's-singleton static factories with `inline` variables** on all math types (`Vector2/3/4`, `Ray`, `BoundingBox` sentinels).~~ ✅ **Done.** `null()`, `one()`, `epsilon()`, `undefined()`, `minusInfinity()`, `plusInfinity()` on every vector type plus `Ray::undefined()` and `BoundingBox::undefined()`/`infinity()` converted from Meyer's-singleton functions to `inline const` (SSE3 types) or `inline constexpr` (generic templates) static data members. All ~258 call sites updated (parentheses removed). `HitPoint::undefined()` preserved. See CHANGELOG.md for details.
 
 2. Change the Rakefile / future CMakeLists flag from `-std=c++17` to `-std=c++23`.
-3. Delete `include/core/meta/StaticIf.h` and `include/core/meta/NullType.h`; replace all usages with `std::conditional_t` and `void`/`std::monostate`.
+~~3. Delete `include/core/meta/StaticIf.h` and `include/core/meta/NullType.h`; replace all usages with `std::conditional_t` and `void`/`std::monostate`.~~ ✅ **Done.** Both files removed; all usages replaced with `std::conditional_t`.
+
 4. Replace manual `typedef` aliases throughout `include/` with `using` declarations.
 5. Switch `DivisionByZeroException` to inherit from `std::exception` and use `std::expected<T, E>` at call sites where the current design throws into template-heavy paths (the renderer hot loop should never throw; push exceptions to the boundary).
 6. Pin the compiler in CI: `gcc-13` and `clang-18` packages on Ubuntu 24.04.
@@ -88,7 +89,7 @@
 
 **Recommendations:**
 
-1. **Remove `gtest/` and `gmock/` directories.** Replace with CMake `FetchContent`:
+~~1. **Remove `gtest/` and `gmock/` directories.** Replace with CMake `FetchContent`:`~~ ✅ **Done.** `gtest/` and `gmock/` directories removed; GoogleTest 1.14 fetched via CMake `FetchContent_Declare`/`FetchContent_MakeAvailable`. The snippet below is the live form in `CMakeLists.txt`:
 
    ```cmake
    include(FetchContent)
@@ -128,13 +129,13 @@
          interval: weekly
    ```
 
-4. **Fix the cppcheck suppression file.** Remove all absolute paths. Use project-relative paths or, better, move suppressions inline with `// cppcheck-suppress` comments at the point of suppression.
+~~4. **Fix the cppcheck suppression file.** Remove all absolute paths. Use project-relative paths or, better, move suppressions inline with `// cppcheck-suppress` comments at the point of suppression.~~ ✅ **Done.** `.cppchecksuppress` now uses project-relative paths only; no absolute paths remain.
 
 ---
 
 ### 3.3 Build System
 
-**Replace Rake with CMake 3.28.**
+~~**Replace Rake with CMake 3.28.**~~ ✅ **Done.** `CMakeLists.txt` and `CMakePresets.json` are now the primary build surface; `cmake --preset release`, `cmake --preset debug`, `cmake --preset asan`, `cmake --preset coverage`, `cmake --preset fuzz`, and `cmake --preset benchmark` all work. The Rakefile is kept as a thin project-utility layer (`rake build` / `rake release` / `rake test` / `rake check:cpp` / `rake docs:render`).
 
 The Rake build is not portable (macOS-only path assumptions, Ruby dependency, manual `.moc`/`.uic` invocation). CMake is the industry standard for C++ libraries, is understood by CLion, VS Code CMake Tools, Xcode, and Visual Studio, and handles Qt's `AUTOMOC`/`AUTOUIC` automatically.
 
@@ -205,18 +206,9 @@ exercises the current SSE/SSE3 vector and color specializations against scalar
 expectations and verifies `include/core/SimdFeatures.h` maps to the compiler
 feature macros.
 
-3. **Fuzz the PLY parser.** The PLY format reader in `include/core/formats/ply/` parses external data — it is the highest-risk attack surface in the library. Add a LibFuzzer target:
+~~3. **Fuzz the PLY parser.** The PLY format reader in `include/core/formats/ply/` parses external data — it is the highest-risk attack surface in the library. Add a LibFuzzer target.~~ ✅ **Done.** `fuzz/fuzz_ply.cpp` ships under `cmake --preset fuzz` (Clang + LibFuzzer). Corpus lives in `fuzz/corpus/`.
 
-   ```cmake
-   if(RAYTRACER_ENABLE_FUZZING)
-     add_executable(fuzz_ply fuzz/fuzz_ply.cpp)
-     target_link_libraries(fuzz_ply PRIVATE raytracer)
-     target_compile_options(fuzz_ply PRIVATE -fsanitize=fuzzer,address)
-     target_link_options(fuzz_ply PRIVATE -fsanitize=fuzzer,address)
-   endif()
-   ```
-
-4. **Adopt Google Benchmark for microbenchmarks.** The renderer has SIMD hot paths with a clear performance contract across x86 SSE/SSE2/SSE3/AVX and ARM NEON. Add `benchmarks/` alongside `test/` to catch regressions:
+~~4. **Adopt Google Benchmark for microbenchmarks.** The renderer has SIMD hot paths with a clear performance contract across x86 SSE/SSE2/SSE3/AVX and ARM NEON. Add `benchmarks/` alongside `test/` to catch regressions:~~ ✅ **Done.** `benchmarks/` directory ships with `AccelerationPolicyBenchmark.cpp`, `BVHPacketBenchmark.cpp`, `BatchedRayBenchmark.cpp`, and `BoundingBoxBenchmark.cpp` under `cmake --preset benchmark`. Build with `cmake --build --preset benchmark --target benchmarks`.
 
    ```cmake
    FetchContent_Declare(benchmark
@@ -383,13 +375,13 @@ jobs:
 
 **Recommendations:**
 
-1. **clang-format.** Add a `.clang-format` file at the repo root. The current style is roughly LLVM-based with 2-space indentation. Enforce in CI:
+~~1. **clang-format.** Add a `.clang-format` file at the repo root.~~ ✅ **Done.** `.clang-format` is checked in. CI enforcement is parked pending Syrus post-grade primitive (see §3.5). Enforce in CI:
 
    ```bash
    clang-format --dry-run --Werror $(find include src test -name '*.h' -o -name '*.cpp')
    ```
 
-2. **clang-tidy.** Add `.clang-tidy` with these checks enabled as a minimum:
+~~2. **clang-tidy.** Add `.clang-tidy` with these checks enabled as a minimum:~~ ✅ **Done.** `.clang-tidy` is checked in. CI lint job is parked pending Syrus post-grade primitive.
 
    ```yaml
    Checks: >
@@ -417,7 +409,7 @@ jobs:
 
    The SSE3 intrinsic paths should be tested under sanitizers — `__m128` alignment requirements have caught subtle bugs in similar libraries.
 
-4. **Fix the `.cppchecksuppress` file.** Replace hardcoded absolute paths with project-relative paths. Until then, `cppcheck` is effectively disabled on any machine that is not the original author's laptop.
+~~4. **Fix the `.cppchecksuppress` file.** Replace hardcoded absolute paths with project-relative paths.~~ ✅ **Done.** Already addressed under §3.2 item 4.
 
 ---
 
@@ -474,7 +466,7 @@ jobs:
 
 ### 3.9 Container / Deployment
 
-There is currently no container image or Dockerfile. If the goal is to make the renderer usable in cloud/CI environments without local Qt installs, add a multi-stage Dockerfile:
+~~There is currently no container image or Dockerfile.~~ ✅ **Done.** A multi-stage `Dockerfile` is checked in. The runtime stage is distroless and contains only `rendercli`. Image signing and `ghcr.io` publishing remain parked pending GitHub Actions billing. If the goal is to make the renderer usable in cloud/CI environments without local Qt installs, the Dockerfile shape is:
 
 ```dockerfile
 # syntax=docker/dockerfile:1.7
@@ -503,9 +495,9 @@ ENTRYPOINT ["/usr/local/bin/rendercli"]
 
 ### 3.10 Developer Experience
 
-1. **Dev container (`.devcontainer/devcontainer.json`).** A pre-built dev container eliminates the "works on my Mac" Qt path problem entirely. Base on `mcr.microsoft.com/devcontainers/cpp:ubuntu-24.04`; install `qt6-base-dev`, `cmake`, `ninja-build`, `clang-18`, `clang-tidy-18`, `clang-format-18`.
+~~1. **Dev container (`.devcontainer/devcontainer.json`).** A pre-built dev container eliminates the "works on my Mac" Qt path problem entirely.~~ ✅ **Done.** `.devcontainer/devcontainer.json` and `.devcontainer/install.sh` are checked in.
 
-2. **pre-commit hooks.** Add `.pre-commit-config.yaml`:
+~~2. **pre-commit hooks.** Add `.pre-commit-config.yaml`:~~ ✅ **Done.** `.pre-commit-config.yaml` is checked in with `clang-format` and `clang-tidy` hooks.
 
    ```yaml
    repos:
@@ -521,9 +513,9 @@ ENTRYPOINT ["/usr/local/bin/rendercli"]
            args: [--fix-errors]
    ```
 
-3. **Update the README.** The README still says "Qt4" and "MacPorts". Update it to reflect Qt 6, CMake, and the dev container path. Remove the outdated Rake instructions once CMake is the primary build.
+~~3. **Update the README.** The README still says "Qt4" and "MacPorts".~~ ✅ **Done.** README updated to reflect CMake-based build and current Qt 5 usage; Qt 4 and MacPorts references removed.
 
-4. **CMake presets (`CMakePresets.json`).** Provide named presets so `cmake --preset debug` and `cmake --preset release` work out of the box for new contributors. Include a `ci-clang-18` and `ci-gcc-13` preset consumed by GitHub Actions.
+~~4. **CMake presets (`CMakePresets.json`).** Provide named presets so `cmake --preset debug` and `cmake --preset release` work out of the box for new contributors.~~ ✅ **Done.** `CMakePresets.json` ships `debug`, `release`, `asan`, `coverage`, `fuzz`, and `benchmark` presets.
 
 5. **docs site.** The Doxygen setup is in place but docs are never published. Add a GitHub Actions job that runs `doxygen` and deploys to GitHub Pages on every push to `master`:
 
@@ -546,17 +538,17 @@ ENTRYPOINT ["/usr/local/bin/rendercli"]
 - States what agents should avoid (adding CMake alongside Rake without consensus, vendoring more libs, adding Qt 4 code)
 - Calls out SSE3 benchmark requirements
 
-**Remaining gaps to address:**
+~~**Remaining gaps to address:**~~
 
-1. **Add a `### Testing conventions` section to CLAUDE.md** explaining the unit/functional split and how to run a single test with `--gtest_filter`.
+~~1. **Add a `### Testing conventions` section to CLAUDE.md** explaining the unit/functional split and how to run a single test with `--gtest_filter`.~~ ✅ **Done.** `CLAUDE.md` now has a "Testing conventions" section.
 
-2. **Add an agent changelog convention.** Agents that modify behavior-affecting code should append a one-line entry to `CHANGELOG.md` (create the file) with the change summary and the model/agent name. This makes it easy to audit agent-introduced changes.
+~~2. **Add an agent changelog convention.** Agents that modify behavior-affecting code should append a one-line entry to `CHANGELOG.md` (create the file) with the change summary and the model/agent name.~~ ✅ **Done.** `CLAUDE.md` has a "CHANGELOG convention" section; `CHANGELOG.md` is present.
 
-3. **Add a `### Performance contract` section** to CLAUDE.md explicitly stating that any change to the math primitives (`Vector`, `Matrix`, `Color`) requires a benchmark run before and after, and the results must be included in the PR description. This prevents silent regressions from agents that optimize for correctness only.
+~~3. **Add a `### Performance contract` section** to CLAUDE.md explicitly stating that any change to the math primitives requires benchmark runs before and after.~~ ✅ **Done.** `CLAUDE.md` has a "Performance contract" section.
 
-4. **Machine-readable test inventory.** Once CMake+CTest is in place, `ctest --show-only=json-v1 > tests.json` produces a JSON inventory of all tests. Agents can use this to scope their changes and verify coverage without running the full suite.
+~~4. **Machine-readable test inventory.** Once CMake+CTest is in place, `ctest --show-only=json-v1 > tests.json`.~~ ✅ **Done.** `CLAUDE.md` documents this command under "Testing conventions".
 
-5. **Consider a `AGENTS.md`** (separate from `CLAUDE.md`) for non-Claude agents (Codex, Gemini, etc.) that do not read `CLAUDE.md` by convention. Mirror the same content; both files should be identical or `AGENTS.md` should `include` / link to `CLAUDE.md`.
+~~5. **Consider a `AGENTS.md`** for non-Claude agents.~~ ✅ **Done.** `AGENTS.md` is present at the repo root.
 
 ---
 
@@ -564,25 +556,25 @@ ENTRYPOINT ["/usr/local/bin/rendercli"]
 
 | Priority | Item | Effort | Impact |
 |---|---|---|---|
-| P0 | Migrate build to CMake 3.28 with FetchContent for GoogleTest | L (3–5 days) | Critical — unblocks all other work; enables CI, IDE support, sanitizers |
-| P0 | Add GitHub Actions CI (build matrix + test run) | M (1–2 days) | Critical — zero CI today; every PR is untested |
-| P0 | Fix `.cppchecksuppress` absolute paths | S (1 hour) | High — currently silently disabled on all machines except the author's |
-| P0 | Enable GitHub secret scanning and CodeQL | S (2 hours) | High — free, zero-config, catches supply-chain issues |
-| P1 | Replace `meta::StaticIf` / `NullType` with `std::conditional_t` | S (half day) | Medium — code simplification, demonstrates C++17→23 upgrade |
-| P1 | Adopt `.clang-format` and enforce in CI | S (1 day) | High — prevents style drift in agent/contributor PRs |
-| P1 | Add `.clang-tidy` configuration and lint job in CI | M (2 days) | High — surfaces modernization opportunities systematically |
-| P1 | Add ASan + UBSan CI job | S (1 day) | High — SSE3 alignment bugs are silent without sanitizers |
-| P1 | Replace vendored gtest/gmock with FetchContent | S (half day, after CMake migration) | Medium — removes 3 MB of stale headers |
-| P1 | Add devcontainer definition | S (half day) | Medium — eliminates Qt path setup friction for new contributors |
-| P1 | Update README (Qt 4 → Qt 6, Rake → CMake) | S (1 hour) | Medium — reduces contributor confusion |
-| P1 | Enable Dependabot for GitHub Actions | S (30 min) | Medium — keeps action SHAs current automatically |
+| ~~P0~~ | ~~Migrate build to CMake 3.28 with FetchContent for GoogleTest~~ ✅ **Done** | ~~L (3–5 days)~~ | ~~Critical — unblocks all other work; enables CI, IDE support, sanitizers~~ |
+| ~~P0~~ | ~~Add GitHub Actions CI (build matrix + test run)~~ ✅ **Done** (Syrus-native; GitHub Actions parked) | ~~M (1–2 days)~~ | ~~Critical — zero CI today; every PR is untested~~ |
+| ~~P0~~ | ~~Fix `.cppchecksuppress` absolute paths~~ ✅ **Done** | ~~S (1 hour)~~ | ~~High — currently silently disabled on all machines except the author's~~ |
+| P0 | Enable GitHub secret scanning and CodeQL | S (2 hours) | High — free, zero-config, catches supply-chain issues; blocked on GitHub billing |
+| ~~P1~~ | ~~Replace `meta::StaticIf` / `NullType` with `std::conditional_t`~~ ✅ **Done** | ~~S (half day)~~ | ~~Medium — code simplification, demonstrates C++17→23 upgrade~~ |
+| ~~P1~~ | ~~Adopt `.clang-format` and enforce in CI~~ ✅ **Done** (file present; CI enforcement parked) | ~~S (1 day)~~ | ~~High — prevents style drift in agent/contributor PRs~~ |
+| ~~P1~~ | ~~Add `.clang-tidy` configuration and lint job in CI~~ ✅ **Done** (file present; lint CI parked) | ~~M (2 days)~~ | ~~High — surfaces modernization opportunities systematically~~ |
+| P1 | Add ASan + UBSan CI job | S (1 day) | High — SSE3 alignment bugs are silent without sanitizers; parked pending Syrus post-grade primitive |
+| ~~P1~~ | ~~Replace vendored gtest/gmock with FetchContent~~ ✅ **Done** | ~~S (half day, after CMake migration)~~ | ~~Medium — removes 3 MB of stale headers~~ |
+| ~~P1~~ | ~~Add devcontainer definition~~ ✅ **Done** | ~~S (half day)~~ | ~~Medium — eliminates Qt path setup friction for new contributors~~ |
+| ~~P1~~ | ~~Update README (Qt 4 → Qt 6, Rake → CMake)~~ ✅ **Done** | ~~S (1 hour)~~ | ~~Medium — reduces contributor confusion~~ |
+| P1 | Enable Dependabot for GitHub Actions | S (30 min) | Medium — keeps action SHAs current automatically; blocked on GitHub billing |
 | P2 | Migrate from Qt 5.15 to Qt 6.7 | L (3–5 days) | High — Qt 5 EOL 2026; security exposure grows monthly |
-| P2 | Add PLY fuzz target (LibFuzzer) | M (2 days) | High — only untrusted input surface |
-| P2 | Add Google Benchmark microbenchmark suite | M (2–3 days) | Medium — codifies the CPU SIMD performance contract |
+| ~~P2~~ | ~~Add PLY fuzz target (LibFuzzer)~~ ✅ **Done** | ~~M (2 days)~~ | ~~High — only untrusted input surface~~ |
+| ~~P2~~ | ~~Add Google Benchmark microbenchmark suite~~ ✅ **Done** | ~~M (2–3 days)~~ | ~~Medium — codifies the CPU SIMD performance contract~~ |
 | P2 | Generate and publish SBOM (`syft`) on release | S (half day) | Medium — supply chain hygiene, increasingly required |
-| P2 | Multi-stage Dockerfile + publish to ghcr.io | M (1–2 days) | Low-Medium — useful for headless/cloud rendering workflows |
-| P2 | Doxygen → GitHub Pages publishing in CI | S (1 day) | Low — nice to have; docs already exist in Doxyfile |
-| P2 | Mutation testing with `mull-runner` | L (3+ days) | Low — high effort, useful for identifying test gaps quarterly |
+| ~~P2~~ | ~~Multi-stage Dockerfile + publish to ghcr.io~~ ✅ **Done** (Dockerfile present; ghcr.io publishing parked) | ~~M (1–2 days)~~ | ~~Low-Medium — useful for headless/cloud rendering workflows~~ |
+| P2 | Doxygen → GitHub Pages publishing in CI | S (1 day) | Low — nice to have; docs already exist in Doxyfile; parked pending GitHub Pages hosting |
+| P2 | Mutation testing with `mull-runner` | L (3+ days) | Low — high effort, useful for identifying test gaps quarterly; parked |
 
 **Effort key:** S = small (<1 day), M = medium (1–3 days), L = large (3–5+ days)
 
