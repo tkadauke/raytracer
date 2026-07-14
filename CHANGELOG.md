@@ -768,6 +768,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- Raise the `build-test` Syrus grader timeout from 20 to 45 minutes so cold
+  worker builds (empty workspace, whole templated + Qt tree compiled from
+  scratch) aren't killed mid-compile while still making steady progress. — Claude Opus 4.8
 - Add converting constructor `Ray<T>(const Ray<U>&)` so float/double ray
   conversions use the constructor directly instead of scattered `toRayd()`
   helpers; consolidate duplicate `expectKernelRecordLayout` and

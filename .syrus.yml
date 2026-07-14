@@ -44,7 +44,12 @@ grade:
         cmake --build --preset release --parallel && \
         QT_QPA_PLATFORM=offscreen LIBGL_ALWAYS_SOFTWARE=1 \
           ctest --preset release --parallel $(nproc) --output-on-failure
-      timeout_minutes: 20
+      # A cold worker build (empty workspace, no ccache) compiles the whole
+      # templated + Qt tree from scratch and can run well past 20 minutes
+      # while still making steady progress. Give it headroom so a slow-but-
+      # healthy cold build isn't killed mid-compile; warm incremental rebuilds
+      # on later iterations still finish in seconds.
+      timeout_minutes: 45
 
     - name: coverage
       # Measures line coverage with gcovr and enforces a 60% floor.
