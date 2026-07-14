@@ -6,6 +6,8 @@ a.out
 *.gcno
 *.gcda
 *.gcov
+coverage.txt
+coverage-summary.txt
 tests.run
 .DS_Store
 examples/*/*RayTracer
