@@ -21,6 +21,7 @@ using namespace render;
 namespace {
   using render::detail::checkedU32;
   using render::detail::checkGpuPathCount;
+  using render::detail::eyeOriginForMatrix;
   using render::detail::fillGpuDescriptorViewport;
   using render::detail::parameters4;
   using render::detail::vector4;
