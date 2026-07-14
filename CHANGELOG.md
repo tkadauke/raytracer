@@ -12,6 +12,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 ### Added
 
 - Add `coverage` grader step to `.syrus.yml` enforcing a 60% line-coverage floor via gcovr, matching the floor in `docs/plans/github_actions/ci.yml`. — Claude Sonnet 4.6
+- Add `Color::luminance()` (Rec. 601), `Color::squared()`, and
+  `Color::squaredMagnitude()` helper methods to `include/core/Color.h`
+  so callers no longer need to inline the same arithmetic at each site.
+  — Claude Sonnet 4.6
 - Report per-depth radiance-delta sums and maxima from Metal/Vulkan full-GPU
   path-loop kernels when metrics capture is enabled, preparing platform
   convergence feedback without adding trace-disabled readback cost. — GPT-5 Codex
@@ -499,6 +503,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Restore the documented 64 KiB interactive GPU path-tracer chunk cap and
+  limit platform-resolved display pixel captures to direct display outputs
+  and chunked interactive progress, preserving platform accumulation for
+  small intermediate postprocess inputs. — Claude Sonnet 4.6
 - Hide full-GPU tracing controls for scalar path tracing in the final render
   dialog and serialize scalar path-tracer renders as sampler-backed CPU scalar
   intent instead of attaching ignored GPU execution overrides. — GPT-5 Codex
