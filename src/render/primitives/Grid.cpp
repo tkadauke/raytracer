@@ -4,15 +4,12 @@
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
 
+#include <algorithm>
 #include <cassert>
 #include <cmath>
 
 using namespace std;
 using namespace render;
-
-inline float clamp(float x, float min, float max) {
-  return (x < min ? min : (x > max ? max : x));
-}
 
 namespace {
   // Walk the uniform-grid cells along `ray` using the standard 3-axis DDA,
@@ -89,9 +86,9 @@ namespace {
     int x, y, z;
     Vector3d relativeOrigin =
       bbox.contains(ray.origin()) ? ray.origin() - bbox.min() : ray.at(t0) - bbox.min();
-    x = clamp(relativeOrigin.x() * numX / gridSize.x(), 0, numX - 1);
-    y = clamp(relativeOrigin.y() * numY / gridSize.y(), 0, numY - 1);
-    z = clamp(relativeOrigin.z() * numZ / gridSize.z(), 0, numZ - 1);
+    x = static_cast<int>(std::clamp<float>(relativeOrigin.x() * numX / gridSize.x(), 0, numX - 1));
+    y = static_cast<int>(std::clamp<float>(relativeOrigin.y() * numY / gridSize.y(), 0, numY - 1));
+    z = static_cast<int>(std::clamp<float>(relativeOrigin.z() * numZ / gridSize.z(), 0, numZ - 1));
 
     double dtx = (tx_max - tx_min) / numX;
     double dty = (ty_max - ty_min) / numY;
@@ -343,7 +340,7 @@ void Grid::setup() {
     auto cellIndex = [](double rel, int numCells, double size) -> int {
       if (numCells <= 1)
         return 0;
-      return static_cast<int>(clamp(rel * numCells / size, 0.0f, float(numCells - 1)));
+      return static_cast<int>(std::clamp<float>(rel * numCells / size, 0.0f, float(numCells - 1)));
     };
     int xmin = cellIndex(relativeMin.x(), m_numX, gridSize.x());
     int ymin = cellIndex(relativeMin.y(), m_numY, gridSize.y());

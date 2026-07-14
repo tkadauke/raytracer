@@ -2,6 +2,7 @@
 
 #include "core/Buffer.h"
 #include "core/math/Constants.h"
+#include "render/brdf/BRDFSampling.h"
 #include "core/math/Matrix.h"
 #include "core/math/Ray.h"
 #include "render/GpuCompiledLightSampler.h"
@@ -682,37 +683,6 @@ namespace {
 
     return mis::weight(mis::Heuristic::Power, pathState.previousBsdfPdf,
                        pathState.previousLightPdf);
-  }
-
-  Vector3d tangentFor(const Vector3d& normal) {
-    const Vector3d helper = std::abs(normal.y()) < 0.999 ? Vector3d::up() : Vector3d::right();
-    return (helper ^ normal).normalized();
-  }
-
-  Vector3d cosineHemisphereDirection(const Vector3d& normal, const Vector2d& sample) {
-    const double u0 = std::clamp(sample.x(), 0.0, 1.0);
-    const double u1 = std::clamp(sample.y(), 0.0, 1.0);
-    const double r = std::sqrt(u0);
-    const double phi = TAU * u1;
-    const double x = r * std::cos(phi);
-    const double y = r * std::sin(phi);
-    const double z = std::sqrt(std::max(0.0, 1.0 - u0));
-    const Vector3d tangent = tangentFor(normal);
-    const Vector3d bitangent = normal ^ tangent;
-    return (tangent * x + bitangent * y + normal * z).normalized();
-  }
-
-  Vector3d phongLobeDirection(const Vector3d& axis, const Vector2d& sample, double exponent) {
-    const double u0 = std::clamp(sample.x(), 0.0, 1.0);
-    const double u1 = std::clamp(sample.y(), 0.0, 1.0);
-    const double cosTheta = std::pow(u0, 1.0 / (exponent + 1.0));
-    const double sinTheta = std::sqrt(std::max(0.0, 1.0 - cosTheta * cosTheta));
-    const double phi = TAU * u1;
-    const Vector3d tangent = tangentFor(axis);
-    const Vector3d bitangent = axis ^ tangent;
-    return (tangent * (sinTheta * std::cos(phi)) + bitangent * (sinTheta * std::sin(phi)) +
-            axis * cosTheta)
-      .normalized();
   }
 
   Colord ambientRadiance(const GpuTracingSceneSections& scene,
