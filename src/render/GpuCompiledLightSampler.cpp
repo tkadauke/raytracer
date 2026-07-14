@@ -2,6 +2,7 @@
 
 #include "core/math/Constants.h"
 #include "render/GpuFloat4.h"
+#include "render/GpuRectangularLightHelpers.h"
 
 #include <algorithm>
 #include <cmath>
@@ -11,24 +12,6 @@
 namespace render {
   namespace {
     constexpr double tolerance = 1e-9;
-
-    double rectangleArea(const GpuTracingLightRecord& light) {
-      return (Vector3d(light.u) ^ Vector3d(light.v)).length();
-    }
-
-    Vector3d rectangleNormal(const GpuTracingLightRecord& light) {
-      return (Vector3d(light.u) ^ Vector3d(light.v)).normalizedOrZero(tolerance);
-    }
-
-    Vector3d areaLightPoint(const GpuTracingLightRecord& light, const Vector2d& sample) {
-      return Vector3d(light.positionOrDirection) + Vector3d(light.u) * (sample.x() - 0.5) +
-             Vector3d(light.v) * (sample.y() - 0.5);
-    }
-
-    double areaLightSurfaceCosine(const GpuTracingLightRecord& light,
-                                  const Vector3d& directionToLight) {
-      return std::max(0.0, rectangleNormal(light) * -directionToLight);
-    }
 
     bool areaLightContainsPoint(const GpuTracingLightRecord& light, const Vector3d& point) {
       const Vector3d edgeU = Vector3d(light.u);
@@ -66,7 +49,7 @@ namespace render {
     case GpuTracingLightKind::Directional:
       return gpuFloat4MaxColor(light.parameters);
     case GpuTracingLightKind::RectangularArea:
-      return gpuFloat4MaxColor(light.parameters) * rectangleArea(light) * PI;
+      return gpuFloat4MaxColor(light.parameters) * rectangularLightArea(light) * PI;
     case GpuTracingLightKind::Unsupported:
       return 0.0;
     }
@@ -146,19 +129,19 @@ namespace render {
               lightSample};
     }
     case GpuTracingLightKind::RectangularArea: {
-      const double area = rectangleArea(light);
+      const double area = rectangularLightArea(light);
       if (area <= tolerance) {
         return invalidSample(GpuCompiledLightSampleStatus::DegenerateLight, lightSample);
       }
 
-      const Vector3d offset = areaLightPoint(light, lightSample) - point;
+      const Vector3d offset = rectangularLightPoint(light, lightSample) - point;
       const double distance = offset.length();
       if (distance <= tolerance) {
         return invalidSample(GpuCompiledLightSampleStatus::CoincidentPoint, lightSample);
       }
 
       const Vector3d directionToLight = offset / distance;
-      const double cosLight = areaLightSurfaceCosine(light, directionToLight);
+      const double cosLight = rectangularLightSurfaceCosine(light, directionToLight, tolerance);
       if (cosLight <= tolerance) {
         return invalidSample(GpuCompiledLightSampleStatus::BackFacing, lightSample);
       }
@@ -184,11 +167,11 @@ namespace render {
     if (kind != GpuTracingLightKind::RectangularArea) {
       return 0.0;
     }
-    if (rectangleArea(light) <= tolerance) {
+    if (rectangularLightArea(light) <= tolerance) {
       return 0.0;
     }
 
-    const Vector3d normal = rectangleNormal(light);
+    const Vector3d normal = rectangularLightNormal(light, tolerance);
     const double normalDotDirection = normal * direction;
     if (std::abs(normalDotDirection) <= tolerance) {
       return 0.0;
@@ -204,11 +187,11 @@ namespace render {
       return 0.0;
     }
 
-    const double cosLight = areaLightSurfaceCosine(light, direction.normalized());
+    const double cosLight = rectangularLightSurfaceCosine(light, direction.normalized(), tolerance);
     if (cosLight <= tolerance) {
       return 0.0;
     }
 
-    return (t * t) / (cosLight * rectangleArea(light));
+    return (t * t) / (cosLight * rectangularLightArea(light));
   }
 }

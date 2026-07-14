@@ -6,6 +6,7 @@
 #include "core/math/Matrix.h"
 #include "core/math/Ray.h"
 #include "render/GpuCompiledLightSampler.h"
+#include "render/GpuRectangularLightHelpers.h"
 #include "render/GpuTracingBsdfEvaluator.h"
 #include "render/GpuTracingTextureEvaluator.h"
 #include "render/MIS.h"
@@ -576,22 +577,6 @@ namespace {
     bool delta{false};
   };
 
-  double rectangularLightSurfaceCosine(const GpuTracingLightRecord& light,
-                                       const Vector3d& directionToLight) {
-    const Vector3d normal =
-      (Vector3d(light.u) ^ Vector3d(light.v)).normalizedOrZero(kLightTolerance);
-    return std::max(0.0, normal * -directionToLight);
-  }
-
-  Vector3d rectangularLightPoint(const GpuTracingLightRecord& light, const Vector2d& sample) {
-    return Vector3d(light.positionOrDirection) + Vector3d(light.u) * (sample.x() - 0.5) +
-           Vector3d(light.v) * (sample.y() - 0.5);
-  }
-
-  double rectangularLightArea(const GpuTracingLightRecord& light) {
-    return (Vector3d(light.u) ^ Vector3d(light.v)).length();
-  }
-
   LightSampleRecord sampleLight(const GpuTracingLightRecord& light, const Vector3d& point,
                                 const Vector2d& sample) {
     const auto kind = static_cast<GpuTracingLightKind>(light.kind);
@@ -627,7 +612,7 @@ namespace {
       }
 
       const Vector3d direction = offset / distance;
-      const double cosLight = rectangularLightSurfaceCosine(light, direction);
+      const double cosLight = rectangularLightSurfaceCosine(light, direction, kLightTolerance);
       if (cosLight <= kLightTolerance) {
         return {};
       }

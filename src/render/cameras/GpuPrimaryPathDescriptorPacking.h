@@ -1,6 +1,7 @@
 #pragma once
 
 #include "render/GpuPrimaryPathDescriptor.h"
+#include "core/math/Matrix.h"
 #include "core/math/Vector.h"
 
 #include <array>
@@ -59,5 +60,9 @@ namespace render::detail {
     rec.samplesPerPixel =
       checkedU32(static_cast<std::uint64_t>(numSamples), "GPU camera samples per pixel");
     rec.sampleSeed = sampleSeed;
+  }
+
+  inline Vector3d eyeOriginForMatrix(const Matrix4d& matrix, double distance) {
+    return matrix.transformPoint(Vector3d(0.0, 0.0, -distance));
   }
 }
