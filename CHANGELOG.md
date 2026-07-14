@@ -781,7 +781,14 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   `GlossySpecular.cpp`, and `GpuDiffusePathStepReference.cpp`; consolidate them
   into `include/render/brdf/BRDFSampling.h` as `inline` functions in the `render`
   namespace. Replace the hand-rolled `clamp` helper in `Grid.cpp` with
-  `std::clamp<float>`. — Claude Sonnet 4.6
+  `std::clamp<float>`. Consolidate `rectangularLightPoint`, `rectangularLightArea`,
+  and `rectangularLightSurfaceCosine` helpers shared between
+  `GpuDiffusePathStepReference.cpp` and `GpuCompiledLightSampler.cpp` into
+  `include/render/GpuRectangularLightHelpers.h`. Consolidate `eyeOriginForMatrix`
+  duplicated across `ThinLensCamera.cpp` and `TiltShiftCamera.cpp` into
+  `GpuPrimaryPathDescriptorPacking.h`. Move descriptor-field accessor helpers
+  duplicated across four camera test files into `test/helpers/CameraTestHelper.h`.
+  — Claude Sonnet 4.6
 - Raise the `build-test` Syrus grader timeout from 20 to 45 minutes so cold
   worker builds (empty workspace, whole templated + Qt tree compiled from
   scratch) aren't killed mid-compile while still making steady progress. — Claude Opus 4.8

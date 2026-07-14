@@ -15,22 +15,10 @@ namespace PinholeCameraTest {
   using namespace render;
   using namespace engine::raytracer;
   using test::setupViewPlane;
-
-  Vector3d descriptorOrigin(const GpuPrimaryPathDescriptor& descriptor) {
-    return Vector3d(descriptor.rectilinear.originOrDirection);
-  }
-
-  Vector3d descriptorMotionOriginDelta(const GpuPrimaryPathDescriptor& descriptor) {
-    return Vector3d(descriptor.rectilinear.motionOriginDelta);
-  }
-
-  Vector3d descriptorMotionTarget(const GpuPrimaryPathDescriptor& descriptor) {
-    return Vector3d(descriptor.rectilinear.motionTarget);
-  }
-
-  Vector3d descriptorMotionTargetDelta(const GpuPrimaryPathDescriptor& descriptor) {
-    return Vector3d(descriptor.rectilinear.motionTargetDelta);
-  }
+  using test::descriptorOrigin;
+  using test::descriptorMotionOriginDelta;
+  using test::descriptorMotionTarget;
+  using test::descriptorMotionTargetDelta;
 
   TEST(PinholeCamera, ShouldConstructWithoutParameters) {
     PinholeCamera camera;

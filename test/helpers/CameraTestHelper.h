@@ -2,12 +2,35 @@
 
 #include "core/math/Rect.h"
 #include "core/math/Vector.h"
+#include "render/GpuPrimaryPathDescriptor.h"
 #include "render/cameras/Camera.h"
 #include "render/cameras/PinholeCamera.h"
 
 #include <memory>
 
 namespace test {
+  // Extract typed fields from a GPU primary path descriptor's rectilinear sub-record.
+  // Used by multiple camera tests that verify descriptor packing.
+  inline Vector3d descriptorOrigin(const render::GpuPrimaryPathDescriptor& descriptor) {
+    return Vector3d(descriptor.rectilinear.originOrDirection);
+  }
+
+  inline Vector3d descriptorDirection(const render::GpuPrimaryPathDescriptor& descriptor) {
+    return Vector3d(descriptor.rectilinear.originOrDirection);
+  }
+
+  inline Vector3d descriptorMotionOriginDelta(const render::GpuPrimaryPathDescriptor& descriptor) {
+    return Vector3d(descriptor.rectilinear.motionOriginDelta);
+  }
+
+  inline Vector3d descriptorMotionTarget(const render::GpuPrimaryPathDescriptor& descriptor) {
+    return Vector3d(descriptor.rectilinear.motionTarget);
+  }
+
+  inline Vector3d descriptorMotionTargetDelta(const render::GpuPrimaryPathDescriptor& descriptor) {
+    return Vector3d(descriptor.rectilinear.motionTargetDelta);
+  }
+
   // Install dimensions on a camera view plane before tests call projection helpers directly.
   inline void setupViewPlane(render::Camera& camera, int width = 100, int height = 100) {
     camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, width, height));

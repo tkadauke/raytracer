@@ -14,14 +14,8 @@ namespace OrthographicCameraTest {
   using namespace render;
   using namespace engine::raytracer;
   using test::setupViewPlane;
-
-  Vector3d descriptorDirection(const GpuPrimaryPathDescriptor& descriptor) {
-    return Vector3d(descriptor.rectilinear.originOrDirection);
-  }
-
-  Vector3d descriptorMotionOriginDelta(const GpuPrimaryPathDescriptor& descriptor) {
-    return Vector3d(descriptor.rectilinear.motionOriginDelta);
-  }
+  using test::descriptorDirection;
+  using test::descriptorMotionOriginDelta;
 
   TEST(OrthographicCamera, ShouldConstructWithoutParameters) {
     OrthographicCamera camera;

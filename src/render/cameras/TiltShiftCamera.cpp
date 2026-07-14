@@ -39,9 +39,6 @@ namespace {
     }
   };
 
-  Vector3d eyeOriginForMatrix(const Matrix4d& matrix, double distance) {
-    return matrix.transformPoint(Vector3d(0.0, 0.0, -distance));
-  }
 }
 
 std::shared_ptr<Camera> TiltShiftCamera::clone() const {
