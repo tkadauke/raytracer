@@ -503,6 +503,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Restore compilation of `ThinLensCamera` and `TiltShiftCamera`: commit `8f8e3344` moved `eyeOriginForMatrix` to `GpuPrimaryPathDescriptorPacking.h` but omitted the matching `using render::detail::eyeOriginForMatrix` declarations, causing a build failure. — Claude Sonnet 4.6
 - Restore the documented 64 KiB interactive GPU path-tracer chunk cap and
   limit platform-resolved display pixel captures to direct display outputs
   and chunked interactive progress, preserving platform accumulation for
