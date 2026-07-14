@@ -1,0 +1,64 @@
+(INFO) Reading coverage data...
+(WARNING) /syrus-home/.syrus/workflows/10175/src/engine/raster/RasterMSAA.cpp:56: Ignoring negative hits in:     return triangle == other.triangle && x == other.x && y == other.y;.
+(WARNING) /syrus-home/.syrus/workflows/10175/include/render/TilePlan.h:45: Ignoring negative hits in:       return m_rows == 0 || m_cols == 0;.
+(WARNING) Ignored 4 negative hits overall.
+(WARNING) /syrus-home/.syrus/workflows/10175/include/core/geometry/Rasterize.h:71: Ignoring negative hits in:         if (clipLeft >= clipRight || clipTop >= clipBottom).
+(WARNING) /syrus-home/.syrus/workflows/10175/include/core/math/Vector.h:961: Ignoring negative hits in:     return Base::coordinate(2);.
+(WARNING) /syrus-home/.syrus/workflows/10175/include/core/math/BoundingBox.h:115: Ignoring negative hits in:     return m_min;.
+(WARNING) Ignored 2 negative hits overall.
+(WARNING) /syrus-home/.syrus/workflows/10175/src/engine/wavefront/WavefrontTileRenderer.cpp:238: Ignoring negative hits in:         std::chrono::duration<double>(WavefrontMetricsRecorder::Clock::now() -.
+(WARNING) Ignored 3 negative hits overall.
+(WARNING) /syrus-home/.syrus/workflows/10175/src/engine/wavefront/WavefrontTileTypes.cpp:40: Ignoring negative hits in:         if (y >= 0 && x >= 0 && y < buffer.height() && x < buffer.width()) {.
+(WARNING) Ignored 3 negative hits overall.
+(WARNING) /syrus-home/.syrus/workflows/10175/include/core/Buffer.h:70: Ignoring negative hits in:     return m_height;.
+(WARNING) /syrus-home/.syrus/workflows/10175/src/render/GpuIntersectionScene.cpp:76: Ignoring negative hits in:   if (primitive.payloadCount != 1) {.
+(WARNING) /syrus-home/.syrus/workflows/10175/src/render/Integrator.cpp:94: Ignoring negative hits in:     frontierRayHitsPerDepth.clear();.
+(WARNING) Ignored 18 negative hits overall.
+(WARNING) /syrus-home/.syrus/workflows/10175/src/render/IntersectionSceneCompiler.cpp:21: Ignoring negative hits in:     return leaf.pointMatrix == Matrix4d() && leaf.normalMatrix == Matrix3d() &&.
+(WARNING) Ignored 4 negative hits overall.
+(WARNING) /syrus-home/.syrus/workflows/10175/include/core/math/Vector.h:931: Ignoring negative hits in:     return Base::coordinate(0);.
+(WARNING) /syrus-home/.syrus/workflows/10175/include/core/math/BoundingBox.h:115: Ignoring negative hits in:     return m_min;.
+(WARNING) Ignored 2 negative hits overall.
+(WARNING) /syrus-home/.syrus/workflows/10175/include/core/math/Quartic.h:111: Ignoring negative hits in:     u = u <= T(0) ? T(0) : std::sqrt(u);.
+(WARNING) Ignored 2 negative hits overall.
+(WARNING) /syrus-home/.syrus/workflows/10175/src/render/PathTracingIntegrator.cpp:527: Ignoring negative hits in:       const DirectLightingSelection& selection = m_selections[index];.
+(WARNING) Ignored 5 negative hits overall.
+(WARNING) /syrus-home/.syrus/workflows/10175/src/render/WavefrontIntersectionBackend.cpp:2690: Ignoring negative hits in:     return vulkanBasicHitAvailable() ||.
+(WARNING) /syrus-home/.syrus/workflows/10175/src/render/WhittedIntegrator.cpp:1317: Ignoring negative hits in:         continue;.
+(WARNING) /syrus-home/.syrus/workflows/10175/src/render/cameras/Camera.cpp:345: Ignoring negative hits in:       if (auto sample = primaryRaySample(pixel, sampleIndex, tileSeed)) {.
+(WARNING) /syrus-home/.syrus/workflows/10175/src/render/materials/MatteMaterial.cpp:22: Ignoring negative hits in:   auto texColor = diffuseTexture() ? diffuseTexture()->evaluate(ray, hitPoint) : Colord::black();.
+(WARNING) /syrus-home/.syrus/workflows/10175/include/core/color/sse3/Colord.h:239: Ignoring negative hits in:     for (int i = 0; i != 3; ++i) {.
+(WARNING) /syrus-home/.syrus/workflows/10175/src/render/materials/TransparentMaterial.cpp:121: Ignoring negative hits in:   std::vector<MaterialBsdfSample> samples;.
+(WARNING) Ignored 2 negative hits overall.
+(WARNING) /syrus-home/.syrus/workflows/10175/include/render/materials/TransparentMaterial.h:105: Ignoring negative hits in:       return m_reflectiveBRDF.reflectionCoefficient();.
+(WARNING) /syrus-home/.syrus/workflows/10175/include/render/brdf/PerfectSpecular.h:64: Ignoring negative hits in:       return m_reflectionCoefficient;.
+(WARNING) /syrus-home/.syrus/workflows/10175/include/render/primitives/BVH.h:132: Ignoring negative hits in:         return !left && !right;.
+(WARNING) Ignored 3 negative hits overall.
+(WARNING) /syrus-home/.syrus/workflows/10175/src/render/primitives/ClosedSolidUnion.cpp:31: Ignoring negative hits in:       hitPoints.setPrimitive(this);.
+(WARNING) Ignored 2 negative hits overall.
+(WARNING) /syrus-home/.syrus/workflows/10175/include/core/math/SmallVector.h:183: Ignoring negative hits in:     return m_heap ? m_heap : inlineData();.
+(WARNING) Ignored 2 negative hits overall.
+(WARNING) /syrus-home/.syrus/workflows/10175/include/core/math/HitPointInterval.h:198: Ignoring negative hits in:     for (auto& i : m_hitPoints) {.
+(WARNING) Ignored 2 negative hits overall.
+(WARNING) /syrus-home/.syrus/workflows/10175/include/core/math/HitPoint.h:189: Ignoring negative hits in:     return std::isnan(m_distance) || m_point.isUndefined() || m_normal.isUndefined() ||.
+(WARNING) /syrus-home/.syrus/workflows/10175/src/render/primitives/Composite.cpp:148: Ignoring negative hits in:       const HitPoint& hitPoint = candidate.hitPoint(lane);.
+(WARNING) Ignored 2 negative hits overall.
+(WARNING) /syrus-home/.syrus/workflows/10175/include/render/primitives/Primitive.h:41: Ignoring negative hits in:       return m_hitPoints[lane];.
+(WARNING) /syrus-home/.syrus/workflows/10175/include/core/math/HitPoint.h:96: Ignoring negative hits in:     return m_distance;.
+(WARNING) /syrus-home/.syrus/workflows/10175/src/render/primitives/Instance.cpp:115: Ignoring negative hits in:   if (m_velocity != Vector3d::null || hasRuntimeTransformAnimation()) {.
+(WARNING) Ignored 8 negative hits overall.
+(WARNING) /syrus-home/.syrus/workflows/10175/include/render/Object.h:84: Ignoring negative hits in:       return it == m_animationTracks.end() ? nullptr : &it->second;.
+(WARNING) Ignored 2 negative hits overall.
+(WARNING) /syrus-home/.syrus/workflows/10175/src/render/primitives/OpenCylinder.cpp:270: Ignoring negative hits in:   const double v = height == 0.0 ? 0.0 : (point.y() + m_halfHeight) / height;.
+(WARNING) /syrus-home/.syrus/workflows/10175/src/render/primitives/Rectangle.cpp:77: Ignoring negative hits in:       continue;.
+(WARNING) /syrus-home/.syrus/workflows/10175/include/core/math/SmallVector.h:186: Ignoring negative hits in:     return m_heap ? m_heap : inlineData();.
+(WARNING) /syrus-home/.syrus/workflows/10175/include/core/math/HitPointInterval.h:217: Ignoring negative hits in:     for (const auto& i : m_hitPoints) {.
+(WARNING) /syrus-home/.syrus/workflows/10175/include/core/math/HitPoint.h:189: Ignoring negative hits in:     return std::isnan(m_distance) || m_point.isUndefined() || m_normal.isUndefined() ||.
+(WARNING) /syrus-home/.syrus/workflows/10175/include/core/math/HitPoint.h:189: Ignoring negative hits in:     return std::isnan(m_distance) || m_point.isUndefined() || m_normal.isUndefined() ||.
+(WARNING) /syrus-home/.syrus/workflows/10175/src/render/samplers/HaltonSampler.cpp:80: Ignoring negative hits in:   if (value >= 1.0) {.
+(WARNING) /syrus-home/.syrus/workflows/10175/src/render/samplers/Sampler.cpp:166: Ignoring negative hits in:     if (value >= 1.0) {.
+(WARNING) /syrus-home/.syrus/workflows/10175/src/render/viewplanes/ViewPlane.cpp:108: Ignoring negative hits in:   if (left >= right || top >= bottom) {.
+(INFO) Writing coverage report...
+lines: 83.9% (59881 out of 71383)
+functions: 86.2% (7287 out of 8450)
+branches: 48.8% (55719 out of 114107)
