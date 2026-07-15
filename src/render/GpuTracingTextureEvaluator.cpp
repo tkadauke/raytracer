@@ -94,7 +94,7 @@ namespace render {
           texture, imageTextureWrappedCoordinate(texture, x0 + 1, width),
           imageTextureWrappedCoordinate(texture, y0 + 1, height), width, hit, depth);
 
-        return lerpColor(lerpColor(c00, c10, tx), lerpColor(c01, c11, tx), ty);
+        return c00.lerp(c10, tx).lerp(c01.lerp(c11, tx), ty);
       }
 
       const int x = imageTextureCoordinate(texture, st.x(), width);
@@ -146,7 +146,4 @@ namespace render {
     return imageTextureWrappedCoordinate(texture, result, size);
   }
 
-  Colord GpuTracingTextureEvaluator::lerpColor(const Colord& a, const Colord& b, double t) {
-    return a * (1.0 - t) + b * t;
-  }
 }

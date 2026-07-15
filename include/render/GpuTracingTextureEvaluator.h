@@ -33,7 +33,6 @@ namespace render {
                                                            int coordinate, int size);
     [[nodiscard]] static int imageTextureCoordinate(const GpuTracingTextureRecord& texture,
                                                     double coordinate, int size);
-    [[nodiscard]] static Colord lerpColor(const Colord& a, const Colord& b, double t);
 
     const GpuTracingSceneSections& m_scene;
   };

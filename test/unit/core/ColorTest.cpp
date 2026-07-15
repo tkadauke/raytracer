@@ -277,6 +277,14 @@ namespace ColorTest {
     ASSERT_COLOR_NEAR(expected, color * intensity, 0.0001);
   }
 
+  TYPED_TEST(ColorTest, ShouldLerpBetweenColors) {
+    Color<TypeParam> a(0, 0, 0);
+    Color<TypeParam> b(1, 1, 1);
+    ASSERT_EQ(Color<TypeParam>(0, 0, 0), a.lerp(b, TypeParam(0)));
+    ASSERT_EQ(Color<TypeParam>(1, 1, 1), a.lerp(b, TypeParam(1)));
+    ASSERT_EQ(Color<TypeParam>(0.5, 0.5, 0.5), a.lerp(b, TypeParam(0.5)));
+  }
+
   TYPED_TEST(ColorTest, ShouldReturnTrueWhenComparingTwoDefaultColors) {
     Color<TypeParam> first, second;
     ASSERT_TRUE(first == second);

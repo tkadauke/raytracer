@@ -413,9 +413,7 @@ namespace render {
             diagnostics.resolvedRecords.push_back(resolvedPathState(*next));
             continue;
           }
-          next->throughput = {static_cast<float>(throughput.r()),
-                              static_cast<float>(throughput.g()),
-                              static_cast<float>(throughput.b()), 1.0f};
+          next->throughput = throughput.toFloat4(1.0f);
         }
 
         setFlag(*next, GpuPathStateFlags::Active, true);

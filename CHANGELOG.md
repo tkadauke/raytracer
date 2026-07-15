@@ -12,6 +12,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 ### Added
 
 - Add `coverage` grader step to `.syrus.yml` enforcing a 60% line-coverage floor via gcovr, matching the floor in `docs/plans/github_actions/ci.yml`. — Claude Sonnet 4.6
+- Add `Color::lerp(other, t)` to `include/core/Color.h`, eliminating the
+  identical `lerpColor` free function in `ImageTexture.cpp` and static method
+  in `GpuTracingTextureEvaluator`. — Claude Sonnet 4.6
 - Add `Color::luminance()` (Rec. 601), `Color::squared()`, and
   `Color::squaredMagnitude()` helper methods to `include/core/Color.h`
   so callers no longer need to inline the same arithmetic at each site.

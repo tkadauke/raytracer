@@ -12,12 +12,6 @@
 
 using namespace render;
 
-namespace {
-  Colord lerpColor(const Colord& a, const Colord& b, double t) {
-    return a * (1.0 - t) + b * t;
-  }
-}
-
 ImageTexture::ImageTexture(TextureMapping2D* mapping, int width, int height,
                            const std::vector<Colord>& pixels, ImageTextureFilter filter,
                            ImageTextureWrap wrap)
@@ -113,7 +107,7 @@ Colord ImageTexture::sampleLevel(double u, double v, double level) const {
   const int lower = static_cast<int>(std::floor(clamped));
   const int upper = std::min(lower + 1, mipLevelCount() - 1);
   const double t = clamped - lower;
-  return lerpColor(sampleBilinear(lower, u, v), sampleBilinear(upper, u, v), t);
+  return sampleBilinear(lower, u, v).lerp(sampleBilinear(upper, u, v), t);
 }
 
 double ImageTexture::mipLevelForDerivatives(const Vector2d& duvdx, const Vector2d& duvdy) const {
@@ -190,7 +184,7 @@ Colord ImageTexture::sampleBilinear(int level, double u, double v) const {
     image
       .pixels[texelIndex(level, wrapCoord(x0 + 1, image.width), wrapCoord(y0 + 1, image.height))];
 
-  return lerpColor(lerpColor(c00, c10, tx), lerpColor(c01, c11, tx), ty);
+  return c00.lerp(c10, tx).lerp(c01.lerp(c11, tx), ty);
 }
 
 int ImageTexture::texelIndex(int level, int x, int y) const {

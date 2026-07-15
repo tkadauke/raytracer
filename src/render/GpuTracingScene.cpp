@@ -174,25 +174,19 @@ namespace {
 
   void packPhongSpecularParameters(const PhongMaterial& material,
                                    GpuTracingMaterialRecord& record) {
-    record.specularParameters = {static_cast<float>(material.specularColor().r()),
-                                 static_cast<float>(material.specularColor().g()),
-                                 static_cast<float>(material.specularColor().b()), 0.0f};
+    record.specularParameters = material.specularColor().toFloat4(0.0f);
   }
 
   void packMirrorContinuationParameters(const ReflectiveMaterial& material,
                                         GpuTracingMaterialRecord& record) {
-    record.continuationParameters = {static_cast<float>(material.reflectionColor().r()),
-                                     static_cast<float>(material.reflectionColor().g()),
-                                     static_cast<float>(material.reflectionColor().b()),
-                                     static_cast<float>(material.reflectionCoefficient())};
+    record.continuationParameters =
+      material.reflectionColor().toFloat4(static_cast<float>(material.reflectionCoefficient()));
   }
 
   void packTransparentParameters(const TransparentMaterial& material,
                                  GpuTracingMaterialRecord& record) {
-    record.continuationParameters = {static_cast<float>(material.reflectionColor().r()),
-                                     static_cast<float>(material.reflectionColor().g()),
-                                     static_cast<float>(material.reflectionColor().b()),
-                                     static_cast<float>(material.reflectionCoefficient())};
+    record.continuationParameters =
+      material.reflectionColor().toFloat4(static_cast<float>(material.reflectionCoefficient()));
     record.transmissionParameters = {static_cast<float>(material.transmissionCoefficient()),
                                      static_cast<float>(material.refractionIndex()), 0.0f, 0.0f};
   }
