@@ -115,6 +115,10 @@ public:
     return {r(), g(), b(), alpha};
   }
 
+  [[nodiscard]] inline Color<float> lerp(const Color<float>& other, const float& t) const {
+    return *this * (1.0f - t) + other * t;
+  }
+
   inline float k() const {
     return 1.0f - max();
   }
