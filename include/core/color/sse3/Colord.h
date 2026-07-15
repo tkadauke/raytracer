@@ -114,6 +114,10 @@ public:
     return {static_cast<float>(r()), static_cast<float>(g()), static_cast<float>(b()), alpha};
   }
 
+  [[nodiscard]] inline Color<double> lerp(const Color<double>& other, const double& t) const {
+    return *this * (1.0 - t) + other * t;
+  }
+
   inline double k() const {
     return 1.0 - max();
   }
