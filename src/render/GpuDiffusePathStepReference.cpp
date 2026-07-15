@@ -3,6 +3,7 @@
 #include "core/Buffer.h"
 #include "core/math/Constants.h"
 #include "render/brdf/BRDFSampling.h"
+#include "render/ConcentricMap.h"
 #include "core/math/Matrix.h"
 #include "core/math/Ray.h"
 #include "render/GpuCompiledLightSampler.h"
@@ -177,25 +178,7 @@ namespace {
                                      pathState.primarySampleIndex, dimension);
   }
 
-  Vector2d concentricMapToDisc(const Vector2d& sample) {
-    const double a = 2.0 * sample.x() - 1.0;
-    const double b = 2.0 * sample.y() - 1.0;
-
-    if (a == 0.0 && b == 0.0) {
-      return Vector2d(0.0, 0.0);
-    }
-
-    double r = 0.0;
-    double phi = 0.0;
-    if (a * a > b * b) {
-      r = a;
-      phi = PI_OVER_4 * (b / a);
-    } else {
-      r = b;
-      phi = PI_OVER_2 - PI_OVER_4 * (a / b);
-    }
-    return Vector2d(r * std::cos(phi), r * std::sin(phi));
-  }
+  using render::detail::concentricMapToDisc;
 
   struct PrimaryPathBasis {
     Vector3d origin;

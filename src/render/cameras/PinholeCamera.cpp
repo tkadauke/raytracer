@@ -1,16 +1,14 @@
 #include "render/cameras/CameraFactory.h"
+#include "CameraMotionHelpers.h"
 #include "GpuPrimaryPathDescriptorPacking.h"
 #include "core/DivisionByZeroException.h"
 #include "render/cameras/PinholeCamera.h"
 #include "PinholeProjection.h"
 #include "core/math/Ray.h"
-#include "render/animation/AnimationTrack.h"
 #include "render/samplers/Sampler.h"
 #include "render/viewplanes/ViewPlane.h"
 
-#include <algorithm>
 #include <cmath>
-#include <limits>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -31,9 +29,15 @@ const char* PinholeCamera::fingerprintType() const {
 }
 
 namespace {
+  using render::detail::animatedVectorAt;
   using render::detail::checkedU32;
   using render::detail::checkGpuPathCount;
+  using render::detail::crossesInteriorKey;
   using render::detail::fillGpuDescriptorViewport;
+  using render::detail::hasDefinedDirection;
+  using render::detail::isLinearVectorTrack;
+  using render::detail::linearDirectionSegmentStaysDefined;
+  using render::detail::nearlyEqual;
   using render::detail::vector4;
 
   Vector3d rayOriginForMatrix(const Matrix4d& cameraMatrix, double distance) {
@@ -50,50 +54,6 @@ namespace {
     Vector3d targetDelta{Vector3d::null};
     double distance{0.0};
   };
-
-  bool isLinearVectorTrack(const render::animation::AnimationTrack* track) {
-    return !track ||
-           (track->interpolationMode() == core::math::interpolation::InterpolationMode::Linear &&
-            track->valueType() == render::animation::AnimationValue::Type::Vector3);
-  }
-
-  bool crossesInteriorKey(const render::animation::AnimationTrack& track, double from, double to) {
-    const double start = std::min(from, to);
-    const double end = std::max(from, to);
-    return std::any_of(
-      track.keyframes().begin(), track.keyframes().end(),
-      [start, end](const auto& keyframe) { return keyframe.time > start && keyframe.time < end; });
-  }
-
-  Vector3d animatedVectorAt(const PinholeCamera& camera, const char* property,
-                            const Vector3d& fallback, double time) {
-    const auto* track = camera.animationTrack(property);
-    if (!track) {
-      return fallback;
-    }
-    return fallback + track->sample(time).get<Vector3d>() -
-           track->sample(camera.animationFrame()).get<Vector3d>();
-  }
-
-  bool nearlyEqual(const Vector3d& left, const Vector3d& right) {
-    return (left - right).length() <= 1e-9;
-  }
-
-  bool hasDefinedDirection(const Vector3d& position, const Vector3d& target) {
-    return (target - position).length() > std::numeric_limits<double>::epsilon();
-  }
-
-  bool linearDirectionSegmentStaysDefined(const Vector3d& directionAtOpen,
-                                          const Vector3d& directionAtClose) {
-    const Vector3d directionDelta = directionAtClose - directionAtOpen;
-    const double deltaLengthSquared = directionDelta * directionDelta;
-    double closestT = 0.0;
-    if (deltaLengthSquared > std::numeric_limits<double>::epsilon()) {
-      closestT = std::clamp(-(directionAtOpen * directionDelta) / deltaLengthSquared, 0.0, 1.0);
-    }
-    return (directionAtOpen + directionDelta * closestT).length() >
-           std::numeric_limits<double>::epsilon();
-  }
 
   std::optional<DescriptorMotion> sampledShutterPinholeMotion(const PinholeCamera& camera,
                                                               double distance) {
