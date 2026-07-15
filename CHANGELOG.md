@@ -15,6 +15,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Add `Color::lerp(other, t)` to `include/core/Color.h`, eliminating the
   identical `lerpColor` free function in `ImageTexture.cpp` and static method
   in `GpuTracingTextureEvaluator`. — Claude Sonnet 4.6
+- Add `render::detail::concentricMapToDisc(Vector2d)` to `include/render/ConcentricMap.h`,
+  removing the duplicate local versions from `ThinLensCamera.cpp` and
+  `GpuDiffusePathStepReference.cpp`. — Claude Sonnet 4.6
 - Add `Color::luminance()` (Rec. 601), `Color::squared()`, and
   `Color::squaredMagnitude()` helper methods to `include/core/Color.h`
   so callers no longer need to inline the same arithmetic at each site.

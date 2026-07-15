@@ -7,6 +7,7 @@
 #include "render/samplers/JitteredSampler.h"
 #include "render/samplers/Sampler.h"
 #include "render/viewplanes/ViewPlane.h"
+#include "render/ConcentricMap.h"
 
 #include <array>
 #include <cmath>
@@ -21,6 +22,7 @@ using namespace render;
 namespace {
   using render::detail::checkedU32;
   using render::detail::checkGpuPathCount;
+  using render::detail::concentricMapToDisc;
   using render::detail::eyeOriginForMatrix;
   using render::detail::fillGpuDescriptorViewport;
   using render::detail::parameters4;
@@ -41,32 +43,6 @@ namespace {
       return matrixAtOpen;
     }
   };
-
-  // Concentric mapping from a square sample to the unit disc (Shirley
-  // 1997, "A Low Distortion Map Between Disk and Square"). Takes a 2D
-  // sample in [-1, 1]² and returns a uniformly distributed point on
-  // the unit disc. Beats naive rejection sampling because there's no
-  // rejection branch *and* the mapping is bijective + low-distortion,
-  // so stratification of the input square carries over to the output
-  // disc — which is the load-bearing property when we feed it the
-  // sampler's stratified per-pixel sub-samples (see rayForPixel below).
-  void concentricMapToDisc(double a, double b, double& outU, double& outV) {
-    if (a == 0.0 && b == 0.0) {
-      outU = outV = 0.0;
-      return;
-    }
-
-    double r, phi;
-    if (a * a > b * b) {
-      r = a;
-      phi = (M_PI / 4.0) * (b / a);
-    } else {
-      r = b;
-      phi = (M_PI / 2.0) - (M_PI / 4.0) * (a / b);
-    }
-    outU = r * std::cos(phi);
-    outV = r * std::sin(phi);
-  }
 
 }
 
@@ -107,13 +83,9 @@ Rayd ThinLensCamera::rayForPixel(double x, double y, ::render::SampleStream& str
   // regions. With stratified lens samples the dominant
   // pixel-coverage noise drops to O(1/N) (see Pharr & Humphreys,
   // "Physically Based Rendering" §6.2.3).
-  Vector2d lens = stream.next2D();
-  double a = 2.0 * lens.x() - 1.0;
-  double b = 2.0 * lens.y() - 1.0;
-
-  double u, v;
-  concentricMapToDisc(a, b, u, v);
-  return rayForPixelWithLens(x, y, u, v);
+  const Vector2d lens = stream.next2D();
+  const Vector2d disc = concentricMapToDisc(lens);
+  return rayForPixelWithLens(x, y, disc.x(), disc.y());
 }
 
 Rayd ThinLensCamera::rayForPixelWithLens(double x, double y, double lensU, double lensV) const {
@@ -176,15 +148,13 @@ std::unique_ptr<Camera::PrimaryRayGenerator> ThinLensCamera::primaryRayGenerator
       const Vector2d xy = pixel.pixel() + primarySample.pixel;
 
       const Vector2d lens = stream.next2D();
-      double lensU = 0.0;
-      double lensV = 0.0;
-      concentricMapToDisc(2.0 * lens.x() - 1.0, 2.0 * lens.y() - 1.0, lensU, lensV);
+      const Vector2d disc = concentricMapToDisc(lens);
 
       const Vector3d pixelPoint = m_plane->pixelAt(xy.x(), xy.y());
       const Vector3d pinholeDirection = (pixelPoint - m_eyeOrigin).normalized();
       const double t = (m_distance + m_focalDistance) / (pinholeDirection * m_forward);
       const Vector3d focalPoint = m_eyeOrigin + pinholeDirection * t;
-      const Vector3d lensOffset = (m_right * lensU + m_up * lensV) * m_apertureRadius;
+      const Vector3d lensOffset = (m_right * disc.x() + m_up * disc.y()) * m_apertureRadius;
       const Vector3d lensOrigin = m_eyeOrigin + lensOffset;
       const Rayd ray(lensOrigin, (focalPoint - lensOrigin).normalized());
       if (!ray.direction().isDefined()) {
