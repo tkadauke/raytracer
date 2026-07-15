@@ -215,6 +215,14 @@ public:
   }
 
   /**
+    * @returns the linear interpolation between this color and @p other at
+    *   parameter \f$t\f$, i.e. \f$(1-t) \cdot a + t \cdot b\f$.
+    */
+  [[nodiscard]] inline Color<T> lerp(const Color<T>& other, const T& t) const {
+    return *this * (T(1) - t) + other * t;
+  }
+
+  /**
     * @returns this color's black key color from the CMYK color space. This is
     *   calculated from the r(), g(), and b() colors: \f$k = 1-max(r, g, b)\f$.
     */
