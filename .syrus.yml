@@ -79,7 +79,10 @@ grade:
           | grep -oE '[0-9.]+' | head -1) && \
         echo "Coverage: ${line_pct}% (floor: 60%)" && \
         awk -v p="$line_pct" 'BEGIN { exit (p+0 < 60) }'
-      timeout_minutes: 30
+      # Cold coverage builds compile ~686 TUs with gcov instrumentation at
+      # -O1, which takes ~50 min from scratch. 60 min gives headroom; warm
+      # incremental rebuilds on later iterations finish in minutes.
+      timeout_minutes: 60
 
     - name: opengl-egl
       # Dedicated lane for the OpenGL-touching unit tests so we get
