@@ -33,18 +33,14 @@ namespace {
   using render::detail::checkedU32;
   using render::detail::checkGpuPathCount;
   using render::detail::crossesInteriorKey;
+  using render::detail::eyeOriginForMatrix;
+  using render::detail::fillGpuDescriptorPlane;
   using render::detail::fillGpuDescriptorViewport;
   using render::detail::hasDefinedDirection;
   using render::detail::isLinearVectorTrack;
   using render::detail::linearDirectionSegmentStaysDefined;
   using render::detail::nearlyEqual;
   using render::detail::vector4;
-
-  Vector3d rayOriginForMatrix(const Matrix4d& cameraMatrix, double distance) {
-    return Vector3d(cameraMatrix.cell(0, 3) - cameraMatrix.cell(0, 2) * distance,
-                    cameraMatrix.cell(1, 3) - cameraMatrix.cell(1, 2) * distance,
-                    cameraMatrix.cell(2, 3) - cameraMatrix.cell(2, 2) * distance);
-  }
 
   struct DescriptorMotion {
     std::uint32_t motionMode{gpuPrimaryPathMotionModeOriginDelta};
@@ -90,8 +86,8 @@ namespace {
 
     const Matrix4d matrixAtOpen = Matrix4d::lookAt(positionAtOpen, targetAtOpen, Vector3d::up());
     const Matrix4d matrixAtClose = Matrix4d::lookAt(positionAtClose, targetAtClose, Vector3d::up());
-    const Vector3d originAtOpen = rayOriginForMatrix(matrixAtOpen, distance);
-    const Vector3d originAtClose = rayOriginForMatrix(matrixAtClose, distance);
+    const Vector3d originAtOpen = eyeOriginForMatrix(matrixAtOpen, distance);
+    const Vector3d originAtClose = eyeOriginForMatrix(matrixAtClose, distance);
     if (nearlyEqual(directionAtClose, directionAtOpen)) {
       return DescriptorMotion{gpuPrimaryPathMotionModeOriginDelta, originAtOpen,
                               originAtClose - originAtOpen};
@@ -105,10 +101,7 @@ namespace {
 }
 
 Vector3d PinholeCamera::rayOrigin() const {
-  const Matrix4d& cameraMatrix = matrix();
-  return Vector3d(cameraMatrix.cell(0, 3) - cameraMatrix.cell(0, 2) * m_distance,
-                  cameraMatrix.cell(1, 3) - cameraMatrix.cell(1, 2) * m_distance,
-                  cameraMatrix.cell(2, 3) - cameraMatrix.cell(2, 2) * m_distance);
+  return render::detail::eyeOriginForMatrix(matrix(), m_distance);
 }
 
 Rayd PinholeCamera::rayForPixel(double x, double y, render::SampleStream&) const {
@@ -183,7 +176,7 @@ PinholeCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampleS
   std::optional<DescriptorMotion> motion;
   if (const std::optional<Matrix4d> descriptorMatrix = fixedShutterGpuCameraMatrix()) {
     motion = DescriptorMotion{gpuPrimaryPathMotionModeOriginDelta,
-                              rayOriginForMatrix(*descriptorMatrix, m_distance)};
+                              eyeOriginForMatrix(*descriptorMatrix, m_distance)};
   } else {
     motion = sampledShutterPinholeMotion(*this, m_distance);
   }
@@ -207,9 +200,7 @@ PinholeCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampleS
   descriptor.rectilinear.motionTargetDelta = vector4(motion->targetDelta, 0.0f);
   descriptor.rectilinear.motionParameters = {static_cast<float>(motion->distance), 0.0f, 0.0f,
                                              0.0f};
-  descriptor.rectilinear.topLeft = vector4(plane->pixelAt(0.0, 0.0), 1.0f);
-  descriptor.rectilinear.right = vector4(plane->pixelAt(1.0, 0.0) - plane->pixelAt(0.0, 0.0), 0.0f);
-  descriptor.rectilinear.down = vector4(plane->pixelAt(0.0, 1.0) - plane->pixelAt(0.0, 0.0), 0.0f);
+  fillGpuDescriptorPlane(descriptor.rectilinear, *plane);
   fillGpuDescriptorViewport(descriptor.rectilinear, rect, actual,
                              plane->sampler()->numSamples(), sampleSeed);
   return descriptor;
