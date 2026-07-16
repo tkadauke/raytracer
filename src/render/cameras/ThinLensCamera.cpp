@@ -24,26 +24,11 @@ namespace {
   using render::detail::checkGpuPathCount;
   using render::detail::concentricMapToDisc;
   using render::detail::eyeOriginForMatrix;
+  using render::detail::fillGpuDescriptorPlane;
   using render::detail::fillGpuDescriptorViewport;
+  using render::detail::LensDescriptorMotion;
   using render::detail::parameters4;
   using render::detail::vector4;
-
-  struct ThinLensDescriptorMotion {
-    std::uint32_t motionMode{gpuPrimaryPathMotionModeOriginDelta};
-    Matrix4d matrixAtOpen;
-    Vector3d originOrPosition;
-    Vector3d motionOriginOrPositionDelta{Vector3d::null};
-    Vector3d target{Vector3d::null};
-    Vector3d targetDelta{Vector3d::null};
-
-    [[nodiscard]] Matrix4d planeMatrix() const {
-      if (motionMode == gpuPrimaryPathMotionModeLookAt) {
-        return Matrix4d();
-      }
-      return matrixAtOpen;
-    }
-  };
-
 }
 
 std::shared_ptr<Camera> ThinLensCamera::clone() const {
@@ -61,10 +46,7 @@ const char* ThinLensCamera::fingerprintType() const {
 }
 
 Vector3d ThinLensCamera::eyeOrigin() const {
-  const Matrix4d& cameraMatrix = matrix();
-  return Vector3d(cameraMatrix.cell(0, 3) - cameraMatrix.cell(0, 2) * m_distance,
-                  cameraMatrix.cell(1, 3) - cameraMatrix.cell(1, 2) * m_distance,
-                  cameraMatrix.cell(2, 3) - cameraMatrix.cell(2, 2) * m_distance);
+  return render::detail::eyeOriginForMatrix(matrix(), m_distance);
 }
 
 Rayd ThinLensCamera::rayForPixel(double x, double y, ::render::SampleStream& stream) const {
@@ -193,23 +175,23 @@ ThinLensCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sample
       animationTrack("focalDistance")) {
     return std::nullopt;
   }
-  std::optional<ThinLensDescriptorMotion> motion;
+  std::optional<LensDescriptorMotion> motion;
   if (const std::optional<Matrix4d> descriptorMatrix = fixedShutterGpuCameraMatrix()) {
-    motion = ThinLensDescriptorMotion{gpuPrimaryPathMotionModeOriginDelta, *descriptorMatrix,
+    motion = LensDescriptorMotion{gpuPrimaryPathMotionModeOriginDelta, *descriptorMatrix,
                                       eyeOriginForMatrix(*descriptorMatrix, m_distance)};
   } else {
     if (const std::optional<detail::SampledShutterDescriptorMotion> stableMotion =
           detail::sampledStableBasisShutterMotion(*this);
         stableMotion) {
       motion =
-        ThinLensDescriptorMotion{gpuPrimaryPathMotionModeOriginDelta, stableMotion->matrixAtOpen,
+        LensDescriptorMotion{gpuPrimaryPathMotionModeOriginDelta, stableMotion->matrixAtOpen,
                                  eyeOriginForMatrix(stableMotion->matrixAtOpen, m_distance),
                                  eyeOriginForMatrix(stableMotion->matrixAtClose, m_distance) -
                                    eyeOriginForMatrix(stableMotion->matrixAtOpen, m_distance)};
     } else if (const std::optional<detail::SampledShutterLookAtDescriptorMotion> lookAtMotion =
                  detail::sampledLookAtShutterMotion(*this);
                lookAtMotion) {
-      motion = ThinLensDescriptorMotion{
+      motion = LensDescriptorMotion{
         gpuPrimaryPathMotionModeLookAt,
         Matrix4d::lookAt(lookAtMotion->positionAtOpen, lookAtMotion->targetAtOpen, Vector3d::up()),
         lookAtMotion->positionAtOpen,
@@ -244,11 +226,7 @@ ThinLensCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sample
   descriptor.rectilinear.motionTarget = vector4(motion->target, 1.0f);
   descriptor.rectilinear.motionTargetDelta = vector4(motion->targetDelta, 0.0f);
   descriptor.rectilinear.motionParameters = parameters4(m_distance, m_apertureRadius);
-  descriptor.rectilinear.topLeft = vector4(descriptorPlane->pixelAt(0.0, 0.0), 1.0f);
-  descriptor.rectilinear.right =
-    vector4(descriptorPlane->pixelAt(1.0, 0.0) - descriptorPlane->pixelAt(0.0, 0.0), 0.0f);
-  descriptor.rectilinear.down =
-    vector4(descriptorPlane->pixelAt(0.0, 1.0) - descriptorPlane->pixelAt(0.0, 0.0), 0.0f);
+  fillGpuDescriptorPlane(descriptor.rectilinear, *descriptorPlane);
   descriptor.rectilinear.lensRight = vector4(right * m_apertureRadius, 0.0f);
   descriptor.rectilinear.lensUp = vector4(up * m_apertureRadius, 0.0f);
   descriptor.rectilinear.forward = vector4(forward, 0.0f);

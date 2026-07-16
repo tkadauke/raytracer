@@ -19,6 +19,7 @@ namespace {
   using render::detail::checkedU32;
   using render::detail::checkGpuPathCount;
   using render::detail::crossesInteriorKey;
+  using render::detail::fillGpuDescriptorPlane;
   using render::detail::fillGpuDescriptorViewport;
   using render::detail::hasDefinedDirection;
   using render::detail::hasStableBasis;
@@ -207,11 +208,7 @@ OrthographicCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sa
   descriptor.rectilinear.motionOriginDelta = vector4(motion->motionOriginDelta, 0.0f);
   descriptor.rectilinear.motionTarget = vector4(motion->target, 1.0f);
   descriptor.rectilinear.motionTargetDelta = vector4(motion->targetDelta, 0.0f);
-  descriptor.rectilinear.topLeft = vector4(descriptorPlane->pixelAt(0.0, 0.0), 1.0f);
-  descriptor.rectilinear.right =
-    vector4(descriptorPlane->pixelAt(1.0, 0.0) - descriptorPlane->pixelAt(0.0, 0.0), 0.0f);
-  descriptor.rectilinear.down =
-    vector4(descriptorPlane->pixelAt(0.0, 1.0) - descriptorPlane->pixelAt(0.0, 0.0), 0.0f);
+  fillGpuDescriptorPlane(descriptor.rectilinear, *descriptorPlane);
   fillGpuDescriptorViewport(descriptor.rectilinear, rect, actual,
                              plane->sampler()->numSamples(), sampleSeed);
   return descriptor;
