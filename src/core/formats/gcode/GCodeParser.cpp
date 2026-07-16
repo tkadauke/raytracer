@@ -1,4 +1,5 @@
 #include "core/formats/gcode/GCodeParser.h"
+#include "core/util/StringUtil.h"
 
 #include <cerrno>
 #include <cctype>
@@ -7,6 +8,7 @@
 #include <optional>
 
 using namespace std;
+using core::util::trim;
 
 namespace {
   struct Word {
@@ -18,16 +20,6 @@ namespace {
     vector<Word> words;
     string comment;
   };
-
-  string trim(const string& value) {
-    size_t begin = 0;
-    while (begin < value.size() && isspace(static_cast<unsigned char>(value[begin])))
-      ++begin;
-    size_t end = value.size();
-    while (end > begin && isspace(static_cast<unsigned char>(value[end - 1])))
-      --end;
-    return value.substr(begin, end - begin);
-  }
 
   string upper(const string& value) {
     string result = value;

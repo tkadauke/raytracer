@@ -2,6 +2,7 @@
 
 #include "core/formats/molecule/MoleculeParser.h"
 #include "core/util/QStringUtil.h"
+#include "core/util/StringUtil.h"
 #include "MoleculeBondGeometry.h"
 #include "MoleculeNormalization.h"
 #include "world/import/MoleculeSceneBuilder.h"
@@ -25,18 +26,10 @@
 #include <vector>
 
 using namespace std;
+using core::util::trim;
 
 namespace world {
   namespace {
-    string trimmedAtomName(string value) {
-      value.erase(value.begin(), find_if(value.begin(), value.end(),
-                                         [](unsigned char ch) { return !std::isspace(ch); }));
-      value.erase(
-        find_if(value.rbegin(), value.rend(), [](unsigned char ch) { return !std::isspace(ch); })
-          .base(),
-        value.end());
-      return value;
-    }
 
     QString sourceIdForModel(int modelId) {
       return QString("model/%1").arg(modelId);
@@ -145,7 +138,7 @@ namespace world {
 
       for (const auto atomIndex : residue.atomIndices) {
         const auto& atom = molecule.atoms()[atomIndex];
-        if (!atom.hetero && trimmedAtomName(atom.name) == "CA")
+        if (!atom.hetero && trim(atom.name) == "CA")
           return &atom;
       }
       return nullptr;

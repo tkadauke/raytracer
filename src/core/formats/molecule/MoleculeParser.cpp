@@ -1,4 +1,5 @@
 #include "core/formats/molecule/MoleculeParser.h"
+#include "core/util/StringUtil.h"
 
 #include <algorithm>
 #include <cctype>
@@ -12,6 +13,9 @@
 #include <utility>
 
 using namespace std;
+using core::util::lowercase;
+using core::util::startsWith;
+using core::util::trim;
 
 namespace molecule {
   namespace {
@@ -42,31 +46,10 @@ namespace molecule {
       int line{-1};
     };
 
-    string trim(string value) {
-      const auto first =
-        find_if_not(value.begin(), value.end(), [](unsigned char c) { return isspace(c); });
-      const auto last = find_if_not(value.rbegin(), value.rend(), [](unsigned char c) {
-                          return isspace(c);
-                        }).base();
-      if (first >= last)
-        return "";
-      return string(first, last);
-    }
-
     string field(const string& line, size_t offset, size_t length) {
       if (offset >= line.size())
         return "";
       return trim(line.substr(offset, min(length, line.size() - offset)));
-    }
-
-    bool startsWith(const string& value, const string& prefix) {
-      return value.rfind(prefix, 0) == 0;
-    }
-
-    string lowercased(string value) {
-      transform(value.begin(), value.end(), value.begin(),
-                [](unsigned char ch) { return static_cast<char>(tolower(ch)); });
-      return value;
     }
 
     optional<int> parseOptionalInt(const string& value) {
@@ -117,7 +100,7 @@ namespace molecule {
     }
 
     int bondOrderForConnType(const string& type) {
-      const auto normalized = lowercased(type);
+      const auto normalized = lowercase(type);
       if (normalized.find("doub") != string::npos)
         return 2;
       if (normalized.find("trip") != string::npos)
@@ -268,7 +251,7 @@ namespace molecule {
   }
 
   MoleculeParseResult MoleculeParser::parse(istream& input, const string& format) const {
-    const auto normalizedFormat = lowercased(format);
+    const auto normalizedFormat = lowercase(format);
     if (normalizedFormat == "pdb")
       return parsePdb(input);
     if (normalizedFormat == "cif" || normalizedFormat == "mmcif")
