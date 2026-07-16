@@ -18,6 +18,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Add `render::detail::concentricMapToDisc(Vector2d)` to `include/render/ConcentricMap.h`,
   removing the duplicate local versions from `ThinLensCamera.cpp` and
   `GpuDiffusePathStepReference.cpp`. — Claude Sonnet 4.6
+- Add `core::util::trim`, `core::util::startsWith`, and `core::util::lowercase` to
+  `include/core/util/StringUtil.h`, eliminating duplicate local implementations in
+  `GCodeParser.cpp`, `MoleculeParser.cpp`, `RenderGraphTypes.cpp`,
+  `MoleculeSceneImporter.cpp`, and `GltfReader.cpp`. — Claude Sonnet 4.6
 - Add `Color::luminance()` (Rec. 601), `Color::squared()`, and
   `Color::squaredMagnitude()` helper methods to `include/core/Color.h`
   so callers no longer need to inline the same arithmetic at each site.

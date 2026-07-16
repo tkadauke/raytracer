@@ -1,5 +1,6 @@
 #include "core/formats/gltf/GltfReader.h"
 #include "core/json/JsonValue.h"
+#include "core/util/StringUtil.h"
 
 #include <QByteArray>
 #include <QJsonArray>
@@ -15,6 +16,8 @@
 #include <fstream>
 #include <limits>
 #include <sstream>
+
+using core::util::startsWith;
 
 namespace fs = std::filesystem;
 
@@ -332,11 +335,6 @@ namespace core::gltf {
       if (value == "spot")
         return PunctualLightType::Spot;
       return std::nullopt;
-    }
-
-    bool startsWith(const std::string& value, const std::string& prefix) {
-      return value.size() >= prefix.size() &&
-             std::equal(prefix.begin(), prefix.end(), value.begin());
     }
 
     std::optional<std::vector<std::uint8_t>>

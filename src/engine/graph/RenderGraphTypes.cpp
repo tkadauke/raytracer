@@ -6,6 +6,7 @@
 #include "engine/graph/RenderPassState.h"
 #include "core/json/JsonValue.h"
 #include "core/util/QStringUtil.h"
+#include "core/util/StringUtil.h"
 
 #include <QJsonArray>
 
@@ -22,6 +23,9 @@
 #include <string>
 #include <type_traits>
 #include <utility>
+
+using core::util::lowercase;
+using core::util::trim;
 
 namespace engine::graph {
   namespace {
@@ -47,21 +51,6 @@ namespace engine::graph {
       if (!value.isBool())
         jsonError(path + "." + key, "expected boolean");
       return value.toBool();
-    }
-
-    std::string lowercase(std::string value) {
-      std::transform(value.begin(), value.end(), value.begin(),
-                     [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
-      return value;
-    }
-
-    std::string trim(std::string value) {
-      const auto first = std::find_if_not(value.begin(), value.end(),
-                                          [](unsigned char ch) { return std::isspace(ch); });
-      const auto last = std::find_if_not(value.rbegin(), value.rend(), [](unsigned char ch) {
-                          return std::isspace(ch);
-                        }).base();
-      return first < last ? std::string(first, last) : std::string();
     }
 
     int intField(const QJsonObject& object, const char* key, const std::string& path,
