@@ -800,9 +800,14 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   `GpuPrimaryPathDescriptorPacking.h`. Move descriptor-field accessor helpers
   duplicated across four camera test files into `test/helpers/CameraTestHelper.h`.
   — Claude Sonnet 4.6
-- Raise the `build-test` Syrus grader timeout from 20 to 45 minutes so cold
-  worker builds (empty workspace, whole templated + Qt tree compiled from
-  scratch) aren't killed mid-compile while still making steady progress. — Claude Opus 4.8
+- Cap the Syrus grader builds and tests at `--parallel 2` (the grade pod has
+  4 CPUs, and Ninja's default width oversubscribed them and risked OOM on the
+  heavy templated + Qt translation units), and widen the affected step
+  timeouts to absorb the slower narrow build: `build-test` 20→60 min,
+  `benchmark-build` 10→20 min, `opengl-egl` 10→15 min. (`coverage` keeps its
+  separately-measured 150 min timeout.) Prevents cold worker builds from being
+  OOM-killed or timed out mid-compile while still making steady progress.
+  — Claude Opus 4.8
 - Add converting constructor `Ray<T>(const Ray<U>&)` so float/double ray
   conversions use the constructor directly instead of scattered `toRayd()`
   helpers; consolidate duplicate `expectKernelRecordLayout` and

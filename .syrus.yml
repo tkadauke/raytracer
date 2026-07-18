@@ -22,6 +22,12 @@
 #     agent's wall time with no per-iteration value. When Syrus grows a
 #     post-grade primitive that runs once per workflow rather than per
 #     iteration, the slow gates move here.
+#   - Builds and tests are capped at `--parallel 2`. The grade pod is
+#     allotted 4 CPUs, and compiling the heavy templated + Qt translation
+#     units at Ninja's default width (~cores+2) oversubscribes those CPUs
+#     and spikes peak memory enough to risk an OOM kill. Two concurrent
+#     jobs keep memory bounded; the per-step timeouts below account for the
+#     longer wall time that a narrower build implies.
 
 adversarial_review:
   rounds: 1
@@ -41,15 +47,16 @@ grade:
       # would fall back to swrast probing, which is slower and noisier.
       run: |
         cmake --preset release && \
-        cmake --build --preset release --parallel && \
+        cmake --build --preset release --parallel 2 && \
         QT_QPA_PLATFORM=offscreen LIBGL_ALWAYS_SOFTWARE=1 \
-          ctest --preset release --parallel $(nproc) --output-on-failure
+          ctest --preset release --parallel 2 --output-on-failure
       # A cold worker build (empty workspace, no ccache) compiles the whole
       # templated + Qt tree from scratch and can run well past 20 minutes
-      # while still making steady progress. Give it headroom so a slow-but-
-      # healthy cold build isn't killed mid-compile; warm incremental rebuilds
+      # while still making steady progress. The `--parallel 2` cap keeps
+      # peak memory under the 4-CPU pod's ceiling but lengthens that cold
+      # build further, so the timeout is generous; warm incremental rebuilds
       # on later iterations still finish in seconds.
-      timeout_minutes: 45
+      timeout_minutes: 60
 
     - name: coverage
       # Measures line coverage with gcovr and enforces a 60% floor.
@@ -63,7 +70,7 @@ grade:
       run: |
         python3 -m pip install --target /tmp/gcovr-pkg --quiet gcovr || true
         cmake --preset coverage && \
-        cmake --build --preset coverage --parallel && \
+        cmake --build --preset coverage --parallel 2 && \
         QT_QPA_PLATFORM=offscreen LIBGL_ALWAYS_SOFTWARE=1 \
           ctest --test-dir build/coverage --output-on-failure && \
         PYTHONPATH=/tmp/gcovr-pkg python3 -m gcovr --root . \
@@ -82,8 +89,11 @@ grade:
       # Cold coverage builds compile ~670 TUs with gcov instrumentation at
       # -O1. Observed cold-build time on the CI pod: library (~390 TUs)
       # alone consumes ~60 min; the full build including tests runs ~100 min.
-      # 150 min gives a 50 % buffer for cold starts and pod load variation;
-      # warm incremental rebuilds on later iterations still finish in minutes.
+      # That measurement was taken before the --parallel 2 cap on the build
+      # command above, which narrows the build width and lengthens it
+      # further, so this figure may need to grow once re-measured under the
+      # cap. 150 min gives a 50 % buffer over the pre-cap time and covers
+      # pod load variation; warm incremental rebuilds still finish in minutes.
       timeout_minutes: 150
 
     - name: opengl-egl
@@ -102,7 +112,7 @@ grade:
       # signals the worker image is missing Mesa's `libgl1-mesa-dri`
       # runtime or `libegl-mesa0` and the GL lane is silently no-op.
       run: |
-        cmake --build --preset release --target unit_tests --parallel && \
+        cmake --build --preset release --target unit_tests --parallel 2 && \
         log=build/release/opengl-egl.log && \
         QT_QPA_PLATFORM=offscreen LIBGL_ALWAYS_SOFTWARE=1 \
           build/release/test/unit/unit_tests \
@@ -116,7 +126,9 @@ grade:
           exit 1; \
         fi && \
         echo "opengl-egl lane: $passed tests passed through EGL surfaceless"
-      timeout_minutes: 10
+      # Reuses build/release/ from build-test, so mostly an incremental
+      # relink of unit_tests; small bump covers the --parallel 2 slowdown.
+      timeout_minutes: 15
 
     - name: benchmark-build
       # Compile-only benchmark gate. Full benchmark timing runs are too
@@ -126,9 +138,11 @@ grade:
       # registration/main wiring honest without measuring performance.
       run: |
         cmake --preset benchmark && \
-        cmake --build --preset benchmark --target benchmarks --parallel && \
+        cmake --build --preset benchmark --target benchmarks --parallel 2 && \
         ./build/benchmark/benchmarks/benchmarks --benchmark_list_tests=true >/dev/null
-      timeout_minutes: 10
+      # Cold compile of a separate build/benchmark/ tree at --parallel 2;
+      # doubled from 10 to absorb the narrower build width.
+      timeout_minutes: 20
 
     - name: textbook
       # Markdown drift check + freshness of the generated source-map
