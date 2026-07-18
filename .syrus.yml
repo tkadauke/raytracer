@@ -82,9 +82,9 @@ grade:
       # Cold coverage builds compile ~670 TUs with gcov instrumentation at
       # -O1. Observed cold-build time on the CI pod: library (~390 TUs)
       # alone consumes ~60 min; the full build including tests runs ~100 min.
-      # 120 min gives a 20 % buffer for cold starts; warm incremental rebuilds
-      # on later iterations still finish in minutes.
-      timeout_minutes: 120
+      # 150 min gives a 50 % buffer for cold starts and pod load variation;
+      # warm incremental rebuilds on later iterations still finish in minutes.
+      timeout_minutes: 150
 
     - name: opengl-egl
       # Dedicated lane for the OpenGL-touching unit tests so we get
