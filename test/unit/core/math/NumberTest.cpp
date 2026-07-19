@@ -78,6 +78,21 @@ namespace NumberTest {
     EXPECT_EQ(first, second);
   }
 
+  TYPED_TEST(NumberTest, PositiveExtentOfPositiveNumberIsUnchanged) {
+    TypeParam value = 4.5;
+    ASSERT_EQ(positiveExtent(value), value);
+  }
+
+  TYPED_TEST(NumberTest, PositiveExtentOfNegativeNumberReturnsAbsoluteValue) {
+    TypeParam value = -3.0;
+    ASSERT_EQ(positiveExtent(value), TypeParam(3.0));
+  }
+
+  TYPED_TEST(NumberTest, PositiveExtentOfZeroReturnsEpsilon) {
+    TypeParam value = 0;
+    ASSERT_EQ(positiveExtent(value), std::numeric_limits<TypeParam>::epsilon());
+  }
+
   TEST(NumberTest, SeedingOneThreadDoesNotPerturbAnotherThread) {
     seed(123);
     int first = random(1000000);

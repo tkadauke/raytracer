@@ -1,7 +1,4 @@
 #pragma once
-#include <algorithm>
-#include <cmath>
-#include <limits>
 #include <memory>
 
 #include "world/objects/Surface.h"
@@ -39,7 +36,7 @@ public:
     * centre). Coerced to its absolute value with an epsilon floor.
     */
   inline void setSweptRadius(double radius) {
-    m_sweptRadius = std::max(std::abs(radius), std::numeric_limits<double>::epsilon());
+    m_sweptRadius = positiveExtent(radius);
   }
 
   inline double tubeRadius() const {
@@ -51,7 +48,7 @@ public:
     * Coerced to its absolute value with an epsilon floor.
     */
   inline void setTubeRadius(double radius) {
-    m_tubeRadius = std::max(std::abs(radius), std::numeric_limits<double>::epsilon());
+    m_tubeRadius = positiveExtent(radius);
   }
 
   std::shared_ptr<render::Primitive> toRaytracerPrimitive() const override;

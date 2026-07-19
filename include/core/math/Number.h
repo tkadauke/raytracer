@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <cstdint>
 #include <limits>
 #include <random>
@@ -122,4 +123,14 @@ inline T random(T upper) {
   */
 inline int random(int upper) {
   return int(detail::thread_rng().next() % uint32_t(upper));
+}
+
+/**
+  * @returns the absolute value of @p value clamped to at least
+  * \f$\epsilon\f$ — the smallest positive representable value for type T.
+  * Used by geometric setters to prevent zero or negative extents.
+  */
+template<class T>
+inline T positiveExtent(const T& value) {
+  return std::max(std::abs(value), std::numeric_limits<T>::epsilon());
 }

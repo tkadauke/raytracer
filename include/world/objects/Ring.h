@@ -44,8 +44,7 @@ public:
     * </tr></table>
     */
   inline void setOuterRadius(double radius) {
-    m_outerRadius = std::max(std::max(std::abs(radius), std::numeric_limits<double>::epsilon()),
-                             innerRadius() + std::numeric_limits<double>::epsilon());
+    m_outerRadius = std::max(positiveExtent(radius), innerRadius() + std::numeric_limits<double>::epsilon());
   }
 
   /**
@@ -70,8 +69,7 @@ public:
     * </tr></table>
     */
   inline void setInnerRadius(double radius) {
-    m_innerRadius = std::min(std::max(std::abs(radius), std::numeric_limits<double>::epsilon()),
-                             outerRadius() - std::numeric_limits<double>::epsilon());
+    m_innerRadius = std::min(positiveExtent(radius), outerRadius() - std::numeric_limits<double>::epsilon());
   }
 
   /**
@@ -94,7 +92,7 @@ public:
     * </tr></table>
     */
   inline void setHeight(double height) {
-    m_height = std::max(std::abs(height), std::numeric_limits<double>::epsilon());
+    m_height = positiveExtent(height);
   }
 
   /**

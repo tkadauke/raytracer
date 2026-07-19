@@ -1,5 +1,4 @@
 #pragma once
-#include <algorithm>
 #include <memory>
 
 #include "world/objects/Surface.h"
@@ -54,7 +53,7 @@ public:
     * </tr></table>
     */
   inline void setRadius(double radius) {
-    m_radius = std::max(std::abs(radius), std::numeric_limits<double>::epsilon());
+    m_radius = positiveExtent(radius);
   }
 
   /**
@@ -77,7 +76,7 @@ public:
     * </tr></table>
     */
   inline void setHeight(double height) {
-    m_height = std::max(std::abs(height), std::numeric_limits<double>::epsilon());
+    m_height = positiveExtent(height);
   }
 
   /**
