@@ -3,10 +3,6 @@
 #include "render/lights/RectangularAreaLight.h"
 #include "world/objects/ElementFactory.h"
 
-#include <algorithm>
-#include <cmath>
-#include <limits>
-
 RectangularAreaLight::RectangularAreaLight(Element* parent)
     : Light(parent),
       m_width(2.0),
@@ -18,7 +14,7 @@ double RectangularAreaLight::width() const {
 }
 
 void RectangularAreaLight::setWidth(double width) {
-  m_width = std::max(std::abs(width), std::numeric_limits<double>::epsilon());
+  m_width = positiveExtent(width);
 }
 
 double RectangularAreaLight::height() const {
@@ -26,7 +22,7 @@ double RectangularAreaLight::height() const {
 }
 
 void RectangularAreaLight::setHeight(double height) {
-  m_height = std::max(std::abs(height), std::numeric_limits<double>::epsilon());
+  m_height = positiveExtent(height);
 }
 
 std::shared_ptr<render::Light> RectangularAreaLight::toRaytracer() const {

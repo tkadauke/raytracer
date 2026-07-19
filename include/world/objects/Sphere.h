@@ -1,5 +1,4 @@
 #pragma once
-#include <algorithm>
 #include <memory>
 
 #include "world/objects/Surface.h"
@@ -43,7 +42,7 @@ public:
     * </tr></table>
     */
   inline void setRadius(double radius) {
-    m_radius = std::max(std::abs(radius), std::numeric_limits<double>::epsilon());
+    m_radius = positiveExtent(radius);
   }
 
   std::shared_ptr<render::Primitive> toRaytracerPrimitive() const override;

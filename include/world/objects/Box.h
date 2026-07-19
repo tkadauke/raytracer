@@ -46,9 +46,7 @@ public:
     * </tr></table>
     */
   inline void setSize(const Vector3d& size) {
-    m_size =
-      Vector3d(std::max(std::abs(size.x()), 0.000001), std::max(std::abs(size.y()), 0.000001),
-               std::max(std::abs(size.z()), 0.000001));
+    m_size = size.abs().cwiseMax(Vector3d(0.000001, 0.000001, 0.000001));
     // recalculate bevel radius, in case the size shrunk so far that the
     // previous radius is too big
     setBevelRadius(bevelRadius());

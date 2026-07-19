@@ -11,6 +11,13 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Add `positiveExtent(value)` to `include/core/math/Number.h`, replacing the
+  repeated `std::max(std::abs(v), std::numeric_limits<double>::epsilon())` pattern
+  in geometric-dimension setters across `Sphere`, `Disk`, `Cylinder`,
+  `OpenCylinder`, `Torus`, `Ring`, and `RectangularAreaLight`; also replace
+  the equivalent component-wise Vector3d pattern in `Transformable`, `Box`,
+  and `PortalMaterial` with `v.abs().cwiseMax(...)` using the existing Vector
+  API. — Claude Sonnet 4.6
 - Add `coverage` grader step to `.syrus.yml` enforcing a 60% line-coverage floor via gcovr, matching the floor in `docs/plans/github_actions/ci.yml`. — Claude Sonnet 4.6
 - Add `Color::lerp(other, t)` to `include/core/Color.h`, eliminating the
   identical `lerpColor` free function in `ImageTexture.cpp` and static method

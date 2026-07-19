@@ -1,7 +1,7 @@
 #pragma once
-#include <algorithm>
 
 #include "world/objects/Element.h"
+#include "core/math/Number.h"
 #include "core/math/Vector.h"
 #include "core/math/Matrix.h"
 
@@ -94,9 +94,7 @@ public:
     * </tr></table>
     */
   inline void setScale(const Vector3d& scale) {
-    m_scale =
-      Vector3d(std::max(std::abs(scale.x()), 0.000001), std::max(std::abs(scale.y()), 0.000001),
-               std::max(std::abs(scale.z()), 0.000001));
+    m_scale = scale.abs().cwiseMax(Vector3d(0.000001, 0.000001, 0.000001));
   }
 
   /**
