@@ -1,4 +1,5 @@
 #include "core/formats/AssetResolver.h"
+#include "core/util/StringUtil.h"
 
 #include <algorithm>
 #include <cctype>
@@ -105,8 +106,7 @@ namespace core {
     std::string identityFor(const fs::path& path, AssetCaseSensitivity caseSensitivity) {
       std::string identity = normalizedExistingPath(path).generic_string();
       if (caseSensitivity == AssetCaseSensitivity::CaseInsensitive) {
-        std::transform(identity.begin(), identity.end(), identity.begin(),
-                       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        identity = core::util::lowercase(std::move(identity));
       }
       return identity;
     }
