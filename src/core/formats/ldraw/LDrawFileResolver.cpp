@@ -1,9 +1,9 @@
 #include "core/formats/ldraw/LDrawFileResolver.h"
 
 #include "core/formats/AssetResolver.h"
+#include "core/util/StringUtil.h"
 
 #include <algorithm>
-#include <cctype>
 #include <filesystem>
 #include <fstream>
 #include <istream>
@@ -28,9 +28,7 @@ string LDrawFileResolver::resolvePath(const string&) const {
 
 string LDrawFileResolver::normalizedFilename(string filename) {
   replace(filename.begin(), filename.end(), '\\', '/');
-  transform(filename.begin(), filename.end(), filename.begin(),
-            [](unsigned char c) { return static_cast<char>(tolower(c)); });
-  return filename;
+  return core::util::lowercase(std::move(filename));
 }
 
 LDrawFilesystemResolver::LDrawFilesystemResolver(vector<string> searchDirectories)

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "render/cameras/SampledShutterDescriptorMotion.h"
 #include "render/GpuPrimaryPathDescriptor.h"
 #include "render/viewplanes/ViewPlane.h"
 #include "core/math/Matrix.h"
@@ -66,24 +67,6 @@ namespace render::detail {
   inline Vector3d eyeOriginForMatrix(const Matrix4d& matrix, double distance) {
     return matrix.transformPoint(Vector3d(0.0, 0.0, -distance));
   }
-
-  // Shared motion record for lens-based cameras (ThinLens, TiltShift): identical
-  // fields and planeMatrix() logic appear in both camera types.
-  struct LensDescriptorMotion {
-    std::uint32_t motionMode{gpuPrimaryPathMotionModeOriginDelta};
-    Matrix4d matrixAtOpen;
-    Vector3d originOrPosition;
-    Vector3d motionOriginOrPositionDelta{Vector3d::null};
-    Vector3d target{Vector3d::null};
-    Vector3d targetDelta{Vector3d::null};
-
-    [[nodiscard]] Matrix4d planeMatrix() const {
-      if (motionMode == gpuPrimaryPathMotionModeLookAt) {
-        return Matrix4d();
-      }
-      return matrixAtOpen;
-    }
-  };
 
   // Fill the topLeft/right/down rectilinear plane basis from a view plane's
   // pixel grid. Used by all cameras that project through a flat view plane.

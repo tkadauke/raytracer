@@ -19,9 +19,9 @@ using namespace render;
 namespace {
   using render::detail::checkedU32;
   using render::detail::checkGpuPathCount;
-  using render::detail::eyeOriginForMatrix;
   using render::detail::fillGpuDescriptorPlane;
   using render::detail::fillGpuDescriptorViewport;
+  using render::detail::lensDescriptorMotion;
   using render::detail::LensDescriptorMotion;
   using render::detail::parameters4;
   using render::detail::vector4;
@@ -109,31 +109,8 @@ TiltShiftCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampl
       animationTrack("focalDistance") || animationTrack("tilt") || animationTrack("shift")) {
     return std::nullopt;
   }
-  std::optional<LensDescriptorMotion> motion;
-  if (const std::optional<Matrix4d> descriptorMatrix = fixedShutterGpuCameraMatrix()) {
-    motion = LensDescriptorMotion{gpuPrimaryPathMotionModeOriginDelta, *descriptorMatrix,
-                                       eyeOriginForMatrix(*descriptorMatrix, distance())};
-  } else {
-    if (const std::optional<detail::SampledShutterDescriptorMotion> stableMotion =
-          detail::sampledStableBasisShutterMotion(*this);
-        stableMotion) {
-      motion =
-        LensDescriptorMotion{gpuPrimaryPathMotionModeOriginDelta, stableMotion->matrixAtOpen,
-                                  eyeOriginForMatrix(stableMotion->matrixAtOpen, distance()),
-                                  eyeOriginForMatrix(stableMotion->matrixAtClose, distance()) -
-                                    eyeOriginForMatrix(stableMotion->matrixAtOpen, distance())};
-    } else if (const std::optional<detail::SampledShutterLookAtDescriptorMotion> lookAtMotion =
-                 detail::sampledLookAtShutterMotion(*this);
-               lookAtMotion) {
-      motion = LensDescriptorMotion{
-        gpuPrimaryPathMotionModeLookAt,
-        Matrix4d::lookAt(lookAtMotion->positionAtOpen, lookAtMotion->targetAtOpen, Vector3d::up()),
-        lookAtMotion->positionAtOpen,
-        lookAtMotion->positionDelta(),
-        lookAtMotion->targetAtOpen,
-        lookAtMotion->targetDelta()};
-    }
-  }
+  const std::optional<LensDescriptorMotion> motion =
+    lensDescriptorMotion(*this, distance(), fixedShutterGpuCameraMatrix());
   if (!motion) {
     return std::nullopt;
   }

@@ -1,5 +1,6 @@
 #include "render/cameras/SampledShutterDescriptorMotion.h"
 #include "CameraMotionHelpers.h"
+#include "GpuPrimaryPathDescriptorPacking.h"
 
 namespace render::detail {
 
@@ -65,5 +66,61 @@ namespace render::detail {
       return std::nullopt;
     }
     return SampledShutterDescriptorMotion{matrixAtOpen, matrixAtClose};
+  }
+
+  std::optional<LensDescriptorMotion> lensDescriptorMotion(
+      const Camera& camera, double distance,
+      const std::optional<Matrix4d>& fixedShutterMatrix) {
+    if (fixedShutterMatrix) {
+      return LensDescriptorMotion{gpuPrimaryPathMotionModeOriginDelta, *fixedShutterMatrix,
+                                  eyeOriginForMatrix(*fixedShutterMatrix, distance)};
+    }
+    if (const std::optional<SampledShutterDescriptorMotion> stable =
+          sampledStableBasisShutterMotion(camera);
+        stable) {
+      return LensDescriptorMotion{
+        gpuPrimaryPathMotionModeOriginDelta, stable->matrixAtOpen,
+        eyeOriginForMatrix(stable->matrixAtOpen, distance),
+        eyeOriginForMatrix(stable->matrixAtClose, distance) -
+          eyeOriginForMatrix(stable->matrixAtOpen, distance)};
+    }
+    if (const std::optional<SampledShutterLookAtDescriptorMotion> lookAt =
+          sampledLookAtShutterMotion(camera);
+        lookAt) {
+      return LensDescriptorMotion{
+        gpuPrimaryPathMotionModeLookAt,
+        Matrix4d::lookAt(lookAt->positionAtOpen, lookAt->targetAtOpen, Vector3d::up()),
+        lookAt->positionAtOpen,
+        lookAt->positionDelta(),
+        lookAt->targetAtOpen,
+        lookAt->targetDelta()};
+    }
+    return std::nullopt;
+  }
+
+  std::optional<PointSourceDescriptorMotion> pointSourceDescriptorMotion(
+      const Camera& camera, const std::optional<Matrix4d>& fixedShutterMatrix) {
+    if (fixedShutterMatrix) {
+      return PointSourceDescriptorMotion{*fixedShutterMatrix};
+    }
+    if (const std::optional<SampledShutterDescriptorMotion> stable =
+          sampledStableBasisShutterMotion(camera);
+        stable) {
+      return PointSourceDescriptorMotion{
+        stable->matrixAtOpen,
+        gpuPrimaryPathMotionModeOriginDelta,
+        stable->matrixAtClose.translationVector() - stable->matrixAtOpen.translationVector()};
+    }
+    const std::optional<SampledShutterLookAtDescriptorMotion> lookAt =
+      sampledLookAtShutterMotion(camera);
+    if (!lookAt) {
+      return std::nullopt;
+    }
+    return PointSourceDescriptorMotion{
+      Matrix4d::lookAt(lookAt->positionAtOpen, lookAt->targetAtOpen, Vector3d::up()),
+      gpuPrimaryPathMotionModeLookAt,
+      lookAt->positionDelta(),
+      lookAt->targetAtOpen,
+      lookAt->targetDelta()};
   }
 }

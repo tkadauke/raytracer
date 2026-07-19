@@ -23,6 +23,7 @@ namespace {
   using render::detail::fillGpuDescriptorMatrixBasis;
   using render::detail::fillGpuDescriptorViewport;
   using render::detail::parameters4;
+  using render::detail::pointSourceDescriptorMotion;
   using render::detail::vector4;
 }
 
@@ -66,31 +67,9 @@ FishEyeCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampleS
   if (animationTrack("fieldOfView")) {
     return std::nullopt;
   }
-  std::optional<Matrix4d> descriptorMatrix = fixedShutterGpuCameraMatrix();
-  std::uint32_t motionMode = gpuPrimaryPathMotionModeOriginDelta;
-  Vector3d motionOriginDelta = Vector3d::null;
-  Vector3d motionTarget = Vector3d::null;
-  Vector3d motionTargetDelta = Vector3d::null;
-  if (!descriptorMatrix) {
-    const std::optional<detail::SampledShutterDescriptorMotion> motion =
-      detail::sampledStableBasisShutterMotion(*this);
-    if (motion) {
-      descriptorMatrix = motion->matrixAtOpen;
-      motionOriginDelta =
-        motion->matrixAtClose.translationVector() - motion->matrixAtOpen.translationVector();
-    } else {
-      const std::optional<detail::SampledShutterLookAtDescriptorMotion> lookAtMotion =
-        detail::sampledLookAtShutterMotion(*this);
-      if (!lookAtMotion) {
-        return std::nullopt;
-      }
-      descriptorMatrix =
-        Matrix4d::lookAt(lookAtMotion->positionAtOpen, lookAtMotion->targetAtOpen, Vector3d::up());
-      motionMode = gpuPrimaryPathMotionModeLookAt;
-      motionOriginDelta = lookAtMotion->positionDelta();
-      motionTarget = lookAtMotion->targetAtOpen;
-      motionTargetDelta = lookAtMotion->targetDelta();
-    }
+  const auto motion = pointSourceDescriptorMotion(*this, fixedShutterGpuCameraMatrix());
+  if (!motion) {
+    return std::nullopt;
   }
 
   const Recti actual = renderableRect(rect);
@@ -102,12 +81,12 @@ FishEyeCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampleS
 
   GpuPrimaryPathDescriptor descriptor;
   descriptor.mode = gpuPrimaryPathGenerationModeFishEye;
-  descriptor.rectilinear.motionMode = motionMode;
-  descriptor.rectilinear.originOrDirection = vector4(descriptorMatrix->translationVector(), 1.0f);
-  descriptor.rectilinear.motionOriginDelta = vector4(motionOriginDelta, 0.0f);
-  descriptor.rectilinear.motionTarget = vector4(motionTarget, 1.0f);
-  descriptor.rectilinear.motionTargetDelta = vector4(motionTargetDelta, 0.0f);
-  fillGpuDescriptorMatrixBasis(descriptor.rectilinear, *descriptorMatrix);
+  descriptor.rectilinear.motionMode = motion->motionMode;
+  descriptor.rectilinear.originOrDirection = vector4(motion->matrix.translationVector(), 1.0f);
+  descriptor.rectilinear.motionOriginDelta = vector4(motion->motionOriginDelta, 0.0f);
+  descriptor.rectilinear.motionTarget = vector4(motion->target, 1.0f);
+  descriptor.rectilinear.motionTargetDelta = vector4(motion->targetDelta, 0.0f);
+  fillGpuDescriptorMatrixBasis(descriptor.rectilinear, motion->matrix);
   descriptor.rectilinear.lensParameters =
     parameters4(plane->width(), plane->height(), m_fieldOfView.radians());
   fillGpuDescriptorViewport(descriptor.rectilinear, rect, actual,

@@ -2,9 +2,8 @@
 
 #include "core/formats/AssetResolver.h"
 #include "core/formats/ldraw/LDrawParseError.h"
+#include "core/util/StringUtil.h"
 
-#include <algorithm>
-#include <cctype>
 #include <fstream>
 #include <sstream>
 #include <utility>
@@ -14,11 +13,7 @@ namespace fs = std::filesystem;
 
 namespace {
   string toLookupKey(const fs::path& path) {
-    string value = path.generic_string();
-    transform(value.begin(), value.end(), value.begin(), [](unsigned char c) {
-      return static_cast<char>(tolower(c));
-    });
-    return value;
+    return core::util::lowercase(path.generic_string());
   }
 
   fs::path normalizeExistingPath(const fs::path& path) {
