@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "test/helpers/ColorTestHelper.h"
+#include "test/helpers/MaterialTestHelper.h"
 #include "test/helpers/RecordingRayCaster.h"
 
 namespace TransparentMaterialTest {
@@ -76,7 +77,7 @@ namespace TransparentMaterialTest {
     material.setReflectionCoefficient(0.0);
     material.setTransmissionCoefficient(0.5);
     material.setRefractionIndex(1.0);
-    HitPoint hitPoint{nullptr, 1.0, Vector4d(0, 0, 0, 1), Vector3d(0, 1, 0)};
+    HitPoint hitPoint = test::helpers::hitPointAtOrigin();
 
     const MaterialBsdfSample sampled =
       material.sampleBsdf(hitPoint, Vector3d(0, 1, 0), Vector2d(0.75, 0.5));
@@ -96,7 +97,7 @@ namespace TransparentMaterialTest {
     material.setReflectionCoefficient(0.0);
     material.setTransmissionCoefficient(0.5);
     material.setRefractionIndex(1.0);
-    HitPoint hitPoint{nullptr, 1.0, Vector4d(0, 0, 0, 1), Vector3d(0, 1, 0)};
+    HitPoint hitPoint = test::helpers::hitPointAtOrigin();
 
     const MaterialBsdfSample sampled =
       material.sampleBsdf(hitPoint, Vector3d(0, 1, 0), Vector2d(0.0, 0.5));
@@ -116,7 +117,7 @@ namespace TransparentMaterialTest {
     material.setReflectionCoefficient(0.25);
     material.setTransmissionCoefficient(0.75);
     material.setRefractionIndex(1.0);
-    HitPoint hitPoint{nullptr, 1.0, Vector4d(0, 0, 0, 1), Vector3d(0, 1, 0)};
+    HitPoint hitPoint = test::helpers::hitPointAtOrigin();
 
     const MaterialBsdfSample reflected =
       material.sampleBsdf(hitPoint, Vector3d(0, 1, 0), Vector2d(0.1, 0.5));
@@ -138,7 +139,7 @@ namespace TransparentMaterialTest {
     material.setReflectionCoefficient(0.25);
     material.setTransmissionCoefficient(0.75);
     material.setRefractionIndex(1.0);
-    HitPoint hitPoint{nullptr, 1.0, Vector4d(0, 0, 0, 1), Vector3d(0, 1, 0)};
+    HitPoint hitPoint = test::helpers::hitPointAtOrigin();
 
     const std::vector<MaterialBsdfSample> branches =
       material.deltaBsdfSamples(hitPoint, Vector3d(0, 1, 0));
@@ -157,7 +158,7 @@ namespace TransparentMaterialTest {
     TransparentMaterial material;
     material.setRefractionIndex(0.5);
     constexpr double s = 0.7071067811865476;
-    HitPoint hitPoint{nullptr, 1.0, Vector4d(0, 0, 0, 1), Vector3d(0, 1, 0)};
+    HitPoint hitPoint = test::helpers::hitPointAtOrigin();
 
     const MaterialBsdfSample sampled =
       material.sampleBsdf(hitPoint, Vector3d(s, s, 0), Vector2d(0.75, 0.5));
@@ -203,7 +204,7 @@ namespace TransparentMaterialTest {
       std::shared_ptr<render::Scene> scene = std::make_shared<Scene>(Colord::black());
       RecordingRayCaster raycaster;
 
-      HitPoint hitPoint{nullptr, 1.0, Vector4d(0, 0, 0, 1), Vector3d(0, 1, 0)};
+      HitPoint hitPoint = test::helpers::hitPointAtOrigin();
       Rayd ray{Vector3d(0, 5, 0), Vector3d(0, -1, 0)};
       State state;
 
@@ -324,7 +325,7 @@ namespace TransparentMaterialTest {
     const double angle = 60.0 * M_PI / 180.0;
     Vector3d direction(std::sin(angle), std::cos(angle), 0);
     Rayd ray(Vector3d(0, -1, 0), direction);
-    HitPoint hitPoint(nullptr, 1.0, Vector4d(0, 0, 0, 1), Vector3d(0, 1, 0));
+    HitPoint hitPoint = test::helpers::hitPointAtOrigin();
 
     State state;
     state.startTrace();

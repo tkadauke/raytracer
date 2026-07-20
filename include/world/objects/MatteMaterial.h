@@ -5,6 +5,10 @@
 
 class Texture;
 
+namespace render {
+  class MatteMaterial;
+}
+
 /**
   * Matte materials have no reflection, or transmission. As the name suggests,
   * they appear matte.
@@ -117,6 +121,7 @@ public:
 
 protected:
   virtual std::shared_ptr<render::Material> toRaytracerMaterial() const;
+  void applyMatteMaterialProperties(const std::shared_ptr<render::MatteMaterial>& material) const;
 
 private:
   Texture* m_diffuseTexture;

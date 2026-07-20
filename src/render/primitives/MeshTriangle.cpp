@@ -1,27 +1,12 @@
 #include "render/IntersectionSceneCompiler.h"
 #include "render/primitives/MeshTriangle.h"
+#include "PacketStateHelpers.h"
 #include "core/geometry/Mesh.h"
 #include "core/math/RayPacket.h"
 #include "core/simd/Float4.h"
 #include "render/State.h"
 
 using namespace render;
-
-void MeshTriangle::recordPacketHit(State& state, const char* reason) const {
-  if (state.traceEvents) {
-    state.hit(this, reason);
-  } else {
-    ++state.intersectionHits;
-  }
-}
-
-void MeshTriangle::recordPacketMiss(State& state, const char* reason) const {
-  if (state.traceEvents) {
-    state.miss(this, reason);
-  } else {
-    ++state.intersectionMisses;
-  }
-}
 
 double MeshTriangle::minimumHitDistance() const {
   return 0.0;
@@ -95,9 +80,9 @@ RayPacketIntersection4 MeshTriangle::intersectPacket(const Ray4& rays, render::S
   for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
     if ((intersections.hitMask & (1 << lane)) != 0) {
       result.setHit(lane, intersections.distances[lane], intersections.distances[lane]);
-      recordPacketHit(state, "MeshTriangle");
+      packetHit(state, this, "MeshTriangle");
     } else {
-      recordPacketMiss(state, "MeshTriangle, ray miss");
+      packetMiss(state, this, "MeshTriangle, ray miss");
     }
   }
 
@@ -115,14 +100,14 @@ PrimitivePacketHit4 MeshTriangle::intersectPacketHits(const Ray4& rays,
     }
     State& state = *states[lane];
     if ((intersections.hitMask & (1 << lane)) == 0) {
-      recordPacketMiss(state, "MeshTriangle, ray miss");
+      packetMiss(state, this, "MeshTriangle, ray miss");
       continue;
     }
 
     result.setHit(lane, this,
                   materializeHitPoint(rays.rayd(lane), intersections.distances[lane],
                                       intersections.betas[lane], intersections.gammas[lane]));
-    recordPacketHit(state, "MeshTriangle");
+    packetHit(state, this, "MeshTriangle");
   }
   return result;
 }
@@ -168,12 +153,12 @@ PrimitivePacketHit8 MeshTriangle::intersectPacketHits(const Ray8& rays,
 
     if (beta < 0.0 || beta > 1.0 || gamma < 0.0 || beta + gamma > 1.0 ||
         distance < minimumHitDistance()) {
-      recordPacketMiss(state, "MeshTriangle, ray miss");
+      packetMiss(state, this, "MeshTriangle, ray miss");
       continue;
     }
 
     result.setHit(lane, this, materializeHitPoint(ray, distance, beta, gamma));
-    recordPacketHit(state, "MeshTriangle");
+    packetHit(state, this, "MeshTriangle");
   }
   return result;
 }

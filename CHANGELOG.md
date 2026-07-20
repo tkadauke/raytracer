@@ -11,6 +11,22 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Add `world::makeTextureMapping2D` to `src/world/objects/TextureMappingHelper.h`,
+  eliminating the duplicate `mapping == "uv"` ? `UVMapping2D` : `PlanarMapping2D` ternary
+  in `CheckerBoardTexture.cpp` and `ImageTexture.cpp`. — Claude Sonnet 4.6
+- Add `MatteMaterial::applyMatteMaterialProperties` helper that bundles normal-texture
+  propagation with `applyMaterialProperties`, removing the identical three-line block
+  duplicated in `MatteMaterial::toRaytracerMaterial` and `PhongMaterial::toRaytracerMaterial`.
+  — Claude Sonnet 4.6
+- Add `test::helpers::hitPointAtOrigin()` to `test/helpers/MaterialTestHelper.h`,
+  eliminating 16 inline `HitPoint{nullptr, 1.0, Vector4d(0,0,0,1), Vector3d(0,1,0)}`
+  constructions across `MatteMaterialTest`, `PhongMaterialTest`, `ReflectiveMaterialTest`,
+  and `TransparentMaterialTest`. — Claude Sonnet 4.6
+- Remove the `#if RAYTRACER_SIMD_SSE || RAYTRACER_SIMD_NEON` guard from
+  `src/render/primitives/PacketStateHelpers.h` (the functions use no SIMD types)
+  and drop `MeshTriangle::recordPacketHit/Miss` private members, replacing their
+  call sites with the free `packetHit/packetMiss` functions already used by
+  `Triangle`, `Box`, `Sphere`, and `Plane`. — Claude Sonnet 4.6
 - Add `positiveExtent(value)` to `include/core/math/Number.h`, replacing the
   repeated `std::max(std::abs(v), std::numeric_limits<double>::epsilon())` pattern
   in geometric-dimension setters across `Sphere`, `Disk`, `Cylinder`,

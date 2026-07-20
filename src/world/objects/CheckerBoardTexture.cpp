@@ -1,8 +1,7 @@
 #include "world/objects/ElementFactory.h"
 #include "world/objects/CheckerBoardTexture.h"
 #include "render/textures/CheckerBoardTexture.h"
-#include "render/textures/mappings/PlanarMapping2D.h"
-#include "render/textures/mappings/UVMapping2D.h"
+#include "TextureMappingHelper.h"
 
 #include <QVariant>
 
@@ -32,10 +31,7 @@ std::shared_ptr<render::Texturec> CheckerBoardTexture::toRaytracerTexture() cons
   const QString mappingName = effectiveMapping(*this);
   const double uScale = effectiveScale(*this, "uScale", m_uScale);
   const double vScale = effectiveScale(*this, "vScale", m_vScale);
-  render::TextureMapping2D* mapping =
-    mappingName == "uv"
-      ? static_cast<render::TextureMapping2D*>(new render::UVMapping2D(uScale, vScale))
-      : static_cast<render::TextureMapping2D*>(new render::PlanarMapping2D);
+  render::TextureMapping2D* mapping = world::makeTextureMapping2D(mappingName, uScale, vScale);
   return make_named<render::CheckerBoardTexture>(
     mapping, textureOrDefault(brightTexture())->toRaytracerTexture(),
     textureOrDefault(darkTexture())->toRaytracerTexture());
