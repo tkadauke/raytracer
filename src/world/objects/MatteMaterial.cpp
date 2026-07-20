@@ -12,15 +12,20 @@ MatteMaterial::MatteMaterial(Element* parent)
       m_diffuseCoefficient(1) {
 }
 
+void MatteMaterial::applyMatteMaterialProperties(
+  const std::shared_ptr<render::MatteMaterial>& material) const {
+  if (normalTexture()) {
+    material->setNormalTexture(normalTexture()->toRaytracerTexture());
+  }
+  applyMaterialProperties(material);
+}
+
 std::shared_ptr<render::Material> MatteMaterial::toRaytracerMaterial() const {
   auto material =
     make_named<render::MatteMaterial>(textureOrDefault(diffuseTexture())->toRaytracerTexture());
   material->setAmbientCoefficient(ambientCoefficient());
   material->setDiffuseCoefficient(diffuseCoefficient());
-  if (normalTexture()) {
-    material->setNormalTexture(normalTexture()->toRaytracerTexture());
-  }
-  applyMaterialProperties(material);
+  applyMatteMaterialProperties(material);
 
   return material;
 }

@@ -61,7 +61,5 @@ namespace render {
 
     PacketBarycentricIntersection4 intersectPacketBarycentric(const Ray4& rays) const;
     HitPoint materializeHitPoint(const Rayd& ray, double distance, double beta, double gamma) const;
-    void recordPacketHit(render::State& state, const char* reason) const;
-    void recordPacketMiss(render::State& state, const char* reason) const;
   };
 }

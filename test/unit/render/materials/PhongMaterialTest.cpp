@@ -11,6 +11,7 @@
 #include "render/primitives/Sphere.h"
 
 #include "test/helpers/ColorTestHelper.h"
+#include "test/helpers/MaterialTestHelper.h"
 
 namespace PhongMaterialTest {
   using namespace render;
@@ -61,7 +62,7 @@ namespace PhongMaterialTest {
     material.setSpecularCoefficient(1.0);
     material.setSpecularColor(Colord::white());
     material.setExponent(16);
-    HitPoint hitPoint{nullptr, 1.0, Vector4d(0, 0, 0, 1), Vector3d(0, 1, 0)};
+    HitPoint hitPoint = test::helpers::hitPointAtOrigin();
 
     const Colord value = material.evalBsdf(hitPoint, Vector3d(0, 1, 0), Vector3d(0, 1, 0));
 
@@ -76,7 +77,7 @@ namespace PhongMaterialTest {
     material.setSpecularCoefficient(1.0);
     material.setSpecularColor(Colord::white());
     material.setExponent(16);
-    HitPoint hitPoint{nullptr, 1.0, Vector4d(0, 0, 0, 1), Vector3d(0, 1, 0)};
+    HitPoint hitPoint = test::helpers::hitPointAtOrigin();
 
     const MaterialBsdfSample sampled =
       material.sampleBsdf(hitPoint, Vector3d(0, 1, 0), Vector2d(0.75, 0.5));
@@ -105,7 +106,7 @@ namespace PhongMaterialTest {
       std::shared_ptr<Raytracer> raytracer = std::make_shared<Raytracer>(scene);
 
       // Upward-facing surface, viewer directly above looking down.
-      HitPoint hitPoint{nullptr, 1.0, Vector4d(0, 0, 0, 1), Vector3d(0, 1, 0)};
+      HitPoint hitPoint = test::helpers::hitPointAtOrigin();
       Rayd ray{Vector3d(0, 5, 0), Vector3d(0, -1, 0)};
       State state;
 

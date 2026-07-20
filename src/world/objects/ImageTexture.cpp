@@ -1,9 +1,8 @@
 #include "world/objects/ImageTexture.h"
 
 #include "render/textures/ImageTexture.h"
-#include "render/textures/mappings/PlanarMapping2D.h"
-#include "render/textures/mappings/UVMapping2D.h"
 #include "world/objects/ElementFactory.h"
+#include "TextureMappingHelper.h"
 
 ImageTexture::ImageTexture(Element* parent)
     : Texture(parent),
@@ -16,9 +15,7 @@ ImageTexture::ImageTexture(Element* parent)
 
 std::shared_ptr<render::Texturec> ImageTexture::toRaytracerTexture() const {
   render::TextureMapping2D* textureMapping =
-    m_mapping == "planar"
-      ? static_cast<render::TextureMapping2D*>(new render::PlanarMapping2D)
-      : static_cast<render::TextureMapping2D*>(new render::UVMapping2D(m_uScale, m_vScale));
+    world::makeTextureMapping2D(m_mapping, m_uScale, m_vScale);
 
   return render::ImageTexture::fromFile(
     textureMapping, m_path.toStdString(),

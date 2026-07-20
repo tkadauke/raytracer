@@ -11,6 +11,7 @@
 #include "render/primitives/Sphere.h"
 
 #include "test/helpers/ColorTestHelper.h"
+#include "test/helpers/MaterialTestHelper.h"
 
 namespace MatteMaterialTest {
   using namespace render;
@@ -68,7 +69,7 @@ namespace MatteMaterialTest {
     auto texture = std::make_shared<ConstantColorTexture>(Colord(0.2, 0.4, 0.8));
     MatteMaterial material(texture);
     material.setDiffuseCoefficient(0.5);
-    const HitPoint hitPoint{nullptr, 1.0, Vector4d(0, 0, 0, 1), Vector3d(0, 1, 0)};
+    const HitPoint hitPoint = test::helpers::hitPointAtOrigin();
     const Rayd ray{Vector3d(0, 5, 0), Vector3d(0, -1, 0)};
 
     ASSERT_COLOR_NEAR(Colord(0.1, 0.2, 0.4), material.denoisingAlbedo(ray, hitPoint), 1e-12);
@@ -106,7 +107,7 @@ namespace MatteMaterialTest {
 
       // A horizontal hit point with the surface normal pointing straight up,
       // so a light coming from straight above contributes its full radiance.
-      HitPoint hitPoint{nullptr, 1.0, Vector4d(0, 0, 0, 1), Vector3d(0, 1, 0)};
+      HitPoint hitPoint = test::helpers::hitPointAtOrigin();
       Rayd ray{Vector3d(0, 5, 0), Vector3d(0, -1, 0)};
       State state;
 

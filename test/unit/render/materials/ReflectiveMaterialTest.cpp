@@ -7,6 +7,7 @@
 #include "render/primitives/Scene.h"
 
 #include "test/helpers/ColorTestHelper.h"
+#include "test/helpers/MaterialTestHelper.h"
 #include "test/helpers/RecordingRayCaster.h"
 
 #include <vector>
@@ -59,7 +60,7 @@ namespace ReflectiveMaterialTest {
     material.setSpecularCoefficient(0.0);
     material.setReflectionColor(Colord(0, 1, 0));
     material.setReflectionCoefficient(0.25);
-    HitPoint hitPoint{nullptr, 1.0, Vector4d(0, 0, 0, 1), Vector3d(0, 1, 0)};
+    HitPoint hitPoint = test::helpers::hitPointAtOrigin();
 
     const MaterialBsdfSample sampled =
       material.sampleBsdf(hitPoint, Vector3d(0, 1, 0), Vector2d(0.75, 0.5));
@@ -78,7 +79,7 @@ namespace ReflectiveMaterialTest {
     material.setSpecularCoefficient(1.0);
     material.setReflectionColor(Colord(0, 1, 0));
     material.setReflectionCoefficient(0.25);
-    HitPoint hitPoint{nullptr, 1.0, Vector4d(0, 0, 0, 1), Vector3d(0, 1, 0)};
+    HitPoint hitPoint = test::helpers::hitPointAtOrigin();
 
     const MaterialBsdfSample sampled =
       material.sampleBsdf(hitPoint, Vector3d(0, 1, 0), Vector2d(0.0, 0.5));
@@ -93,7 +94,7 @@ namespace ReflectiveMaterialTest {
     ReflectiveMaterial material;
     material.setReflectionColor(Colord(0, 1, 0));
     material.setReflectionCoefficient(0.25);
-    HitPoint hitPoint{nullptr, 1.0, Vector4d(0, 0, 0, 1), Vector3d(0, 1, 0)};
+    HitPoint hitPoint = test::helpers::hitPointAtOrigin();
 
     const std::vector<MaterialBsdfSample> branches =
       material.deltaBsdfSamples(hitPoint, Vector3d(0, 1, 0));
@@ -137,7 +138,7 @@ namespace ReflectiveMaterialTest {
       std::shared_ptr<render::Scene> scene = std::make_shared<Scene>(Colord::black());
       RecordingRayCaster raycaster;
 
-      HitPoint hitPoint{nullptr, 1.0, Vector4d(0, 0, 0, 1), Vector3d(0, 1, 0)};
+      HitPoint hitPoint = test::helpers::hitPointAtOrigin();
       Rayd ray{Vector3d(0, 5, 0), Vector3d(0, -1, 0)};
       State state;
 
