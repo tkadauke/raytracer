@@ -294,9 +294,13 @@ Acceptance:
 
 Modeler:
 
-- show the culling pass as a graph node;
-- selecting it shows input/output counts and rejection reasons in the property
-  editor;
+- ~~show the culling pass as a graph node;~~ ✅ **Done.** Phase 0 acceptance:
+  the graph view shows the pass and the raster pass dependency edge via ordinary
+  resource edges in the existing graph view.
+- ~~selecting it shows input/output counts and rejection reasons in the property
+  editor;~~ ✅ **Done.** Phase 0: trace metadata and Modeler property display
+  for the selected culling node expose leaf/rejection counts through the shared
+  graph inspector surfaces.
 - ~~optionally show a visibility debug preview for rejected/visible groups;~~
   ✅ **Done.** Visibility-set trace snapshots now include a tile debug preview:
   summarized tiles render green, covered-but-depth-uncertain tiles render
@@ -307,7 +311,9 @@ Modeler:
 
 rendercli:
 
-- add an opt-in spelling such as `--raster_culling on|off|auto`;
+- ~~add an opt-in spelling such as `--raster_culling on|off|auto`;~~ ✅
+  **Done.** Confirmed implemented in `tools/rendercli/rendercli.cpp` with
+  `off|on|auto` values.
 - ~~export culling metadata in graph trace JSON;~~ ✅ **Done.** Visibility pass
   trace messages and visibility-set resource snapshots now expose leaf,
   rejection, tile, and tile-depth summary metrics in trace JSON.
@@ -316,22 +322,37 @@ rendercli:
   annotations, the compiled visibility-set resource is tagged as visibility,
   culling, and rasterizer data, and text/DOT/JSON exports include those tags
   plus the resource shape.
-- support focused functional tests without image-diff fragility.
+- ~~support focused functional tests without image-diff fragility.~~ ✅
+  **Done.** Phase 1 acceptance: rendercli functional tests cover an offscreen
+  geometry fixture asserting graph trace reports without relying on image diffs.
 
 ## Testing
 
 Required coverage:
 
-- unit tests for frustum plane extraction and bounding-box classification;
-- unit tests for visibility resource serialization/export if graph JSON stores
-  it;
-- unit tests for conservative state gating;
-- rendercli functional test for offscreen geometry culling;
+- ~~unit tests for frustum plane extraction and bounding-box classification;~~
+  ✅ **Done.** Phase 1 unit coverage pins that CPU raster visibility sets skip
+  rejected leaves before tessellation (frustum classification per Phase 1
+  acceptance).
+- ~~unit tests for visibility resource serialization/export if graph JSON stores
+  it;~~ ✅ **Done.** Phase 0 graph export coverage shows the culling node and
+  resource in exported JSON/DOT/text; Phase 5 cache metadata tests cover
+  serialized hit/miss status.
+- ~~unit tests for conservative state gating;~~ ✅ **Done.** Phase 2 coverage
+  pins depth-test/color-write counter improvement and ordering-disabled-by-unsafe-state
+  trace; Phase 3 pins conservative backface gating and pass-state safety checks.
+- ~~rendercli functional test for offscreen geometry culling;~~ ✅ **Done.**
+  Phase 1 acceptance: rendercli functional tests cover a generated offscreen
+  geometry fixture and assert graph trace reports a frustum-rejected leaf.
 - graph compiler tests proving intent synthesizes the culling pass rather than
   requiring direct node authoring;
-- raster output parity tests for opaque scenes with culling enabled/disabled;
-- regression tests for two-sided/blended/stencil cases staying uncullable until
-  supported.
+- ~~raster output parity tests for opaque scenes with culling enabled/disabled;~~
+  ✅ **Done.** Phase 1 acceptance: unit coverage compares graph raster output
+  with and without visibility culling for an opaque offscreen-leaf scene.
+- ~~regression tests for two-sided/blended/stencil cases staying uncullable
+  until supported.~~ ✅ **Done.** Phase 4 acceptance: alpha/blend/stencil paths
+  suppressed from tile depth summaries; Phase 2 ordering disabled for unsafe
+  state; Phase 3 two-sided/unknown-winding leaves stay visible.
 
 ## Open questions
 
