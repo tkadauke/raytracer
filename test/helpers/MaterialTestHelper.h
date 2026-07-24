@@ -15,8 +15,12 @@ namespace test {
         std::make_shared<render::ConstantColorTexture>(color));
     }
 
+    inline HitPoint hitPointWithNormal(const Vector3d& normal) {
+      return HitPoint(nullptr, 1.0, Vector4d(0, 0, 0, 1), normal);
+    }
+
     inline HitPoint hitPointAtOrigin() {
-      return HitPoint(nullptr, 1.0, Vector4d(0, 0, 0, 1), Vector3d(0, 1, 0));
+      return hitPointWithNormal(Vector3d(0, 1, 0));
     }
   }
 }

@@ -4,11 +4,14 @@
 #include "render/State.h"
 #include "render/primitives/Grid.h"
 #include "render/primitives/Sphere.h"
+#include "test/helpers/PrimitiveTestHelper.h"
 #include "test/mocks/raytracer/MockPrimitive.h"
 
 namespace GridTest {
   using namespace ::testing;
   using namespace render;
+  using test::helpers::PacketStates4;
+  using test::helpers::PacketStates8;
 
   // Convenience: wire a MockPrimitive's bounding box and (optionally) its
   // intersect/intersects expectations with sensible NiceMock-friendly defaults.
@@ -221,10 +224,9 @@ namespace GridTest {
     const Ray4 rays(std::array<Rayd, Ray4::lanes>{
       Rayd(Vector3d(0, 0, -3), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 3, -3), Vector3d(0, 0, 1)),
       Rayd(Vector3d(0, 0, 3), Vector3d(0, 0, -1)), Rayd(Vector3d(3, 0, -3), Vector3d(0, 0, 1))});
-    std::array<State, Ray4::lanes> laneStates;
-    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+    PacketStates4 ps;
 
-    const auto result = grid.intersectPacketHits(rays, states);
+    const auto result = grid.intersectPacketHits(rays, ps.states);
 
     ASSERT_TRUE(result.hit(0));
     EXPECT_EQ(sphere.get(), result.primitive(0));
@@ -234,7 +236,7 @@ namespace GridTest {
     EXPECT_EQ(sphere.get(), result.primitive(2));
     EXPECT_FALSE(result.scalarFallback(2));
     EXPECT_FALSE(result.hit(3));
-    for (const State& state : laneStates) {
+    for (const State& state : ps.lanes) {
       EXPECT_EQ(0u, state.packetHitScalarFallbacks);
     }
   }
@@ -249,11 +251,9 @@ namespace GridTest {
       Rayd(Vector3d(0, 0, 3), Vector3d(0, 0, -1)), Rayd(Vector3d(3, 0, -3), Vector3d(0, 0, 1)),
       Rayd(Vector3d(0, 0, -4), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, 4), Vector3d(0, 0, -1)),
       Rayd(Vector3d(0, 2, -3), Vector3d(0, 0, 1)), Rayd(Vector3d(0.5, 0, -3), Vector3d(0, 0, 1))});
-    std::array<State, Ray8::lanes> laneStates;
-    PrimitivePacketState8 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3],
-                                 &laneStates[4], &laneStates[5], &laneStates[6], &laneStates[7]};
+    PacketStates8 ps;
 
-    const auto result = grid.intersectPacketHits(rays, states);
+    const auto result = grid.intersectPacketHits(rays, ps.states);
 
     ASSERT_TRUE(result.hit(0));
     EXPECT_EQ(sphere.get(), result.primitive(0));
@@ -273,7 +273,7 @@ namespace GridTest {
     ASSERT_TRUE(result.hit(7));
     EXPECT_EQ(sphere.get(), result.primitive(7));
     EXPECT_FALSE(result.scalarFallback(7));
-    for (const State& state : laneStates) {
+    for (const State& state : ps.lanes) {
       EXPECT_EQ(0u, state.packetHitScalarFallbacks);
     }
   }

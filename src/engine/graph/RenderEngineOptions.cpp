@@ -23,62 +23,32 @@ namespace engine::graph {
     }
 
     bool hasField(const QJsonObject& object, const char* key) {
-      return !object.value(key).isUndefined();
+      return detail::hasField(object, key);
     }
 
     void rejectUnknownFields(const QJsonObject& object, const std::string& path,
                              std::initializer_list<const char*> allowed) {
-      for (auto it = object.begin(); it != object.end(); ++it) {
-        const std::string key = it.key().toStdString();
-        const bool matched = std::find(allowed.begin(), allowed.end(), key) != allowed.end();
-        if (!matched)
-          optionsError(path + "." + key, "unknown field");
-      }
+      detail::rejectUnknownFields(object, path, allowed, optionsError);
     }
 
     QJsonObject objectField(const QJsonObject& object, const char* key, const std::string& path) {
-      const auto value = object.value(key);
-      if (value.isUndefined())
-        return {};
-      if (!value.isObject())
-        optionsError(path + "." + key, "expected object");
-      return value.toObject();
+      return detail::objectField(object, key, path, optionsError);
     }
 
     int intField(const QJsonObject& object, const char* key, const std::string& path) {
-      const auto value = object.value(key);
-      if (!value.isDouble())
-        optionsError(path + "." + key, "expected integer");
-
-      const double number = value.toDouble();
-      if (!std::isfinite(number) || std::floor(number) != number)
-        optionsError(path + "." + key, "expected integer");
-      return static_cast<int>(number);
+      return detail::intField(object, key, path, optionsError);
     }
 
     double doubleField(const QJsonObject& object, const char* key, const std::string& path) {
-      const auto value = object.value(key);
-      if (!value.isDouble())
-        optionsError(path + "." + key, "expected number");
-
-      const double number = value.toDouble();
-      if (!std::isfinite(number))
-        optionsError(path + "." + key, "expected finite number");
-      return number;
+      return detail::doubleField(object, key, path, optionsError);
     }
 
     bool boolField(const QJsonObject& object, const char* key, const std::string& path) {
-      const auto value = object.value(key);
-      if (!value.isBool())
-        optionsError(path + "." + key, "expected boolean");
-      return value.toBool();
+      return detail::boolField(object, key, path, optionsError);
     }
 
     std::string stringField(const QJsonObject& object, const char* key, const std::string& path) {
-      const auto value = object.value(key);
-      if (!value.isString())
-        optionsError(path + "." + key, "expected string");
-      return value.toString().toStdString();
+      return detail::stringField(object, key, path, optionsError);
     }
 
     std::string colorWriteMaskString(std::uint8_t mask) {

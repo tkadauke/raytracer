@@ -5,11 +5,14 @@
 #include "render/primitives/Sphere.h"
 #include "render/materials/MatteMaterial.h"
 #include "core/math/RayPacket.h"
+#include "test/helpers/PrimitiveTestHelper.h"
 #include "test/mocks/raytracer/MockPrimitive.h"
 
 namespace DifferenceTest {
   using namespace ::testing;
   using namespace render;
+  using test::helpers::PacketStates4;
+  using test::helpers::PacketStates8;
 
   TEST(Difference, ShouldReturnClosestPrimitiveForDifference) {
     Difference i;
@@ -69,10 +72,9 @@ namespace DifferenceTest {
     const Ray4 rays(std::array<Rayd, Ray4::lanes>{
       Rayd(Vector3d(0, 0, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, -2), Vector3d(0, 1, 0)),
       Rayd(Vector3d(0, 0, 2), Vector3d(0, 0, 1)), Rayd(Vector3d(3, 0, -2), Vector3d(0, 0, 1))});
-    std::array<State, Ray4::lanes> laneStates;
-    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+    PacketStates4 ps;
 
-    const auto result = difference.intersectPacketHits(rays, states);
+    const auto result = difference.intersectPacketHits(rays, ps.states);
 
     ASSERT_TRUE(result.hit(0));
     EXPECT_EQ(&difference, result.primitive(0));
@@ -80,7 +82,7 @@ namespace DifferenceTest {
     EXPECT_FALSE(result.hit(1));
     EXPECT_FALSE(result.hit(2));
     EXPECT_FALSE(result.hit(3));
-    for (const State& state : laneStates) {
+    for (const State& state : ps.lanes) {
       EXPECT_EQ(0u, state.packetHitScalarFallbacks);
     }
   }
@@ -95,11 +97,9 @@ namespace DifferenceTest {
       Rayd(Vector3d(0, 0, 2), Vector3d(0, 0, 1)), Rayd(Vector3d(3, 0, -2), Vector3d(0, 0, 1)),
       Rayd(Vector3d(0, 0, -3), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, 3), Vector3d(0, 0, -1)),
       Rayd(Vector3d(0, 2, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(4, 0, -2), Vector3d(0, 0, 1))});
-    std::array<State, Ray8::lanes> laneStates;
-    PrimitivePacketState8 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3],
-                                 &laneStates[4], &laneStates[5], &laneStates[6], &laneStates[7]};
+    PacketStates8 ps;
 
-    const auto result = difference.intersectPacketHits(rays, states);
+    const auto result = difference.intersectPacketHits(rays, ps.states);
 
     ASSERT_TRUE(result.hit(0));
     EXPECT_EQ(&difference, result.primitive(0));
@@ -115,7 +115,7 @@ namespace DifferenceTest {
     EXPECT_FALSE(result.scalarFallback(5));
     EXPECT_FALSE(result.hit(6));
     EXPECT_FALSE(result.hit(7));
-    for (const State& state : laneStates) {
+    for (const State& state : ps.lanes) {
       EXPECT_EQ(0u, state.packetHitScalarFallbacks);
     }
   }
@@ -130,15 +130,14 @@ namespace DifferenceTest {
     const Ray4 rays(std::array<Rayd, Ray4::lanes>{
       Rayd(Vector3d(0, 0, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 3, -2), Vector3d(0, 0, 1)),
       Rayd(Vector3d(0, 0, 2), Vector3d(0, 0, -1)), Rayd(Vector3d(3, 0, -2), Vector3d(0, 0, 1))});
-    std::array<State, Ray4::lanes> laneStates;
-    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+    PacketStates4 ps;
 
-    difference.intersectPacketHits(rays, states);
+    difference.intersectPacketHits(rays, ps.states);
 
-    EXPECT_EQ(1u, laneStates[0].packetHitScalarFallbacks);
-    EXPECT_EQ(0u, laneStates[1].packetHitScalarFallbacks);
-    EXPECT_EQ(1u, laneStates[2].packetHitScalarFallbacks);
-    EXPECT_EQ(0u, laneStates[3].packetHitScalarFallbacks);
+    EXPECT_EQ(1u, ps.lanes[0].packetHitScalarFallbacks);
+    EXPECT_EQ(0u, ps.lanes[1].packetHitScalarFallbacks);
+    EXPECT_EQ(1u, ps.lanes[2].packetHitScalarFallbacks);
+    EXPECT_EQ(0u, ps.lanes[3].packetHitScalarFallbacks);
   }
 
   TEST(Difference, ShouldNotReturnAnyPrimitiveRayOutsideBoundingBox) {

@@ -4,13 +4,15 @@
 #include "render/materials/EmissiveMaterial.h"
 
 #include "test/helpers/ColorTestHelper.h"
+#include "test/helpers/MaterialTestHelper.h"
 
 namespace EmissiveMaterialTest {
   using namespace render;
+  using test::helpers::hitPointWithNormal;
 
   TEST(EmissiveMaterial, EmitsTowardFrontSide) {
     EmissiveMaterial material(Colord(2.0, 3.0, 4.0));
-    const HitPoint hitPoint(nullptr, 1.0, Vector4d(0, 0, 0, 1), Vector3d(0, -1, 0));
+    const HitPoint hitPoint = hitPointWithNormal(Vector3d(0, -1, 0));
     const Rayd ray(Vector3d(0, -2, 0), Vector3d(0, 1, 0));
 
     ASSERT_COLOR_NEAR(Colord(2.0, 3.0, 4.0), material.emittedRadiance(ray, hitPoint), 1e-12);
@@ -18,7 +20,7 @@ namespace EmissiveMaterialTest {
 
   TEST(EmissiveMaterial, DoesNotEmitTowardBackSide) {
     EmissiveMaterial material(Colord(2.0, 3.0, 4.0));
-    const HitPoint hitPoint(nullptr, 1.0, Vector4d(0, 0, 0, 1), Vector3d(0, -1, 0));
+    const HitPoint hitPoint = hitPointWithNormal(Vector3d(0, -1, 0));
     const Rayd ray(Vector3d(0, 2, 0), Vector3d(0, -1, 0));
 
     ASSERT_COLOR_NEAR(Colord::black(), material.emittedRadiance(ray, hitPoint), 1e-12);
@@ -26,7 +28,7 @@ namespace EmissiveMaterialTest {
 
   TEST(EmissiveMaterial, ExposesNoBsdfContinuation) {
     EmissiveMaterial material(Colord(2.0, 3.0, 4.0));
-    const HitPoint hitPoint(nullptr, 1.0, Vector4d(0, 0, 0, 1), Vector3d(0, -1, 0));
+    const HitPoint hitPoint = hitPointWithNormal(Vector3d(0, -1, 0));
 
     EXPECT_TRUE(material.supportsPathTracing());
     EXPECT_FALSE(material.supportsBsdfSampling());

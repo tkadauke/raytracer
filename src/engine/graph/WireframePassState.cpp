@@ -2,9 +2,9 @@
 
 #include "engine/graph/RenderGraphTypes.h"
 #include "engine/graph/RenderPlan.h"
+#include "engine/graph/detail/JsonStateHelpers.h"
 
 #include <algorithm>
-#include <cmath>
 #include <initializer_list>
 #include <stdexcept>
 #include <string>
@@ -16,28 +16,16 @@ namespace engine::graph {
     }
 
     bool hasField(const QJsonObject& object, const char* key) {
-      return !object.value(key).isUndefined();
+      return detail::hasField(object, key);
     }
 
     void rejectUnknownFields(const QJsonObject& object, const std::string& path,
                              std::initializer_list<const char*> allowed) {
-      for (auto it = object.begin(); it != object.end(); ++it) {
-        const std::string key = it.key().toStdString();
-        const bool matched = std::find(allowed.begin(), allowed.end(), key) != allowed.end();
-        if (!matched)
-          stateError(path + "." + key, "unknown field");
-      }
+      detail::rejectUnknownFields(object, path, allowed, stateError);
     }
 
     int intField(const QJsonObject& object, const char* key, const std::string& path) {
-      const auto value = object.value(key);
-      if (!value.isDouble())
-        stateError(path + "." + key, "expected integer");
-
-      const double number = value.toDouble();
-      if (!std::isfinite(number) || std::floor(number) != number)
-        stateError(path + "." + key, "expected integer");
-      return static_cast<int>(number);
+      return detail::intField(object, key, path, stateError);
     }
   }
 

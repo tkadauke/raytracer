@@ -4,10 +4,13 @@
 #include "core/math/Ray.h"
 #include "core/math/RayPacket.h"
 #include "core/math/HitPointInterval.h"
+#include "test/helpers/PrimitiveTestHelper.h"
 #include "test/helpers/VectorTestHelper.h"
 
 namespace TorusTest {
   using namespace render;
+  using test::helpers::PacketStates4;
+  using test::helpers::PacketStates8;
 
   TEST(Torus, ShouldInitializeWithValues) {
     Torus torus(2, 1);
@@ -95,10 +98,9 @@ namespace TorusTest {
     const Ray4 rays(std::array<Rayd, 4>{
       Rayd(Vector3d(0, 0, -4), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, -4), Vector3d(0, 1, 0)),
       Rayd(Vector3d(0, 0, 4), Vector3d(0, 0, 1)), Rayd(Vector3d(), Vector3d(0, 0, 1))});
-    std::array<State, Ray4::lanes> laneStates;
-    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+    PacketStates4 ps;
 
-    const auto result = torus.intersectPacketHits(rays, states);
+    const auto result = torus.intersectPacketHits(rays, ps.states);
 
     ASSERT_TRUE(result.hit(0));
     EXPECT_EQ(&torus, result.primitive(0));
@@ -111,11 +113,11 @@ namespace TorusTest {
     ASSERT_VECTOR_NEAR(Vector4d(0, 0, 1, 1), result.hitPoint(3).point(), 1e-12);
     ASSERT_VECTOR_NEAR(Vector3d(0, 0, -1), result.hitPoint(3).normal(), 1e-12);
     EXPECT_NEAR(1, result.hitPoint(3).distance(), 1e-12);
-    EXPECT_EQ(1, laneStates[0].intersectionHits);
-    EXPECT_EQ(1, laneStates[1].intersectionMisses);
-    EXPECT_EQ(1, laneStates[2].intersectionMisses);
-    EXPECT_EQ(1, laneStates[3].intersectionHits);
-    for (const State& state : laneStates) {
+    EXPECT_EQ(1, ps.lanes[0].intersectionHits);
+    EXPECT_EQ(1, ps.lanes[1].intersectionMisses);
+    EXPECT_EQ(1, ps.lanes[2].intersectionMisses);
+    EXPECT_EQ(1, ps.lanes[3].intersectionHits);
+    for (const State& state : ps.lanes) {
       EXPECT_EQ(0u, state.packetHitScalarFallbacks);
     }
   }
@@ -125,10 +127,9 @@ namespace TorusTest {
     const Ray4 rays(std::array<Rayd, 4>{
       Rayd(Vector3d(0, 0, -4), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, -4), Vector3d(0, 1, 0)),
       Rayd(Vector3d(0, 0, 4), Vector3d(0, 0, 1)), Rayd(Vector3d(), Vector3d(0, 0, 1))});
-    std::array<State, Ray4::lanes> laneStates;
-    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+    PacketStates4 ps;
 
-    const auto result = torus.intersectPacketIntervals(rays, states);
+    const auto result = torus.intersectPacketIntervals(rays, ps.states);
 
     ASSERT_TRUE(result.hit(0));
     ASSERT_TRUE(result.hasInterval(0));
@@ -151,11 +152,11 @@ namespace TorusTest {
     EXPECT_NEAR(3, result.interval(3).max().distance(), 1e-12);
     EXPECT_FALSE(result.scalarFallback(3));
 
-    EXPECT_EQ(1, laneStates[0].intersectionHits);
-    EXPECT_EQ(1, laneStates[1].intersectionMisses);
-    EXPECT_EQ(1, laneStates[2].intersectionMisses);
-    EXPECT_EQ(1, laneStates[3].intersectionHits);
-    for (const State& state : laneStates) {
+    EXPECT_EQ(1, ps.lanes[0].intersectionHits);
+    EXPECT_EQ(1, ps.lanes[1].intersectionMisses);
+    EXPECT_EQ(1, ps.lanes[2].intersectionMisses);
+    EXPECT_EQ(1, ps.lanes[3].intersectionHits);
+    for (const State& state : ps.lanes) {
       EXPECT_EQ(0u, state.packetHitScalarFallbacks);
     }
   }
@@ -167,11 +168,9 @@ namespace TorusTest {
       Rayd(Vector3d(0, 0, 4), Vector3d(0, 0, 1)), Rayd(Vector3d(), Vector3d(0, 0, 1)),
       Rayd(Vector3d(0, 0, 4), Vector3d(0, 0, -1)), Rayd(Vector3d(4, 0, 0), Vector3d(-1, 0, 0)),
       Rayd(Vector3d(0, 4, 0), Vector3d(0, -1, 0)), Rayd(Vector3d(0, 0, 0), Vector3d(0, 0, -1))});
-    std::array<State, Ray8::lanes> laneStates;
-    PrimitivePacketState8 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3],
-                                 &laneStates[4], &laneStates[5], &laneStates[6], &laneStates[7]};
+    PacketStates8 ps;
 
-    const auto result = torus.intersectPacketHits(rays, states);
+    const auto result = torus.intersectPacketHits(rays, ps.states);
 
     ASSERT_TRUE(result.hit(0));
     EXPECT_EQ(&torus, result.primitive(0));
@@ -194,15 +193,15 @@ namespace TorusTest {
     ASSERT_TRUE(result.hit(7));
     ASSERT_VECTOR_NEAR(Vector4d(0, 0, -1, 1), result.hitPoint(7).point(), 1e-12);
     ASSERT_VECTOR_NEAR(Vector3d(0, 0, 1), result.hitPoint(7).normal(), 1e-12);
-    EXPECT_EQ(1, laneStates[0].intersectionHits);
-    EXPECT_EQ(1, laneStates[1].intersectionMisses);
-    EXPECT_EQ(1, laneStates[2].intersectionMisses);
-    EXPECT_EQ(1, laneStates[3].intersectionHits);
-    EXPECT_EQ(1, laneStates[4].intersectionHits);
-    EXPECT_EQ(1, laneStates[5].intersectionHits);
-    EXPECT_EQ(1, laneStates[6].intersectionMisses);
-    EXPECT_EQ(1, laneStates[7].intersectionHits);
-    for (const State& state : laneStates) {
+    EXPECT_EQ(1, ps.lanes[0].intersectionHits);
+    EXPECT_EQ(1, ps.lanes[1].intersectionMisses);
+    EXPECT_EQ(1, ps.lanes[2].intersectionMisses);
+    EXPECT_EQ(1, ps.lanes[3].intersectionHits);
+    EXPECT_EQ(1, ps.lanes[4].intersectionHits);
+    EXPECT_EQ(1, ps.lanes[5].intersectionHits);
+    EXPECT_EQ(1, ps.lanes[6].intersectionMisses);
+    EXPECT_EQ(1, ps.lanes[7].intersectionHits);
+    for (const State& state : ps.lanes) {
       EXPECT_EQ(0u, state.packetHitScalarFallbacks);
     }
   }

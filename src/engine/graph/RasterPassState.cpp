@@ -1,7 +1,7 @@
 #include "engine/graph/RasterPassState.h"
 
-#include "engine/graph/RenderPlan.h"
 #include "engine/graph/detail/JsonStateHelpers.h"
+#include "engine/graph/RenderPlan.h"
 #include "engine/raster/OpenGLRasterizer.h"
 #include "core/util/QStringUtil.h"
 
@@ -27,85 +27,42 @@ namespace engine::graph {
     }
 
     bool hasField(const QJsonObject& object, const char* key) {
-      return !object.value(key).isUndefined();
+      return detail::hasField(object, key);
     }
 
     void rejectUnknownFields(const QJsonObject& object, const std::string& path,
                              std::initializer_list<const char*> allowed) {
-      for (auto it = object.begin(); it != object.end(); ++it) {
-        const std::string key = it.key().toStdString();
-        bool matched = false;
-        for (const char* allowedKey : allowed) {
-          if (key == allowedKey) {
-            matched = true;
-            break;
-          }
-        }
-        if (!matched)
-          stateError(path + "." + key, "unknown field");
-      }
+      detail::rejectUnknownFields(object, path, allowed, stateError);
     }
 
     QJsonObject objectField(const QJsonObject& object, const char* key, const std::string& path) {
-      const auto value = object.value(key);
-      if (value.isUndefined())
-        return {};
-      if (!value.isObject())
-        stateError(path + "." + key, "expected object");
-      return value.toObject();
+      return detail::objectField(object, key, path, stateError);
     }
 
     int intField(const QJsonObject& object, const char* key, const std::string& path) {
-      const auto value = object.value(key);
-      if (!value.isDouble())
-        stateError(path + "." + key, "expected integer");
-
-      const double number = value.toDouble();
-      if (!std::isfinite(number) || std::floor(number) != number)
-        stateError(path + "." + key, "expected integer");
-      return static_cast<int>(number);
+      return detail::intField(object, key, path, stateError);
     }
 
     std::uint8_t byteField(const QJsonObject& object, const char* key, const std::string& path) {
-      const int value = intField(object, key, path);
-      if (value < 0 || value > 255)
-        stateError(path + "." + key, "expected integer from 0 to 255");
-      return static_cast<std::uint8_t>(value);
+      return detail::byteField(object, key, path, stateError);
     }
 
     double doubleField(const QJsonObject& object, const char* key, const std::string& path) {
-      const auto value = object.value(key);
-      if (!value.isDouble())
-        stateError(path + "." + key, "expected number");
-
-      const double number = value.toDouble();
-      if (!std::isfinite(number))
-        stateError(path + "." + key, "expected finite number");
-      return number;
+      return detail::doubleField(object, key, path, stateError);
     }
 
     bool boolField(const QJsonObject& object, const char* key, const std::string& path) {
-      const auto value = object.value(key);
-      if (!value.isBool())
-        stateError(path + "." + key, "expected boolean");
-      return value.toBool();
+      return detail::boolField(object, key, path, stateError);
     }
 
     std::string stringField(const QJsonObject& object, const char* key, const std::string& path) {
-      const auto value = object.value(key);
-      if (!value.isString())
-        stateError(path + "." + key, "expected string");
-      return value.toString().toStdString();
+      return detail::stringField(object, key, path, stateError);
     }
 
     template<class T>
     const char* enumName(T value, std::initializer_list<std::pair<T, const char*>> values,
                          const char* fallback) {
-      for (const auto& [parsed, name] : values) {
-        if (value == parsed)
-          return name;
-      }
-      return fallback;
+      return detail::enumName(value, values, fallback);
     }
 
     const char* toString(Rasterizer::CullMode mode) {

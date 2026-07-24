@@ -7,10 +7,12 @@
 #include "core/math/HitPointInterval.h"
 #include "render/State.h"
 #include "render/primitives/Primitive.h"
+#include "test/helpers/PrimitiveTestHelper.h"
 #include "test/helpers/VectorTestHelper.h"
 
 namespace testing {
   using namespace render;
+  using test::helpers::PacketStates4;
 
   template<class MT>
   struct AbstractMeshTriangleTest : public ::testing::Test {
@@ -102,9 +104,8 @@ namespace testing {
                                        Rayf(Vector3f(0, 0, -1), Vector3f(0, 0, -1)),
                                        Rayf(Vector3f(-0.5f, -0.5f, -1), Vector3f(0, 0, 1))};
 
-    std::array<State, Ray4::lanes> laneStates;
-    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
-    const auto result = triangle.intersectPacketHits(Ray4(rayArray), states);
+    PacketStates4 ps;
+    const auto result = triangle.intersectPacketHits(Ray4(rayArray), ps.states);
 
     for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
       State scalarState;
@@ -122,11 +123,11 @@ namespace testing {
       ASSERT_VECTOR_NEAR(expected.point(), actual.point(), 1e-5);
       ASSERT_VECTOR_NEAR(expected.normal(), actual.normal(), 1e-5);
       ASSERT_VECTOR_NEAR(expected.uv(), actual.uv(), 1e-5);
-      ASSERT_EQ(1, laneStates[lane].intersectionHits) << "lane " << lane;
-      ASSERT_EQ(0, laneStates[lane].intersectionMisses) << "lane " << lane;
+      ASSERT_EQ(1, ps.lanes[lane].intersectionHits) << "lane " << lane;
+      ASSERT_EQ(0, ps.lanes[lane].intersectionMisses) << "lane " << lane;
     }
-    ASSERT_EQ(1, laneStates[1].intersectionMisses);
-    ASSERT_EQ(1, laneStates[2].intersectionMisses);
+    ASSERT_EQ(1, ps.lanes[1].intersectionMisses);
+    ASSERT_EQ(1, ps.lanes[2].intersectionMisses);
   }
 
   TYPED_TEST_P(AbstractMeshTriangleTest, ShouldReturnTrueForIntersectsIfThereIsAIntersection) {

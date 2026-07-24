@@ -4,10 +4,13 @@
 #include "core/math/Ray.h"
 #include "core/math/RayPacket.h"
 #include "core/math/HitPointInterval.h"
+#include "test/helpers/PrimitiveTestHelper.h"
 
 namespace TriangleTest {
   using namespace ::testing;
   using namespace render;
+  using test::helpers::PacketStates4;
+  using test::helpers::PacketStates8;
 
   struct TriangleTest : public ::testing::Test {
     void SetUp() {
@@ -95,10 +98,9 @@ namespace TriangleTest {
                                        Rayd(Vector3d(0, 4, -1), Vector3d(0, 0, 1)),
                                        Rayd(Vector3d(0, 0, -1), Vector3d(0, 0, -1)),
                                        Rayd(Vector3d(-0.5, -0.5, -1), Vector3d(0, 0, 1))};
-    std::array<State, Ray4::lanes> laneStates;
-    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+    PacketStates4 ps;
 
-    const auto result = triangle.intersectPacketHits(Ray4(rayArray), states);
+    const auto result = triangle.intersectPacketHits(Ray4(rayArray), ps.states);
 
     ASSERT_TRUE(result.hit(0));
     EXPECT_EQ(&triangle, result.primitive(0));
@@ -111,10 +113,10 @@ namespace TriangleTest {
     EXPECT_EQ(Vector3d(-0.5, -0.5, 0), result.hitPoint(3).point());
     EXPECT_EQ(Vector3d(0, 0, -1), result.hitPoint(3).normal());
     EXPECT_EQ(1, result.hitPoint(3).distance());
-    EXPECT_EQ(1, laneStates[0].intersectionHits);
-    EXPECT_EQ(1, laneStates[1].intersectionMisses);
-    EXPECT_EQ(1, laneStates[2].intersectionMisses);
-    EXPECT_EQ(1, laneStates[3].intersectionHits);
+    EXPECT_EQ(1, ps.lanes[0].intersectionHits);
+    EXPECT_EQ(1, ps.lanes[1].intersectionMisses);
+    EXPECT_EQ(1, ps.lanes[2].intersectionMisses);
+    EXPECT_EQ(1, ps.lanes[3].intersectionHits);
   }
 
   TEST_F(TriangleTest, ShouldMaterializeRay8PacketHits) {
@@ -127,11 +129,9 @@ namespace TriangleTest {
                                        Rayd(Vector3d(0.75, 0.75, -1), Vector3d(0, 0, 1)),
                                        Rayd(Vector3d(1.1, -0.75, -1), Vector3d(0, 0, 1)),
                                        Rayd(Vector3d(-0.25, -0.25, -2), Vector3d(0, 0, 2))};
-    std::array<State, Ray8::lanes> laneStates;
-    PrimitivePacketState8 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3],
-                                 &laneStates[4], &laneStates[5], &laneStates[6], &laneStates[7]};
+    PacketStates8 ps;
 
-    const auto result = triangle.intersectPacketHits(Ray8(rayArray), states);
+    const auto result = triangle.intersectPacketHits(Ray8(rayArray), ps.states);
 
     ASSERT_TRUE(result.hit(0));
     EXPECT_EQ(&triangle, result.primitive(0));
@@ -148,15 +148,15 @@ namespace TriangleTest {
     EXPECT_FALSE(result.hit(6));
     ASSERT_TRUE(result.hit(7));
     EXPECT_EQ(Vector3d(-0.25, -0.25, 0), result.hitPoint(7).point());
-    EXPECT_EQ(1, laneStates[0].intersectionHits);
-    EXPECT_EQ(1, laneStates[1].intersectionMisses);
-    EXPECT_EQ(1, laneStates[2].intersectionMisses);
-    EXPECT_EQ(1, laneStates[3].intersectionHits);
-    EXPECT_EQ(1, laneStates[4].intersectionHits);
-    EXPECT_EQ(1, laneStates[5].intersectionMisses);
-    EXPECT_EQ(1, laneStates[6].intersectionMisses);
-    EXPECT_EQ(1, laneStates[7].intersectionHits);
-    for (const auto& state : laneStates) {
+    EXPECT_EQ(1, ps.lanes[0].intersectionHits);
+    EXPECT_EQ(1, ps.lanes[1].intersectionMisses);
+    EXPECT_EQ(1, ps.lanes[2].intersectionMisses);
+    EXPECT_EQ(1, ps.lanes[3].intersectionHits);
+    EXPECT_EQ(1, ps.lanes[4].intersectionHits);
+    EXPECT_EQ(1, ps.lanes[5].intersectionMisses);
+    EXPECT_EQ(1, ps.lanes[6].intersectionMisses);
+    EXPECT_EQ(1, ps.lanes[7].intersectionHits);
+    for (const auto& state : ps.lanes) {
       EXPECT_EQ(0u, state.packetHitScalarFallbacks);
     }
   }

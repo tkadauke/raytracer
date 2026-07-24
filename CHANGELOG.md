@@ -11,6 +11,20 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Centralize JSON field-extraction helpers into `include/engine/graph/detail/JsonStateHelpers.h`
+  template functions and replace duplicated implementations in `RenderEngineOptions.cpp`,
+  `RaytracerPassState.cpp`, `RasterPassState.cpp`, `WireframePassState.cpp`,
+  `PostProcessPassState.cpp`, and `RenderGraphTypes.cpp` with thin wrappers. — Claude Sonnet 4.6
+- Lift `isIdentifierStart`/`isIdentifierContinue` from private methods of both `Lexer`
+  and `EditableParameterScanner` in `OpenScadSceneImporter.cpp` to shared free functions
+  in the anonymous namespace, eliminating the duplication. — Claude Sonnet 4.6
+- Add `test::helpers::hitPointWithNormal` to `test/helpers/MaterialTestHelper.h` and use
+  it in `PerfectTransmitterTest.cpp` and `EmissiveMaterialTest.cpp`, replacing per-test
+  inline `HitPoint` constructions. — Claude Sonnet 4.6
+- Add `test::helpers::PacketStates4` and `PacketStates8` to `test/helpers/PrimitiveTestHelper.h`
+  and update 21 test files to use them, eliminating the per-test `std::array<State, lanes>`
+  + `PrimitivePacketState4/8` boilerplate across the primitive intersection test suite.
+  — Claude Sonnet 4.6
 - Add `world::makeTextureMapping2D` to `src/world/objects/TextureMappingHelper.h`,
   eliminating the duplicate `mapping == "uv"` ? `UVMapping2D` : `PlanarMapping2D` ternary
   in `CheckerBoardTexture.cpp` and `ImageTexture.cpp`. — Claude Sonnet 4.6

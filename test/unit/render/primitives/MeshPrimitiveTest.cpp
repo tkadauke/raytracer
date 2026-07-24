@@ -19,6 +19,7 @@
 #include "render/primitives/SmoothMeshTriangle.h"
 #include "test/helpers/BufferTestHelper.h"
 #include "test/helpers/MaterialTestHelper.h"
+#include "test/helpers/PrimitiveTestHelper.h"
 
 #include <memory>
 
@@ -28,6 +29,8 @@ namespace MeshPrimitiveTest {
   using test::helpers::countPixels;
   using test::helpers::countPixelsNotEqualTo;
   using test::helpers::matte;
+  using test::helpers::PacketStates4;
+  using test::helpers::PacketStates8;
 
   Mesh makeQuadMesh() {
     Mesh mesh;
@@ -220,10 +223,9 @@ namespace MeshPrimitiveTest {
     const Ray4 rays(std::array<Rayd, Ray4::lanes>{
       Rayd(Vector3d(0, 0, -1), Vector3d(0, 0, 1)), Rayd(Vector3d(2, 0, -1), Vector3d(0, 0, 1)),
       Rayd(Vector3d(-0.5, 0, -1), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, 1), Vector3d(0, 0, 1))});
-    std::array<State, Ray4::lanes> laneStates;
-    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+    PacketStates4 ps;
 
-    const auto result = primitive.intersectPacketHits(rays, states);
+    const auto result = primitive.intersectPacketHits(rays, ps.states);
 
     ASSERT_TRUE(result.hit(0));
     EXPECT_NE(nullptr, result.primitive(0));
@@ -245,11 +247,9 @@ namespace MeshPrimitiveTest {
       Rayd(Vector3d(0.5, 0, -1), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0.5, -1), Vector3d(0, 0, 1)),
       Rayd(Vector3d(0, -0.5, -1), Vector3d(0, 0, 1)),
       Rayd(Vector3d(-2, 0, -1), Vector3d(0, 0, 1))});
-    std::array<State, Ray8::lanes> laneStates;
-    PrimitivePacketState8 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3],
-                                 &laneStates[4], &laneStates[5], &laneStates[6], &laneStates[7]};
+    PacketStates8 ps;
 
-    const auto result = primitive.intersectPacketHits(rays, states);
+    const auto result = primitive.intersectPacketHits(rays, ps.states);
 
     ASSERT_TRUE(result.hit(0));
     EXPECT_NE(nullptr, result.primitive(0));
@@ -268,7 +268,7 @@ namespace MeshPrimitiveTest {
     ASSERT_TRUE(result.hit(6));
     EXPECT_EQ(Vector3d(0, -0.5, 0), result.hitPoint(6).point());
     EXPECT_FALSE(result.hit(7));
-    for (const State& state : laneStates) {
+    for (const State& state : ps.lanes) {
       EXPECT_EQ(0u, state.packetHitScalarFallbacks);
     }
   }
@@ -279,10 +279,9 @@ namespace MeshPrimitiveTest {
     const Ray4 rays(std::array<Rayd, Ray4::lanes>{
       Rayd(Vector3d(0, 0, -1), Vector3d(0, 0, 1)), Rayd(Vector3d(2, 0, -1), Vector3d(0, 0, 1)),
       Rayd(Vector3d(-0.5, 0, -1), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, 1), Vector3d(0, 0, 1))});
-    std::array<State, Ray4::lanes> laneStates;
-    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+    PacketStates4 ps;
 
-    const auto result = primitive.intersectPacketHits(rays, states);
+    const auto result = primitive.intersectPacketHits(rays, ps.states);
 
     ASSERT_TRUE(result.hit(0));
     EXPECT_EQ(&primitive, result.primitive(0));

@@ -4,6 +4,7 @@
 #include "engine/graph/RenderAOV.h"
 #include "engine/graph/RenderExecutor.h"
 #include "engine/graph/RenderPassState.h"
+#include "engine/graph/detail/JsonStateHelpers.h"
 #include "core/json/JsonValue.h"
 #include "core/util/QStringUtil.h"
 #include "core/util/StringUtil.h"
@@ -70,21 +71,13 @@ namespace engine::graph {
     template<class T>
     T enumValue(const std::string& value, std::initializer_list<std::pair<const char*, T>> values,
                 const std::string& path) {
-      for (const auto& [name, parsed] : values) {
-        if (value == name)
-          return parsed;
-      }
-      jsonError(path, "unknown value '" + value + "'");
+      return detail::enumValue<T>(value, values, path, jsonError);
     }
 
     template<class T>
     const char* enumName(T value, std::initializer_list<std::pair<T, const char*>> values,
                          const char* fallback = "unknown") {
-      for (const auto& [parsed, name] : values) {
-        if (value == parsed)
-          return name;
-      }
-      return fallback;
+      return detail::enumName(value, values, fallback);
     }
 
     RenderExecutorPreference executorPreferenceFromJson(const std::string& value,
