@@ -1,10 +1,10 @@
 #include "engine/graph/PostProcessPassState.h"
 
 #include "engine/graph/RenderGraphTypes.h"
+#include "engine/graph/detail/JsonStateHelpers.h"
 #include "render/postprocess/Fxaa.h"
 #include "render/postprocess/Smaa.h"
 
-#include <algorithm>
 #include <initializer_list>
 #include <stdexcept>
 #include <utility>
@@ -18,19 +18,11 @@ namespace engine::graph {
 
     void rejectUnknownFields(const QJsonObject& object, const std::string& path,
                              std::initializer_list<const char*> allowed) {
-      for (auto it = object.begin(); it != object.end(); ++it) {
-        const std::string key = it.key().toStdString();
-        const bool matched = std::find(allowed.begin(), allowed.end(), key) != allowed.end();
-        if (!matched)
-          stateError(path + "." + key, "unknown field");
-      }
+      detail::rejectUnknownFields(object, path, allowed, stateError);
     }
 
     std::string stringField(const QJsonObject& object, const char* key, const std::string& path) {
-      const auto value = object.value(key);
-      if (!value.isString())
-        stateError(path + "." + key, "expected string");
-      return value.toString().toStdString();
+      return detail::stringField(object, key, path, stateError);
     }
 
     std::shared_ptr<const PostProcessAAState> aaStateForMode(const std::string& mode,

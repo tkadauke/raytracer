@@ -5,11 +5,13 @@
 #include "render/primitives/Primitive.h"
 #include "core/math/Ray.h"
 #include "core/math/RayPacket.h"
+#include "test/helpers/PrimitiveTestHelper.h"
 #include "test/mocks/raytracer/MockPrimitive.h"
 
 namespace PrimitiveTest {
   using namespace render;
   using namespace testing;
+  using test::helpers::PacketStates4;
 
   TEST(Primitive, ShouldReturnTrueForIntersectsIfIntersectReturnsObject) {
     auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
@@ -67,16 +69,15 @@ namespace PrimitiveTest {
       Rayf(Vector3f(0, 0, 0), Vector3f(0, 0, 1)), Rayf(Vector3f(1, 0, 0), Vector3f(0, 0, 1)),
       Rayf(Vector3f(2, 0, 0), Vector3f(0, 0, 1)), Rayf(Vector3f(3, 0, 0), Vector3f(0, 0, 1))});
 
-    std::array<State, Ray4::lanes> laneStates;
-    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
-    const auto result = primitive->Primitive::intersectPacketHits(rays, states);
+    PacketStates4 ps;
+    const auto result = primitive->Primitive::intersectPacketHits(rays, ps.states);
 
     for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
       ASSERT_TRUE(result.hit(lane)) << "lane " << lane;
       ASSERT_EQ(primitive.get(), result.primitive(lane));
       ASSERT_EQ(1.0, result.hitPoint(lane).distance());
       EXPECT_TRUE(result.scalarFallback(lane));
-      EXPECT_EQ(1u, laneStates[lane].packetHitScalarFallbacks);
+      EXPECT_EQ(1u, ps.lanes[lane].packetHitScalarFallbacks);
     }
   }
 
@@ -120,9 +121,8 @@ namespace PrimitiveTest {
       Rayf(Vector3f(0, 0, 0), Vector3f(0, 0, 1)), Rayf(Vector3f(1, 0, 0), Vector3f(0, 0, 1)),
       Rayf(Vector3f(2, 0, 0), Vector3f(0, 0, 1)), Rayf(Vector3f(3, 0, 0), Vector3f(0, 0, 1))});
 
-    std::array<State, Ray4::lanes> laneStates;
-    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
-    const auto result = primitive->Primitive::intersectPacketIntervals(rays, states);
+    PacketStates4 ps;
+    const auto result = primitive->Primitive::intersectPacketIntervals(rays, ps.states);
 
     for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
       ASSERT_TRUE(result.hit(lane)) << "lane " << lane;
@@ -131,7 +131,7 @@ namespace PrimitiveTest {
       ASSERT_EQ(1.0, result.interval(lane).min().distance());
       ASSERT_EQ(3.0, result.interval(lane).max().distance());
       EXPECT_TRUE(result.scalarFallback(lane));
-      EXPECT_EQ(1u, laneStates[lane].packetHitScalarFallbacks);
+      EXPECT_EQ(1u, ps.lanes[lane].packetHitScalarFallbacks);
     }
   }
 

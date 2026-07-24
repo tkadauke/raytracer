@@ -4,9 +4,12 @@
 #include "core/math/Ray.h"
 #include "core/math/RayPacket.h"
 #include "core/math/HitPointInterval.h"
+#include "test/helpers/PrimitiveTestHelper.h"
 
 namespace PlaneTest {
   using namespace render;
+  using test::helpers::PacketStates4;
+  using test::helpers::PacketStates8;
 
   TEST(Plane, ShouldInitializeWithValues) {
     Plane plane(Vector3d(0, 1, 0), 0);
@@ -82,10 +85,9 @@ namespace PlaneTest {
     const std::array<Rayd, 4> rayArray{
       Rayd(Vector3d(0, 1, 0), Vector3d(0, -1, 0)), Rayd(Vector3d(0, 1, 0), Vector3d(1, 0, 0)),
       Rayd(Vector3d(0, -1, 0), Vector3d(0, -1, 0)), Rayd(Vector3d(0, 2, 0), Vector3d(0, -2, 0))};
-    std::array<State, Ray4::lanes> laneStates;
-    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+    PacketStates4 ps;
 
-    const auto result = plane.intersectPacketHits(Ray4(rayArray), states);
+    const auto result = plane.intersectPacketHits(Ray4(rayArray), ps.states);
 
     ASSERT_TRUE(result.hit(0));
     EXPECT_EQ(&plane, result.primitive(0));
@@ -98,10 +100,10 @@ namespace PlaneTest {
     EXPECT_EQ(Vector3d(0, 0, 0), result.hitPoint(3).point());
     EXPECT_EQ(Vector3d(0, 1, 0), result.hitPoint(3).normal());
     EXPECT_EQ(1, result.hitPoint(3).distance());
-    EXPECT_EQ(1, laneStates[0].intersectionHits);
-    EXPECT_EQ(1, laneStates[1].intersectionMisses);
-    EXPECT_EQ(1, laneStates[2].intersectionMisses);
-    EXPECT_EQ(1, laneStates[3].intersectionHits);
+    EXPECT_EQ(1, ps.lanes[0].intersectionHits);
+    EXPECT_EQ(1, ps.lanes[1].intersectionMisses);
+    EXPECT_EQ(1, ps.lanes[2].intersectionMisses);
+    EXPECT_EQ(1, ps.lanes[3].intersectionHits);
   }
 
   TEST(Plane, ShouldMaterializeRay8PacketHits) {
@@ -111,11 +113,9 @@ namespace PlaneTest {
       Rayd(Vector3d(0, -1, 0), Vector3d(0, -1, 0)), Rayd(Vector3d(0, 2, 0), Vector3d(0, -2, 0)),
       Rayd(Vector3d(0, 3, 0), Vector3d(0, -3, 0)),  Rayd(Vector3d(0, 3, 0), Vector3d(0, 1, 0)),
       Rayd(Vector3d(0, -3, 0), Vector3d(0, 1, 0)),  Rayd(Vector3d(0, 4, 0), Vector3d(0, -4, 0))};
-    std::array<State, Ray8::lanes> laneStates;
-    PrimitivePacketState8 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3],
-                                 &laneStates[4], &laneStates[5], &laneStates[6], &laneStates[7]};
+    PacketStates8 ps;
 
-    const auto result = plane.intersectPacketHits(Ray8(rayArray), states);
+    const auto result = plane.intersectPacketHits(Ray8(rayArray), ps.states);
 
     ASSERT_TRUE(result.hit(0));
     EXPECT_EQ(&plane, result.primitive(0));
@@ -135,15 +135,15 @@ namespace PlaneTest {
     EXPECT_EQ(3, result.hitPoint(6).distance());
     ASSERT_TRUE(result.hit(7));
     EXPECT_EQ(1, result.hitPoint(7).distance());
-    EXPECT_EQ(1, laneStates[0].intersectionHits);
-    EXPECT_EQ(1, laneStates[1].intersectionMisses);
-    EXPECT_EQ(1, laneStates[2].intersectionMisses);
-    EXPECT_EQ(1, laneStates[3].intersectionHits);
-    EXPECT_EQ(1, laneStates[4].intersectionHits);
-    EXPECT_EQ(1, laneStates[5].intersectionMisses);
-    EXPECT_EQ(1, laneStates[6].intersectionHits);
-    EXPECT_EQ(1, laneStates[7].intersectionHits);
-    for (const auto& state : laneStates) {
+    EXPECT_EQ(1, ps.lanes[0].intersectionHits);
+    EXPECT_EQ(1, ps.lanes[1].intersectionMisses);
+    EXPECT_EQ(1, ps.lanes[2].intersectionMisses);
+    EXPECT_EQ(1, ps.lanes[3].intersectionHits);
+    EXPECT_EQ(1, ps.lanes[4].intersectionHits);
+    EXPECT_EQ(1, ps.lanes[5].intersectionMisses);
+    EXPECT_EQ(1, ps.lanes[6].intersectionHits);
+    EXPECT_EQ(1, ps.lanes[7].intersectionHits);
+    for (const auto& state : ps.lanes) {
       EXPECT_EQ(0u, state.packetHitScalarFallbacks);
     }
   }

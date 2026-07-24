@@ -1,6 +1,7 @@
 #include "engine/graph/RaytracerPassState.h"
 
 #include "engine/graph/RenderGraphTypes.h"
+#include "engine/graph/detail/JsonStateHelpers.h"
 #include "core/util/QStringUtil.h"
 #include "engine/graph/RenderPlan.h"
 #include "engine/raytracer/Raytracer.h"
@@ -26,82 +27,43 @@
 
 namespace engine::graph {
   namespace {
-    constexpr std::uint64_t maxExactJsonInteger = 9007199254740991ULL;
-
     [[noreturn]] void stateError(const std::string& path, const std::string& message) {
       throw std::runtime_error("Invalid raytracer pass state at " + path + ": " + message);
     }
 
+    constexpr std::uint64_t maxExactJsonInteger = (1ull << 53) - 1;
+
     bool hasField(const QJsonObject& object, const char* key) {
-      return !object.value(key).isUndefined();
+      return detail::hasField(object, key);
     }
 
     void rejectUnknownFields(const QJsonObject& object, const std::string& path,
                              std::initializer_list<const char*> allowed) {
-      for (auto it = object.begin(); it != object.end(); ++it) {
-        const std::string key = it.key().toStdString();
-        const bool matched = std::find(allowed.begin(), allowed.end(), key) != allowed.end();
-        if (!matched)
-          stateError(path + "." + key, "unknown field");
-      }
+      detail::rejectUnknownFields(object, path, allowed, stateError);
     }
 
     QJsonObject objectField(const QJsonObject& object, const char* key, const std::string& path) {
-      const auto value = object.value(key);
-      if (value.isUndefined())
-        return {};
-      if (!value.isObject())
-        stateError(path + "." + key, "expected object");
-      return value.toObject();
+      return detail::objectField(object, key, path, stateError);
     }
 
     int intField(const QJsonObject& object, const char* key, const std::string& path) {
-      const auto value = object.value(key);
-      if (!value.isDouble())
-        stateError(path + "." + key, "expected integer");
-
-      const double number = value.toDouble();
-      if (!std::isfinite(number) || std::floor(number) != number)
-        stateError(path + "." + key, "expected integer");
-      return static_cast<int>(number);
+      return detail::intField(object, key, path, stateError);
     }
 
     std::uint64_t uint64Field(const QJsonObject& object, const char* key, const std::string& path) {
-      const auto value = object.value(key);
-      if (!value.isDouble())
-        stateError(path + "." + key, "expected non-negative integer");
-
-      const double number = value.toDouble();
-      if (!std::isfinite(number) || number < 0.0 ||
-          number > static_cast<double>(maxExactJsonInteger) || std::floor(number) != number) {
-        stateError(path + "." + key, "expected non-negative integer");
-      }
-      return static_cast<std::uint64_t>(number);
+      return detail::uint64Field(object, key, path, stateError);
     }
 
     double doubleField(const QJsonObject& object, const char* key, const std::string& path) {
-      const auto value = object.value(key);
-      if (!value.isDouble())
-        stateError(path + "." + key, "expected number");
-
-      const double number = value.toDouble();
-      if (!std::isfinite(number))
-        stateError(path + "." + key, "expected finite number");
-      return number;
+      return detail::doubleField(object, key, path, stateError);
     }
 
     bool boolField(const QJsonObject& object, const char* key, const std::string& path) {
-      const auto value = object.value(key);
-      if (!value.isBool())
-        stateError(path + "." + key, "expected boolean");
-      return value.toBool();
+      return detail::boolField(object, key, path, stateError);
     }
 
     std::string stringField(const QJsonObject& object, const char* key, const std::string& path) {
-      const auto value = object.value(key);
-      if (!value.isString())
-        stateError(path + "." + key, "expected string");
-      return value.toString().toStdString();
+      return detail::stringField(object, key, path, stateError);
     }
 
     std::string samplerFactoryId(const std::string& name) {

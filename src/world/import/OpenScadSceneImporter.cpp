@@ -77,6 +77,14 @@ namespace {
     SourceLocation location;
   };
 
+  bool isIdentifierStart(QChar ch) {
+    return ch.isLetter() || ch == QChar('_') || ch == QChar('$');
+  }
+
+  bool isIdentifierContinue(QChar ch) {
+    return isIdentifierStart(ch) || ch.isDigit();
+  }
+
   class Lexer {
   public:
     explicit Lexer(QString source)
@@ -197,14 +205,6 @@ namespace {
           consumed = true;
         }
       }
-    }
-
-    static bool isIdentifierStart(QChar ch) {
-      return ch.isLetter() || ch == QChar('_') || ch == QChar('$');
-    }
-
-    static bool isIdentifierContinue(QChar ch) {
-      return isIdentifierStart(ch) || ch.isDigit();
     }
 
     Token simple(TokenKind kind, SourceLocation location) const {
@@ -631,14 +631,6 @@ namespace {
     static void skipSpaces(const QString& text, int* index) {
       while (*index < text.size() && text[*index].isSpace())
         ++(*index);
-    }
-
-    static bool isIdentifierStart(QChar ch) {
-      return ch.isLetter() || ch == QChar('_') || ch == QChar('$');
-    }
-
-    static bool isIdentifierContinue(QChar ch) {
-      return isIdentifierStart(ch) || ch.isDigit();
     }
 
     bool hasParameter(const QString& name) const {

@@ -2,18 +2,13 @@
 #include "render/brdf/PerfectTransmitter.h"
 #include "core/math/HitPoint.h"
 #include "core/math/Ray.h"
+#include "test/helpers/MaterialTestHelper.h"
 
 #include <cmath>
 
 namespace PerfectTransmitterTest {
   using namespace render;
-
-  // Construct a hit point at the origin with the given outward normal. The
-  // primitive pointer is irrelevant for these tests; PerfectTransmitter only
-  // reads .normal() and .point().
-  static HitPoint hitPointWithNormal(const Vector3d& normal) {
-    return HitPoint(nullptr, 1.0, Vector4d(0, 0, 0, 1), normal);
-  }
+  using test::helpers::hitPointWithNormal;
 
   TEST(PerfectTransmitter, ShouldInitialize) {
     PerfectTransmitter btdf;

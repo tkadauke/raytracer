@@ -6,6 +6,7 @@
 #include "render/materials/MatteMaterial.h"
 #include "render/primitives/Instance.h"
 #include "render/primitives/Sphere.h"
+#include "test/helpers/PrimitiveTestHelper.h"
 #include "test/helpers/VectorTestHelper.h"
 #include "test/mocks/raytracer/MockPrimitive.h"
 
@@ -13,6 +14,8 @@ namespace InstanceTest {
   using namespace ::testing;
   using namespace render;
   using core::math::interpolation::InterpolationMode;
+  using test::helpers::PacketStates4;
+  using test::helpers::PacketStates8;
 
   TEST(Instance, ShouldReturnChildPrimitiveIfTransformedRayIntersects) {
     auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
@@ -284,10 +287,9 @@ namespace InstanceTest {
     const Ray4 rays(std::array<Rayd, Ray4::lanes>{
       Rayd(Vector3d(10, 0, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(10, 0, -2), Vector3d(0, 1, 0)),
       Rayd(Vector3d(10, 0, 0), Vector3d(0, 0, 1)), Rayd(Vector3d(12, 0, -2), Vector3d(0, 0, 1))});
-    std::array<State, Ray4::lanes> laneStates;
-    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+    PacketStates4 ps;
 
-    const auto result = instance.intersectPacketHits(rays, states);
+    const auto result = instance.intersectPacketHits(rays, ps.states);
 
     ASSERT_TRUE(result.hit(0));
     EXPECT_EQ(primitive.get(), result.primitive(0));
@@ -309,10 +311,9 @@ namespace InstanceTest {
     const Ray4 rays(std::array<Rayd, Ray4::lanes>{
       Rayd(Vector3d(10, 0, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(10, 0, -2), Vector3d(0, 1, 0)),
       Rayd(Vector3d(10, 0, 2), Vector3d(0, 0, 1)), Rayd(Vector3d(10, 0, 0), Vector3d(0, 0, 1))});
-    std::array<State, Ray4::lanes> laneStates;
-    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+    PacketStates4 ps;
 
-    const auto result = instance.intersectPacketIntervals(rays, states);
+    const auto result = instance.intersectPacketIntervals(rays, ps.states);
 
     ASSERT_TRUE(result.hit(0));
     ASSERT_TRUE(result.hasInterval(0));
@@ -338,7 +339,7 @@ namespace InstanceTest {
     EXPECT_EQ(Vector3d(10, 0, 1), result.interval(3).max().point());
     EXPECT_FALSE(result.scalarFallback(3));
 
-    for (const auto& state : laneStates) {
+    for (const auto& state : ps.lanes) {
       EXPECT_EQ(0u, state.packetHitScalarFallbacks);
     }
   }
@@ -352,11 +353,9 @@ namespace InstanceTest {
       Rayd(Vector3d(10, 0, 0), Vector3d(0, 0, 1)), Rayd(Vector3d(12, 0, -2), Vector3d(0, 0, 1)),
       Rayd(Vector3d(10, 0, -3), Vector3d(0, 0, 1)), Rayd(Vector3d(10, 0, 2), Vector3d(0, 0, -1)),
       Rayd(Vector3d(10, 0, 0), Vector3d(0, 0, -1)), Rayd(Vector3d(10, 2, -2), Vector3d(0, 0, 1))});
-    std::array<State, Ray8::lanes> laneStates;
-    PrimitivePacketState8 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3],
-                                 &laneStates[4], &laneStates[5], &laneStates[6], &laneStates[7]};
+    PacketStates8 ps;
 
-    const auto result = instance.intersectPacketHits(rays, states);
+    const auto result = instance.intersectPacketHits(rays, ps.states);
 
     ASSERT_TRUE(result.hit(0));
     EXPECT_EQ(primitive.get(), result.primitive(0));
@@ -376,7 +375,7 @@ namespace InstanceTest {
     ASSERT_TRUE(result.hit(6));
     EXPECT_EQ(Vector3d(10, 0, -1), result.hitPoint(6).point());
     EXPECT_FALSE(result.hit(7));
-    for (const auto& state : laneStates) {
+    for (const auto& state : ps.lanes) {
       EXPECT_EQ(0u, state.packetHitScalarFallbacks);
     }
   }
@@ -389,14 +388,13 @@ namespace InstanceTest {
     const Ray4 rays(std::array<Rayd, Ray4::lanes>{
       Rayd(Vector3d(11, 0, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(10, 0, -2), Vector3d(0, 0, 1)),
       Rayd(Vector3d(12, 0, 2), Vector3d(0, 0, -1)), Rayd(Vector3d(14, 0, -2), Vector3d(0, 0, 1))});
-    std::array<State, Ray4::lanes> laneStates;
-    laneStates[0].timeSample = 0.5;
-    laneStates[1].timeSample = 0.0;
-    laneStates[2].timeSample = 1.0;
-    laneStates[3].timeSample = 0.5;
-    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+    PacketStates4 ps;
+    ps.lanes[0].timeSample = 0.5;
+    ps.lanes[1].timeSample = 0.0;
+    ps.lanes[2].timeSample = 1.0;
+    ps.lanes[3].timeSample = 0.5;
 
-    const auto result = instance.intersectPacketHits(rays, states);
+    const auto result = instance.intersectPacketHits(rays, ps.states);
 
     ASSERT_TRUE(result.hit(0));
     EXPECT_EQ(primitive.get(), result.primitive(0));
@@ -409,7 +407,7 @@ namespace InstanceTest {
     EXPECT_EQ(Vector3d(12, 0, 1), result.hitPoint(2).point());
     EXPECT_FALSE(result.scalarFallback(2));
     EXPECT_FALSE(result.hit(3));
-    for (const auto& state : laneStates) {
+    for (const auto& state : ps.lanes) {
       EXPECT_EQ(0u, state.packetHitScalarFallbacks);
     }
   }
@@ -422,14 +420,13 @@ namespace InstanceTest {
     const Ray4 rays(std::array<Rayd, Ray4::lanes>{
       Rayd(Vector3d(11, 0, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(10, 0, -2), Vector3d(0, 1, 0)),
       Rayd(Vector3d(12, 0, 2), Vector3d(0, 0, 1)), Rayd(Vector3d(11, 0, 0), Vector3d(0, 0, 1))});
-    std::array<State, Ray4::lanes> laneStates;
-    laneStates[0].timeSample = 0.5;
-    laneStates[1].timeSample = 0.0;
-    laneStates[2].timeSample = 1.0;
-    laneStates[3].timeSample = 0.5;
-    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+    PacketStates4 ps;
+    ps.lanes[0].timeSample = 0.5;
+    ps.lanes[1].timeSample = 0.0;
+    ps.lanes[2].timeSample = 1.0;
+    ps.lanes[3].timeSample = 0.5;
 
-    const auto result = instance.intersectPacketIntervals(rays, states);
+    const auto result = instance.intersectPacketIntervals(rays, ps.states);
 
     ASSERT_TRUE(result.hit(0));
     ASSERT_TRUE(result.hasInterval(0));
@@ -453,7 +450,7 @@ namespace InstanceTest {
     EXPECT_EQ(Vector3d(11, 0, 1), result.interval(3).max().point());
     EXPECT_FALSE(result.scalarFallback(3));
 
-    for (const auto& state : laneStates) {
+    for (const auto& state : ps.lanes) {
       EXPECT_EQ(0u, state.packetHitScalarFallbacks);
     }
   }
@@ -468,19 +465,17 @@ namespace InstanceTest {
       Rayd(Vector3d(12, 0, 2), Vector3d(0, 0, 1)), Rayd(Vector3d(11, 0, 0), Vector3d(0, 0, 1)),
       Rayd(Vector3d(11, 0, -3), Vector3d(0, 0, 1)), Rayd(Vector3d(12, 0, 3), Vector3d(0, 0, -1)),
       Rayd(Vector3d(10, 0, 0), Vector3d(0, 0, -1)), Rayd(Vector3d(11, 2, -2), Vector3d(0, 0, 1))});
-    std::array<State, Ray8::lanes> laneStates;
-    laneStates[0].timeSample = 0.5;
-    laneStates[1].timeSample = 0.0;
-    laneStates[2].timeSample = 1.0;
-    laneStates[3].timeSample = 0.5;
-    laneStates[4].timeSample = 0.5;
-    laneStates[5].timeSample = 1.0;
-    laneStates[6].timeSample = 0.0;
-    laneStates[7].timeSample = 0.5;
-    PrimitivePacketState8 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3],
-                                 &laneStates[4], &laneStates[5], &laneStates[6], &laneStates[7]};
+    PacketStates8 ps;
+    ps.lanes[0].timeSample = 0.5;
+    ps.lanes[1].timeSample = 0.0;
+    ps.lanes[2].timeSample = 1.0;
+    ps.lanes[3].timeSample = 0.5;
+    ps.lanes[4].timeSample = 0.5;
+    ps.lanes[5].timeSample = 1.0;
+    ps.lanes[6].timeSample = 0.0;
+    ps.lanes[7].timeSample = 0.5;
 
-    const auto result = instance.intersectPacketIntervals(rays, states);
+    const auto result = instance.intersectPacketIntervals(rays, ps.states);
 
     ASSERT_TRUE(result.hit(0));
     EXPECT_EQ(Vector3d(11, 0, -1), result.interval(0).min().point());
@@ -498,7 +493,7 @@ namespace InstanceTest {
     ASSERT_TRUE(result.hit(6));
     EXPECT_EQ(Vector3d(10, 0, -1), result.interval(6).minWithPositiveDistance().point());
     EXPECT_FALSE(result.hit(7));
-    for (const auto& state : laneStates) {
+    for (const auto& state : ps.lanes) {
       EXPECT_EQ(0u, state.packetHitScalarFallbacks);
     }
   }
@@ -513,19 +508,17 @@ namespace InstanceTest {
       Rayd(Vector3d(12, 0, 2), Vector3d(0, 0, -1)), Rayd(Vector3d(14, 0, -2), Vector3d(0, 0, 1)),
       Rayd(Vector3d(11, 0, -3), Vector3d(0, 0, 1)), Rayd(Vector3d(12, 0, 3), Vector3d(0, 0, -1)),
       Rayd(Vector3d(10, 0, 0), Vector3d(0, 0, -1)), Rayd(Vector3d(11, 2, -2), Vector3d(0, 0, 1))});
-    std::array<State, Ray8::lanes> laneStates;
-    laneStates[0].timeSample = 0.5;
-    laneStates[1].timeSample = 0.0;
-    laneStates[2].timeSample = 1.0;
-    laneStates[3].timeSample = 0.5;
-    laneStates[4].timeSample = 0.5;
-    laneStates[5].timeSample = 1.0;
-    laneStates[6].timeSample = 0.0;
-    laneStates[7].timeSample = 0.5;
-    PrimitivePacketState8 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3],
-                                 &laneStates[4], &laneStates[5], &laneStates[6], &laneStates[7]};
+    PacketStates8 ps;
+    ps.lanes[0].timeSample = 0.5;
+    ps.lanes[1].timeSample = 0.0;
+    ps.lanes[2].timeSample = 1.0;
+    ps.lanes[3].timeSample = 0.5;
+    ps.lanes[4].timeSample = 0.5;
+    ps.lanes[5].timeSample = 1.0;
+    ps.lanes[6].timeSample = 0.0;
+    ps.lanes[7].timeSample = 0.5;
 
-    const auto result = instance.intersectPacketHits(rays, states);
+    const auto result = instance.intersectPacketHits(rays, ps.states);
 
     ASSERT_TRUE(result.hit(0));
     EXPECT_EQ(Vector3d(11, 0, -1), result.hitPoint(0).point());
@@ -541,7 +534,7 @@ namespace InstanceTest {
     ASSERT_TRUE(result.hit(6));
     EXPECT_EQ(Vector3d(10, 0, -1), result.hitPoint(6).point());
     EXPECT_FALSE(result.hit(7));
-    for (const auto& state : laneStates) {
+    for (const auto& state : ps.lanes) {
       EXPECT_EQ(0u, state.packetHitScalarFallbacks);
     }
   }
@@ -553,10 +546,9 @@ namespace InstanceTest {
     const Ray4 rays(std::array<Rayd, Ray4::lanes>{
       Rayd(Vector3d(0, 0, -2), Vector3d(0, 0, 1)), Rayd(Vector3d(0, 0, -2), Vector3d(0, 1, 0)),
       Rayd(Vector3d(0, 0, 0), Vector3d(0, 0, 1)), Rayd(Vector3d(2, 0, -2), Vector3d(0, 0, 1))});
-    std::array<State, Ray4::lanes> laneStates;
-    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+    PacketStates4 ps;
 
-    const auto result = instance.intersectPacketHits(rays, states);
+    const auto result = instance.intersectPacketHits(rays, ps.states);
 
     ASSERT_TRUE(result.hit(0));
     EXPECT_EQ(&instance, result.primitive(0));

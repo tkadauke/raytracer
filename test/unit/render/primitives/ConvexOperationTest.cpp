@@ -4,6 +4,7 @@
 #include "render/primitives/ConvexOperation.h"
 #include "render/materials/MatteMaterial.h"
 #include "core/math/RayPacket.h"
+#include "test/helpers/PrimitiveTestHelper.h"
 #include "test/mocks/raytracer/MockPrimitive.h"
 
 namespace testing {
@@ -18,6 +19,8 @@ namespace testing {
 namespace ConvexOperationTest {
   using namespace ::testing;
   using namespace render;
+  using test::helpers::PacketStates4;
+  using test::helpers::PacketStates8;
 
   TEST(ConvexOperation, ShouldReturnSelfForConvexOperation) {
     MockConvexOperation i;
@@ -54,10 +57,9 @@ namespace ConvexOperationTest {
     const Ray4 rays(std::array<Rayd, Ray4::lanes>{
       Rayd(Vector3d(-5, 0, 0), Vector3d(1, 0, 0)), Rayd(Vector3d(-5, 3, 0), Vector3d(1, 0, 0)),
       Rayd(Vector3d(5, 0, 0), Vector3d(1, 0, 0)), Rayd(Vector3d(0, 5, 0), Vector3d(1, 0, 0))});
-    std::array<State, Ray4::lanes> laneStates;
-    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+    PacketStates4 ps;
 
-    const auto result = operation.intersectPacketHits(rays, states);
+    const auto result = operation.intersectPacketHits(rays, ps.states);
 
     ASSERT_TRUE(result.hit(0));
     EXPECT_EQ(&operation, result.primitive(0));
@@ -65,7 +67,7 @@ namespace ConvexOperationTest {
     EXPECT_FALSE(result.hit(1));
     EXPECT_FALSE(result.hit(2));
     EXPECT_FALSE(result.hit(3));
-    for (const State& state : laneStates) {
+    for (const State& state : ps.lanes) {
       EXPECT_EQ(0u, state.packetHitScalarFallbacks);
     }
   }
@@ -85,11 +87,9 @@ namespace ConvexOperationTest {
       Rayd(Vector3d(5, 0, 0), Vector3d(1, 0, 0)), Rayd(Vector3d(0, 5, 0), Vector3d(1, 0, 0)),
       Rayd(Vector3d(-6, 0, 0), Vector3d(1, 0, 0)), Rayd(Vector3d(6, 0, 0), Vector3d(-1, 0, 0)),
       Rayd(Vector3d(0, 0, 0), Vector3d(1, 0, 0)), Rayd(Vector3d(-4, 0, 0), Vector3d(1, 0, 0))});
-    std::array<State, Ray8::lanes> laneStates;
-    PrimitivePacketState8 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3],
-                                 &laneStates[4], &laneStates[5], &laneStates[6], &laneStates[7]};
+    PacketStates8 ps;
 
-    const auto result = operation.intersectPacketHits(rays, states);
+    const auto result = operation.intersectPacketHits(rays, ps.states);
 
     ASSERT_TRUE(result.hit(0));
     EXPECT_EQ(&operation, result.primitive(0));
@@ -107,7 +107,7 @@ namespace ConvexOperationTest {
     ASSERT_TRUE(result.hit(7));
     EXPECT_EQ(&operation, result.primitive(7));
     EXPECT_FALSE(result.scalarFallback(7));
-    for (const State& state : laneStates) {
+    for (const State& state : ps.lanes) {
       EXPECT_EQ(0u, state.packetHitScalarFallbacks);
     }
   }
@@ -125,10 +125,9 @@ namespace ConvexOperationTest {
     const Ray4 rays(std::array<Rayd, Ray4::lanes>{
       Rayd(Vector3d(-5, 0, 0), Vector3d(1, 0, 0)), Rayd(Vector3d(-5, 3, 0), Vector3d(1, 0, 0)),
       Rayd(Vector3d(5, 0, 0), Vector3d(1, 0, 0)), Rayd(Vector3d(0, 5, 0), Vector3d(1, 0, 0))});
-    std::array<State, Ray4::lanes> laneStates;
-    PrimitivePacketState4 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3]};
+    PacketStates4 ps;
 
-    const auto result = operation.intersectPacketIntervals(rays, states);
+    const auto result = operation.intersectPacketIntervals(rays, ps.states);
 
     ASSERT_TRUE(result.hit(0));
     ASSERT_TRUE(result.hasInterval(0));
@@ -139,7 +138,7 @@ namespace ConvexOperationTest {
     EXPECT_FALSE(result.hit(1));
     EXPECT_FALSE(result.hit(2));
     EXPECT_FALSE(result.hit(3));
-    for (const State& state : laneStates) {
+    for (const State& state : ps.lanes) {
       EXPECT_EQ(0u, state.packetHitScalarFallbacks);
     }
   }
@@ -159,11 +158,9 @@ namespace ConvexOperationTest {
       Rayd(Vector3d(5, 0, 0), Vector3d(1, 0, 0)), Rayd(Vector3d(0, 5, 0), Vector3d(1, 0, 0)),
       Rayd(Vector3d(-6, 0, 0), Vector3d(1, 0, 0)), Rayd(Vector3d(6, 0, 0), Vector3d(-1, 0, 0)),
       Rayd(Vector3d(0, 0, 0), Vector3d(1, 0, 0)), Rayd(Vector3d(-4, 0, 0), Vector3d(1, 0, 0))});
-    std::array<State, Ray8::lanes> laneStates;
-    PrimitivePacketState8 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3],
-                                 &laneStates[4], &laneStates[5], &laneStates[6], &laneStates[7]};
+    PacketStates8 ps;
 
-    const auto result = operation.intersectPacketIntervals(rays, states);
+    const auto result = operation.intersectPacketIntervals(rays, ps.states);
 
     ASSERT_TRUE(result.hit(0));
     EXPECT_EQ(&operation, result.primitive(0));
@@ -181,7 +178,7 @@ namespace ConvexOperationTest {
     ASSERT_TRUE(result.hit(7));
     EXPECT_EQ(&operation, result.primitive(7));
     EXPECT_FALSE(result.scalarFallback(7));
-    for (const State& state : laneStates) {
+    for (const State& state : ps.lanes) {
       EXPECT_EQ(0u, state.packetHitScalarFallbacks);
     }
   }

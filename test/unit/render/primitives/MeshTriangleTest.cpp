@@ -3,11 +3,13 @@
 #include "render/primitives/MeshTriangle.h"
 #include "core/geometry/Mesh.h"
 #include "core/math/RayPacket.h"
+#include "test/helpers/PrimitiveTestHelper.h"
 #include "test/helpers/VectorTestHelper.h"
 
 namespace MeshTriangleTest {
   using namespace ::testing;
   using namespace render;
+  using test::helpers::PacketStates8;
 
   class ConcreteMeshTriangle : public MeshTriangle {
   public:
@@ -52,11 +54,9 @@ namespace MeshTriangleTest {
                                     Rayd(Vector3d(0.75, 0.75, -1), Vector3d(0, 0, 1)),
                                     Rayd(Vector3d(-0.25, 0.25, -1), Vector3d(0, 0, 1)),
                                     Rayd(Vector3d(0.1, 0.1, -2), Vector3d(0, 0, 2))});
-    std::array<State, Ray8::lanes> laneStates;
-    PrimitivePacketState8 states{&laneStates[0], &laneStates[1], &laneStates[2], &laneStates[3],
-                                 &laneStates[4], &laneStates[5], &laneStates[6], &laneStates[7]};
+    PacketStates8 ps;
 
-    const auto result = triangle.intersectPacketHits(rays, states);
+    const auto result = triangle.intersectPacketHits(rays, ps.states);
 
     ASSERT_TRUE(result.hit(0));
     EXPECT_EQ(&triangle, result.primitive(0));
@@ -72,15 +72,15 @@ namespace MeshTriangleTest {
     EXPECT_FALSE(result.hit(6));
     ASSERT_TRUE(result.hit(7));
     ASSERT_VECTOR_NEAR(Vector4d(0.1, 0.1, 0, 1), result.hitPoint(7).point(), 1e-6);
-    EXPECT_EQ(1, laneStates[0].intersectionHits);
-    EXPECT_EQ(1, laneStates[1].intersectionMisses);
-    EXPECT_EQ(1, laneStates[2].intersectionMisses);
-    EXPECT_EQ(1, laneStates[3].intersectionHits);
-    EXPECT_EQ(1, laneStates[4].intersectionHits);
-    EXPECT_EQ(1, laneStates[5].intersectionMisses);
-    EXPECT_EQ(1, laneStates[6].intersectionMisses);
-    EXPECT_EQ(1, laneStates[7].intersectionHits);
-    for (const State& state : laneStates) {
+    EXPECT_EQ(1, ps.lanes[0].intersectionHits);
+    EXPECT_EQ(1, ps.lanes[1].intersectionMisses);
+    EXPECT_EQ(1, ps.lanes[2].intersectionMisses);
+    EXPECT_EQ(1, ps.lanes[3].intersectionHits);
+    EXPECT_EQ(1, ps.lanes[4].intersectionHits);
+    EXPECT_EQ(1, ps.lanes[5].intersectionMisses);
+    EXPECT_EQ(1, ps.lanes[6].intersectionMisses);
+    EXPECT_EQ(1, ps.lanes[7].intersectionHits);
+    for (const State& state : ps.lanes) {
       EXPECT_EQ(0u, state.packetHitScalarFallbacks);
     }
   }
