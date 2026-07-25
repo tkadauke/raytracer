@@ -22,34 +22,6 @@ namespace engine::graph {
       throw std::runtime_error("Invalid render engine options at " + path + ": " + message);
     }
 
-    bool hasField(const QJsonObject& object, const char* key) {
-      return detail::hasField(object, key);
-    }
-
-    void rejectUnknownFields(const QJsonObject& object, const std::string& path,
-                             std::initializer_list<const char*> allowed) {
-      detail::rejectUnknownFields(object, path, allowed, optionsError);
-    }
-
-    QJsonObject objectField(const QJsonObject& object, const char* key, const std::string& path) {
-      return detail::objectField(object, key, path, optionsError);
-    }
-
-    int intField(const QJsonObject& object, const char* key, const std::string& path) {
-      return detail::intField(object, key, path, optionsError);
-    }
-
-    double doubleField(const QJsonObject& object, const char* key, const std::string& path) {
-      return detail::doubleField(object, key, path, optionsError);
-    }
-
-    bool boolField(const QJsonObject& object, const char* key, const std::string& path) {
-      return detail::boolField(object, key, path, optionsError);
-    }
-
-    std::string stringField(const QJsonObject& object, const char* key, const std::string& path) {
-      return detail::stringField(object, key, path, optionsError);
-    }
 
     std::string colorWriteMaskString(std::uint8_t mask) {
       mask &= Rasterizer::ColorWriteAll;
@@ -710,121 +682,121 @@ namespace engine::graph {
 
   RenderRasterizerOptions RenderRasterizerOptions::fromJson(const QJsonObject& object,
                                                             const std::string& path) {
-    rejectUnknownFields(
+    detail::rejectUnknownFields(
       object, path,
-      {"execution", "geometry", "sampling", "depthPrepass", "framebuffer", "shadows"});
+      {"execution", "geometry", "sampling", "depthPrepass", "framebuffer", "shadows"}, optionsError);
 
     RenderRasterizerOptions options;
-    const QJsonObject execution = objectField(object, "execution", path);
-    rejectUnknownFields(execution, path + ".execution", {"threads", "queueSize", "backend"});
-    if (hasField(execution, "threads"))
-      options.setMaximumThreads(intField(execution, "threads", path + ".execution"));
-    if (hasField(execution, "queueSize"))
-      options.setQueueSize(intField(execution, "queueSize", path + ".execution"));
-    if (hasField(execution, "backend"))
+    const QJsonObject execution = detail::objectField(object, "execution", path, optionsError);
+    detail::rejectUnknownFields(execution, path + ".execution", {"threads", "queueSize", "backend"}, optionsError);
+    if (detail::hasField(execution, "threads"))
+      options.setMaximumThreads(detail::intField(execution, "threads", path + ".execution", optionsError));
+    if (detail::hasField(execution, "queueSize"))
+      options.setQueueSize(detail::intField(execution, "queueSize", path + ".execution", optionsError));
+    if (detail::hasField(execution, "backend"))
       options.setBackend(engine::raster::RasterBackend::fromString(
-        stringField(execution, "backend", path + ".execution"), path + ".execution.backend"));
+        detail::stringField(execution, "backend", path + ".execution", optionsError), path + ".execution.backend"));
 
-    const QJsonObject geometry = objectField(object, "geometry", path);
-    rejectUnknownFields(geometry, path + ".geometry",
-                        {"lod", "quality", "maxScreenSpaceError", "cullMode", "visibilityCulling"});
-    if (hasField(geometry, "lod"))
-      options.setLod(intField(geometry, "lod", path + ".geometry"));
-    if (hasField(geometry, "quality"))
-      options.setTessellationQuality(stringField(geometry, "quality", path + ".geometry"));
-    if (hasField(geometry, "maxScreenSpaceError"))
+    const QJsonObject geometry = detail::objectField(object, "geometry", path, optionsError);
+    detail::rejectUnknownFields(geometry, path + ".geometry",
+                        {"lod", "quality", "maxScreenSpaceError", "cullMode", "visibilityCulling"}, optionsError);
+    if (detail::hasField(geometry, "lod"))
+      options.setLod(detail::intField(geometry, "lod", path + ".geometry", optionsError));
+    if (detail::hasField(geometry, "quality"))
+      options.setTessellationQuality(detail::stringField(geometry, "quality", path + ".geometry", optionsError));
+    if (detail::hasField(geometry, "maxScreenSpaceError"))
       options.setMaximumScreenSpaceError(
-        doubleField(geometry, "maxScreenSpaceError", path + ".geometry"));
-    if (hasField(geometry, "cullMode"))
-      options.setCullMode(stringField(geometry, "cullMode", path + ".geometry"));
-    if (hasField(geometry, "visibilityCulling"))
-      options.setVisibilityCulling(stringField(geometry, "visibilityCulling", path + ".geometry"));
+        detail::doubleField(geometry, "maxScreenSpaceError", path + ".geometry", optionsError));
+    if (detail::hasField(geometry, "cullMode"))
+      options.setCullMode(detail::stringField(geometry, "cullMode", path + ".geometry", optionsError));
+    if (detail::hasField(geometry, "visibilityCulling"))
+      options.setVisibilityCulling(detail::stringField(geometry, "visibilityCulling", path + ".geometry", optionsError));
 
-    const QJsonObject depthPrepass = objectField(object, "depthPrepass", path);
-    rejectUnknownFields(depthPrepass, path + ".depthPrepass", {"mode"});
-    if (hasField(depthPrepass, "mode"))
-      options.setDepthPrepass(stringField(depthPrepass, "mode", path + ".depthPrepass"));
+    const QJsonObject depthPrepass = detail::objectField(object, "depthPrepass", path, optionsError);
+    detail::rejectUnknownFields(depthPrepass, path + ".depthPrepass", {"mode"}, optionsError);
+    if (detail::hasField(depthPrepass, "mode"))
+      options.setDepthPrepass(detail::stringField(depthPrepass, "mode", path + ".depthPrepass", optionsError));
 
-    const QJsonObject sampling = objectField(object, "sampling", path);
-    rejectUnknownFields(sampling, path + ".sampling", {"msaaSamples", "msaaShadingMode"});
-    if (hasField(sampling, "msaaSamples"))
-      options.setMSAASamples(intField(sampling, "msaaSamples", path + ".sampling"));
-    if (hasField(sampling, "msaaShadingMode"))
-      options.setMSAAShadingMode(stringField(sampling, "msaaShadingMode", path + ".sampling"));
+    const QJsonObject sampling = detail::objectField(object, "sampling", path, optionsError);
+    detail::rejectUnknownFields(sampling, path + ".sampling", {"msaaSamples", "msaaShadingMode"}, optionsError);
+    if (detail::hasField(sampling, "msaaSamples"))
+      options.setMSAASamples(detail::intField(sampling, "msaaSamples", path + ".sampling", optionsError));
+    if (detail::hasField(sampling, "msaaShadingMode"))
+      options.setMSAAShadingMode(detail::stringField(sampling, "msaaShadingMode", path + ".sampling", optionsError));
 
-    const QJsonObject framebuffer = objectField(object, "framebuffer", path);
-    rejectUnknownFields(framebuffer, path + ".framebuffer",
+    const QJsonObject framebuffer = detail::objectField(object, "framebuffer", path, optionsError);
+    detail::rejectUnknownFields(framebuffer, path + ".framebuffer",
                         {"viewport", "scissor", "depthBias", "colorWriteMask", "blending",
                          "blendSource", "blendDestination", "blendOp", "blendConstantColor",
-                         "blendConstantAlpha", "alphaTest", "alphaFunc", "alphaReference"});
-    if (hasField(framebuffer, "viewport"))
+                         "blendConstantAlpha", "alphaTest", "alphaFunc", "alphaReference"}, optionsError);
+    if (detail::hasField(framebuffer, "viewport"))
       options.setViewportRect(
         detail::rectFromJson(framebuffer, "viewport", path + ".framebuffer", optionsError));
-    if (hasField(framebuffer, "scissor"))
+    if (detail::hasField(framebuffer, "scissor"))
       options.setScissorRect(
         detail::rectFromJson(framebuffer, "scissor", path + ".framebuffer", optionsError));
-    if (hasField(framebuffer, "depthBias"))
-      options.setDepthBias(doubleField(framebuffer, "depthBias", path + ".framebuffer"));
-    if (hasField(framebuffer, "colorWriteMask"))
+    if (detail::hasField(framebuffer, "depthBias"))
+      options.setDepthBias(detail::doubleField(framebuffer, "depthBias", path + ".framebuffer", optionsError));
+    if (detail::hasField(framebuffer, "colorWriteMask"))
       options.setColorWriteMask(
-        colorWriteMaskFromString(stringField(framebuffer, "colorWriteMask", path + ".framebuffer"),
+        colorWriteMaskFromString(detail::stringField(framebuffer, "colorWriteMask", path + ".framebuffer", optionsError),
                                  path + ".framebuffer.colorWriteMask"));
-    if (hasField(framebuffer, "blending"))
-      options.setBlendingEnabled(boolField(framebuffer, "blending", path + ".framebuffer"));
-    if (hasField(framebuffer, "blendSource") || hasField(framebuffer, "blendDestination")) {
+    if (detail::hasField(framebuffer, "blending"))
+      options.setBlendingEnabled(detail::boolField(framebuffer, "blending", path + ".framebuffer", optionsError));
+    if (detail::hasField(framebuffer, "blendSource") || detail::hasField(framebuffer, "blendDestination")) {
       options.setBlendFactors(
-        hasField(framebuffer, "blendSource")
-          ? stringField(framebuffer, "blendSource", path + ".framebuffer")
+        detail::hasField(framebuffer, "blendSource")
+          ? detail::stringField(framebuffer, "blendSource", path + ".framebuffer", optionsError)
           : "one",
-        hasField(framebuffer, "blendDestination")
-          ? stringField(framebuffer, "blendDestination", path + ".framebuffer")
+        detail::hasField(framebuffer, "blendDestination")
+          ? detail::stringField(framebuffer, "blendDestination", path + ".framebuffer", optionsError)
           : "zero");
     }
-    if (hasField(framebuffer, "blendOp"))
-      options.setBlendOp(stringField(framebuffer, "blendOp", path + ".framebuffer"));
-    if (hasField(framebuffer, "blendConstantColor") ||
-        hasField(framebuffer, "blendConstantAlpha")) {
+    if (detail::hasField(framebuffer, "blendOp"))
+      options.setBlendOp(detail::stringField(framebuffer, "blendOp", path + ".framebuffer", optionsError));
+    if (detail::hasField(framebuffer, "blendConstantColor") ||
+        detail::hasField(framebuffer, "blendConstantAlpha")) {
       options.setBlendConstant(
-        hasField(framebuffer, "blendConstantColor")
+        detail::hasField(framebuffer, "blendConstantColor")
           ? detail::colorFromJson(framebuffer, "blendConstantColor", path + ".framebuffer",
                                   optionsError)
           : Colord::white(),
-        hasField(framebuffer, "blendConstantAlpha")
-          ? doubleField(framebuffer, "blendConstantAlpha", path + ".framebuffer")
+        detail::hasField(framebuffer, "blendConstantAlpha")
+          ? detail::doubleField(framebuffer, "blendConstantAlpha", path + ".framebuffer", optionsError)
           : 1.0);
     }
-    if (hasField(framebuffer, "alphaTest"))
-      options.setAlphaTestEnabled(boolField(framebuffer, "alphaTest", path + ".framebuffer"));
-    if (hasField(framebuffer, "alphaFunc") || hasField(framebuffer, "alphaReference")) {
-      options.setAlphaFunc(hasField(framebuffer, "alphaFunc")
-                             ? stringField(framebuffer, "alphaFunc", path + ".framebuffer")
+    if (detail::hasField(framebuffer, "alphaTest"))
+      options.setAlphaTestEnabled(detail::boolField(framebuffer, "alphaTest", path + ".framebuffer", optionsError));
+    if (detail::hasField(framebuffer, "alphaFunc") || detail::hasField(framebuffer, "alphaReference")) {
+      options.setAlphaFunc(detail::hasField(framebuffer, "alphaFunc")
+                             ? detail::stringField(framebuffer, "alphaFunc", path + ".framebuffer", optionsError)
                              : "always",
-                           hasField(framebuffer, "alphaReference")
-                             ? doubleField(framebuffer, "alphaReference", path + ".framebuffer")
+                           detail::hasField(framebuffer, "alphaReference")
+                             ? detail::doubleField(framebuffer, "alphaReference", path + ".framebuffer", optionsError)
                              : 0.0);
     }
 
-    const QJsonObject shadows = objectField(object, "shadows", path);
-    rejectUnknownFields(shadows, path + ".shadows",
+    const QJsonObject shadows = detail::objectField(object, "shadows", path, optionsError);
+    detail::rejectUnknownFields(shadows, path + ".shadows",
                         {"mapSize", "cascadeCount", "cascadeSplitLambda", "bias", "slopeBias",
-                         "filterRadius", "filterMode", "mode"});
-    if (hasField(shadows, "mapSize"))
-      options.setShadowMapSize(intField(shadows, "mapSize", path + ".shadows"));
-    if (hasField(shadows, "cascadeCount"))
-      options.setShadowCascadeCount(intField(shadows, "cascadeCount", path + ".shadows"));
-    if (hasField(shadows, "cascadeSplitLambda"))
+                         "filterRadius", "filterMode", "mode"}, optionsError);
+    if (detail::hasField(shadows, "mapSize"))
+      options.setShadowMapSize(detail::intField(shadows, "mapSize", path + ".shadows", optionsError));
+    if (detail::hasField(shadows, "cascadeCount"))
+      options.setShadowCascadeCount(detail::intField(shadows, "cascadeCount", path + ".shadows", optionsError));
+    if (detail::hasField(shadows, "cascadeSplitLambda"))
       options.setShadowCascadeSplitLambda(
-        doubleField(shadows, "cascadeSplitLambda", path + ".shadows"));
-    if (hasField(shadows, "bias"))
-      options.setShadowBias(doubleField(shadows, "bias", path + ".shadows"));
-    if (hasField(shadows, "slopeBias"))
-      options.setShadowSlopeBias(doubleField(shadows, "slopeBias", path + ".shadows"));
-    if (hasField(shadows, "filterRadius"))
-      options.setShadowFilterRadius(intField(shadows, "filterRadius", path + ".shadows"));
-    if (hasField(shadows, "filterMode"))
-      options.setShadowFilterMode(stringField(shadows, "filterMode", path + ".shadows"));
-    if (hasField(shadows, "mode"))
-      options.setShadowMode(stringField(shadows, "mode", path + ".shadows"));
+        detail::doubleField(shadows, "cascadeSplitLambda", path + ".shadows", optionsError));
+    if (detail::hasField(shadows, "bias"))
+      options.setShadowBias(detail::doubleField(shadows, "bias", path + ".shadows", optionsError));
+    if (detail::hasField(shadows, "slopeBias"))
+      options.setShadowSlopeBias(detail::doubleField(shadows, "slopeBias", path + ".shadows", optionsError));
+    if (detail::hasField(shadows, "filterRadius"))
+      options.setShadowFilterRadius(detail::intField(shadows, "filterRadius", path + ".shadows", optionsError));
+    if (detail::hasField(shadows, "filterMode"))
+      options.setShadowFilterMode(detail::stringField(shadows, "filterMode", path + ".shadows", optionsError));
+    if (detail::hasField(shadows, "mode"))
+      options.setShadowMode(detail::stringField(shadows, "mode", path + ".shadows", optionsError));
 
     return options;
   }
@@ -1296,10 +1268,10 @@ namespace engine::graph {
 
   RenderWireframeOptions RenderWireframeOptions::fromJson(const QJsonObject& object,
                                                           const std::string& path) {
-    rejectUnknownFields(object, path, {"lod"});
+    detail::rejectUnknownFields(object, path, {"lod"}, optionsError);
     RenderWireframeOptions options;
-    if (hasField(object, "lod"))
-      options.setLod(intField(object, "lod", path));
+    if (detail::hasField(object, "lod"))
+      options.setLod(detail::intField(object, "lod", path, optionsError));
     return options;
   }
 
@@ -1342,15 +1314,15 @@ namespace engine::graph {
 
   RenderEngineOptions RenderEngineOptions::fromJson(const QJsonObject& object,
                                                     const std::string& path) {
-    rejectUnknownFields(object, path, {"raytracer", "rasterizer", "wireframe"});
+    detail::rejectUnknownFields(object, path, {"raytracer", "rasterizer", "wireframe"}, optionsError);
     RenderEngineOptions options;
-    const QJsonObject raytracer = objectField(object, "raytracer", path);
+    const QJsonObject raytracer = detail::objectField(object, "raytracer", path, optionsError);
     if (!raytracer.isEmpty())
       options.m_raytracer = RenderRaytracerOptions::fromJson(raytracer, path + ".raytracer");
-    const QJsonObject rasterizer = objectField(object, "rasterizer", path);
+    const QJsonObject rasterizer = detail::objectField(object, "rasterizer", path, optionsError);
     if (!rasterizer.isEmpty())
       options.m_rasterizer = RenderRasterizerOptions::fromJson(rasterizer, path + ".rasterizer");
-    const QJsonObject wireframe = objectField(object, "wireframe", path);
+    const QJsonObject wireframe = detail::objectField(object, "wireframe", path, optionsError);
     if (!wireframe.isEmpty())
       options.m_wireframe = RenderWireframeOptions::fromJson(wireframe, path + ".wireframe");
     return options;

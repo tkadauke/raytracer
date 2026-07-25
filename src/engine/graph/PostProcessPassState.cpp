@@ -16,14 +16,6 @@ namespace engine::graph {
       throw std::runtime_error("Invalid postprocess pass state at " + path + ": " + message);
     }
 
-    void rejectUnknownFields(const QJsonObject& object, const std::string& path,
-                             std::initializer_list<const char*> allowed) {
-      detail::rejectUnknownFields(object, path, allowed, stateError);
-    }
-
-    std::string stringField(const QJsonObject& object, const char* key, const std::string& path) {
-      return detail::stringField(object, key, path, stateError);
-    }
 
     std::shared_ptr<const PostProcessAAState> aaStateForMode(const std::string& mode,
                                                              const std::string& path) {
@@ -101,13 +93,13 @@ namespace engine::graph {
 
   std::shared_ptr<const PostProcessAAState> PostProcessAAState::fromJson(const QJsonObject& object,
                                                                          const std::string& path) {
-    rejectUnknownFields(object, path, {"type", "mode"});
+    detail::rejectUnknownFields(object, path, {"type", "mode"}, stateError);
 
-    const std::string type = stringField(object, "type", path);
+    const std::string type = detail::stringField(object, "type", path, stateError);
     if (type != "post_process_aa")
       stateError(path + ".type", "expected post_process_aa");
 
-    return aaStateForMode(stringField(object, "mode", path), path + ".mode");
+    return aaStateForMode(detail::stringField(object, "mode", path, stateError), path + ".mode");
   }
 
   std::shared_ptr<const PostProcessAAState>

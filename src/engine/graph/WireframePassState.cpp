@@ -15,27 +15,15 @@ namespace engine::graph {
       throw std::runtime_error("Invalid wireframe pass state at " + path + ": " + message);
     }
 
-    bool hasField(const QJsonObject& object, const char* key) {
-      return detail::hasField(object, key);
-    }
-
-    void rejectUnknownFields(const QJsonObject& object, const std::string& path,
-                             std::initializer_list<const char*> allowed) {
-      detail::rejectUnknownFields(object, path, allowed, stateError);
-    }
-
-    int intField(const QJsonObject& object, const char* key, const std::string& path) {
-      return detail::intField(object, key, path, stateError);
-    }
   }
 
   WireframePassState WireframePassState::fromJson(const QJsonObject& object,
                                                   const std::string& path) {
-    rejectUnknownFields(object, path, {"lod"});
+    detail::rejectUnknownFields(object, path, {"lod"}, stateError);
 
     WireframePassState state;
-    if (hasField(object, "lod"))
-      state.setLod(intField(object, "lod", path));
+    if (detail::hasField(object, "lod"))
+      state.setLod(detail::intField(object, "lod", path, stateError));
     return state;
   }
 

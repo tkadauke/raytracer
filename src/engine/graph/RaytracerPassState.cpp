@@ -33,38 +33,6 @@ namespace engine::graph {
 
     constexpr std::uint64_t maxExactJsonInteger = (1ull << 53) - 1;
 
-    bool hasField(const QJsonObject& object, const char* key) {
-      return detail::hasField(object, key);
-    }
-
-    void rejectUnknownFields(const QJsonObject& object, const std::string& path,
-                             std::initializer_list<const char*> allowed) {
-      detail::rejectUnknownFields(object, path, allowed, stateError);
-    }
-
-    QJsonObject objectField(const QJsonObject& object, const char* key, const std::string& path) {
-      return detail::objectField(object, key, path, stateError);
-    }
-
-    int intField(const QJsonObject& object, const char* key, const std::string& path) {
-      return detail::intField(object, key, path, stateError);
-    }
-
-    std::uint64_t uint64Field(const QJsonObject& object, const char* key, const std::string& path) {
-      return detail::uint64Field(object, key, path, stateError);
-    }
-
-    double doubleField(const QJsonObject& object, const char* key, const std::string& path) {
-      return detail::doubleField(object, key, path, stateError);
-    }
-
-    bool boolField(const QJsonObject& object, const char* key, const std::string& path) {
-      return detail::boolField(object, key, path, stateError);
-    }
-
-    std::string stringField(const QJsonObject& object, const char* key, const std::string& path) {
-      return detail::stringField(object, key, path, stateError);
-    }
 
     std::string samplerFactoryId(const std::string& name) {
       return name.size() >= 7 && name.substr(name.size() - 7) == "Sampler" ? name
@@ -85,108 +53,108 @@ namespace engine::graph {
 
   RaytracerBeautyPassState RaytracerBeautyPassState::fromJson(const QJsonObject& object,
                                                               const std::string& path) {
-    rejectUnknownFields(
+    detail::rejectUnknownFields(
       object, path,
-      {"execution", "sampling", "viewPlane", "convergence", "adaptiveSampling", "denoise"});
+      {"execution", "sampling", "viewPlane", "convergence", "adaptiveSampling", "denoise"}, stateError);
 
     RaytracerBeautyPassState state;
-    const QJsonObject execution = objectField(object, "execution", path);
-    rejectUnknownFields(execution, path + ".execution",
+    const QJsonObject execution = detail::objectField(object, "execution", path, stateError);
+    detail::rejectUnknownFields(execution, path + ".execution",
                         {"maxRecursionDepth", "threads", "queueSize", "integrator",
                          "tracingBackend", "tracingExecution", "predictedTracingExecution",
                          "tracingExecutionFallbackReason", "intersectionBackend",
                          "russianRouletteDepth", "directLightSamples",
-                         "gpuPrimarySampleChunkSize"});
-    if (hasField(execution, "maxRecursionDepth"))
-      state.setMaximumRecursionDepth(intField(execution, "maxRecursionDepth", path + ".execution"));
-    if (hasField(execution, "threads"))
-      state.setMaximumThreads(intField(execution, "threads", path + ".execution"));
-    if (hasField(execution, "queueSize"))
-      state.setQueueSize(intField(execution, "queueSize", path + ".execution"));
-    if (hasField(execution, "integrator"))
-      state.setIntegrator(stringField(execution, "integrator", path + ".execution"));
-    if (hasField(execution, "tracingBackend"))
-      state.setTracingBackend(stringField(execution, "tracingBackend", path + ".execution"));
-    if (hasField(execution, "tracingExecution")) {
-      state.setTracingExecution(stringField(execution, "tracingExecution", path + ".execution"));
+                         "gpuPrimarySampleChunkSize"}, stateError);
+    if (detail::hasField(execution, "maxRecursionDepth"))
+      state.setMaximumRecursionDepth(detail::intField(execution, "maxRecursionDepth", path + ".execution", stateError));
+    if (detail::hasField(execution, "threads"))
+      state.setMaximumThreads(detail::intField(execution, "threads", path + ".execution", stateError));
+    if (detail::hasField(execution, "queueSize"))
+      state.setQueueSize(detail::intField(execution, "queueSize", path + ".execution", stateError));
+    if (detail::hasField(execution, "integrator"))
+      state.setIntegrator(detail::stringField(execution, "integrator", path + ".execution", stateError));
+    if (detail::hasField(execution, "tracingBackend"))
+      state.setTracingBackend(detail::stringField(execution, "tracingBackend", path + ".execution", stateError));
+    if (detail::hasField(execution, "tracingExecution")) {
+      state.setTracingExecution(detail::stringField(execution, "tracingExecution", path + ".execution", stateError));
     }
-    if (hasField(execution, "predictedTracingExecution")) {
+    if (detail::hasField(execution, "predictedTracingExecution")) {
       state.setPredictedTracingExecution(
-        stringField(execution, "predictedTracingExecution", path + ".execution"));
+        detail::stringField(execution, "predictedTracingExecution", path + ".execution", stateError));
     }
-    if (hasField(execution, "tracingExecutionFallbackReason")) {
+    if (detail::hasField(execution, "tracingExecutionFallbackReason")) {
       state.setTracingExecutionFallbackReason(
-        stringField(execution, "tracingExecutionFallbackReason", path + ".execution"));
+        detail::stringField(execution, "tracingExecutionFallbackReason", path + ".execution", stateError));
     }
-    if (hasField(execution, "intersectionBackend")) {
+    if (detail::hasField(execution, "intersectionBackend")) {
       state.setIntersectionBackend(
-        stringField(execution, "intersectionBackend", path + ".execution"));
+        detail::stringField(execution, "intersectionBackend", path + ".execution", stateError));
     }
-    if (hasField(execution, "russianRouletteDepth")) {
+    if (detail::hasField(execution, "russianRouletteDepth")) {
       state.setRussianRouletteDepth(
-        intField(execution, "russianRouletteDepth", path + ".execution"));
+        detail::intField(execution, "russianRouletteDepth", path + ".execution", stateError));
     }
-    if (hasField(execution, "directLightSamples")) {
-      state.setDirectLightSamples(intField(execution, "directLightSamples", path + ".execution"));
+    if (detail::hasField(execution, "directLightSamples")) {
+      state.setDirectLightSamples(detail::intField(execution, "directLightSamples", path + ".execution", stateError));
     }
-    if (hasField(execution, "gpuPrimarySampleChunkSize")) {
+    if (detail::hasField(execution, "gpuPrimarySampleChunkSize")) {
       state.setGpuPrimarySampleChunkSize(
-        intField(execution, "gpuPrimarySampleChunkSize", path + ".execution"));
+        detail::intField(execution, "gpuPrimarySampleChunkSize", path + ".execution", stateError));
     }
 
-    const QJsonObject sampling = objectField(object, "sampling", path);
-    rejectUnknownFields(sampling, path + ".sampling",
-                        {"sampler", "samplesPerPixel", "seed", "streamMode"});
-    if (hasField(sampling, "sampler"))
-      state.setSampler(stringField(sampling, "sampler", path + ".sampling"));
-    if (hasField(sampling, "samplesPerPixel"))
-      state.setSamplesPerPixel(intField(sampling, "samplesPerPixel", path + ".sampling"));
-    if (hasField(sampling, "seed"))
-      state.setSamplingSeed(uint64Field(sampling, "seed", path + ".sampling"));
-    if (hasField(sampling, "streamMode"))
-      state.setSampleStreamMode(stringField(sampling, "streamMode", path + ".sampling"));
+    const QJsonObject sampling = detail::objectField(object, "sampling", path, stateError);
+    detail::rejectUnknownFields(sampling, path + ".sampling",
+                        {"sampler", "samplesPerPixel", "seed", "streamMode"}, stateError);
+    if (detail::hasField(sampling, "sampler"))
+      state.setSampler(detail::stringField(sampling, "sampler", path + ".sampling", stateError));
+    if (detail::hasField(sampling, "samplesPerPixel"))
+      state.setSamplesPerPixel(detail::intField(sampling, "samplesPerPixel", path + ".sampling", stateError));
+    if (detail::hasField(sampling, "seed"))
+      state.setSamplingSeed(detail::uint64Field(sampling, "seed", path + ".sampling", stateError));
+    if (detail::hasField(sampling, "streamMode"))
+      state.setSampleStreamMode(detail::stringField(sampling, "streamMode", path + ".sampling", stateError));
 
-    const QJsonObject viewPlane = objectField(object, "viewPlane", path);
-    rejectUnknownFields(viewPlane, path + ".viewPlane", {"type"});
-    if (hasField(viewPlane, "type"))
-      state.setViewPlane(stringField(viewPlane, "type", path + ".viewPlane"));
+    const QJsonObject viewPlane = detail::objectField(object, "viewPlane", path, stateError);
+    detail::rejectUnknownFields(viewPlane, path + ".viewPlane", {"type"}, stateError);
+    if (detail::hasField(viewPlane, "type"))
+      state.setViewPlane(detail::stringField(viewPlane, "type", path + ".viewPlane", stateError));
 
-    const QJsonObject convergence = objectField(object, "convergence", path);
-    rejectUnknownFields(convergence, path + ".convergence",
-                        {"enabled", "activeSampleFractionThreshold", "radianceDeltaRmsThreshold"});
-    if (hasField(convergence, "enabled"))
-      state.setConvergenceEnabled(boolField(convergence, "enabled", path + ".convergence"));
-    if (hasField(convergence, "activeSampleFractionThreshold")) {
+    const QJsonObject convergence = detail::objectField(object, "convergence", path, stateError);
+    detail::rejectUnknownFields(convergence, path + ".convergence",
+                        {"enabled", "activeSampleFractionThreshold", "radianceDeltaRmsThreshold"}, stateError);
+    if (detail::hasField(convergence, "enabled"))
+      state.setConvergenceEnabled(detail::boolField(convergence, "enabled", path + ".convergence", stateError));
+    if (detail::hasField(convergence, "activeSampleFractionThreshold")) {
       state.setConvergenceActiveSampleFractionThreshold(
-        doubleField(convergence, "activeSampleFractionThreshold", path + ".convergence"));
+        detail::doubleField(convergence, "activeSampleFractionThreshold", path + ".convergence", stateError));
     }
-    if (hasField(convergence, "radianceDeltaRmsThreshold")) {
+    if (detail::hasField(convergence, "radianceDeltaRmsThreshold")) {
       state.setConvergenceRadianceDeltaRmsThreshold(
-        doubleField(convergence, "radianceDeltaRmsThreshold", path + ".convergence"));
+        detail::doubleField(convergence, "radianceDeltaRmsThreshold", path + ".convergence", stateError));
     }
 
-    const QJsonObject adaptiveSampling = objectField(object, "adaptiveSampling", path);
-    rejectUnknownFields(adaptiveSampling, path + ".adaptiveSampling",
-                        {"enabled", "minimumSamples", "stddevThreshold"});
-    if (hasField(adaptiveSampling, "enabled"))
+    const QJsonObject adaptiveSampling = detail::objectField(object, "adaptiveSampling", path, stateError);
+    detail::rejectUnknownFields(adaptiveSampling, path + ".adaptiveSampling",
+                        {"enabled", "minimumSamples", "stddevThreshold"}, stateError);
+    if (detail::hasField(adaptiveSampling, "enabled"))
       state.setAdaptiveSamplingEnabled(
-        boolField(adaptiveSampling, "enabled", path + ".adaptiveSampling"));
-    if (hasField(adaptiveSampling, "minimumSamples"))
+        detail::boolField(adaptiveSampling, "enabled", path + ".adaptiveSampling", stateError));
+    if (detail::hasField(adaptiveSampling, "minimumSamples"))
       state.setAdaptiveMinimumSamples(
-        intField(adaptiveSampling, "minimumSamples", path + ".adaptiveSampling"));
-    if (hasField(adaptiveSampling, "stddevThreshold")) {
+        detail::intField(adaptiveSampling, "minimumSamples", path + ".adaptiveSampling", stateError));
+    if (detail::hasField(adaptiveSampling, "stddevThreshold")) {
       state.setAdaptiveStddevThreshold(
-        doubleField(adaptiveSampling, "stddevThreshold", path + ".adaptiveSampling"));
+        detail::doubleField(adaptiveSampling, "stddevThreshold", path + ".adaptiveSampling", stateError));
     }
 
-    const QJsonObject denoise = objectField(object, "denoise", path);
-    rejectUnknownFields(denoise, path + ".denoise", {"type", "radius", "colorSigma"});
-    if (hasField(denoise, "type"))
-      state.setDenoiser(stringField(denoise, "type", path + ".denoise"));
-    if (hasField(denoise, "radius"))
-      state.setDenoiseRadius(intField(denoise, "radius", path + ".denoise"));
-    if (hasField(denoise, "colorSigma"))
-      state.setDenoiseColorSigma(doubleField(denoise, "colorSigma", path + ".denoise"));
+    const QJsonObject denoise = detail::objectField(object, "denoise", path, stateError);
+    detail::rejectUnknownFields(denoise, path + ".denoise", {"type", "radius", "colorSigma"}, stateError);
+    if (detail::hasField(denoise, "type"))
+      state.setDenoiser(detail::stringField(denoise, "type", path + ".denoise", stateError));
+    if (detail::hasField(denoise, "radius"))
+      state.setDenoiseRadius(detail::intField(denoise, "radius", path + ".denoise", stateError));
+    if (detail::hasField(denoise, "colorSigma"))
+      state.setDenoiseColorSigma(detail::doubleField(denoise, "colorSigma", path + ".denoise", stateError));
 
     return state;
   }
