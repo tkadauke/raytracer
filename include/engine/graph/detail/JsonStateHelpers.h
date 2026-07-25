@@ -10,6 +10,7 @@
 #include <cmath>
 #include <cstdint>
 #include <initializer_list>
+#include <stdexcept>
 #include <string>
 
 namespace engine::graph::detail {
@@ -73,9 +74,7 @@ namespace engine::graph::detail {
   //
   // Each helper takes an `error` callable with signature
   //   void error(const std::string& path, const std::string& message)
-  // that reports and throws on malformed input. Overloads with a trailing
-  // `fallback` parameter treat a missing (undefined) field as valid and return
-  // the fallback instead of calling error.
+  // that is expected to throw on malformed input.
 
   [[nodiscard]] inline bool hasField(const QJsonObject& object, const char* key) {
     return !object.value(key).isUndefined();
@@ -107,20 +106,6 @@ namespace engine::graph::detail {
   [[nodiscard]] inline int intField(const QJsonObject& object, const char* key,
                                     const std::string& path, Error error) {
     const auto value = object.value(key);
-    if (!value.isDouble())
-      error(path + "." + key, "expected integer");
-    const double number = value.toDouble();
-    if (!std::isfinite(number) || std::floor(number) != number)
-      error(path + "." + key, "expected integer");
-    return static_cast<int>(number);
-  }
-
-  template<typename Error>
-  [[nodiscard]] inline int intField(const QJsonObject& object, const char* key,
-                                    const std::string& path, Error error, int fallback) {
-    const auto value = object.value(key);
-    if (value.isUndefined())
-      return fallback;
     if (!value.isDouble())
       error(path + "." + key, "expected integer");
     const double number = value.toDouble();
@@ -174,32 +159,9 @@ namespace engine::graph::detail {
   }
 
   template<typename Error>
-  [[nodiscard]] inline bool boolField(const QJsonObject& object, const char* key,
-                                      const std::string& path, Error error, bool fallback) {
-    const auto value = object.value(key);
-    if (value.isUndefined())
-      return fallback;
-    if (!value.isBool())
-      error(path + "." + key, "expected boolean");
-    return value.toBool();
-  }
-
-  template<typename Error>
   [[nodiscard]] inline std::string stringField(const QJsonObject& object, const char* key,
                                                const std::string& path, Error error) {
     const auto value = object.value(key);
-    if (!value.isString())
-      error(path + "." + key, "expected string");
-    return value.toString().toStdString();
-  }
-
-  template<typename Error>
-  [[nodiscard]] inline std::string stringField(const QJsonObject& object, const char* key,
-                                               const std::string& path, Error error,
-                                               const std::string& fallback) {
-    const auto value = object.value(key);
-    if (value.isUndefined())
-      return fallback;
     if (!value.isString())
       error(path + "." + key, "expected string");
     return value.toString().toStdString();
