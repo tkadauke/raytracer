@@ -68,21 +68,10 @@ namespace engine::graph {
       return static_cast<int>(number);
     }
 
-    template<class T>
-    T enumValue(const std::string& value, std::initializer_list<std::pair<const char*, T>> values,
-                const std::string& path) {
-      return detail::enumValue<T>(value, values, path, jsonError);
-    }
-
-    template<class T>
-    const char* enumName(T value, std::initializer_list<std::pair<T, const char*>> values,
-                         const char* fallback = "unknown") {
-      return detail::enumName(value, values, fallback);
-    }
 
     RenderExecutorPreference executorPreferenceFromJson(const std::string& value,
                                                         const std::string& path) {
-      return enumValue<RenderExecutorPreference>(
+      return detail::enumValue<RenderExecutorPreference>(
         value,
         {{"raytracer", RenderExecutorPreference::Raytracer},
          {"pathtracer", RenderExecutorPreference::PathTracer},
@@ -90,11 +79,11 @@ namespace engine::graph {
          {"wavefront", RenderExecutorPreference::Wavefront},
          {"rasterizer", RenderExecutorPreference::Rasterizer},
          {"wireframe", RenderExecutorPreference::Wireframe}},
-        path);
+        path, jsonError);
     }
 
     RenderViewMode viewModeFromJson(const std::string& value, const std::string& path) {
-      return enumValue<RenderViewMode>(
+      return detail::enumValue<RenderViewMode>(
         value,
         {{"default", RenderViewMode::Default},
          {"beauty", RenderViewMode::Beauty},
@@ -117,31 +106,31 @@ namespace engine::graph {
          {"raster_shade_count", RenderViewMode::RasterShadeCount},
          {"raster_color_write_count", RenderViewMode::RasterColorWriteCount},
          {"hybrid_visibility", RenderViewMode::HybridVisibility}},
-        path);
+        path, jsonError);
     }
 
     RenderPostProcessAA postProcessAAFromJson(const std::string& value, const std::string& path) {
-      return enumValue<RenderPostProcessAA>(value,
+      return detail::enumValue<RenderPostProcessAA>(value,
                                             {{"none", RenderPostProcessAA::None},
                                              {"fxaa", RenderPostProcessAA::FXAA},
                                              {"smaa", RenderPostProcessAA::SMAA},
                                              {"taa", RenderPostProcessAA::TAA}},
-                                            path);
+                                            path, jsonError);
     }
 
     SceneSelector::Kind selectorKindFromJson(const std::string& value, const std::string& path) {
-      return enumValue<SceneSelector::Kind>(value,
+      return detail::enumValue<SceneSelector::Kind>(value,
                                             {{"all", SceneSelector::Kind::All},
                                              {"object_id", SceneSelector::Kind::ObjectId},
                                              {"object_name", SceneSelector::Kind::ObjectName},
                                              {"tag", SceneSelector::Kind::Tag},
                                              {"layer", SceneSelector::Kind::Layer},
                                              {"material_role", SceneSelector::Kind::MaterialRole}},
-                                            path);
+                                            path, jsonError);
     }
 
     RenderResourceType resourceTypeFromJson(const std::string& value, const std::string& path) {
-      return enumValue<RenderResourceType>(value,
+      return detail::enumValue<RenderResourceType>(value,
                                            {{"color", RenderResourceType::Color},
                                             {"depth", RenderResourceType::Depth},
                                             {"stencil", RenderResourceType::Stencil},
@@ -154,11 +143,11 @@ namespace engine::graph {
                                             {"shadow_mask", RenderResourceType::ShadowMask},
                                             {"visibility_set", RenderResourceType::VisibilitySet},
                                             {"custom_texture", RenderResourceType::CustomTexture}},
-                                           path);
+                                           path, jsonError);
     }
 
     RenderResourceFormat resourceFormatFromJson(const std::string& value, const std::string& path) {
-      return enumValue<RenderResourceFormat>(
+      return detail::enumValue<RenderResourceFormat>(
         value,
         {{"unknown", RenderResourceFormat::Unknown},
          {"rgb_double", RenderResourceFormat::RGBDouble},
@@ -166,28 +155,28 @@ namespace engine::graph {
          {"uint8", RenderResourceFormat::UInt8},
          {"uint32", RenderResourceFormat::UInt32},
          {"scalar_double", RenderResourceFormat::ScalarDouble}},
-        path);
+        path, jsonError);
     }
 
     RenderResourceDomain resourceDomainFromJson(const std::string& value, const std::string& path) {
-      return enumValue<RenderResourceDomain>(
-        value, {{"cpu", RenderResourceDomain::CPU}, {"gpu", RenderResourceDomain::GPU}}, path);
+      return detail::enumValue<RenderResourceDomain>(
+        value, {{"cpu", RenderResourceDomain::CPU}, {"gpu", RenderResourceDomain::GPU}}, path, jsonError);
     }
 
     RenderResourceLifetime resourceLifetimeFromJson(const std::string& value,
                                                     const std::string& path) {
-      return enumValue<RenderResourceLifetime>(
+      return detail::enumValue<RenderResourceLifetime>(
         value,
         {{"transient", RenderResourceLifetime::Transient},
          {"imported", RenderResourceLifetime::Imported},
          {"exported", RenderResourceLifetime::Exported},
          {"history", RenderResourceLifetime::History},
          {"persistent_cache", RenderResourceLifetime::PersistentCache}},
-        path);
+        path, jsonError);
     }
 
     RenderPassKind passKindFromJson(const std::string& value, const std::string& path) {
-      return enumValue<RenderPassKind>(value,
+      return detail::enumValue<RenderPassKind>(value,
                                        {{"beauty", RenderPassKind::Beauty},
                                         {"shadow", RenderPassKind::Shadow},
                                         {"overlay", RenderPassKind::Overlay},
@@ -199,37 +188,37 @@ namespace engine::graph {
                                         {"aov", RenderPassKind::AOV},
                                         {"debug", RenderPassKind::Debug},
                                         {"custom", RenderPassKind::Custom}},
-                                       path);
+                                       path, jsonError);
     }
 
     RenderExecutorKind executorKindFromJson(const std::string& value, const std::string& path) {
-      return enumValue<RenderExecutorKind>(value,
+      return detail::enumValue<RenderExecutorKind>(value,
                                            {{"raytracer", RenderExecutorKind::Raytracer},
                                             {"wavefront", RenderExecutorKind::Wavefront},
                                             {"rasterizer", RenderExecutorKind::Rasterizer},
                                             {"wireframe", RenderExecutorKind::Wireframe},
                                             {"composite", RenderExecutorKind::Composite},
                                             {"postprocess", RenderExecutorKind::PostProcess}},
-                                           path);
+                                           path, jsonError);
     }
 
     DisabledBehavior disabledBehaviorFromJson(const std::string& value, const std::string& path) {
-      return enumValue<DisabledBehavior>(
+      return detail::enumValue<DisabledBehavior>(
         value,
         {{"error", DisabledBehavior::Error},
          {"cull_dependents", DisabledBehavior::CullDependents},
          {"substitute_default", DisabledBehavior::SubstituteDefault},
          {"passthrough", DisabledBehavior::Passthrough}},
-        path);
+        path, jsonError);
     }
 
     RenderConcurrencyMode concurrencyModeFromJson(const std::string& value,
                                                   const std::string& path) {
-      return enumValue<RenderConcurrencyMode>(value,
+      return detail::enumValue<RenderConcurrencyMode>(value,
                                               {{"serial", RenderConcurrencyMode::Serial},
                                                {"limited", RenderConcurrencyMode::Limited},
                                                {"parallel", RenderConcurrencyMode::Parallel}},
-                                              path);
+                                              path, jsonError);
     }
 
     QJsonArray stringArray(const std::vector<RenderFeatureKind>& values) {
@@ -327,11 +316,11 @@ namespace engine::graph {
 
     DerivedCameraRef::Kind derivedCameraKindFromJson(const std::string& value,
                                                      const std::string& path) {
-      return enumValue<DerivedCameraRef::Kind>(
+      return detail::enumValue<DerivedCameraRef::Kind>(
         value,
         {{"portal", DerivedCameraRef::Kind::Portal},
          {"planar_mirror", DerivedCameraRef::Kind::PlanarMirror}},
-        path);
+        path, jsonError);
     }
 
     std::vector<RenderFeatureKind> featureArrayFromJson(const QJsonObject& object, const char* key,
@@ -897,7 +886,7 @@ namespace engine::graph {
   }
 
   const char* toString(RenderExecutorPreference value) {
-    return enumName<RenderExecutorPreference>(value,
+    return detail::enumName<RenderExecutorPreference>(value,
                                               {{RenderExecutorPreference::Raytracer, "raytracer"},
                                                {RenderExecutorPreference::PathTracer, "pathtracer"},
                                                {RenderExecutorPreference::Wavefront, "wavefront"},
@@ -906,7 +895,7 @@ namespace engine::graph {
   }
 
   const char* toString(RenderViewMode value) {
-    return enumName<RenderViewMode>(
+    return detail::enumName<RenderViewMode>(
       value, {{RenderViewMode::Default, "default"},
               {RenderViewMode::Beauty, "beauty"},
               {RenderViewMode::Wireframe, "wireframe"},
@@ -928,14 +917,14 @@ namespace engine::graph {
   }
 
   const char* toString(RenderPostProcessAA value) {
-    return enumName<RenderPostProcessAA>(value, {{RenderPostProcessAA::None, "none"},
+    return detail::enumName<RenderPostProcessAA>(value, {{RenderPostProcessAA::None, "none"},
                                                  {RenderPostProcessAA::FXAA, "fxaa"},
                                                  {RenderPostProcessAA::SMAA, "smaa"},
                                                  {RenderPostProcessAA::TAA, "taa"}});
   }
 
   const char* toString(RenderExecutorKind value) {
-    return enumName<RenderExecutorKind>(value, {{RenderExecutorKind::Raytracer, "raytracer"},
+    return detail::enumName<RenderExecutorKind>(value, {{RenderExecutorKind::Raytracer, "raytracer"},
                                                 {RenderExecutorKind::Wavefront, "wavefront"},
                                                 {RenderExecutorKind::Rasterizer, "rasterizer"},
                                                 {RenderExecutorKind::Wireframe, "wireframe"},
@@ -944,7 +933,7 @@ namespace engine::graph {
   }
 
   const char* toString(RenderPassKind value) {
-    return enumName<RenderPassKind>(value, {{RenderPassKind::Beauty, "beauty"},
+    return detail::enumName<RenderPassKind>(value, {{RenderPassKind::Beauty, "beauty"},
                                             {RenderPassKind::Shadow, "shadow"},
                                             {RenderPassKind::Overlay, "overlay"},
                                             {RenderPassKind::Composite, "composite"},
@@ -958,7 +947,7 @@ namespace engine::graph {
   }
 
   const char* toString(DisabledBehavior value) {
-    return enumName<DisabledBehavior>(value,
+    return detail::enumName<DisabledBehavior>(value,
                                       {{DisabledBehavior::Error, "error"},
                                        {DisabledBehavior::CullDependents, "cull_dependents"},
                                        {DisabledBehavior::SubstituteDefault, "substitute_default"},
@@ -966,13 +955,13 @@ namespace engine::graph {
   }
 
   const char* toString(RenderConcurrencyMode value) {
-    return enumName<RenderConcurrencyMode>(value, {{RenderConcurrencyMode::Serial, "serial"},
+    return detail::enumName<RenderConcurrencyMode>(value, {{RenderConcurrencyMode::Serial, "serial"},
                                                    {RenderConcurrencyMode::Limited, "limited"},
                                                    {RenderConcurrencyMode::Parallel, "parallel"}});
   }
 
   const char* toString(RenderResourceType value) {
-    return enumName<RenderResourceType>(value,
+    return detail::enumName<RenderResourceType>(value,
                                         {{RenderResourceType::Color, "color"},
                                          {RenderResourceType::Depth, "depth"},
                                          {RenderResourceType::Stencil, "stencil"},
@@ -988,12 +977,12 @@ namespace engine::graph {
   }
 
   const char* toString(RenderResourceDomain value) {
-    return enumName<RenderResourceDomain>(
+    return detail::enumName<RenderResourceDomain>(
       value, {{RenderResourceDomain::CPU, "cpu"}, {RenderResourceDomain::GPU, "gpu"}});
   }
 
   const char* toString(RenderResourceLifetime value) {
-    return enumName<RenderResourceLifetime>(
+    return detail::enumName<RenderResourceLifetime>(
       value, {{RenderResourceLifetime::Transient, "transient"},
               {RenderResourceLifetime::Imported, "imported"},
               {RenderResourceLifetime::Exported, "exported"},
@@ -1002,7 +991,7 @@ namespace engine::graph {
   }
 
   const char* toString(RenderResourceFormat value) {
-    return enumName<RenderResourceFormat>(value,
+    return detail::enumName<RenderResourceFormat>(value,
                                           {{RenderResourceFormat::Unknown, "unknown"},
                                            {RenderResourceFormat::RGBDouble, "rgb_double"},
                                            {RenderResourceFormat::DepthDouble, "depth_double"},
@@ -1012,7 +1001,7 @@ namespace engine::graph {
   }
 
   const char* toString(SceneSelector::Kind value) {
-    return enumName<SceneSelector::Kind>(value,
+    return detail::enumName<SceneSelector::Kind>(value,
                                          {{SceneSelector::Kind::All, "all"},
                                           {SceneSelector::Kind::ObjectId, "object_id"},
                                           {SceneSelector::Kind::ObjectName, "object_name"},

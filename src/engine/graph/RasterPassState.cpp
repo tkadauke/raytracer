@@ -26,47 +26,9 @@ namespace engine::graph {
                                " yet; use raster backend 'cpu'");
     }
 
-    bool hasField(const QJsonObject& object, const char* key) {
-      return detail::hasField(object, key);
-    }
-
-    void rejectUnknownFields(const QJsonObject& object, const std::string& path,
-                             std::initializer_list<const char*> allowed) {
-      detail::rejectUnknownFields(object, path, allowed, stateError);
-    }
-
-    QJsonObject objectField(const QJsonObject& object, const char* key, const std::string& path) {
-      return detail::objectField(object, key, path, stateError);
-    }
-
-    int intField(const QJsonObject& object, const char* key, const std::string& path) {
-      return detail::intField(object, key, path, stateError);
-    }
-
-    std::uint8_t byteField(const QJsonObject& object, const char* key, const std::string& path) {
-      return detail::byteField(object, key, path, stateError);
-    }
-
-    double doubleField(const QJsonObject& object, const char* key, const std::string& path) {
-      return detail::doubleField(object, key, path, stateError);
-    }
-
-    bool boolField(const QJsonObject& object, const char* key, const std::string& path) {
-      return detail::boolField(object, key, path, stateError);
-    }
-
-    std::string stringField(const QJsonObject& object, const char* key, const std::string& path) {
-      return detail::stringField(object, key, path, stateError);
-    }
-
-    template<class T>
-    const char* enumName(T value, std::initializer_list<std::pair<T, const char*>> values,
-                         const char* fallback) {
-      return detail::enumName(value, values, fallback);
-    }
 
     const char* toString(Rasterizer::CullMode mode) {
-      return enumName<Rasterizer::CullMode>(mode,
+      return detail::enumName<Rasterizer::CullMode>(mode,
                                             {{Rasterizer::CullMode::Both, "both"},
                                              {Rasterizer::CullMode::Back, "back"},
                                              {Rasterizer::CullMode::Front, "front"}},
@@ -74,7 +36,7 @@ namespace engine::graph {
     }
 
     const char* toString(Rasterizer::TessellationQuality quality) {
-      return enumName<Rasterizer::TessellationQuality>(
+      return detail::enumName<Rasterizer::TessellationQuality>(
         quality,
         {{Rasterizer::TessellationQuality::Preview, "preview"},
          {Rasterizer::TessellationQuality::Balanced, "balanced"},
@@ -104,7 +66,7 @@ namespace engine::graph {
     }
 
     const char* toString(Rasterizer::MSAAShadingMode mode) {
-      return enumName<Rasterizer::MSAAShadingMode>(
+      return detail::enumName<Rasterizer::MSAAShadingMode>(
         mode,
         {{Rasterizer::MSAAShadingMode::PerSample, "per_sample"},
          {Rasterizer::MSAAShadingMode::PerFragment, "per_fragment"}},
@@ -121,7 +83,7 @@ namespace engine::graph {
     }
 
     const char* toString(Rasterizer::DepthPrepassMode mode) {
-      return enumName<Rasterizer::DepthPrepassMode>(mode,
+      return detail::enumName<Rasterizer::DepthPrepassMode>(mode,
                                                     {{Rasterizer::DepthPrepassMode::Off, "off"},
                                                      {Rasterizer::DepthPrepassMode::On, "on"},
                                                      {Rasterizer::DepthPrepassMode::Auto, "auto"}},
@@ -140,7 +102,7 @@ namespace engine::graph {
     }
 
     const char* toString(Rasterizer::PostProcessAA aa) {
-      return enumName<Rasterizer::PostProcessAA>(aa,
+      return detail::enumName<Rasterizer::PostProcessAA>(aa,
                                                  {{Rasterizer::PostProcessAA::None, "none"},
                                                   {Rasterizer::PostProcessAA::FXAA, "fxaa"},
                                                   {Rasterizer::PostProcessAA::SMAA, "smaa"},
@@ -162,7 +124,7 @@ namespace engine::graph {
     }
 
     const char* toString(Rasterizer::BlendFactor factor) {
-      return enumName<Rasterizer::BlendFactor>(
+      return detail::enumName<Rasterizer::BlendFactor>(
         factor,
         {{Rasterizer::BlendFactor::Zero, "zero"},
          {Rasterizer::BlendFactor::One, "one"},
@@ -209,7 +171,7 @@ namespace engine::graph {
     }
 
     const char* toString(Rasterizer::BlendOp op) {
-      return enumName<Rasterizer::BlendOp>(
+      return detail::enumName<Rasterizer::BlendOp>(
         op,
         {{Rasterizer::BlendOp::Add, "add"},
          {Rasterizer::BlendOp::Subtract, "subtract"},
@@ -234,7 +196,7 @@ namespace engine::graph {
     }
 
     const char* toString(Rasterizer::DepthFunc func) {
-      return enumName<Rasterizer::DepthFunc>(
+      return detail::enumName<Rasterizer::DepthFunc>(
         func,
         {{Rasterizer::DepthFunc::Never, "never"},
          {Rasterizer::DepthFunc::Less, "less"},
@@ -268,7 +230,7 @@ namespace engine::graph {
     }
 
     const char* toString(Rasterizer::AlphaFunc func) {
-      return enumName<Rasterizer::AlphaFunc>(
+      return detail::enumName<Rasterizer::AlphaFunc>(
         func,
         {{Rasterizer::AlphaFunc::Never, "never"},
          {Rasterizer::AlphaFunc::Less, "less"},
@@ -302,7 +264,7 @@ namespace engine::graph {
     }
 
     const char* toString(Rasterizer::StencilFunc func) {
-      return enumName<Rasterizer::StencilFunc>(
+      return detail::enumName<Rasterizer::StencilFunc>(
         func,
         {{Rasterizer::StencilFunc::Never, "never"},
          {Rasterizer::StencilFunc::Less, "less"},
@@ -337,7 +299,7 @@ namespace engine::graph {
     }
 
     const char* toString(Rasterizer::StencilOp op) {
-      return enumName<Rasterizer::StencilOp>(
+      return detail::enumName<Rasterizer::StencilOp>(
         op,
         {{Rasterizer::StencilOp::Keep, "keep"},
          {Rasterizer::StencilOp::Zero, "zero"},
@@ -365,7 +327,7 @@ namespace engine::graph {
     }
 
     const char* toString(Rasterizer::AttachmentLoadOp op) {
-      return enumName<Rasterizer::AttachmentLoadOp>(op,
+      return detail::enumName<Rasterizer::AttachmentLoadOp>(op,
                                                     {{Rasterizer::AttachmentLoadOp::Clear, "clear"},
                                                      {Rasterizer::AttachmentLoadOp::Load, "load"}},
                                                     "clear");
@@ -381,7 +343,7 @@ namespace engine::graph {
     }
 
     const char* toString(Rasterizer::AttachmentStoreOp op) {
-      return enumName<Rasterizer::AttachmentStoreOp>(
+      return detail::enumName<Rasterizer::AttachmentStoreOp>(
         op,
         {{Rasterizer::AttachmentStoreOp::Store, "store"},
          {Rasterizer::AttachmentStoreOp::Discard, "discard"}},
@@ -398,7 +360,7 @@ namespace engine::graph {
     }
 
     const char* toString(Rasterizer::ShadowFilterMode mode) {
-      return enumName<Rasterizer::ShadowFilterMode>(
+      return detail::enumName<Rasterizer::ShadowFilterMode>(
         mode,
         {{Rasterizer::ShadowFilterMode::PCF, "pcf"}, {Rasterizer::ShadowFilterMode::PCSS, "pcss"}},
         "pcf");
@@ -452,15 +414,15 @@ namespace engine::graph {
 
   RasterExecutionState RasterExecutionState::fromJson(const QJsonObject& object,
                                                       const std::string& path) {
-    rejectUnknownFields(object, path, {"threads", "queueSize", "backend"});
+    detail::rejectUnknownFields(object, path, {"threads", "queueSize", "backend"}, stateError);
     RasterExecutionState state;
-    if (hasField(object, "threads"))
-      state.setMaximumThreads(intField(object, "threads", path));
-    if (hasField(object, "queueSize"))
-      state.setQueueSize(intField(object, "queueSize", path));
-    if (hasField(object, "backend"))
+    if (detail::hasField(object, "threads"))
+      state.setMaximumThreads(detail::intField(object, "threads", path, stateError));
+    if (detail::hasField(object, "queueSize"))
+      state.setQueueSize(detail::intField(object, "queueSize", path, stateError));
+    if (detail::hasField(object, "backend"))
       state.setBackend(engine::raster::RasterBackend::fromString(
-        stringField(object, "backend", path), path + ".backend"));
+        detail::stringField(object, "backend", path, stateError), path + ".backend"));
     return state;
   }
 
@@ -507,18 +469,18 @@ namespace engine::graph {
 
   RasterGeometryState RasterGeometryState::fromJson(const QJsonObject& object,
                                                     const std::string& path) {
-    rejectUnknownFields(object, path, {"lod", "quality", "maxScreenSpaceError", "cullMode"});
+    detail::rejectUnknownFields(object, path, {"lod", "quality", "maxScreenSpaceError", "cullMode"}, stateError);
     RasterGeometryState state;
-    if (hasField(object, "lod"))
-      state.setLod(intField(object, "lod", path));
-    if (hasField(object, "quality"))
+    if (detail::hasField(object, "lod"))
+      state.setLod(detail::intField(object, "lod", path, stateError));
+    if (detail::hasField(object, "quality"))
       state.setTessellationQuality(
-        tessellationQualityFromString(stringField(object, "quality", path), path + ".quality"));
-    if (hasField(object, "maxScreenSpaceError"))
-      state.setMaximumScreenSpaceError(doubleField(object, "maxScreenSpaceError", path));
-    if (hasField(object, "cullMode"))
+        tessellationQualityFromString(detail::stringField(object, "quality", path, stateError), path + ".quality"));
+    if (detail::hasField(object, "maxScreenSpaceError"))
+      state.setMaximumScreenSpaceError(detail::doubleField(object, "maxScreenSpaceError", path, stateError));
+    if (detail::hasField(object, "cullMode"))
       state.setCullMode(
-        cullModeFromString(stringField(object, "cullMode", path), path + ".cullMode"));
+        cullModeFromString(detail::stringField(object, "cullMode", path, stateError), path + ".cullMode"));
     return state;
   }
 
@@ -620,15 +582,15 @@ namespace engine::graph {
 
   RasterSamplingState RasterSamplingState::fromJson(const QJsonObject& object,
                                                     const std::string& path) {
-    rejectUnknownFields(object, path, {"msaaSamples", "msaaShadingMode", "postProcessAA"});
+    detail::rejectUnknownFields(object, path, {"msaaSamples", "msaaShadingMode", "postProcessAA"}, stateError);
     RasterSamplingState state;
-    if (hasField(object, "msaaSamples"))
-      state.setMSAASamples(intField(object, "msaaSamples", path));
-    if (hasField(object, "msaaShadingMode"))
+    if (detail::hasField(object, "msaaSamples"))
+      state.setMSAASamples(detail::intField(object, "msaaSamples", path, stateError));
+    if (detail::hasField(object, "msaaShadingMode"))
       state.setMSAAShadingMode(msaaShadingModeFromString(
-        stringField(object, "msaaShadingMode", path), path + ".msaaShadingMode"));
-    if (hasField(object, "postProcessAA"))
-      state.setPostProcessAA(postProcessAAFromString(stringField(object, "postProcessAA", path),
+        detail::stringField(object, "msaaShadingMode", path, stateError), path + ".msaaShadingMode"));
+    if (detail::hasField(object, "postProcessAA"))
+      state.setPostProcessAA(postProcessAAFromString(detail::stringField(object, "postProcessAA", path, stateError),
                                                      path + ".postProcessAA"));
     return state;
   }
@@ -696,10 +658,10 @@ namespace engine::graph {
 
   RasterDepthPrepassState RasterDepthPrepassState::fromJson(const QJsonObject& object,
                                                             const std::string& path) {
-    rejectUnknownFields(object, path, {"mode"});
+    detail::rejectUnknownFields(object, path, {"mode"}, stateError);
     RasterDepthPrepassState state;
-    if (hasField(object, "mode"))
-      state.setMode(depthPrepassModeFromString(stringField(object, "mode", path), path + ".mode"));
+    if (detail::hasField(object, "mode"))
+      state.setMode(depthPrepassModeFromString(detail::stringField(object, "mode", path, stateError), path + ".mode"));
     return state;
   }
 
@@ -734,7 +696,7 @@ namespace engine::graph {
 
   RasterFramebufferState RasterFramebufferState::fromJson(const QJsonObject& object,
                                                           const std::string& path) {
-    rejectUnknownFields(object, path,
+    detail::rejectUnknownFields(object, path,
                         {"viewport",
                          "scissor",
                          "colorLoadOp",
@@ -765,110 +727,110 @@ namespace engine::graph {
                          "stencilWriteMask",
                          "stencilFailOp",
                          "stencilDepthFailOp",
-                         "stencilPassOp"});
+                         "stencilPassOp"}, stateError);
     RasterFramebufferState state;
-    if (hasField(object, "viewport"))
+    if (detail::hasField(object, "viewport"))
       state.setViewportRect(detail::rectFromJson(object, "viewport", path, stateError));
-    if (hasField(object, "scissor"))
+    if (detail::hasField(object, "scissor"))
       state.setScissorRect(detail::rectFromJson(object, "scissor", path, stateError));
-    if (hasField(object, "colorLoadOp"))
-      state.setColorLoadOp(attachmentLoadOpFromString(stringField(object, "colorLoadOp", path),
+    if (detail::hasField(object, "colorLoadOp"))
+      state.setColorLoadOp(attachmentLoadOpFromString(detail::stringField(object, "colorLoadOp", path, stateError),
                                                       path + ".colorLoadOp"));
-    if (hasField(object, "colorStoreOp"))
-      state.setColorStoreOp(attachmentStoreOpFromString(stringField(object, "colorStoreOp", path),
+    if (detail::hasField(object, "colorStoreOp"))
+      state.setColorStoreOp(attachmentStoreOpFromString(detail::stringField(object, "colorStoreOp", path, stateError),
                                                         path + ".colorStoreOp"));
-    if (hasField(object, "depthFunc"))
+    if (detail::hasField(object, "depthFunc"))
       state.setDepthFunc(
-        depthFuncFromString(stringField(object, "depthFunc", path), path + ".depthFunc"));
-    if (hasField(object, "depthBias"))
-      state.setDepthBias(doubleField(object, "depthBias", path));
-    if (hasField(object, "depthClearValue"))
-      state.setDepthClearValue(doubleField(object, "depthClearValue", path));
-    if (hasField(object, "depthLoadOp"))
-      state.setDepthLoadOp(attachmentLoadOpFromString(stringField(object, "depthLoadOp", path),
+        depthFuncFromString(detail::stringField(object, "depthFunc", path, stateError), path + ".depthFunc"));
+    if (detail::hasField(object, "depthBias"))
+      state.setDepthBias(detail::doubleField(object, "depthBias", path, stateError));
+    if (detail::hasField(object, "depthClearValue"))
+      state.setDepthClearValue(detail::doubleField(object, "depthClearValue", path, stateError));
+    if (detail::hasField(object, "depthLoadOp"))
+      state.setDepthLoadOp(attachmentLoadOpFromString(detail::stringField(object, "depthLoadOp", path, stateError),
                                                       path + ".depthLoadOp"));
-    if (hasField(object, "depthStoreOp"))
-      state.setDepthStoreOp(attachmentStoreOpFromString(stringField(object, "depthStoreOp", path),
+    if (detail::hasField(object, "depthStoreOp"))
+      state.setDepthStoreOp(attachmentStoreOpFromString(detail::stringField(object, "depthStoreOp", path, stateError),
                                                         path + ".depthStoreOp"));
-    if (hasField(object, "depthWrite"))
-      state.setDepthWriteEnabled(boolField(object, "depthWrite", path));
-    if (hasField(object, "colorWriteMask"))
-      state.setColorWriteMask(colorWriteMaskFromString(stringField(object, "colorWriteMask", path),
+    if (detail::hasField(object, "depthWrite"))
+      state.setDepthWriteEnabled(detail::boolField(object, "depthWrite", path, stateError));
+    if (detail::hasField(object, "colorWriteMask"))
+      state.setColorWriteMask(colorWriteMaskFromString(detail::stringField(object, "colorWriteMask", path, stateError),
                                                        path + ".colorWriteMask"));
-    if (hasField(object, "blending"))
-      state.setBlendingEnabled(boolField(object, "blending", path));
-    if (hasField(object, "blendSource") || hasField(object, "blendDestination")) {
+    if (detail::hasField(object, "blending"))
+      state.setBlendingEnabled(detail::boolField(object, "blending", path, stateError));
+    if (detail::hasField(object, "blendSource") || detail::hasField(object, "blendDestination")) {
       const auto source =
-        hasField(object, "blendSource")
-          ? blendFactorFromString(stringField(object, "blendSource", path), path + ".blendSource")
+        detail::hasField(object, "blendSource")
+          ? blendFactorFromString(detail::stringField(object, "blendSource", path, stateError), path + ".blendSource")
           : Rasterizer::BlendFactor::One;
       const auto destination =
-        hasField(object, "blendDestination")
-          ? blendFactorFromString(stringField(object, "blendDestination", path),
+        detail::hasField(object, "blendDestination")
+          ? blendFactorFromString(detail::stringField(object, "blendDestination", path, stateError),
                                   path + ".blendDestination")
           : Rasterizer::BlendFactor::Zero;
       state.setBlendFactors(source, destination);
     }
-    if (hasField(object, "blendOp"))
-      state.setBlendOp(blendOpFromString(stringField(object, "blendOp", path), path + ".blendOp"));
-    if (hasField(object, "blendConstantColor") || hasField(object, "blendConstantAlpha")) {
-      const Colord color = hasField(object, "blendConstantColor")
+    if (detail::hasField(object, "blendOp"))
+      state.setBlendOp(blendOpFromString(detail::stringField(object, "blendOp", path, stateError), path + ".blendOp"));
+    if (detail::hasField(object, "blendConstantColor") || detail::hasField(object, "blendConstantAlpha")) {
+      const Colord color = detail::hasField(object, "blendConstantColor")
                              ? detail::colorFromJson(object, "blendConstantColor", path, stateError)
                              : Colord::white();
-      const double alpha = hasField(object, "blendConstantAlpha")
-                             ? doubleField(object, "blendConstantAlpha", path)
+      const double alpha = detail::hasField(object, "blendConstantAlpha")
+                             ? detail::doubleField(object, "blendConstantAlpha", path, stateError)
                              : 1.0;
       state.setBlendConstant(color, alpha);
     }
-    if (hasField(object, "alphaTest"))
-      state.setAlphaTestEnabled(boolField(object, "alphaTest", path));
-    if (hasField(object, "alphaFunc") || hasField(object, "alphaReference")) {
+    if (detail::hasField(object, "alphaTest"))
+      state.setAlphaTestEnabled(detail::boolField(object, "alphaTest", path, stateError));
+    if (detail::hasField(object, "alphaFunc") || detail::hasField(object, "alphaReference")) {
       const auto func =
-        hasField(object, "alphaFunc")
-          ? alphaFuncFromString(stringField(object, "alphaFunc", path), path + ".alphaFunc")
+        detail::hasField(object, "alphaFunc")
+          ? alphaFuncFromString(detail::stringField(object, "alphaFunc", path, stateError), path + ".alphaFunc")
           : Rasterizer::AlphaFunc::Always;
       const double reference =
-        hasField(object, "alphaReference") ? doubleField(object, "alphaReference", path) : 0.0;
+        detail::hasField(object, "alphaReference") ? detail::doubleField(object, "alphaReference", path, stateError) : 0.0;
       state.setAlphaFunc(func, reference);
     }
-    if (hasField(object, "stencilTest"))
-      state.setStencilTestEnabled(boolField(object, "stencilTest", path));
-    if (hasField(object, "stencilFunc") || hasField(object, "stencilReference") ||
-        hasField(object, "stencilMask")) {
+    if (detail::hasField(object, "stencilTest"))
+      state.setStencilTestEnabled(detail::boolField(object, "stencilTest", path, stateError));
+    if (detail::hasField(object, "stencilFunc") || detail::hasField(object, "stencilReference") ||
+        detail::hasField(object, "stencilMask")) {
       const auto func =
-        hasField(object, "stencilFunc")
-          ? stencilFuncFromString(stringField(object, "stencilFunc", path), path + ".stencilFunc")
+        detail::hasField(object, "stencilFunc")
+          ? stencilFuncFromString(detail::stringField(object, "stencilFunc", path, stateError), path + ".stencilFunc")
           : Rasterizer::StencilFunc::Always;
       const std::uint8_t reference =
-        hasField(object, "stencilReference") ? byteField(object, "stencilReference", path) : 0;
+        detail::hasField(object, "stencilReference") ? detail::byteField(object, "stencilReference", path, stateError) : 0;
       const std::uint8_t mask =
-        hasField(object, "stencilMask") ? byteField(object, "stencilMask", path) : 0xff;
+        detail::hasField(object, "stencilMask") ? detail::byteField(object, "stencilMask", path, stateError) : 0xff;
       state.setStencilFunc(func, reference, mask);
     }
-    if (hasField(object, "stencilClearValue"))
-      state.setStencilClearValue(byteField(object, "stencilClearValue", path));
-    if (hasField(object, "stencilLoadOp"))
-      state.setStencilLoadOp(attachmentLoadOpFromString(stringField(object, "stencilLoadOp", path),
+    if (detail::hasField(object, "stencilClearValue"))
+      state.setStencilClearValue(detail::byteField(object, "stencilClearValue", path, stateError));
+    if (detail::hasField(object, "stencilLoadOp"))
+      state.setStencilLoadOp(attachmentLoadOpFromString(detail::stringField(object, "stencilLoadOp", path, stateError),
                                                         path + ".stencilLoadOp"));
-    if (hasField(object, "stencilStoreOp"))
+    if (detail::hasField(object, "stencilStoreOp"))
       state.setStencilStoreOp(attachmentStoreOpFromString(
-        stringField(object, "stencilStoreOp", path), path + ".stencilStoreOp"));
-    if (hasField(object, "stencilWriteMask"))
-      state.setStencilWriteMask(byteField(object, "stencilWriteMask", path));
-    if (hasField(object, "stencilFailOp") || hasField(object, "stencilDepthFailOp") ||
-        hasField(object, "stencilPassOp")) {
+        detail::stringField(object, "stencilStoreOp", path, stateError), path + ".stencilStoreOp"));
+    if (detail::hasField(object, "stencilWriteMask"))
+      state.setStencilWriteMask(detail::byteField(object, "stencilWriteMask", path, stateError));
+    if (detail::hasField(object, "stencilFailOp") || detail::hasField(object, "stencilDepthFailOp") ||
+        detail::hasField(object, "stencilPassOp")) {
       const auto stencilFail =
-        hasField(object, "stencilFailOp")
-          ? stencilOpFromString(stringField(object, "stencilFailOp", path), path + ".stencilFailOp")
+        detail::hasField(object, "stencilFailOp")
+          ? stencilOpFromString(detail::stringField(object, "stencilFailOp", path, stateError), path + ".stencilFailOp")
           : Rasterizer::StencilOp::Keep;
       const auto depthFail =
-        hasField(object, "stencilDepthFailOp")
-          ? stencilOpFromString(stringField(object, "stencilDepthFailOp", path),
+        detail::hasField(object, "stencilDepthFailOp")
+          ? stencilOpFromString(detail::stringField(object, "stencilDepthFailOp", path, stateError),
                                 path + ".stencilDepthFailOp")
           : Rasterizer::StencilOp::Keep;
       const auto pass =
-        hasField(object, "stencilPassOp")
-          ? stencilOpFromString(stringField(object, "stencilPassOp", path), path + ".stencilPassOp")
+        detail::hasField(object, "stencilPassOp")
+          ? stencilOpFromString(detail::stringField(object, "stencilPassOp", path, stateError), path + ".stencilPassOp")
           : Rasterizer::StencilOp::Keep;
       state.setStencilOps(stencilFail, depthFail, pass);
     }
@@ -1160,27 +1122,27 @@ namespace engine::graph {
 
   RasterShadowState RasterShadowState::fromJson(const QJsonObject& object,
                                                 const std::string& path) {
-    rejectUnknownFields(object, path,
+    detail::rejectUnknownFields(object, path,
                         {"enabled", "mapSize", "cascadeCount", "cascadeSplitLambda", "bias",
-                         "slopeBias", "filterRadius", "filterMode"});
+                         "slopeBias", "filterRadius", "filterMode"}, stateError);
     RasterShadowState state;
-    if (hasField(object, "enabled"))
-      state.setShadowMapsEnabled(boolField(object, "enabled", path));
-    if (hasField(object, "mapSize"))
-      state.setShadowMapSize(intField(object, "mapSize", path));
-    if (hasField(object, "cascadeCount"))
-      state.setShadowCascadeCount(intField(object, "cascadeCount", path));
-    if (hasField(object, "cascadeSplitLambda"))
-      state.setShadowCascadeSplitLambda(doubleField(object, "cascadeSplitLambda", path));
-    if (hasField(object, "bias"))
-      state.setShadowBias(doubleField(object, "bias", path));
-    if (hasField(object, "slopeBias"))
-      state.setShadowSlopeBias(doubleField(object, "slopeBias", path));
-    if (hasField(object, "filterRadius"))
-      state.setShadowFilterRadius(intField(object, "filterRadius", path));
-    if (hasField(object, "filterMode"))
+    if (detail::hasField(object, "enabled"))
+      state.setShadowMapsEnabled(detail::boolField(object, "enabled", path, stateError));
+    if (detail::hasField(object, "mapSize"))
+      state.setShadowMapSize(detail::intField(object, "mapSize", path, stateError));
+    if (detail::hasField(object, "cascadeCount"))
+      state.setShadowCascadeCount(detail::intField(object, "cascadeCount", path, stateError));
+    if (detail::hasField(object, "cascadeSplitLambda"))
+      state.setShadowCascadeSplitLambda(detail::doubleField(object, "cascadeSplitLambda", path, stateError));
+    if (detail::hasField(object, "bias"))
+      state.setShadowBias(detail::doubleField(object, "bias", path, stateError));
+    if (detail::hasField(object, "slopeBias"))
+      state.setShadowSlopeBias(detail::doubleField(object, "slopeBias", path, stateError));
+    if (detail::hasField(object, "filterRadius"))
+      state.setShadowFilterRadius(detail::intField(object, "filterRadius", path, stateError));
+    if (detail::hasField(object, "filterMode"))
       state.setShadowFilterMode(
-        shadowFilterModeFromString(stringField(object, "filterMode", path), path + ".filterMode"));
+        shadowFilterModeFromString(detail::stringField(object, "filterMode", path, stateError), path + ".filterMode"));
     return state;
   }
 
@@ -1281,12 +1243,12 @@ namespace engine::graph {
 
   RasterShadowPassState RasterShadowPassState::fromJson(const QJsonObject& object,
                                                         const std::string& path) {
-    rejectUnknownFields(object, path, {"shadows"});
+    detail::rejectUnknownFields(object, path, {"shadows"}, stateError);
 
     RasterShadowPassState state;
-    if (hasField(object, "shadows"))
+    if (detail::hasField(object, "shadows"))
       state.m_shadows =
-        RasterShadowState::fromJson(objectField(object, "shadows", path), path + ".shadows");
+        RasterShadowState::fromJson(detail::objectField(object, "shadows", path, stateError), path + ".shadows");
     return state;
   }
 
@@ -1380,13 +1342,13 @@ namespace engine::graph {
 
   RasterVisibilityPassState RasterVisibilityPassState::fromJson(const QJsonObject& object,
                                                                 const std::string& path) {
-    rejectUnknownFields(object, path, {"geometry", "frontToBackOrdering"});
+    detail::rejectUnknownFields(object, path, {"geometry", "frontToBackOrdering"}, stateError);
     RasterVisibilityPassState state;
-    if (hasField(object, "geometry"))
+    if (detail::hasField(object, "geometry"))
       state.m_geometry =
-        RasterGeometryState::fromJson(objectField(object, "geometry", path), path + ".geometry");
-    if (hasField(object, "frontToBackOrdering"))
-      state.setFrontToBackOrderingEnabled(boolField(object, "frontToBackOrdering", path));
+        RasterGeometryState::fromJson(detail::objectField(object, "geometry", path, stateError), path + ".geometry");
+    if (detail::hasField(object, "frontToBackOrdering"))
+      state.setFrontToBackOrderingEnabled(detail::boolField(object, "frontToBackOrdering", path, stateError));
     return state;
   }
 
@@ -1449,32 +1411,32 @@ namespace engine::graph {
 
   RasterBeautyPassState RasterBeautyPassState::fromJson(const QJsonObject& object,
                                                         const std::string& path) {
-    rejectUnknownFields(
+    detail::rejectUnknownFields(
       object, path,
-      {"execution", "geometry", "sampling", "depthPrepass", "framebuffer", "shadows"});
+      {"execution", "geometry", "sampling", "depthPrepass", "framebuffer", "shadows"}, stateError);
     RasterBeautyPassState state;
     QJsonObject samplingObject;
-    if (hasField(object, "execution"))
+    if (detail::hasField(object, "execution"))
       state.m_execution =
-        RasterExecutionState::fromJson(objectField(object, "execution", path), path + ".execution");
-    if (hasField(object, "geometry"))
+        RasterExecutionState::fromJson(detail::objectField(object, "execution", path, stateError), path + ".execution");
+    if (detail::hasField(object, "geometry"))
       state.m_geometry =
-        RasterGeometryState::fromJson(objectField(object, "geometry", path), path + ".geometry");
-    if (hasField(object, "sampling")) {
-      samplingObject = objectField(object, "sampling", path);
+        RasterGeometryState::fromJson(detail::objectField(object, "geometry", path, stateError), path + ".geometry");
+    if (detail::hasField(object, "sampling")) {
+      samplingObject = detail::objectField(object, "sampling", path, stateError);
       state.m_sampling = RasterSamplingState::fromJson(samplingObject, path + ".sampling");
     }
-    if (hasField(object, "depthPrepass"))
+    if (detail::hasField(object, "depthPrepass"))
       state.m_depthPrepass = RasterDepthPrepassState::fromJson(
-        objectField(object, "depthPrepass", path), path + ".depthPrepass");
-    if (hasField(object, "framebuffer"))
+        detail::objectField(object, "depthPrepass", path, stateError), path + ".depthPrepass");
+    if (detail::hasField(object, "framebuffer"))
       state.m_framebuffer = RasterFramebufferState::fromJson(
-        objectField(object, "framebuffer", path), path + ".framebuffer");
-    if (hasField(object, "shadows"))
+        detail::objectField(object, "framebuffer", path, stateError), path + ".framebuffer");
+    if (detail::hasField(object, "shadows"))
       state.m_shadows =
-        RasterShadowState::fromJson(objectField(object, "shadows", path), path + ".shadows");
+        RasterShadowState::fromJson(detail::objectField(object, "shadows", path, stateError), path + ".shadows");
     if (state.m_execution.backend().isOpenGL() && state.m_sampling.msaaSamples() > 1 &&
-        !hasField(samplingObject, "msaaShadingMode")) {
+        !detail::hasField(samplingObject, "msaaShadingMode")) {
       state.m_sampling.setMSAAShadingMode(Rasterizer::MSAAShadingMode::PerFragment);
     }
     return state;
