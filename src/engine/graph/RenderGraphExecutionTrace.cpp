@@ -4,6 +4,7 @@
 #include "core/util/BufferUtils.h"
 #include "engine/graph/RenderResourceStorage.h"
 #include "engine/graph/RenderGraphPreviewHelpers.h"
+#include "engine/graph/detail/JsonStateHelpers.h"
 #include "engine/raster/RasterVisibilitySet.h"
 #include "engine/raster/detail/OpenGLRasterResource.h"
 
@@ -11,7 +12,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <initializer_list>
 #include <limits>
 #include <sstream>
 #include <stdexcept>
@@ -20,16 +20,6 @@
 namespace engine::graph {
   namespace {
     constexpr double boostedDiffScale = 8.0;
-
-    template<class T>
-    const char* enumName(T value, std::initializer_list<std::pair<T, const char*>> values,
-                         const char* fallback = "unknown") {
-      for (const auto& [parsed, name] : values) {
-        if (value == parsed)
-          return name;
-      }
-      return fallback;
-    }
 
     std::shared_ptr<const Buffer<Colord>> colorPreviewFor(const Buffer<Colord>& source) {
       auto result = std::make_shared<Buffer<Colord>>(source.width(), source.height());
@@ -913,7 +903,7 @@ namespace engine::graph {
   }
 
   const char* toString(RenderPassExecutionStatus value) {
-    return enumName<RenderPassExecutionStatus>(value,
+    return detail::enumName<RenderPassExecutionStatus>(value,
                                                {{RenderPassExecutionStatus::Pending, "pending"},
                                                 {RenderPassExecutionStatus::Running, "running"},
                                                 {RenderPassExecutionStatus::Completed, "completed"},
@@ -922,7 +912,7 @@ namespace engine::graph {
   }
 
   const char* toString(RenderGraphCacheStatus value) {
-    return enumName<RenderGraphCacheStatus>(
+    return detail::enumName<RenderGraphCacheStatus>(
       value, {{RenderGraphCacheStatus::NotCacheable, "not_cacheable"},
               {RenderGraphCacheStatus::Uncached, "uncached"},
               {RenderGraphCacheStatus::Hit, "hit"},
