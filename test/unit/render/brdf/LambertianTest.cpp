@@ -3,9 +3,11 @@
 
 #include "core/math/Constants.h"
 #include "core/math/HitPoint.h"
+#include "test/helpers/MaterialTestHelper.h"
 
 namespace LambertianTest {
   using namespace render;
+  using test::helpers::hitPointWithNormal;
 
   TEST(Lambertian, ShouldInitialize) {
     Lambertian lambertian;
@@ -54,7 +56,7 @@ namespace LambertianTest {
 
   TEST(Lambertian, ShouldSampleCosineWeightedDirectionWithMatchingPdf) {
     Lambertian lambertian(Colord(0.5, 0.25, 1.0), 0.8);
-    HitPoint point(nullptr, 1, Vector4d::null, Vector3d::up());
+    HitPoint point = hitPointWithNormal(Vector3d::up());
 
     Vector3d sampledDirection;
     double sampledPdf = 0.0;

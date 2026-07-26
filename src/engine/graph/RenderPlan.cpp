@@ -3,13 +3,13 @@
 #include "engine/graph/RasterPassState.h"
 #include "engine/graph/RenderExecutor.h"
 #include "engine/graph/RenderPassState.h"
+#include "engine/graph/detail/JsonStateHelpers.h"
 
 #include <QJsonArray>
 #include <QJsonDocument>
 
 #include <algorithm>
 #include <functional>
-#include <initializer_list>
 #include <iterator>
 #include <map>
 #include <set>
@@ -33,16 +33,6 @@ namespace engine::graph {
     template<class T>
     bool contains(const std::set<T>& values, const T& value) {
       return values.find(value) != values.end();
-    }
-
-    template<class T>
-    const char* enumName(T value, std::initializer_list<std::pair<T, const char*>> values,
-                         const char* fallback = "unknown") {
-      for (const auto& [parsed, name] : values) {
-        if (value == parsed)
-          return name;
-      }
-      return fallback;
     }
 
     bool passReadsWhenExecuted(const RenderPassNode& pass) {
@@ -257,7 +247,7 @@ namespace engine::graph {
   }
 
   const char* toString(RenderPlanValidationError::Code value) {
-    return enumName<RenderPlanValidationError::Code>(
+    return detail::enumName<RenderPlanValidationError::Code>(
       value,
       {{RenderPlanValidationError::Code::EmptyPassId, "empty_pass_id"},
        {RenderPlanValidationError::Code::DuplicatePassId, "duplicate_pass_id"},

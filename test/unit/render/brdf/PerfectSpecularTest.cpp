@@ -2,9 +2,11 @@
 #include "render/brdf/PerfectSpecular.h"
 
 #include "core/math/HitPoint.h"
+#include "test/helpers/MaterialTestHelper.h"
 
 namespace PerfectSpecularTest {
   using namespace render;
+  using test::helpers::hitPointWithNormal;
 
   TEST(PerfectSpecular, ShouldInitialize) {
     PerfectSpecular specular;
@@ -46,7 +48,7 @@ namespace PerfectSpecularTest {
     specular.setReflectionColor(Colord(0.25, 0.5, 1.0));
     specular.setReflectionCoefficient(0.7);
 
-    HitPoint point(nullptr, 1, Vector4d::null, Vector3d::up());
+    HitPoint point = hitPointWithNormal(Vector3d::up());
     Vector3d sampledDirection;
     double sampledPdf = 0.0;
     Colord value = specular.sample(point, Vector3d::up(), sampledDirection, sampledPdf);
