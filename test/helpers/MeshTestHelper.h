@@ -34,6 +34,19 @@ namespace test {
       return std::shared_ptr<Mesh>(triangleMesh());
     }
 
+    // Right triangle at z=0 with three distinct per-vertex normals (useful for
+    // testing flat vs. smooth shading). Vertices at (-1,-1,0), (-1,1,0),
+    // (1,-1,0); normals tilted so FlatMeshTriangle averages them and
+    // SmoothMeshTriangle interpolates them differently.
+    inline Mesh skewedNormalTriangleMesh() {
+      Mesh mesh;
+      mesh.addVertex(Vector3d(-1, -1, 0), Vector3d(0, -2, 1).normalized());
+      mesh.addVertex(Vector3d(-1, 1, 0), Vector3d(-2, 0, 1).normalized());
+      mesh.addVertex(Vector3d(1, -1, 0), Vector3d(0, 2, 1).normalized());
+      mesh.addFace({0, 1, 2});
+      return mesh;
+    }
+
     // Same triangle displaced far off-screen along +Y for displacement tests.
     inline Mesh* createDisplacedTriangleMesh() {
       auto mesh = new Mesh;

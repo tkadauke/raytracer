@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "test/helpers/ContainerTestHelper.h"
+#include "test/helpers/MeshTestHelper.h"
 #include "test/abstract/AbstractMeshTriangleTest.h"
 
 #include "render/primitives/FlatMeshTriangle.h"
@@ -8,13 +9,10 @@
 namespace FlatMeshTriangleTest {
   using namespace ::testing;
   using namespace render;
+  using test::helpers::skewedNormalTriangleMesh;
 
   TEST(FlatMeshTriangle, ShouldBuildFromMesh) {
-    Mesh mesh;
-    mesh.addVertex(Vector3d(-1, -1, 0), Vector3d(0, -2, 1).normalized());
-    mesh.addVertex(Vector3d(-1, 1, 0), Vector3d(-2, 0, 1).normalized());
-    mesh.addVertex(Vector3d(1, -1, 0), Vector3d(0, 2, 1).normalized());
-    mesh.addFace(makeStdVector(0, 1, 2));
+    Mesh mesh = skewedNormalTriangleMesh();
 
     auto composite = new Composite;
     FlatMeshTriangle::build(&mesh, composite, nullptr);
@@ -22,10 +20,7 @@ namespace FlatMeshTriangleTest {
   }
 
   TEST(FlatMeshTriangle, ShouldHaveSameNormalEverywhere) {
-    Mesh mesh;
-    mesh.addVertex(Vector3d(-1, -1, 0), Vector3d(0, -2, 1).normalized());
-    mesh.addVertex(Vector3d(-1, 1, 0), Vector3d(-2, 0, 1).normalized());
-    mesh.addVertex(Vector3d(1, -1, 0), Vector3d(0, 2, 1).normalized());
+    Mesh mesh = skewedNormalTriangleMesh();
 
     State state;
     FlatMeshTriangle triangle(&mesh, 0, 1, 2);
