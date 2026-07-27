@@ -32,7 +32,7 @@ This file provides guidance to Claude Code (and similar coding agents) when work
 - `tools/rendercli/` — command-line renderer
 - `scripts/` — Ruby/JS helpers, including `render_docs.rb` and scene scripts
 - `Dockerfile`, `.devcontainer/` — container image (rendercli only) and dev container
-- `.syrus.yml` — Syrus-native CI graders (`build-test`, `textbook`); runs on every implement→grade iteration. The old `.github/workflows/` are parked in `docs/plans/github_actions/` — see the README there for what migrated and what's awaiting Syrus features to come back.
+- `.syrus.yml` — Syrus-native CI graders (`coverage`, `opengl-egl`, `benchmark-build`, `textbook`); runs on every implement→grade iteration. The old `.github/workflows/` are parked in `docs/plans/github_actions/` — see the README there for what migrated and what's awaiting Syrus features to come back.
 - `CMakeLists.txt`, `CMakePresets.json`, `Rakefile`, `Doxyfile`, `.cppchecksuppress`, `.clang-format`, `.clang-tidy` — top-level config
 
 ## Common Commands
