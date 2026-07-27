@@ -23,12 +23,12 @@
 | Language standard | C++17 (`-std=c++17` in CMakeLists.txt) |
 | Compiler | `g++` / `clang++` (selected per CMake preset) |
 | Build system | CMake 3.28+ with Ninja (`CMakePresets.json`); Rakefile kept as thin project-utility layer |
-| CI | Syrus-native graders (`build-test`, `benchmark-build`, `textbook`) per `.syrus.yml`; GitHub Actions parked in `docs/plans/github_actions/` |
+| CI | Syrus-native graders (`build-test`, `benchmark-build`, `textbook`, `coverage`) per `.syrus.yml`; GitHub Actions parked in `docs/plans/github_actions/` |
 | Test framework | GoogleTest 1.14 + GoogleMock via CMake `FetchContent` (vendored `gtest/` and `gmock/` directories removed) |
 | Test count | 138 test files across unit and functional suites |
 | GUI toolkit | Qt 5 (CMakeLists.txt targets Qt5; `QTSCRIPT` dependency tracked) — README updated to reflect CMake and Qt5 |
 | Static analysis | `cppcheck` (invoked via `rake check:cpp`); suppression list uses project-relative paths |
-| Coverage | `lcov` + `genhtml`, via `cmake --preset coverage`; `gcovr` not yet adopted |
+| Coverage | `lcov` + `genhtml`, via `cmake --preset coverage`; `gcovr` adopted — 60% line-coverage floor enforced in Syrus CI via `.syrus.yml` `coverage` grader |
 | Documentation | Doxygen (`Doxyfile` present, output not committed) |
 | Container | Multi-stage `Dockerfile` for headless `rendercli` (distroless runtime) |
 | SBOM / SCA | None |
@@ -186,11 +186,11 @@ endif()
 
 ### 3.4 Testing
 
-**Current state:** 138 test files, GoogleTest/GMock, two runners (unit, functional), manual `lcov` coverage. No coverage threshold enforcement. No mutation testing. No fuzz tests.
+**Current state:** 138 test files, GoogleTest/GMock, two runners (unit, functional), `lcov`/`gcovr` coverage. A 60% line-coverage floor is now enforced in Syrus CI via the `coverage` grader in `.syrus.yml` (added 2026-07; matches the floor in `docs/plans/github_actions/ci.yml`). No mutation testing. No fuzz tests.
 
 **Recommendations:**
 
-1. **Coverage target: 80% line coverage, enforced in CI.**  
+1. **Coverage target: 80% line coverage, enforced in CI.** ✅ **Partial (60% floor active).** `gcovr` is now adopted and a 60% line-coverage floor is enforced via the Syrus `coverage` grader in `.syrus.yml`. The 80% target remains aspirational; ratchet the threshold as coverage grows.  
    Use `gcovr` (not `lcov`) — it produces Cobertura XML directly consumable by Codecov and GitHub Actions summary.
 
    ```bash
