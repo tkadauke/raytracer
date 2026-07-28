@@ -242,6 +242,14 @@ public:
   virtual void joinParent();
 
 protected:
+  /**
+    * Records this element as a selectable object in @p analysis, converting
+    * the render-graph tags and layers from QString to std::string. Call this
+    * from subclass overrides of contributeToRenderGraphAnalysis where the
+    * element is visible and selectable.
+    */
+  void contributeSelectableObjectToRenderGraphAnalysis(engine::graph::RenderSceneAnalysis& analysis) const;
+
   template<class T, class... Args>
   inline std::shared_ptr<T> make_named(Args&&... args) const {
     auto result = std::make_shared<T>(args...);
