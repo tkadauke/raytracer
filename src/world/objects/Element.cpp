@@ -151,6 +151,15 @@ int Element::row() const {
 }
 
 namespace {
+  std::vector<std::string> toStdStrings(const std::vector<QString>& values) {
+    std::vector<std::string> result;
+    result.reserve(values.size());
+    for (const auto& value : values) {
+      result.push_back(value.toStdString());
+    }
+    return result;
+  }
+
   void appendMetadataString(std::vector<QString>& result, const QJsonValue& value) {
     if (value.isString()) {
       const QString text = value.toString().trimmed();
@@ -418,6 +427,14 @@ void Element::contributeToRenderGraphAnalysis(engine::graph::RenderSceneAnalysis
   for (const auto& child : childElements()) {
     child->contributeToRenderGraphAnalysis(analysis);
   }
+}
+
+void Element::contributeSelectableObjectToRenderGraphAnalysis(
+  engine::graph::RenderSceneAnalysis& analysis) const {
+  analysis.recordSelectableObject(id().toStdString(), name().toStdString(),
+                                  toStdStrings(renderGraphTags()),
+                                  toStdStrings(renderGraphLayers()),
+                                  displayName().toStdString());
 }
 
 void Element::attachRuntimeAnimationTracks(render::Object& object) const {

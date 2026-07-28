@@ -11,18 +11,6 @@
 
 #include <stdexcept>
 #include <string>
-#include <vector>
-
-namespace {
-  std::vector<std::string> toStdStrings(const std::vector<QString>& values) {
-    std::vector<std::string> result;
-    result.reserve(values.size());
-    for (const auto& value : values) {
-      result.push_back(value.toStdString());
-    }
-    return result;
-  }
-}
 
 Surface::Surface(Element* parent)
     : Transformable(parent),
@@ -135,10 +123,7 @@ void Surface::contributeToRenderGraphAnalysis(engine::graph::RenderSceneAnalysis
       transform.transformDirection(Vector3d(0.0, -1.0, 0.0)).normalizedOrZero(1e-12));
   }
   analysis.recordRenderTextureReceiver(m_renderTextureSubview.toStdString());
-  analysis.recordSelectableObject(id().toStdString(), name().toStdString(),
-                                  toStdStrings(renderGraphTags()),
-                                  toStdStrings(renderGraphLayers()),
-                                  displayName().toStdString());
+  contributeSelectableObjectToRenderGraphAnalysis(analysis);
   Element::contributeToRenderGraphAnalysis(analysis);
 }
 
