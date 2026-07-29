@@ -18,7 +18,6 @@
 #include "render/State.h"
 #include "render/VulkanWavefrontSmokeKernel.h"
 #include "render/WavefrontIntersectionBackend.h"
-#include "render/materials/MatteMaterial.h"
 #include "render/materials/TransparentMaterial.h"
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
 #include "render/MetalWavefrontSmokeKernel.h"
@@ -35,9 +34,9 @@
 #include "render/primitives/Sphere.h"
 #include "render/primitives/Torus.h"
 #include "render/primitives/Triangle.h"
-#include "render/textures/ConstantColorTexture.h"
 
 #include "core/geometry/Mesh.h"
+#include "test/helpers/MaterialTestHelper.h"
 
 namespace WavefrontIntersectionBackendTest {
   using namespace render;
@@ -1565,7 +1564,7 @@ namespace WavefrontIntersectionBackendTest {
     VulkanWavefrontSmokeKernel kernel;
 
     auto triangleMaterial =
-      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::red()));
+      test::helpers::matte(Colord::red());
     auto triangle =
       std::make_shared<Triangle>(Vector3d(-1, -1, 0), Vector3d(1, -1, 0), Vector3d(0, 1, 0));
     auto triangleInstance = std::make_shared<Instance>(triangle);
@@ -1573,7 +1572,7 @@ namespace WavefrontIntersectionBackendTest {
     triangleInstance->setMatrix(Matrix4d::translate(0, 0, 2));
 
     auto sphereMaterial =
-      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::blue()));
+      test::helpers::matte(Colord::blue());
     auto sphere = std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0);
     auto sphereInstance = std::make_shared<Instance>(sphere);
     sphereInstance->setMaterial(sphereMaterial);
@@ -2343,7 +2342,7 @@ namespace WavefrontIntersectionBackendTest {
     }
 
     auto triangleMaterial =
-      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::red()));
+      test::helpers::matte(Colord::red());
     auto triangle =
       std::make_shared<Triangle>(Vector3d(-1, -1, 0), Vector3d(1, -1, 0), Vector3d(0, 1, 0));
     auto triangleInstance = std::make_shared<Instance>(triangle);
@@ -2351,7 +2350,7 @@ namespace WavefrontIntersectionBackendTest {
     triangleInstance->setMatrix(Matrix4d::translate(0, 0, 2));
 
     auto sphereMaterial =
-      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::blue()));
+      test::helpers::matte(Colord::blue());
     auto sphere = std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0);
     auto sphereInstance = std::make_shared<Instance>(sphere);
     sphereInstance->setMaterial(sphereMaterial);
@@ -3113,7 +3112,7 @@ namespace WavefrontIntersectionBackendTest {
 
   TEST(WavefrontIntersectionBackend, PreparedGpuClosestHitBatchPreservesInheritedMaterial) {
     auto material =
-      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::blue()));
+      test::helpers::matte(Colord::blue());
     auto cylinder = std::make_shared<ClosedSolidUnion>();
     cylinder->setMaterial(material);
     cylinder->add(std::make_shared<OpenCylinder>(1.0, 2.0));
@@ -3148,7 +3147,7 @@ namespace WavefrontIntersectionBackendTest {
 
   TEST(WavefrontIntersectionBackend, PreparedGpuClosestHitResultPreservesInheritedMaterial) {
     auto material =
-      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::blue()));
+      test::helpers::matte(Colord::blue());
     auto cylinder = std::make_shared<ClosedSolidUnion>();
     cylinder->setMaterial(material);
     cylinder->add(std::make_shared<OpenCylinder>(1.0, 2.0));
@@ -3319,7 +3318,7 @@ namespace WavefrontIntersectionBackendTest {
     ASSERT_TRUE(backend->gpuIntersectionSceneBuffers()->packedClosestHitKernelEligible());
 
     auto material =
-      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::blue()));
+      test::helpers::matte(Colord::blue());
     triangle->setMaterial(material);
 
     State state;
@@ -3335,7 +3334,7 @@ namespace WavefrontIntersectionBackendTest {
 
   TEST(WavefrontIntersectionBackend, PreparedGpuClosestHitPreservesInstanceMaterialOwner) {
     auto material =
-      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::blue()));
+      test::helpers::matte(Colord::blue());
     auto sphere = std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0);
     auto instance = std::make_shared<Instance>(sphere);
     instance->setMaterial(material);

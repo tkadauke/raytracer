@@ -1,5 +1,7 @@
 #include "render/VulkanGpuDiffusePathLoopKernel.h"
 
+#include "TimingHelpers.h"
+
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
 #include "render/VulkanDiffusePathLoopAdvanceFrontier.generated.h"
 #include "render/VulkanDiffusePathLoopClearFrontier.generated.h"
@@ -125,11 +127,6 @@ namespace render {
             std::max(result.maxRadianceDeltaPerDepth[depth], std::sqrt(deltaSquared));
         }
       }
-    }
-
-    double secondsBetween(std::chrono::steady_clock::time_point start,
-                          std::chrono::steady_clock::time_point end) {
-      return std::chrono::duration<double>(end - start).count();
     }
 
     class VulkanDiffusePathLoopRuntime final {
@@ -281,8 +278,8 @@ namespace render {
         result.bufferSizes.nextPathStateBytes = 0u;
         result.bufferSizes.totalResidentBytes += pathStateStorageBytes;
         result.bufferSizes.totalResidentBytes += plan.buffers.retainedIndexBytes;
-        result.uploadWorkerSeconds = secondsBetween(uploadStart, uploadEnd);
-        result.kernelWorkerSeconds = secondsBetween(kernelStart, kernelEnd);
+        result.uploadWorkerSeconds = detail::secondsBetween(uploadStart, uploadEnd);
+        result.kernelWorkerSeconds = detail::secondsBetween(kernelStart, kernelEnd);
         result.echoedParameters = plan.parameters;
         if (plan.parameters.captureMetrics != 0u || plan.parameters.captureDiagnostics != 0u) {
           result.echoedParameters = readBackOne<GpuDiffusePathLoopLaunchParameters>(
@@ -353,7 +350,7 @@ namespace render {
           readRadianceDeltaMetrics(radianceDeltaRecords, plan.parameters, result);
         }
         result.readbackWorkerSeconds =
-          secondsBetween(readbackStart, std::chrono::steady_clock::now());
+          detail::secondsBetween(readbackStart, std::chrono::steady_clock::now());
         return result;
       }
 

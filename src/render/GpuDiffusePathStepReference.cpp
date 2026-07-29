@@ -1,5 +1,6 @@
 #include "render/GpuDiffusePathStepReference.h"
 
+#include "CountArithmetic.h"
 #include "core/Buffer.h"
 #include "core/math/Constants.h"
 #include "render/brdf/BRDFSampling.h"
@@ -98,13 +99,9 @@ namespace {
            offset;
   }
 
-  std::uint32_t narrowDimension(std::uint64_t dimension) {
-    return static_cast<std::uint32_t>(dimension & std::numeric_limits<std::uint32_t>::max());
-  }
-
   std::uint32_t directLightSelectionDimension(const GpuDiffusePathStateRecord& pathState,
                                               std::uint32_t directSampleIndex) {
-    return narrowDimension(sampleDimensionIndex(
+    return GpuSampleStream::narrowDimension(sampleDimensionIndex(
       SampleDimension::LightSelection,
       SampleStream::lightSelectionSampleIndex(pathState.depth, directSampleIndex)));
   }
@@ -112,7 +109,7 @@ namespace {
   std::uint32_t directLightSurfaceDimension(const GpuDiffusePathStateRecord& pathState,
                                             std::uint32_t lightIndex,
                                             std::uint32_t directSampleIndex) {
-    return narrowDimension(sampleDimensionIndex(
+    return GpuSampleStream::narrowDimension(sampleDimensionIndex(
       SampleDimension::Light,
       SampleStream::lightSampleIndex(pathState.depth, lightIndex, directSampleIndex)));
   }
@@ -128,14 +125,6 @@ namespace {
       return maxValue;
     }
     return count * bytesPerPath;
-  }
-
-  std::uint64_t saturatedAdd(std::uint64_t first, std::uint64_t second) {
-    constexpr std::uint64_t maxValue = std::numeric_limits<std::uint64_t>::max();
-    if (second > maxValue - first) {
-      return maxValue;
-    }
-    return first + second;
   }
 
   double colorDeltaSquared(const Colord& before, const Colord& after) {
@@ -1439,7 +1428,7 @@ std::uint64_t GpuDiffusePathLoopResult::lastActivePathCount() const {
 }
 
 std::uint64_t GpuDiffusePathLoopResult::submittedIntersectionRayCount() const {
-  return saturatedAdd(metrics.closestHitRays, metrics.directLightVisibilityRays);
+  return detail::saturatedAdd(metrics.closestHitRays, metrics.directLightVisibilityRays);
 }
 
 bool GpuDiffusePathLoopResult::fullGpuPathLoopSupported() const {
@@ -2060,7 +2049,7 @@ GpuDiffusePathLoop::run(const GpuTracingSceneSections& scene,
         "gpu diffuse path frontier compaction backend returned a mismatched retained path count");
     }
     result.retainedIndexBytes =
-      saturatedAdd(result.retainedIndexBytes, compaction.retainedIndexBytes());
+      detail::saturatedAdd(result.retainedIndexBytes, compaction.retainedIndexBytes());
     result.frontierCompactionUploadWorkerSeconds += compaction.uploadWorkerSeconds;
     result.frontierCompactionKernelWorkerSeconds += compaction.kernelWorkerSeconds;
     result.frontierCompactionReadbackWorkerSeconds += compaction.readbackWorkerSeconds;

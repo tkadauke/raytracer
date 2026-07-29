@@ -8,7 +8,6 @@
 
 #include "render/IntersectionSceneCompiler.h"
 #include "render/State.h"
-#include "render/materials/MatteMaterial.h"
 #include "render/materials/TransparentMaterial.h"
 #include "render/primitives/Box.h"
 #include "render/primitives/ClosedSolidUnion.h"
@@ -29,7 +28,6 @@
 #include "render/primitives/Torus.h"
 #include "render/primitives/Triangle.h"
 #include "render/primitives/Union.h"
-#include "render/textures/ConstantColorTexture.h"
 
 #include "core/geometry/Mesh.h"
 #include "core/math/HitPointInterval.h"
@@ -485,8 +483,7 @@ namespace IntersectionSceneCompilerTest {
   }
 
   TEST(IntersectionSceneCompiler, RecordsInstanceMaterialOverrideAsObjectId) {
-    auto material =
-      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::blue()));
+    auto material = test::helpers::matte(Colord::blue());
     auto sphere = std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0);
     auto instance = std::make_shared<Instance>(sphere);
     instance->setMaterial(material);

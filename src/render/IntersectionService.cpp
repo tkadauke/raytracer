@@ -1,5 +1,6 @@
 #include "render/IntersectionService.h"
 
+#include "CountArithmetic.h"
 #include "render/primitives/Scene.h"
 
 #include <limits>
@@ -21,19 +22,6 @@ namespace render {
         return;
       }
       target = "mixed";
-    }
-
-    void validateResultCount(std::uint64_t actual, std::uint64_t expected, const char* message) {
-      if (actual != expected) {
-        throw std::logic_error(message);
-      }
-    }
-
-    std::uint64_t saturatedAdd(std::uint64_t lhs, std::uint64_t rhs) {
-      if (std::numeric_limits<std::uint64_t>::max() - lhs < rhs) {
-        return std::numeric_limits<std::uint64_t>::max();
-      }
-      return lhs + rhs;
     }
 
     std::uint64_t countClosestHits(const std::vector<WavefrontClosestHitResult>& results) {
@@ -110,7 +98,7 @@ namespace render {
     WavefrontIntersectionQueryTiming timing;
     std::vector<WavefrontClosestHitResult> results =
       m_backend->intersectClosestFrontier(*m_scene, frontier, &timing);
-    validateResultCount(results.size(), frontier.rayCount(),
+    detail::validateResultCount(results.size(), frontier.rayCount(),
                         "IntersectionService closest-hit frontier returned a result count that "
                         "does not match its ray count");
     recordClosestHitFrontierQuery(frontier, countClosestHits(results), timing);
@@ -136,7 +124,7 @@ namespace render {
   WavefrontOcclusionFlags IntersectionService::anyHits(const WavefrontAnyHitFrontier& frontier) {
     WavefrontIntersectionQueryTiming timing;
     WavefrontOcclusionFlags results = m_backend->intersectAnyFrontier(*m_scene, frontier, &timing);
-    validateResultCount(results.size(), frontier.rayCount(),
+    detail::validateResultCount(results.size(), frontier.rayCount(),
                         "IntersectionService any-hit frontier returned an occlusion count that "
                         "does not match its ray count");
     recordAnyHitFrontierQuery(frontier, countOccludedResults(results), timing);
@@ -152,10 +140,10 @@ namespace render {
       throw std::logic_error(
         "IntersectionService direct-light visibility batch resolved without an any-hit frontier");
     }
-    validateResultCount(result.frontier->rayCount(), submittedQueryCount,
+    detail::validateResultCount(result.frontier->rayCount(), submittedQueryCount,
                         "IntersectionService direct-light visibility batch returned an any-hit "
                         "frontier ray count that does not match its submitted query count");
-    validateResultCount(result.occluded.size(), result.frontier->rayCount(),
+    detail::validateResultCount(result.occluded.size(), result.frontier->rayCount(),
                         "IntersectionService direct-light visibility batch returned an occlusion "
                         "count that does not match its ray count");
     recordAnyHitFrontierQuery(*result.frontier, countOccludedResults(result.occluded),
@@ -213,14 +201,14 @@ namespace render {
     const std::uint64_t uploadBytes = m_backend->estimatedClosestHitRayUploadBytes(queryCount);
     const std::uint64_t readbackBytes = m_backend->estimatedClosestHitReadbackBytes(queryCount);
     m_diagnostics.closestHitQueryCount =
-      saturatedAdd(m_diagnostics.closestHitQueryCount, queryCount);
-    m_diagnostics.closestHitHitCount = saturatedAdd(m_diagnostics.closestHitHitCount, hitCount);
+      detail::saturatedAdd(m_diagnostics.closestHitQueryCount, queryCount);
+    m_diagnostics.closestHitHitCount = detail::saturatedAdd(m_diagnostics.closestHitHitCount, hitCount);
     m_diagnostics.closestHitRayUploadBytesEstimate =
-      saturatedAdd(m_diagnostics.closestHitRayUploadBytesEstimate, uploadBytes);
+      detail::saturatedAdd(m_diagnostics.closestHitRayUploadBytesEstimate, uploadBytes);
     m_diagnostics.closestHitReadbackBytesEstimate =
-      saturatedAdd(m_diagnostics.closestHitReadbackBytesEstimate, readbackBytes);
-    m_diagnostics.queryTransferBytesEstimate = saturatedAdd(
-      m_diagnostics.queryTransferBytesEstimate, saturatedAdd(uploadBytes, readbackBytes));
+      detail::saturatedAdd(m_diagnostics.closestHitReadbackBytesEstimate, readbackBytes);
+    m_diagnostics.queryTransferBytesEstimate = detail::saturatedAdd(
+      m_diagnostics.queryTransferBytesEstimate, detail::saturatedAdd(uploadBytes, readbackBytes));
   }
 
   void IntersectionService::recordAnyHitWork(std::uint64_t queryCount, std::uint64_t occludedCount,
@@ -228,39 +216,39 @@ namespace render {
     recordAnyHitTiming(timing);
     const std::uint64_t uploadBytes = m_backend->estimatedAnyHitRayUploadBytes(queryCount);
     const std::uint64_t readbackBytes = m_backend->estimatedAnyHitReadbackBytes(queryCount);
-    m_diagnostics.anyHitQueryCount = saturatedAdd(m_diagnostics.anyHitQueryCount, queryCount);
+    m_diagnostics.anyHitQueryCount = detail::saturatedAdd(m_diagnostics.anyHitQueryCount, queryCount);
     m_diagnostics.anyHitOccludedCount =
-      saturatedAdd(m_diagnostics.anyHitOccludedCount, occludedCount);
+      detail::saturatedAdd(m_diagnostics.anyHitOccludedCount, occludedCount);
     m_diagnostics.anyHitRayUploadBytesEstimate =
-      saturatedAdd(m_diagnostics.anyHitRayUploadBytesEstimate, uploadBytes);
+      detail::saturatedAdd(m_diagnostics.anyHitRayUploadBytesEstimate, uploadBytes);
     m_diagnostics.anyHitReadbackBytesEstimate =
-      saturatedAdd(m_diagnostics.anyHitReadbackBytesEstimate, readbackBytes);
-    m_diagnostics.queryTransferBytesEstimate = saturatedAdd(
-      m_diagnostics.queryTransferBytesEstimate, saturatedAdd(uploadBytes, readbackBytes));
+      detail::saturatedAdd(m_diagnostics.anyHitReadbackBytesEstimate, readbackBytes);
+    m_diagnostics.queryTransferBytesEstimate = detail::saturatedAdd(
+      m_diagnostics.queryTransferBytesEstimate, detail::saturatedAdd(uploadBytes, readbackBytes));
   }
 
   void IntersectionService::recordClosestHitFrontier(const WavefrontClosestHitFrontier& frontier) {
     mergeLabel(m_diagnostics.closestHitFrontierResidency, nonNullString(frontier.residency()));
     m_diagnostics.closestHitFrontierPackedRayBytes =
-      saturatedAdd(m_diagnostics.closestHitFrontierPackedRayBytes, frontier.packedRayBytes());
-    m_diagnostics.closestHitFrontierHostPackedRayBytes = saturatedAdd(
+      detail::saturatedAdd(m_diagnostics.closestHitFrontierPackedRayBytes, frontier.packedRayBytes());
+    m_diagnostics.closestHitFrontierHostPackedRayBytes = detail::saturatedAdd(
       m_diagnostics.closestHitFrontierHostPackedRayBytes, frontier.hostPackedRayBytes());
     m_diagnostics.closestHitFrontierHostQueryBytes =
-      saturatedAdd(m_diagnostics.closestHitFrontierHostQueryBytes, frontier.hostQueryBytes());
+      detail::saturatedAdd(m_diagnostics.closestHitFrontierHostQueryBytes, frontier.hostQueryBytes());
     m_diagnostics.closestHitFrontierStateHandleBytes =
-      saturatedAdd(m_diagnostics.closestHitFrontierStateHandleBytes, frontier.stateHandleBytes());
+      detail::saturatedAdd(m_diagnostics.closestHitFrontierStateHandleBytes, frontier.stateHandleBytes());
   }
 
   void IntersectionService::recordAnyHitFrontier(const WavefrontAnyHitFrontier& frontier) {
     mergeLabel(m_diagnostics.anyHitFrontierResidency, nonNullString(frontier.residency()));
     m_diagnostics.anyHitFrontierPackedRayBytes =
-      saturatedAdd(m_diagnostics.anyHitFrontierPackedRayBytes, frontier.packedRayBytes());
+      detail::saturatedAdd(m_diagnostics.anyHitFrontierPackedRayBytes, frontier.packedRayBytes());
     m_diagnostics.anyHitFrontierHostPackedRayBytes =
-      saturatedAdd(m_diagnostics.anyHitFrontierHostPackedRayBytes, frontier.hostPackedRayBytes());
+      detail::saturatedAdd(m_diagnostics.anyHitFrontierHostPackedRayBytes, frontier.hostPackedRayBytes());
     m_diagnostics.anyHitFrontierHostQueryBytes =
-      saturatedAdd(m_diagnostics.anyHitFrontierHostQueryBytes, frontier.hostQueryBytes());
+      detail::saturatedAdd(m_diagnostics.anyHitFrontierHostQueryBytes, frontier.hostQueryBytes());
     m_diagnostics.anyHitFrontierStateHandleBytes =
-      saturatedAdd(m_diagnostics.anyHitFrontierStateHandleBytes, frontier.stateHandleBytes());
+      detail::saturatedAdd(m_diagnostics.anyHitFrontierStateHandleBytes, frontier.stateHandleBytes());
   }
 
   void IntersectionService::recordClosestHitFrontierQuery(
