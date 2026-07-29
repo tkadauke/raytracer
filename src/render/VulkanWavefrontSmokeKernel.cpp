@@ -1,5 +1,6 @@
 #include "render/VulkanWavefrontSmokeKernel.h"
 
+#include "TimingHelpers.h"
 #include "render/GpuIntersectionScene.h"
 #include "render/WavefrontIntersectionBackend.h"
 
@@ -390,9 +391,9 @@ namespace render {
           "Vulkan basic closest-hit output buffer mapping");
         const auto readbackEnd = std::chrono::steady_clock::now();
 
-        result.timing.uploadSeconds = secondsBetween(uploadStart, uploadEnd);
-        result.timing.kernelSeconds = secondsBetween(kernelStart, kernelEnd);
-        result.timing.readbackSeconds = secondsBetween(readbackStart, readbackEnd);
+        result.timing.uploadSeconds = detail::secondsBetween(uploadStart, uploadEnd);
+        result.timing.kernelSeconds = detail::secondsBetween(kernelStart, kernelEnd);
+        result.timing.readbackSeconds = detail::secondsBetween(readbackStart, readbackEnd);
         result.timing.recordExecutionPath("vulkan");
         return result;
       }
@@ -543,9 +544,9 @@ namespace render {
           "Vulkan basic any-hit output buffer mapping");
         const auto readbackEnd = std::chrono::steady_clock::now();
 
-        result.timing.uploadSeconds = secondsBetween(uploadStart, uploadEnd);
-        result.timing.kernelSeconds = secondsBetween(kernelStart, kernelEnd);
-        result.timing.readbackSeconds = secondsBetween(readbackStart, readbackEnd);
+        result.timing.uploadSeconds = detail::secondsBetween(uploadStart, uploadEnd);
+        result.timing.kernelSeconds = detail::secondsBetween(kernelStart, kernelEnd);
+        result.timing.readbackSeconds = detail::secondsBetween(readbackStart, readbackEnd);
         result.timing.recordExecutionPath("vulkan");
         return result;
       }
@@ -712,11 +713,6 @@ namespace render {
         if (result != VK_SUCCESS) {
           throw std::runtime_error(std::string(operation) + " failed");
         }
-      }
-
-      double secondsBetween(std::chrono::steady_clock::time_point start,
-                            std::chrono::steady_clock::time_point end) const {
-        return std::chrono::duration<double>(end - start).count();
       }
 
       VkInstance createInstance() const {
@@ -1441,9 +1437,9 @@ namespace render {
                                                rays.size(), readbackOperation);
       const auto readbackEnd = std::chrono::steady_clock::now();
 
-      result.timing.uploadSeconds = secondsBetween(uploadStart, uploadEnd);
-      result.timing.kernelSeconds = secondsBetween(kernelStart, kernelEnd);
-      result.timing.readbackSeconds = secondsBetween(readbackStart, readbackEnd);
+      result.timing.uploadSeconds = detail::secondsBetween(uploadStart, uploadEnd);
+      result.timing.kernelSeconds = detail::secondsBetween(kernelStart, kernelEnd);
+      result.timing.readbackSeconds = detail::secondsBetween(readbackStart, readbackEnd);
       return result;
     }
 
@@ -1495,9 +1491,9 @@ namespace render {
                                 static_cast<std::size_t>(rayCount), readbackOperation);
       const auto readbackEnd = std::chrono::steady_clock::now();
 
-      result.timing.uploadSeconds = secondsBetween(uploadStart, uploadEnd);
-      result.timing.kernelSeconds = secondsBetween(kernelStart, kernelEnd);
-      result.timing.readbackSeconds = secondsBetween(readbackStart, readbackEnd);
+      result.timing.uploadSeconds = detail::secondsBetween(uploadStart, uploadEnd);
+      result.timing.kernelSeconds = detail::secondsBetween(kernelStart, kernelEnd);
+      result.timing.readbackSeconds = detail::secondsBetween(readbackStart, readbackEnd);
       return result;
     }
 
@@ -1549,11 +1545,6 @@ namespace render {
       if (result != VK_SUCCESS) {
         throw std::runtime_error(std::string(operation) + " failed");
       }
-    }
-
-    double secondsBetween(std::chrono::steady_clock::time_point start,
-                          std::chrono::steady_clock::time_point end) const {
-      return std::chrono::duration<double>(end - start).count();
     }
 
     VkInstance createInstance() const {
@@ -2165,8 +2156,8 @@ namespace render {
       p->dispatchRayCompaction(sourceRays.p->rays, retainedIndexBuffer, batch->p->rays,
                                retainedRayIndices.size());
       const auto kernelEnd = std::chrono::steady_clock::now();
-      result.timing.uploadSeconds = p->secondsBetween(uploadStart, uploadEnd);
-      result.timing.kernelSeconds = p->secondsBetween(kernelStart, kernelEnd);
+      result.timing.uploadSeconds = detail::secondsBetween(uploadStart, uploadEnd);
+      result.timing.kernelSeconds = detail::secondsBetween(kernelStart, kernelEnd);
     } catch (...) {
       p->destroy(retainedIndexBuffer);
       throw;

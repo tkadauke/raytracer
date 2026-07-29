@@ -1,5 +1,7 @@
 #include "render/WavefrontIntersectionBackend.h"
 
+#include "CountArithmetic.h"
+#include "TimingHelpers.h"
 #include "render/GpuIntersectionScene.h"
 #include "render/IntersectionSceneCompiler.h"
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
@@ -59,21 +61,10 @@ namespace render {
       return states;
     }
 
-    double secondsBetween(std::chrono::steady_clock::time_point start,
-                          std::chrono::steady_clock::time_point end) {
-      return std::chrono::duration<double>(end - start).count();
-    }
-
-    void validateResultCount(std::size_t actual, std::uint64_t expected, const char* message) {
-      if (static_cast<std::uint64_t>(actual) != expected) {
-        throw std::logic_error(message);
-      }
-    }
-
     template<typename Record>
     void validatePackedRecords(const std::vector<Record>& records, std::uint64_t expected,
                                const char* countMessage, const char* indexMessage) {
-      validateResultCount(records.size(), expected, countMessage);
+      detail::validateResultCount(records.size(), expected, countMessage);
 
       std::vector<unsigned char> seen(records.size(), 0U);
       for (const Record& record : records) {
@@ -93,7 +84,7 @@ namespace render {
         m_states = closestHitStates(queries);
         m_packedRays = packClosestHitQueries(queries);
         const auto prepareEnd = std::chrono::steady_clock::now();
-        m_prepareTiming.uploadSeconds = secondsBetween(prepareStart, prepareEnd);
+        m_prepareTiming.uploadSeconds = detail::secondsBetween(prepareStart, prepareEnd);
         m_prepareTiming.recordExecutionPath("packed_cpu");
       }
 
@@ -151,7 +142,7 @@ namespace render {
         m_states = anyHitStates(queries);
         m_packedRays = packAnyHitQueries(queries);
         const auto prepareEnd = std::chrono::steady_clock::now();
-        m_prepareTiming.uploadSeconds = secondsBetween(prepareStart, prepareEnd);
+        m_prepareTiming.uploadSeconds = detail::secondsBetween(prepareStart, prepareEnd);
         m_prepareTiming.recordExecutionPath("packed_cpu");
       }
 
@@ -216,7 +207,7 @@ namespace render {
           const auto prepareStart = std::chrono::steady_clock::now();
           m_preparedRays = m_preparedScene->prepareRays(m_packedRays);
           const auto prepareEnd = std::chrono::steady_clock::now();
-          m_prepareTiming.uploadSeconds = secondsBetween(prepareStart, prepareEnd);
+          m_prepareTiming.uploadSeconds = detail::secondsBetween(prepareStart, prepareEnd);
           m_prepareTiming.recordExecutionPath("metal");
         }
       }
@@ -306,7 +297,7 @@ namespace render {
           const auto prepareStart = std::chrono::steady_clock::now();
           m_preparedRays = m_preparedScene->prepareRays(m_packedRays);
           const auto prepareEnd = std::chrono::steady_clock::now();
-          m_prepareTiming.uploadSeconds = secondsBetween(prepareStart, prepareEnd);
+          m_prepareTiming.uploadSeconds = detail::secondsBetween(prepareStart, prepareEnd);
           m_prepareTiming.recordExecutionPath("metal");
         }
       }
@@ -399,7 +390,7 @@ namespace render {
           const auto prepareStart = std::chrono::steady_clock::now();
           m_preparedRays = m_preparedScene->prepareRays(m_packedRays);
           const auto prepareEnd = std::chrono::steady_clock::now();
-          m_prepareTiming.uploadSeconds = secondsBetween(prepareStart, prepareEnd);
+          m_prepareTiming.uploadSeconds = detail::secondsBetween(prepareStart, prepareEnd);
           m_prepareTiming.recordExecutionPath("vulkan");
         }
       }
@@ -489,7 +480,7 @@ namespace render {
           const auto prepareStart = std::chrono::steady_clock::now();
           m_preparedRays = m_preparedScene->prepareRays(m_packedRays);
           const auto prepareEnd = std::chrono::steady_clock::now();
-          m_prepareTiming.uploadSeconds = secondsBetween(prepareStart, prepareEnd);
+          m_prepareTiming.uploadSeconds = detail::secondsBetween(prepareStart, prepareEnd);
           m_prepareTiming.recordExecutionPath("vulkan");
         }
       }
@@ -1479,7 +1470,7 @@ namespace render {
       throw std::logic_error("closest-hit frontier is not host-readable");
     }
     std::vector<WavefrontClosestHitResult> results = intersectClosestBatch(scene, *queries, timing);
-    validateResultCount(results.size(), frontier.rayCount(),
+    detail::validateResultCount(results.size(), frontier.rayCount(),
                         "closest-hit frontier returned a result count that does not match its ray "
                         "count");
     return results;
@@ -1498,7 +1489,7 @@ namespace render {
       throw std::logic_error("any-hit frontier is not host-readable");
     }
     WavefrontOcclusionFlags results = intersectAnyBatch(scene, *queries, timing);
-    validateResultCount(results.size(), frontier.rayCount(),
+    detail::validateResultCount(results.size(), frontier.rayCount(),
                         "any-hit frontier returned a result count that does not match its ray "
                         "count");
     return results;
@@ -1513,7 +1504,7 @@ namespace render {
       throw std::logic_error("direct-light visibility batch did not create an any-hit frontier");
     }
     result.occluded = intersectAnyFrontier(scene, *result.frontier, &result.timing);
-    validateResultCount(result.occluded.size(), result.frontier->rayCount(),
+    detail::validateResultCount(result.occluded.size(), result.frontier->rayCount(),
                         "direct-light visibility batch returned an occlusion count that does not "
                         "match its any-hit frontier ray count");
     return result;

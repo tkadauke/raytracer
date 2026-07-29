@@ -35,6 +35,7 @@ namespace render {
     static double sample1D(const GpuSampleCoordinate& coordinate) noexcept;
     static Vector2d sample2D(std::uint32_t seed, std::uint32_t pixelIndex,
                              std::uint32_t primarySampleIndex, std::uint32_t dimension) noexcept;
+    static std::uint32_t narrowDimension(std::uint64_t dimension) noexcept;
 
     Vector2d next2D() override;
     double next1D() override;
@@ -43,7 +44,6 @@ namespace render {
     double sample1D(SampleDimension dimension, std::uint64_t index = 0) override;
 
   private:
-    static std::uint32_t narrowDimension(std::uint64_t dimension) noexcept;
 
     std::uint32_t m_seed;
     std::uint32_t m_pixelIndex;

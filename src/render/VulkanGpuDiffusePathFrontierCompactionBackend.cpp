@@ -1,5 +1,7 @@
 #include "render/VulkanGpuDiffusePathFrontierCompactionBackend.h"
 
+#include "TimingHelpers.h"
+
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
 #include "render/VulkanDiffusePathFrontierCompaction.generated.h"
 
@@ -45,11 +47,6 @@ namespace render {
         throw std::runtime_error(
           "Vulkan diffuse frontier compaction retained path count exceeds shader index range");
       }
-    }
-
-    double secondsBetween(std::chrono::steady_clock::time_point start,
-                          std::chrono::steady_clock::time_point end) {
-      return std::chrono::duration<double>(end - start).count();
     }
 
     class VulkanDiffuseFrontierCompactionRuntime final {
@@ -215,9 +212,9 @@ namespace render {
           retainedPathIndices.size(), "Vulkan diffuse frontier compaction output buffer mapping");
         const auto readbackEnd = std::chrono::steady_clock::now();
 
-        result.uploadWorkerSeconds = secondsBetween(uploadStart, uploadEnd);
-        result.kernelWorkerSeconds = secondsBetween(kernelStart, kernelEnd);
-        result.readbackWorkerSeconds = secondsBetween(readbackStart, readbackEnd);
+        result.uploadWorkerSeconds = detail::secondsBetween(uploadStart, uploadEnd);
+        result.kernelWorkerSeconds = detail::secondsBetween(kernelStart, kernelEnd);
+        result.readbackWorkerSeconds = detail::secondsBetween(readbackStart, readbackEnd);
         return result;
       }
 
