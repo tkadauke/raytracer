@@ -351,10 +351,6 @@ namespace world {
       setImportProvenance(element, provenance);
     }
 
-    QJsonArray jsonArrayFor(const std::array<double, 3>& values) {
-      return core::json::numberArrayToJsonArray(values);
-    }
-
     Vector3d normalizedDirectionOrDefault(const Matrix4d& transform, const Vector3d& local) {
       const Vector3d direction = transform.transformDirection(local);
       if (direction.length() <= 1e-9 || direction.isUndefined())
@@ -750,7 +746,7 @@ namespace world {
                                      light.type == core::gltf::PunctualLightType::Directional
                                        ? QStringLiteral("directional")
                                        : QStringLiteral("point"));
-        worldLight->setMetadataValue("gltfColor", jsonArrayFor(light.color));
+        worldLight->setMetadataValue("gltfColor", core::json::numberArrayToJsonArray(light.color));
         if (light.range) {
           worldLight->setMetadataValue("gltfRange", *light.range);
           m_diagnostics.push_back(ImportDiagnostic::warning(

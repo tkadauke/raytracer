@@ -56,6 +56,13 @@ public:
   }
 
   /**
+    * @returns the RGB components as an array.
+    */
+  [[nodiscard]] inline std::array<T, 3> toArray() const {
+    return {derived().r(), derived().g(), derived().b()};
+  }
+
+  /**
     * @returns the RGB components as floats with @p alpha as the fourth value.
     */
   [[nodiscard]] inline std::array<float, 4> toFloat4(float alpha = 1.0f) const {
