@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Add `Color::toArray()` and use it for JSON color serialization, replacing
+  hand-built RGB component arrays with the same component-export pattern used
+  by vectors. — GPT-5 Codex
 - Centralize JSON field-extraction helpers into `include/engine/graph/detail/JsonStateHelpers.h`
   template functions and replace duplicated implementations in `RenderEngineOptions.cpp`,
   `RaytracerPassState.cpp`, `RasterPassState.cpp`, `WireframePassState.cpp`,

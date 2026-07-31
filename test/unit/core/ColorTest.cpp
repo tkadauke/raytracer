@@ -127,6 +127,13 @@ namespace ColorTest {
     ASSERT_EQ(0.75, color[2]);
   }
 
+  TYPED_TEST(ColorTest, ShouldReturnComponentsAsStdArray) {
+    const Color<TypeParam> color(0.25, 0.5, 0.75);
+
+    const std::array<TypeParam, 3> expected{0.25, 0.5, 0.75};
+    ASSERT_EQ(expected, color.toArray());
+  }
+
   TYPED_TEST(ColorTest, ShouldCreateColorFromRGBValues) {
     auto color = Color<TypeParam>::fromRGB(255, 255, 0);
     ASSERT_COLOR_NEAR(Color<TypeParam>(1, 1, 0), color, 0.0001);
