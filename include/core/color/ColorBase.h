@@ -222,6 +222,18 @@ public:
     return rInt() << 16 | gInt() << 8 | bInt();
   }
 
+  /**
+    * @returns true if this color is equal to @p other. This is determined by
+    *   comparing each component.
+    */
+  inline bool operator==(const Derived& other) const {
+    for (int i = 0; i != 3; ++i) {
+      if (derived().component(i) != other.component(i))
+        return false;
+    }
+    return true;
+  }
+
 private:
   inline const Derived& derived() const {
     return static_cast<const Derived&>(*this);

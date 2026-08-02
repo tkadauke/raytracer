@@ -124,14 +124,6 @@ public:
     return result;
   }
 
-  inline bool operator==(const Color<double>& other) const {
-    for (int i = 0; i != 3; ++i) {
-      if (component(i) != other.component(i))
-        return false;
-    }
-    return true;
-  }
-
   inline unsigned int rgb() const {
     typedef union {
       __m128i vec;

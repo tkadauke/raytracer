@@ -29,17 +29,11 @@
 #include <map>
 #include <memory>
 #include <optional>
-#include <type_traits>
 #include <utility>
 
 using namespace render;
 
 namespace {
-  template<typename T>
-  constexpr bool isKernelRecord() {
-    return std::is_standard_layout_v<T> && alignof(T) == 16 && sizeof(T) % 16 == 0;
-  }
-
   static_assert(isKernelRecord<GpuTracingMaterialRecord>());
   static_assert(isKernelRecord<GpuTracingTextureRecord>());
   static_assert(isKernelRecord<GpuTracingLightRecord>());

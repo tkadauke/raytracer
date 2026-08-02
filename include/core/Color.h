@@ -229,18 +229,6 @@ public:
     return result;
   }
 
-  /**
-    * @returns true if this color is equal to @p other. This is determined by
-    *   comparing each component.
-    */
-  inline bool operator==(const Color<T>& other) const {
-    for (int i = 0; i != 3; ++i) {
-      if (component(i) != other.component(i))
-        return false;
-    }
-    return true;
-  }
-
 private:
   T m_components[3];
 };

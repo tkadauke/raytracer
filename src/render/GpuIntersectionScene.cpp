@@ -2,16 +2,10 @@
 
 #include <algorithm>
 #include <cmath>
-#include <type_traits>
 
 using namespace render;
 
 namespace {
-  template<typename T>
-  constexpr bool isKernelRecord() {
-    return std::is_standard_layout_v<T> && alignof(T) == 16 && sizeof(T) % 16 == 0;
-  }
-
   static_assert(isKernelRecord<GpuIntersectionBounds>());
   static_assert(isKernelRecord<GpuIntersectionBvhNode>());
   static_assert(isKernelRecord<GpuIntersectionPrimitiveRecord>());
