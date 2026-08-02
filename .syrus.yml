@@ -84,6 +84,7 @@ grade:
       # signals the worker image is missing Mesa's `libgl1-mesa-dri`
       # runtime or `libegl-mesa0` and the GL lane is silently no-op.
       run: |
+        cmake --preset coverage && \
         cmake --build --preset coverage --target unit_tests --parallel 2 && \
         log=build/coverage/opengl-egl.log && \
         QT_QPA_PLATFORM=offscreen LIBGL_ALWAYS_SOFTWARE=1 \
@@ -98,9 +99,10 @@ grade:
           exit 1; \
         fi && \
         echo "opengl-egl lane: $passed tests passed through EGL surfaceless"
-      # Reuses build/coverage/ from the coverage grader, so mostly an
-      # incremental relink of unit_tests; instrumented objects are slightly
-      # larger but the targeted --target unit_tests rebuild stays fast.
+      # Configures build/coverage independently because Syrus graders may
+      # start from a fresh workspace or run before the coverage lane. When the
+      # directory already exists this is a cheap no-op, followed by a targeted
+      # unit_tests build.
       timeout_minutes: 15
 
     - name: benchmark-build
