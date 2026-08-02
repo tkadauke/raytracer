@@ -4,6 +4,7 @@
 #include "core/math/Matrix.h"
 #include "core/math/Ray.h"
 #include "core/math/Vector.h"
+#include "render/GpuFloat4.h"
 #include "render/IntersectionSceneCompiler.h"
 
 #include <array>
@@ -28,8 +29,8 @@ namespace render {
   inline constexpr std::uint32_t gpuIntersectionLeafNodeFlag = 1u;
 
   struct alignas(16) GpuIntersectionBounds {
-    std::array<float, 4> minimum{};
-    std::array<float, 4> maximum{};
+    GpuFloat4 minimum{};
+    GpuFloat4 maximum{};
   };
 
   struct alignas(16) GpuIntersectionBvhNode {
@@ -52,44 +53,44 @@ namespace render {
   };
 
   struct alignas(16) GpuIntersectionTrianglePayload {
-    std::array<float, 4> point0{};
-    std::array<float, 4> point1{};
-    std::array<float, 4> point2{};
-    std::array<float, 4> normal0{};
-    std::array<float, 4> normal1{};
-    std::array<float, 4> normal2{};
-    std::array<float, 4> uv0{};
-    std::array<float, 4> uv1{};
-    std::array<float, 4> uv2{};
-    std::array<float, 4> minimumHitDistance{};
+    GpuFloat4 point0{};
+    GpuFloat4 point1{};
+    GpuFloat4 point2{};
+    GpuFloat4 normal0{};
+    GpuFloat4 normal1{};
+    GpuFloat4 normal2{};
+    GpuFloat4 uv0{};
+    GpuFloat4 uv1{};
+    GpuFloat4 uv2{};
+    GpuFloat4 minimumHitDistance{};
   };
 
   struct alignas(16) GpuIntersectionSpherePayload {
-    std::array<float, 4> centerRadius{};
+    GpuFloat4 centerRadius{};
   };
 
   struct alignas(16) GpuIntersectionPlanePayload {
-    std::array<float, 4> normalDistance{};
+    GpuFloat4 normalDistance{};
   };
 
   struct alignas(16) GpuIntersectionRectanglePayload {
-    std::array<float, 4> corner{};
-    std::array<float, 4> leg1{};
-    std::array<float, 4> leg2{};
-    std::array<float, 4> normal{};
+    GpuFloat4 corner{};
+    GpuFloat4 leg1{};
+    GpuFloat4 leg2{};
+    GpuFloat4 normal{};
   };
 
   struct alignas(16) GpuIntersectionDiskPayload {
-    std::array<float, 4> centerRadius{};
-    std::array<float, 4> normalMinimumHitDistance{};
+    GpuFloat4 centerRadius{};
+    GpuFloat4 normalMinimumHitDistance{};
   };
 
   struct alignas(16) GpuIntersectionOpenCylinderPayload {
-    std::array<float, 4> radiusHalfHeight{};
+    GpuFloat4 radiusHalfHeight{};
   };
 
   struct alignas(16) GpuIntersectionTorusPayload {
-    std::array<float, 4> sweptTubeRadius{};
+    GpuFloat4 sweptTubeRadius{};
   };
 
   struct alignas(16) GpuIntersectionTransformPayload {
@@ -97,12 +98,12 @@ namespace render {
     std::array<float, 16> normalMatrix{};
     std::array<float, 16> inversePointMatrix{};
     std::array<float, 16> inverseDirectionMatrix{};
-    std::array<float, 4> motionDelta{};
+    GpuFloat4 motionDelta{};
   };
 
   struct alignas(16) GpuIntersectionRay {
-    std::array<float, 4> origin{};
-    std::array<float, 4> direction{};
+    GpuFloat4 origin{};
+    GpuFloat4 direction{};
     float minDistance{0.0f};
     float maxDistance{std::numeric_limits<float>::infinity()};
     float timeSample{0.0f};
@@ -120,10 +121,10 @@ namespace render {
     std::array<std::uint32_t, 3> reservedIds{};
     float distance{std::numeric_limits<float>::infinity()};
     std::array<float, 3> reservedDistance{};
-    std::array<float, 4> point{};
-    std::array<float, 4> normal{};
-    std::array<float, 4> uv{};
-    std::array<float, 4> barycentric{};
+    GpuFloat4 point{};
+    GpuFloat4 normal{};
+    GpuFloat4 uv{};
+    GpuFloat4 barycentric{};
   };
 
   struct alignas(16) GpuIntersectionOcclusionRecord {
@@ -211,10 +212,10 @@ namespace render {
   private:
     struct ClosestHit {
       float distance{std::numeric_limits<float>::infinity()};
-      std::array<float, 4> point{};
-      std::array<float, 4> normal{};
-      std::array<float, 4> uv{};
-      std::array<float, 4> barycentric{};
+      GpuFloat4 point{};
+      GpuFloat4 normal{};
+      GpuFloat4 uv{};
+      GpuFloat4 barycentric{};
     };
 
     [[nodiscard]] bool boundsIntersectRay(const GpuIntersectionBounds& bounds,
@@ -256,21 +257,18 @@ namespace render {
     [[nodiscard]] GpuIntersectionHitRecord makeMiss(const GpuIntersectionRay& ray) const;
     [[nodiscard]] GpuIntersectionOcclusionRecord makeOcclusionRecord(const GpuIntersectionRay& ray,
                                                                      bool occluded) const;
-    [[nodiscard]] std::array<float, 4> interpolate3(const std::array<float, 4>& a,
-                                                    const std::array<float, 4>& b,
-                                                    const std::array<float, 4>& c, float alpha,
-                                                    float beta, float gamma) const;
+    [[nodiscard]] GpuFloat4 interpolate3(const GpuFloat4& a, const GpuFloat4& b, const GpuFloat4& c,
+                                         float alpha, float beta, float gamma) const;
     [[nodiscard]] GpuIntersectionRay
     transformRay(const GpuIntersectionRay& ray,
                  const GpuIntersectionTransformPayload& transform) const;
     [[nodiscard]] ClosestHit transformHit(const ClosestHit& hit,
                                           const GpuIntersectionTransformPayload& transform,
                                           float timeSample) const;
-    [[nodiscard]] std::array<float, 4> transformPoint(const std::array<float, 16>& matrix,
-                                                      const std::array<float, 4>& point) const;
-    [[nodiscard]] std::array<float, 4>
-    transformDirection(const std::array<float, 16>& matrix,
-                       const std::array<float, 4>& direction) const;
-    [[nodiscard]] std::array<float, 4> normalize3(std::array<float, 4> value) const;
+    [[nodiscard]] GpuFloat4 transformPoint(const std::array<float, 16>& matrix,
+                                           const GpuFloat4& point) const;
+    [[nodiscard]] GpuFloat4 transformDirection(const std::array<float, 16>& matrix,
+                                               const GpuFloat4& direction) const;
+    [[nodiscard]] GpuFloat4 normalize3(GpuFloat4 value) const;
   };
 }

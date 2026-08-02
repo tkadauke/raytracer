@@ -28,7 +28,6 @@ namespace {
   using render::detail::linearDirectionSegmentStaysDefined;
   using render::detail::linearDirectionSegmentStaysOffUpAxis;
   using render::detail::nearlyEqual;
-  using render::detail::vector4;
 
   std::optional<LensDescriptorMotion>
   sampledShutterOrthographicMotion(const OrthographicCamera& camera) {
@@ -67,10 +66,10 @@ namespace {
     const Matrix4d matrixAtOpen = Matrix4d::lookAt(positionAtOpen, targetAtOpen, Vector3d::up());
     const Matrix4d matrixAtClose = Matrix4d::lookAt(positionAtClose, targetAtClose, Vector3d::up());
     if (hasStableBasis(matrixAtOpen, matrixAtClose)) {
-      return LensDescriptorMotion{
-        gpuPrimaryPathMotionModeOriginDelta, matrixAtOpen,
-        matrixAtOpen.transformDirection(Vector3d::forward()).normalized(),
-        matrixAtClose.translationVector() - matrixAtOpen.translationVector()};
+      return LensDescriptorMotion{gpuPrimaryPathMotionModeOriginDelta, matrixAtOpen,
+                                  matrixAtOpen.transformDirection(Vector3d::forward()).normalized(),
+                                  matrixAtClose.translationVector() -
+                                    matrixAtOpen.translationVector()};
     }
 
     return LensDescriptorMotion{
@@ -166,9 +165,9 @@ OrthographicCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sa
   }
   std::optional<LensDescriptorMotion> motion;
   if (const std::optional<Matrix4d> descriptorMatrix = fixedShutterGpuCameraMatrix()) {
-    motion = LensDescriptorMotion{
-      gpuPrimaryPathMotionModeOriginDelta, *descriptorMatrix,
-      descriptorMatrix->transformDirection(Vector3d::forward()).normalized()};
+    motion =
+      LensDescriptorMotion{gpuPrimaryPathMotionModeOriginDelta, *descriptorMatrix,
+                           descriptorMatrix->transformDirection(Vector3d::forward()).normalized()};
   } else {
     motion = sampledShutterOrthographicMotion(*this);
   }
@@ -188,15 +187,14 @@ OrthographicCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sa
   GpuPrimaryPathDescriptor descriptor;
   descriptor.mode = gpuPrimaryPathGenerationModeOrthographic;
   descriptor.rectilinear.motionMode = motion->motionMode;
-  descriptor.rectilinear.originOrDirection = vector4(
-    motion->originOrPosition,
-    motion->motionMode == gpuPrimaryPathMotionModeLookAt ? 1.0f : 0.0f);
-  descriptor.rectilinear.motionOriginDelta = vector4(motion->motionOriginOrPositionDelta, 0.0f);
-  descriptor.rectilinear.motionTarget = vector4(motion->target, 1.0f);
-  descriptor.rectilinear.motionTargetDelta = vector4(motion->targetDelta, 0.0f);
+  descriptor.rectilinear.originOrDirection = gpuFloat4(
+    motion->originOrPosition, motion->motionMode == gpuPrimaryPathMotionModeLookAt ? 1.0f : 0.0f);
+  descriptor.rectilinear.motionOriginDelta = gpuFloat4(motion->motionOriginOrPositionDelta, 0.0f);
+  descriptor.rectilinear.motionTarget = gpuFloat4(motion->target, 1.0f);
+  descriptor.rectilinear.motionTargetDelta = gpuFloat4(motion->targetDelta, 0.0f);
   fillGpuDescriptorPlane(descriptor.rectilinear, *descriptorPlane);
-  fillGpuDescriptorViewport(descriptor.rectilinear, rect, actual,
-                             plane->sampler()->numSamples(), sampleSeed);
+  fillGpuDescriptorViewport(descriptor.rectilinear, rect, actual, plane->sampler()->numSamples(),
+                            sampleSeed);
   return descriptor;
 }
 

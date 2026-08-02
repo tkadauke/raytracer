@@ -23,8 +23,6 @@ namespace {
   using render::detail::checkGpuPathCount;
   using render::detail::fillGpuDescriptorMatrixBasis;
   using render::detail::fillGpuDescriptorViewport;
-  using render::detail::parameters4;
-  using render::detail::vector4;
 }
 
 std::shared_ptr<Camera> SphericalCamera::clone() const {
@@ -111,18 +109,18 @@ SphericalCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampl
   GpuPrimaryPathDescriptor descriptor;
   descriptor.mode = gpuPrimaryPathGenerationModeSpherical;
   descriptor.rectilinear.motionMode = motionMode;
-  descriptor.rectilinear.originOrDirection = vector4(originOrPosition, 1.0f);
-  descriptor.rectilinear.motionOriginDelta = vector4(motionOriginDelta, 0.0f);
-  descriptor.rectilinear.motionTarget = vector4(motionTarget, 1.0f);
-  descriptor.rectilinear.motionTargetDelta = vector4(motionTargetDelta, 0.0f);
+  descriptor.rectilinear.originOrDirection = gpuFloat4(originOrPosition, 1.0f);
+  descriptor.rectilinear.motionOriginDelta = gpuFloat4(motionOriginDelta, 0.0f);
+  descriptor.rectilinear.motionTarget = gpuFloat4(motionTarget, 1.0f);
+  descriptor.rectilinear.motionTargetDelta = gpuFloat4(motionTargetDelta, 0.0f);
   descriptor.rectilinear.motionParameters = {static_cast<float>(motionOriginOffset), 0.0f, 0.0f,
                                              0.0f};
   fillGpuDescriptorMatrixBasis(descriptor.rectilinear, *descriptorMatrix);
   descriptor.rectilinear.lensParameters =
-    parameters4(plane->width(), plane->height(), m_horizontalFieldOfView.radians(),
-                m_verticalFieldOfView.radians());
-  fillGpuDescriptorViewport(descriptor.rectilinear, rect, actual,
-                             plane->sampler()->numSamples(), sampleSeed);
+    gpuFloat4(plane->width(), plane->height(), m_horizontalFieldOfView.radians(),
+              m_verticalFieldOfView.radians());
+  fillGpuDescriptorViewport(descriptor.rectilinear, rect, actual, plane->sampler()->numSamples(),
+                            sampleSeed);
   return descriptor;
 }
 
