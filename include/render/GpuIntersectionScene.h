@@ -11,9 +11,16 @@
 #include <cstdint>
 #include <limits>
 #include <optional>
+#include <type_traits>
 #include <vector>
 
 namespace render {
+
+  template<typename T>
+  constexpr bool isKernelRecord() {
+    return std::is_standard_layout_v<T> && alignof(T) == 16 && sizeof(T) % 16 == 0;
+  }
+
   enum class GpuIntersectionPrimitiveKind : std::uint32_t {
     Unsupported = 0,
     Triangle = 1,
