@@ -28,8 +28,6 @@ namespace {
   using render::detail::fillGpuDescriptorViewport;
   using render::detail::lensDescriptorMotion;
   using render::detail::LensDescriptorMotion;
-  using render::detail::parameters4;
-  using render::detail::vector4;
 }
 
 std::shared_ptr<Camera> ThinLensCamera::clone() const {
@@ -199,18 +197,18 @@ ThinLensCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sample
   GpuPrimaryPathDescriptor descriptor;
   descriptor.mode = gpuPrimaryPathGenerationModeThinLens;
   descriptor.rectilinear.motionMode = motion->motionMode;
-  descriptor.rectilinear.originOrDirection = vector4(motion->originOrPosition, 1.0f);
-  descriptor.rectilinear.motionOriginDelta = vector4(motion->motionOriginOrPositionDelta, 0.0f);
-  descriptor.rectilinear.motionTarget = vector4(motion->target, 1.0f);
-  descriptor.rectilinear.motionTargetDelta = vector4(motion->targetDelta, 0.0f);
-  descriptor.rectilinear.motionParameters = parameters4(m_distance, m_apertureRadius);
+  descriptor.rectilinear.originOrDirection = gpuFloat4(motion->originOrPosition, 1.0f);
+  descriptor.rectilinear.motionOriginDelta = gpuFloat4(motion->motionOriginOrPositionDelta, 0.0f);
+  descriptor.rectilinear.motionTarget = gpuFloat4(motion->target, 1.0f);
+  descriptor.rectilinear.motionTargetDelta = gpuFloat4(motion->targetDelta, 0.0f);
+  descriptor.rectilinear.motionParameters = gpuFloat4(m_distance, m_apertureRadius);
   fillGpuDescriptorPlane(descriptor.rectilinear, *descriptorPlane);
-  descriptor.rectilinear.lensRight = vector4(right * m_apertureRadius, 0.0f);
-  descriptor.rectilinear.lensUp = vector4(up * m_apertureRadius, 0.0f);
-  descriptor.rectilinear.forward = vector4(forward, 0.0f);
-  descriptor.rectilinear.lensParameters = parameters4(m_distance + m_focalDistance, 0.0);
-  fillGpuDescriptorViewport(descriptor.rectilinear, rect, actual,
-                             plane->sampler()->numSamples(), sampleSeed);
+  descriptor.rectilinear.lensRight = gpuFloat4(right * m_apertureRadius, 0.0f);
+  descriptor.rectilinear.lensUp = gpuFloat4(up * m_apertureRadius, 0.0f);
+  descriptor.rectilinear.forward = gpuFloat4(forward, 0.0f);
+  descriptor.rectilinear.lensParameters = gpuFloat4(m_distance + m_focalDistance, 0.0);
+  fillGpuDescriptorViewport(descriptor.rectilinear, rect, actual, plane->sampler()->numSamples(),
+                            sampleSeed);
   return descriptor;
 }
 

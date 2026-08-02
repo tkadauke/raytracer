@@ -1,12 +1,12 @@
 #pragma once
 
 #include "render/cameras/SampledShutterDescriptorMotion.h"
+#include "render/GpuFloat4.h"
 #include "render/GpuPrimaryPathDescriptor.h"
 #include "render/viewplanes/ViewPlane.h"
 #include "core/math/Matrix.h"
 #include "core/math/Vector.h"
 
-#include <array>
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
@@ -20,20 +20,6 @@ namespace render::detail {
     return static_cast<std::uint32_t>(value);
   }
 
-  inline std::array<float, 4> gpuFloat4(double x, double y = 0.0, double z = 0.0,
-                                        double w = 0.0) {
-    return {static_cast<float>(x), static_cast<float>(y), static_cast<float>(z),
-            static_cast<float>(w)};
-  }
-
-  inline std::array<float, 4> vector4(const Vector3d& value, float w) {
-    return value.toFloat4(w);
-  }
-
-  inline std::array<float, 4> parameters4(double x, double y, double z = 0.0, double w = 0.0) {
-    return gpuFloat4(x, y, z, w);
-  }
-
   inline void checkGpuPathCount(const Recti& actual, int numSamples) {
     const std::uint64_t pixelCount =
       static_cast<std::uint64_t>(actual.width()) * static_cast<std::uint64_t>(actual.height());
@@ -45,8 +31,8 @@ namespace render::detail {
   }
 
   inline void fillGpuDescriptorViewport(render::GpuRectilinearPrimaryPathDescriptor& rec,
-                                         const Recti& rect, const Recti& actual, int numSamples,
-                                         std::uint32_t sampleSeed) {
+                                        const Recti& rect, const Recti& actual, int numSamples,
+                                        std::uint32_t sampleSeed) {
     rec.requestedLeft = rect.left();
     rec.requestedTop = rect.top();
     rec.requestedWidth =
@@ -72,9 +58,9 @@ namespace render::detail {
   // pixel grid. Used by all cameras that project through a flat view plane.
   inline void fillGpuDescriptorPlane(GpuRectilinearPrimaryPathDescriptor& rec,
                                      const ViewPlane& plane) {
-    rec.topLeft = vector4(plane.pixelAt(0.0, 0.0), 1.0f);
-    rec.right = vector4(plane.pixelAt(1.0, 0.0) - plane.pixelAt(0.0, 0.0), 0.0f);
-    rec.down = vector4(plane.pixelAt(0.0, 1.0) - plane.pixelAt(0.0, 0.0), 0.0f);
+    rec.topLeft = gpuFloat4(plane.pixelAt(0.0, 0.0), 1.0f);
+    rec.right = gpuFloat4(plane.pixelAt(1.0, 0.0) - plane.pixelAt(0.0, 0.0), 0.0f);
+    rec.down = gpuFloat4(plane.pixelAt(0.0, 1.0) - plane.pixelAt(0.0, 0.0), 0.0f);
   }
 
   // Fill the right/down/forward rectilinear basis from the camera matrix's
@@ -82,8 +68,8 @@ namespace render::detail {
   // spherical, equirectangular) rather than a pixel-grid plane.
   inline void fillGpuDescriptorMatrixBasis(GpuRectilinearPrimaryPathDescriptor& rec,
                                            const Matrix4d& matrix) {
-    rec.right = vector4(matrix.transformDirection(Vector3d(1.0, 0.0, 0.0)), 0.0f);
-    rec.down = vector4(matrix.transformDirection(Vector3d(0.0, 1.0, 0.0)), 0.0f);
-    rec.forward = vector4(matrix.transformDirection(Vector3d(0.0, 0.0, 1.0)), 0.0f);
+    rec.right = gpuFloat4(matrix.transformDirection(Vector3d(1.0, 0.0, 0.0)), 0.0f);
+    rec.down = gpuFloat4(matrix.transformDirection(Vector3d(0.0, 1.0, 0.0)), 0.0f);
+    rec.forward = gpuFloat4(matrix.transformDirection(Vector3d(0.0, 0.0, 1.0)), 0.0f);
   }
 }

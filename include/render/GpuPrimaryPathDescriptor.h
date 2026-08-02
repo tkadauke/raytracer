@@ -1,8 +1,8 @@
 #pragma once
 
 #include "core/math/Rect.h"
+#include "render/GpuFloat4.h"
 
-#include <array>
 #include <cstdint>
 #include <optional>
 
@@ -20,18 +20,18 @@ namespace render {
   inline constexpr std::uint32_t gpuPrimaryPathMotionModeLookAt = 1u;
 
   struct alignas(16) GpuRectilinearPrimaryPathDescriptor {
-    std::array<float, 4> originOrDirection{};
-    std::array<float, 4> motionOriginDelta{};
-    std::array<float, 4> motionTarget{};
-    std::array<float, 4> motionTargetDelta{};
-    std::array<float, 4> motionParameters{};
-    std::array<float, 4> topLeft{};
-    std::array<float, 4> right{};
-    std::array<float, 4> down{};
-    std::array<float, 4> lensRight{};
-    std::array<float, 4> lensUp{};
-    std::array<float, 4> forward{};
-    std::array<float, 4> lensParameters{};
+    GpuFloat4 originOrDirection{};
+    GpuFloat4 motionOriginDelta{};
+    GpuFloat4 motionTarget{};
+    GpuFloat4 motionTargetDelta{};
+    GpuFloat4 motionParameters{};
+    GpuFloat4 topLeft{};
+    GpuFloat4 right{};
+    GpuFloat4 down{};
+    GpuFloat4 lensRight{};
+    GpuFloat4 lensUp{};
+    GpuFloat4 forward{};
+    GpuFloat4 lensParameters{};
     std::int32_t requestedLeft{0};
     std::int32_t requestedTop{0};
     std::uint32_t requestedWidth{0};

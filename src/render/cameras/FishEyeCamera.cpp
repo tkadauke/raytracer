@@ -22,9 +22,7 @@ namespace {
   using render::detail::checkGpuPathCount;
   using render::detail::fillGpuDescriptorMatrixBasis;
   using render::detail::fillGpuDescriptorViewport;
-  using render::detail::parameters4;
   using render::detail::pointSourceDescriptorMotion;
-  using render::detail::vector4;
 }
 
 std::shared_ptr<Camera> FishEyeCamera::clone() const {
@@ -82,15 +80,15 @@ FishEyeCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampleS
   GpuPrimaryPathDescriptor descriptor;
   descriptor.mode = gpuPrimaryPathGenerationModeFishEye;
   descriptor.rectilinear.motionMode = motion->motionMode;
-  descriptor.rectilinear.originOrDirection = vector4(motion->matrix.translationVector(), 1.0f);
-  descriptor.rectilinear.motionOriginDelta = vector4(motion->motionOriginDelta, 0.0f);
-  descriptor.rectilinear.motionTarget = vector4(motion->target, 1.0f);
-  descriptor.rectilinear.motionTargetDelta = vector4(motion->targetDelta, 0.0f);
+  descriptor.rectilinear.originOrDirection = gpuFloat4(motion->matrix.translationVector(), 1.0f);
+  descriptor.rectilinear.motionOriginDelta = gpuFloat4(motion->motionOriginDelta, 0.0f);
+  descriptor.rectilinear.motionTarget = gpuFloat4(motion->target, 1.0f);
+  descriptor.rectilinear.motionTargetDelta = gpuFloat4(motion->targetDelta, 0.0f);
   fillGpuDescriptorMatrixBasis(descriptor.rectilinear, motion->matrix);
   descriptor.rectilinear.lensParameters =
-    parameters4(plane->width(), plane->height(), m_fieldOfView.radians());
-  fillGpuDescriptorViewport(descriptor.rectilinear, rect, actual,
-                             plane->sampler()->numSamples(), sampleSeed);
+    gpuFloat4(plane->width(), plane->height(), m_fieldOfView.radians());
+  fillGpuDescriptorViewport(descriptor.rectilinear, rect, actual, plane->sampler()->numSamples(),
+                            sampleSeed);
   return descriptor;
 }
 

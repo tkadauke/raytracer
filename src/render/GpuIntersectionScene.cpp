@@ -272,7 +272,7 @@ GpuIntersectionScenePacker::packTrianglePayload(const IntersectionTrianglePayloa
     payload.point2.toFloat4(),  payload.normal0.toFloat4(),
     payload.normal1.toFloat4(), payload.normal2.toFloat4(),
     payload.uv0.toFloat4(),     payload.uv1.toFloat4(),
-    payload.uv2.toFloat4(),     {packScalar(payload.minimumHitDistance), 0.0f, 0.0f, 0.0f}};
+    payload.uv2.toFloat4(),     gpuFloat4(payload.minimumHitDistance)};
 }
 
 GpuIntersectionSpherePayload
@@ -313,8 +313,7 @@ GpuIntersectionOpenCylinderPayload GpuIntersectionScenePacker::packOpenCylinderP
 
 GpuIntersectionTorusPayload
 GpuIntersectionScenePacker::packTorusPayload(const IntersectionTorusPayload& payload) const {
-  return GpuIntersectionTorusPayload{
-    {packScalar(payload.sweptRadius), packScalar(payload.tubeRadius), 0.0f, 0.0f}};
+  return GpuIntersectionTorusPayload{gpuFloat4(payload.sweptRadius, payload.tubeRadius)};
 }
 
 GpuIntersectionTransformPayload GpuIntersectionScenePacker::packTransformPayload(
@@ -962,11 +961,9 @@ GpuIntersectionIntersector::makeOcclusionRecord(const GpuIntersectionRay& ray,
   return record;
 }
 
-std::array<float, 4> GpuIntersectionIntersector::interpolate3(const std::array<float, 4>& a,
-                                                              const std::array<float, 4>& b,
-                                                              const std::array<float, 4>& c,
-                                                              float alpha, float beta,
-                                                              float gamma) const {
+GpuFloat4 GpuIntersectionIntersector::interpolate3(const GpuFloat4& a, const GpuFloat4& b,
+                                                   const GpuFloat4& c, float alpha, float beta,
+                                                   float gamma) const {
   return {a[0] * alpha + b[0] * beta + c[0] * gamma, a[1] * alpha + b[1] * beta + c[1] * gamma,
           a[2] * alpha + b[2] * beta + c[2] * gamma, a[3] * alpha + b[3] * beta + c[3] * gamma};
 }
@@ -975,7 +972,7 @@ GpuIntersectionRay
 GpuIntersectionIntersector::transformRay(const GpuIntersectionRay& ray,
                                          const GpuIntersectionTransformPayload& transform) const {
   GpuIntersectionRay transformed = ray;
-  std::array<float, 4> origin = ray.origin;
+  GpuFloat4 origin = ray.origin;
   origin[0] -= transform.motionDelta[0] * ray.timeSample;
   origin[1] -= transform.motionDelta[1] * ray.timeSample;
   origin[2] -= transform.motionDelta[2] * ray.timeSample;
@@ -995,9 +992,8 @@ GpuIntersectionIntersector::ClosestHit GpuIntersectionIntersector::transformHit(
   return transformed;
 }
 
-std::array<float, 4>
-GpuIntersectionIntersector::transformPoint(const std::array<float, 16>& matrix,
-                                           const std::array<float, 4>& point) const {
+GpuFloat4 GpuIntersectionIntersector::transformPoint(const std::array<float, 16>& matrix,
+                                                     const GpuFloat4& point) const {
   return {
     matrix[0] * point[0] + matrix[1] * point[1] + matrix[2] * point[2] + matrix[3] * point[3],
     matrix[4] * point[0] + matrix[5] * point[1] + matrix[6] * point[2] + matrix[7] * point[3],
@@ -1005,15 +1001,14 @@ GpuIntersectionIntersector::transformPoint(const std::array<float, 16>& matrix,
     matrix[12] * point[0] + matrix[13] * point[1] + matrix[14] * point[2] + matrix[15] * point[3]};
 }
 
-std::array<float, 4>
-GpuIntersectionIntersector::transformDirection(const std::array<float, 16>& matrix,
-                                               const std::array<float, 4>& direction) const {
+GpuFloat4 GpuIntersectionIntersector::transformDirection(const std::array<float, 16>& matrix,
+                                                         const GpuFloat4& direction) const {
   return {matrix[0] * direction[0] + matrix[1] * direction[1] + matrix[2] * direction[2],
           matrix[4] * direction[0] + matrix[5] * direction[1] + matrix[6] * direction[2],
           matrix[8] * direction[0] + matrix[9] * direction[1] + matrix[10] * direction[2], 0.0f};
 }
 
-std::array<float, 4> GpuIntersectionIntersector::normalize3(std::array<float, 4> value) const {
+GpuFloat4 GpuIntersectionIntersector::normalize3(GpuFloat4 value) const {
   const float squaredLength = value[0] * value[0] + value[1] * value[1] + value[2] * value[2];
   if (squaredLength <= 0.0f) {
     return value;

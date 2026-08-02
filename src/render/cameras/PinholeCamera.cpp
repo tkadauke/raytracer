@@ -40,7 +40,6 @@ namespace {
   using render::detail::isLinearVectorTrack;
   using render::detail::linearDirectionSegmentStaysDefined;
   using render::detail::nearlyEqual;
-  using render::detail::vector4;
 
   struct DescriptorMotion {
     std::uint32_t motionMode{gpuPrimaryPathMotionModeOriginDelta};
@@ -194,15 +193,15 @@ PinholeCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampleS
   GpuPrimaryPathDescriptor descriptor;
   descriptor.mode = gpuPrimaryPathGenerationModePinhole;
   descriptor.rectilinear.motionMode = motion->motionMode;
-  descriptor.rectilinear.originOrDirection = vector4(motion->originOrPosition, 1.0f);
-  descriptor.rectilinear.motionOriginDelta = vector4(motion->motionOriginOrPositionDelta, 0.0f);
-  descriptor.rectilinear.motionTarget = vector4(motion->target, 1.0f);
-  descriptor.rectilinear.motionTargetDelta = vector4(motion->targetDelta, 0.0f);
+  descriptor.rectilinear.originOrDirection = gpuFloat4(motion->originOrPosition, 1.0f);
+  descriptor.rectilinear.motionOriginDelta = gpuFloat4(motion->motionOriginOrPositionDelta, 0.0f);
+  descriptor.rectilinear.motionTarget = gpuFloat4(motion->target, 1.0f);
+  descriptor.rectilinear.motionTargetDelta = gpuFloat4(motion->targetDelta, 0.0f);
   descriptor.rectilinear.motionParameters = {static_cast<float>(motion->distance), 0.0f, 0.0f,
                                              0.0f};
   fillGpuDescriptorPlane(descriptor.rectilinear, *plane);
-  fillGpuDescriptorViewport(descriptor.rectilinear, rect, actual,
-                             plane->sampler()->numSamples(), sampleSeed);
+  fillGpuDescriptorViewport(descriptor.rectilinear, rect, actual, plane->sampler()->numSamples(),
+                            sampleSeed);
   return descriptor;
 }
 
