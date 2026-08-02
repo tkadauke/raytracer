@@ -100,10 +100,11 @@ grade:
         fi && \
         echo "opengl-egl lane: $passed tests passed through EGL surfaceless"
       # Configures build/coverage independently because Syrus graders may
-      # start from a fresh workspace or run before the coverage lane. When the
-      # directory already exists this is a cheap no-op, followed by a targeted
-      # unit_tests build.
-      timeout_minutes: 15
+      # start from a fresh workspace or run before the coverage lane. A cold
+      # `unit_tests` build shares much of the coverage grader's compile cost,
+      # so keep enough headroom for an independently scheduled run; warm
+      # incremental rebuilds still finish in minutes.
+      timeout_minutes: 45
 
     - name: benchmark-build
       # Compile-only benchmark gate. Full benchmark timing runs are too
