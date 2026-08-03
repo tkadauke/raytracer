@@ -11,11 +11,13 @@
 > graph-side resource-domain metadata, GPU residency metadata in
 > `RenderResourceStorage`, GPU descriptor surface in trace exports, explicit
 > `RenderPassKind::Readback` nodes, attachment store/discard state, color
-> attachment Load from a CPU source buffer, and the OpenGL raster resource cache
-> — is already in place. Concrete graph-owned OpenGL texture/renderbuffer
-> resources are still missing, graph pass-state application still rejects
-> OpenGL attachment Load, and `OpenGLRasterizer` still rejects depth/stencil Load
-> until residency can seed attachments from prior GPU passes.
+> attachment Load from a CPU source buffer, the OpenGL raster resource cache,
+> and typed graph-owned `OpenGLRasterResource` storage are already in place.
+> What is still missing is the end-to-end pass execution path: OpenGL raster
+> passes do not yet publish FBO attachments as graph resident resources, later
+> passes do not consume those handles, graph pass-state application still
+> rejects OpenGL attachment Load, and `OpenGLRasterizer` still rejects
+> depth/stencil Load until residency can seed attachments from prior GPU passes.
 >
 > **Related plans:** `docs/plans/complete/opengl-gpu-rasterizer.md` owns the
 > rasterizer pipeline; this plan handles the resource side.
@@ -89,18 +91,23 @@ against.
 
 Tasks:
 
-- Define `OpenGLRasterResource` in `include/engine/raster/detail/` holding
+- ~~Define `OpenGLRasterResource` in `include/engine/raster/detail/` holding
   a texture handle, kind, source rasterizer context pointer, and a
   destructor that releases the handle with the source context current
-  (matching the existing `OpenGLRasterResourceCache` lifecycle pattern).
-- Extend `RenderResourceStorage` to accept and surface OpenGL resources
+  (matching the existing `OpenGLRasterResourceCache` lifecycle pattern).~~ ✅
+  **Done.** `include/engine/raster/detail/OpenGLRasterResource.h` owns typed
+  texture/renderbuffer handles and releases them through the source context,
+  with lifecycle coverage in `OpenGLRasterResourceTest.cpp`.
+- ~~Extend `RenderResourceStorage` to accept and surface OpenGL resources
   through a typed accessor (`storage.openGLResourceFor(id)` returning
-  `OpenGLRasterResource*` or null). ⏳ **Partially done.** The storage layer can
-  now attach and trace generic GPU residency metadata
-  (`RenderGpuResourceResidency`), but it does not yet own typed OpenGL resource
-  handles.
+  `OpenGLRasterResource*` or null).~~ ✅ **Done.** `RenderResourceStorage` now
+  binds, clears, validates, and retrieves `OpenGLRasterResource` handles for
+  GPU-domain descriptors, with shape/type/access checks covered in
+  `RenderResourceStorageTest.cpp`.
 - Add a graph-level acceptance test that asserts an OpenGL-only pass chain
-  serializes its inter-pass resources as OpenGL handles, not CPU buffers.
+  serializes its inter-pass resources as OpenGL handles, not CPU buffers. This
+  remains TODO because no OpenGL pass currently produces a resident attachment
+  for a downstream graph consumer.
 
 ## Phase 1 — `OpenGLRasterizer` produces resident outputs
 
