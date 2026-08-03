@@ -230,11 +230,14 @@ compiler tags the raster visibility resource with visibility, culling, and
 rasterizer features so text, DOT, JSON, and the Modeler resource table make its
 purpose clear before the graph runs.
 
-Resource domains are `CPU` and `GPU`. `CPU` resources can be allocated by
-`RenderResourceStorage`; `GPU` resources are descriptors without CPU buffers in
-that storage object. Current executors are CPU-backed, so validation rejects a
-pass that reads or writes a `GPU` resource until a GPU-capable executor is
-introduced. Resource lifetimes are:
+Resource domains are `CPU` and `GPU`. `CPU` resources allocate ordinary graph
+buffers through `RenderResourceStorage`. `GPU` resources do not allocate CPU
+buffers by default; the current concrete resident-resource substrate is
+OpenGL-specific, where `RenderResourceStorage` can bind typed
+`OpenGLRasterResource` texture/renderbuffer handles for GPU-domain descriptors.
+The end-to-end OpenGL producer/consumer path is still being expanded under the
+GPU-residency plan, so incompatible pass chains continue to require explicit
+readback before CPU consumers. Resource lifetimes are:
 
 - `Transient` -- produced inside the plan and consumed by other passes.
 - `Imported` -- available before the plan starts.

@@ -2741,11 +2741,11 @@ scene is large enough to amortize upload/readback costs.
 
 **Jobs:**
 
-1. **Define the platform path-loop backend contract.**
+1. ~~**Define the platform path-loop backend contract.**~~ ✅ **Done.**
    - Depends on: none.
    - Output: backend availability, platform label, unsupported reason, required
      buffers, readback policy, and result metadata are explicit on the
-     `GpuDiffusePathLoopBackend` boundary. ✅ **Started.** The interface now has
+     `GpuDiffusePathLoopBackend` boundary. The interface now has
      a separate full-GPU backend selection hook so automatic graph compilation
      cannot confuse the CPU-reference diagnostic backend with a platform-owned
      path-loop backend. `GpuDiffusePathLoopLaunchPlanner` also defines the
@@ -2766,7 +2766,9 @@ scene is large enough to amortize upload/readback costs.
      kernel result records into the shared contract. The shared contract now
      consumes per-step direct-light sample, visibility-ray, occlusion, and
      contributing-sample counters written by the platform kernels instead of
-     estimating those metrics from nonzero radiance.
+     estimating those metrics from nonzero radiance. Remaining E15 work is no
+     longer contract definition; it is breadth, parity, scheduling, and
+     performance work in jobs 2-5.
 
 2. **Add a minimal Metal path-loop kernel.**
    - Depends on: job 1.

@@ -313,17 +313,13 @@ Tasks:
 
 - ⏸ **Deferred to a dedicated GPU-residency plan.** Let graph resource
   storage keep OpenGL textures/renderbuffers resident across compatible GPU
-  passes. The CPU storage layer already tracks GPU residency metadata for
-  descriptor-only resources, surfaces it in graph trace snapshots, and the
-  graph compiler validates pass-domain support, so the scaffolding is in
-  place. What is still missing is an `OpenGLRasterResource` (or similar)
-  backend type that actually owns GL texture/renderbuffer handles, a
-  resource-storage path that constructs and binds it, and producer/consumer
-  paths inside the OpenGL backend that read from and write to it instead of
-  going through CPU buffers. That is multi-week scope and crosses
-  `engine::raster`, `engine::graph`, and the new `engine::gpu` boundary
-  noted in the resolved open questions. See
-  `docs/plans/opengl-gpu-residency.md` for the phased plan.
+  passes. The storage substrate has since advanced: `OpenGLRasterResource`
+  owns typed GL texture/renderbuffer handles and `RenderResourceStorage` can
+  bind/retrieve them for GPU-domain descriptors. What is still missing is the
+  end-to-end producer/consumer path inside the OpenGL backend that writes FBO
+  attachments into those graph resources and later reads them without going
+  through CPU buffers. See `docs/plans/opengl-gpu-residency.md` for the active
+  phased plan.
 - Add explicit readback pass/operation for final image output, trace, and AOV
   export. ✅ **Done for current pipeline.** `RenderPassKind::Readback` is the
   graph-visible transfer boundary; beauty, depth, stencil, and AOV branches
