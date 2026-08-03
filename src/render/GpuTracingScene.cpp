@@ -188,27 +188,16 @@ namespace {
   void packPortalParameters(const PortalMaterial& material, GpuTracingMaterialRecord& record) {
     record.parameters = material.filterColor().toFloat4(0.0f);
 
-    const auto originRow = [](const Matrix4d& matrix, std::size_t index) {
-      return std::array<float, 4>{static_cast<float>(matrix[static_cast<int>(index)][0]),
-                                  static_cast<float>(matrix[static_cast<int>(index)][1]),
-                                  static_cast<float>(matrix[static_cast<int>(index)][2]),
-                                  static_cast<float>(matrix[static_cast<int>(index)][3])};
-    };
-    const auto directionRow = [](const Matrix3d& matrix, std::size_t index) {
-      return std::array<float, 4>{static_cast<float>(matrix[static_cast<int>(index)][0]),
-                                  static_cast<float>(matrix[static_cast<int>(index)][1]),
-                                  static_cast<float>(matrix[static_cast<int>(index)][2]), 0.0f};
-    };
     const Matrix4d& origin = material.originMatrix();
     const Matrix3d& direction = material.directionMatrix();
 
-    record.portalOriginMatrix0 = originRow(origin, 0u);
-    record.portalOriginMatrix1 = originRow(origin, 1u);
-    record.portalOriginMatrix2 = originRow(origin, 2u);
-    record.portalOriginMatrix3 = originRow(origin, 3u);
-    record.portalDirectionMatrix0 = directionRow(direction, 0u);
-    record.portalDirectionMatrix1 = directionRow(direction, 1u);
-    record.portalDirectionMatrix2 = directionRow(direction, 2u);
+    record.portalOriginMatrix0 = origin.row(0).toFloat4();
+    record.portalOriginMatrix1 = origin.row(1).toFloat4();
+    record.portalOriginMatrix2 = origin.row(2).toFloat4();
+    record.portalOriginMatrix3 = origin.row(3).toFloat4();
+    record.portalDirectionMatrix0 = direction.row(0).toFloat4();
+    record.portalDirectionMatrix1 = direction.row(1).toFloat4();
+    record.portalDirectionMatrix2 = direction.row(2).toFloat4();
   }
 
   std::optional<std::uint32_t> mappingFlagsFor(const TextureMapping2D* mapping,
