@@ -261,12 +261,11 @@ namespace engine::graph {
     }
 
     Vector3d vectorFromJson(const QJsonValue& value, const std::string& path) {
-      const auto array = core::json::requireNumberArray(
-        value, 3, "expected array", "expected 3 numbers", "expected number",
+      return core::json::requireVector3(
+        value, "expected array", "expected 3 numbers", "expected number",
         [&](std::optional<int> index, const char* message) {
           jsonError(index ? path + "[" + std::to_string(*index) + "]" : path, message);
         });
-      return core::json::vector3FromJsonArray(array);
     }
 
     QJsonArray matrixToJson(const Matrix4d& value) {
