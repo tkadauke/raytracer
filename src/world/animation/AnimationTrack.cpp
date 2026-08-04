@@ -145,15 +145,6 @@ namespace {
     return result;
   }
 
-  QJsonArray requireTriple(const world::AnimationTrack& track, const QJsonValue& value,
-                           const QString& typeName) {
-    return core::json::requireNumberArray(
-      value, 3, QString("%1 key values must be arrays").arg(typeName),
-      QString("%1 key values must have exactly three elements").arg(typeName),
-      QString("%1 key values must contain only numbers").arg(typeName),
-      [&](std::optional<int>, const QString& message) { throw evaluationError(track, message); });
-  }
-
   double doubleFromJson(const world::AnimationTrack& track, const QJsonValue& value) {
     if (!value.isDouble())
       throw evaluationError(track, "double key values must be numbers");
@@ -172,13 +163,19 @@ namespace {
   }
 
   Vector3d vectorFromJson(const world::AnimationTrack& track, const QJsonValue& value) {
-    const auto array = requireTriple(track, value, "Vector3d");
-    return core::json::vector3FromJsonArray(array);
+    return core::json::requireVector3(
+      value, QString("Vector3d key values must be arrays"),
+      QString("Vector3d key values must have exactly three elements"),
+      QString("Vector3d key values must contain only numbers"),
+      [&](std::optional<int>, const QString& message) { throw evaluationError(track, message); });
   }
 
   Colord colorFromJson(const world::AnimationTrack& track, const QJsonValue& value) {
-    const auto array = requireTriple(track, value, "Colord");
-    return core::json::colorFromJsonArray(array);
+    return core::json::requireColor(
+      value, QString("Colord key values must be arrays"),
+      QString("Colord key values must have exactly three elements"),
+      QString("Colord key values must contain only numbers"),
+      [&](std::optional<int>, const QString& message) { throw evaluationError(track, message); });
   }
 
   bool boolFromJson(const world::AnimationTrack& track, const QJsonValue& value) {

@@ -80,4 +80,20 @@ namespace core::json {
     return Colord(numberArrayFromJsonArray<3>(array));
   }
 
+  template<class Message, class ErrorHandler>
+  inline Vector3d requireVector3(const QJsonValue& value, Message arrayMessage, Message sizeMessage,
+                                 Message numberMessage, ErrorHandler&& error) {
+    const auto values = requireNumberArray<3>(value, arrayMessage, sizeMessage, numberMessage,
+                                              std::forward<ErrorHandler>(error));
+    return values ? Vector3d(*values) : Vector3d();
+  }
+
+  template<class Message, class ErrorHandler>
+  inline Colord requireColor(const QJsonValue& value, Message arrayMessage, Message sizeMessage,
+                             Message numberMessage, ErrorHandler&& error) {
+    const auto values = requireNumberArray<3>(value, arrayMessage, sizeMessage, numberMessage,
+                                              std::forward<ErrorHandler>(error));
+    return values ? Colord(*values) : Colord();
+  }
+
 }
