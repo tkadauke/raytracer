@@ -1,6 +1,8 @@
 #pragma once
 
+#include <array>
 #include <iostream>
+#include <type_traits>
 
 /**
   * Represents a two-dimensional rectangle with integer coordinates.
@@ -10,6 +12,8 @@
   */
 template<class T>
 class Rect {
+  typedef T ComponentsType[4];
+
 public:
   /**
     * Constructs a null rectangle.
@@ -41,6 +45,40 @@ public:
         m_y(y),
         m_width(width),
         m_height(height) {
+  }
+
+  /**
+    * Constructs a rectangle from an array containing x, y, width, and height.
+    */
+  inline explicit Rect(const ComponentsType& components)
+      : m_x(components[0]),
+        m_y(components[1]),
+        m_width(components[2]),
+        m_height(components[3]) {
+  }
+
+  /**
+    * Constructs a rectangle from the first four values in the given C array.
+    */
+  template<class Source, std::size_t Size,
+           typename = std::enable_if_t<(Size >= 4u) && std::is_convertible_v<Source, T>>>
+  inline explicit Rect(const Source (&components)[Size])
+      : m_x(static_cast<T>(components[0])),
+        m_y(static_cast<T>(components[1])),
+        m_width(static_cast<T>(components[2])),
+        m_height(static_cast<T>(components[3])) {
+  }
+
+  /**
+    * Constructs a rectangle from the first four values in the given array.
+    */
+  template<class Source, std::size_t Size,
+           typename = std::enable_if_t<(Size >= 4u) && std::is_convertible_v<Source, T>>>
+  inline explicit Rect(const std::array<Source, Size>& components)
+      : m_x(static_cast<T>(components[0])),
+        m_y(static_cast<T>(components[1])),
+        m_width(static_cast<T>(components[2])),
+        m_height(static_cast<T>(components[3])) {
   }
 
   /**
@@ -103,8 +141,16 @@ public:
     * Returns the height-to-width aspect ratio. Returns 0 if width is zero.
     */
   inline double aspectRatio() const {
-    if (m_width == T()) return 0.0;
+    if (m_width == T())
+      return 0.0;
     return static_cast<double>(m_height) / m_width;
+  }
+
+  /**
+    * Returns true if the rectangle's width and height are not negative.
+    */
+  inline bool hasNonNegativeSize() const {
+    return m_width >= T() && m_height >= T();
   }
 
 private:

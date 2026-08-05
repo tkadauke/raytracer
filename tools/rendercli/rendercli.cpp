@@ -1292,7 +1292,7 @@ namespace {
       }
     }
 
-    *color = Colord(components[0], components[1], components[2]);
+    *color = Colord(components);
     return true;
   }
 
@@ -1311,11 +1311,12 @@ namespace {
       }
     }
 
-    if (components[2] < 0 || components[3] < 0) {
+    const Recti parsedRect(components);
+    if (!parsedRect.hasNonNegativeSize()) {
       return false;
     }
 
-    *rect = Recti(components[0], components[1], components[2], components[3]);
+    *rect = parsedRect;
     return true;
   }
 
