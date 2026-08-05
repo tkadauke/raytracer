@@ -34,9 +34,10 @@ namespace engine::graph::detail {
         error(path + "." + key + "[" + std::to_string(i) + "]", "expected integer");
       values[i] = static_cast<int>(number);
     }
-    if (values[2] < 0 || values[3] < 0)
+    const Recti rect(values);
+    if (!rect.hasNonNegativeSize())
       error(path + "." + key, "width and height must be non-negative");
-    return Recti(values[0], values[1], values[2], values[3]);
+    return rect;
   }
 
   [[nodiscard]] inline QJsonArray rectToJson(const Recti& rect) {
