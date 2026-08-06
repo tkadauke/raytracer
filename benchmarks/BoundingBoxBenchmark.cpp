@@ -11,6 +11,7 @@
 #include "core/math/RayPacket.h"
 #include "core/math/Vector.h"
 #include "core/simd/Float4.h"
+#include "core/util/Bit.h"
 
 #include <array>
 #include <cstdint>
@@ -44,15 +45,6 @@ namespace {
       packets.emplace_back(std::array<Rayd, 4>{rays[i], rays[i + 1], rays[i + 2], rays[i + 3]});
     }
     return packets;
-  }
-
-  int countBits(std::uint16_t mask) {
-    int count = 0;
-    while (mask != 0) {
-      count += mask & 1u;
-      mask >>= 1u;
-    }
-    return count;
   }
 
   template<typename T>
@@ -98,8 +90,8 @@ namespace {
     for (auto _ : state) {
       int hits = 0;
       for (const auto& packet : packets) {
-        hits +=
-          countBits(static_cast<std::uint16_t>(core::simd::movemask(box.intersects4(packet))));
+        hits += core::countSetBits(
+          static_cast<std::uint16_t>(core::simd::movemask(box.intersects4(packet))));
       }
       benchmark::DoNotOptimize(hits);
       benchmark::ClobberMemory();

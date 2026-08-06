@@ -30,6 +30,7 @@
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
 #include "core/math/RayPacket.h"
+#include "core/util/Bit.h"
 #include "render/State.h"
 #include "render/primitives/BVH.h"
 #include "render/primitives/Triangle.h"
@@ -66,14 +67,6 @@ namespace {
     }
     bvh->setup();
     return bvh;
-  }
-
-  // Count set bits in a 16-bit mask.
-  int countBits(std::uint16_t mask) {
-    int n = 0;
-    for (; mask; mask &= static_cast<std::uint16_t>(mask - 1u))
-      ++n;
-    return n;
   }
 
   // ── Coherent ray generation ─────────────────────────────────────────────
@@ -193,7 +186,7 @@ namespace {
       for (const auto& group : groups) {
         State traceState;
         auto result = bvh->intersectPacket(toRay4(group.rays), traceState);
-        hits += countBits(result.hitMask);
+        hits += core::countSetBits(result.hitMask);
       }
       benchmark::DoNotOptimize(hits);
       benchmark::ClobberMemory();
@@ -231,7 +224,7 @@ namespace {
       for (const auto& group : groups) {
         State traceState;
         auto result = bvh->intersectPacket(toRay4(group.rays), traceState);
-        hits += countBits(result.hitMask);
+        hits += core::countSetBits(result.hitMask);
       }
       benchmark::DoNotOptimize(hits);
       benchmark::ClobberMemory();
@@ -273,7 +266,7 @@ namespace {
       for (const auto& group : groups) {
         State traceState;
         auto result = bvh->intersectPacket(toRay4(group.rays), traceState);
-        hits += countBits(result.hitMask);
+        hits += core::countSetBits(result.hitMask);
       }
       benchmark::DoNotOptimize(hits);
       benchmark::ClobberMemory();
@@ -336,11 +329,11 @@ namespace {
       for (const auto& group : groups) {
         State firstTraceState;
         const auto first = bvh->intersectPacket(toRay4Chunk(group.rays, 0), firstTraceState);
-        hits += countBits(first.hitMask);
+        hits += core::countSetBits(first.hitMask);
 
         State secondTraceState;
         const auto second = bvh->intersectPacket(toRay4Chunk(group.rays, 4), secondTraceState);
-        hits += countBits(second.hitMask);
+        hits += core::countSetBits(second.hitMask);
       }
       benchmark::DoNotOptimize(hits);
       benchmark::ClobberMemory();
@@ -383,7 +376,7 @@ namespace {
       for (const auto& group : groups) {
         State traceState;
         auto result = bvh->intersectPacket(toRay8(group.rays), traceState);
-        hits += countBits(result.hitMask);
+        hits += core::countSetBits(result.hitMask);
       }
       benchmark::DoNotOptimize(hits);
       benchmark::ClobberMemory();

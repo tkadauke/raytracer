@@ -7,6 +7,7 @@
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
 #include "core/math/RayPacket.h"
+#include "core/util/Bit.h"
 #include "render/State.h"
 #include "render/primitives/Sphere.h"
 
@@ -41,20 +42,6 @@ namespace {
     return packets;
   }
 
-  Rayd toRayd(const Rayf& ray) {
-    return Rayd(Vector3d(ray.origin().x(), ray.origin().y(), ray.origin().z()),
-                Vector3d(ray.direction().x(), ray.direction().y(), ray.direction().z()));
-  }
-
-  int countBits(std::uint16_t mask) {
-    int count = 0;
-    while (mask != 0) {
-      count += mask & 1u;
-      mask >>= 1u;
-    }
-    return count;
-  }
-
   void bm_sphere_scalar_four_ray_loop(benchmark::State& state) {
     const Sphere sphere(Vector3d(), 1.0);
     const auto rays = generateRays(4096);
@@ -64,7 +51,7 @@ namespace {
       for (const auto& ray : rays) {
         State traceState;
         HitPointInterval hitPoints;
-        if (sphere.intersect(toRayd(ray), hitPoints, traceState)) {
+        if (sphere.intersect(Rayd(ray), hitPoints, traceState)) {
           ++hits;
         }
       }
@@ -85,7 +72,7 @@ namespace {
       for (const auto& packet : packets) {
         State traceState;
         const auto result = sphere.intersectPacket(packet, traceState);
-        hits += countBits(result.hitMask);
+        hits += core::countSetBits(result.hitMask);
       }
       benchmark::DoNotOptimize(hits);
       benchmark::ClobberMemory();

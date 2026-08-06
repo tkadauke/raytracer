@@ -18,6 +18,15 @@ namespace RayTest {
     ASSERT_EQ(Vector3d(1, 0, 0), ray.direction());
   }
 
+  TEST(RayTest, ShouldConvertBetweenCoordinateTypes) {
+    const Rayf source(Vector3f(1.25f, 2.5f, 3.75f), Vector3f(0.0f, 0.5f, 1.0f));
+
+    const Rayd converted(source);
+
+    ASSERT_EQ(Vector3d(1.25, 2.5, 3.75), converted.origin());
+    ASSERT_EQ(Vector3d(0.0, 0.5, 1.0), converted.direction());
+  }
+
   TYPED_TEST(RayTest, ShouldReturnEpsilonShiftedRay) {
     Ray<TypeParam> ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     Ray<TypeParam> shifted = ray.epsilonShifted();
