@@ -9,6 +9,7 @@
 #include "core/math/Ray.h"
 #include "core/math/RayPacket.h"
 #include "core/simd/Float4.h"
+#include "core/util/Bit.h"
 #include "render/State.h"
 #include "render/primitives/Box.h"
 #include "render/primitives/Plane.h"
@@ -23,11 +24,6 @@
 namespace {
   using namespace render;
 
-  Rayd toRayd(const Rayf& ray) {
-    return Rayd(Vector3d(ray.origin().x(), ray.origin().y(), ray.origin().z()),
-                Vector3d(ray.direction().x(), ray.direction().y(), ray.direction().z()));
-  }
-
   std::vector<Ray4> packetize(const std::vector<Rayf>& rays) {
     std::vector<Ray4> packets;
     packets.reserve(rays.size() / Ray4::lanes);
@@ -35,15 +31,6 @@ namespace {
       packets.emplace_back(std::array<Rayf, 4>{rays[i], rays[i + 1], rays[i + 2], rays[i + 3]});
     }
     return packets;
-  }
-
-  int countBits(std::uint16_t mask) {
-    int count = 0;
-    while (mask != 0) {
-      count += mask & 1u;
-      mask >>= 1u;
-    }
-    return count;
   }
 
   std::vector<Rayf> generateSphereRays(int count) {
@@ -115,7 +102,7 @@ namespace {
       for (const auto& ray : rays) {
         State traceState;
         HitPointInterval hitPoints;
-        if (primitive.intersect(toRayd(ray), hitPoints, traceState)) {
+        if (primitive.intersect(Rayd(ray), hitPoints, traceState)) {
           ++hits;
         }
       }
@@ -135,7 +122,7 @@ namespace {
       for (const auto& packet : packets) {
         State traceState;
         const auto result = primitive.intersectPacket(packet, traceState);
-        hits += countBits(result.hitMask);
+        hits += core::countSetBits(result.hitMask);
       }
       benchmark::DoNotOptimize(hits);
       benchmark::ClobberMemory();
@@ -185,7 +172,7 @@ namespace {
     for (auto _ : state) {
       int hits = 0;
       for (const auto& ray : rays) {
-        if (box.intersects(toRayd(ray))) {
+        if (box.intersects(Rayd(ray))) {
           ++hits;
         }
       }
@@ -202,8 +189,8 @@ namespace {
     for (auto _ : state) {
       int hits = 0;
       for (const auto& packet : packets) {
-        hits +=
-          countBits(static_cast<std::uint16_t>(core::simd::movemask(box.intersects4(packet))));
+        hits += core::countSetBits(
+          static_cast<std::uint16_t>(core::simd::movemask(box.intersects4(packet))));
       }
       benchmark::DoNotOptimize(hits);
       benchmark::ClobberMemory();
