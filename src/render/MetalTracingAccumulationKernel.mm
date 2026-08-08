@@ -2,13 +2,7 @@
 
 #include "render/TracingAccumulationReference.h"
 
-// macOS SDK headers still export a global Rect symbol. This translation unit
-// also needs the project's global Rect<T> template through Buffer, so shield the
-// SDK spelling while importing Objective-C frameworks.
-#define Rect MacOSRect
-#import <Foundation/Foundation.h>
-#import <Metal/Metal.h>
-#undef Rect
+#include "render/MetalComputeHelper.h"
 
 #include <algorithm>
 #include <cstring>
@@ -17,6 +11,10 @@
 #include <vector>
 
 namespace render {
+  using render::detail::sharedMetalDevice;
+  using render::detail::sharedCommandQueue;
+  using render::detail::metalError;
+
   namespace {
     struct MetalFloat4 {
       float x{0.0f};
@@ -28,24 +26,6 @@ namespace render {
     TracingAccumulationLayout validatedLayout(TracingAccumulationLayout layout) {
       layout.validate();
       return layout;
-    }
-
-    id<MTLDevice> sharedMetalDevice() {
-      static id<MTLDevice> device = MTLCreateSystemDefaultDevice();
-      return device;
-    }
-
-    id<MTLCommandQueue> sharedCommandQueue() {
-      static id<MTLCommandQueue> queue = [sharedMetalDevice() newCommandQueue];
-      return queue;
-    }
-
-    std::runtime_error metalError(const std::string& context, NSError* error) {
-      std::string detail;
-      if (error) {
-        detail = [[error localizedDescription] UTF8String];
-      }
-      return std::runtime_error(detail.empty() ? context : context + ": " + detail);
     }
 
     NSString* accumulationKernelSource() {

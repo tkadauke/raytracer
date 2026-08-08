@@ -1,11 +1,7 @@
 #include "render/MetalGpuDiffusePathLoopKernel.h"
 
-// macOS SDK headers still export a global Rect symbol. Shield the SDK spelling
-// while importing Objective-C frameworks so project headers keep their Rect<T>.
-#define Rect MacOSRect
-#import <Foundation/Foundation.h>
-#import <Metal/Metal.h>
-#undef Rect
+#include "render/MetalComputeHelper.h"
+#include "render/TimingHelpers.h"
 
 #include <algorithm>
 #include <chrono>
@@ -19,6 +15,11 @@
 #include <vector>
 
 namespace render {
+  using render::detail::sharedMetalDevice;
+  using render::detail::sharedCommandQueue;
+  using render::detail::metalError;
+  using render::detail::secondsBetween;
+
   namespace {
     static_assert(std::is_standard_layout_v<GpuDiffusePathLoopLaunchParameters>,
                   "Metal diffuse path-loop launch parameters must stay shader ABI friendly");
@@ -43,32 +44,6 @@ namespace render {
 
     constexpr NSUInteger kDispatchThreadgroupsIndirectByteCount =
       3u * static_cast<NSUInteger>(sizeof(std::uint32_t));
-
-    id<MTLDevice> sharedMetalDevice() {
-      static id<MTLDevice> device = MTLCreateSystemDefaultDevice();
-      return device;
-    }
-
-    id<MTLCommandQueue> sharedCommandQueue() {
-      static id<MTLCommandQueue> queue = [] {
-        id<MTLDevice> device = sharedMetalDevice();
-        return device ? [device newCommandQueue] : nil;
-      }();
-      return queue;
-    }
-
-    std::runtime_error metalError(const std::string& context, NSError* error) {
-      std::string detail;
-      if (error) {
-        detail = [[error localizedDescription] UTF8String];
-      }
-      return std::runtime_error(detail.empty() ? context : context + ": " + detail);
-    }
-
-    double elapsedSeconds(std::chrono::steady_clock::time_point start,
-                          std::chrono::steady_clock::time_point end) {
-      return std::chrono::duration<double>(end - start).count();
-    }
 
     NSUInteger threadgroupWidthFor(id<MTLComputePipelineState> pipeline, NSUInteger threadCount) {
       if (threadCount == 0) {
@@ -4230,7 +4205,7 @@ namespace render {
       MetalGpuDiffusePathLoopKernelResult result;
       result.bufferSizes = plan.buffers;
       result.sceneUploadBytesWritten = plan.buffers.sceneUploadBytes;
-      result.uploadWorkerSeconds = elapsedSeconds(uploadStart, std::chrono::steady_clock::now());
+      result.uploadWorkerSeconds = secondsBetween(uploadStart, std::chrono::steady_clock::now());
 
       id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
       id<MTLComputeCommandEncoder> encoder = [commandBuffer computeCommandEncoder];
@@ -4254,7 +4229,7 @@ namespace render {
       const auto kernelStart = std::chrono::steady_clock::now();
       [commandBuffer commit];
       [commandBuffer waitUntilCompleted];
-      result.kernelWorkerSeconds = elapsedSeconds(kernelStart, std::chrono::steady_clock::now());
+      result.kernelWorkerSeconds = secondsBetween(kernelStart, std::chrono::steady_clock::now());
       if (commandBuffer.status == MTLCommandBufferStatusError) {
         throw metalError("Metal diffuse path-loop launch probe dispatch failed",
                          commandBuffer.error);
@@ -4280,7 +4255,7 @@ namespace render {
         retainedPathIndicesFromBuffer(retainedIndexBuffer, initialPathStates.size());
       result.retainedPathCount = static_cast<std::uint32_t>(result.retainedPathIndices.size());
       result.readbackWorkerSeconds =
-        elapsedSeconds(readbackStart, std::chrono::steady_clock::now());
+        secondsBetween(readbackStart, std::chrono::steady_clock::now());
       return result;
     }
   }
@@ -4371,7 +4346,7 @@ namespace render {
       result.executionPath = "metal_diffuse_path_loop_all_miss_probe";
       result.bufferSizes = plan.buffers;
       result.sceneUploadBytesWritten = plan.buffers.sceneUploadBytes;
-      result.uploadWorkerSeconds = elapsedSeconds(uploadStart, std::chrono::steady_clock::now());
+      result.uploadWorkerSeconds = secondsBetween(uploadStart, std::chrono::steady_clock::now());
 
       id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
       id<MTLComputeCommandEncoder> encoder = [commandBuffer computeCommandEncoder];
@@ -4401,7 +4376,7 @@ namespace render {
       const auto kernelStart = std::chrono::steady_clock::now();
       [commandBuffer commit];
       [commandBuffer waitUntilCompleted];
-      result.kernelWorkerSeconds = elapsedSeconds(kernelStart, std::chrono::steady_clock::now());
+      result.kernelWorkerSeconds = secondsBetween(kernelStart, std::chrono::steady_clock::now());
       if (commandBuffer.status == MTLCommandBufferStatusError) {
         throw metalError("Metal diffuse path-loop all-miss probe dispatch failed",
                          commandBuffer.error);
@@ -4441,7 +4416,7 @@ namespace render {
                     result.accumulationSampleCounts.size() * sizeof(std::uint32_t));
       }
       result.readbackWorkerSeconds =
-        elapsedSeconds(readbackStart, std::chrono::steady_clock::now());
+        secondsBetween(readbackStart, std::chrono::steady_clock::now());
       return result;
     }
   }
@@ -4530,7 +4505,7 @@ namespace render {
       result.executionPath = "metal_diffuse_path_loop_closest_hit_probe";
       result.bufferSizes = plan.buffers;
       result.sceneUploadBytesWritten = plan.buffers.sceneUploadBytes;
-      result.uploadWorkerSeconds = elapsedSeconds(uploadStart, std::chrono::steady_clock::now());
+      result.uploadWorkerSeconds = secondsBetween(uploadStart, std::chrono::steady_clock::now());
 
       id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
       id<MTLComputeCommandEncoder> encoder = [commandBuffer computeCommandEncoder];
@@ -4555,7 +4530,7 @@ namespace render {
       const auto kernelStart = std::chrono::steady_clock::now();
       [commandBuffer commit];
       [commandBuffer waitUntilCompleted];
-      result.kernelWorkerSeconds = elapsedSeconds(kernelStart, std::chrono::steady_clock::now());
+      result.kernelWorkerSeconds = secondsBetween(kernelStart, std::chrono::steady_clock::now());
       if (commandBuffer.status == MTLCommandBufferStatusError) {
         throw metalError("Metal diffuse path-loop closest-hit probe dispatch failed",
                          commandBuffer.error);
@@ -4583,7 +4558,7 @@ namespace render {
         retainedPathIndicesFromBuffer(retainedIndexBuffer, initialPathStates.size());
       result.retainedPathCount = static_cast<std::uint32_t>(result.retainedPathIndices.size());
       result.readbackWorkerSeconds =
-        elapsedSeconds(readbackStart, std::chrono::steady_clock::now());
+        secondsBetween(readbackStart, std::chrono::steady_clock::now());
       return result;
     }
   }
@@ -4672,7 +4647,7 @@ namespace render {
       result.executionPath = "metal_diffuse_path_loop_matte_hit_shading_probe";
       result.bufferSizes = plan.buffers;
       result.sceneUploadBytesWritten = plan.buffers.sceneUploadBytes;
-      result.uploadWorkerSeconds = elapsedSeconds(uploadStart, std::chrono::steady_clock::now());
+      result.uploadWorkerSeconds = secondsBetween(uploadStart, std::chrono::steady_clock::now());
 
       id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
       id<MTLComputeCommandEncoder> encoder = [commandBuffer computeCommandEncoder];
@@ -4698,7 +4673,7 @@ namespace render {
       const auto kernelStart = std::chrono::steady_clock::now();
       [commandBuffer commit];
       [commandBuffer waitUntilCompleted];
-      result.kernelWorkerSeconds = elapsedSeconds(kernelStart, std::chrono::steady_clock::now());
+      result.kernelWorkerSeconds = secondsBetween(kernelStart, std::chrono::steady_clock::now());
       if (commandBuffer.status == MTLCommandBufferStatusError) {
         throw metalError("Metal diffuse path-loop matte shading probe dispatch failed",
                          commandBuffer.error);
@@ -4726,7 +4701,7 @@ namespace render {
         retainedPathIndicesFromBuffer(retainedIndexBuffer, initialPathStates.size());
       result.retainedPathCount = static_cast<std::uint32_t>(result.retainedPathIndices.size());
       result.readbackWorkerSeconds =
-        elapsedSeconds(readbackStart, std::chrono::steady_clock::now());
+        secondsBetween(readbackStart, std::chrono::steady_clock::now());
       return result;
     }
   }
@@ -4821,7 +4796,7 @@ namespace render {
       result.executionPath = "metal_diffuse_path_loop_matte_continuation_probe";
       result.bufferSizes = plan.buffers;
       result.sceneUploadBytesWritten = plan.buffers.sceneUploadBytes;
-      result.uploadWorkerSeconds = elapsedSeconds(uploadStart, std::chrono::steady_clock::now());
+      result.uploadWorkerSeconds = secondsBetween(uploadStart, std::chrono::steady_clock::now());
 
       id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
       id<MTLComputeCommandEncoder> encoder = [commandBuffer computeCommandEncoder];
@@ -4853,7 +4828,7 @@ namespace render {
       const auto kernelStart = std::chrono::steady_clock::now();
       [commandBuffer commit];
       [commandBuffer waitUntilCompleted];
-      result.kernelWorkerSeconds = elapsedSeconds(kernelStart, std::chrono::steady_clock::now());
+      result.kernelWorkerSeconds = secondsBetween(kernelStart, std::chrono::steady_clock::now());
       if (commandBuffer.status == MTLCommandBufferStatusError) {
         throw metalError("Metal diffuse path-loop matte continuation probe dispatch failed",
                          commandBuffer.error);
@@ -4900,7 +4875,7 @@ namespace render {
                     result.accumulationSampleCounts.size() * sizeof(std::uint32_t));
       }
       result.readbackWorkerSeconds =
-        elapsedSeconds(readbackStart, std::chrono::steady_clock::now());
+        secondsBetween(readbackStart, std::chrono::steady_clock::now());
       return result;
     }
   }
@@ -5035,7 +5010,7 @@ namespace render {
       result.executionPath = "metal_diffuse_path_loop";
       result.bufferSizes = plan.buffers;
       result.sceneUploadBytesWritten = plan.buffers.sceneUploadBytes;
-      result.uploadWorkerSeconds = elapsedSeconds(uploadStart, std::chrono::steady_clock::now());
+      result.uploadWorkerSeconds = secondsBetween(uploadStart, std::chrono::steady_clock::now());
 
       id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
       id<MTLComputeCommandEncoder> encoder = [commandBuffer computeCommandEncoder];
@@ -5075,7 +5050,7 @@ namespace render {
       const auto kernelStart = std::chrono::steady_clock::now();
       [commandBuffer commit];
       [commandBuffer waitUntilCompleted];
-      result.kernelWorkerSeconds = elapsedSeconds(kernelStart, std::chrono::steady_clock::now());
+      result.kernelWorkerSeconds = secondsBetween(kernelStart, std::chrono::steady_clock::now());
       if (commandBuffer.status == MTLCommandBufferStatusError) {
         throw metalError("Metal diffuse path-loop dispatch failed", commandBuffer.error);
       }
@@ -5165,7 +5140,7 @@ namespace render {
         }
       }
       result.readbackWorkerSeconds =
-        elapsedSeconds(readbackStart, std::chrono::steady_clock::now());
+        secondsBetween(readbackStart, std::chrono::steady_clock::now());
       return result;
     }
   }
@@ -5318,7 +5293,7 @@ namespace render {
       result.bufferSizes.nextPathStateBytes = 0u;
       result.bufferSizes.totalResidentBytes += pathStateStorageBytes;
       result.bufferSizes.totalResidentBytes += plan.buffers.retainedIndexBytes;
-      result.uploadWorkerSeconds = elapsedSeconds(uploadStart, std::chrono::steady_clock::now());
+      result.uploadWorkerSeconds = secondsBetween(uploadStart, std::chrono::steady_clock::now());
 
       id<MTLCommandBuffer> commandBuffer = [queue commandBuffer];
       id<MTLComputeCommandEncoder> encoder = [commandBuffer computeCommandEncoder];
@@ -5396,7 +5371,7 @@ namespace render {
       const auto kernelStart = std::chrono::steady_clock::now();
       [commandBuffer commit];
       [commandBuffer waitUntilCompleted];
-      result.kernelWorkerSeconds = elapsedSeconds(kernelStart, std::chrono::steady_clock::now());
+      result.kernelWorkerSeconds = secondsBetween(kernelStart, std::chrono::steady_clock::now());
       if (commandBuffer.status == MTLCommandBufferStatusError) {
         throw metalError("Metal diffuse wavefront path-loop dispatch failed", commandBuffer.error);
       }
@@ -5482,7 +5457,7 @@ namespace render {
         }
       }
       result.readbackWorkerSeconds =
-        elapsedSeconds(readbackStart, std::chrono::steady_clock::now());
+        secondsBetween(readbackStart, std::chrono::steady_clock::now());
       return result;
     }
   }
