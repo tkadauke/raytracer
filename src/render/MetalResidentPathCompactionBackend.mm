@@ -1,11 +1,6 @@
 #include "render/MetalResidentPathCompactionBackend.h"
 
-// macOS SDK headers still export a global Rect symbol. Shield the SDK spelling
-// while importing Objective-C frameworks so project headers keep their Rect<T>.
-#define Rect MacOSRect
-#import <Foundation/Foundation.h>
-#import <Metal/Metal.h>
-#undef Rect
+#include "render/MetalComputeHelper.h"
 
 #include <algorithm>
 #include <cstring>
@@ -15,30 +10,13 @@
 #include <vector>
 
 namespace render {
+  using render::detail::sharedMetalDevice;
+  using render::detail::sharedCommandQueue;
+  using render::detail::metalError;
+
   namespace {
     static_assert(sizeof(GpuPathStateRecord) == 112);
     static_assert(alignof(GpuPathStateRecord) == 16);
-
-    id<MTLDevice> sharedMetalDevice() {
-      static id<MTLDevice> device = MTLCreateSystemDefaultDevice();
-      return device;
-    }
-
-    id<MTLCommandQueue> sharedCommandQueue() {
-      static id<MTLCommandQueue> queue = [] {
-        id<MTLDevice> device = sharedMetalDevice();
-        return device ? [device newCommandQueue] : nil;
-      }();
-      return queue;
-    }
-
-    std::runtime_error metalError(const std::string& context, NSError* error) {
-      std::string detail;
-      if (error) {
-        detail = [[error localizedDescription] UTF8String];
-      }
-      return std::runtime_error(detail.empty() ? context : context + ": " + detail);
-    }
 
     NSString* pathCompactionKernelSource() {
       return @"#include <metal_stdlib>\n"

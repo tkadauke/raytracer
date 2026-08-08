@@ -11,6 +11,13 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Extract `sharedMetalDevice`, `sharedCommandQueue`, and `metalError` into
+  `src/render/MetalComputeHelper.h`, eliminating identical definitions that were
+  duplicated across `MetalTracingAccumulationKernel.mm`,
+  `MetalGpuDiffusePathLoopKernel.mm`, `MetalGpuDiffusePathFrontierCompactionBackend.mm`,
+  `MetalResidentPathCompactionBackend.mm`, and `MetalWavefrontSmokeKernel.mm`;
+  also unify `elapsedSeconds`/`secondsBetween` timing helpers onto the shared
+  `render::detail::secondsBetween` from `TimingHelpers.h`. — Claude Sonnet 4.6
 - Add `Color::toArray()` and use it for JSON color serialization, replacing
   hand-built RGB component arrays with the same component-export pattern used
   by vectors. — GPT-5 Codex

@@ -2,8 +2,8 @@
 
 #include "render/GpuIntersectionScene.h"
 
-#import <Foundation/Foundation.h>
-#import <Metal/Metal.h>
+#include "render/MetalComputeHelper.h"
+#include "render/TimingHelpers.h"
 
 #include <algorithm>
 #include <array>
@@ -17,12 +17,12 @@
 #include <vector>
 
 namespace render {
-  namespace {
-    double secondsBetween(std::chrono::steady_clock::time_point start,
-                          std::chrono::steady_clock::time_point end) {
-      return std::chrono::duration<double>(end - start).count();
-    }
+  using render::detail::sharedMetalDevice;
+  using render::detail::sharedCommandQueue;
+  using render::detail::metalError;
+  using render::detail::secondsBetween;
 
+  namespace {
     NSString* smokeKernelSource() {
       return @"#include <metal_stdlib>\n"
               "using namespace metal;\n"
@@ -955,15 +955,6 @@ namespace render {
               "}\n";
     }
 
-    std::runtime_error metalError(const char* context, NSError* error) {
-      std::string message = context;
-      if (error && error.localizedDescription) {
-        message += ": ";
-        message += error.localizedDescription.UTF8String;
-      }
-      return std::runtime_error(message);
-    }
-
     id<MTLComputePipelineState> newPipeline(id<MTLDevice> device, NSString* source,
                                             NSString* functionName) {
       NSError* error = nil;
@@ -985,21 +976,6 @@ namespace render {
         throw metalError("Metal wavefront kernel pipeline creation failed", error);
       }
       return pipeline;
-    }
-
-    id<MTLDevice> sharedMetalDevice() {
-      static id<MTLDevice> device = MTLCreateSystemDefaultDevice();
-      return device;
-    }
-
-    id<MTLCommandQueue> sharedCommandQueue() {
-      id<MTLDevice> device = sharedMetalDevice();
-      if (!device) {
-        return nil;
-      }
-
-      static id<MTLCommandQueue> queue = [device newCommandQueue];
-      return queue;
     }
 
     id<MTLComputePipelineState> sharedSmokePipeline() {
