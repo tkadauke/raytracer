@@ -13,7 +13,7 @@
 #include "core/simd/Float4.h"
 #include "core/util/Bit.h"
 
-#include "benchmarks/BenchmarkHelpers.h"
+#include "BenchmarkHelpers.h"
 
 #include <array>
 #include <cstdint>

@@ -11,7 +11,7 @@
 #include "render/State.h"
 #include "render/primitives/Sphere.h"
 
-#include "benchmarks/BenchmarkHelpers.h"
+#include "BenchmarkHelpers.h"
 
 #include <array>
 #include <cstdint>
