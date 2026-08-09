@@ -11,6 +11,12 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Add `LDrawSubfileReference::toMatrix()` to `include/core/formats/ldraw/LDrawCommand.h`,
+  eliminating the identical `transformForSubfileReference` free function duplicated in
+  `LDrawSceneImporter.cpp` and `LDrawGeometryCompiler.cpp`. — Claude Sonnet 4.6
+- Add `benchmarks/BenchmarkHelpers.h` with a template `packetize()` helper, removing the
+  duplicate local definitions from `BatchedRayBenchmark.cpp`, `RayPacketBenchmark.cpp`,
+  and `BoundingBoxBenchmark.cpp`. — Claude Sonnet 4.6
 - Extract `sharedMetalDevice`, `sharedCommandQueue`, and `metalError` into
   `src/render/MetalComputeHelper.h`, eliminating identical definitions that were
   duplicated across `MetalTracingAccumulationKernel.mm`,

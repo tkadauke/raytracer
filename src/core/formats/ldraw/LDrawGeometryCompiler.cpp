@@ -280,13 +280,6 @@ namespace {
     return curve;
   }
 
-  Matrix4d transformForSubfileReference(const LDrawSubfileReference& reference) {
-    const auto& m = reference.matrix;
-    return Matrix4d(m[0], m[1], m[2], reference.translation.x(), m[3], m[4], m[5],
-                    reference.translation.y(), m[6], m[7], m[8], reference.translation.z(), 0.0,
-                    0.0, 0.0, 1.0);
-  }
-
   double determinantForSubfileReference(const LDrawSubfileReference& reference) {
     const auto& m = reference.matrix;
     return m[0] * (m[4] * m[8] - m[5] * m[7]) - m[1] * (m[3] * m[8] - m[5] * m[6]) +
@@ -433,7 +426,7 @@ shared_ptr<render::Composite> LDrawGeometryCompiler::compileCommands(
         texmap.next.reset();
         continue;
       }
-      const Matrix4d transform = transformForSubfileReference(reference);
+      const Matrix4d transform = reference.toMatrix();
       if (!m_options.preserveHierarchy && transform == Matrix4d()) {
         for (const auto& primitive : subfile->primitives()) {
           result->add(primitive);

@@ -16,6 +16,8 @@
 #include "render/primitives/Sphere.h"
 #include "render/primitives/Triangle.h"
 
+#include "benchmarks/BenchmarkHelpers.h"
+
 #include <array>
 #include <cstdint>
 #include <random>
@@ -23,15 +25,6 @@
 
 namespace {
   using namespace render;
-
-  std::vector<Ray4> packetize(const std::vector<Rayf>& rays) {
-    std::vector<Ray4> packets;
-    packets.reserve(rays.size() / Ray4::lanes);
-    for (std::size_t i = 0; i < rays.size(); i += Ray4::lanes) {
-      packets.emplace_back(std::array<Rayf, 4>{rays[i], rays[i + 1], rays[i + 2], rays[i + 3]});
-    }
-    return packets;
-  }
 
   std::vector<Rayf> generateSphereRays(int count) {
     std::mt19937 rng(42);

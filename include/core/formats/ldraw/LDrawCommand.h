@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/math/Matrix.h"
 #include "core/math/Vector.h"
 
 #include <array>
@@ -41,6 +42,8 @@ struct LDrawSubfileReference {
   Vector3d translation;
   std::array<double, 9> matrix{};
   std::string filename;
+
+  [[nodiscard]] Matrix4d toMatrix() const;
 };
 
 struct LDrawEdgeLine {
