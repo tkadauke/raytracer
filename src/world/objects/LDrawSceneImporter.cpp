@@ -63,13 +63,6 @@ namespace {
     return directories;
   }
 
-  Matrix4d transformForSubfileReference(const LDrawSubfileReference& reference) {
-    const auto& m = reference.matrix;
-    return Matrix4d(m[0], m[1], m[2], reference.translation.x(), m[3], m[4], m[5],
-                    reference.translation.y(), m[6], m[7], m[8], reference.translation.z(), 0.0,
-                    0.0, 0.0, 1.0);
-  }
-
   bool isStepMeta(const LDrawCommand& command) {
     if (!std::holds_alternative<LDrawMetaCommand>(command))
       return false;
@@ -196,7 +189,7 @@ namespace {
       const auto commands = LDrawParser().parse(*input);
       auto group = std::make_unique<Group>();
       group->setName(QString::fromStdString(reference.filename));
-      group->setMatrix(transformForSubfileReference(reference));
+      group->setMatrix(reference.toMatrix());
       group->setMetadata(QJsonObject{
         {"sourceFormat", "ldraw"},
         {"sourceFile", QString::fromStdString(sourceFile)},

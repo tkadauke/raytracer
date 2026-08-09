@@ -11,6 +11,8 @@
 #include "render/State.h"
 #include "render/primitives/Sphere.h"
 
+#include "benchmarks/BenchmarkHelpers.h"
+
 #include <array>
 #include <cstdint>
 #include <random>
@@ -31,15 +33,6 @@ namespace {
       rays.emplace_back(origin, Vector3f(0, 0, 1));
     }
     return rays;
-  }
-
-  std::vector<Ray4> packetize(const std::vector<Rayf>& rays) {
-    std::vector<Ray4> packets;
-    packets.reserve(rays.size() / Ray4::lanes);
-    for (std::size_t i = 0; i < rays.size(); i += Ray4::lanes) {
-      packets.emplace_back(std::array<Rayf, 4>{rays[i], rays[i + 1], rays[i + 2], rays[i + 3]});
-    }
-    return packets;
   }
 
   void bm_sphere_scalar_four_ray_loop(benchmark::State& state) {

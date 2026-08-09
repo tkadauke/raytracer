@@ -13,6 +13,8 @@
 #include "core/simd/Float4.h"
 #include "core/util/Bit.h"
 
+#include "benchmarks/BenchmarkHelpers.h"
+
 #include <array>
 #include <cstdint>
 #include <random>
@@ -36,15 +38,6 @@ namespace {
       rays.emplace_back(o, d.normalized());
     }
     return rays;
-  }
-
-  std::vector<Ray4> packetize(const std::vector<Rayd>& rays) {
-    std::vector<Ray4> packets;
-    packets.reserve(rays.size() / Ray4::lanes);
-    for (std::size_t i = 0; i < rays.size(); i += Ray4::lanes) {
-      packets.emplace_back(std::array<Rayd, 4>{rays[i], rays[i + 1], rays[i + 2], rays[i + 3]});
-    }
-    return packets;
   }
 
   template<typename T>
