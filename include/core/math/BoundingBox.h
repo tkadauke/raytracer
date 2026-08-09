@@ -166,6 +166,18 @@ public:
   }
 
   /**
+    * @returns the surface area of the bounding box, which is 2 * (xy + yz + zx).
+    *   Returns 0 for an invalid bounding box. This is used as the cost estimate
+    *   in the Surface Area Heuristic for BVH construction.
+    */
+  [[nodiscard]] inline T surfaceArea() const noexcept {
+    if (!isValid())
+      return T(0);
+    const auto s = size();
+    return T(2) * (s.x() * s.y() + s.y() * s.z() + s.z() * s.x());
+  }
+
+  /**
     * @returns true if the volume of the bounding box is 0, false otherwise.
     */
   [[nodiscard]] inline bool isEmpty() const noexcept {

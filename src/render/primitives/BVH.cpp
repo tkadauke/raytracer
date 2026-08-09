@@ -11,18 +11,6 @@
 using namespace render;
 
 namespace {
-  // Surface area of an axis-aligned bounding box: 2 · (xy + yz + zx).
-  // The Surface Area Heuristic estimates the expected ray-traversal
-  // cost of a candidate split as proportional to the surface area of
-  // each child's AABB times the number of primitives in it; the best
-  // split minimises that sum.
-  double surfaceArea(const BoundingBoxd& b) {
-    if (!b.isValid())
-      return 0.0;
-    const auto d = b.max() - b.min();
-    return 2.0 * (d.x() * d.y() + d.y() * d.z() + d.z() * d.x());
-  }
-
   // Centroid of a primitive's AABB. Used to sort primitives along the
   // split axis — sorting by centroid (not by AABB extent) keeps
   // straddling primitives from biasing the partition toward one side.
@@ -114,7 +102,7 @@ std::unique_ptr<BVH::Node> BVH::build(std::vector<std::shared_ptr<Primitive>> pr
   for (int i = 0; i < n - 1; ++i) {
     leftAccum.include(prims[i]->boundingBox());
     const double cost =
-      surfaceArea(leftAccum) * (i + 1) + surfaceArea(rightAccum[i + 1]) * (n - i - 1);
+      leftAccum.surfaceArea() * (i + 1) + rightAccum[i + 1].surfaceArea() * (n - i - 1);
     if (cost < bestCost) {
       bestCost = cost;
       bestSplit = i;
@@ -124,7 +112,7 @@ std::unique_ptr<BVH::Node> BVH::build(std::vector<std::shared_ptr<Primitive>> pr
   // If the best split's expected cost is worse than just keeping
   // everything as a leaf, don't split. Leaf cost is approximated as
   // SA(parent)·N (every ray that hits the parent tests every prim).
-  const double leafCost = surfaceArea(node->bbox) * n;
+  const double leafCost = node->bbox.surfaceArea() * n;
   if (bestSplit < 0 || bestCost >= leafCost) {
     node->primitives = std::move(prims);
     return node;
