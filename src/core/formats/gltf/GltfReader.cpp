@@ -1,4 +1,5 @@
 #include "core/formats/gltf/GltfReader.h"
+#include "core/formats/BinaryRead.h"
 #include "core/json/JsonValue.h"
 #include "core/util/StringUtil.h"
 
@@ -63,13 +64,6 @@ namespace core::gltf {
 
     std::string bytesToString(const std::vector<std::uint8_t>& bytes) {
       return std::string(reinterpret_cast<const char*>(bytes.data()), bytes.size());
-    }
-
-    std::uint32_t readUint32Le(const std::vector<std::uint8_t>& bytes, std::size_t offset) {
-      return static_cast<std::uint32_t>(bytes[offset]) |
-             (static_cast<std::uint32_t>(bytes[offset + 1]) << 8u) |
-             (static_cast<std::uint32_t>(bytes[offset + 2]) << 16u) |
-             (static_cast<std::uint32_t>(bytes[offset + 3]) << 24u);
     }
 
     std::optional<std::size_t> unsignedInteger(const QJsonObject& object, const char* name,
@@ -1352,9 +1346,9 @@ namespace core::gltf {
       return result;
     }
 
-    const std::uint32_t magic = readUint32Le(bytes, 0);
-    const std::uint32_t version = readUint32Le(bytes, 4);
-    const std::uint32_t length = readUint32Le(bytes, 8);
+    const std::uint32_t magic = core::formats::readUint32Le(bytes.data());
+    const std::uint32_t version = core::formats::readUint32Le(bytes.data() + 4);
+    const std::uint32_t length = core::formats::readUint32Le(bytes.data() + 8);
     if (magic != glbMagic) {
       result.diagnostics.error(DiagnosticCode::InvalidGlb, "glb.magic", "Invalid GLB magic");
       return result;
@@ -1379,8 +1373,8 @@ namespace core::gltf {
                                  "Chunk header is truncated");
         return result;
       }
-      const std::uint32_t chunkLength = readUint32Le(bytes, offset);
-      const std::uint32_t chunkType = readUint32Le(bytes, offset + 4);
+      const std::uint32_t chunkLength = core::formats::readUint32Le(bytes.data() + offset);
+      const std::uint32_t chunkType = core::formats::readUint32Le(bytes.data() + offset + 4);
       offset += 8;
       if (chunkLength > bytes.size() - offset) {
         result.diagnostics.error(DiagnosticCode::InvalidGlb, "glb.chunks",

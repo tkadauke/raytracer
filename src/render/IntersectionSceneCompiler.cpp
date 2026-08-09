@@ -83,7 +83,7 @@ namespace {
         rightBounds[offset].include(primitives[first + offset].bounds);
       }
 
-      const double leafCost = surfaceArea(bounds) * count;
+      const double leafCost = bounds.surfaceArea() * count;
       double bestCost = std::numeric_limits<double>::infinity();
       std::uint32_t bestSplit = 0;
       BoundingBoxd leftBounds;
@@ -92,7 +92,7 @@ namespace {
         const std::uint32_t leftCount = offset + 1;
         const std::uint32_t rightCount = count - leftCount;
         const double cost =
-          surfaceArea(leftBounds) * leftCount + surfaceArea(rightBounds[offset + 1]) * rightCount;
+          leftBounds.surfaceArea() * leftCount + rightBounds[offset + 1].surfaceArea() * rightCount;
         if (cost < bestCost) {
           bestCost = cost;
           bestSplit = leftCount;
@@ -144,12 +144,6 @@ namespace {
       return std::isfinite(value) ? value : 0.0;
     }
 
-    double surfaceArea(const BoundingBoxd& bounds) const {
-      if (!bounds.isValid())
-        return 0.0;
-      const Vector3d size = bounds.size();
-      return 2.0 * (size.x() * size.y() + size.y() * size.z() + size.z() * size.x());
-    }
   };
 }
 

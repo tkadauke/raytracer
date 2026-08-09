@@ -17,6 +17,12 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Add `benchmarks/BenchmarkHelpers.h` with a template `packetize()` helper, removing the
   duplicate local definitions from `BatchedRayBenchmark.cpp`, `RayPacketBenchmark.cpp`,
   and `BoundingBoxBenchmark.cpp`. — Claude Sonnet 4.6
+- Add `BoundingBox<T>::surfaceArea()` to `include/core/math/BoundingBox.h`, eliminating
+  the identical local `surfaceArea()` helper functions in `BVH.cpp` and
+  `IntersectionSceneCompiler.cpp`. — Claude Sonnet 4.6
+- Replace the local `readUint32Le(vector, offset)` helper in `GltfReader.cpp` with
+  `core::formats::readUint32Le` from `include/core/formats/BinaryRead.h`, which was
+  already providing the same operation via pointer arithmetic. — Claude Sonnet 4.6
 - Extract `sharedMetalDevice`, `sharedCommandQueue`, and `metalError` into
   `src/render/MetalComputeHelper.h`, eliminating identical definitions that were
   duplicated across `MetalTracingAccumulationKernel.mm`,
