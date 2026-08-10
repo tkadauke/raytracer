@@ -26,6 +26,18 @@ namespace core::util {
     return value;
   }
 
+  inline std::string uppercase(std::string value) {
+    std::transform(value.begin(), value.end(), value.begin(),
+                   [](unsigned char ch) { return static_cast<char>(std::toupper(ch)); });
+    return value;
+  }
+
+  inline std::string trimRight(std::string value) {
+    const auto last = std::find_if_not(value.rbegin(), value.rend(),
+                                       [](unsigned char ch) { return std::isspace(ch); }).base();
+    return std::string(value.begin(), last);
+  }
+
   inline void mergeLabel(std::string& target, const std::string& source) {
     if (source.empty()) {
       return;
