@@ -1,6 +1,7 @@
 #include "render/postprocess/Smaa.h"
 
 #include "core/Buffer.h"
+#include "core/util/BufferUtils.h"
 
 #include <algorithm>
 #include <cmath>
@@ -79,11 +80,7 @@ void render::postprocess::applySmaa(Buffer<Colord>& buffer) {
     return;
 
   Buffer<Colord> source(width, height);
-  for (int y = 0; y < height; ++y) {
-    for (int x = 0; x < width; ++x) {
-      source[y][x] = buffer[y][x];
-    }
-  }
+  core::util::copyBuffer(source, buffer);
 
   constexpr double edgeThreshold = 0.08;
   constexpr double maxBlend = 0.65;

@@ -7,6 +7,8 @@
 #include "render/State.h"
 
 #include "core/util/ScopedTimer.h"
+#include "core/util/StringUtil.h"
+#include "core/util/VectorUtil.h"
 
 #include <algorithm>
 #include <cmath>
@@ -14,24 +16,14 @@
 
 namespace render {
   namespace {
+    using core::util::mergeLabel;
+    using core::util::valueAt;
+
     std::string nonEmptyLabel(const char* label, const std::string& fallback) {
       if (label && *label) {
         return label;
       }
       return fallback;
-    }
-
-    void mergeLabel(std::string& target, const std::string& source) {
-      if (source.empty()) {
-        return;
-      }
-      if (target.empty()) {
-        target = source;
-        return;
-      }
-      if (target != source) {
-        target = "mixed";
-      }
     }
 
     void mergeMapMaximums(std::map<std::string, std::uint64_t>& target,
@@ -57,10 +49,6 @@ namespace render {
       for (const auto& [key, value] : source) {
         target[key] += value;
       }
-    }
-
-    std::uint64_t valueAt(const std::vector<std::uint64_t>& values, std::size_t index) {
-      return index < values.size() ? values[index] : 0;
     }
   }
 

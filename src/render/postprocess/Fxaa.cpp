@@ -1,6 +1,7 @@
 #include "render/postprocess/Fxaa.h"
 
 #include "core/Buffer.h"
+#include "core/util/BufferUtils.h"
 
 #include <algorithm>
 #include <cmath>
@@ -30,11 +31,7 @@ void render::postprocess::applyFxaa(Buffer<Colord>& buffer) {
     return;
 
   Buffer<Colord> source(width, height);
-  for (int y = 0; y < height; ++y) {
-    for (int x = 0; x < width; ++x) {
-      source[y][x] = buffer[y][x];
-    }
-  }
+  core::util::copyBuffer(source, buffer);
 
   constexpr double edgeThresholdMin = 1.0 / 32.0;
   constexpr double edgeThreshold = 1.0 / 8.0;

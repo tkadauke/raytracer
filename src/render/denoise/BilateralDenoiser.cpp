@@ -1,6 +1,7 @@
 #include "render/denoise/BilateralDenoiser.h"
 
 #include "core/Buffer.h"
+#include "core/util/BufferUtils.h"
 
 #include <algorithm>
 #include <cmath>
@@ -46,11 +47,7 @@ namespace render {
     }
 
     Buffer<Colord> source(buffer.width(), buffer.height());
-    for (int y = 0; y != buffer.height(); ++y) {
-      for (int x = 0; x != buffer.width(); ++x) {
-        source[y][x] = buffer[y][x];
-      }
-    }
+    core::util::copyBuffer(source, buffer);
 
     const double spatialSigma = std::max(0.5, static_cast<double>(m_radius) * 0.5);
     for (int y = 0; y != buffer.height(); ++y) {
