@@ -26,4 +26,17 @@ namespace core::util {
     return value;
   }
 
+  inline void mergeLabel(std::string& target, const std::string& source) {
+    if (source.empty()) {
+      return;
+    }
+    if (target.empty()) {
+      target = source;
+      return;
+    }
+    if (target != source) {
+      target = "mixed";
+    }
+  }
+
 }

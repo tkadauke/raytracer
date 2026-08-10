@@ -3,6 +3,8 @@
 #include "core/Buffer.h"
 #include "core/math/Constants.h"
 #include "core/util/BufferUtils.h"
+#include "core/util/StringUtil.h"
+#include "core/util/VectorUtil.h"
 #include "engine/TileRenderTask.h"
 #include "engine/TracingExecutionCapabilityJson.h"
 #include "engine/wavefront/detail/WavefrontMetricsRecorder.h"
@@ -35,21 +37,15 @@
 
 namespace engine::wavefront {
   namespace {
-    void mergeLabel(std::string& target, const std::string& source) {
-      if (source.empty()) {
-        return;
-      }
-      if (target.empty()) {
-        target = source;
-        return;
-      }
-      if (target != source) {
-        target = "mixed";
-      }
-    }
+    using core::util::mergeLabel;
+    using core::util::valueAt;
 
-    std::uint64_t valueAt(const std::vector<std::uint64_t>& values, std::size_t index) {
-      return index < values.size() ? values[index] : 0;
+    void mergeMapMaximums(std::map<std::string, std::uint64_t>& target,
+                          const std::map<std::string, std::uint64_t>& source) {
+      for (const auto& [key, count] : source) {
+        const std::string label = key.empty() ? "unknown" : key;
+        target[label] = std::max(target[label], count);
+      }
     }
 
     void mergeAccumulationDiagnostics(render::TracingAccumulationDiagnostics& target,
@@ -182,13 +178,6 @@ namespace engine::wavefront {
 
   void WavefrontRenderMetrics::BatchSummary::addIntersectionBackendMetrics(
     const render::IntegratorBatchMetrics& metrics) {
-    const auto mergeMapMaximums = [](std::map<std::string, std::uint64_t>& target,
-                                     const std::map<std::string, std::uint64_t>& source) {
-      for (const auto& [key, count] : source) {
-        const std::string label = key.empty() ? "unknown" : key;
-        target[label] = std::max(target[label], count);
-      }
-    };
     mergeLabel(intersectionBackendRequest, metrics.intersectionBackendRequest);
     mergeLabel(intersectionBackend, metrics.intersectionBackend);
     mergeLabel(intersectionBackendPlatform, metrics.intersectionBackendPlatform);
