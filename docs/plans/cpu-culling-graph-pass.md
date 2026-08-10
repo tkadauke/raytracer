@@ -222,8 +222,8 @@ Tasks:
 
 Acceptance:
 
-- Known one-sided opaque fixtures keep identical output and submit less work.
-- Two-sided, double-sided, and unknown-winding assets remain visible.
+- ~~Known one-sided opaque fixtures keep identical output and submit less work.~~ ✅ **Done.** `RasterVisibilityCullingPreservesOpaqueOutput` confirms zero differing pixels with culling enabled/disabled; `RasterVisibilityUsesMaterialSidednessForBackfaceRejection` pins that front-sided material rejects backface leaves and emits fewer submitted triangles.
+- ~~Two-sided, double-sided, and unknown-winding assets remain visible.~~ ✅ **Done.** `RasterVisibilityKeepsTwoSidedMaterialBackfacesVisible` pins zero backface-rejected leaves for two-sided and unknown-winding materials.
 - LDraw/glTF imported cases report whether sidedness was reliable.
 
 ## Phase 4 - tile-aware coarse occlusion
