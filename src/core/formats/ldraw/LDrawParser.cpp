@@ -1,12 +1,15 @@
 #include "core/formats/ldraw/LDrawParser.h"
 
 #include "LDrawParseHelpers.h"
+#include "core/util/StringUtil.h"
 
 #include <sstream>
 #include <utility>
 #include <variant>
 
 using namespace std;
+using core::util::trim;
+using core::util::trimRight;
 
 namespace {
   struct Token {
@@ -14,20 +17,6 @@ namespace {
     size_t begin = 0;
     size_t end = 0;
   };
-
-  string trimRight(const string& value) {
-    size_t end = value.size();
-    while (end > 0 && (value[end - 1] == ' ' || value[end - 1] == '\t' || value[end - 1] == '\r'))
-      --end;
-    return value.substr(0, end);
-  }
-
-  string trim(const string& value) {
-    size_t begin = 0;
-    while (begin < value.size() && (value[begin] == ' ' || value[begin] == '\t' || value[begin] == '\r'))
-      ++begin;
-    return trimRight(value.substr(begin));
-  }
 
   vector<Token> tokenize(const string& line) {
     vector<Token> tokens;

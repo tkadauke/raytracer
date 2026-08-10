@@ -9,6 +9,7 @@
 
 using namespace std;
 using core::util::trim;
+using core::util::uppercase;
 
 namespace {
   struct Word {
@@ -20,13 +21,6 @@ namespace {
     vector<Word> words;
     string comment;
   };
-
-  string upper(const string& value) {
-    string result = value;
-    for (char& c : result)
-      c = static_cast<char>(toupper(static_cast<unsigned char>(c)));
-    return result;
-  }
 
   ParsedLine splitLine(const string& line) {
     ParsedLine parsed;
@@ -122,14 +116,14 @@ namespace {
       return;
 
     program.comments.push_back(GCodeComment{lineNumber, comment});
-    const string normalized = upper(comment);
+    const string normalized = uppercase(comment);
     const size_t colon = comment.find(':');
     if (colon != string::npos) {
       const string key = trim(comment.substr(0, colon));
       const string value = trim(comment.substr(colon + 1));
       program.metadata.push_back(GCodeMetadata{lineNumber, key, value});
 
-      const string upperKey = upper(key);
+      const string upperKey = uppercase(key);
       if (upperKey == "LAYER") {
         const auto index = parseIntValue(value);
         if (index)
