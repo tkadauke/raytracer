@@ -1,5 +1,6 @@
 #include "render/RayCaster.h"
 #include "render/State.h"
+#include "render/brdf/BRDFSampling.h"
 #include "render/materials/TransparentMaterial.h"
 #include "core/math/HitPoint.h"
 #include "core/math/Ray.h"
@@ -98,7 +99,7 @@ render::MaterialBsdfSample TransparentMaterial::sampleBsdf(const HitPoint& hitPo
   }
 
   const BsdfSamplingWeights weights = bsdfSamplingWeights(false);
-  const double selector = std::clamp(sample.x(), 0.0, 1.0);
+  const double selector = clampUnit(sample.x());
 
   if (weights.reflection > 0.0 && selector < weights.reflection) {
     return sampleReflectionBsdf(hitPoint, wi, weights.reflection);

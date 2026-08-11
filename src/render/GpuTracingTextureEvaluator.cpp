@@ -1,6 +1,7 @@
 #include "render/GpuTracingTextureEvaluator.h"
 
 #include "render/GpuTracingScene.h"
+#include "render/textures/TextureWrap.h"
 
 #include <algorithm>
 #include <cmath>
@@ -121,22 +122,13 @@ namespace render {
   double
   GpuTracingTextureEvaluator::normalizedTextureCoordinate(const GpuTracingTextureRecord& texture,
                                                           double coordinate) {
-    if ((texture.flags & gpuTracingTextureWrapClampFlag) != 0u) {
-      return std::clamp(coordinate, 0.0, 1.0);
-    }
-    return coordinate - std::floor(coordinate);
+    return wrapUnitCoordinate(coordinate, (texture.flags & gpuTracingTextureWrapClampFlag) != 0u);
   }
 
   int GpuTracingTextureEvaluator::imageTextureWrappedCoordinate(
     const GpuTracingTextureRecord& texture, int coordinate, int size) {
-    if ((texture.flags & gpuTracingTextureWrapClampFlag) != 0u) {
-      return std::clamp(coordinate, 0, size - 1);
-    }
-    int wrapped = coordinate % size;
-    if (wrapped < 0) {
-      wrapped += size;
-    }
-    return wrapped;
+    return wrapTexelCoordinate(coordinate, size,
+                               (texture.flags & gpuTracingTextureWrapClampFlag) != 0u);
   }
 
   int GpuTracingTextureEvaluator::imageTextureCoordinate(const GpuTracingTextureRecord& texture,

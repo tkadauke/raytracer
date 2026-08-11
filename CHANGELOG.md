@@ -569,6 +569,28 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Add a restricted Metal diffuse path-loop all-miss probe that resolves visible
   background and environment radiance into terminated GPU path-state records for
   empty compiled scenes. — GPT-5 Codex
+- Add `QByteArray`-based `core::formats::readUint16Le`/`readUint32Le`/`readFloat32Le`
+  overloads to `include/core/formats/BinaryRead.h`, eliminating the duplicate
+  `read16`/`read32` ZIP-header readers in `ThreeMfPackage.cpp` and
+  `readLe16`/`readLe32`/`readLeFloat` in `AdditiveManufacturingSceneImporter.cpp`. —
+  Claude Sonnet 5
+- Add `render::clampUnit`/`clampUnitSquare` to `include/render/brdf/BRDFSampling.h`,
+  eliminating the repeated `std::clamp(sample.x()/y(), 0.0, 1.0)` pairs in
+  `cosineHemisphereDirection`, `phongLobeDirection`, `PhongMaterial::sampleBsdf`,
+  `GpuDiffusePathStepReference`'s `sampleFiniteBsdfDirection`, and
+  `TransparentMaterial::sampleBsdf`. — Claude Sonnet 5
+- Add `include/render/textures/TextureWrap.h` with `wrapTexelCoordinate`/
+  `wrapUnitCoordinate`, eliminating the duplicate clamp/repeat coordinate-wrapping
+  logic in `ImageTexture::wrapCoord`/`normalizedCoord` and
+  `GpuTracingTextureEvaluator::imageTextureWrappedCoordinate`/`normalizedTextureCoordinate`.
+  — Claude Sonnet 5
+- Add an `asUnsignedIntegerIndex` helper in `GltfReader.cpp`, eliminating four
+  copy-pasted "does this JSON double round-trip to a valid `size_t`" checks in
+  `unsignedInteger`, the index-array parser, `attributeMap`, and `parseScenes`. —
+  Claude Sonnet 5
+- Add `randomUnitDirection` to `benchmarks/BenchmarkHelpers.h`, eliminating the
+  duplicate degenerate-direction-fallback logic in `BoundingBoxBenchmark.cpp`'s and
+  `SpatialIndexBenchmark.cpp`'s `generateRays` helpers. — Claude Sonnet 5
 
 ### Fixed
 

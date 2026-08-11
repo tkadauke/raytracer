@@ -1,5 +1,6 @@
 #include "render/RayCaster.h"
 #include "render/State.h"
+#include "render/brdf/BRDFSampling.h"
 #include "render/materials/PhongMaterial.h"
 #include "render/State.h"
 #include "render/RayCaster.h"
@@ -63,8 +64,9 @@ render::MaterialBsdfSample PhongMaterial::sampleBsdf(const HitPoint& hitPoint, c
   render::MaterialBsdfSample result;
   const double diffuseWeight = diffuseSamplingWeight();
   const double specularWeight = 1.0 - diffuseWeight;
-  const double selector = std::clamp(sample.x(), 0.0, 1.0);
-  const double y = std::clamp(sample.y(), 0.0, 1.0);
+  const Vector2d clamped = clampUnitSquare(sample);
+  const double selector = clamped.x();
+  const double y = clamped.y();
 
   if (specularWeight == 0.0 || selector < diffuseWeight) {
     const double remappedX = diffuseWeight > 0.0 ? selector / diffuseWeight : selector;
