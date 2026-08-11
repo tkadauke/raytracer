@@ -1,6 +1,7 @@
 #include "render/textures/ImageTexture.h"
 
 #include "core/math/HitPoint.h"
+#include "render/textures/TextureWrap.h"
 #include "render/textures/mappings/TextureMapping2D.h"
 
 #include <QColor>
@@ -192,19 +193,11 @@ int ImageTexture::texelIndex(int level, int x, int y) const {
 }
 
 int ImageTexture::wrapCoord(int coord, int size) const {
-  if (m_wrap == ImageTextureWrap::Clamp)
-    return std::clamp(coord, 0, size - 1);
-
-  int wrapped = coord % size;
-  if (wrapped < 0)
-    wrapped += size;
-  return wrapped;
+  return wrapTexelCoordinate(coord, size, m_wrap == ImageTextureWrap::Clamp);
 }
 
 double ImageTexture::normalizedCoord(double value) const {
-  if (m_wrap == ImageTextureWrap::Clamp)
-    return std::clamp(value, 0.0, 1.0);
-  return value - std::floor(value);
+  return wrapUnitCoordinate(value, m_wrap == ImageTextureWrap::Clamp);
 }
 
 void ImageTexture::buildMipLevels() {

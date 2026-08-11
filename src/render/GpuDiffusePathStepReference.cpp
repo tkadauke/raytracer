@@ -686,8 +686,9 @@ namespace {
       return cosineHemisphereDirection(normal, sample);
     }
     const double diffuseWeight = GpuTracingBsdfEvaluator::diffuseSamplingWeight(material);
-    const double selector = std::clamp(sample.x(), 0.0, 1.0);
-    const double y = std::clamp(sample.y(), 0.0, 1.0);
+    const Vector2d clamped = clampUnitSquare(sample);
+    const double selector = clamped.x();
+    const double y = clamped.y();
     if (diffuseWeight >= 1.0 || selector < diffuseWeight) {
       const double remappedX = diffuseWeight > 0.0 ? selector / diffuseWeight : selector;
       return cosineHemisphereDirection(normal, Vector2d(remappedX, y));

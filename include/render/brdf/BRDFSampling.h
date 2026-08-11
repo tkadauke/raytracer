@@ -14,10 +14,21 @@ namespace render {
     return (helper ^ n).normalized();
   }
 
+  /// Clamp a scalar BSDF sampling coordinate to the unit interval [0, 1].
+  inline double clampUnit(double value) {
+    return std::clamp(value, 0.0, 1.0);
+  }
+
+  /// Clamp both components of a 2D BSDF sampling coordinate to [0, 1].
+  inline Vector2d clampUnitSquare(const Vector2d& sample) {
+    return Vector2d(clampUnit(sample.x()), clampUnit(sample.y()));
+  }
+
   /// Sample a direction on the cosine-weighted hemisphere around normal `n`.
   inline Vector3d cosineHemisphereDirection(const Vector3d& n, const Vector2d& sample) {
-    const double u0 = std::clamp(sample.x(), 0.0, 1.0);
-    const double u1 = std::clamp(sample.y(), 0.0, 1.0);
+    const Vector2d clamped = clampUnitSquare(sample);
+    const double u0 = clamped.x();
+    const double u1 = clamped.y();
     const double r = std::sqrt(u0);
     const double phi = TAU * u1;
     const double x = r * std::cos(phi);
@@ -32,8 +43,9 @@ namespace render {
   /// Sample a direction from a Phong lobe around the given reflection `axis`.
   inline Vector3d phongLobeDirection(const Vector3d& axis, const Vector2d& sample,
                                      double exponent) {
-    const double u0 = std::clamp(sample.x(), 0.0, 1.0);
-    const double u1 = std::clamp(sample.y(), 0.0, 1.0);
+    const Vector2d clamped = clampUnitSquare(sample);
+    const double u0 = clamped.x();
+    const double u1 = clamped.y();
     const double cosTheta = std::pow(u0, 1.0 / (exponent + 1.0));
     const double sinTheta = std::sqrt(std::max(0.0, 1.0 - cosTheta * cosTheta));
     const double phi = TAU * u1;

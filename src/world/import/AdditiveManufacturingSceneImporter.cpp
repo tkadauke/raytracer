@@ -1,5 +1,6 @@
 #include "world/import/AdditiveManufacturingSceneImporter.h"
 
+#include "core/formats/BinaryRead.h"
 #include "core/geometry/Mesh.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/primitives/MeshPrimitive.h"
@@ -20,13 +21,16 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <cstring>
 #include <memory>
 #include <optional>
 #include <stdexcept>
 #include <vector>
 
 namespace {
+  using core::formats::readFloat32Le;
+  using core::formats::readUint16Le;
+  using core::formats::readUint32Le;
+
   constexpr std::uint32_t ZipLocalFileHeaderSignature = 0x04034b50;
   constexpr std::uint16_t ZipStored = 0;
 
@@ -35,24 +39,6 @@ namespace {
     QString formatName;
     QJsonObject properties;
   };
-
-  std::uint16_t readLe16(const QByteArray& bytes, int offset) {
-    const auto* data = reinterpret_cast<const unsigned char*>(bytes.constData() + offset);
-    return static_cast<std::uint16_t>(data[0] | (data[1] << 8));
-  }
-
-  std::uint32_t readLe32(const QByteArray& bytes, int offset) {
-    const auto* data = reinterpret_cast<const unsigned char*>(bytes.constData() + offset);
-    return static_cast<std::uint32_t>(data[0] | (data[1] << 8) | (data[2] << 16) | (data[3] << 24));
-  }
-
-  float readLeFloat(const QByteArray& bytes, int offset) {
-    const std::uint32_t bits = readLe32(bytes, offset);
-    float value = 0.0f;
-    static_assert(sizeof(bits) == sizeof(value));
-    std::memcpy(&value, &bits, sizeof(value));
-    return value;
-  }
 
   QByteArray readFile(const QString& filename) {
     QFile file(filename);
@@ -136,13 +122,13 @@ namespace {
   QByteArray firstStored3MfModel(const QByteArray& package) {
     int offset = 0;
     while (offset + 30 <= package.size()) {
-      if (readLe32(package, offset) != ZipLocalFileHeaderSignature)
+      if (readUint32Le(package, offset) != ZipLocalFileHeaderSignature)
         break;
 
-      const std::uint16_t method = readLe16(package, offset + 8);
-      const std::uint32_t compressedSize = readLe32(package, offset + 18);
-      const std::uint16_t nameLength = readLe16(package, offset + 26);
-      const std::uint16_t extraLength = readLe16(package, offset + 28);
+      const std::uint16_t method = readUint16Le(package, offset + 8);
+      const std::uint32_t compressedSize = readUint32Le(package, offset + 18);
+      const std::uint16_t nameLength = readUint16Le(package, offset + 26);
+      const std::uint16_t extraLength = readUint16Le(package, offset + 28);
       const int nameOffset = offset + 30;
       const int dataOffset = nameOffset + nameLength + extraLength;
       const int nextOffset = dataOffset + static_cast<int>(compressedSize);
@@ -225,7 +211,7 @@ namespace {
     if (bytes.size() < 84) {
       throw std::runtime_error("binary STL is too short");
     }
-    const std::uint32_t triangleCount = readLe32(bytes, 80);
+    const std::uint32_t triangleCount = readUint32Le(bytes, 80);
     const std::uint64_t expectedSize = 84ull + static_cast<std::uint64_t>(triangleCount) * 50ull;
     if (expectedSize > static_cast<std::uint64_t>(bytes.size())) {
       throw std::runtime_error("binary STL triangle table is truncated");
@@ -234,14 +220,14 @@ namespace {
     Mesh mesh;
     int offset = 84;
     for (std::uint32_t triangle = 0; triangle != triangleCount; ++triangle) {
-      const Vector3d normal(readLeFloat(bytes, offset), readLeFloat(bytes, offset + 4),
-                            readLeFloat(bytes, offset + 8));
-      const Vector3d a(readLeFloat(bytes, offset + 12), readLeFloat(bytes, offset + 16),
-                       readLeFloat(bytes, offset + 20));
-      const Vector3d b(readLeFloat(bytes, offset + 24), readLeFloat(bytes, offset + 28),
-                       readLeFloat(bytes, offset + 32));
-      const Vector3d c(readLeFloat(bytes, offset + 36), readLeFloat(bytes, offset + 40),
-                       readLeFloat(bytes, offset + 44));
+      const Vector3d normal(readFloat32Le(bytes, offset), readFloat32Le(bytes, offset + 4),
+                            readFloat32Le(bytes, offset + 8));
+      const Vector3d a(readFloat32Le(bytes, offset + 12), readFloat32Le(bytes, offset + 16),
+                       readFloat32Le(bytes, offset + 20));
+      const Vector3d b(readFloat32Le(bytes, offset + 24), readFloat32Le(bytes, offset + 28),
+                       readFloat32Le(bytes, offset + 32));
+      const Vector3d c(readFloat32Le(bytes, offset + 36), readFloat32Le(bytes, offset + 40),
+                       readFloat32Le(bytes, offset + 44));
       addTriangle(mesh, a, b, c, normal);
       offset += 50;
     }

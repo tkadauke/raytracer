@@ -66,6 +66,17 @@ namespace core::gltf {
       return std::string(reinterpret_cast<const char*>(bytes.data()), bytes.size());
     }
 
+    // A glTF JSON number is a valid index/count only if it is non-negative and
+    // round-trips exactly through an unsigned integer representation.
+    std::optional<std::size_t> asUnsignedIntegerIndex(double number) {
+      const auto integer = static_cast<unsigned long long>(number);
+      if (number < 0.0 || number != static_cast<double>(integer) ||
+          integer > static_cast<unsigned long long>(std::numeric_limits<std::size_t>::max())) {
+        return std::nullopt;
+      }
+      return static_cast<std::size_t>(integer);
+    }
+
     std::optional<std::size_t> unsignedInteger(const QJsonObject& object, const char* name,
                                                const std::string& path, Diagnostics& diagnostics,
                                                bool required = true) {
@@ -82,15 +93,13 @@ namespace core::gltf {
         return std::nullopt;
       }
 
-      const double number = value.toDouble();
-      const auto integer = static_cast<unsigned long long>(number);
-      if (number < 0.0 || number != static_cast<double>(integer) ||
-          integer > static_cast<unsigned long long>(std::numeric_limits<std::size_t>::max())) {
+      const std::optional<std::size_t> integer = asUnsignedIntegerIndex(value.toDouble());
+      if (!integer) {
         diagnostics.error(DiagnosticCode::InvalidPropertyType, path + "." + name,
                           "Expected an unsigned integer");
         return std::nullopt;
       }
-      return static_cast<std::size_t>(integer);
+      return integer;
     }
 
     std::optional<int> integer(const QJsonObject& object, const char* name, const std::string& path,
@@ -166,16 +175,14 @@ namespace core::gltf {
                             "Expected an unsigned integer");
           continue;
         }
-        const double number = array.at(i).toDouble();
-        const auto integer = static_cast<unsigned long long>(number);
-        if (number < 0.0 || number != static_cast<double>(integer) ||
-            integer > static_cast<unsigned long long>(std::numeric_limits<std::size_t>::max())) {
+        const std::optional<std::size_t> integer = asUnsignedIntegerIndex(array.at(i).toDouble());
+        if (!integer) {
           diagnostics.error(DiagnosticCode::InvalidPropertyType,
                             path + "." + name + "[" + std::to_string(i) + "]",
                             "Expected an unsigned integer");
           continue;
         }
-        result.push_back(static_cast<std::size_t>(integer));
+        result.push_back(*integer);
       }
       return result;
     }
@@ -201,16 +208,14 @@ namespace core::gltf {
                             "Expected an unsigned integer");
           continue;
         }
-        const double number = it.value().toDouble();
-        const auto integer = static_cast<unsigned long long>(number);
-        if (number < 0.0 || number != static_cast<double>(integer) ||
-            integer > static_cast<unsigned long long>(std::numeric_limits<std::size_t>::max())) {
+        const std::optional<std::size_t> integer = asUnsignedIntegerIndex(it.value().toDouble());
+        if (!integer) {
           diagnostics.error(DiagnosticCode::InvalidPropertyType,
                             path + "." + name + "." + it.key().toStdString(),
                             "Expected an unsigned integer");
           continue;
         }
-        result[it.key().toStdString()] = static_cast<std::size_t>(integer);
+        result[it.key().toStdString()] = *integer;
       }
       return result;
     }
@@ -1030,11 +1035,10 @@ namespace core::gltf {
       const QJsonValue defaultScene = root.value("scene");
       if (!defaultScene.isUndefined()) {
         if (defaultScene.isDouble()) {
-          const double number = defaultScene.toDouble();
-          const auto integer = static_cast<unsigned long long>(number);
-          if (number >= 0.0 && number == static_cast<double>(integer) &&
-              integer <= static_cast<unsigned long long>(std::numeric_limits<std::size_t>::max())) {
-            asset.defaultScene = static_cast<std::size_t>(integer);
+          const std::optional<std::size_t> integer =
+            asUnsignedIntegerIndex(defaultScene.toDouble());
+          if (integer) {
+            asset.defaultScene = *integer;
           } else {
             diagnostics.error(DiagnosticCode::InvalidPropertyType, "scene",
                               "Expected an unsigned integer");

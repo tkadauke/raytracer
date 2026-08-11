@@ -1,5 +1,7 @@
 #include "core/formats/threemf/ThreeMfPackage.h"
 
+#include "core/formats/BinaryRead.h"
+
 #include <QFile>
 
 #include <algorithm>
@@ -20,16 +22,13 @@ namespace core::threemf {
     std::uint16_t read16(const QByteArray& bytes, qsizetype offset) {
       if (offset < 0 || offset + 2 > bytes.size())
         throw ThreeMfPackageError("Unexpected end of ZIP data");
-      const auto* data = reinterpret_cast<const unsigned char*>(bytes.constData() + offset);
-      return static_cast<std::uint16_t>(data[0] | (data[1] << 8));
+      return core::formats::readUint16Le(bytes, offset);
     }
 
     std::uint32_t read32(const QByteArray& bytes, qsizetype offset) {
       if (offset < 0 || offset + 4 > bytes.size())
         throw ThreeMfPackageError("Unexpected end of ZIP data");
-      const auto* data = reinterpret_cast<const unsigned char*>(bytes.constData() + offset);
-      return static_cast<std::uint32_t>(data[0] | (data[1] << 8) | (data[2] << 16) |
-                                        (data[3] << 24));
+      return core::formats::readUint32Le(bytes, offset);
     }
 
     qsizetype findEndOfCentralDirectory(const QByteArray& bytes) {

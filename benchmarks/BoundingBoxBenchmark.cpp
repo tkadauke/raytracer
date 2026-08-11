@@ -32,10 +32,7 @@ namespace {
     rays.reserve(count);
     for (int i = 0; i < count; ++i) {
       Vector4d o(origin(rng), origin(rng), origin(rng), 1.0);
-      Vector3d d(direction(rng), direction(rng), direction(rng));
-      if (d.length() < 1e-6)
-        d = Vector3d(1, 0, 0);
-      rays.emplace_back(o, d.normalized());
+      rays.emplace_back(o, randomUnitDirection(rng, direction));
     }
     return rays;
   }
