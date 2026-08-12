@@ -12,13 +12,9 @@ TiltShiftCamera::TiltShiftCamera(Element* parent)
 
 std::shared_ptr<render::Camera> TiltShiftCamera::toRaytracer() const {
   auto camera = make_named<render::TiltShiftCamera>(position(), target());
-  camera->setDistance(distance());
-  camera->setZoom(zoom());
-  camera->setApertureRadius(apertureRadius());
-  camera->setFocalDistance(focalDistance());
   camera->setTilt(m_tilt);
   camera->setShift(Vector2d(m_shiftX, m_shiftY));
-  applyCameraProperties(camera);
+  applyThinLensProperties(camera);
   return camera;
 }
 

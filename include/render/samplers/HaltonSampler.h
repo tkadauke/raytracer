@@ -4,7 +4,7 @@
 #include <memory>
 #include <vector>
 
-#include "render/samplers/Sampler.h"
+#include "render/samplers/BuiltInSampler.h"
 
 namespace render {
   /**
@@ -16,13 +16,10 @@ namespace render {
     * light, and continuation dimensions less clumping than purely random
     * samples while preserving repeatability.
     */
-  class HaltonSampler : public Sampler {
+  class HaltonSampler : public BuiltInSampler {
   public:
     Vector2d sampleForDimension(int sampleIndex, uint64_t pixelHash,
                                 uint64_t dimension) const override;
-    std::shared_ptr<SampleStream> sharedStream(int sampleIndex, uint64_t pixelHash) const override;
-    SampleStream* appendStream(SampleStreamStorage& storage, int sampleIndex,
-                               uint64_t pixelHash) const override;
 
   protected:
     std::vector<Vector2d> generateSet() override;

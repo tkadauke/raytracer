@@ -44,9 +44,8 @@ ReferenceParameterWidget::ReferenceParameterWidget(const QString& baseClassName,
 ReferenceParameterWidget::~ReferenceParameterWidget() {
 }
 
-void ReferenceParameterWidget::setParameterName(const QString& name) {
-  AbstractParameterWidget::setParameterName(name);
-  p->ui.label->setText(displayNameForParameter(name));
+void ReferenceParameterWidget::setLabelText(const QString& text) {
+  p->ui.label->setText(text);
 }
 
 const QVariant ReferenceParameterWidget::value() const {

@@ -26,9 +26,7 @@ namespace {
     if (errno != 0 || end == text.c_str() + 1 || *end != '\0' || value < 0 || value > 0xffffff)
       LDRAW_THROW_PARSE_ERROR(lineNumber, "invalid color for " + fieldName + ": '" + text + "'");
 
-    return Colord::fromRGB((static_cast<unsigned int>(value) >> 16) & 0xff,
-                           (static_cast<unsigned int>(value) >> 8) & 0xff,
-                           static_cast<unsigned int>(value) & 0xff);
+    return Colord::fromPackedRGB(static_cast<unsigned int>(value));
   }
 
   vector<string> split(const string& text) {
@@ -281,9 +279,7 @@ bool LDrawColorTable::isDirectRgbCode(int code) {
 }
 
 Colord LDrawColorTable::directRgbColor(int code) {
-  return Colord::fromRGB((static_cast<unsigned int>(code) >> 16) & 0xff,
-                         (static_cast<unsigned int>(code) >> 8) & 0xff,
-                         static_cast<unsigned int>(code) & 0xff);
+  return Colord::fromPackedRGB(static_cast<unsigned int>(code));
 }
 
 shared_ptr<render::Material>

@@ -19,9 +19,8 @@ BoolParameterWidget::BoolParameterWidget(QWidget* parent)
 BoolParameterWidget::~BoolParameterWidget() {
 }
 
-void BoolParameterWidget::setParameterName(const QString& name) {
-  AbstractParameterWidget::setParameterName(name);
-  p->ui.checkBox->setText(displayNameForParameter(name));
+void BoolParameterWidget::setLabelText(const QString& text) {
+  p->ui.checkBox->setText(text);
 }
 
 const QVariant BoolParameterWidget::value() const {

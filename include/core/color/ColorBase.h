@@ -26,6 +26,14 @@ public:
   }
 
   /**
+    * @returns a color made up of the 24-bit packed RGB value @p rgb, with
+    *   red in bits 16-23, green in bits 8-15, and blue in bits 0-7.
+    */
+  inline static Derived fromPackedRGB(unsigned int rgb) {
+    return fromRGB((rgb >> 16) & 0xff, (rgb >> 8) & 0xff, rgb & 0xff);
+  }
+
+  /**
     * Creates a color from CMYK values (Cyan, Magenta, Yellow, and blacK).
     */
   inline static Derived fromCMYK(const T& c, const T& m, const T& y, const T& k) {

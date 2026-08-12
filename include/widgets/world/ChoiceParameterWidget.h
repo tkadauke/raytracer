@@ -21,6 +21,7 @@ public:
 
 private:
   void populateChoices();
+  void setLabelText(const QString& text) override;
 
   struct Private;
   std::unique_ptr<Private> p;

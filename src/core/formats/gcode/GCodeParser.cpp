@@ -1,9 +1,7 @@
 #include "core/formats/gcode/GCodeParser.h"
 #include "core/util/StringUtil.h"
 
-#include <cerrno>
 #include <cctype>
-#include <cstdlib>
 #include <limits>
 #include <optional>
 
@@ -58,26 +56,14 @@ namespace {
   }
 
   optional<double> parseDoubleValue(const string& text) {
-    if (text.empty())
-      return nullopt;
-    char* end = nullptr;
-    errno = 0;
-    const double value = strtod(text.c_str(), &end);
-    if (errno != 0 || end == text.c_str() || *end != '\0')
-      return nullopt;
-    return value;
+    return core::util::tryParseStrictDouble(text);
   }
 
   optional<int> parseIntValue(const string& text) {
-    if (text.empty())
+    const auto value = core::util::tryParseStrictLong(text);
+    if (!value || *value < numeric_limits<int>::min() || *value > numeric_limits<int>::max())
       return nullopt;
-    char* end = nullptr;
-    errno = 0;
-    const long value = strtol(text.c_str(), &end, 10);
-    if (errno != 0 || end == text.c_str() || *end != '\0' || value < numeric_limits<int>::min() ||
-        value > numeric_limits<int>::max())
-      return nullopt;
-    return static_cast<int>(value);
+    return static_cast<int>(*value);
   }
 
   string commandName(const Word& word) {

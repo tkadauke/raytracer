@@ -11,11 +11,17 @@ PhongMaterial::PhongMaterial(Element* parent)
       m_specularCoefficient(1) {
 }
 
+void PhongMaterial::applyPhongMaterialProperties(
+  const std::shared_ptr<render::PhongMaterial>& material) const {
+  material->setExponent(exponent());
+  material->setSpecularCoefficient(specularCoefficient());
+  applyMatteMaterialProperties(material);
+}
+
 std::shared_ptr<render::Material> PhongMaterial::toRaytracerMaterial() const {
   auto material = make_named<render::PhongMaterial>(
     textureOrDefault(diffuseTexture())->toRaytracerTexture(), specularColor(), exponent());
-  material->setSpecularCoefficient(specularCoefficient());
-  applyMatteMaterialProperties(material);
+  applyPhongMaterialProperties(material);
 
   return material;
 }

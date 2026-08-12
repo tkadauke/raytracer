@@ -63,7 +63,7 @@ namespace engine::graph {
         jsonError(path + "." + key, "expected integer");
 
       const double number = value.toDouble();
-      if (!std::isfinite(number) || std::floor(number) != number)
+      if (!core::json::isIntegerValued(number))
         jsonError(path + "." + key, "expected integer");
       return static_cast<int>(number);
     }

@@ -11,13 +11,18 @@ ThinLensCamera::ThinLensCamera(Element* parent)
       m_focalDistance(5) {
 }
 
-std::shared_ptr<render::Camera> ThinLensCamera::toRaytracer() const {
-  auto camera = make_named<render::ThinLensCamera>(position(), target());
+void ThinLensCamera::applyThinLensProperties(
+  const std::shared_ptr<render::ThinLensCamera>& camera) const {
   camera->setDistance(m_distance);
   camera->setZoom(m_zoom);
   camera->setApertureRadius(m_apertureRadius);
   camera->setFocalDistance(m_focalDistance);
   applyCameraProperties(camera);
+}
+
+std::shared_ptr<render::Camera> ThinLensCamera::toRaytracer() const {
+  auto camera = make_named<render::ThinLensCamera>(position(), target());
+  applyThinLensProperties(camera);
   return camera;
 }
 

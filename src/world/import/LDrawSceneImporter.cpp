@@ -2,6 +2,7 @@
 
 #include "core/Exception.h"
 #include "core/formats/ldraw/LDrawColorTable.h"
+#include "core/json/JsonValue.h"
 #include "core/formats/ldraw/LDrawFileResolver.h"
 #include "core/formats/ldraw/LDrawGeometryCompiler.h"
 #include "core/math/Matrix.h"
@@ -79,7 +80,7 @@ namespace {
     if (!value.isDouble())
       return fallback;
     const double number = value.toDouble();
-    if (!std::isfinite(number) || std::floor(number) != number)
+    if (!core::json::isIntegerValued(number))
       return fallback;
     return static_cast<int>(number);
   }

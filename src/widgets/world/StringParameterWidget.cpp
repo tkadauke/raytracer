@@ -23,9 +23,8 @@ StringParameterWidget::StringParameterWidget(QWidget* parent)
 StringParameterWidget::~StringParameterWidget() {
 }
 
-void StringParameterWidget::setParameterName(const QString& name) {
-  AbstractParameterWidget::setParameterName(name);
-  p->ui.label->setText(displayNameForParameter(name));
+void StringParameterWidget::setLabelText(const QString& text) {
+  p->ui.label->setText(text);
 }
 
 const QVariant StringParameterWidget::value() const {

@@ -11,8 +11,6 @@ public:
   explicit ColorParameterWidget(QWidget* parent = nullptr);
   ~ColorParameterWidget();
 
-  virtual void setParameterName(const QString& name);
-
   virtual const QVariant value() const;
   virtual void setValue(const QVariant& value);
 
@@ -22,6 +20,7 @@ protected slots:
 protected:
   Colord color() const;
   void setColor(const Colord& color);
+  void setLabelText(const QString& text) override;
 
 private:
   Colord qColorToColord(const QColor& color);

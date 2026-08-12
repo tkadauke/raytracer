@@ -3,6 +3,7 @@
 #include "world/objects/Light.h"
 #include "world/objects/StepVisibilityEvaluator.h"
 #include "world/objects/Surface.h"
+#include "core/json/JsonValue.h"
 #include "engine/graph/RenderSceneAnalysis.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/textures/ConstantColorTexture.h"
@@ -20,7 +21,7 @@ namespace {
       return std::nullopt;
 
     const auto number = value.toDouble();
-    if (!std::isfinite(number) || std::floor(number) != number)
+    if (!core::json::isIntegerValued(number))
       return std::nullopt;
     if (number < std::numeric_limits<int>::min() || number > std::numeric_limits<int>::max())
       return std::nullopt;

@@ -19,16 +19,6 @@ Vector2d HaltonSampler::sampleForDimension(int sampleIndex, uint64_t pixelHash,
                   wrapUnitInterval(y + rotationOffset(pixelHash, dimension, /*axis=*/1)));
 }
 
-std::shared_ptr<SampleStream> HaltonSampler::sharedStream(int sampleIndex,
-                                                          uint64_t pixelHash) const {
-  return sharedSamplerBackedStream(sampleIndex, pixelHash);
-}
-
-SampleStream* HaltonSampler::appendStream(SampleStreamStorage& storage, int sampleIndex,
-                                          uint64_t pixelHash) const {
-  return appendSamplerBackedStream(storage, sampleIndex, pixelHash);
-}
-
 std::vector<Vector2d> HaltonSampler::generateSet() {
   vector<Vector2d> result;
   result.reserve(static_cast<size_t>(numSamples()));
