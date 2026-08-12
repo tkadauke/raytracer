@@ -7,10 +7,19 @@
 #include <QJsonValue>
 
 #include <array>
+#include <cmath>
 #include <optional>
 #include <utility>
 
 namespace core::json {
+
+  /**
+    * @returns whether @p value is finite and has no fractional part, i.e. it
+    *   round-trips exactly through an integral type without truncation.
+    */
+  inline bool isIntegerValued(double value) {
+    return std::isfinite(value) && std::floor(value) == value;
+  }
 
   template<class Message, class ErrorHandler>
   inline QJsonArray requireNumberArray(const QJsonValue& value, int expectedSize,

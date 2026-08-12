@@ -8,21 +8,7 @@ using namespace std;
 
 Vector2d JitteredSampler::sampleForDimension(int sampleIndex, uint64_t pixelHash,
                                              uint64_t dimension) const {
-  if (!isPathTracingDimension(dimension)) {
-    return Sampler::sampleForDimension(sampleIndex, pixelHash, dimension);
-  }
-
-  return offsetScrambledPathDimensionSample(sampleIndex, pixelHash, dimension);
-}
-
-std::shared_ptr<SampleStream> JitteredSampler::sharedStream(int sampleIndex,
-                                                            uint64_t pixelHash) const {
-  return sharedSamplerBackedStream(sampleIndex, pixelHash);
-}
-
-SampleStream* JitteredSampler::appendStream(SampleStreamStorage& storage, int sampleIndex,
-                                            uint64_t pixelHash) const {
-  return appendSamplerBackedStream(storage, sampleIndex, pixelHash);
+  return scrambledPathAwareSample(sampleIndex, pixelHash, dimension);
 }
 
 std::vector<Vector2d> JitteredSampler::generateSet() {

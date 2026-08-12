@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
 
-#include "render/samplers/Sampler.h"
+#include "render/samplers/BuiltInSampler.h"
 
 namespace render {
   /**
@@ -19,12 +19,7 @@ namespace render {
     * <td>@image html random_sampler_spp_25.png "samplesPerPixel=25"</td>
     * </tr></table>
     */
-  class RandomSampler : public Sampler {
-  public:
-    std::shared_ptr<SampleStream> sharedStream(int sampleIndex, uint64_t pixelHash) const override;
-    SampleStream* appendStream(SampleStreamStorage& storage, int sampleIndex,
-                               uint64_t pixelHash) const override;
-
+  class RandomSampler : public BuiltInSampler {
   protected:
     std::vector<Vector2d> generateSet() override;
   };

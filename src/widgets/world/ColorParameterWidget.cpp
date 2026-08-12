@@ -100,9 +100,8 @@ void ColorParameterWidget::setColor(const Colord& color) {
       .arg(colordToQColor(color).name()));
 }
 
-void ColorParameterWidget::setParameterName(const QString& name) {
-  AbstractParameterWidget::setParameterName(name);
-  p->label->setText(displayNameForParameter(name));
+void ColorParameterWidget::setLabelText(const QString& text) {
+  p->label->setText(text);
 }
 
 void ColorParameterWidget::selectorClicked() {

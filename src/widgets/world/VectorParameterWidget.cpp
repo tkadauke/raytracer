@@ -81,9 +81,8 @@ void VectorParameterWidget::setVector(const Vector3d& vector) {
   p->zEdit->setValue(vector.z());
 }
 
-void VectorParameterWidget::setParameterName(const QString& name) {
-  AbstractParameterWidget::setParameterName(name);
-  p->label->setText(displayNameForParameter(name));
+void VectorParameterWidget::setLabelText(const QString& text) {
+  p->label->setText(text);
 }
 
 const QVariant VectorParameterWidget::value() const {

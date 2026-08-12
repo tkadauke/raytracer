@@ -42,12 +42,10 @@ namespace {
   }
 
   double parseDouble(const Token& token, int lineNumber, const string& fieldName) {
-    char* end = nullptr;
-    errno = 0;
-    const double value = strtod(token.text.c_str(), &end);
-    if (errno != 0 || end == token.text.c_str() || *end != '\0')
+    const auto value = core::util::tryParseStrictDouble(token.text);
+    if (!value)
       LDRAW_THROW_PARSE_ERROR(lineNumber, "invalid number for " + fieldName + ": '" + token.text + "'");
-    return value;
+    return *value;
   }
 
   void requireFieldCount(const vector<Token>& tokens, int lineNumber, size_t expected) {

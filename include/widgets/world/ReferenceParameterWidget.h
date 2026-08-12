@@ -11,13 +11,12 @@ public:
                                     QWidget* parent = nullptr);
   ~ReferenceParameterWidget();
 
-  virtual void setParameterName(const QString& name);
-
   virtual const QVariant value() const;
   virtual void setValue(const QVariant& value);
 
 protected:
   void fillComboBox(Element* root);
+  void setLabelText(const QString& text) override;
 
 private:
   QVariant makeVariant(Element* e);

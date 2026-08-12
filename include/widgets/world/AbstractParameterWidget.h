@@ -33,6 +33,7 @@ protected:
   QString displayNameForParameter(const QString& name) const;
   QString displayNameForChoice(const QString& choice) const;
   virtual void updatePropertyConfiguration();
+  virtual void setLabelText(const QString& text);
 
 private:
   struct Private;

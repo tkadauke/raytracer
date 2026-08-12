@@ -24,9 +24,8 @@ IntParameterWidget::IntParameterWidget(QWidget* parent)
 IntParameterWidget::~IntParameterWidget() {
 }
 
-void IntParameterWidget::setParameterName(const QString& name) {
-  AbstractParameterWidget::setParameterName(name);
-  p->ui.label->setText(displayNameForParameter(name));
+void IntParameterWidget::setLabelText(const QString& text) {
+  p->ui.label->setText(text);
 }
 
 const QVariant IntParameterWidget::value() const {

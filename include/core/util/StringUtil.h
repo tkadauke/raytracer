@@ -2,9 +2,48 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cerrno>
+#include <cstdlib>
+#include <optional>
 #include <string>
 
 namespace core::util {
+
+  /**
+    * Strictly parses @p text as a `double` using `strtod`: the entire string
+    * must be consumed, non-empty, and free of range/conversion errors.
+    * Returns `std::nullopt` on any parse failure.
+    */
+  inline std::optional<double> tryParseStrictDouble(const std::string& text) {
+    if (text.empty()) {
+      return std::nullopt;
+    }
+    char* end = nullptr;
+    errno = 0;
+    const double value = std::strtod(text.c_str(), &end);
+    if (errno != 0 || end == text.c_str() || *end != '\0') {
+      return std::nullopt;
+    }
+    return value;
+  }
+
+  /**
+    * Strictly parses @p text as a `long` using `strtol` in the given
+    * @p base: the entire string must be consumed, non-empty, and free of
+    * range/conversion errors. Returns `std::nullopt` on any parse failure.
+    */
+  inline std::optional<long> tryParseStrictLong(const std::string& text, int base = 10) {
+    if (text.empty()) {
+      return std::nullopt;
+    }
+    char* end = nullptr;
+    errno = 0;
+    const long value = std::strtol(text.c_str(), &end, base);
+    if (errno != 0 || end == text.c_str() || *end != '\0') {
+      return std::nullopt;
+    }
+    return value;
+  }
 
   inline std::string trim(std::string value) {
     const auto first = std::find_if_not(value.begin(), value.end(),

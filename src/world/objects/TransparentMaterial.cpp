@@ -12,17 +12,13 @@ TransparentMaterial::TransparentMaterial(Element* parent)
 
 std::shared_ptr<render::Material> TransparentMaterial::toRaytracerMaterial() const {
   auto material = make_named<render::TransparentMaterial>();
-  material->setAmbientCoefficient(ambientCoefficient());
-  material->setDiffuseCoefficient(diffuseCoefficient());
-  material->setSpecularCoefficient(specularCoefficient());
   material->setDiffuseTexture(textureOrDefault(diffuseTexture())->toRaytracerTexture());
   material->setSpecularColor(specularColor());
-  material->setExponent(exponent());
   material->setTransmissionCoefficient(transmissionCoefficient());
   material->setRefractionIndex(refractionIndex());
   material->setReflectionColor(reflectionColor());
   material->setReflectionCoefficient(reflectionCoefficient());
-  applyMaterialProperties(material);
+  applyPhongMaterialProperties(material);
 
   return material;
 }

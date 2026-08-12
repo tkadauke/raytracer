@@ -30,7 +30,7 @@ namespace engine::graph::detail {
       if (!array.at(i).isDouble())
         error(path + "." + key + "[" + std::to_string(i) + "]", "expected integer");
       const double number = array.at(i).toDouble();
-      if (!std::isfinite(number) || std::floor(number) != number)
+      if (!core::json::isIntegerValued(number))
         error(path + "." + key + "[" + std::to_string(i) + "]", "expected integer");
       values[i] = static_cast<int>(number);
     }
@@ -110,7 +110,7 @@ namespace engine::graph::detail {
     if (!value.isDouble())
       error(path + "." + key, "expected integer");
     const double number = value.toDouble();
-    if (!std::isfinite(number) || std::floor(number) != number)
+    if (!core::json::isIntegerValued(number))
       error(path + "." + key, "expected integer");
     return static_cast<int>(number);
   }
@@ -123,8 +123,8 @@ namespace engine::graph::detail {
     if (!value.isDouble())
       error(path + "." + key, "expected non-negative integer");
     const double number = value.toDouble();
-    if (!std::isfinite(number) || number < 0.0 ||
-        number > static_cast<double>(maxExact) || std::floor(number) != number)
+    if (!core::json::isIntegerValued(number) || number < 0.0 ||
+        number > static_cast<double>(maxExact))
       error(path + "." + key, "expected non-negative integer");
     return static_cast<std::uint64_t>(number);
   }

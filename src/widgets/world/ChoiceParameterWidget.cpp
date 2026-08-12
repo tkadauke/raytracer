@@ -54,8 +54,11 @@ ChoiceParameterWidget::~ChoiceParameterWidget() {
 
 void ChoiceParameterWidget::setParameterName(const QString& name) {
   AbstractParameterWidget::setParameterName(name);
-  p->label->setText(displayNameForParameter(name));
   populateChoices();
+}
+
+void ChoiceParameterWidget::setLabelText(const QString& text) {
+  p->label->setText(text);
 }
 
 const QVariant ChoiceParameterWidget::value() const {

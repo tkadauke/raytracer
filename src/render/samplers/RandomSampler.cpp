@@ -6,16 +6,6 @@
 using namespace render;
 using namespace std;
 
-std::shared_ptr<SampleStream> RandomSampler::sharedStream(int sampleIndex,
-                                                          uint64_t pixelHash) const {
-  return sharedSamplerBackedStream(sampleIndex, pixelHash);
-}
-
-SampleStream* RandomSampler::appendStream(SampleStreamStorage& storage, int sampleIndex,
-                                          uint64_t pixelHash) const {
-  return appendSamplerBackedStream(storage, sampleIndex, pixelHash);
-}
-
 std::vector<Vector2d> RandomSampler::generateSet() {
   vector<Vector2d> result;
 

@@ -5,6 +5,10 @@
 #include "core/math/Range.h"
 #include "core/Color.h"
 
+namespace render {
+  class PhongMaterial;
+}
+
 /**
   * Phong materials are used to shade physically incorrect, but easy-to-compute
   * shiny surfaces. The reflection model used in this material is the
@@ -100,6 +104,7 @@ public:
 
 protected:
   virtual std::shared_ptr<render::Material> toRaytracerMaterial() const;
+  void applyPhongMaterialProperties(const std::shared_ptr<render::PhongMaterial>& material) const;
 
 private:
   Colord m_specularColor;

@@ -10,10 +10,11 @@ public:
   explicit BoolParameterWidget(QWidget* parent = nullptr);
   ~BoolParameterWidget();
 
-  virtual void setParameterName(const QString& name);
-
   virtual const QVariant value() const;
   virtual void setValue(const QVariant& value);
+
+protected:
+  void setLabelText(const QString& text) override;
 
 private:
   struct Private;

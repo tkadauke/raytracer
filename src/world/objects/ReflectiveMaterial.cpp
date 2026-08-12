@@ -13,13 +13,9 @@ ReflectiveMaterial::ReflectiveMaterial(Element* parent)
 std::shared_ptr<render::Material> ReflectiveMaterial::toRaytracerMaterial() const {
   auto material = make_named<render::ReflectiveMaterial>(
     textureOrDefault(diffuseTexture())->toRaytracerTexture(), specularColor());
-  material->setAmbientCoefficient(ambientCoefficient());
-  material->setDiffuseCoefficient(diffuseCoefficient());
-  material->setExponent(exponent());
-  material->setSpecularCoefficient(specularCoefficient());
   material->setReflectionColor(reflectionColor());
   material->setReflectionCoefficient(reflectionCoefficient());
-  applyMaterialProperties(material);
+  applyPhongMaterialProperties(material);
 
   return material;
 }

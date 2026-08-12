@@ -52,6 +52,10 @@ void AbstractParameterWidget::setParameterName(const QString& name) {
     setToolTip(p->element->propertyDescription(name));
   }
   updatePropertyConfiguration();
+  setLabelText(displayNameForParameter(name));
+}
+
+void AbstractParameterWidget::setLabelText(const QString&) {
 }
 
 QString AbstractParameterWidget::displayNameForParameter(const QString& name) const {

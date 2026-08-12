@@ -10,13 +10,12 @@ public:
   explicit IntParameterWidget(QWidget* parent = nullptr);
   ~IntParameterWidget();
 
-  void setParameterName(const QString& name) override;
-
   const QVariant value() const override;
   void setValue(const QVariant& value) override;
 
 private:
   void updatePropertyConfiguration() override;
+  void setLabelText(const QString& text) override;
 
   struct Private;
   std::unique_ptr<Private> p;

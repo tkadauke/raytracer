@@ -10,8 +10,6 @@ public:
   explicit AngleParameterWidget(QWidget* parent = nullptr);
   ~AngleParameterWidget();
 
-  virtual void setParameterName(const QString& name);
-
   virtual const QVariant value() const;
   virtual void setValue(const QVariant& value);
 
@@ -20,6 +18,7 @@ private slots:
 
 private:
   QString type() const;
+  void setLabelText(const QString& text) override;
 
   struct Private;
   std::unique_ptr<Private> p;

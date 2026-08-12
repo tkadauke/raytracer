@@ -3,6 +3,10 @@
 
 #include "world/objects/Camera.h"
 
+namespace render {
+  class ThinLensCamera;
+}
+
 /**
   * Thin-lens cameras produce a perspective projection like a pinhole, but
   * with a finite-radius aperture that creates **depth of field** —
@@ -134,6 +138,9 @@ public:
     * used by the renderer. Copies all four parameters across.
     */
   virtual std::shared_ptr<render::Camera> toRaytracer() const;
+
+protected:
+  void applyThinLensProperties(const std::shared_ptr<render::ThinLensCamera>& camera) const;
 
 private:
   double m_distance;

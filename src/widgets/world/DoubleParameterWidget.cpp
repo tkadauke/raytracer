@@ -55,9 +55,8 @@ DoubleParameterWidget::DoubleParameterWidget(QWidget* parent)
 DoubleParameterWidget::~DoubleParameterWidget() {
 }
 
-void DoubleParameterWidget::setParameterName(const QString& name) {
-  AbstractParameterWidget::setParameterName(name);
-  p->label->setText(displayNameForParameter(name));
+void DoubleParameterWidget::setLabelText(const QString& text) {
+  p->label->setText(text);
 }
 
 const QVariant DoubleParameterWidget::value() const {

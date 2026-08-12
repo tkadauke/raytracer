@@ -1,9 +1,8 @@
 #pragma once
 
 #include "core/formats/ldraw/LDrawParseError.h"
+#include "core/util/StringUtil.h"
 
-#include <cerrno>
-#include <cstdlib>
 #include <limits>
 #include <string>
 
@@ -16,16 +15,13 @@ namespace ldraw_internal {
   inline int parseIntFromString(const std::string& text, int lineNumber,
                                 const std::string& fieldName,
                                 const char* file, int line) {
-    char* end = nullptr;
-    errno = 0;
     int base = 10;
     if (text.size() > 2 && text[0] == '0' && (text[1] == 'x' || text[1] == 'X'))
       base = 16;
-    const long value = strtol(text.c_str(), &end, base);
-    if (errno != 0 || end == text.c_str() || *end != '\0' ||
-        value < std::numeric_limits<int>::min() || value > std::numeric_limits<int>::max())
+    const auto value = core::util::tryParseStrictLong(text, base);
+    if (!value || *value < std::numeric_limits<int>::min() || *value > std::numeric_limits<int>::max())
       throwParseError(lineNumber, "invalid integer for " + fieldName + ": '" + text + "'", file, line);
-    return static_cast<int>(value);
+    return static_cast<int>(*value);
   }
 }
 

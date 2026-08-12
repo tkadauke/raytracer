@@ -11,14 +11,13 @@ public:
   explicit VectorParameterWidget(QWidget* parent = nullptr);
   ~VectorParameterWidget();
 
-  virtual void setParameterName(const QString& name);
-
   virtual const QVariant value() const;
   virtual void setValue(const QVariant& value);
 
 protected:
   Vector3d vector() const;
   void setVector(const Vector3d& vector);
+  void setLabelText(const QString& text) override;
 
 private:
   struct Private;
