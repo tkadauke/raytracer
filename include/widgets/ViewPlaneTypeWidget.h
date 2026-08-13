@@ -1,12 +1,11 @@
 #pragma once
 
-#include <QWidget>
+#include "widgets/TypeSelectorWidget.h"
 
-#include <string>
 #include <memory>
 #include <string>
 
-class ViewPlaneTypeWidget : public QWidget {
+class ViewPlaneTypeWidget : public TypeSelectorWidget {
   Q_OBJECT
 
 public:
@@ -14,12 +13,6 @@ public:
   ~ViewPlaneTypeWidget();
 
   std::string type() const;
-
-signals:
-  void changed();
-
-private slots:
-  void typeChanged();
 
 private:
   struct Private;

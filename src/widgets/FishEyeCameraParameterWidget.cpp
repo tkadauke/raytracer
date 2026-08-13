@@ -28,10 +28,6 @@ FishEyeCameraParameterWidget::FishEyeCameraParameterWidget(QWidget* parent)
 FishEyeCameraParameterWidget::~FishEyeCameraParameterWidget() {
 }
 
-void FishEyeCameraParameterWidget::parameterChanged() {
-  emit changed();
-}
-
 int FishEyeCameraParameterWidget::fieldOfView() const {
   return p->ui.fieldOfViewSlider->value();
 }

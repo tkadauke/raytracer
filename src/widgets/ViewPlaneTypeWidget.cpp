@@ -2,8 +2,6 @@
 #include "ui_ViewPlaneTypeWidget.h"
 #include "render/viewplanes/ViewPlaneFactory.h"
 
-#include <list>
-
 using namespace std;
 using namespace render;
 
@@ -12,14 +10,10 @@ struct ViewPlaneTypeWidget::Private {
 };
 
 ViewPlaneTypeWidget::ViewPlaneTypeWidget(QWidget* parent)
-    : QWidget(parent),
+    : TypeSelectorWidget(parent),
       p(std::make_unique<Private>()) {
   p->ui.setupUi(this);
-  list<string> types = render::ViewPlaneFactory::self().identifiers();
-  for (const auto& type : types) {
-    p->ui.viewPlaneTypeComboBox->addItem(QString::fromStdString(type));
-  }
-  connect(p->ui.viewPlaneTypeComboBox, SIGNAL(activated(int)), this, SLOT(typeChanged()));
+  populateComboBox(p->ui.viewPlaneTypeComboBox, render::ViewPlaneFactory::self().identifiers());
 }
 
 ViewPlaneTypeWidget::~ViewPlaneTypeWidget() {
@@ -27,8 +21,4 @@ ViewPlaneTypeWidget::~ViewPlaneTypeWidget() {
 
 string ViewPlaneTypeWidget::type() const {
   return p->ui.viewPlaneTypeComboBox->currentText().toStdString();
-}
-
-void ViewPlaneTypeWidget::typeChanged() {
-  emit changed();
 }

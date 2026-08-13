@@ -6,11 +6,6 @@
 using namespace render;
 using namespace std;
 
-Vector2d JitteredSampler::sampleForDimension(int sampleIndex, uint64_t pixelHash,
-                                             uint64_t dimension) const {
-  return scrambledPathAwareSample(sampleIndex, pixelHash, dimension);
-}
-
 std::vector<Vector2d> JitteredSampler::generateSet() {
   vector<Vector2d> result;
 

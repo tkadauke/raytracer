@@ -22,10 +22,6 @@ ThinLensCameraParameterWidget::ThinLensCameraParameterWidget(QWidget* parent)
 ThinLensCameraParameterWidget::~ThinLensCameraParameterWidget() {
 }
 
-void ThinLensCameraParameterWidget::parameterChanged() {
-  emit changed();
-}
-
 double ThinLensCameraParameterWidget::distance() const {
   return p->ui.distanceInput->value();
 }

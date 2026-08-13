@@ -26,8 +26,9 @@ namespace render {
     /**
       * Returns the default per-set sample for non-path-tracing dimensions,
       * or a scrambled, jitter-offset sample for path-tracing dimensions
-      * (BSDF, light, continuation, ...). Shared by the grid-based built-in
-      * samplers (`JitteredSampler`, `RegularSampler`).
+      * (BSDF, light, continuation, ...). Used by `GridSampleAwareSampler`,
+      * the shared base for the grid-based built-in samplers
+      * (`JitteredSampler`, `RegularSampler`).
       */
     Vector2d scrambledPathAwareSample(int sampleIndex, uint64_t pixelHash,
                                       uint64_t dimension) const;
