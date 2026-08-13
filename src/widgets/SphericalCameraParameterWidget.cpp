@@ -31,10 +31,6 @@ SphericalCameraParameterWidget::SphericalCameraParameterWidget(QWidget* parent)
 SphericalCameraParameterWidget::~SphericalCameraParameterWidget() {
 }
 
-void SphericalCameraParameterWidget::parameterChanged() {
-  emit changed();
-}
-
 int SphericalCameraParameterWidget::horizontalFieldOfView() const {
   return p->ui.horizontalFieldOfViewSlider->value();
 }

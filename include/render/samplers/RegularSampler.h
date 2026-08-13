@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
 
-#include "render/samplers/BuiltInSampler.h"
+#include "render/samplers/GridSampleAwareSampler.h"
 
 namespace render {
   /**
@@ -9,7 +9,7 @@ namespace render {
     * exactly one sample at its center; see `Sampler` for the interactive
     * sampler-stream widget that compares regular, jittered, and random
     * sample dimensions.
-    * 
+    *
     * <table><tr>
     * <td>@image html regular_sampler_spp_1.png "samplesPerPixel=1"</td>
     * <td>@image html regular_sampler_spp_4.png "samplesPerPixel=4"</td>
@@ -18,11 +18,7 @@ namespace render {
     * <td>@image html regular_sampler_spp_25.png "samplesPerPixel=25"</td>
     * </tr></table>
     */
-  class RegularSampler : public BuiltInSampler {
-  public:
-    Vector2d sampleForDimension(int sampleIndex, uint64_t pixelHash,
-                                uint64_t dimension) const override;
-
+  class RegularSampler : public GridSampleAwareSampler {
   protected:
     std::vector<Vector2d> generateSet() override;
   };

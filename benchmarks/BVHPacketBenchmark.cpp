@@ -26,6 +26,8 @@
 
 #include <benchmark/benchmark.h>
 
+#include "BenchmarkHelpers.h"
+
 #include "core/SimdFeatures.h"
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
@@ -142,10 +144,7 @@ namespace {
       IncoherentGroup group;
       for (int i = 0; i < 4; ++i) {
         Vector3d o(origDist(rng), origDist(rng), origDist(rng));
-        Vector3d d(dirDist(rng), dirDist(rng), dirDist(rng));
-        if (d.length() < 1e-6)
-          d = Vector3d(1, 0, 0);
-        group.rays[i] = Rayd(o, d.normalized());
+        group.rays[i] = Rayd(o, randomUnitDirection(rng, dirDist));
       }
       groups.push_back(group);
     }

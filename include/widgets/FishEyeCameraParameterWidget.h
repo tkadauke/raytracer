@@ -14,12 +14,6 @@ public:
 
   virtual void applyTo(std::shared_ptr<render::Camera> camera);
 
-signals:
-  void changed();
-
-private slots:
-  void parameterChanged();
-
 private:
   struct Private;
   std::unique_ptr<Private> p;

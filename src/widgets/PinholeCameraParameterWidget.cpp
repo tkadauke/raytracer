@@ -20,10 +20,6 @@ PinholeCameraParameterWidget::PinholeCameraParameterWidget(QWidget* parent)
 PinholeCameraParameterWidget::~PinholeCameraParameterWidget() {
 }
 
-void PinholeCameraParameterWidget::parameterChanged() {
-  emit changed();
-}
-
 double PinholeCameraParameterWidget::distance() const {
   return p->ui.distanceInput->value();
 }
