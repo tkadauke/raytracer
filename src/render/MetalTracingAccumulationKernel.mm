@@ -23,11 +23,6 @@ namespace render {
       float w{0.0f};
     };
 
-    TracingAccumulationLayout validatedLayout(TracingAccumulationLayout layout) {
-      layout.validate();
-      return layout;
-    }
-
     NSString* accumulationKernelSource() {
       return @"#include <metal_stdlib>\n"
               "using namespace metal;\n"
@@ -219,7 +214,7 @@ namespace render {
     const TracingAccumulationLayout& layout)
       : p(std::make_unique<Private>()) {
     @autoreleasepool {
-      p->layout = validatedLayout(layout);
+      p->layout = layout.validated();
       if (!MetalTracingAccumulationKernel().accumulationPathAvailable()) {
         throw std::runtime_error(MetalTracingAccumulationKernel().accumulationPathUnavailableReason());
       }

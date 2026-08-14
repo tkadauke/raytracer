@@ -63,5 +63,20 @@ namespace render {
       denoiseFrame(frame);
     }
     virtual void denoiseFrame(DenoiserFrame& frame) const = 0;
+
+  protected:
+    /**
+      * @returns whether a kernel-radius sweep over @p buffer would touch any
+      * pixels, given @p radius. Shared guard for the neighborhood-averaging
+      * denoisers, which all skip work for a non-positive radius or an empty
+      * buffer.
+      */
+    static bool shouldSkipDenoise(int radius, const Buffer<Colord>& buffer);
+
+    /**
+      * Clamps the `[center - radius, center + radius]` sampling window for one
+      * axis to `[0, extent - 1]`, writing the bounds to @p lo and @p hi.
+      */
+    static void clampedRange(int center, int radius, int extent, int& lo, int& hi);
   };
 }
