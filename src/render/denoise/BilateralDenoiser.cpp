@@ -42,7 +42,7 @@ namespace render {
 
   void BilateralDenoiser::denoiseFrame(DenoiserFrame& frame) const {
     Buffer<Colord>& buffer = frame.beauty;
-    if (m_radius <= 0 || buffer.width() <= 0 || buffer.height() <= 0) {
+    if (shouldSkipDenoise(m_radius, buffer)) {
       return;
     }
 
@@ -55,10 +55,9 @@ namespace render {
         const Colord center = source[y][x];
         Colord sum = Colord::black();
         double weightSum = 0.0;
-        const int y0 = std::max(0, y - m_radius);
-        const int y1 = std::min(buffer.height() - 1, y + m_radius);
-        const int x0 = std::max(0, x - m_radius);
-        const int x1 = std::min(buffer.width() - 1, x + m_radius);
+        int y0, y1, x0, x1;
+        clampedRange(y, m_radius, buffer.height(), y0, y1);
+        clampedRange(x, m_radius, buffer.width(), x0, x1);
         for (int sy = y0; sy <= y1; ++sy) {
           for (int sx = x0; sx <= x1; ++sx) {
             const double weight = sampleWeight(frame, source, x, y, sx, sy, spatialSigma);

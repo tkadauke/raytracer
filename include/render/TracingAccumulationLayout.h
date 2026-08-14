@@ -82,6 +82,7 @@ namespace render {
     std::uint64_t totalBytes() const;
 
     void validate() const;
+    [[nodiscard]] TracingAccumulationLayout validated() const;
   };
 
   /**

@@ -88,6 +88,12 @@ namespace render {
     (void)resolveBytes();
   }
 
+  TracingAccumulationLayout TracingAccumulationLayout::validated() const {
+    TracingAccumulationLayout copy = *this;
+    copy.validate();
+    return copy;
+  }
+
   TracingAccumulationDiagnostics
   TracingAccumulationDiagnostics::forLayout(const TracingAccumulationLayout& layout,
                                             const char* backend, const char* residency) {

@@ -8,9 +8,11 @@
 
 namespace render {
 
-  /// Build an orthogonal tangent vector from a surface normal.
-  inline Vector3d tangentFor(const Vector3d& n) {
-    const Vector3d helper = std::abs(n.y()) < 0.999 ? Vector3d::up() : Vector3d::right();
+  /// Build an orthogonal tangent vector from a surface normal. `axisThreshold`
+  /// selects the `right()` fallback axis once `|n.y()|` gets within it of the
+  /// `up()` axis, to avoid a degenerate near-parallel cross product.
+  inline Vector3d tangentFor(const Vector3d& n, double axisThreshold = 0.999) {
+    const Vector3d helper = std::abs(n.y()) < axisThreshold ? Vector3d::up() : Vector3d::right();
     return (helper ^ n).normalized();
   }
 

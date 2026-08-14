@@ -6,6 +6,7 @@
 #include "core/math/RayPacket.h"
 #include "render/IntersectionSceneCompiler.h"
 #include "render/State.h"
+#include "render/brdf/BRDFSampling.h"
 
 #include <algorithm>
 #include <cmath>
@@ -21,8 +22,7 @@ namespace {
   }
 
   Vector3d perpendicularTo(const Vector3d& direction) {
-    const Vector3d reference = std::abs(direction.y()) < 0.9 ? Vector3d::up() : Vector3d::right();
-    return (reference ^ direction).normalized();
+    return render::tangentFor(direction, 0.9);
   }
 
   void addRibbonSegment(Mesh& mesh, const Vector3d& start, const Vector3d& end, double halfWidth,

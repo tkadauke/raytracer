@@ -7,16 +7,8 @@
 #include <string>
 
 namespace render {
-  namespace {
-    TracingAccumulationLayout validatedLayout(TracingAccumulationLayout layout) {
-      layout.validate();
-      return layout;
-    }
-
-  }
-
   TracingAccumulationBuffer::TracingAccumulationBuffer(const TracingAccumulationLayout& layout)
-      : m_layout(validatedLayout(layout)),
+      : m_layout(layout.validated()),
         m_colorSum(m_layout.width, m_layout.height),
         m_sampleCount(m_layout.width, m_layout.height),
         m_diagnostics(
