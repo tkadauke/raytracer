@@ -6,6 +6,8 @@
 #include <memory>
 
 class Element;
+class QDoubleSpinBox;
+class QVBoxLayout;
 
 class AbstractParameterWidget : public QWidget {
   Q_OBJECT
@@ -34,6 +36,16 @@ protected:
   QString displayNameForChoice(const QString& choice) const;
   virtual void updatePropertyConfiguration();
   virtual void setLabelText(const QString& text);
+
+  /// Builds a `QDoubleSpinBox` with the layout properties shared by the
+  /// per-component edits (color channels, vector coordinates, ...): zero
+  /// minimum width, an ignored/fixed size policy, and the given range/step.
+  static QDoubleSpinBox* makeSpinBoxEdit(QWidget* parent, double minimum, double maximum,
+                                         int decimals, double singleStep);
+
+  /// Lays out a short label plus @p edit in a single row appended to @p layout.
+  static void addLabeledSpinBoxRow(QVBoxLayout* layout, const QString& name,
+                                   QDoubleSpinBox* edit, QWidget* parent);
 
 private:
   struct Private;

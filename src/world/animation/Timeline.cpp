@@ -7,22 +7,19 @@
 #include <QJsonArray>
 #include <QString>
 
+#include "core/util/QStringUtil.h"
 #include "world/objects/Scene.h"
 
 namespace {
 
-  std::invalid_argument invalidTimeline(const QString& message) {
-    return std::invalid_argument(message.toStdString());
-  }
-
   int requiredInt(const QJsonObject& json, const QString& name) {
     const auto value = json[name];
     if (!value.isDouble())
-      throw invalidTimeline(QString("animation field '%1' must be an integer").arg(name));
+      throw invalidArgument(QString("animation field '%1' must be an integer").arg(name));
 
     const auto numeric = value.toDouble();
     if (std::floor(numeric) != numeric)
-      throw invalidTimeline(QString("animation field '%1' must be an integer").arg(name));
+      throw invalidArgument(QString("animation field '%1' must be an integer").arg(name));
 
     return static_cast<int>(numeric);
   }
@@ -30,21 +27,21 @@ namespace {
   double requiredDouble(const QJsonObject& json, const QString& name) {
     const auto value = json[name];
     if (!value.isDouble())
-      throw invalidTimeline(QString("animation field '%1' must be a number").arg(name));
+      throw invalidArgument(QString("animation field '%1' must be a number").arg(name));
     return value.toDouble();
   }
 
   std::vector<world::AnimationTrack> readTracks(const QJsonObject& json) {
     const auto tracksValue = json["tracks"];
     if (!tracksValue.isArray())
-      throw invalidTimeline("animation field 'tracks' must be an array");
+      throw invalidArgument("animation field 'tracks' must be an array");
 
     std::vector<world::AnimationTrack> tracks;
     const auto trackArray = tracksValue.toArray();
     tracks.reserve(static_cast<size_t>(trackArray.size()));
     for (const auto& trackValue : trackArray) {
       if (!trackValue.isObject())
-        throw invalidTimeline("animation tracks must be objects");
+        throw invalidArgument("animation tracks must be objects");
       tracks.push_back(world::AnimationTrack::read(trackValue.toObject()));
     }
     return tracks;

@@ -63,10 +63,6 @@ namespace {
   constexpr double NodeTextInset = 10.0;
   constexpr auto LiveExecutionDelay = std::chrono::milliseconds(500);
 
-  QString dashIfEmpty(const QString& value) {
-    return value.isEmpty() ? QStringLiteral("-") : value;
-  }
-
   bool hasFeature(const std::vector<RenderFeatureKind>& features, const char* feature) {
     return std::find(features.begin(), features.end(), RenderFeatureKind(feature)) !=
            features.end();
