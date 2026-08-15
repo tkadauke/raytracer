@@ -1,6 +1,6 @@
 #include "render/VulkanWavefrontSmokeKernel.h"
 
-#include "TimingHelpers.h"
+#include "render/TimingHelpers.h"
 #include "render/GpuIntersectionScene.h"
 #include "render/WavefrontIntersectionBackend.h"
 
