@@ -1,7 +1,7 @@
 #include "render/WavefrontIntersectionBackend.h"
 
 #include "CountArithmetic.h"
-#include "TimingHelpers.h"
+#include "render/TimingHelpers.h"
 #include "render/GpuIntersectionScene.h"
 #include "render/IntersectionSceneCompiler.h"
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)

@@ -1,6 +1,6 @@
 #include "render/VulkanGpuDiffusePathFrontierCompactionBackend.h"
 
-#include "TimingHelpers.h"
+#include "render/TimingHelpers.h"
 
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
 #include "render/VulkanDiffusePathFrontierCompaction.generated.h"
