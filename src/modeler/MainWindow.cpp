@@ -117,10 +117,6 @@ namespace {
     int count{0};
   };
 
-  QString dashIfEmpty(const QString& value) {
-    return value.isEmpty() ? QStringLiteral("-") : value;
-  }
-
   struct OpenedScene {
     std::unique_ptr<::Scene> scene;
     world::ImportResult importResult;
