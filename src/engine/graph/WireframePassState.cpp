@@ -73,7 +73,7 @@ namespace engine::graph {
   }
 
   void WireframePassState::setLod(int lod) {
-    m_lod = std::max(0, lod);
+    m_lod = detail::clampedLod(lod);
   }
 
   int WireframePassState::lod() const {

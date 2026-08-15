@@ -1,7 +1,6 @@
 #include "widgets/world/VectorParameterWidget.h"
 
 #include <QDoubleSpinBox>
-#include <QHBoxLayout>
 #include <QLabel>
 #include <QSignalBlocker>
 #include <QSizePolicy>
@@ -14,28 +13,6 @@ struct VectorParameterWidget::Private {
   QDoubleSpinBox* xEdit{nullptr};
   QDoubleSpinBox* yEdit{nullptr};
   QDoubleSpinBox* zEdit{nullptr};
-
-  QDoubleSpinBox* makeCoordinateEdit(QWidget* parent) const {
-    auto* edit = new QDoubleSpinBox(parent);
-    edit->setMinimumWidth(0);
-    edit->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
-    edit->setRange(-1000000.0, 1000000.0);
-    edit->setDecimals(4);
-    edit->setSingleStep(0.1);
-    return edit;
-  }
-
-  void addCoordinateRow(QVBoxLayout* layout, const QString& name, QDoubleSpinBox* edit,
-                        QWidget* parent) const {
-    auto* row = new QHBoxLayout;
-    row->setContentsMargins(0, 0, 0, 0);
-    row->setSpacing(4);
-    auto* rowLabel = new QLabel(name, parent);
-    rowLabel->setFixedWidth(12);
-    row->addWidget(rowLabel);
-    row->addWidget(edit, 1);
-    layout->addLayout(row);
-  }
 };
 
 VectorParameterWidget::VectorParameterWidget(QWidget* parent)
@@ -48,14 +25,14 @@ VectorParameterWidget::VectorParameterWidget(QWidget* parent)
   p->label = new QLabel(this);
   p->label->setWordWrap(true);
   p->label->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
-  p->xEdit = p->makeCoordinateEdit(this);
-  p->yEdit = p->makeCoordinateEdit(this);
-  p->zEdit = p->makeCoordinateEdit(this);
+  p->xEdit = makeSpinBoxEdit(this, -1000000.0, 1000000.0, 4, 0.1);
+  p->yEdit = makeSpinBoxEdit(this, -1000000.0, 1000000.0, 4, 0.1);
+  p->zEdit = makeSpinBoxEdit(this, -1000000.0, 1000000.0, 4, 0.1);
 
   layout->addWidget(p->label);
-  p->addCoordinateRow(layout, QStringLiteral("X"), p->xEdit, this);
-  p->addCoordinateRow(layout, QStringLiteral("Y"), p->yEdit, this);
-  p->addCoordinateRow(layout, QStringLiteral("Z"), p->zEdit, this);
+  addLabeledSpinBoxRow(layout, QStringLiteral("X"), p->xEdit, this);
+  addLabeledSpinBoxRow(layout, QStringLiteral("Y"), p->yEdit, this);
+  addLabeledSpinBoxRow(layout, QStringLiteral("Z"), p->zEdit, this);
 
   connect(p->xEdit, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this,
           &VectorParameterWidget::parameterChanged);

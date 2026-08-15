@@ -22,10 +22,6 @@ using namespace engine::graph;
 namespace {
   constexpr int MinimumPreviewWidth = 640;
 
-  QString dashIfEmpty(const QString& value) {
-    return value.isEmpty() ? QStringLiteral("-") : value;
-  }
-
   QImage colorPreviewImage(const Buffer<Colord>& buffer) {
     QImage image(buffer.width(), buffer.height(), QImage::Format_RGB32);
     for (int y = 0; y != buffer.height(); ++y) {

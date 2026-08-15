@@ -1007,7 +1007,7 @@ namespace engine::graph {
   }
 
   void RenderRasterizerOptions::setLod(int lod) {
-    m_lod = std::max(0, lod);
+    m_lod = detail::clampedLod(lod);
   }
 
   void RenderRasterizerOptions::setTessellationQuality(std::string quality) {
@@ -1290,7 +1290,7 @@ namespace engine::graph {
   }
 
   void RenderWireframeOptions::setLod(int lod) {
-    m_lod = std::max(0, lod);
+    m_lod = detail::clampedLod(lod);
   }
 
   std::optional<int> RenderWireframeOptions::lod() const {

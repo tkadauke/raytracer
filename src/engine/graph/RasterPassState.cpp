@@ -532,7 +532,7 @@ namespace engine::graph {
   }
 
   void RasterGeometryState::setLod(int lod) {
-    m_lod = std::max(0, lod);
+    m_lod = detail::clampedLod(lod);
   }
 
   void RasterGeometryState::setTessellationQuality(Rasterizer::TessellationQuality quality) {

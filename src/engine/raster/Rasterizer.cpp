@@ -11,6 +11,7 @@
 #include "core/math/Vector.h"
 #include "core/util/BufferUtils.h"
 #include "render/TilePlan.h"
+#include "render/TimingHelpers.h"
 #include "render/cameras/Camera.h"
 #include "render/lights/Light.h"
 #include "render/postprocess/Fxaa.h"
@@ -46,10 +47,6 @@ namespace {
 
   double minimumFarClipDepth(double nearDepth) {
     return std::nextafter(nearDepth, std::numeric_limits<double>::infinity());
-  }
-
-  double elapsedSeconds(RasterClock::time_point start, RasterClock::time_point end) {
-    return std::chrono::duration<double>(end - start).count();
   }
 }
 
@@ -1260,7 +1257,7 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
   auto finishMetrics = [&]() {
     p->publishFragmentMetrics(*this);
     p->publishDiagnosticImageStatistics(*this);
-    m_lastMetrics.timings.totalRenderSeconds = elapsedSeconds(renderStart, RasterClock::now());
+    m_lastMetrics.timings.totalRenderSeconds = render::detail::secondsBetween(renderStart, RasterClock::now());
   };
 
   if (!m_scene || !m_camera) {
@@ -1303,7 +1300,7 @@ RasterTriangleSet Rasterizer::Private::collectRasterTriangles(
   for (const RasterTriangle& triangle : triangles) {
     const auto start = RasterClock::now();
     triangleSet.add(triangle);
-    binningSeconds += elapsedSeconds(start, RasterClock::now());
+    binningSeconds += render::detail::secondsBetween(start, RasterClock::now());
   }
   if (tileBinningSeconds) {
     *tileBinningSeconds += binningSeconds;
@@ -1353,7 +1350,7 @@ RasterQueueChoice Rasterizer::Private::chooseAutomaticQueue(
       RasterTriangleSet rebinned =
         triangleSetForPlan(candidateSet.triangles(), tilePlan, sortFrontToBack);
       if (adaptiveBinningSeconds) {
-        *adaptiveBinningSeconds += elapsedSeconds(rebinStart, RasterClock::now());
+        *adaptiveBinningSeconds += render::detail::secondsBetween(rebinStart, RasterClock::now());
       }
       return rebinned;
     }();
@@ -1377,7 +1374,7 @@ RasterQueueChoice Rasterizer::Private::chooseAutomaticQueue(
   RasterTriangleSet triangleSet =
     triangleSetForPlan(candidateSet.triangles(), tilePlan, sortFrontToBack);
   if (adaptiveBinningSeconds) {
-    *adaptiveBinningSeconds += elapsedSeconds(rebinStart, RasterClock::now());
+    *adaptiveBinningSeconds += render::detail::secondsBetween(rebinStart, RasterClock::now());
   }
   return RasterQueueChoice(std::move(tilePlan), std::move(triangleSet), 1, "single_tile",
                            lastReason);
@@ -1416,7 +1413,7 @@ void Rasterizer::Private::renderTriangleSetPass(
       DepthWritePolicy<RasterFullBufferView<double>>{
         fullBufferView(passBuffers.depth()),
         DepthState{Rasterizer::DepthFunc::Less, rasterizer.depthBias()}});
-    prepassMetrics.prepassSeconds += elapsedSeconds(prepassStart, RasterClock::now());
+    prepassMetrics.prepassSeconds += render::detail::secondsBetween(prepassStart, RasterClock::now());
     if (cancelled.load())
       return;
 
@@ -1436,7 +1433,7 @@ void Rasterizer::Private::renderTriangleSetPass(
               msaaFragmentPolicy, alphaTest, conservativeDepthOcclusion, diagnostics);
           });
       });
-    prepassMetrics.colorPassSeconds += elapsedSeconds(colorPassStart, RasterClock::now());
+    prepassMetrics.colorPassSeconds += render::detail::secondsBetween(colorPassStart, RasterClock::now());
     prepassMetrics.totalMeasuredSeconds =
       prepassMetrics.prepassSeconds + prepassMetrics.colorPassSeconds;
   } else {
@@ -1561,7 +1558,7 @@ void Rasterizer::Private::renderSingleSampleFrame(
     collectRasterTriangles(triangleEmitter, tilePlan, sortOpaqueFrontToBack, &binningSeconds);
   auto& metrics = const_cast<Rasterizer&>(rasterizer).m_lastMetrics;
   metrics.timings.tessellationTriangleEmissionSeconds +=
-    std::max(0.0, elapsedSeconds(collectStart, RasterClock::now()) - binningSeconds);
+    std::max(0.0, render::detail::secondsBetween(collectStart, RasterClock::now()) - binningSeconds);
   metrics.timings.tileBinningSeconds += binningSeconds;
   recordTileMetrics(const_cast<Rasterizer&>(rasterizer), triangleSet, tilePlan);
   if (cancelled.load() || triangleSet.empty())
@@ -1585,7 +1582,7 @@ void Rasterizer::Private::renderAutomaticSingleSampleFrame(
     triangleEmitter, candidateTilePlan, sortOpaqueFrontToBack, &binningSeconds);
   auto& metrics = const_cast<Rasterizer&>(rasterizer).m_lastMetrics;
   metrics.timings.tessellationTriangleEmissionSeconds +=
-    std::max(0.0, elapsedSeconds(collectStart, RasterClock::now()) - binningSeconds);
+    std::max(0.0, render::detail::secondsBetween(collectStart, RasterClock::now()) - binningSeconds);
   metrics.timings.tileBinningSeconds += binningSeconds;
   if (cancelled.load() || candidateSet.empty()) {
     lastResolvedQueueSize = 1;
@@ -1632,7 +1629,7 @@ void Rasterizer::Private::renderMSAAFrame(
     collectRasterTriangles(triangleEmitter, tilePlan, sortOpaqueFrontToBack, &binningSeconds);
   auto& metrics = const_cast<Rasterizer&>(rasterizer).m_lastMetrics;
   metrics.timings.tessellationTriangleEmissionSeconds +=
-    std::max(0.0, elapsedSeconds(collectStart, RasterClock::now()) - binningSeconds);
+    std::max(0.0, render::detail::secondsBetween(collectStart, RasterClock::now()) - binningSeconds);
   metrics.timings.tileBinningSeconds += binningSeconds;
   recordTileMetrics(const_cast<Rasterizer&>(rasterizer), triangleSet, tilePlan);
   if (cancelled.load() || triangleSet.empty())
@@ -1664,7 +1661,7 @@ void Rasterizer::Private::renderAutomaticMSAAFrame(
     triangleEmitter, candidateTilePlan, sortOpaqueFrontToBack, &binningSeconds);
   auto& metrics = const_cast<Rasterizer&>(rasterizer).m_lastMetrics;
   metrics.timings.tessellationTriangleEmissionSeconds +=
-    std::max(0.0, elapsedSeconds(collectStart, RasterClock::now()) - binningSeconds);
+    std::max(0.0, render::detail::secondsBetween(collectStart, RasterClock::now()) - binningSeconds);
   metrics.timings.tileBinningSeconds += binningSeconds;
   if (cancelled.load() || candidateSet.empty()) {
     lastResolvedQueueSize = 1;
@@ -1733,7 +1730,7 @@ void Rasterizer::Private::renderMSAAFullFrame(
   const auto resolveStart = RasterClock::now();
   resolveMSAA(buffer, pattern.count);
   const_cast<Rasterizer&>(rasterizer).m_lastMetrics.timings.msaaResolveSeconds +=
-    elapsedSeconds(resolveStart, RasterClock::now());
+    render::detail::secondsBetween(resolveStart, RasterClock::now());
 }
 
 void Rasterizer::Private::renderMSAATile(const Rasterizer& rasterizer,
@@ -1959,7 +1956,7 @@ void Rasterizer::Private::renderFrame(Rasterizer& rasterizer,
     renderSingleSampleFrame(rasterizer, scene, tilePlan, triangleEmitter, shadowMaps, renderClip,
                             cancelled, buffer, sampleOffset);
   }
-  const double rasterElapsed = elapsedSeconds(rasterStart, RasterClock::now());
+  const double rasterElapsed = render::detail::secondsBetween(rasterStart, RasterClock::now());
   const double nonRasterElapsed =
     rasterizer.m_lastMetrics.timings.tessellationTriangleEmissionSeconds +
     rasterizer.m_lastMetrics.timings.tileBinningSeconds +
@@ -1988,5 +1985,5 @@ void Rasterizer::Private::renderFrame(Rasterizer& rasterizer,
     }
   }
   rasterizer.m_lastMetrics.timings.postprocessSeconds +=
-    elapsedSeconds(postprocessStart, RasterClock::now());
+    render::detail::secondsBetween(postprocessStart, RasterClock::now());
 }

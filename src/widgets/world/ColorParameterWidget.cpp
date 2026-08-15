@@ -17,28 +17,6 @@ struct ColorParameterWidget::Private {
   QDoubleSpinBox* gEdit{nullptr};
   QDoubleSpinBox* bEdit{nullptr};
   QToolButton* selectorButton{nullptr};
-
-  QDoubleSpinBox* makeChannelEdit(QWidget* parent) const {
-    auto* edit = new QDoubleSpinBox(parent);
-    edit->setMinimumWidth(0);
-    edit->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
-    edit->setRange(0.0, 1000000.0);
-    edit->setDecimals(3);
-    edit->setSingleStep(0.01);
-    return edit;
-  }
-
-  void addChannelRow(QVBoxLayout* layout, const QString& name, QDoubleSpinBox* edit,
-                     QWidget* parent) const {
-    auto* row = new QHBoxLayout;
-    row->setContentsMargins(0, 0, 0, 0);
-    row->setSpacing(4);
-    auto* rowLabel = new QLabel(name, parent);
-    rowLabel->setFixedWidth(12);
-    row->addWidget(rowLabel);
-    row->addWidget(edit, 1);
-    layout->addLayout(row);
-  }
 };
 
 ColorParameterWidget::ColorParameterWidget(QWidget* parent)
@@ -51,9 +29,9 @@ ColorParameterWidget::ColorParameterWidget(QWidget* parent)
   p->label = new QLabel(this);
   p->label->setWordWrap(true);
   p->label->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
-  p->rEdit = p->makeChannelEdit(this);
-  p->gEdit = p->makeChannelEdit(this);
-  p->bEdit = p->makeChannelEdit(this);
+  p->rEdit = makeSpinBoxEdit(this, 0.0, 1000000.0, 3, 0.01);
+  p->gEdit = makeSpinBoxEdit(this, 0.0, 1000000.0, 3, 0.01);
+  p->bEdit = makeSpinBoxEdit(this, 0.0, 1000000.0, 3, 0.01);
   p->selectorButton = new QToolButton(this);
   p->selectorButton->setToolTip(tr("Select color"));
   p->selectorButton->setFixedSize(24, 20);
@@ -64,9 +42,9 @@ ColorParameterWidget::ColorParameterWidget(QWidget* parent)
   header->addWidget(p->label, 1);
   header->addWidget(p->selectorButton);
   layout->addLayout(header);
-  p->addChannelRow(layout, QStringLiteral("R"), p->rEdit, this);
-  p->addChannelRow(layout, QStringLiteral("G"), p->gEdit, this);
-  p->addChannelRow(layout, QStringLiteral("B"), p->bEdit, this);
+  addLabeledSpinBoxRow(layout, QStringLiteral("R"), p->rEdit, this);
+  addLabeledSpinBoxRow(layout, QStringLiteral("G"), p->gEdit, this);
+  addLabeledSpinBoxRow(layout, QStringLiteral("B"), p->bEdit, this);
 
   connect(p->rEdit, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this,
           &ColorParameterWidget::parameterChanged);

@@ -10,6 +10,7 @@
 #include "core/animation/AnimationTrack.h"
 #include "core/json/JsonValue.h"
 #include "core/math/Vector.h"
+#include "core/util/QStringUtil.h"
 #include "world/objects/Camera.h"
 #include "world/objects/Element.h"
 #include "world/objects/Light.h"
@@ -28,10 +29,6 @@ namespace {
 
   QString trackDescription(const world::AnimationTrack& track) {
     return QString("target '%1' property '%2'").arg(track.targetId(), track.propertyName());
-  }
-
-  std::invalid_argument invalidTrack(const QString& message) {
-    return std::invalid_argument(message.toStdString());
   }
 
   std::runtime_error evaluationError(const world::AnimationTrack& track, const QString& message) {
@@ -104,21 +101,21 @@ namespace {
   QString requiredString(const QJsonObject& json, const QString& name) {
     const auto value = json[name];
     if (!value.isString())
-      throw invalidTrack(QString("animation track field '%1' must be a string").arg(name));
+      throw invalidArgument(QString("animation track field '%1' must be a string").arg(name));
     const auto result = value.toString();
     if (result.isEmpty())
-      throw invalidTrack(QString("animation track field '%1' must not be empty").arg(name));
+      throw invalidArgument(QString("animation track field '%1' must not be empty").arg(name));
     return result;
   }
 
   int requiredFrame(const QJsonObject& json) {
     const auto value = json["frame"];
     if (!value.isDouble())
-      throw invalidTrack("animation key field 'frame' must be an integer");
+      throw invalidArgument("animation key field 'frame' must be an integer");
 
     const auto frame = value.toDouble();
     if (std::floor(frame) != frame)
-      throw invalidTrack("animation key field 'frame' must be an integer");
+      throw invalidArgument("animation key field 'frame' must be an integer");
 
     return static_cast<int>(frame);
   }
@@ -126,18 +123,18 @@ namespace {
   std::vector<world::AnimationKeyframe> readKeyframes(const QJsonObject& json) {
     const auto keysValue = json["keys"];
     if (!keysValue.isArray())
-      throw invalidTrack("animation track field 'keys' must be an array");
+      throw invalidArgument("animation track field 'keys' must be an array");
 
     std::vector<world::AnimationKeyframe> result;
     const auto keys = keysValue.toArray();
     result.reserve(static_cast<size_t>(keys.size()));
     for (const auto& keyValue : keys) {
       if (!keyValue.isObject())
-        throw invalidTrack("animation keys must be objects");
+        throw invalidArgument("animation keys must be objects");
 
       const auto key = keyValue.toObject();
       if (!key.contains("value"))
-        throw invalidTrack("animation key is missing field 'value'");
+        throw invalidArgument("animation key is missing field 'value'");
 
       result.push_back({requiredFrame(key), key["value"]});
     }

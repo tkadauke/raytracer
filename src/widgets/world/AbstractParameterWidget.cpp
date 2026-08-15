@@ -1,6 +1,11 @@
 #include "widgets/world/AbstractParameterWidget.h"
 #include "world/objects/Element.h"
 
+#include <QDoubleSpinBox>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QSizePolicy>
+#include <QVBoxLayout>
 #include <QVariant>
 
 struct AbstractParameterWidget::Private {
@@ -71,4 +76,28 @@ QString AbstractParameterWidget::displayNameForChoice(const QString& choice) con
 }
 
 void AbstractParameterWidget::updatePropertyConfiguration() {
+}
+
+QDoubleSpinBox* AbstractParameterWidget::makeSpinBoxEdit(QWidget* parent, double minimum,
+                                                         double maximum, int decimals,
+                                                         double singleStep) {
+  auto* edit = new QDoubleSpinBox(parent);
+  edit->setMinimumWidth(0);
+  edit->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
+  edit->setRange(minimum, maximum);
+  edit->setDecimals(decimals);
+  edit->setSingleStep(singleStep);
+  return edit;
+}
+
+void AbstractParameterWidget::addLabeledSpinBoxRow(QVBoxLayout* layout, const QString& name,
+                                                    QDoubleSpinBox* edit, QWidget* parent) {
+  auto* row = new QHBoxLayout;
+  row->setContentsMargins(0, 0, 0, 0);
+  row->setSpacing(4);
+  auto* rowLabel = new QLabel(name, parent);
+  rowLabel->setFixedWidth(12);
+  row->addWidget(rowLabel);
+  row->addWidget(edit, 1);
+  layout->addLayout(row);
 }

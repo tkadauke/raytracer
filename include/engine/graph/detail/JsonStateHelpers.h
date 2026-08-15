@@ -81,6 +81,12 @@ namespace engine::graph::detail {
     return !object.value(key).isUndefined();
   }
 
+  /// Clamps a level-of-detail value to the non-negative range shared by every
+  /// `setLod()` on the rasterizer/wireframe pass-state and options types.
+  [[nodiscard]] inline int clampedLod(int lod) {
+    return std::max(0, lod);
+  }
+
   template<typename Error>
   inline void rejectUnknownFields(const QJsonObject& object, const std::string& path,
                                   std::initializer_list<const char*> allowed, Error error) {
