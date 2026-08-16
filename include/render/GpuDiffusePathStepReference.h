@@ -20,6 +20,14 @@ class Buffer;
 namespace render {
   class Camera;
 
+  inline constexpr const char* compiledDiffusePathLoopDirectLightContributionFallbackReason() {
+    return "compiled CPU-reference path loop evaluates direct-light contribution on the host";
+  }
+
+  inline constexpr const char* compiledDiffusePathLoopResidentDirectLightUnavailableReason() {
+    return "compiled CPU-reference path loop resolves direct-light visibility on the host";
+  }
+
   struct GpuDiffusePathStepMetrics {
     std::string closestHitExecutionPath;
     std::string emissionExecutionPath;

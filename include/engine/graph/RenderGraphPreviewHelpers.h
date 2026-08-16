@@ -1,12 +1,19 @@
 #pragma once
 
 #include "core/Color.h"
+#include "engine/graph/RenderGraphTypes.h"
 
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <stdexcept>
+#include <string>
 
 namespace engine::graph {
+
+  inline std::runtime_error passError(const RenderPassNode& pass, const std::string& message) {
+    return std::runtime_error("pass '" + pass.id + "': " + message);
+  }
 
   inline double normalizedComponent(double value, double minimum, double maximum) {
     if (!std::isfinite(value)) {

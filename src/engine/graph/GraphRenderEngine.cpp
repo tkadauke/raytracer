@@ -3,6 +3,7 @@
 #include "core/Buffer.h"
 #include "core/util/BufferUtils.h"
 #include "engine/graph/RenderGraphArtifactCache.h"
+#include "engine/graph/RenderGraphPreviewHelpers.h"
 #include "engine/graph/RenderPassPayload.h"
 #include "engine/graph/RenderExecutionContext.h"
 #include "engine/graph/RenderGraphExecutionObserver.h"
@@ -159,10 +160,6 @@ namespace engine::graph {
       for (const auto& id : plan.externalInputResourceIds()) {
         bindings.bind(storage, id);
       }
-    }
-
-    std::runtime_error passError(const RenderPassNode& pass, const std::string& message) {
-      return std::runtime_error("pass '" + pass.id + "': " + message);
     }
 
     void requireColorResource(const RenderResourceStorage& storage,
