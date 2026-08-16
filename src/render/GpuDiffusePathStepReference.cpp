@@ -60,14 +60,6 @@ namespace {
            "batches on the host";
   }
 
-  constexpr const char* compiledDiffusePathLoopDirectLightContributionFallbackReason() {
-    return "compiled CPU-reference path loop evaluates direct-light contribution on the host";
-  }
-
-  constexpr const char* compiledDiffusePathLoopResidentDirectLightUnavailableReason() {
-    return "compiled CPU-reference path loop resolves direct-light visibility on the host";
-  }
-
   constexpr const char* compiledDiffusePathLoopBsdfEvalFallbackReason() {
     return "compiled CPU-reference path loop evaluates diffuse BSDFs on the host";
   }

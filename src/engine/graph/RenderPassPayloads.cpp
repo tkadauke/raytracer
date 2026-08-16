@@ -58,10 +58,6 @@
 
 namespace engine::graph {
   namespace {
-    std::runtime_error passError(const RenderPassNode& pass, const std::string& message) {
-      return std::runtime_error("pass '" + pass.id + "': " + message);
-    }
-
     void copyResolvedDisplayPixels(const std::vector<unsigned int>& pixels,
                                    Buffer<unsigned int>& target) {
       const std::size_t expectedPixelCount =
@@ -799,14 +795,6 @@ namespace engine::graph {
       return QStringLiteral("unknown");
     }
 
-    constexpr const char* compiledDiffusePathLoopDirectLightContributionFallbackReason() {
-      return "compiled CPU-reference path loop evaluates direct-light contribution on the host";
-    }
-
-    constexpr const char* compiledDiffusePathLoopResidentDirectLightUnavailableReason() {
-      return "compiled CPU-reference path loop resolves direct-light visibility on the host";
-    }
-
     bool compiledDiffusePathLoopExecutedWork(const std::string& executionPath) {
       return !executionPath.empty() && executionPath != "none";
     }
@@ -906,7 +894,8 @@ namespace engine::graph {
         loop.fullGpuPathLoopSupported() ||
             !compiledDiffusePathLoopExecutedWork(loop.metrics.directLightContributionExecutionPath)
           ? QString()
-          : QString::fromLatin1(compiledDiffusePathLoopDirectLightContributionFallbackReason());
+          : QString::fromLatin1(
+              render::compiledDiffusePathLoopDirectLightContributionFallbackReason());
       batching["intersectionBackendExecutionPath"] =
         QString::fromStdString(loop.metrics.closestHitExecutionPath);
       batching["intersectionBackendClosestHitExecutionPath"] =
@@ -927,7 +916,8 @@ namespace engine::graph {
         loop.fullGpuPathLoopSupported() ||
             !compiledDiffusePathLoopExecutedWork(loop.metrics.directLightVisibilityExecutionPath)
           ? QString()
-          : QString::fromLatin1(compiledDiffusePathLoopResidentDirectLightUnavailableReason());
+          : QString::fromLatin1(
+              render::compiledDiffusePathLoopResidentDirectLightUnavailableReason());
       batching["initialPathCount"] = static_cast<double>(loop.initialPathCount);
       batching["depthCount"] = static_cast<double>(loop.depthCount);
       batching["maxDepthTerminatedPaths"] = static_cast<double>(loop.maxDepthTerminatedPaths);
@@ -1650,7 +1640,7 @@ namespace engine::graph {
     private:
       void writePreview(const Buffer<double>& source, Buffer<Colord>& destination,
                         const RenderPassNode& pass) const {
-        if (source.width() != destination.width() || source.height() != destination.height()) {
+        if (!core::util::bufferDimensionsEqual(source, destination)) {
           throw passError(pass,
                           "sample standard-deviation visualization requires matching dimensions");
         }
@@ -1703,7 +1693,7 @@ namespace engine::graph {
     private:
       void writePreview(const Buffer<Colord>& source, Buffer<Colord>& destination,
                         const RenderPassNode& pass) const {
-        if (source.width() != destination.width() || source.height() != destination.height()) {
+        if (!core::util::bufferDimensionsEqual(source, destination)) {
           throw passError(
             pass, "color sample standard-deviation visualization requires matching dimensions");
         }

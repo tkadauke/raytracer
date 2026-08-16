@@ -891,8 +891,7 @@ namespace engine::graph {
     const auto& output = *colorOutputs.front();
     const Buffer<Colord>& inputPreview = input.colorPreview();
     const Buffer<Colord>& outputPreview = output.colorPreview();
-    if (inputPreview.width() != outputPreview.width() ||
-        inputPreview.height() != outputPreview.height()) {
+    if (!core::util::bufferDimensionsEqual(inputPreview, outputPreview)) {
       return {RenderGraphResourceDiff(input.resourceId(), output.resourceId(), nullptr, nullptr,
                                       "color previews have different dimensions")};
     }
