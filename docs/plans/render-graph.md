@@ -6,11 +6,19 @@
 >
 > **Status:** active and partially implemented. The first graph foundation,
 > whole-frame beauty execution, graph inspection/export, trace capture,
-> graph-backed raster shadows, AOV views, readback nodes, and several
-> composite/history-adjacent slices have landed. Remaining major work includes
-> scene-feature expansion, render-to-texture material consumption, portal and
-> mirror synthesis, selector-derived routing, concrete GPU-resident resources,
-> and motion-vector/history resources.
+> graph-backed raster shadows, AOV views, readback nodes, render-to-texture
+> subviews (including automatic portal and planar-mirror synthesis with
+> alternate-camera rendering, receiver-mask stencils, and composite passes),
+> selector-derived per-subtree routing, the parallel dependency-ready
+> scheduler, and several composite/history-adjacent slices have landed.
+> Remaining major work includes scene-feature expansion beyond
+> portals/mirrors/screens (reflection probes, SSR, decals, and similar),
+> selector-specific (non-automatic) render-to-texture subviews, real
+> GPU-resident resource execution (OpenGL-resident resource ownership exists,
+> but the graph's GPU-to-CPU readback pass still only copies already
+> CPU-materialized resources), and motion-vector/history resources (import
+> binding for History-lifetime resources exists, but there is no automatic
+> previous-frame capture yet).
 >
 > **Roadmap link:** implements the architecture sketched in
 > `docs/roadmap.md` section 4.1.a, "Render-pass graph and hybrid execution."
@@ -1514,9 +1522,9 @@ graph after a replacement render starts.
 
 ### Stencil/depth-aware composition
 
-Add stencil and depth resources to the graph, then implement portal and planar
-mirror raster previews through generated stencil, alternate-camera, and
-composite passes. ✅ **Partial.** CPU graph storage already owns depth and
+~~Add stencil and depth resources to the graph, then implement portal and
+planar mirror raster previews through generated stencil, alternate-camera, and
+composite passes.~~ ✅ **Done.** CPU graph storage already owns depth and
 stencil resources, and `GraphRenderEngine` can now execute built-in
 depth/stencil composite passes. A composite pass reads base color, foreground
 color, an optional base/foreground depth pair, and an optional stencil mask,
@@ -1530,9 +1538,25 @@ and tonemap from scene intent, and the Modeler ships with a loadable scene for
 that path. Whole-scene render-to-texture subviews now compile into independent
 prefixed offscreen color branches for graph inspection, raster subviews also
 export matching prefixed depth AOV resources, and render intent now sets an
-explicit render-to-texture recursion limit. Portal/mirror pass
-synthesis, alternate-camera rendering, subview sampling/composition, and
-selector-derived stencil masks remain TODO.
+explicit render-to-texture recursion limit.
+Portal and planar-mirror pass synthesis and alternate-camera rendering are also
+in place: a `world::Surface` tagged with `portalReceiverMarker` or
+`planarMirrorMarker` (`src/world/objects/Surface.cpp`) is picked up by
+`RenderSceneAnalysis::recordPortalReceiverSurface` /
+`recordPlanarMirrorSurface`, `RenderGraphCompiler` synthesizes a named subview
+branch per receiver (alternate-camera beauty pass, a raster receiver-mask AOV
+pass, and a stencil composite pass feeding the next branch's base color), and
+`GraphRenderEngine::cameraForPass` derives the actual portal-transformed or
+plane-reflected camera at execution time, in `RenderGraphCompiler.cpp` and
+`GraphRenderEngine.cpp` under `src/engine/graph/`.
+`RenderGraphCompilerTest.CompilesPortalAndMirrorMarkersAsDerivedCameraSubviews`
+and the `GraphRenderEngine` derived-camera tests pin the compiled shape and the
+camera math, and `scenes/render_graph_portal_demo.json` /
+`scenes/render_graph_planar_mirror_demo.json` compile and render end-to-end
+under `test/rendercli/RenderGraphOptionTest.cmake`. Selector-specific
+(non-automatic) render-to-texture subviews are still rejected until
+render-to-texture scene partitioning can honor arbitrary selectors during
+execution.
 
 ### AOV exports
 
@@ -1583,7 +1607,17 @@ and `ctest --preset release --output-on-failure`.
 ### History resources
 
 Add imported previous-frame resources for TAA, temporal denoising, motion blur,
-and reprojection experiments.
+and reprojection experiments. ⏳ **Partially done.**
+`RenderResourceLifetime::History` exists, and `GraphRenderEngine` can bind
+caller-supplied History-lifetime color/depth/stencil/object-id buffers before
+execution (the same mechanism covered by the Validation section's "imported
+resource not provided" note and rendercli's `--render_graph_color_in` /
+`--render_graph_depth_in` / `--render_graph_stencil_in` /
+`--render_graph_object_id_in` / `--render_graph_material_id_in` flags). What is
+still missing is automatic history: nothing in `GraphRenderEngine` captures the
+current frame's output and rolls it into the next frame's History inputs, so
+TAA/temporal-denoise/motion-blur/reprojection passes cannot consume real
+prior-frame data without a caller manually re-supplying it each render.
 
 ### GPU resource domains
 
@@ -1591,8 +1625,16 @@ Introduce GPU-backed resource storage and executor adapters after the CPU graph
 contracts are stable. GPU support should preserve the same high-level resource
 descriptors and pass dependencies. ✅ **Partial.** Passes now declare supported
 resource domains and a first-class readback pass kind exposes CPU/GPU transfer
-boundaries as graph nodes. Concrete GPU texture/renderbuffer ownership and
-OpenGL readback are still future work.
+boundaries as graph nodes. `RenderResourceStorage::bindOpenGLResource` /
+`openGLResource` and `engine::raster::detail::OpenGLRasterResource` now give
+`RenderResourceDomain::GPU` resources concrete texture/renderbuffer handle
+ownership tied to the raster GL context that created them, and raster subviews
+that select the OpenGL backend expose the resulting readback passes in the
+compiled and exported plan. Execution is still incomplete, though: the generic
+`ReadbackPass` payload (`src/engine/graph/RenderPassPayloads.cpp`) only copies
+an already CPU-materialized resource and throws `"... has no CPU buffer; GPU
+readback is not implemented yet"` otherwise, so an actual GPU-to-CPU pixel
+transfer for a GPU-resident-only resource is still future work.
 
 ## Open design questions
 

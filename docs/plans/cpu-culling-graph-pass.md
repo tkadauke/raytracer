@@ -202,8 +202,14 @@ Tasks:
 - Preserve reliable sidedness/winding facts from importers and tessellation. ✅
   **Partial.** The visibility pass now honors runtime material sidedness
   defaults when no explicit cull override is set, matching raster submission for
-  front/back/two-sided materials. Importer-authored winding reliability remains
-  TODO.
+  front/back/two-sided materials. LDraw imports carry a `WindingReliability` fact
+  (`include/core/geometry/MeshFaceMetadata.h`, set in
+  `src/core/formats/ldraw/LDrawGeometryCompiler.cpp`) that
+  `TriangleCullPolicy::shouldCull` (`src/engine/raster/RasterTriangleEmitter.cpp`)
+  consumes. glTF imports do not: `GltfSceneImporter.cpp` adds faces with no
+  winding-reliability metadata (defaulting to reliable) and only surfaces
+  `doubleSided` as an unsupported-feature warning instead of mapping it to
+  two-sided material sidedness.
 - ~~Detect negative-determinant transforms that flip winding for pass-state
   backface filtering.~~ ✅ **Done.** The first filtering path projects
   transformed leaf triangles before applying the same screen-space cull policy
@@ -224,7 +230,11 @@ Acceptance:
 
 - ~~Known one-sided opaque fixtures keep identical output and submit less work.~~ ✅ **Done.** `RasterVisibilityCullingPreservesOpaqueOutput` confirms zero differing pixels with culling enabled/disabled; `RasterVisibilityUsesMaterialSidednessForBackfaceRejection` pins that front-sided material rejects backface leaves and emits fewer submitted triangles.
 - ~~Two-sided, double-sided, and unknown-winding assets remain visible.~~ ✅ **Done.** `RasterVisibilityKeepsTwoSidedMaterialBackfacesVisible` pins zero backface-rejected leaves for two-sided and unknown-winding materials.
-- LDraw/glTF imported cases report whether sidedness was reliable.
+- LDraw/glTF imported cases report whether sidedness was reliable. ⏳
+  **Partially done.** LDraw is covered end-to-end (`WindingReliability` set by
+  `LDrawGeometryCompiler`, consumed by the visibility/raster cull policy, pinned
+  in `LDrawGeometryCompilerTest.cpp` and `RasterizerTest.cpp`). glTF imports
+  still report no sidedness-reliability signal at all.
 
 ## Phase 4 - tile-aware coarse occlusion
 
@@ -273,7 +283,12 @@ Tasks:
   shares material-sidedness-derived cullability facts and invalidates them when
   material sidedness changes; source/import provenance remains TODO.
 - Invalidate scene-side cache entries when geometry, transform, material,
-  visibility, animation frame, or import-generated output changes.
+  visibility, animation frame, or import-generated output changes. ⏳
+  **Partially done.** `RasterVisibilitySceneCache` fingerprints and invalidates
+  on primitive bounds/transform changes and on material-sidedness changes.
+  Animation-frame changes are only caught incidentally (through the transform/
+  bounds fingerprint they move), not as a first-class invalidation trigger, and
+  import-generated output regeneration is not yet tracked at all.
 - ~~Keep camera-dependent culling results per camera/frame/view pass, not
   global.~~ ✅ **Done.** Raster visibility-set artifacts are cached with the
   pass state, target descriptor, camera fingerprint, and transformed scene
@@ -285,10 +300,12 @@ Tasks:
 
 Acceptance:
 
-- Moving only the camera reuses scene acceleration data but recomputes the
-  camera visibility set.
-- Moving geometry invalidates the affected bounds.
-- Changing material sidedness/cull state invalidates cullability facts.
+- ~~Moving only the camera reuses scene acceleration data but recomputes the
+  camera visibility set.~~ ✅ **Done.** Pinned in `GraphRenderEngineTest.cpp`.
+- ~~Moving geometry invalidates the affected bounds.~~ ✅ **Done.** Pinned in
+  `RasterVisibilitySceneCacheTest.cpp`.
+- ~~Changing material sidedness/cull state invalidates cullability facts.~~ ✅
+  **Done.** Also pinned in `RasterVisibilitySceneCacheTest.cpp`.
 
 ## Modeler and rendercli surfaces
 
@@ -344,8 +361,12 @@ Required coverage:
 - ~~rendercli functional test for offscreen geometry culling;~~ ✅ **Done.**
   Phase 1 acceptance: rendercli functional tests cover a generated offscreen
   geometry fixture and assert graph trace reports a frustum-rejected leaf.
-- graph compiler tests proving intent synthesizes the culling pass rather than
-  requiring direct node authoring;
+- ~~graph compiler tests proving intent synthesizes the culling pass rather than
+  requiring direct node authoring;~~ ✅ **Done.**
+  `RenderGraphCompilerTest.cpp` (`RasterVisibilityCullingOptionAddsVisibilityDependency`
+  and neighboring cases) compiles a render intent and asserts the visibility
+  pass/resource are synthesized; there is no direct/manual node-authoring API
+  for this pass.
 - ~~raster output parity tests for opaque scenes with culling enabled/disabled;~~
   ✅ **Done.** Phase 1 acceptance: unit coverage compares graph raster output
   with and without visibility culling for an opaque offscreen-leaf scene.

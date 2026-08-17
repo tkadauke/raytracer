@@ -12,7 +12,7 @@
 - **Replace vendored gtest/gmock (circa 2005-era headers) with GoogleTest 1.14 via CMake FetchContent** — removes ~3 MB of checked-in test framework code, enables upstream bug fixes, and unlocks modern test runners.
 - **Add a GitHub Actions CI pipeline** — there is zero CI today; every defect is detected manually. A working matrix build (GCC 13, Clang 18, macOS/arm64) with caching and coverage upload is achievable in a single sprint.
 - **Harden the supply chain** — no Dependabot, no SBOM, no SAST, no secret scanning. Enable all four in one afternoon; they are free for public repos.
-- **Replace Qt 4 with Qt 6** — Qt 4 reached end-of-life in December 2015. The codebase has already moved to Qt 5 paths in the Rakefile (`QT_BASE` points to a Qt5 Homebrew prefix); completing the move to Qt 6 eliminates a decade of unpatched CVEs.
+- ~~**Replace Qt 4 with Qt 6** — Qt 4 reached end-of-life in December 2015. The codebase has already moved to Qt 5 paths in the Rakefile (`QT_BASE` points to a Qt5 Homebrew prefix); completing the move to Qt 6 eliminates a decade of unpatched CVEs.~~ ✅ **Done.** `4528a62b` ("Migrate from Qt 5 / QtScript to Qt 6 / QJSEngine", 2026-05-05) landed this — `CMakeLists.txt` now does `find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Qml OpenGL)` and `ScriptedSurface` uses `QJSEngine` in place of the removed `QScriptEngine`. This predates this file's last edit (`e203081a`, 2026-07-27) but was never reflected in the Current State table or §3.2/§4 below — corrected throughout this pass.
 
 ---
 
@@ -21,22 +21,22 @@
 | Dimension | Current |
 |---|---|
 | Language standard | C++17 (`-std=c++17` in CMakeLists.txt) |
-| Compiler | `g++` / `clang++` (selected per CMake preset) |
-| Build system | CMake 3.28+ with Ninja (`CMakePresets.json`); Rakefile kept as thin project-utility layer |
-| CI | Syrus-native graders (`build-test`, `benchmark-build`, `textbook`, `coverage`) per `.syrus.yml`; GitHub Actions parked in `docs/plans/github_actions/` |
+| Compiler | `g++` / `clang++` (selected per CMake preset); Syrus CI worker pins `g++-12` on cmake 3.25 (see §3.1) |
+| Build system | CMake 3.25+ with Ninja (`CMakePresets.json`, `cmakeMinimumRequired` 3.25.0); Rakefile kept as thin project-utility layer |
+| CI | Syrus-native graders (`coverage`, `opengl-egl`, `benchmark-build`, `textbook`) per `.syrus.yml`; GitHub Actions parked in `docs/plans/github_actions/`. The old `build-test` grader was removed and folded into `coverage`, and an `opengl-egl` lane was added (`cb63d5ce`, 2026-07-27, same day as but after this file's prior edit) |
 | Test framework | GoogleTest 1.14 + GoogleMock via CMake `FetchContent` (vendored `gtest/` and `gmock/` directories removed) |
-| Test count | 138 test files across unit and functional suites |
-| GUI toolkit | Qt 5 (CMakeLists.txt targets Qt5; `QTSCRIPT` dependency tracked) — README updated to reflect CMake and Qt5 |
+| Test count | 313 test files across unit and functional suites (273 unit + 40 functional; `find test -name '*Test.cpp' \| wc -l`) — well above the previously recorded 138; that count was already stale (312 at this file's last edit, `e203081a`) and had not been refreshed |
+| GUI toolkit | Qt 6 (`CMakeLists.txt` targets `Qt6` — Core, Gui, Widgets, Qml, OpenGL; `QtScript` replaced by `QJSEngine`) — README and CLAUDE.md's tech-stack summary have not fully caught up (CLAUDE.md's "Qt 5 ... QtScript" line is stale; out of scope for this file) |
 | Static analysis | `cppcheck` (invoked via `rake check:cpp`); suppression list uses project-relative paths |
 | Coverage | `lcov` + `genhtml`, via `cmake --preset coverage`; `gcovr` adopted — 60% line-coverage floor enforced in Syrus CI via `.syrus.yml` `coverage` grader |
 | Documentation | Doxygen (`Doxyfile` present, output not committed) |
-| Container | Multi-stage `Dockerfile` for headless `rendercli` (distroless runtime) |
+| Container | Multi-stage `Dockerfile` for headless `rendercli` (distroless runtime, `gcr.io/distroless/cc-debian12:nonroot`) |
 | SBOM / SCA | None |
 | SAST | None (CodeQL parked — GitHub billing blocked) |
 | Dependabot | None (parked — GitHub billing blocked) |
 | Secret scanning | None (parked) |
-| pre-commit hooks | `.pre-commit-config.yaml` present (`clang-format` + `clang-tidy`) |
-| CLAUDE.md | Present and accurate |
+| pre-commit hooks | `.pre-commit-config.yaml` present — generic hygiene hooks (trailing-whitespace, EOF, merge-conflict markers, YAML/JSON validity) + `clang-format` (auto-fix mode). **No `clang-tidy` hook** — see §3.10 note |
+| CLAUDE.md | Present; mostly accurate but its Qt version references are stale (still describes Qt 5/QtScript — see §3.11 note) |
 
 **Key observations:**
 
@@ -46,7 +46,7 @@
    `include/core/color/sse3/`, packet traversal, and matrix hot paths are gated
    through `include/core/SimdFeatures.h` project macros, with regression tests
    covering the current SSE/SSE3 selections.
-4. There is only one commit in the visible log, so git history depth is shallow; this is likely a mirror rather than the full history.
+4. ~~There is only one commit in the visible log, so git history depth is shallow; this is likely a mirror rather than the full history.~~ ✅ **Resolved.** No longer true — `git log --oneline | wc -l` now reports 2,490 commits; the clone has full history depth.
 
 ---
 
@@ -71,7 +71,7 @@
 
 4. Replace manual `typedef` aliases throughout `include/` with `using` declarations.
 5. Switch `DivisionByZeroException` to inherit from `std::exception` and use `std::expected<T, E>` at call sites where the current design throws into template-heavy paths (the renderer hot loop should never throw; push exceptions to the boundary).
-6. Pin the compiler in CI: `gcc-13` and `clang-18` packages on Ubuntu 24.04.
+6. Pin the compiler in CI: `gcc-13` and `clang-18` packages on Ubuntu 24.04. Not done — the Syrus worker pod currently bakes in `g++-12` only (single compiler, per `.syrus.yml`/`docs/plans/github_actions/README.md`), one major version behind this target.
 
 **Minimum compiler matrix:**
 
@@ -85,7 +85,7 @@
 
 ### 3.2 Dependencies
 
-**Current state:** No package manager. GoogleTest and GoogleMock are vendored as raw source. Qt is consumed from a hardcoded Homebrew prefix.
+**Current state:** No package manager. GoogleTest and GoogleMock are vendored as raw source (see item 1, done). Qt 6 (already migrated — see Executive Summary) is consumed via system `find_package(Qt6 ...)`, with an auto-detected Homebrew prefix on macOS (`brew --prefix qt`) rather than a hardcoded path.
 
 **Recommendations:**
 
@@ -101,7 +101,7 @@
    FetchContent_MakeAvailable(googletest)
    ```
 
-2. **Adopt vcpkg or Conan for Qt 6.** Both integrate cleanly with CMake and produce reproducible builds without hardcoded paths. vcpkg is recommended because of its first-class GitHub Actions integration and manifest mode (`vcpkg.json`).
+2. **Adopt vcpkg or Conan for Qt 6.** ⏳ **Partially done.** The Qt 6 migration itself landed (`4528a62b`) without a package manager — Qt 6 is located via system `find_package(Qt6 ...)` (auto-detected Homebrew prefix on macOS, `apt` packages on Linux). vcpkg/Conan adoption for reproducible, pinned Qt builds remains outstanding. Both integrate cleanly with CMake and produce reproducible builds without hardcoded paths. vcpkg is recommended because of its first-class GitHub Actions integration and manifest mode (`vcpkg.json`).
 
    ```json
    {
@@ -135,7 +135,7 @@
 
 ### 3.3 Build System
 
-~~**Replace Rake with CMake 3.28.**~~ ✅ **Done.** `CMakeLists.txt` and `CMakePresets.json` are now the primary build surface; `cmake --preset release`, `cmake --preset debug`, `cmake --preset asan`, `cmake --preset coverage`, `cmake --preset fuzz`, and `cmake --preset benchmark` all work. The Rakefile is kept as a thin project-utility layer (`rake build` / `rake release` / `rake test` / `rake check:cpp` / `rake docs:render`).
+~~**Replace Rake with CMake 3.28.**~~ ✅ **Done** (floor later lowered to 3.25 — see note). `CMakeLists.txt` and `CMakePresets.json` are now the primary build surface; `cmake --preset release`, `cmake --preset debug`, `cmake --preset asan`, `cmake --preset coverage`, `cmake --preset fuzz`, `cmake --preset benchmark`, and `cmake --preset mutation` all work. The Rakefile is kept as a thin project-utility layer (`rake build` / `rake release` / `rake test` / `rake check:cpp` / `rake docs:render`). **Note:** `a6ac62c3` ("Fix CI: lower cmake requirement to 3.25", 2026-05-18) dropped `cmake_minimum_required`/`cmakeMinimumRequired` from 3.28 to 3.25 because the Syrus CI worker ships cmake 3.25 and nothing in the build actually required a 3.28 feature — the skeleton and prose below still say 3.28 and are aspirational, not the live floor.
 
 The Rake build is not portable (macOS-only path assumptions, Ruby dependency, manual `.moc`/`.uic` invocation). CMake is the industry standard for C++ libraries, is understood by CLion, VS Code CMake Tools, Xcode, and Visual Studio, and handles Qt's `AUTOMOC`/`AUTOUIC` automatically.
 
@@ -217,13 +217,13 @@ feature macros.
    )
    ```
 
-5. **Mutation testing with `mull-runner`** (LLVM-based). Run quarterly, not on every PR — it is slow but reveals gaps in test assertions. Target the `include/core/math/` directory first.
+5. **Mutation testing with `mull-runner`** (LLVM-based). Run quarterly, not on every PR — it is slow but reveals gaps in test assertions. Target the `include/core/math/` directory first. ⏳ **Partially done.** `b10778e0` ("ci: wire mutation testing via mull, closes #28", 2026-05-02) added the `RAYTRACER_ENABLE_MUTATION` CMake option (`-fpass-plugin=$MULL_PLUGIN -O0 -g`, Clang-only), a `mutation` CMake preset, and `mull.yml` scoping the run to `include/core/math/` + `src/core/math/` (SSE3 specializations excluded as fragile-mutant sources). The actual monthly cron job (`docs/plans/github_actions/mutation.yml`) is parked with the rest of GitHub Actions — Syrus has no cron-equivalent trigger, so mutation runs currently have to be kicked off manually with `cmake --preset mutation` + `mull-runner`.
 
 ---
 
 ### 3.4.a Functional test infrastructure
 
-**Current state:** `test/functional/` has 91 tests across 35 files driven by a custom Given/When/Then framework (`test/functional/support/FeatureTest.h` + the `GIVEN/WHEN/THEN` macros in `GivenWhenThen.h`). Reads like English; three rough edges:
+**Current state:** `test/functional/` has 114 `TEST_F` cases across 40 `*Test.cpp` files (up from the 91/35 recorded here previously — that count was already stale at this file's last edit) driven by a custom Given/When/Then framework (`test/functional/support/FeatureTest.h` + the `GIVEN/WHEN/THEN` macros in `GivenWhenThen.h`). Reads like English; three rough edges:
 
 1. **String-keyed step lookup at runtime.** Step names live in a `std::map<std::string, Step*>` populated at static-init time by `bool dummy = registerGiven(...)` initialisers. A typo or stale copy-paste prints `WARNING: 'given' step '...' is not defined!` to `stderr` but the `TEST_F` reports green. Real silent-failure path — invisible in CI summaries.
 2. **Hardcoded to one engine.** `RaytracerFeatureTest::render()` always constructs `engine::raytracer::Raytracer`. The Wireframe engine has only unit tests today; future path tracer / software rasterizer / GL viewport will too unless the fixture grows engine pluralism.
@@ -231,7 +231,7 @@ feature macros.
 
 **Coverage gaps from recent work:**
 
-- `ThinLensCamera`, `TiltShiftCamera`, `EquirectangularCamera` — no functional tests (units exist).
+- ~~`ThinLensCamera` — no functional tests (units exist).~~ ✅ **Done.** See `ThinLensCameraTest.FocalPlaneContractSharpVsBlurred` under item E below. `TiltShiftCamera`, `EquirectangularCamera` — still no functional tests (units exist).
 - `MatteMaterial`, `PhongMaterial` — no functional tests (Reflective + Portal do).
 - `LinearTonemap` / `ReinhardTonemap` / `AcesTonemap` — none.
 - `JitteredSampler` / `RegularSampler` / `RandomSampler` — none at integration level.
@@ -253,23 +253,22 @@ The original plan was to drop the macros and convert step bodies into named prot
 
 Existing 91 functional tests didn't need any migration — none of their step strings contain regex metacharacters, so they match as literals against the same input. New `FeatureTestSelfTest.cpp` pins the regex-capture, missing-step, and ambiguity behaviours (7 tests).
 
-#### B. Parameterise the fixture over engine type *(~3 days)*
+#### B. ~~Parameterise the fixture over engine type~~ ✅ **Done** (design pivoted, same outcome) *(~3 days)*
 
-- Rename `RaytracerFeatureTest` to `EngineFeatureTest<Engine>`. Engine type becomes the template parameter; the constructor news up `std::make_shared<Engine>(scene, camera)` instead of hardcoded `Raytracer`.
-- Existing tests where the assertion only makes sense for a raytracer — recursion, TIR, ambient lighting, soft shadows, recursive reflections, transparency — keep raytracer-specific assertions and explicit `EngineFeatureTest<Raytracer>` instantiation.
-- Tests for *engine-agnostic* properties — primitive visibility, camera framing, view-frustum culling, per-primitive sphere/box/torus visibility — become typed tests via `TYPED_TEST_SUITE_P`, instantiated for both `Raytracer` and `Wireframe`.
-- Assertion adapter: a virtual `objectVisible() / objectSize()` per engine. `Raytracer` overload counts shaded red pixels (current behaviour); `Wireframe` overload counts edge-colour pixels and runs `ShapeRecognition` for silhouette shape.
+The original plan was a CRTP `EngineFeatureTest<Engine>` template with `TYPED_TEST_SUITE_P` instantiation. The shipped design instead makes `testing::EngineFeatureTest` (`test/functional/support/EngineFeatureTest.h`) an abstract base with a virtual `createEngine()` hook and virtual `primaryColor()/objectVisible()/objectSize()` assertion adapters; `RaytracerFeatureTest` and `WireframeFeatureTest` are concrete subclasses that plug in `engine::raytracer::Raytracer` / `engine::wireframe::Wireframe` respectively. `GIVEN/WHEN/THEN` steps register against `EngineFeatureTest` directly (one shared registry, e.g. `BoxSteps.cpp`'s `"i should see the box"` uses the engine-agnostic `ShapeClassifier`), so the same step text drives both engines without duplicated test files — the goal of the original plan, achieved through runtime dispatch rather than a template parameter (consistent with the project's "templates over virtual dispatch" philosophy being about the *math/hot-path* layer, not test fixtures).
 
-**Why:** "respect the new multi-engine world" concretely means a `Sphere` test should pass on Raytracer (red shaded sphere) AND Wireframe (recognisable circle of silhouette edges) without two parallel test files.
+**Why:** "respect the new multi-engine world" concretely means a `Sphere` test should pass on Raytracer (red shaded sphere) AND Wireframe (recognisable circle of silhouette edges) without two parallel test files. Confirmed in `SphereSteps.cpp` (`ShapeClassifier::isCircle`) and `BoxSteps.cpp` (`ShapeClassifier::isRectangle`), both registered against `EngineFeatureTest`.
 
-#### C. Wireframe functional coverage *(~1 day, builds on B)*
+#### C. ~~Wireframe functional coverage~~ ✅ **Done** *(~1 day, builds on B)*
 
-- Empty scene → buffer matches background everywhere.
-- Sphere → `ShapeRecognition::recognizeCircle` passes on the silhouette.
-- Box → recognisable rectangular outline.
-- LOD knob: higher LOD strictly increases edge-pixel count for a Sphere (Box is LOD-invariant).
-- Camera-frustum culling: behind-camera primitives produce no edges.
-- Cancel-during-render: pre-cancel produces only the cleared background.
+`test/functional/engine/wireframe/WireframeTest.cpp` covers:
+
+- ~~Empty scene → buffer matches background everywhere.~~ `WireframeEmptyTest.EmptySceneRendersBackgroundOnly`.
+- ~~Sphere → `ShapeRecognition::recognizeCircle` passes on the silhouette.~~ `WireframeSphereTest.ShouldBeVisibleInFrontOfTheCamera` via the shared `"i should see the sphere"` step (`ShapeClassifier::isCircle`, post-item-G naming).
+- ~~Box → recognisable rectangular outline.~~ `WireframeBoxTest.ShouldBeVisibleInFrontOfTheCamera` via `"i should see the box"` (`ShapeClassifier::isRectangle`).
+- ~~LOD knob: higher LOD strictly increases edge-pixel count for a Sphere (Box is LOD-invariant).~~ `WireframeLodTest.SphereEdgeCountIncreasesWithLod`.
+- ~~Camera-frustum culling: behind-camera primitives produce no edges.~~ `WireframeSphereTest.ShouldNotBeVisibileOutsideOfViewFrustum` / `ShouldNotBeVisibileBehindTheCamera`, `WireframeBoxTest.ShouldNotBeVisibileBehindTheCamera`.
+- ~~Cancel-during-render: pre-cancel produces only the cleared background.~~ `WireframeCancelTest.PreCancelProducesOnlyBackground`.
 
 #### E. Cover the new-abstraction surface *(~3 days)*
 
@@ -277,7 +276,7 @@ Existing 91 functional tests didn't need any migration — none of their step st
 - ~~**ThinLensCamera focus-plane invariant** — "a sphere on the focus plane is sharp; an off-plane sphere is blurred" via `ShapeRecognition` edge-pixel-density delta.~~ ✅ **Done.** `ThinLensCameraTest.FocalPlaneContractSharpVsBlurred` compares focused vs. defocused silhouette edge-transition counts.
 - **TiltShiftCamera + EquirectangularCamera** — visibility + framing tests at parity with `PinholeCamera`.
 - ~~**Tonemap monotonicity** — render the same HDR scene through `LinearTonemap` / `ReinhardTonemap` / `AcesTonemap`, assert the max LDR pixel value ordering across the built-in operators.~~ ✅ **Done.** PR #58 adds `TonemapMonotonicityTest` for an HDR Lambertian render; the shipped Narkowicz ACES fit has brighter midtones than Reinhard, so the pinned max-channel order is `Linear ≥ ACES ≥ Reinhard`.
-- **Sampler determinism** — `RegularSampler` produces bit-identical output across runs for a deterministic scene; `JitteredSampler` produces statistically-uniform sub-pixel coverage (test the histogram, not the bytes); `RandomSampler` differs across runs at fixed seed only when re-seeded.
+- **Sampler determinism** ⏳ **Partially done.** `test/functional/render/samplers/SamplerDeterminismTest.cpp` pins `RegularSampler` bit-identical re-renders and a seeded `RandomSampler` bit-identical re-render (`SamplerDeterminismTest.RegularSamplerProducesBitIdenticalRenders` / `SeededRandomSamplerProducesBitIdenticalRenders`). Still missing: `JitteredSampler`'s statistically-uniform sub-pixel coverage (histogram test, not bit-exact).
 - ~~**PointLight shadow boundary** — shadow edge falls at the geometrically expected angle for a known-position light + occluder.~~ ✅ **Done.** PR #57 adds `PointLightTest.ShadowBoundaryFallsAtGeometricallyPredictedLocation`, sampling just inside and outside the tangent-predicted boundary.
 - **BSDF integration smoke** — render the canonical Reflective + Transparent scenes via the post-§3.R6 paths, expect outputs identical to the pre-R6 baseline within sampler tolerance.
 
@@ -301,7 +300,7 @@ Side effect of the replacement: nine functional tests that had been silently pas
 
 Hu moments, Fourier descriptors, Hough Circle Transform, and friends queued in roadmap §4.11.d for follow-up educational additions.
 
-**Total:** ~11–12 days, interleaves with feature work. F → A → B unblocks C, E, D in parallel.
+**Total:** ~11–12 days, interleaves with feature work. F → A → B unblocks C, E, D in parallel. F, A, B, and C are now done; remaining open work is the rest of item E (TiltShiftCamera/EquirectangularCamera coverage, JitteredSampler histogram test, BSDF integration smoke) and item D (reference-image regression tests).
 
 **Cross-references:**
 
@@ -312,7 +311,7 @@ Hu moments, Fourier descriptors, Hough Circle Transform, and friends queued in r
 
 ### 3.5 CI/CD
 
-**Current state:** No CI whatsoever.
+**Current state:** No longer "no CI whatsoever" — this line predates the Syrus-native graders described in §2 and §4 and was never updated when they landed. Today `.syrus.yml` runs `coverage` (build + ctest + 60% line-coverage floor), `opengl-egl` (dedicated EGL/Mesa lane), `benchmark-build` (compile-only), and `textbook` (docs drift check) on every implement→grade iteration, Linux x86_64 only. The GitHub Actions workflow below — build matrix across OS/compiler, pinned SHAs, OIDC artifact signing, vcpkg caching — remains undone; GitHub Actions itself is parked repo-wide because billing is blocked on the account (`6323011a`), with the six parked workflow files plus `dependabot.yml` preserved byte-identical under `docs/plans/github_actions/` for restoration. See that directory's README for the full migrated/parked breakdown.
 
 **Target:** GitHub Actions with a build matrix, pinned action SHAs, caching, coverage upload, and artifact signing.
 
@@ -419,7 +418,7 @@ This is a library and offline renderer — traditional application observability
 
 1. **Rendering progress events.** The tile-based parallel renderer should expose a callback or observer interface for progress reporting. The current `Modeler` GUI polls render progress; an event-driven design makes headless rendering scriptable.
 
-2. **Performance counters.** Add optional compile-time instrumentation (gated on `RAYTRACER_ENABLE_STATS`) to count ray-box, ray-sphere intersection calls, BVH traversal steps, and cache misses per render. Output as JSON to stderr. This is lightweight and enables regression detection without a full OpenTelemetry SDK.
+~~2. **Performance counters.** Add optional compile-time instrumentation (gated on `RAYTRACER_ENABLE_STATS`) to count ray-box, ray-sphere intersection calls, BVH traversal steps, and cache misses per render. Output as JSON to stderr. This is lightweight and enables regression detection without a full OpenTelemetry SDK.~~ ✅ **Done** (cache misses deliberately excluded). `RAYTRACER_ENABLE_STATS` CMake option (`CMakeLists.txt`, comment explicitly cites "modernize.md §3.7") gates `include/render/Stats.h`/`src/render/Stats.cpp`: relaxed-atomic counters for `raySphereIntersect(s)`, `rayBoxIntersects`, and `gridTraversalSteps`, reset at the start of each render and dumped as a single-line JSON object to stderr at the end (`Counters::dumpJson`); wired into `Raytracer.cpp` and `WavefrontRaytracer.cpp`. Cache-miss counting was scoped out on purpose — the header notes it needs `perf_event_open`/`kperf` and platform-specific privileges, and points users at `perf stat` instead.
 
 3. **OpenTelemetry** is out of scope for a library of this nature. Skip it.
 
@@ -497,7 +496,7 @@ ENTRYPOINT ["/usr/local/bin/rendercli"]
 
 ~~1. **Dev container (`.devcontainer/devcontainer.json`).** A pre-built dev container eliminates the "works on my Mac" Qt path problem entirely.~~ ✅ **Done.** `.devcontainer/devcontainer.json` and `.devcontainer/install.sh` are checked in.
 
-~~2. **pre-commit hooks.** Add `.pre-commit-config.yaml`:~~ ✅ **Done.** `.pre-commit-config.yaml` is checked in with `clang-format` and `clang-tidy` hooks.
+~~2. **pre-commit hooks.** Add `.pre-commit-config.yaml`:~~ ✅ **Done** (clang-format only — see correction below). `.pre-commit-config.yaml` (`87dcaf22`, 2026-05-02) is checked in with generic hygiene hooks plus `clang-format`. **Correction:** the "Done" note previously claimed a `clang-tidy` hook too, but `87dcaf22` never added one — `.clang-tidy` exists as a standalone config (used manually / by IDEs; CI lint job is parked, §3.6) but is not wired into `pre-commit`. If `pocc/pre-commit-hooks`' `clang-tidy` hook is still wanted, it remains genuinely unimplemented, not just miscategorized.
 
    ```yaml
    repos:
@@ -531,12 +530,13 @@ ENTRYPOINT ["/usr/local/bin/rendercli"]
 
 ### 3.11 AI / Agent Readiness
 
-**CLAUDE.md is present and accurate.** This is the most important prerequisite for agent-driven development — most repos lack it entirely. The current file correctly:
+**CLAUDE.md is present, mostly accurate, but has drifted on one point.** ⏳ **Partially accurate.** This is the most important prerequisite for agent-driven development — most repos lack it entirely. The current file correctly:
 
-- Describes the tech stack and directory layout
 - Lists working build/test commands
-- States what agents should avoid (adding CMake alongside Rake without consensus, vendoring more libs, adding Qt 4 code)
+- States what agents should avoid (vendoring more libs, adding Qt 4 code, introducing `virtual` hierarchies in math/hot-path code)
 - Calls out SSE3 benchmark requirements
+
+But its "Tech Stack" section still describes `QtCore, QtGui, QtWidgets, QtScript` for Qt 5 with "Qt 6 migration is on the modernization roadmap (`docs/modernize.md` §3.10)" — the Qt 6 migration landed months ago (`4528a62b`, see Executive Summary) and `QtScript` was replaced by `QJSEngine`; the "Notes / Gotchas" section similarly still describes Homebrew Qt 5 auto-detection and `qtscript5-dev`/`qtbase5-dev` apt packages. (This file only edits `docs/modernize.md` per its operating instructions — flagging here rather than fixing `CLAUDE.md` directly.)
 
 ~~**Remaining gaps to address:**~~
 
@@ -568,13 +568,13 @@ ENTRYPOINT ["/usr/local/bin/rendercli"]
 | ~~P1~~ | ~~Add devcontainer definition~~ ✅ **Done** | ~~S (half day)~~ | ~~Medium — eliminates Qt path setup friction for new contributors~~ |
 | ~~P1~~ | ~~Update README (Qt 4 → Qt 6, Rake → CMake)~~ ✅ **Done** | ~~S (1 hour)~~ | ~~Medium — reduces contributor confusion~~ |
 | P1 | Enable Dependabot for GitHub Actions | S (30 min) | Medium — keeps action SHAs current automatically; blocked on GitHub billing |
-| P2 | Migrate from Qt 5.15 to Qt 6.7 | L (3–5 days) | High — Qt 5 EOL 2026; security exposure grows monthly |
+| ~~P2~~ | ~~Migrate from Qt 5.15 to Qt 6.7~~ ✅ **Done** (`4528a62b`; `find_package(Qt6 ...)`, `QtScript`→`QJSEngine`; version pinned to system/Homebrew Qt 6, not specifically 6.7) | ~~L (3–5 days)~~ | ~~High — Qt 5 EOL 2026; security exposure grows monthly~~ |
 | ~~P2~~ | ~~Add PLY fuzz target (LibFuzzer)~~ ✅ **Done** | ~~M (2 days)~~ | ~~High — only untrusted input surface~~ |
 | ~~P2~~ | ~~Add Google Benchmark microbenchmark suite~~ ✅ **Done** | ~~M (2–3 days)~~ | ~~Medium — codifies the CPU SIMD performance contract~~ |
 | P2 | Generate and publish SBOM (`syft`) on release | S (half day) | Medium — supply chain hygiene, increasingly required |
 | ~~P2~~ | ~~Multi-stage Dockerfile + publish to ghcr.io~~ ✅ **Done** (Dockerfile present; ghcr.io publishing parked) | ~~M (1–2 days)~~ | ~~Low-Medium — useful for headless/cloud rendering workflows~~ |
 | P2 | Doxygen → GitHub Pages publishing in CI | S (1 day) | Low — nice to have; docs already exist in Doxyfile; parked pending GitHub Pages hosting |
-| P2 | Mutation testing with `mull-runner` | L (3+ days) | Low — high effort, useful for identifying test gaps quarterly; parked |
+| P2 | Mutation testing with `mull-runner` | L (3+ days) | Low — high effort, useful for identifying test gaps quarterly; ⏳ **partially done** — `RAYTRACER_ENABLE_MUTATION` CMake option + `mutation` preset + `mull.yml` shipped (`b10778e0`), but the monthly cron job is parked (no Syrus cron equivalent), so it doesn't run automatically |
 
 **Effort key:** S = small (<1 day), M = medium (1–3 days), L = large (3–5+ days)
 
