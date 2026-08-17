@@ -1,5 +1,6 @@
 #include "world/objects/ElementFactory.h"
 #include "world/objects/PortalMaterial.h"
+#include "world/objects/TransformComposition.h"
 
 #include "render/materials/PortalMaterial.h"
 
@@ -18,7 +19,7 @@ std::shared_ptr<render::Material> PortalMaterial::toRaytracerMaterial() const {
 }
 
 Matrix4d PortalMaterial::portalTransform() const {
-  return Matrix4d::translate(position()) * Matrix3d::rotate(rotation()) * Matrix3d::scale(scale());
+  return composePositionRotationScale(position(), rotation(), scale());
 }
 
 static bool dummy = ElementFactory::self().registerClass<PortalMaterial>("PortalMaterial");

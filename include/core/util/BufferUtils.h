@@ -30,4 +30,17 @@ namespace core::util {
         target[y][x] = source[y][x];
   }
 
+  // Returns a heap-allocated copy of buffer, unless it is smaller than
+  // minWidth x minHeight, in which case it returns nullptr. Buffer is
+  // non-copyable, so the copy is returned via unique_ptr rather than by value.
+  template<class T>
+  std::unique_ptr<Buffer<T>> copyBufferIfAtLeast(const Buffer<T>& buffer, int minWidth,
+                                                 int minHeight) {
+    if (buffer.width() < minWidth || buffer.height() < minHeight)
+      return nullptr;
+    auto source = std::make_unique<Buffer<T>>(buffer.width(), buffer.height());
+    copyBuffer(*source, buffer);
+    return source;
+  }
+
 }

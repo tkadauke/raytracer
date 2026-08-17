@@ -383,7 +383,7 @@ namespace {
       }
       std::cout
         << " sampling_seed=" << compactValue(input.value("samplingSeed"), "none")
-        << " sample_stream_mode=" << compactTextValue(input.value("sampleStreamMode"), "unknown")
+        << " sample_stream_mode=" << compactSummaryText(input.value("sampleStreamMode"), "unknown")
         << " total_ms=" << timings.value("totalRenderSeconds").toDouble() * 1000.0
         << " sample_gen_worker_ms="
         << timings.value("sampleGenerationWorkerSeconds").toDouble() * 1000.0
@@ -418,12 +418,12 @@ namespace {
         << " integrator=" << batching.value("integrator").toString().toStdString()
         << " execution=" << batching.value("executionMode").toString().toStdString()
         << " tracing_backend_request="
-        << compactTextValue(batching.value("tracingBackendRequest"), "unknown")
-        << " tracing_backend=" << compactTextValue(batching.value("tracingBackend"), "unknown")
+        << compactSummaryText(batching.value("tracingBackendRequest"), "unknown")
+        << " tracing_backend=" << compactSummaryText(batching.value("tracingBackend"), "unknown")
         << " tracing_backend_mode="
-        << compactTextValue(batching.value("tracingBackendMode"), "unknown")
+        << compactSummaryText(batching.value("tracingBackendMode"), "unknown")
         << " tracing_backend_platform="
-        << compactTextValue(batching.value("tracingBackendPlatform"), "none")
+        << compactSummaryText(batching.value("tracingBackendPlatform"), "none")
         << " tracing_backend_fallback=" << tracingBackendFallback
         << " tracing_backend_capabilities="
         << batching.value("tracingBackendCapabilities").toArray().size()
@@ -436,38 +436,38 @@ namespace {
         << " intersection_backend="
         << batching.value("intersectionBackend").toString().toStdString()
         << " intersection_backend_platform="
-        << compactTextValue(batching.value("intersectionBackendPlatform"), "none")
+        << compactSummaryText(batching.value("intersectionBackendPlatform"), "none")
         << " intersection_backend_availability="
         << batching.value("intersectionBackendAvailability").toString().toStdString()
         << " intersection_backend_fallback="
-        << compactTextValue(batching.value("intersectionBackendFallbackReason"), "none")
+        << compactSummaryText(batching.value("intersectionBackendFallbackReason"), "none")
         << " intersection_backend_execution="
-        << compactTextValue(batching.value("intersectionBackendExecutionPath"), "unknown")
+        << compactSummaryText(batching.value("intersectionBackendExecutionPath"), "unknown")
         << " closest_hit_execution="
-        << compactTextValue(batching.value("intersectionBackendClosestHitExecutionPath"), "none")
+        << compactSummaryText(batching.value("intersectionBackendClosestHitExecutionPath"), "none")
         << " closest_hit_frontier_residency="
-        << compactTextValue(batching.value("intersectionBackendClosestHitFrontierResidency"),
+        << compactSummaryText(batching.value("intersectionBackendClosestHitFrontierResidency"),
                             "none")
         << " closest_hit_frontier_packed_ray_bytes="
-        << unsignedValue(batching, "intersectionBackendClosestHitFrontierPackedRayBytes")
+        << unsignedJsonValue(batching, "intersectionBackendClosestHitFrontierPackedRayBytes")
         << " closest_hit_frontier_host_packed_ray_bytes="
-        << unsignedValue(batching, "intersectionBackendClosestHitFrontierHostPackedRayBytes")
+        << unsignedJsonValue(batching, "intersectionBackendClosestHitFrontierHostPackedRayBytes")
         << " closest_hit_frontier_host_query_bytes="
-        << unsignedValue(batching, "intersectionBackendClosestHitFrontierHostQueryBytes")
+        << unsignedJsonValue(batching, "intersectionBackendClosestHitFrontierHostQueryBytes")
         << " closest_hit_frontier_state_handle_bytes="
-        << unsignedValue(batching, "intersectionBackendClosestHitFrontierStateHandleBytes")
+        << unsignedJsonValue(batching, "intersectionBackendClosestHitFrontierStateHandleBytes")
         << " any_hit_execution="
-        << compactTextValue(batching.value("intersectionBackendAnyHitExecutionPath"), "none")
+        << compactSummaryText(batching.value("intersectionBackendAnyHitExecutionPath"), "none")
         << " any_hit_frontier_residency="
-        << compactTextValue(batching.value("intersectionBackendAnyHitFrontierResidency"), "none")
+        << compactSummaryText(batching.value("intersectionBackendAnyHitFrontierResidency"), "none")
         << " any_hit_frontier_packed_ray_bytes="
-        << unsignedValue(batching, "intersectionBackendAnyHitFrontierPackedRayBytes")
+        << unsignedJsonValue(batching, "intersectionBackendAnyHitFrontierPackedRayBytes")
         << " any_hit_frontier_host_packed_ray_bytes="
-        << unsignedValue(batching, "intersectionBackendAnyHitFrontierHostPackedRayBytes")
+        << unsignedJsonValue(batching, "intersectionBackendAnyHitFrontierHostPackedRayBytes")
         << " any_hit_frontier_host_query_bytes="
-        << unsignedValue(batching, "intersectionBackendAnyHitFrontierHostQueryBytes")
+        << unsignedJsonValue(batching, "intersectionBackendAnyHitFrontierHostQueryBytes")
         << " any_hit_frontier_state_handle_bytes="
-        << unsignedValue(batching, "intersectionBackendAnyHitFrontierStateHandleBytes")
+        << unsignedJsonValue(batching, "intersectionBackendAnyHitFrontierStateHandleBytes")
         << " intersection_backend_gpu_device="
         << (batching.value("intersectionBackendPlatformGpuDeviceAvailable").toBool() ? "true"
                                                                                      : "false")
@@ -475,37 +475,37 @@ namespace {
         << (batching.value("intersectionBackendPlatformGpuRenderPathAvailable").toBool() ? "true"
                                                                                          : "false")
         << " intersection_expected_rays="
-        << unsignedValue(batching, "intersectionBackendExpectedRays")
+        << unsignedJsonValue(batching, "intersectionBackendExpectedRays")
         << " intersection_expected_closest_hit_rays="
-        << unsignedValue(batching, "intersectionBackendExpectedClosestHitRays")
+        << unsignedJsonValue(batching, "intersectionBackendExpectedClosestHitRays")
         << " intersection_expected_any_hit_rays="
-        << unsignedValue(batching, "intersectionBackendExpectedAnyHitRays")
+        << unsignedJsonValue(batching, "intersectionBackendExpectedAnyHitRays")
         << " intersection_auto_minimum_gpu_rays="
-        << unsignedValue(batching, "intersectionBackendAutoMinimumGpuRays")
+        << unsignedJsonValue(batching, "intersectionBackendAutoMinimumGpuRays")
         << " intersection_auto_estimated_query_transfer_bytes="
-        << unsignedValue(batching, "intersectionBackendAutoEstimatedQueryTransferBytes")
+        << unsignedJsonValue(batching, "intersectionBackendAutoEstimatedQueryTransferBytes")
         << " intersection_scene_compiled="
         << (batching.value("intersectionSceneCompiled").toBool() ? "true" : "false")
-        << " intersection_scene_bvh_nodes=" << unsignedValue(batching, "intersectionSceneBvhNodes")
+        << " intersection_scene_bvh_nodes=" << unsignedJsonValue(batching, "intersectionSceneBvhNodes")
         << " intersection_scene_primitives="
-        << unsignedValue(batching, "intersectionScenePrimitives")
-        << " intersection_scene_triangles=" << unsignedValue(batching, "intersectionSceneTriangles")
-        << " intersection_scene_spheres=" << unsignedValue(batching, "intersectionSceneSpheres")
-        << " intersection_scene_planes=" << unsignedValue(batching, "intersectionScenePlanes")
+        << unsignedJsonValue(batching, "intersectionScenePrimitives")
+        << " intersection_scene_triangles=" << unsignedJsonValue(batching, "intersectionSceneTriangles")
+        << " intersection_scene_spheres=" << unsignedJsonValue(batching, "intersectionSceneSpheres")
+        << " intersection_scene_planes=" << unsignedJsonValue(batching, "intersectionScenePlanes")
         << " intersection_scene_rectangles="
-        << unsignedValue(batching, "intersectionSceneRectangles")
-        << " intersection_scene_disks=" << unsignedValue(batching, "intersectionSceneDisks")
+        << unsignedJsonValue(batching, "intersectionSceneRectangles")
+        << " intersection_scene_disks=" << unsignedJsonValue(batching, "intersectionSceneDisks")
         << " intersection_scene_open_cylinders="
-        << unsignedValue(batching, "intersectionSceneOpenCylinders")
-        << " intersection_scene_tori=" << unsignedValue(batching, "intersectionSceneTori")
+        << unsignedJsonValue(batching, "intersectionSceneOpenCylinders")
+        << " intersection_scene_tori=" << unsignedJsonValue(batching, "intersectionSceneTori")
         << " intersection_scene_transforms="
-        << unsignedValue(batching, "intersectionSceneTransforms")
+        << unsignedJsonValue(batching, "intersectionSceneTransforms")
         << " intersection_scene_unsupported="
-        << unsignedValue(batching, "intersectionSceneUnsupportedPrimitives")
+        << unsignedJsonValue(batching, "intersectionSceneUnsupportedPrimitives")
         << " intersection_scene_unsupported_by_reason="
-        << unsignedObjectPairs(intersectionSceneUnsupportedReasons)
+        << compactUnsignedObjectPairs(intersectionSceneUnsupportedReasons)
         << " intersection_scene_upload_bytes="
-        << unsignedValue(batching, "intersectionSceneUploadBytes")
+        << unsignedJsonValue(batching, "intersectionSceneUploadBytes")
         << " intersection_scene_triangle_kernel_eligible="
         << (batching.value("intersectionSceneTriangleClosestHitEligible").toBool() ? "true"
                                                                                    : "false")
@@ -517,46 +517,46 @@ namespace {
         << (batching.value("intersectionScenePackedAnyHitEligible").toBool() ? "true" : "false")
         << " tracing_scene_compiled="
         << (batching.value("tracingSceneCompiled").toBool() ? "true" : "false")
-        << " tracing_scene_materials=" << unsignedValue(batching, "tracingSceneMaterials")
-        << " tracing_scene_textures=" << unsignedValue(batching, "tracingSceneTextures")
-        << " tracing_scene_lights=" << unsignedValue(batching, "tracingSceneLights")
-        << " tracing_scene_environment=" << unsignedValue(batching, "tracingSceneEnvironment")
-        << " tracing_scene_debug_ids=" << unsignedValue(batching, "tracingSceneDebugIds")
+        << " tracing_scene_materials=" << unsignedJsonValue(batching, "tracingSceneMaterials")
+        << " tracing_scene_textures=" << unsignedJsonValue(batching, "tracingSceneTextures")
+        << " tracing_scene_lights=" << unsignedJsonValue(batching, "tracingSceneLights")
+        << " tracing_scene_environment=" << unsignedJsonValue(batching, "tracingSceneEnvironment")
+        << " tracing_scene_debug_ids=" << unsignedJsonValue(batching, "tracingSceneDebugIds")
         << " tracing_scene_unsupported_materials="
-        << unsignedValue(batching, "tracingSceneUnsupportedMaterials")
+        << unsignedJsonValue(batching, "tracingSceneUnsupportedMaterials")
         << " tracing_scene_unsupported_textures="
-        << unsignedValue(batching, "tracingSceneUnsupportedTextures")
+        << unsignedJsonValue(batching, "tracingSceneUnsupportedTextures")
         << " tracing_scene_unsupported_lights="
-        << unsignedValue(batching, "tracingSceneUnsupportedLights")
+        << unsignedJsonValue(batching, "tracingSceneUnsupportedLights")
         << " tracing_scene_unsupported_materials_by_reason="
-        << unsignedObjectPairs(tracingSceneUnsupportedMaterialReasons)
+        << compactUnsignedObjectPairs(tracingSceneUnsupportedMaterialReasons)
         << " tracing_scene_unsupported_textures_by_reason="
-        << unsignedObjectPairs(tracingSceneUnsupportedTextureReasons)
+        << compactUnsignedObjectPairs(tracingSceneUnsupportedTextureReasons)
         << " tracing_scene_unsupported_lights_by_reason="
-        << unsignedObjectPairs(tracingSceneUnsupportedLightReasons)
-        << " tracing_scene_upload_bytes=" << unsignedValue(batching, "tracingSceneUploadBytes")
+        << compactUnsignedObjectPairs(tracingSceneUnsupportedLightReasons)
+        << " tracing_scene_upload_bytes=" << unsignedJsonValue(batching, "tracingSceneUploadBytes")
         << " intersection_estimated_ray_upload_bytes="
-        << unsignedValue(batching, "intersectionEstimatedRayUploadBytes")
+        << unsignedJsonValue(batching, "intersectionEstimatedRayUploadBytes")
         << " intersection_estimated_closest_hit_ray_upload_bytes="
-        << unsignedValue(batching, "intersectionEstimatedClosestHitRayUploadBytes")
+        << unsignedJsonValue(batching, "intersectionEstimatedClosestHitRayUploadBytes")
         << " intersection_estimated_any_hit_ray_upload_bytes="
-        << unsignedValue(batching, "intersectionEstimatedAnyHitRayUploadBytes")
+        << unsignedJsonValue(batching, "intersectionEstimatedAnyHitRayUploadBytes")
         << " intersection_estimated_closest_hit_readback_bytes="
-        << unsignedValue(batching, "intersectionEstimatedClosestHitReadbackBytes")
+        << unsignedJsonValue(batching, "intersectionEstimatedClosestHitReadbackBytes")
         << " intersection_estimated_any_hit_readback_bytes="
-        << unsignedValue(batching, "intersectionEstimatedAnyHitReadbackBytes")
+        << unsignedJsonValue(batching, "intersectionEstimatedAnyHitReadbackBytes")
         << " intersection_estimated_query_transfer_bytes="
-        << unsignedValue(batching, "intersectionEstimatedQueryTransferBytes")
+        << unsignedJsonValue(batching, "intersectionEstimatedQueryTransferBytes")
         << " intersection_estimated_closest_hit_query_transfer_bytes="
-        << unsignedValue(batching, "intersectionEstimatedClosestHitQueryTransferBytes")
+        << unsignedJsonValue(batching, "intersectionEstimatedClosestHitQueryTransferBytes")
         << " intersection_estimated_any_hit_query_transfer_bytes="
-        << unsignedValue(batching, "intersectionEstimatedAnyHitQueryTransferBytes")
+        << unsignedJsonValue(batching, "intersectionEstimatedAnyHitQueryTransferBytes")
         << " intersection_estimated_query_round_trips="
-        << unsignedValue(batching, "intersectionEstimatedQueryRoundTrips")
+        << unsignedJsonValue(batching, "intersectionEstimatedQueryRoundTrips")
         << " intersection_estimated_closest_hit_query_round_trips="
-        << unsignedValue(batching, "intersectionEstimatedClosestHitQueryRoundTrips")
+        << unsignedJsonValue(batching, "intersectionEstimatedClosestHitQueryRoundTrips")
         << " intersection_estimated_any_hit_query_round_trips="
-        << unsignedValue(batching, "intersectionEstimatedAnyHitQueryRoundTrips")
+        << unsignedJsonValue(batching, "intersectionEstimatedAnyHitQueryRoundTrips")
         << " intersection_backend_upload_worker_ms="
         << batching.value("intersectionBackendUploadWorkerSeconds").toDouble() * 1000.0
         << " intersection_backend_kernel_worker_ms="
@@ -567,30 +567,30 @@ namespace {
         << batching.value("intersectionRaysPerWorkerSecond").toDouble()
         << " intersection_backend_kernel_rays_per_second="
         << batching.value("intersectionBackendKernelRaysPerSecond").toDouble()
-        << " intersection_rays=" << unsignedValue(batching, "intersectionRaysSubmitted")
-        << " closest_hit_rays=" << unsignedValue(batching, "closestHitRaysSubmitted")
-        << " any_hit_rays=" << unsignedValue(batching, "anyHitRaysSubmitted")
-        << " closest_hit_queries=" << unsignedValue(batching, "closestHitQueries")
-        << " any_hit_queries=" << unsignedValue(batching, "anyHitQueries")
-        << " frontier_query_round_trips=" << unsignedValue(batching, "frontierQueryRoundTrips")
+        << " intersection_rays=" << unsignedJsonValue(batching, "intersectionRaysSubmitted")
+        << " closest_hit_rays=" << unsignedJsonValue(batching, "closestHitRaysSubmitted")
+        << " any_hit_rays=" << unsignedJsonValue(batching, "anyHitRaysSubmitted")
+        << " closest_hit_queries=" << unsignedJsonValue(batching, "closestHitQueries")
+        << " any_hit_queries=" << unsignedJsonValue(batching, "anyHitQueries")
+        << " frontier_query_round_trips=" << unsignedJsonValue(batching, "frontierQueryRoundTrips")
         << " frontier_resident_query_round_trips_estimate="
-        << unsignedValue(batching, "frontierResidentQueryRoundTripsEstimate")
+        << unsignedJsonValue(batching, "frontierResidentQueryRoundTripsEstimate")
         << " frontier_resident_query_round_trip_savings_estimate="
-        << unsignedValue(batching, "frontierResidentQueryRoundTripSavingsEstimate")
-        << " frontier_mixed_query_depths=" << unsignedValue(batching, "frontierMixedQueryDepths")
+        << unsignedJsonValue(batching, "frontierResidentQueryRoundTripSavingsEstimate")
+        << " frontier_mixed_query_depths=" << unsignedJsonValue(batching, "frontierMixedQueryDepths")
         << " frontier_mixed_query_round_trips="
-        << unsignedValue(batching, "frontierMixedQueryRoundTrips")
-        << " frontier_mixed_query_rays=" << unsignedValue(batching, "frontierMixedQueryRays")
+        << unsignedJsonValue(batching, "frontierMixedQueryRoundTrips")
+        << " frontier_mixed_query_rays=" << unsignedJsonValue(batching, "frontierMixedQueryRays")
         << " frontier_mixed_query_closest_hit_rays="
-        << unsignedValue(batching, "frontierMixedQueryClosestHitRays")
+        << unsignedJsonValue(batching, "frontierMixedQueryClosestHitRays")
         << " frontier_mixed_query_any_hit_rays="
-        << unsignedValue(batching, "frontierMixedQueryAnyHitRays")
+        << unsignedJsonValue(batching, "frontierMixedQueryAnyHitRays")
         << " frontier_mixed_query_readback_bytes="
-        << unsignedValue(batching, "frontierMixedQueryReadbackBytes")
+        << unsignedJsonValue(batching, "frontierMixedQueryReadbackBytes")
         << " frontier_mixed_query_closest_hit_readback_bytes="
-        << unsignedValue(batching, "frontierMixedQueryClosestHitReadbackBytes")
+        << unsignedJsonValue(batching, "frontierMixedQueryClosestHitReadbackBytes")
         << " frontier_mixed_query_any_hit_readback_bytes="
-        << unsignedValue(batching, "frontierMixedQueryAnyHitReadbackBytes")
+        << unsignedJsonValue(batching, "frontierMixedQueryAnyHitReadbackBytes")
         << " closest_hit_batch_preferred="
         << (batching.value("intersectionBackendPrefersClosestHitBatch").toBool() ? "true" : "false")
         << " any_hit_batch_preferred="
@@ -602,7 +602,7 @@ namespace {
         << (batching.value("intersectionBackendSupportsGpuFrontierCompaction").toBool() ? "true"
                                                                                         : "false")
         << " gpu_frontier_compaction_unavailable_reason="
-        << compactTextValue(
+        << compactSummaryText(
              batching.value("intersectionBackendGpuFrontierCompactionUnavailableReason"), "none")
         << " prepared_ray_batch_compaction_supported="
         << (batching.value("intersectionBackendSupportsPreparedRayBatchCompaction").toBool()
@@ -613,117 +613,117 @@ namespace {
               ? "true"
               : "false")
         << " resident_direct_light_batches_unavailable_reason="
-        << compactTextValue(
+        << compactSummaryText(
              batching.value("intersectionBackendResidentDirectLightBatchesUnavailableReason"),
              "none")
         << " resident_path_loop_execution="
-        << compactTextValue(batching.value("residentPathLoopExecutionPath"), "none")
+        << compactSummaryText(batching.value("residentPathLoopExecutionPath"), "none")
         << " resident_path_loop_schedule="
-        << compactTextValue(batching.value("residentPathLoopSchedule"), "none")
+        << compactSummaryText(batching.value("residentPathLoopSchedule"), "none")
         << " resident_path_loop_residency="
-        << compactTextValue(batching.value("residentPathLoopResidency"), "none")
+        << compactSummaryText(batching.value("residentPathLoopResidency"), "none")
         << " resident_path_loop_platform="
-        << compactTextValue(batching.value("residentPathLoopPlatformName"), "none")
-        << " resident_path_loop_depths=" << unsignedValue(batching, "residentPathLoopDepths")
+        << compactSummaryText(batching.value("residentPathLoopPlatformName"), "none")
+        << " resident_path_loop_depths=" << unsignedJsonValue(batching, "residentPathLoopDepths")
         << " resident_path_loop_active_paths_per_depth="
         << unsignedArraySummary(batching.value("activePathsPerDepth").toArray())
         << " resident_path_loop_input_paths="
-        << unsignedValue(batching, "residentPathLoopInputPaths")
+        << unsignedJsonValue(batching, "residentPathLoopInputPaths")
         << " resident_path_loop_retained_paths="
-        << unsignedValue(batching, "residentPathLoopRetainedPaths")
+        << unsignedJsonValue(batching, "residentPathLoopRetainedPaths")
         << " resident_path_loop_removed_paths="
-        << unsignedValue(batching, "residentPathLoopRemovedPaths")
+        << unsignedJsonValue(batching, "residentPathLoopRemovedPaths")
         << " resident_path_loop_moved_paths="
-        << unsignedValue(batching, "residentPathLoopMovedPaths")
+        << unsignedJsonValue(batching, "residentPathLoopMovedPaths")
         << " resident_path_loop_retained_index_bytes="
-        << unsignedValue(batching, "residentPathLoopRetainedIndexBytes")
+        << unsignedJsonValue(batching, "residentPathLoopRetainedIndexBytes")
         << " resident_path_loop_resident_path_state_bytes="
-        << unsignedValue(batching, "residentPathLoopResidentPathStateBytes")
+        << unsignedJsonValue(batching, "residentPathLoopResidentPathStateBytes")
         << " resident_path_loop_input_resident_path_state_bytes="
-        << unsignedValue(batching, "residentPathLoopInputResidentPathStateBytes")
+        << unsignedJsonValue(batching, "residentPathLoopInputResidentPathStateBytes")
         << " resident_path_loop_retained_resident_path_state_bytes="
-        << unsignedValue(batching, "residentPathLoopRetainedResidentPathStateBytes")
+        << unsignedJsonValue(batching, "residentPathLoopRetainedResidentPathStateBytes")
         << " resident_path_loop_removed_resident_path_state_bytes="
-        << unsignedValue(batching, "residentPathLoopRemovedResidentPathStateBytes")
+        << unsignedJsonValue(batching, "residentPathLoopRemovedResidentPathStateBytes")
         << " resident_path_loop_compaction_passes="
-        << unsignedValue(batching, "residentPathLoopCompactionPasses")
+        << unsignedJsonValue(batching, "residentPathLoopCompactionPasses")
         << " resident_path_loop_round_trips="
-        << unsignedValue(batching, "residentPathLoopRoundTrips")
+        << unsignedJsonValue(batching, "residentPathLoopRoundTrips")
         << " resident_path_loop_submitted_intersection_rays="
-        << unsignedValue(batching, "residentPathLoopSubmittedIntersectionRays")
+        << unsignedJsonValue(batching, "residentPathLoopSubmittedIntersectionRays")
         << " resident_path_loop_full_platform_gpu_kernel="
         << (batching.value("residentPathLoopFullPlatformGpuKernel").toBool() ? "true" : "false")
         << " resident_path_loop_saved_host_readbacks="
-        << unsignedValue(batching, "residentPathLoopSavedHostReadbacks")
+        << unsignedJsonValue(batching, "residentPathLoopSavedHostReadbacks")
         << " resident_path_loop_saved_host_readback_bytes="
-        << unsignedValue(batching, "residentPathLoopSavedHostReadbackBytes")
-        << " samples=" << unsignedValue(input, "primarySamples")
-        << " tiles=" << unsignedValue(tiling, "tileCount")
-        << " tile_grid=" << unsignedValue(tiling, "tileColumns") << "x"
-        << unsignedValue(tiling, "tileRows")
-        << " max_tile_width=" << unsignedValue(tiling, "maxTileWidth")
-        << " max_tile_height=" << unsignedValue(tiling, "maxTileHeight")
-        << " max_tile_pixels=" << unsignedValue(tiling, "maxTilePixels")
+        << unsignedJsonValue(batching, "residentPathLoopSavedHostReadbackBytes")
+        << " samples=" << unsignedJsonValue(input, "primarySamples")
+        << " tiles=" << unsignedJsonValue(tiling, "tileCount")
+        << " tile_grid=" << unsignedJsonValue(tiling, "tileColumns") << "x"
+        << unsignedJsonValue(tiling, "tileRows")
+        << " max_tile_width=" << unsignedJsonValue(tiling, "maxTileWidth")
+        << " max_tile_height=" << unsignedJsonValue(tiling, "maxTileHeight")
+        << " max_tile_pixels=" << unsignedJsonValue(tiling, "maxTilePixels")
         << " avg_tile_pixels=" << tiling.value("averageTilePixels").toDouble()
-        << " nonempty_tiles=" << unsignedValue(tiling, "nonEmptyTileCount")
-        << " min_tile_samples=" << unsignedValue(tiling, "minNonEmptyTileSamples")
+        << " nonempty_tiles=" << unsignedJsonValue(tiling, "nonEmptyTileCount")
+        << " min_tile_samples=" << unsignedJsonValue(tiling, "minNonEmptyTileSamples")
         << " avg_tile_samples=" << tiling.value("averageNonEmptyTileSamples").toDouble()
-        << " max_tile_samples=" << unsignedValue(tiling, "maxTileSamples")
-        << " accumulation_backend=" << compactTextValue(accumulation.value("backend"), "none")
-        << " accumulation_residency=" << compactTextValue(accumulation.value("residency"), "none")
-        << " accumulation_resident_bytes=" << unsignedValue(accumulation, "residentBytes")
-        << " accumulation_color_sum_bytes=" << unsignedValue(accumulationLayout, "colorSumBytes")
+        << " max_tile_samples=" << unsignedJsonValue(tiling, "maxTileSamples")
+        << " accumulation_backend=" << compactSummaryText(accumulation.value("backend"), "none")
+        << " accumulation_residency=" << compactSummaryText(accumulation.value("residency"), "none")
+        << " accumulation_resident_bytes=" << unsignedJsonValue(accumulation, "residentBytes")
+        << " accumulation_color_sum_bytes=" << unsignedJsonValue(accumulationLayout, "colorSumBytes")
         << " accumulation_sample_count_bytes="
-        << unsignedValue(accumulationLayout, "sampleCountBytes")
-        << " accumulation_moment_bytes=" << unsignedValue(accumulationLayout, "momentBytes")
-        << " accumulation_resolve_bytes=" << unsignedValue(accumulationLayout, "resolveBytes")
-        << " accumulation_clear_ops=" << unsignedValue(accumulation, "clearOperations")
-        << " accumulation_add_ops=" << unsignedValue(accumulation, "addOperations")
-        << " accumulation_added_samples=" << unsignedValue(accumulation, "addedSamples")
-        << " accumulation_resolve_ops=" << unsignedValue(accumulation, "resolveOperations")
-        << " accumulation_readback_ops=" << unsignedValue(accumulation, "readbackOperations")
-        << " accumulation_readback_bytes=" << unsignedValue(accumulation, "readbackBytes")
-        << " active_sample_depths=" << unsignedValue(batching, "activeSampleDepthsProcessed")
+        << unsignedJsonValue(accumulationLayout, "sampleCountBytes")
+        << " accumulation_moment_bytes=" << unsignedJsonValue(accumulationLayout, "momentBytes")
+        << " accumulation_resolve_bytes=" << unsignedJsonValue(accumulationLayout, "resolveBytes")
+        << " accumulation_clear_ops=" << unsignedJsonValue(accumulation, "clearOperations")
+        << " accumulation_add_ops=" << unsignedJsonValue(accumulation, "addOperations")
+        << " accumulation_added_samples=" << unsignedJsonValue(accumulation, "addedSamples")
+        << " accumulation_resolve_ops=" << unsignedJsonValue(accumulation, "resolveOperations")
+        << " accumulation_readback_ops=" << unsignedJsonValue(accumulation, "readbackOperations")
+        << " accumulation_readback_bytes=" << unsignedJsonValue(accumulation, "readbackBytes")
+        << " active_sample_depths=" << unsignedJsonValue(batching, "activeSampleDepthsProcessed")
         << " active_host_path_state_bytes="
-        << unsignedValue(batching, "activeHostPathStateBytesProcessed")
-        << " active_hit_host_bytes=" << unsignedValue(batching, "activeHitHostBytesProcessed")
-        << " spawned_continuations=" << unsignedValue(batching, "spawnedContinuationSamples")
+        << unsignedJsonValue(batching, "activeHostPathStateBytesProcessed")
+        << " active_hit_host_bytes=" << unsignedJsonValue(batching, "activeHitHostBytesProcessed")
+        << " spawned_continuations=" << unsignedJsonValue(batching, "spawnedContinuationSamples")
         << " spawned_continuation_host_path_state_bytes="
-        << unsignedValue(batching, "spawnedContinuationHostPathStateBytes")
+        << unsignedJsonValue(batching, "spawnedContinuationHostPathStateBytes")
         << " frontier_compaction_execution="
-        << compactTextValue(batching.value("frontierCompactionExecutionPath"), "none")
+        << compactSummaryText(batching.value("frontierCompactionExecutionPath"), "none")
         << " frontier_compaction_path_state_residency="
-        << compactTextValue(batching.value("frontierCompactionPathStateResidency"), "none")
-        << " frontier_compaction_passes=" << unsignedValue(batching, "frontierCompactionPasses")
+        << compactSummaryText(batching.value("frontierCompactionPathStateResidency"), "none")
+        << " frontier_compaction_passes=" << unsignedJsonValue(batching, "frontierCompactionPasses")
         << " frontier_compaction_input_samples="
-        << unsignedValue(batching, "frontierCompactionInputSamples")
+        << unsignedJsonValue(batching, "frontierCompactionInputSamples")
         << " frontier_compaction_retained_samples="
-        << unsignedValue(batching, "frontierCompactionRetainedSamples")
+        << unsignedJsonValue(batching, "frontierCompactionRetainedSamples")
         << " frontier_compaction_removed_samples="
-        << unsignedValue(batching, "frontierCompactionRemovedSamples")
+        << unsignedJsonValue(batching, "frontierCompactionRemovedSamples")
         << " frontier_compaction_removed_fraction="
         << batching.value("frontierCompactionRemovedSampleFraction").toDouble()
         << " frontier_compaction_moved_samples="
-        << unsignedValue(batching, "frontierCompactionMovedSamples")
+        << unsignedJsonValue(batching, "frontierCompactionMovedSamples")
         << " frontier_compaction_moved_retained_fraction="
         << batching.value("frontierCompactionMovedRetainedSampleFraction").toDouble()
         << " frontier_compaction_retained_index_bytes="
-        << unsignedValue(batching, "frontierCompactionRetainedIndexBytes")
+        << unsignedJsonValue(batching, "frontierCompactionRetainedIndexBytes")
         << " frontier_compaction_input_host_path_state_bytes="
-        << unsignedValue(batching, "frontierCompactionInputHostPathStateBytes")
+        << unsignedJsonValue(batching, "frontierCompactionInputHostPathStateBytes")
         << " frontier_compaction_retained_host_path_state_bytes="
-        << unsignedValue(batching, "frontierCompactionRetainedHostPathStateBytes")
+        << unsignedJsonValue(batching, "frontierCompactionRetainedHostPathStateBytes")
         << " frontier_compaction_removed_host_path_state_bytes="
-        << unsignedValue(batching, "frontierCompactionRemovedHostPathStateBytes")
+        << unsignedJsonValue(batching, "frontierCompactionRemovedHostPathStateBytes")
         << " frontier_compaction_upload_ms="
         << batching.value("frontierCompactionUploadWorkerSeconds").toDouble() * 1000.0
         << " frontier_compaction_kernel_ms="
         << batching.value("frontierCompactionKernelWorkerSeconds").toDouble() * 1000.0
         << " frontier_compaction_readback_ms="
         << batching.value("frontierCompactionReadbackWorkerSeconds").toDouble() * 1000.0
-        << " batches=" << unsignedValue(batching, "batches")
+        << " batches=" << unsignedJsonValue(batching, "batches")
         << " avg_batch=" << batching.value("averageBatchSize").toDouble()
-        << " max_batch=" << unsignedValue(batching, "maxBatchSize")
+        << " max_batch=" << unsignedJsonValue(batching, "maxBatchSize")
         << " active_depths=" << activeSamples.size()
         << " last_active=" << unsignedArrayBack(activeSamples)
         << " last_retained_active=" << unsignedArrayBack(retainedActiveSamples)
@@ -734,27 +734,27 @@ namespace {
         << " last_spawned_continuation_host_path_state_bytes="
         << unsignedArrayBack(spawnedContinuationHostPathStateBytes)
         << " frontier_compaction_candidate_depths="
-        << unsignedValue(batching, "frontierCompactionCandidateDepths")
+        << unsignedJsonValue(batching, "frontierCompactionCandidateDepths")
         << " frontier_compaction_candidate_samples="
-        << unsignedValue(batching, "frontierCompactionCandidateSamples")
+        << unsignedJsonValue(batching, "frontierCompactionCandidateSamples")
         << " frontier_compaction_candidate_packed_ray_bytes="
-        << unsignedValue(batching, "frontierCompactionCandidatePackedRayBytes")
+        << unsignedJsonValue(batching, "frontierCompactionCandidatePackedRayBytes")
         << " frontier_compaction_candidate_state_handle_bytes="
-        << unsignedValue(batching, "frontierCompactionCandidateStateHandleBytes")
+        << unsignedJsonValue(batching, "frontierCompactionCandidateStateHandleBytes")
         << " frontier_compaction_candidate_host_path_state_bytes="
-        << unsignedValue(batching, "frontierCompactionCandidateHostPathStateBytes")
+        << unsignedJsonValue(batching, "frontierCompactionCandidateHostPathStateBytes")
         << " frontier_compaction_candidate_fraction="
         << batching.value("frontierCompactionCandidateSampleFraction").toDouble()
         << " frontier_largest_compaction_candidate_depth="
-        << unsignedValue(batching, "frontierLargestCompactionCandidateDepth")
+        << unsignedJsonValue(batching, "frontierLargestCompactionCandidateDepth")
         << " frontier_largest_compaction_candidate_samples="
-        << unsignedValue(batching, "frontierLargestCompactionCandidateSamples")
+        << unsignedJsonValue(batching, "frontierLargestCompactionCandidateSamples")
         << " frontier_largest_compaction_candidate_packed_ray_bytes="
-        << unsignedValue(batching, "frontierLargestCompactionCandidatePackedRayBytes")
+        << unsignedJsonValue(batching, "frontierLargestCompactionCandidatePackedRayBytes")
         << " frontier_largest_compaction_candidate_state_handle_bytes="
-        << unsignedValue(batching, "frontierLargestCompactionCandidateStateHandleBytes")
+        << unsignedJsonValue(batching, "frontierLargestCompactionCandidateStateHandleBytes")
         << " frontier_largest_compaction_candidate_host_path_state_bytes="
-        << unsignedValue(batching, "frontierLargestCompactionCandidateHostPathStateBytes")
+        << unsignedJsonValue(batching, "frontierLargestCompactionCandidateHostPathStateBytes")
         << " frontier_largest_compaction_candidate_fraction="
         << batching.value("frontierLargestCompactionCandidateSampleFraction").toDouble()
         << " frontier_hit_rays=" << unsignedArraySum(frontierHits)
@@ -777,43 +777,43 @@ namespace {
         << ratio(static_cast<double>(directLightAnyHitBatchRayCount),
                  static_cast<double>(directLightAnyHitBatchChunkCount))
         << " direct_light_any_hit_round_trips="
-        << unsignedValue(batching, "directLightAnyHitQueryRoundTrips")
+        << unsignedJsonValue(batching, "directLightAnyHitQueryRoundTrips")
         << " resident_direct_light_round_trips_estimate="
-        << unsignedValue(batching, "residentDirectLightBatchRoundTripsEstimate")
+        << unsignedJsonValue(batching, "residentDirectLightBatchRoundTripsEstimate")
         << " resident_direct_light_round_trip_savings_estimate="
-        << unsignedValue(batching, "residentDirectLightBatchRoundTripSavingsEstimate")
+        << unsignedJsonValue(batching, "residentDirectLightBatchRoundTripSavingsEstimate")
         << " resident_direct_light_candidate_depths="
-        << unsignedValue(batching, "residentDirectLightBatchCandidateDepths")
+        << unsignedJsonValue(batching, "residentDirectLightBatchCandidateDepths")
         << " resident_direct_light_candidate_rays="
-        << unsignedValue(batching, "residentDirectLightBatchCandidateRays")
+        << unsignedJsonValue(batching, "residentDirectLightBatchCandidateRays")
         << " resident_direct_light_candidate_host_bytes="
-        << unsignedValue(batching, "residentDirectLightBatchCandidateHostBytes")
+        << unsignedJsonValue(batching, "residentDirectLightBatchCandidateHostBytes")
         << " resident_largest_direct_light_depth="
-        << unsignedValue(batching, "residentLargestDirectLightBatchDepth")
+        << unsignedJsonValue(batching, "residentLargestDirectLightBatchDepth")
         << " resident_largest_direct_light_rays="
-        << unsignedValue(batching, "residentLargestDirectLightBatchRays")
+        << unsignedJsonValue(batching, "residentLargestDirectLightBatchRays")
         << " resident_largest_direct_light_packed_ray_bytes="
-        << unsignedValue(batching, "residentLargestDirectLightBatchPackedRayBytes")
+        << unsignedJsonValue(batching, "residentLargestDirectLightBatchPackedRayBytes")
         << " resident_largest_direct_light_host_bytes="
-        << unsignedValue(batching, "residentLargestDirectLightBatchHostBytes")
+        << unsignedJsonValue(batching, "residentLargestDirectLightBatchHostBytes")
         << " direct_light_selection_host_bytes="
-        << unsignedValue(batching, "directLightSelectionHostBytes")
+        << unsignedJsonValue(batching, "directLightSelectionHostBytes")
         << " direct_light_occlusion_host_bytes="
-        << unsignedValue(batching, "directLightOcclusionHostBytes")
+        << unsignedJsonValue(batching, "directLightOcclusionHostBytes")
         << " direct_light_contribution_host_bytes="
-        << unsignedValue(batching, "directLightContributionHostBytes")
+        << unsignedJsonValue(batching, "directLightContributionHostBytes")
         << " direct_light_contribution_execution="
-        << compactTextValue(batching.value("directLightContributionExecutionPath"), "none")
+        << compactSummaryText(batching.value("directLightContributionExecutionPath"), "none")
         << " direct_light_contribution_fallback="
-        << compactTextValue(batching.value("directLightContributionFallbackReason"), "none")
+        << compactSummaryText(batching.value("directLightContributionFallbackReason"), "none")
         << " direct_light_any_hit_frontier_packed_ray_bytes="
-        << unsignedValue(batching, "directLightAnyHitFrontierPackedRayBytes")
+        << unsignedJsonValue(batching, "directLightAnyHitFrontierPackedRayBytes")
         << " direct_light_any_hit_frontier_host_packed_ray_bytes="
-        << unsignedValue(batching, "directLightAnyHitFrontierHostPackedRayBytes")
+        << unsignedJsonValue(batching, "directLightAnyHitFrontierHostPackedRayBytes")
         << " direct_light_any_hit_frontier_host_query_bytes="
-        << unsignedValue(batching, "directLightAnyHitFrontierHostQueryBytes")
+        << unsignedJsonValue(batching, "directLightAnyHitFrontierHostQueryBytes")
         << " direct_light_any_hit_frontier_state_handle_bytes="
-        << unsignedValue(batching, "directLightAnyHitFrontierStateHandleBytes")
+        << unsignedJsonValue(batching, "directLightAnyHitFrontierStateHandleBytes")
         << " last_direct_light_any_hit_frontier_packed_ray_bytes="
         << unsignedArrayBack(directLightAnyHitFrontierPackedRayBytes)
         << " last_direct_light_any_hit_frontier_host_packed_ray_bytes="
@@ -841,26 +841,26 @@ namespace {
         << ratio(static_cast<double>(frontierPacketScalarFallbackRayCount),
                  static_cast<double>(frontierPacketRayCount))
         << " frontier_packet_scalar_fallback_by_reason="
-        << unsignedObjectPairs(frontierPacketScalarFallbackByReason)
+        << compactUnsignedObjectPairs(frontierPacketScalarFallbackByReason)
         << " frontier_packet_refined_rays=" << unsignedArraySum(frontierPacketRefinedRays)
         << " frontier_packet_refined_by_material="
-        << unsignedObjectPairs(frontierPacketRefinedByMaterial)
-        << " sample_variance_pixels=" << unsignedValue(batching, "sampleVariancePixelArea")
+        << compactUnsignedObjectPairs(frontierPacketRefinedByMaterial)
+        << " sample_variance_pixels=" << unsignedJsonValue(batching, "sampleVariancePixelArea")
         << " sample_stddev_rms=" << batching.value("sampleRadianceStddevRms").toDouble()
         << " max_sample_stddev=" << batching.value("maxSampleRadianceStddev").toDouble()
-        << " emitter_hit_samples=" << unsignedValue(batching, "emitterHitSamples")
-        << " primary_emitter_hit_samples=" << unsignedValue(batching, "primaryEmitterHitSamples")
-        << " delta_emitter_hit_samples=" << unsignedValue(batching, "deltaEmitterHitSamples")
-        << " bsdf_emitter_hit_samples=" << unsignedValue(batching, "bsdfEmitterHitSamples")
+        << " emitter_hit_samples=" << unsignedJsonValue(batching, "emitterHitSamples")
+        << " primary_emitter_hit_samples=" << unsignedJsonValue(batching, "primaryEmitterHitSamples")
+        << " delta_emitter_hit_samples=" << unsignedJsonValue(batching, "deltaEmitterHitSamples")
+        << " bsdf_emitter_hit_samples=" << unsignedJsonValue(batching, "bsdfEmitterHitSamples")
         << " mis_weighted_emitter_hit_samples="
-        << unsignedValue(batching, "misWeightedEmitterHitSamples")
-        << " direct_light_samples=" << unsignedValue(batching, "directLightSamples")
+        << unsignedJsonValue(batching, "misWeightedEmitterHitSamples")
+        << " direct_light_samples=" << unsignedJsonValue(batching, "directLightSamples")
         << " gpu_primary_sample_chunk_size="
-        << unsignedValue(batching, "residentPathLoopPrimarySampleChunkSize")
+        << unsignedJsonValue(batching, "residentPathLoopPrimarySampleChunkSize")
         << " direct_light_contributing_samples="
-        << unsignedValue(batching, "directLightContributingSamples")
+        << unsignedJsonValue(batching, "directLightContributingSamples")
         << " direct_light_occluded_samples="
-        << unsignedValue(batching, "directLightOccludedSamples")
+        << unsignedJsonValue(batching, "directLightOccludedSamples")
         << " emitted_luminance=" << batching.value("emittedRadianceLuminanceSum").toDouble()
         << " direct_light_luminance="
         << batching.value("directLightRadianceLuminanceSum").toDouble()
@@ -873,21 +873,21 @@ namespace {
         << " compatibility_shade_luminance="
         << batching.value("compatibilityShadeRadianceLuminanceSum").toDouble()
         << " adaptive=" << (adaptiveSampling.value("enabled").toBool() ? "enabled" : "disabled")
-        << " adaptive_min_samples=" << unsignedValue(adaptiveSampling, "minimumSamples")
+        << " adaptive_min_samples=" << unsignedJsonValue(adaptiveSampling, "minimumSamples")
         << " adaptive_stddev_threshold=" << adaptiveSampling.value("stddevThreshold").toDouble()
-        << " adaptive_max_samples=" << unsignedValue(adaptiveSampling, "maximumPrimarySamples")
-        << " adaptive_skipped_samples=" << unsignedValue(adaptiveSampling, "skippedPrimarySamples")
+        << " adaptive_max_samples=" << unsignedJsonValue(adaptiveSampling, "maximumPrimarySamples")
+        << " adaptive_skipped_samples=" << unsignedJsonValue(adaptiveSampling, "skippedPrimarySamples")
         << " adaptive_skipped_fraction="
         << adaptiveSampling.value("skippedPrimarySampleFraction").toDouble()
         << " last_rms_delta=" << doubleArrayBack(rmsDelta)
-        << " compatibility_shade_samples=" << unsignedValue(batching, "compatibilityShadeSamples")
+        << " compatibility_shade_samples=" << unsignedJsonValue(batching, "compatibilityShadeSamples")
         << " unsupported_path_material_samples="
-        << unsignedValue(batching, "unsupportedPathMaterialSamples")
+        << unsignedJsonValue(batching, "unsupportedPathMaterialSamples")
         << " convergence=" << convergence.value("decision").toString().toStdString()
-        << " stopped_tiles=" << unsignedValue(convergence, "stoppedTileCount")
-        << " earliest_stop_depth=" << unsignedValue(convergence, "earliestStoppedAfterDepth")
-        << " latest_stop_depth=" << unsignedValue(convergence, "latestStoppedAfterDepth")
-        << " feedback_depths=" << unsignedValue(convergence, "feedbackDepthCount") << " denoiser="
+        << " stopped_tiles=" << unsignedJsonValue(convergence, "stoppedTileCount")
+        << " earliest_stop_depth=" << unsignedJsonValue(convergence, "earliestStoppedAfterDepth")
+        << " latest_stop_depth=" << unsignedJsonValue(convergence, "latestStoppedAfterDepth")
+        << " feedback_depths=" << unsignedJsonValue(convergence, "feedbackDepthCount") << " denoiser="
         << (denoise.value("enabled").toBool() ? denoise.value("denoiser").toString().toStdString()
                                               : std::string("none"))
         << " denoise_ms=" << denoise.value("seconds").toDouble() * 1000.0
@@ -905,10 +905,6 @@ namespace {
     }
 
   private:
-    std::uint64_t unsignedValue(const QJsonObject& object, const char* key) const {
-      return static_cast<std::uint64_t>(object.value(key).toDouble());
-    }
-
     std::uint64_t unsignedArrayBack(const QJsonArray& array) const {
       if (array.isEmpty()) {
         return 0;
@@ -942,25 +938,6 @@ namespace {
       return denominator == 0.0 ? 0.0 : numerator / denominator;
     }
 
-    std::string unsignedObjectPairs(const QJsonObject& object) const {
-      if (object.isEmpty()) {
-        return "none";
-      }
-      std::vector<std::string> pairs;
-      pairs.reserve(object.size());
-      for (auto it = object.begin(); it != object.end(); ++it) {
-        pairs.push_back(compactToken(it.key().toStdString()) + ":" +
-                        std::to_string(static_cast<std::uint64_t>(it.value().toDouble())));
-      }
-      std::sort(pairs.begin(), pairs.end());
-      std::string result = pairs.front();
-      for (std::size_t index = 1; index != pairs.size(); ++index) {
-        result += ",";
-        result += pairs[index];
-      }
-      return result;
-    }
-
     std::string fallbackCapabilitySummary(const QJsonArray& capabilities) const {
       std::vector<std::string> names;
       names.reserve(static_cast<std::size_t>(capabilities.size()));
@@ -976,15 +953,15 @@ namespace {
         const QString fallbackResolved = fallback.value("resolvedDevice").toString();
         const QString fallbackReason = fallback.value("reason").toString();
         std::string summary =
-          compactToken(capability.value("name").toString(QStringLiteral("unknown")).toStdString());
+          compactSummaryToken(capability.value("name").toString(QStringLiteral("unknown")).toStdString());
         summary += "=";
         summary +=
-          compactToken((fallbackRequested.isEmpty() ? capability.value("requestedDevice").toString()
+          compactSummaryToken((fallbackRequested.isEmpty() ? capability.value("requestedDevice").toString()
                                                     : fallbackRequested)
                          .toStdString());
         summary += "->";
         summary +=
-          compactToken((fallbackResolved.isEmpty() ? capability.value("resolvedDevice").toString()
+          compactSummaryToken((fallbackResolved.isEmpty() ? capability.value("resolvedDevice").toString()
                                                    : fallbackResolved)
                          .toStdString());
 
@@ -993,7 +970,7 @@ namespace {
                                  : fallbackReason;
         if (!reason.isEmpty()) {
           summary += ":";
-          summary += compactToken(reason.toStdString());
+          summary += compactSummaryToken(reason.toStdString());
         }
         names.push_back(summary);
       }
@@ -1020,19 +997,19 @@ namespace {
         }
 
         std::string summary =
-          compactToken(capability.value("name").toString(QStringLiteral("unknown")).toStdString());
+          compactSummaryToken(capability.value("name").toString(QStringLiteral("unknown")).toStdString());
         summary += "=";
-        summary += compactToken(
+        summary += compactSummaryToken(
           capability.value("resolvedDevice").toString(QStringLiteral("unknown")).toStdString());
         const QString executionPath = capability.value("executionPath").toString();
         if (!executionPath.isEmpty()) {
           summary += ":";
-          summary += compactToken(executionPath.toStdString());
+          summary += compactSummaryToken(executionPath.toStdString());
         }
         const QString reason = capability.value("unsupportedReason").toString();
         if (!reason.isEmpty()) {
           summary += ":";
-          summary += compactToken(reason.toStdString());
+          summary += compactSummaryToken(reason.toStdString());
         }
         names.push_back(summary);
       }
@@ -1054,37 +1031,18 @@ namespace {
       if (batching.value("executionMode").toString() ==
           QStringLiteral("compiled_diffuse_path_loop")) {
         const std::string fallbackReason =
-          compactTextValue(tracingExecution.value("fallbackReason"), "");
+          compactSummaryText(tracingExecution.value("fallbackReason"), "");
         if (!fallbackReason.empty()) {
           return fallbackReason;
         }
         const std::string actualFallbackReason =
-          compactTextValue(tracingExecution.value("actualFallbackReason"), "");
+          compactSummaryText(tracingExecution.value("actualFallbackReason"), "");
         if (!actualFallbackReason.empty()) {
           return actualFallbackReason;
         }
       }
-      return compactTextValue(batching.value("tracingBackendFallback").toObject().value("reason"),
+      return compactSummaryText(batching.value("tracingBackendFallback").toObject().value("reason"),
                               "none");
-    }
-
-    std::string compactToken(std::string value) const {
-      if (value.empty()) {
-        return "unknown";
-      }
-      std::replace_if(
-        value.begin(), value.end(), [](unsigned char ch) { return std::isspace(ch) != 0; }, '_');
-      return value;
-    }
-
-    std::string compactTextValue(const QJsonValue& value, const std::string& empty) const {
-      std::string result = value.toString().toStdString();
-      if (result.empty()) {
-        return empty;
-      }
-      std::replace_if(
-        result.begin(), result.end(), [](unsigned char ch) { return std::isspace(ch) != 0; }, '_');
-      return result;
     }
 
     std::string compactValue(const QJsonValue& value, const std::string& empty) const {
@@ -1094,7 +1052,7 @@ namespace {
       if (value.isDouble()) {
         return std::to_string(static_cast<std::uint64_t>(value.toDouble()));
       }
-      return compactTextValue(value, empty);
+      return compactSummaryText(value, empty);
     }
 
     double doubleArrayBack(const QJsonArray& array) const {

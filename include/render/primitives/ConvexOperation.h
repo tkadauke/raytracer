@@ -28,5 +28,10 @@ namespace render {
   private:
     const Primitive* intersectConvexRay(const Rayd& ray, HitPointInterval& hitPoints,
                                         render::State& state) const;
+
+    template<typename Packet, typename StateArray, typename Result>
+    Result intersectPacketHitsFor(const Packet& rays, const StateArray& states) const;
+    template<typename Packet, typename StateArray, typename Result>
+    Result intersectPacketIntervalsFor(const Packet& rays, const StateArray& states) const;
   };
 }
