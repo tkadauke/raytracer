@@ -591,6 +591,26 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Add `randomUnitDirection` to `benchmarks/BenchmarkHelpers.h`, eliminating the
   duplicate degenerate-direction-fallback logic in `BoundingBoxBenchmark.cpp`'s and
   `SpatialIndexBenchmark.cpp`'s `generateRays` helpers. — Claude Sonnet 5
+- Add `ldrawSearchDirectoriesFor` to `include/core/formats/ldraw/LDrawSearchPaths.h`,
+  eliminating the byte-identical `searchDirectoriesFor` free function independently
+  defined in `src/world/import/LDrawSceneImporter.cpp` and
+  `src/world/objects/LDrawSceneImporter.cpp`. — Claude Sonnet 5
+- Add `composePositionRotationScale` to `include/world/objects/TransformComposition.h`,
+  eliminating the identical translate/rotate/scale matrix composition duplicated between
+  `Transformable::localTransform` and `PortalMaterial::portalTransform`. — Claude Sonnet 5
+- Add `core::util::copyBufferIfAtLeast` to `include/core/util/BufferUtils.h`, eliminating
+  the identical minimum-size guard clause and source-buffer copy duplicated between
+  `applyFxaa` and `applySmaa`. — Claude Sonnet 5
+- Template-ify `ConvexOperation::intersectPacketHits`/`intersectPacketIntervals` into
+  `intersectPacketHitsFor`/`intersectPacketIntervalsFor`, matching the pattern already
+  used by sibling primitives (`Sphere`, `Plane`, `Union`, …) and eliminating the
+  byte-identical `Ray4`/`Ray8` overload bodies. — Claude Sonnet 5
+- Remove four `WavefrontMetricsFormatter` private member functions in
+  `tools/rendercli/rendercli.cpp` (`unsignedValue`, `compactTextValue`, `compactToken`,
+  `unsignedObjectPairs`) that duplicated the free functions of the same shape
+  (`unsignedJsonValue`, `compactSummaryText`, `compactSummaryToken`,
+  `compactUnsignedObjectPairs`) already defined earlier in the same anonymous namespace;
+  the class now calls the free functions directly. — Claude Sonnet 5
 
 ### Fixed
 

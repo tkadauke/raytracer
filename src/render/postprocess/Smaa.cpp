@@ -76,11 +76,10 @@ namespace {
 void render::postprocess::applySmaa(Buffer<Colord>& buffer) {
   const int width = buffer.width();
   const int height = buffer.height();
-  if (width < 3 || height < 3)
+  auto sourcePtr = core::util::copyBufferIfAtLeast(buffer, 3, 3);
+  if (!sourcePtr)
     return;
-
-  Buffer<Colord> source(width, height);
-  core::util::copyBuffer(source, buffer);
+  Buffer<Colord>& source = *sourcePtr;
 
   constexpr double edgeThreshold = 0.08;
   constexpr double maxBlend = 0.65;

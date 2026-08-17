@@ -5,6 +5,7 @@
 #include "core/json/JsonValue.h"
 #include "core/formats/ldraw/LDrawFileResolver.h"
 #include "core/formats/ldraw/LDrawGeometryCompiler.h"
+#include "core/formats/ldraw/LDrawSearchPaths.h"
 #include "core/math/Matrix.h"
 #include "render/primitives/Composite.h"
 #include "render/primitives/Instance.h"
@@ -18,7 +19,6 @@
 #include <QJsonValue>
 
 #include <cmath>
-#include <filesystem>
 #include <fstream>
 #include <memory>
 #include <sstream>
@@ -34,28 +34,6 @@ namespace {
       return path;
 
     return QDir(sourceDirectory).filePath(path);
-  }
-
-  std::vector<std::string> searchDirectoriesFor(const QString& modelFilePath,
-                                                const QString& libraryPath) {
-    namespace fs = std::filesystem;
-
-    std::vector<std::string> directories;
-    const fs::path modelPath(modelFilePath.toStdString());
-    if (!modelPath.parent_path().empty()) {
-      directories.push_back(modelPath.parent_path().string());
-    }
-
-    if (!libraryPath.isEmpty()) {
-      const fs::path root(libraryPath.toStdString());
-      directories.push_back((root / "parts").string());
-      directories.push_back((root / "parts" / "s").string());
-      directories.push_back((root / "p").string());
-      directories.push_back((root / "p" / "48").string());
-      directories.push_back((root / "models").string());
-    }
-
-    return directories;
   }
 
   bool isLDrawImportDirective(const QJsonObject& metadata) {
@@ -180,7 +158,7 @@ namespace {
     LDrawColorTable colors;
     colors.loadLibraryConfig(options.libraryPath.toStdString());
     auto resolver = std::make_shared<LDrawFilesystemResolver>(
-      searchDirectoriesFor(options.filePath, options.libraryPath));
+      ldrawSearchDirectoriesFor(options.filePath, options.libraryPath));
     const auto normalMode = options.smoothNormals ? LDrawGeometryCompiler::NormalMode::Smooth
                                                   : LDrawGeometryCompiler::NormalMode::Flat;
     LDrawGeometryCompiler::Options compilerOptions;

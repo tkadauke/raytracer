@@ -1,5 +1,6 @@
 #include "world/objects/Transformable.h"
 #include "world/objects/Material.h"
+#include "world/objects/TransformComposition.h"
 #include "render/primitives/Instance.h"
 #include "render/primitives/Composite.h"
 
@@ -9,7 +10,7 @@ Transformable::Transformable(Element* parent)
 }
 
 Matrix4d Transformable::localTransform() const {
-  return Matrix4d::translate(position()) * Matrix3d::rotate(rotation()) * Matrix3d::scale(scale());
+  return composePositionRotationScale(position(), rotation(), scale());
 }
 
 Matrix4d Transformable::globalTransform() const {
