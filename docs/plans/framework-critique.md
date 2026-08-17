@@ -258,32 +258,54 @@ sampling theme; this is a focused note from the camera-shipping work.)
 
 ### What hurt during this session
 
-- The sampler is 1D-output-only (`std::vector<Vector2d>`) and per-pixel
-  iteration is built around that shape. `ThinLensCamera` wanted 4D
-  samples (pixel.x, pixel.y, lens.u, lens.v) and had to fake it by
-  reusing the sub-pixel offset as the lens coordinate — works but
-  introduces correlation. Owen scrambling / Sobol would decorrelate
-  properly.
+- ~~The sampler is 1D-output-only (`std::vector<Vector2d>`) and
+  per-pixel iteration is built around that shape. `ThinLensCamera`
+  wanted 4D samples (pixel.x, pixel.y, lens.u, lens.v) and had to fake
+  it by reusing the sub-pixel offset as the lens coordinate — works
+  but introduces correlation. Owen scrambling / Sobol would
+  decorrelate properly.~~ ✅ **Fixed.** `render::SampleStream`
+  (`include/render/samplers/SampleStream.h`) adds a per-dimension
+  stream API (`SampleDimension::Pixel/Time/Lens/BSDF/Light/...`)
+  alongside the legacy `sampleSet` vector API.
+  `ThinLensCamera::rayForPixel` now draws the lens sample from
+  `stream.next2D()` at the distinct `Lens` dimension instead of
+  reusing the pixel-jitter offset, so pixel and lens sampling are no
+  longer correlated (`src/render/cameras/ThinLensCamera.cpp`).
 
 - The factory-default 1-spp `RegularSampler` is a footgun for any
   camera that *needs* multi-sample. The ThinLens preview-confetti
   regression was this bug. The auto-install workaround is
   per-camera and stringly couples the camera to a sampler choice — a
   cleaner fix would be a "minimum samples" hint on the camera that
-  the framework reconciles with the user's choice.
+  the framework reconciles with the user's choice. Still true:
+  `ThinLensCamera::setViewPlane` (`src/render/cameras/ThinLensCamera.cpp`)
+  still guards on `viewPlane()->sampler()->numSamples() <= 1` and
+  hand-installs a `JitteredSampler`; there is no generalized hint
+  mechanism on `Camera`/`Sampler`.
 
 - The samplers are limited to Regular / Random / Jittered. No quasi-
   Monte Carlo (Sobol, Halton, Owen scrambling). topics-backlog §A
-  already flags this as the wanted direction.
+  already flags this as the wanted direction. ⏳ **Partially done.**
+  `render::HaltonSampler` (`include/render/samplers/HaltonSampler.h`)
+  now provides a low-discrepancy Halton sequence (bases 2/3 for the
+  legacy set API, successive prime-base pairs with a per-pixel
+  Cranley rotation for streamed path-tracing dimensions). Sobol and
+  Owen scrambling are still missing.
 
 ### Where I'd take it
 
 - topics-backlog §A is already the right placeholder for the broader
   sampling-theory pillar.
-- The framework limitation worth noting: a 4D-sample-shape sampler
+- ~~The framework limitation worth noting: a 4D-sample-shape sampler
   protocol would unlock the whole DOF / motion-blur / light-sampling
   co-stratification space. That's a meaningful refactor of
-  `Sampler::generateSet` and the camera render loop, not a drop-in.
+  `Sampler::generateSet` and the camera render loop, not a
+  drop-in.~~ ✅ **Done.** Landed as an additive `SampleStream` API
+  (dimensions listed above) rather than a replacement of
+  `Sampler::generateSet` — the legacy set-based API stays for cameras
+  that only need one 2D dimension, and the stream API layers on top
+  for cameras/integrators that need more (lens samples, and BSDF/
+  light/continuation dimensions for path tracing).
 
 ---
 

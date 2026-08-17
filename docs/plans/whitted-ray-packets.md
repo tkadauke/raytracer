@@ -237,8 +237,19 @@ Acceptance:
 
 **Goal:** the second-most-coherent ray class.
 
-**Status:** still open. Packet frontiers cover camera/continuation path
-intersections; direct-light shadow visibility remains scalar.
+**Status:** ⏳ **Partially done.** Direct-light visibility now flows through a
+batch/frontier seam — `WavefrontIntersectionBackend::resolveDirectLightVisibilityBatch(...)`
+builds a `WavefrontAnyHitFrontier` from queued `WavefrontAnyHitQuery`s, and
+per-depth metrics (`directLightAnyHitBatchChunksPerDepth`,
+`directLightAnyHitBatchRaysPerDepth`, etc. in `include/render/Integrator.h`)
+track it end to end (see `src/render/WavefrontIntersectionBackend.cpp`,
+`src/render/WhittedIntegrator.cpp`). But the host CPU implementation
+(`WavefrontIntersectionBackend::intersectAnyBatch`) still resolves every
+query with a scalar, one-at-a-time `intersectAny(...)` call in a loop — there
+is no Ray4/Ray8 SIMD shadow packet with a `hitMask`, no
+`RayCaster::shadowPacket(...)` opt-in on the material side, and no
+`--raytracer.packet_shadows` flag. Missing: the SIMD lane-batching itself,
+plus its parity/timing/off-by-default acceptance criteria below.
 
 Shadow rays from a 2×2 hit cluster toward the same light are mostly
 coherent (similar origins, similar directions). Batching them as a
@@ -313,7 +324,7 @@ Acceptance:
   byte-for-byte.
 - `--timing` on a 4-spp scene shows speedup over scalar 4-spp.
 
-## Phase 4 — packetized scalar path inside BRDF (probably not)
+## Phase 4 — packetized scalar path inside BRDF (probably not) ✅ **Done — decision confirmed, not reversed.**
 
 **Goal:** explicitly NOT trying to do this; documenting why.
 
@@ -333,7 +344,10 @@ where needed.
 
 Decision unchanged unless somebody produces benchmark evidence that
 specifically post-bounce packet re-sort wins on a real scene. Until
-then, stay scalar past the first intersect.
+then, stay scalar past the first intersect. No such evidence has
+surfaced as of this audit (no `packetized BRDF` / post-bounce re-sort
+work exists in `src/render/materials/` or the wavefront engine); the
+decision stands.
 
 ## Test / CI
 
@@ -367,30 +381,51 @@ Already covered for the shipped batch/frontier path:
 
 ## Open questions
 
-- **`RayPacketIntersection4` shape.** Currently carries `hitMask`,
+- ~~**`RayPacketIntersection4` shape.** Currently carries `hitMask`,
   `tNear`, `tFar`. Doesn't carry the hit primitive or material. Phase
   1's "result-shape glue" decision affects this — does the type
   grow, or does the packet path re-walk per lane? Probably re-walk
-  for now; measure first.
-- **`State` parallel array vs `PacketState`.** Four parallel `State`
+  for now; measure first.~~ ✅ **Done.** Resolved by the shipped batch/frontier
+  path via a different (and better-shaped) type than the plan envisioned:
+  `PrimitivePacketHit<Packet>` (aliased `PrimitivePacketHit4`/`PrimitivePacketHit8`
+  in `include/render/primitives/Primitive.h`) carries the hit primitive pointer
+  per lane (`m_primitives`) and the full `HitPoint` per lane (`m_hitPoints`) —
+  option (2) from Phase 1's "result-shape glue," not a per-lane re-walk.
+- ~~**`State` parallel array vs `PacketState`.** Four parallel `State`
   objects (`std::array<State, 4>`) is the obvious shape, but it
   multiplies the per-ray state allocation by 4. A SoA `PacketState`
   with parallel arrays inside saves allocation but reorganizes
   every state read. Start with `std::array<State, 4>` because it
-  composes with the existing scalar fallback path trivially.
-- **Composite primitives without packet overrides.** `Union`,
+  composes with the existing scalar fallback path trivially.~~ ✅ **Done.**
+  Shipped as `PrimitivePacketState4`/`PrimitivePacketState8` =
+  `std::array<render::State*, N>` (`include/render/primitives/Primitive.h`) —
+  an array of pointers into the per-sample `State` rather than owned copies,
+  same "trivial scalar-fallback composition" spirit as the plan's proposal.
+- ~~**Composite primitives without packet overrides.** `Union`,
   `Intersection`, `ClosedSolidUnion`, `Difference` don't override
   `intersectPacket` today. The default falls back to four scalar
   calls — correct but loses the packet win. Phase 1 should
   measure whether scenes with CSG composites are common enough to
   justify per-Composite packet overrides; if yes, those are a
-  follow-up.
-- **Scalar fallback predicate.** What exactly forces the packet path
-  back to scalar? Off the top of my head: pixel size > 1,
-  samples-per-pixel > 1 (until Phase 3), non-Whitted integrator,
-  rect dimensions odd on either axis, integrator's cancellation
-  flag set. Inventory should be exhaustive — silent fallbacks are
-  the bug that erases the headline speedup with no warning.
+  follow-up.~~ ✅ **Done.** `Union`, `Intersection`, `Difference`, and
+  `ClosedSolidUnion` (`include/render/primitives/*.h`) now each override
+  `intersectPacketHits` and `intersectPacketIntervals` for both `Ray4` and
+  `Ray8`.
+- **Scalar fallback predicate.** ⏳ **Partially done — different context than
+  posed.** The plan's speculative predicate list (pixel size > 1, samples-per-pixel
+  > 1, non-Whitted integrator, odd rect dims, cancellation flag) targeted the
+  never-shipped direct-camera-loop path (Phase 1/3) and so remains unanswered
+  there. For the shipped batch/frontier path, the equivalent question *is*
+  answered and is exhaustive by construction: `Material::requiresWhittedPacketHitRefinement()`
+  (`include/render/materials/Material.h`, default `true` = conservative
+  scalar refinement) is the single fallback predicate, overridden `false`
+  with a diagnostic label by `MatteMaterial` and `ReflectiveMaterial`
+  (`whittedPacketHitRefinementLabel()`), plus partial-packet-size handling in
+  `WhittedIntegrator::intersectQueuedRayPacket[8]`. Fallback counts are
+  tracked per-reason in `frontierPacketScalarFallbackRaysByReason`, so silent
+  fallbacks are not a risk in the shipped path — but the direct-camera-loop
+  predicate inventory this bullet originally asked for is still open if that
+  path is ever built.
 - **Educational impact.** The scalar `radiance(...)` is the
   educational reference. Adding `radiancePacket(...)` alongside it
   doubles the read surface for the integrator chapter. Plan: the
