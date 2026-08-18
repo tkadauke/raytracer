@@ -73,14 +73,10 @@ class InstanceTransformNormals {
     return this.widget.root;
   }
 
-  clamp(value, min, max) {
-    return Math.max(min, Math.min(max, value));
-  }
-
   clampPoint(point) {
     return new Vector(
-      this.clamp(point.x, -5.6, -0.4),
-      this.clamp(point.y, -3.1, 3.1)
+      FigureMath.clamp(point.x, -5.6, -0.4),
+      FigureMath.clamp(point.y, -3.1, 3.1)
     );
   }
 

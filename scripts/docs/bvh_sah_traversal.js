@@ -52,14 +52,10 @@ class BVHSahTraversal {
     return this.widget.root;
   }
 
-  clamp(value, min, max) {
-    return Math.max(min, Math.min(max, value));
-  }
-
   clampBox(box, next) {
     return {
-      x: this.clamp(next.x, this.scene.x + 4, this.scene.x + this.scene.width - box.width - 4),
-      y: this.clamp(next.y, this.scene.y + 4, this.scene.y + this.scene.height - box.height - 4),
+      x: FigureMath.clamp(next.x, this.scene.x + 4, this.scene.x + this.scene.width - box.width - 4),
+      y: FigureMath.clamp(next.y, this.scene.y + 4, this.scene.y + this.scene.height - box.height - 4),
       width: box.width,
       height: box.height,
     };
@@ -67,8 +63,8 @@ class BVHSahTraversal {
 
   clampPoint(point) {
     return {
-      x: this.clamp(point.x, this.scene.x, this.scene.x + this.scene.width),
-      y: this.clamp(point.y, this.scene.y, this.scene.y + this.scene.height + 48),
+      x: FigureMath.clamp(point.x, this.scene.x, this.scene.x + this.scene.width),
+      y: FigureMath.clamp(point.y, this.scene.y, this.scene.y + this.scene.height + 48),
     };
   }
 

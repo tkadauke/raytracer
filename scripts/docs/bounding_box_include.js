@@ -23,10 +23,6 @@ class BoundingBoxInclude {
     return this.widget.root;
   }
 
-  clamp(value, min, max) {
-    return Math.max(min, Math.min(max, value));
-  }
-
   includedBox() {
     const newTopleft = new Vector(
       Math.min(this.point.x, this.topleft.x),
@@ -74,8 +70,8 @@ class BoundingBoxInclude {
       },
       onDrag: (point) => {
         this.point = new Vector(
-          this.clamp(point.x, -4.8, 4.8),
-          this.clamp(point.y, -3.4, 3.4)
+          FigureMath.clamp(point.x, -4.8, 4.8),
+          FigureMath.clamp(point.y, -3.4, 3.4)
         );
         this.render();
       },

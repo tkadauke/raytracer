@@ -7,15 +7,7 @@ Intersection::Intersection(Element* parent)
 }
 
 std::shared_ptr<render::Primitive> Intersection::toRaytracerPrimitive() const {
-  if (active()) {
-    if (children().size() > 0) {
-      return make_named<render::Intersection>();
-    } else {
-      return nullptr;
-    }
-  } else {
-    return make_named<render::Composite>();
-  }
+  return csgToRaytracerPrimitive<render::Intersection>();
 }
 
 static bool dummy = ElementFactory::self().registerClass<Intersection>("Intersection");

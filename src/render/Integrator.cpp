@@ -17,14 +17,8 @@
 namespace render {
   namespace {
     using core::util::mergeLabel;
+    using core::util::nonEmptyLabel;
     using core::util::valueAt;
-
-    std::string nonEmptyLabel(const char* label, const std::string& fallback) {
-      if (label && *label) {
-        return label;
-      }
-      return fallback;
-    }
 
     void mergeMapMaximums(std::map<std::string, std::uint64_t>& target,
                           const std::map<std::string, std::uint64_t>& source) {

@@ -38,14 +38,10 @@ class ReflectiveMaterialRecursion {
     return this.widget.root;
   }
 
-  clamp(value, min, max) {
-    return Math.max(min, Math.min(max, value));
-  }
-
   clampPoint(point) {
     return new Vector(
-      this.clamp(point.x, -4.2, 1.2),
-      this.clamp(point.y, -2.6, 2.6)
+      FigureMath.clamp(point.x, -4.2, 1.2),
+      FigureMath.clamp(point.y, -2.6, 2.6)
     );
   }
 

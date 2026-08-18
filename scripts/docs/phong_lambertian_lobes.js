@@ -73,10 +73,6 @@ class PhongLambertianLobes {
     return this.widget.root;
   }
 
-  clamp(value, min, max) {
-    return Math.max(min, Math.min(max, value));
-  }
-
   directionFromPoint(point) {
     const offset = new Vector(point.x - this.origin.x, point.y - this.origin.y);
     if (offset.length() < 1e-6) return this.normal;
@@ -224,7 +220,7 @@ class PhongLambertianLobes {
     this.canvas.add('rect', {
       x,
       y,
-      width: this.clamp(diffuse, 0, 1) * width,
+      width: FigureMath.clamp(diffuse, 0, 1) * width,
       height,
       fill: '#ffd43b',
       stroke: 'none',

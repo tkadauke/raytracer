@@ -8,15 +8,7 @@ MinkowskiSum::MinkowskiSum(Element* parent)
 }
 
 std::shared_ptr<render::Primitive> MinkowskiSum::toRaytracerPrimitive() const {
-  if (active()) {
-    if (children().size() > 0) {
-      return make_named<render::MinkowskiSum>();
-    } else {
-      return nullptr;
-    }
-  } else {
-    return make_named<render::Composite>();
-  }
+  return csgToRaytracerPrimitive<render::MinkowskiSum>();
 }
 
 static bool dummy = ElementFactory::self().registerClass<MinkowskiSum>("MinkowskiSum");

@@ -26,10 +26,7 @@ namespace world {
 
   ImportResult JsonSceneImporter::importFile(const QString& filename,
                                              const ImportOptions&) const {
-    ImportSourceMetadata source;
-    source.importerName = name();
-    source.formatName = "Raytracer scene JSON";
-    source.sourcePath = filename;
+    const ImportSourceMetadata source(name(), "Raytracer scene JSON", filename);
 
     QFile file(filename);
     if (!file.open(QIODevice::ReadOnly)) {

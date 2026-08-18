@@ -643,7 +643,7 @@ namespace engine::raster {
   }
 
   void OpenGLRasterizer::setLod(int lod) {
-    m_lod = std::max(0, lod);
+    m_lod = atLeast(0, lod);
   }
 
   Rasterizer::TessellationQuality OpenGLRasterizer::tessellationQuality() const {
@@ -661,7 +661,7 @@ namespace engine::raster {
   }
 
   void OpenGLRasterizer::setMaximumScreenSpaceError(double pixels) {
-    m_maximumScreenSpaceError = std::isfinite(pixels) ? std::max(0.0, pixels) : 0.0;
+    m_maximumScreenSpaceError = finiteAtLeast(0.0, pixels);
   }
 
   void OpenGLRasterizer::clearMaximumScreenSpaceErrorOverride() {

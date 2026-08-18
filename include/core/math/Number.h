@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <limits>
@@ -133,4 +134,23 @@ inline int random(int upper) {
 template<class T>
 inline T positiveExtent(const T& value) {
   return std::max(std::abs(value), std::numeric_limits<T>::epsilon());
+}
+
+/**
+  * @returns @p value clamped to be no less than @p minimum. Used by
+  * setters that only need a floor (e.g. sample counts, biases, radii).
+  */
+template<class T>
+inline T atLeast(T minimum, T value) {
+  return std::max(minimum, value);
+}
+
+/**
+  * @returns @p value clamped to be no less than @p minimum, treating a
+  * non-finite @p value as if it were @p minimum. Used by setters that
+  * accept externally supplied doubles (e.g. from JSON) which may be NaN
+  * or infinite.
+  */
+inline double finiteAtLeast(double minimum, double value) {
+  return std::isfinite(value) ? std::max(minimum, value) : minimum;
 }

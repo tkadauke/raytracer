@@ -1,5 +1,6 @@
 #include "engine/wavefront/detail/WavefrontMetricsRecorder.h"
 
+#include "core/math/Number.h"
 #include "engine/wavefront/detail/WavefrontTileTypes.h"
 #include "render/Integrator.h"
 #include "render/TilePlan.h"
@@ -61,8 +62,8 @@ namespace engine::wavefront::detail {
     m_metrics.convergence.radianceDeltaRmsThreshold = radianceDeltaRmsThreshold;
     m_metrics.convergence.decision = convergenceEnabled ? "configured" : "disabled";
     m_metrics.adaptiveSampling.enabled = adaptiveSamplingEnabled;
-    m_metrics.adaptiveSampling.minimumSamples = std::max(1, adaptiveMinimumSamples);
-    m_metrics.adaptiveSampling.stddevThreshold = std::max(0.0, adaptiveStddevThreshold);
+    m_metrics.adaptiveSampling.minimumSamples = atLeast(1, adaptiveMinimumSamples);
+    m_metrics.adaptiveSampling.stddevThreshold = atLeast(0.0, adaptiveStddevThreshold);
   }
 
   void WavefrontMetricsRecorder::clear() {

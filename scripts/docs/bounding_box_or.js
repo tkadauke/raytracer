@@ -24,14 +24,10 @@ class BoundingBoxOr {
     return this.widget.root;
   }
 
-  clamp(value, min, max) {
-    return Math.max(min, Math.min(max, value));
-  }
-
   clampBox(box, topleft) {
     return new Vector(
-      this.clamp(topleft.x, 0.2, 10.4 - box.size.x),
-      this.clamp(topleft.y, -7.8, -0.2 - box.size.y)
+      FigureMath.clamp(topleft.x, 0.2, 10.4 - box.size.x),
+      FigureMath.clamp(topleft.y, -7.8, -0.2 - box.size.y)
     );
   }
 

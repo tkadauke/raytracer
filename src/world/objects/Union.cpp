@@ -7,15 +7,7 @@ Union::Union(Element* parent)
 }
 
 std::shared_ptr<render::Primitive> Union::toRaytracerPrimitive() const {
-  if (active()) {
-    if (children().size() > 0) {
-      return make_named<render::Union>();
-    } else {
-      return nullptr;
-    }
-  } else {
-    return make_named<render::Composite>();
-  }
+  return csgToRaytracerPrimitive<render::Union>();
 }
 
 static bool dummy = ElementFactory::self().registerClass<Union>("Union");

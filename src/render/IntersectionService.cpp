@@ -1,6 +1,7 @@
 #include "render/IntersectionService.h"
 
 #include "CountArithmetic.h"
+#include "core/util/StringUtil.h"
 #include "render/primitives/Scene.h"
 
 #include <limits>
@@ -13,16 +14,7 @@ namespace render {
       return value ? value : "";
     }
 
-    void mergeLabel(std::string& target, const std::string& label) {
-      if (label.empty()) {
-        return;
-      }
-      if (target.empty() || target == label) {
-        target = label;
-        return;
-      }
-      target = "mixed";
-    }
+    using core::util::mergeLabel;
 
     std::uint64_t countClosestHits(const std::vector<WavefrontClosestHitResult>& results) {
       std::uint64_t count = 0;

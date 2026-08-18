@@ -1,5 +1,6 @@
 #include "render/WhittedIntegrator.h"
 
+#include "CountArithmetic.h"
 #include "core/ScopeExit.h"
 #include "core/math/Constants.h"
 #include "core/math/HitPoint.h"
@@ -495,11 +496,10 @@ namespace render {
     }
 
     void validateHitCount() const {
-      if (m_hits.size() != m_expectedHitCount) {
-        throw std::logic_error(
-          "Whitted closest-hit frontier returned a hit count that does not match its queued-ray "
-          "count");
-      }
+      render::detail::validateResultCount(
+        m_hits.size(), m_expectedHitCount,
+        "Whitted closest-hit frontier returned a hit count that does not match its queued-ray "
+        "count");
     }
 
     std::size_t m_expectedHitCount{0};
@@ -621,16 +621,18 @@ namespace render {
     }
 
     void validateResolvedOcclusionCount() const {
-      if (m_occluded.size() != m_selections.size()) {
-        throw std::logic_error("Whitted direct-light visibility batch resolved an occlusion count "
-                               "that does not match its light-selection count");
-      }
+      render::detail::validateResultCount(
+        m_occluded.size(), m_selections.size(),
+        "Whitted direct-light visibility batch resolved an occlusion count that does not match "
+        "its light-selection count");
     }
 
     void validateResolvedFrontierRayCount() const {
-      if (m_frontier && static_cast<std::uint64_t>(m_occluded.size()) != m_frontier->rayCount()) {
-        throw std::logic_error("Whitted direct-light visibility batch resolved an occlusion count "
-                               "that does not match its any-hit frontier ray count");
+      if (m_frontier) {
+        render::detail::validateResultCount(
+          m_occluded.size(), m_frontier->rayCount(),
+          "Whitted direct-light visibility batch resolved an occlusion count that does not match "
+          "its any-hit frontier ray count");
       }
     }
 

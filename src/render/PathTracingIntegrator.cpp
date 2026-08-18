@@ -1,5 +1,6 @@
 #include "render/PathTracingIntegrator.h"
 
+#include "CountArithmetic.h"
 #include "core/math/Constants.h"
 #include "core/math/HitPoint.h"
 #include "core/math/HitPointInterval.h"
@@ -555,16 +556,17 @@ namespace render {
     }
 
     void validateResolvedOcclusionCount() const {
-      if (m_occluded.size() != m_selections.size()) {
-        throw std::logic_error("direct-light visibility batch resolved an occlusion count that "
-                               "does not match its light-selection count");
-      }
+      render::detail::validateResultCount(m_occluded.size(), m_selections.size(),
+                                          "direct-light visibility batch resolved an occlusion "
+                                          "count that does not match its light-selection count");
     }
 
     void validateResolvedFrontierRayCount() const {
-      if (m_frontier && static_cast<std::uint64_t>(m_occluded.size()) != m_frontier->rayCount()) {
-        throw std::logic_error("direct-light visibility batch resolved an occlusion count that "
-                               "does not match its any-hit frontier ray count");
+      if (m_frontier) {
+        render::detail::validateResultCount(
+          m_occluded.size(), m_frontier->rayCount(),
+          "direct-light visibility batch resolved an occlusion count that does not match its "
+          "any-hit frontier ray count");
       }
     }
 
@@ -863,10 +865,9 @@ namespace render {
     }
 
     void validateHitCount() const {
-      if (m_hits.size() != m_expectedHitCount) {
-        throw std::logic_error("path closest-hit frontier resolved a hit count that does not "
-                               "match its path-ray count");
-      }
+      render::detail::validateResultCount(m_hits.size(), m_expectedHitCount,
+                                          "path closest-hit frontier resolved a hit count that "
+                                          "does not match its path-ray count");
     }
 
     std::size_t m_expectedHitCount{0};

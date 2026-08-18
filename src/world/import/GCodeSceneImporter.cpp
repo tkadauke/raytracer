@@ -287,10 +287,7 @@ namespace world {
 
   ImportResult GCodeSceneImporter::importFile(const QString& filename,
                                               const ImportOptions& options) const {
-    ImportSourceMetadata source;
-    source.importerName = name();
-    source.formatName = QStringLiteral("G-code toolpath");
-    source.sourcePath = filename;
+    const ImportSourceMetadata source(name(), QStringLiteral("G-code toolpath"), filename);
 
     std::ifstream input(filename.toStdString());
     if (!input) {

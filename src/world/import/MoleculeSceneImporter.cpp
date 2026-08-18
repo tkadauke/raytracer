@@ -730,11 +730,8 @@ namespace world {
 
   ImportResult MoleculeSceneImporter::importFile(const QString& filename,
                                                  const ImportOptions& options) const {
-    ImportSourceMetadata source;
-    source.importerName = name();
-    source.formatName = QStringLiteral("Molecule");
-    source.sourcePath = filename;
-    source.properties = QJsonObject{{"format", formatForPath(filename)}};
+    const ImportSourceMetadata source(name(), QStringLiteral("Molecule"), filename,
+                                      QJsonObject{{"format", formatForPath(filename)}});
 
     ifstream input(filename.toStdString());
     if (!input) {

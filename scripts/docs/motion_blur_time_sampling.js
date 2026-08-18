@@ -57,10 +57,6 @@ class MotionBlurTimeSampling {
     return this.widget.root;
   }
 
-  clamp(value, min, max) {
-    return Math.max(min, Math.min(max, value));
-  }
-
   endpoint() {
     return {
       x: this.center.x + this.velocity.x,
@@ -70,8 +66,8 @@ class MotionBlurTimeSampling {
 
   setEndpoint(point) {
     this.velocity = {
-      x: this.clamp(point.x - this.center.x, -80, 340),
-      y: this.clamp(point.y - this.center.y, -96, 96),
+      x: FigureMath.clamp(point.x - this.center.x, -80, 340),
+      y: FigureMath.clamp(point.y - this.center.y, -96, 96),
     };
   }
 

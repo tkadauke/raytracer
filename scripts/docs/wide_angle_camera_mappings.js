@@ -101,10 +101,6 @@ class WideAngleCameraMappings {
     this.sphericalVerticalSlider.root.style.display = sphericalDisplay;
   }
 
-  clamp(value, min, max) {
-    return Math.max(min, Math.min(max, value));
-  }
-
   radians(degrees) {
     return degrees * Math.PI / 180.0;
   }
@@ -118,8 +114,8 @@ class WideAngleCameraMappings {
 
   setImagePoint(svgPoint) {
     this.point = {
-      x: this.clamp((svgPoint.x - this.image.x) / this.image.width, 0, 1),
-      y: this.clamp((svgPoint.y - this.image.y) / this.image.height, 0, 1),
+      x: FigureMath.clamp((svgPoint.x - this.image.x) / this.image.width, 0, 1),
+      y: FigureMath.clamp((svgPoint.y - this.image.y) / this.image.height, 0, 1),
     };
   }
 

@@ -220,12 +220,8 @@ namespace world {
   }
 
   ImportSourceMetadata LDrawFileSceneImporter::sourceMetadataFor(const QString& filename) const {
-    ImportSourceMetadata source;
-    source.importerName = name();
-    source.formatName = "LDraw";
-    source.sourcePath = filename;
-    source.properties = {{"extension", QFileInfo(filename).suffix().toLower()}};
-    return source;
+    return ImportSourceMetadata(name(), "LDraw", filename,
+                                {{"extension", QFileInfo(filename).suffix().toLower()}});
   }
 
   ImportDiagnostic

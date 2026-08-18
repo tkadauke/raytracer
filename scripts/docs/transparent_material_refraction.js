@@ -63,17 +63,13 @@ class TransparentMaterialRefraction {
     return this.widget.root;
   }
 
-  clamp(value, min, max) {
-    return Math.max(min, Math.min(max, value));
-  }
-
   incidentDirection() {
     return this.hit.minus(this.incidentSource).normalized();
   }
 
   incidentAngle() {
     const incoming = this.incidentDirection();
-    return Math.acos(this.clamp(incoming.dot(Vector.up), -1, 1));
+    return Math.acos(FigureMath.clamp(incoming.dot(Vector.up), -1, 1));
   }
 
   criticalAngle() {
@@ -89,7 +85,7 @@ class TransparentMaterialRefraction {
       thetaI,
       sinThetaT,
       tir,
-      thetaT: tir ? null : Math.asin(this.clamp(sinThetaT, -1, 1)),
+      thetaT: tir ? null : Math.asin(FigureMath.clamp(sinThetaT, -1, 1)),
       critical: this.criticalAngle(),
     };
   }
@@ -302,8 +298,8 @@ class TransparentMaterialRefraction {
       },
       onDrag: (point) => {
         this.incidentSource = new Vector(
-          this.clamp(point.x, 70, 570),
-          this.clamp(point.y, this.hit.y + 45, 340)
+          FigureMath.clamp(point.x, 70, 570),
+          FigureMath.clamp(point.y, this.hit.y + 45, 340)
         );
         this.render();
       },

@@ -33,14 +33,10 @@ class RayProject {
     return this.widget.root;
   }
 
-  clamp(value, min, max) {
-    return Math.max(min, Math.min(max, value));
-  }
-
   clampPoint(point) {
     return new Vector(
-      this.clamp(point.x, this.bounds.minX, this.bounds.maxX),
-      this.clamp(point.y, this.bounds.minY, this.bounds.maxY)
+      FigureMath.clamp(point.x, this.bounds.minX, this.bounds.maxX),
+      FigureMath.clamp(point.y, this.bounds.minY, this.bounds.maxY)
     );
   }
 

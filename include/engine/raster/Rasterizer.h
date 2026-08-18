@@ -1,6 +1,7 @@
 #pragma once
 
 #include "render/RenderEngine.h"
+#include "core/math/Number.h"
 #include "core/math/Vector.h"
 
 #include <QJsonObject>
@@ -788,7 +789,7 @@ namespace engine::raster {
       return m_lod;
     }
     inline void setLod(int lod) {
-      m_lod = std::max(0, lod);
+      m_lod = atLeast(0, lod);
     }
 
     inline TessellationQuality tessellationQuality() const {
@@ -804,7 +805,7 @@ namespace engine::raster {
                : presetScreenSpaceError(m_tessellationQuality);
     }
     inline void setMaximumScreenSpaceError(double pixels) {
-      m_maximumScreenSpaceError = std::isfinite(pixels) ? std::max(0.0, pixels) : 0.0;
+      m_maximumScreenSpaceError = finiteAtLeast(0.0, pixels);
     }
     inline void clearMaximumScreenSpaceErrorOverride() {
       m_maximumScreenSpaceError = std::numeric_limits<double>::quiet_NaN();
@@ -1056,7 +1057,7 @@ namespace engine::raster {
     * </tr></table>
     */
     inline void setShadowBias(double bias) {
-      m_shadowBias = std::max(0.0, bias);
+      m_shadowBias = atLeast(0.0, bias);
     }
 
     /// Returns the slope-scaled shadow-map bias coefficient. The coefficient is
@@ -1082,7 +1083,7 @@ namespace engine::raster {
     * </tr></table>
     */
     inline void setShadowSlopeBias(double bias) {
-      m_shadowSlopeBias = std::max(0.0, bias);
+      m_shadowSlopeBias = atLeast(0.0, bias);
     }
 
     /// Returns the maximum filter radius in shadow-map texels. Radius 0 is a
@@ -1106,7 +1107,7 @@ namespace engine::raster {
     * </tr></table>
     */
     inline void setShadowFilterRadius(int radius) {
-      m_shadowFilterRadius = std::max(0, radius);
+      m_shadowFilterRadius = atLeast(0, radius);
     }
 
     /// Returns the active shadow-map filter. PCF uses the configured
