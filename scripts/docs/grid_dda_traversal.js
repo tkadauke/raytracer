@@ -54,15 +54,11 @@ class GridDDATraversal {
     return this.handleRadius / this.cellSize();
   }
 
-  clamp(value, min, max) {
-    return Math.max(min, Math.min(max, value));
-  }
-
   clampGridPoint(point) {
     const inset = this.handleInsetCells();
     return {
-      x: this.clamp(point.x, inset, this.density - inset),
-      y: this.clamp(point.y, inset, this.density - inset),
+      x: FigureMath.clamp(point.x, inset, this.density - inset),
+      y: FigureMath.clamp(point.y, inset, this.density - inset),
     };
   }
 
@@ -113,8 +109,8 @@ class GridDDATraversal {
       x: this.origin.x + dir.x * hit.tEnter,
       y: this.origin.y + dir.y * hit.tEnter,
     };
-    let cellX = this.clamp(Math.floor(entry.x), 0, n - 1);
-    let cellY = this.clamp(Math.floor(entry.y), 0, n - 1);
+    let cellX = FigureMath.clamp(Math.floor(entry.x), 0, n - 1);
+    let cellY = FigureMath.clamp(Math.floor(entry.y), 0, n - 1);
     const stepX = dir.x > 0 ? 1 : -1;
     const stepY = dir.y > 0 ? 1 : -1;
     const deltaX = Math.abs(dir.x) < 1e-9 ? Infinity : Math.abs(1 / dir.x);

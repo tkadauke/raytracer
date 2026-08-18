@@ -1,4 +1,5 @@
 #include "core/formats/AssetResolver.h"
+#include "core/formats/PathListFormat.h"
 #include "core/util/StringUtil.h"
 
 #include <algorithm>
@@ -111,15 +112,7 @@ namespace core {
       return identity;
     }
 
-    std::string formatPathList(const std::vector<fs::path>& paths) {
-      std::ostringstream message;
-      for (std::size_t i = 0; i < paths.size(); ++i) {
-        if (i > 0)
-          message << ", ";
-        message << paths[i].string();
-      }
-      return message.str();
-    }
+    using core::formats::formatPathList;
 
     std::string makeErrorMessage(const std::string& requestedPath,
                                  const std::vector<fs::path>& searchedRoots) {

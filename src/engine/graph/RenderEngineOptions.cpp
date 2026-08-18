@@ -356,15 +356,15 @@ namespace engine::graph {
   }
 
   void RenderRaytracerOptions::setMaximumRecursionDepth(int depth) {
-    m_maximumRecursionDepth = std::max(1, depth);
+    m_maximumRecursionDepth = atLeast(1, depth);
   }
 
   void RenderRaytracerOptions::setMaximumThreads(int threads) {
-    m_maximumThreads = std::max(1, threads);
+    m_maximumThreads = atLeast(1, threads);
   }
 
   void RenderRaytracerOptions::setQueueSize(int queueSize) {
-    m_queueSize = std::max(1, queueSize);
+    m_queueSize = atLeast(1, queueSize);
   }
 
   void RenderRaytracerOptions::setIntegrator(std::string integrator) {
@@ -406,15 +406,15 @@ namespace engine::graph {
   }
 
   void RenderRaytracerOptions::setRussianRouletteDepth(int depth) {
-    m_russianRouletteDepth = std::max(1, depth);
+    m_russianRouletteDepth = atLeast(1, depth);
   }
 
   void RenderRaytracerOptions::setDirectLightSamples(int samples) {
-    m_directLightSamples = std::max(1, samples);
+    m_directLightSamples = atLeast(1, samples);
   }
 
   void RenderRaytracerOptions::setGpuPrimarySampleChunkSize(int samples) {
-    m_gpuPrimarySampleChunkSize = std::max(0, samples);
+    m_gpuPrimarySampleChunkSize = atLeast(0, samples);
   }
 
   void RenderRaytracerOptions::setSampler(std::string sampler) {
@@ -426,7 +426,7 @@ namespace engine::graph {
   }
 
   void RenderRaytracerOptions::setSamplesPerPixel(int samples) {
-    m_samplesPerPixel = std::max(1, samples);
+    m_samplesPerPixel = atLeast(1, samples);
   }
 
   void RenderRaytracerOptions::setSamplingSeed(std::uint64_t seed) {
@@ -454,7 +454,7 @@ namespace engine::graph {
   }
 
   void RenderRaytracerOptions::setConvergenceRadianceDeltaRmsThreshold(double threshold) {
-    m_convergenceRadianceDeltaRmsThreshold = std::max(0.0, threshold);
+    m_convergenceRadianceDeltaRmsThreshold = atLeast(0.0, threshold);
   }
 
   void RenderRaytracerOptions::setAdaptiveSamplingEnabled(bool enabled) {
@@ -462,11 +462,11 @@ namespace engine::graph {
   }
 
   void RenderRaytracerOptions::setAdaptiveMinimumSamples(int samples) {
-    m_adaptiveMinimumSamples = std::max(1, samples);
+    m_adaptiveMinimumSamples = atLeast(1, samples);
   }
 
   void RenderRaytracerOptions::setAdaptiveStddevThreshold(double threshold) {
-    m_adaptiveStddevThreshold = std::max(0.0, threshold);
+    m_adaptiveStddevThreshold = atLeast(0.0, threshold);
   }
 
   void RenderRaytracerOptions::setDenoiser(std::string denoiser) {
@@ -476,11 +476,11 @@ namespace engine::graph {
   }
 
   void RenderRaytracerOptions::setDenoiseRadius(int radius) {
-    m_denoiseRadius = std::max(0, radius);
+    m_denoiseRadius = atLeast(0, radius);
   }
 
   void RenderRaytracerOptions::setDenoiseColorSigma(double sigma) {
-    m_denoiseColorSigma = std::max(0.0, sigma);
+    m_denoiseColorSigma = atLeast(0.0, sigma);
   }
 
   std::optional<int> RenderRaytracerOptions::maximumRecursionDepth() const {
@@ -990,11 +990,11 @@ namespace engine::graph {
   }
 
   void RenderRasterizerOptions::setMaximumThreads(int threads) {
-    m_maximumThreads = std::max(1, threads);
+    m_maximumThreads = atLeast(1, threads);
   }
 
   void RenderRasterizerOptions::setQueueSize(int queueSize) {
-    m_queueSize = std::max(1, queueSize);
+    m_queueSize = atLeast(1, queueSize);
   }
 
   void RenderRasterizerOptions::setBackend(engine::raster::RasterBackend backend) {
@@ -1016,7 +1016,7 @@ namespace engine::graph {
   }
 
   void RenderRasterizerOptions::setMaximumScreenSpaceError(double pixels) {
-    m_maximumScreenSpaceError = std::isfinite(pixels) ? std::max(0.0, pixels) : 0.0;
+    m_maximumScreenSpaceError = finiteAtLeast(0.0, pixels);
   }
 
   void RenderRasterizerOptions::setCullMode(std::string mode) {
@@ -1143,7 +1143,7 @@ namespace engine::graph {
   }
 
   void RenderRasterizerOptions::setShadowMapSize(int size) {
-    m_shadowMapSize = std::max(1, size);
+    m_shadowMapSize = atLeast(1, size);
   }
 
   void RenderRasterizerOptions::setShadowCascadeCount(int count) {
@@ -1155,15 +1155,15 @@ namespace engine::graph {
   }
 
   void RenderRasterizerOptions::setShadowBias(double bias) {
-    m_shadowBias = std::max(0.0, bias);
+    m_shadowBias = atLeast(0.0, bias);
   }
 
   void RenderRasterizerOptions::setShadowSlopeBias(double bias) {
-    m_shadowSlopeBias = std::max(0.0, bias);
+    m_shadowSlopeBias = atLeast(0.0, bias);
   }
 
   void RenderRasterizerOptions::setShadowFilterRadius(int radius) {
-    m_shadowFilterRadius = std::max(0, radius);
+    m_shadowFilterRadius = atLeast(0, radius);
   }
 
   void RenderRasterizerOptions::setShadowFilterMode(std::string mode) {

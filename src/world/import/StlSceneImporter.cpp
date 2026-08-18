@@ -16,11 +16,7 @@
 
 namespace {
   world::ImportSourceMetadata sourceFor(const QString& filename) {
-    world::ImportSourceMetadata source;
-    source.importerName = "stl";
-    source.formatName = "STL mesh";
-    source.sourcePath = filename;
-    return source;
+    return world::ImportSourceMetadata("stl", "STL mesh", filename);
   }
 
   QString warningSource(const QString& filename) {

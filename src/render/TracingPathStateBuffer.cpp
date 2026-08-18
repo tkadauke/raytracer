@@ -1,5 +1,7 @@
 #include "render/TracingPathStateBuffer.h"
 
+#include "CountArithmetic.h"
+#include "core/util/StringUtil.h"
 #include "render/PathTermination.h"
 #include "render/TracingAccumulationReference.h"
 #include "render/samplers/GpuSampleStream.h"
@@ -27,34 +29,20 @@ namespace render {
     }
 
     std::uint64_t checkedProduct(std::uint64_t count, std::size_t bytesPerRecord) {
-      const auto bytes = static_cast<std::uint64_t>(bytesPerRecord);
-      if (bytes != 0 && count > std::numeric_limits<std::uint64_t>::max() / bytes) {
-        throw std::overflow_error("tracing path-state layout byte size overflows");
-      }
-      return count * bytes;
+      return render::detail::checkedProduct(count, static_cast<std::uint64_t>(bytesPerRecord),
+                                            "tracing path-state layout byte size overflows");
     }
 
     std::uint64_t checkedByteProduct(std::uint64_t count, std::uint64_t bytesPerItem) {
-      if (bytesPerItem != 0 && count > std::numeric_limits<std::uint64_t>::max() / bytesPerItem) {
-        throw std::overflow_error("resident path compaction byte size overflows");
-      }
-      return count * bytesPerItem;
+      return render::detail::checkedProduct(count, bytesPerItem,
+                                            "resident path compaction byte size overflows");
     }
 
     std::uint64_t checkedAdd(std::uint64_t a, std::uint64_t b) {
-      if (a > std::numeric_limits<std::uint64_t>::max() - b) {
-        throw std::overflow_error("tracing path-state layout byte size overflows");
-      }
-      return a + b;
+      return render::detail::checkedAdd(a, b, "tracing path-state layout byte size overflows");
     }
 
-    std::string nonEmptyLabel(const char* label) {
-      return label && *label ? label : "unknown";
-    }
-
-    std::string nonEmptyLabel(std::string label) {
-      return label.empty() ? "unknown" : std::move(label);
-    }
+    using core::util::nonEmptyLabel;
 
     std::uint64_t pathCountFor(std::size_t size) {
       return static_cast<std::uint64_t>(size);

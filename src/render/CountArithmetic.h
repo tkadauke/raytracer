@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
+#include <string>
 
 namespace render::detail {
   inline std::uint64_t saturatedAdd(std::uint64_t a, std::uint64_t b) {
@@ -10,6 +11,21 @@ namespace render::detail {
       return std::numeric_limits<std::uint64_t>::max();
     }
     return a + b;
+  }
+
+  inline std::uint64_t checkedAdd(std::uint64_t a, std::uint64_t b, const std::string& message) {
+    if (a > std::numeric_limits<std::uint64_t>::max() - b) {
+      throw std::overflow_error(message);
+    }
+    return a + b;
+  }
+
+  inline std::uint64_t checkedProduct(std::uint64_t count, std::uint64_t bytesPerItem,
+                                      const std::string& message) {
+    if (bytesPerItem != 0 && count > std::numeric_limits<std::uint64_t>::max() / bytesPerItem) {
+      throw std::overflow_error(message);
+    }
+    return count * bytesPerItem;
   }
 
   template<typename Actual>

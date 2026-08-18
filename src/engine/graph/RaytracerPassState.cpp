@@ -374,15 +374,15 @@ namespace engine::graph {
   }
 
   void RaytracerBeautyPassState::setMaximumRecursionDepth(int depth) {
-    m_maximumRecursionDepth = std::max(1, depth);
+    m_maximumRecursionDepth = atLeast(1, depth);
   }
 
   void RaytracerBeautyPassState::setMaximumThreads(int threads) {
-    m_maximumThreads = std::max(1, threads);
+    m_maximumThreads = atLeast(1, threads);
   }
 
   void RaytracerBeautyPassState::setQueueSize(int queueSize) {
-    m_queueSize = std::max(1, queueSize);
+    m_queueSize = atLeast(1, queueSize);
   }
 
   void RaytracerBeautyPassState::setIntegrator(std::string integrator) {
@@ -447,15 +447,15 @@ namespace engine::graph {
   }
 
   void RaytracerBeautyPassState::setRussianRouletteDepth(int depth) {
-    m_russianRouletteDepth = std::max(1, depth);
+    m_russianRouletteDepth = atLeast(1, depth);
   }
 
   void RaytracerBeautyPassState::setDirectLightSamples(int samples) {
-    m_directLightSamples = std::max(1, samples);
+    m_directLightSamples = atLeast(1, samples);
   }
 
   void RaytracerBeautyPassState::setGpuPrimarySampleChunkSize(int samples) {
-    m_gpuPrimarySampleChunkSize = std::max(0, samples);
+    m_gpuPrimarySampleChunkSize = atLeast(0, samples);
   }
 
   void RaytracerBeautyPassState::setSampler(std::string sampler) {
@@ -463,7 +463,7 @@ namespace engine::graph {
   }
 
   void RaytracerBeautyPassState::setSamplesPerPixel(int samples) {
-    m_samplesPerPixel = std::max(1, samples);
+    m_samplesPerPixel = atLeast(1, samples);
   }
 
   void RaytracerBeautyPassState::setSamplingSeed(std::uint64_t seed) {
@@ -491,7 +491,7 @@ namespace engine::graph {
   }
 
   void RaytracerBeautyPassState::setConvergenceRadianceDeltaRmsThreshold(double threshold) {
-    m_convergenceRadianceDeltaRmsThreshold = std::max(0.0, threshold);
+    m_convergenceRadianceDeltaRmsThreshold = atLeast(0.0, threshold);
   }
 
   void RaytracerBeautyPassState::setAdaptiveSamplingEnabled(bool enabled) {
@@ -499,11 +499,11 @@ namespace engine::graph {
   }
 
   void RaytracerBeautyPassState::setAdaptiveMinimumSamples(int samples) {
-    m_adaptiveMinimumSamples = std::max(1, samples);
+    m_adaptiveMinimumSamples = atLeast(1, samples);
   }
 
   void RaytracerBeautyPassState::setAdaptiveStddevThreshold(double threshold) {
-    m_adaptiveStddevThreshold = std::max(0.0, threshold);
+    m_adaptiveStddevThreshold = atLeast(0.0, threshold);
   }
 
   void RaytracerBeautyPassState::setDenoiser(std::string denoiser) {
@@ -511,11 +511,11 @@ namespace engine::graph {
   }
 
   void RaytracerBeautyPassState::setDenoiseRadius(int radius) {
-    m_denoiseRadius = std::max(0, radius);
+    m_denoiseRadius = atLeast(0, radius);
   }
 
   void RaytracerBeautyPassState::setDenoiseColorSigma(double sigma) {
-    m_denoiseColorSigma = std::max(0.0, sigma);
+    m_denoiseColorSigma = atLeast(0.0, sigma);
   }
 
   std::optional<int> RaytracerBeautyPassState::maximumRecursionDepth() const {

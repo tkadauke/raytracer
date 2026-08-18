@@ -7,6 +7,7 @@
 
 #include <memory>
 #include <optional>
+#include <utility>
 #include <vector>
 
 class Element;
@@ -24,6 +25,13 @@ namespace world {
     QString formatName;
     QString sourcePath;
     QJsonObject properties;
+
+    ImportSourceMetadata() = default;
+    ImportSourceMetadata(QString importerName, QString formatName, QString sourcePath,
+                         QJsonObject properties = {})
+        : importerName(std::move(importerName)), formatName(std::move(formatName)),
+          sourcePath(std::move(sourcePath)), properties(std::move(properties)) {
+    }
   };
 
   /**

@@ -452,11 +452,11 @@ namespace engine::graph {
   }
 
   void RasterExecutionState::setMaximumThreads(int threads) {
-    m_maximumThreads = std::max(1, threads);
+    m_maximumThreads = atLeast(1, threads);
   }
 
   void RasterExecutionState::setQueueSize(int queueSize) {
-    m_queueSize = std::max(1, queueSize);
+    m_queueSize = atLeast(1, queueSize);
   }
 
   void RasterExecutionState::setBackend(engine::raster::RasterBackend backend) {
@@ -540,7 +540,7 @@ namespace engine::graph {
   }
 
   void RasterGeometryState::setMaximumScreenSpaceError(double pixels) {
-    m_maximumScreenSpaceError = std::isfinite(pixels) ? std::max(0.0, pixels) : 0.0;
+    m_maximumScreenSpaceError = finiteAtLeast(0.0, pixels);
   }
 
   void RasterGeometryState::clearMaximumScreenSpaceErrorOverride() {
@@ -1191,7 +1191,7 @@ namespace engine::graph {
   }
 
   void RasterShadowState::setShadowMapSize(int size) {
-    m_mapSize = std::max(1, size);
+    m_mapSize = atLeast(1, size);
   }
 
   void RasterShadowState::setShadowCascadeCount(int count) {
@@ -1203,15 +1203,15 @@ namespace engine::graph {
   }
 
   void RasterShadowState::setShadowBias(double bias) {
-    m_bias = std::max(0.0, bias);
+    m_bias = atLeast(0.0, bias);
   }
 
   void RasterShadowState::setShadowSlopeBias(double bias) {
-    m_slopeBias = std::max(0.0, bias);
+    m_slopeBias = atLeast(0.0, bias);
   }
 
   void RasterShadowState::setShadowFilterRadius(int radius) {
-    m_filterRadius = std::max(0, radius);
+    m_filterRadius = atLeast(0, radius);
   }
 
   void RasterShadowState::setShadowFilterMode(Rasterizer::ShadowFilterMode mode) {

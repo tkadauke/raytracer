@@ -74,10 +74,6 @@ class TextureCoordinateMapping {
     return this.widget.root;
   }
 
-  clamp(value, min, max) {
-    return Math.max(min, Math.min(max, value));
-  }
-
   surfaceOrigin() {
     return { x: 36, y: 38 };
   }
@@ -93,8 +89,8 @@ class TextureCoordinateMapping {
   fromSurfacePoint(point) {
     const origin = this.surfaceOrigin();
     return {
-      x: this.clamp((point.x - origin.x) / this.surfaceSize, 0, 1),
-      y: this.clamp(1.0 - (point.y - origin.y) / this.surfaceSize, 0, 1),
+      x: FigureMath.clamp((point.x - origin.x) / this.surfaceSize, 0, 1),
+      y: FigureMath.clamp(1.0 - (point.y - origin.y) / this.surfaceSize, 0, 1),
     };
   }
 
@@ -256,8 +252,8 @@ class TextureCoordinateMapping {
     const sFloor = Math.floor(s);
     const tFloor = Math.floor(t);
     const marker = {
-      x: origin.x + this.clamp(s, 0, cells) * this.previewCell,
-      y: origin.y + (cells - this.clamp(t, 0, cells)) * this.previewCell,
+      x: origin.x + FigureMath.clamp(s, 0, cells) * this.previewCell,
+      y: origin.y + (cells - FigureMath.clamp(t, 0, cells)) * this.previewCell,
     };
 
     this.addText(origin.x, 22, 'Sampled texture');

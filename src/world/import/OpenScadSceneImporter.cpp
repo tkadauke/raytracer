@@ -676,11 +676,8 @@ namespace {
           root->addChild(std::move(element));
       }
 
-      world::ImportSourceMetadata source;
-      source.importerName = "openscad";
-      source.formatName = "OpenSCAD subset";
-      source.sourcePath = m_filename;
-      source.properties = {{"nativeSubset", true}};
+      const world::ImportSourceMetadata source("openscad", "OpenSCAD subset", m_filename,
+                                               {{"nativeSubset", true}});
 
       if (hasErrors() || root->childElements().empty()) {
         if (root->childElements().empty() && !hasErrors()) {
@@ -1178,11 +1175,8 @@ namespace world {
   ImportResult OpenScadSceneImporter::importFile(const QString& filename,
                                                  const ImportOptions& options) const {
     if (!hasCompileOptions(options)) {
-      ImportSourceMetadata source;
-      source.importerName = name();
-      source.formatName = "OpenSCAD subset";
-      source.sourcePath = filename;
-      source.properties = {{"nativeSubset", true}};
+      const ImportSourceMetadata source(name(), "OpenSCAD subset", filename,
+                                        {{"nativeSubset", true}});
 
       QFile file(filename);
       if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
@@ -1196,10 +1190,7 @@ namespace world {
       return Parser(std::move(tokens), filename).parse(std::move(diagnostics));
     }
 
-    ImportSourceMetadata source;
-    source.importerName = name();
-    source.formatName = "OpenSCAD";
-    source.sourcePath = filename;
+    ImportSourceMetadata source(name(), "OpenSCAD", filename);
 
     OpenScadCompileRequest request;
     request.sourcePath = filename;

@@ -1,6 +1,7 @@
 #include "render/GpuPrimaryPathDescriptor.h"
 
-#include <limits>
+#include "CountArithmetic.h"
+
 #include <stdexcept>
 #include <string>
 
@@ -17,10 +18,7 @@ namespace render {
     }
 
     std::uint64_t checkedProduct(std::uint64_t left, std::uint64_t right, const char* label) {
-      if (right != 0 && left > std::numeric_limits<std::uint64_t>::max() / right) {
-        throw std::overflow_error(std::string(label) + " count overflows");
-      }
-      return left * right;
+      return render::detail::checkedProduct(left, right, std::string(label) + " count overflows");
     }
   }
 

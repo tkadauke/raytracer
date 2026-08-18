@@ -941,10 +941,7 @@ namespace world {
 
   ImportResult GltfSceneImporter::importFile(const QString& filename,
                                              const ImportOptions& options) const {
-    ImportSourceMetadata source;
-    source.importerName = name();
-    source.formatName = "glTF";
-    source.sourcePath = filename;
+    const ImportSourceMetadata source(name(), "glTF", filename);
 
     const auto readResult = core::gltf::Reader::readFile(filename.toStdString());
     if (!readResult.asset) {

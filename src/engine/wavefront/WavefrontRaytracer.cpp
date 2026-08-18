@@ -2,6 +2,7 @@
 
 #include "core/Buffer.h"
 #include "core/math/Constants.h"
+#include "core/math/Number.h"
 #include "core/util/BufferUtils.h"
 #include "core/util/StringUtil.h"
 #include "core/util/VectorUtil.h"
@@ -2253,7 +2254,7 @@ namespace engine::wavefront {
   }
 
   void WavefrontRaytracer::setConvergenceRadianceDeltaRmsThreshold(double threshold) {
-    p->convergenceRadianceDeltaRmsThreshold = std::max(0.0, threshold);
+    p->convergenceRadianceDeltaRmsThreshold = atLeast(0.0, threshold);
   }
 
   double WavefrontRaytracer::convergenceRadianceDeltaRmsThreshold() const {
@@ -2269,7 +2270,7 @@ namespace engine::wavefront {
   }
 
   void WavefrontRaytracer::setAdaptiveMinimumSamples(int samples) {
-    p->adaptiveMinimumSamples = std::max(1, samples);
+    p->adaptiveMinimumSamples = atLeast(1, samples);
   }
 
   int WavefrontRaytracer::adaptiveMinimumSamples() const {
@@ -2277,7 +2278,7 @@ namespace engine::wavefront {
   }
 
   void WavefrontRaytracer::setAdaptiveStddevThreshold(double threshold) {
-    p->adaptiveStddevThreshold = std::max(0.0, threshold);
+    p->adaptiveStddevThreshold = atLeast(0.0, threshold);
   }
 
   double WavefrontRaytracer::adaptiveStddevThreshold() const {

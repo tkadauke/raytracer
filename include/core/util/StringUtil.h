@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <optional>
 #include <string>
+#include <utility>
 
 namespace core::util {
 
@@ -88,6 +89,14 @@ namespace core::util {
     if (target != source) {
       target = "mixed";
     }
+  }
+
+  inline std::string nonEmptyLabel(const char* label, const std::string& fallback = "unknown") {
+    return label && *label ? label : fallback;
+  }
+
+  inline std::string nonEmptyLabel(std::string label, const std::string& fallback = "unknown") {
+    return label.empty() ? fallback : std::move(label);
   }
 
 }

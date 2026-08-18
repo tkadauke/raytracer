@@ -24,10 +24,6 @@ class BoundingBoxMovedBy {
     return this.widget.root;
   }
 
-  clamp(value, min, max) {
-    return Math.max(min, Math.min(max, value));
-  }
-
   corners() {
     return [
       this.topleft,
@@ -101,8 +97,8 @@ class BoundingBoxMovedBy {
       },
       onDrag: (point) => {
         this.vector = new Vector(
-          this.clamp(point.x - this.topleft.x, -2.8, 3.2),
-          this.clamp(point.y - this.topleft.y, -2.2, 3.2)
+          FigureMath.clamp(point.x - this.topleft.x, -2.8, 3.2),
+          FigureMath.clamp(point.y - this.topleft.y, -2.2, 3.2)
         );
         this.render();
       },

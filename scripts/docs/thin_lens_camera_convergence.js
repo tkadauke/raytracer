@@ -21,8 +21,6 @@
 //   identical regardless of focalDistance — that's the chief ray that
 //   all the off-axis rays converge to at the focal plane.
 
-const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
-
 class ThinLensConvergence {
   constructor() {
     this.distance = 2.0;          // eye → image plane distance (m_distance)
@@ -33,7 +31,7 @@ class ThinLensConvergence {
   }
 
   setFocalDistance(d) {
-    this.focalDistance = clamp(d, 1.0, 7.0);
+    this.focalDistance = FigureMath.clamp(d, 1.0, 7.0);
   }
 
   createCanvas() {

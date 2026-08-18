@@ -1,5 +1,7 @@
 #include "render/GpuDiffusePathLoopLaunch.h"
 
+#include "CountArithmetic.h"
+
 #include <algorithm>
 #include <limits>
 #include <stdexcept>
@@ -23,17 +25,11 @@ namespace render {
     }
 
     std::uint64_t checkedAdd(std::uint64_t left, std::uint64_t right, const char* label) {
-      if (left > std::numeric_limits<std::uint64_t>::max() - right) {
-        throw std::overflow_error(std::string(label) + " byte size overflows");
-      }
-      return left + right;
+      return render::detail::checkedAdd(left, right, std::string(label) + " byte size overflows");
     }
 
     std::uint64_t checkedProduct(std::uint64_t count, std::uint64_t bytes, const char* label) {
-      if (bytes != 0 && count > std::numeric_limits<std::uint64_t>::max() / bytes) {
-        throw std::overflow_error(std::string(label) + " byte size overflows");
-      }
-      return count * bytes;
+      return render::detail::checkedProduct(count, bytes, std::string(label) + " byte size overflows");
     }
 
     std::uint64_t pathStateBytes(std::uint64_t pathCount, const char* label) {

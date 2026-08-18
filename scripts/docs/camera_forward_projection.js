@@ -46,10 +46,6 @@ class CameraForwardProjection {
     return this.widget.root;
   }
 
-  clamp(value, min, max) {
-    return Math.max(min, Math.min(max, value));
-  }
-
   signedDepth() {
     return this.mode === 'pinhole'
       ? (this.point.x - this.eye.x) / 45
@@ -218,14 +214,14 @@ class CameraForwardProjection {
 
     this.canvas.add('circle', {
       cx: projection.x,
-      cy: this.clamp(projection.y, planeTop, planeBottom),
+      cy: FigureMath.clamp(projection.y, planeTop, planeBottom),
       r: 8,
       fill: visible ? '#ffdb4d' : '#fff7cc',
       stroke: visible ? '#111' : '#999',
       'stroke-width': FigurePixelStrokeWidth,
       'data-projected-pixel': 'true',
     });
-    this.addText(projection.x + 12, this.clamp(projection.y, planeTop + 16, planeBottom - 10), 'pixel');
+    this.addText(projection.x + 12, FigureMath.clamp(projection.y, planeTop + 16, planeBottom - 10), 'pixel');
 
     const handle = new FigureDraggablePoint({
       canvas: this.canvas,
@@ -239,8 +235,8 @@ class CameraForwardProjection {
       },
       onDrag: (point) => {
         this.point = {
-          x: this.clamp(point.x, 46, 388),
-          y: this.clamp(point.y, 42, 258),
+          x: FigureMath.clamp(point.x, 46, 388),
+          y: FigureMath.clamp(point.y, 42, 258),
         };
         this.render();
       },
@@ -298,7 +294,7 @@ class CameraForwardProjection {
     this.addText(midX + 32, top + 4, '-1', { size: 12, fill: '#666' });
     this.addText(midX + 32, bottom + 4, '1', { size: 12, fill: '#666' });
 
-    const ndcY = this.clamp(clip.ndcY, -1.4, 1.4);
+    const ndcY = FigureMath.clamp(clip.ndcY, -1.4, 1.4);
     const markerY = top + ((ndcY + 1) / 2) * (bottom - top);
     this.canvas.add('circle', {
       cx: midX,

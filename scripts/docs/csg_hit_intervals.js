@@ -48,10 +48,6 @@ class CsgHitIntervals {
     return this.widget.root;
   }
 
-  clamp(value, min, max) {
-    return Math.max(min, Math.min(max, value));
-  }
-
   scale() {
     return (this.bounds.right - this.bounds.left) / (this.bounds.maxT - this.bounds.minT);
   }
@@ -208,9 +204,9 @@ class CsgHitIntervals {
         const minGap = 0.25;
         const draggedT = this.tForX(dragged.x);
         if (endpointKey === 'enter') {
-          interval.enter = this.clamp(draggedT, this.bounds.minT, interval.exit - minGap);
+          interval.enter = FigureMath.clamp(draggedT, this.bounds.minT, interval.exit - minGap);
         } else {
-          interval.exit = this.clamp(draggedT, interval.enter + minGap, this.bounds.maxT);
+          interval.exit = FigureMath.clamp(draggedT, interval.enter + minGap, this.bounds.maxT);
         }
         this.render();
       },

@@ -1,9 +1,14 @@
 #include "render/TracingAccumulationLayout.h"
 
+#include "CountArithmetic.h"
+#include "core/util/StringUtil.h"
+
 #include <limits>
 
 namespace render {
   namespace {
+    using core::util::nonEmptyLabel;
+
     std::uint64_t checkedPixelCount(int width, int height) {
       if (width <= 0 || height <= 0) {
         throw std::invalid_argument("tracing accumulation layout requires positive dimensions");
@@ -17,23 +22,14 @@ namespace render {
     }
 
     std::uint64_t checkedPlaneBytes(std::uint64_t pixels, std::size_t bytesPerPixel) {
-      const auto bytes = static_cast<std::uint64_t>(bytesPerPixel);
-      if (bytes != 0 && pixels > std::numeric_limits<std::uint64_t>::max() / bytes) {
-        throw std::overflow_error("tracing accumulation layout byte size overflows");
-      }
-      return pixels * bytes;
+      return render::detail::checkedProduct(pixels, static_cast<std::uint64_t>(bytesPerPixel),
+                                            "tracing accumulation layout byte size overflows");
     }
 
     std::uint64_t checkedAdd(std::uint64_t a, std::uint64_t b) {
-      if (a > std::numeric_limits<std::uint64_t>::max() - b) {
-        throw std::overflow_error("tracing accumulation layout byte size overflows");
-      }
-      return a + b;
+      return render::detail::checkedAdd(a, b, "tracing accumulation layout byte size overflows");
     }
 
-    const char* nonEmptyLabel(const char* label) {
-      return label && *label ? label : "unknown";
-    }
   }
 
   TracingAccumulationLayout TracingAccumulationLayout::image(int width, int height) {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/json/JsonValue.h"
+#include "core/math/Number.h"
 #include "core/math/Rect.h"
 
 #include <QJsonArray>
@@ -84,7 +85,7 @@ namespace engine::graph::detail {
   /// Clamps a level-of-detail value to the non-negative range shared by every
   /// `setLod()` on the rasterizer/wireframe pass-state and options types.
   [[nodiscard]] inline int clampedLod(int lod) {
-    return std::max(0, lod);
+    return atLeast(0, lod);
   }
 
   template<typename Error>

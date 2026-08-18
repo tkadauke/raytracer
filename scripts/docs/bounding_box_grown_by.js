@@ -24,10 +24,6 @@ class BoundingBoxGrownBy {
     return this.widget.root;
   }
 
-  clamp(value, min, max) {
-    return Math.max(min, Math.min(max, value));
-  }
-
   bottomRight() {
     return this.topleft.plus(this.size);
   }
@@ -111,8 +107,8 @@ class BoundingBoxGrownBy {
       },
       onDrag: (point) => {
         this.vector = new Vector(
-          this.clamp(point.x - topRight.x, -1.6, 2.6),
-          this.clamp(topRight.y - point.y, -1.6, 2.4)
+          FigureMath.clamp(point.x - topRight.x, -1.6, 2.6),
+          FigureMath.clamp(topRight.y - point.y, -1.6, 2.4)
         );
         this.render();
       },

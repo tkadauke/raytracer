@@ -29,10 +29,6 @@ class RasterizerClipAttributes {
     return this.widget.root;
   }
 
-  clamp(value, min, max) {
-    return Math.max(min, Math.min(max, value));
-  }
-
   uvColor(v) {
     return `rgb(${Math.round(255 * v.u)}, ${Math.round(255 * v.v)}, 0)`;
   }
@@ -155,8 +151,8 @@ class RasterizerClipAttributes {
           'data-vertex-index': index,
         },
         onDrag: (point) => {
-          vertex.x = this.clamp(point.x, 0, this.width);
-          vertex.y = this.clamp(point.y, 0, this.height);
+          vertex.x = FigureMath.clamp(point.x, 0, this.width);
+          vertex.y = FigureMath.clamp(point.y, 0, this.height);
           this.render();
         },
       });

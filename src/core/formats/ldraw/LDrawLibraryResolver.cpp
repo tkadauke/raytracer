@@ -1,6 +1,7 @@
 #include "core/formats/ldraw/LDrawLibraryResolver.h"
 
 #include "core/formats/AssetResolver.h"
+#include "core/formats/PathListFormat.h"
 #include "core/formats/ldraw/LDrawParseError.h"
 #include "core/util/StringUtil.h"
 
@@ -28,15 +29,7 @@ namespace {
     throw LDrawParseError(0, detail, __FILE__, __LINE__);
   }
 
-  string formatPathList(const vector<fs::path>& paths) {
-    ostringstream message;
-    for (size_t i = 0; i < paths.size(); ++i) {
-      if (i > 0)
-        message << ", ";
-      message << paths[i].string();
-    }
-    return message.str();
-  }
+  using core::formats::formatPathList;
 
   vector<fs::path> findCycle(const vector<fs::path>& stack, const fs::path& path) {
     const string key = toLookupKey(path);

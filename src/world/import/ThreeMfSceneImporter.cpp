@@ -115,12 +115,8 @@ namespace world {
     }
 
     ImportSourceMetadata sourceMetadata(const QString& filename) {
-      ImportSourceMetadata source;
-      source.importerName = "3mf";
-      source.formatName = "3MF core package";
-      source.sourcePath = filename;
-      source.properties = {{"container", "zip"}, {"model", "core"}};
-      return source;
+      return ImportSourceMetadata("3mf", "3MF core package", filename,
+                                  {{"container", "zip"}, {"model", "core"}});
     }
   }
 

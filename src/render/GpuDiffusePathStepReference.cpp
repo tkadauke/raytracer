@@ -3,6 +3,7 @@
 #include "CountArithmetic.h"
 #include "core/Buffer.h"
 #include "core/math/Constants.h"
+#include "core/util/StringUtil.h"
 #include "render/brdf/BRDFSampling.h"
 #include "render/ConcentricMap.h"
 #include "core/math/Matrix.h"
@@ -796,18 +797,7 @@ namespace {
     terminate(pathState);
   }
 
-  void mergeLabel(std::string& target, const std::string& source) {
-    if (source.empty()) {
-      return;
-    }
-    if (target.empty()) {
-      target = source;
-      return;
-    }
-    if (target != source) {
-      target = "mixed";
-    }
-  }
+  using core::util::mergeLabel;
 
   void validateRetainedPathIndices(std::size_t inputPathCount,
                                    const std::vector<std::uint32_t>& retainedPathIndices) {
