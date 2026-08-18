@@ -772,19 +772,20 @@ A chat interface in the editor with an LLM agent that has tool calls into the sc
 - `apply_material(id, name_or_inline_definition)`
 - `csg_union(a, b) → id`, `csg_intersect(a, b) → id`, `csg_difference(a, b) → id`
 - `import_file(path) → id`
-- `query_scene() → JSON`
+- ~~`query_scene() → JSON`~~ ✅ **Done.** Implemented as the embedded MCP server's first (and currently only) tool, reusing `Scene::write()`/`Element::write()` for the dump rather than a parallel schema — see implementation notes below.
 - `select(id)`, `delete(id)`
 - `set_camera(position, target, fov)`
 - `set_environment(hdri_path)`
 - `run_script(code) → id_list` — evaluate a parametric script and drop the result into the scene.
 - `get_modifier_stack(id) → JSON`, `set_modifier_stack(id, JSON)`
 
-The agent observes user edits via the same scene graph, so the loop is bidirectional. The chat transcript is persisted in the scene file so AI-assisted sessions can be resumed.
+The agent observes user edits via the same scene graph, so the loop is bidirectional. The chat transcript is persisted per scene (keyed by the scene's stable `Element::id()`) under `QStandardPaths::AppDataLocation`, not embedded in the scene JSON itself. The chat UI and the remaining mutating tool calls above are still TODO — this Job only lands the read-only `query_scene` foundation.
 
 Implementation notes:
 
-- Anthropic's Claude with tool use is the default; the green-acres infrastructure has Claude API auth already.
-- Tool calls go through R3 serialization, so they can be undone, replayed, and audited.
+- ✅ **Done.** Resolves the §7 "AI agent: cloud LLM or local?" open question in favor of the `claude` CLI (Claude CLI OAuth) rather than the Anthropic API-key sketch this section used to describe: Modeler shells out to the already-installed, already-authenticated `claude` CLI and never touches credentials itself.
+- ✅ **Done.** Rather than a Node/JS MCP-bridge subprocess translating to a private C++ RPC, `MainWindow` embeds the MCP server itself (`include/mcp/McpServer.h`): a loopback-only (`127.0.0.1`, never `0.0.0.0`) HTTP+SSE listener built with `QTcpServer` + `QJsonDocument`, implementing `initialize`/`tools/list`/`tools/call` directly against the live scene graph — no Node/JS runtime dependency anywhere in the repo. The server starts when the Modeler window has a scene open and stops on close; each launch (re)writes a fresh per-session port and bearer token to a generated `claude --mcp-config` JSON file (`include/mcp/McpConfigWriter.h`).
+- Mutating tool calls (once they land) should go through R3 serialization so they can be undone, replayed, and audited; `query_scene` is read-only and doesn't need this.
 
 #### 4.6.j Scripted parametric objects
 
@@ -1131,7 +1132,7 @@ These need decisions before specific work starts. Calling them out so they don't
 - **Scripted DSL: which language first?** Python is more popular but adds a Python embedding dependency. JavaScript via QuickJS is small and self-contained. An OpenSCAD-style language is the most opinionated and the most work. The same DSL choice drives §4.3.b layer 4 (scripted textures) and §4.6.j (parametric objects), so picking once unlocks both.
 - **Material library distribution model.** Bundled in-tree, downloaded on first use, or referenced from a community repo (like Blender's asset library)?
 - **UI undo/redo granularity.** Per-property change, per-tool action, or per-scene-mutation? Affects the serialization design.
-- **AI agent: cloud LLM or local?** Cloud (Claude via API) is more capable today; local (llama.cpp, Ollama) is private and free at idle. Both are viable; the tool-call surface is the same. Probably default to cloud with a local-fallback knob.
+- ~~**AI agent: cloud LLM or local?**~~ ✅ **Resolved.** Cloud, via the `claude` CLI + OAuth rather than a directly-managed Anthropic API key — Modeler shells out to the already-authenticated `claude` CLI, which talks to the embedded per-Modeler-instance MCP server (§4.6.i) over loopback HTTP+SSE. A local-model fallback (llama.cpp, Ollama) remains a possible future knob since the tool-call surface (MCP) is the same either way, but is not planned work.
 - **GPU backend beyond the current compute path.** Metal and Vulkan compute are the first tracing backend targets and are already active. The remaining open decision is when, or whether, to add hardware ray tracing APIs such as Vulkan RT, Metal ray tracing, or NVIDIA-only OptiX after the flat-BVH compute path is measured.
 - **Compatibility: maintain the existing C++ scene-construction API forever, or sunset it once UI/serialization land?** It still backs several tests and scene-construction helpers, but the Modeler and JSON scenes are now the primary interactive path.
 

@@ -58,6 +58,9 @@
 #include "render/cameras/PinholeCamera.h"
 #include "core/math/HitPointInterval.h"
 
+#include "mcp/McpConfigWriter.h"
+#include "mcp/McpServer.h"
+
 #include "widgets/world/PropertyEditorWidget.h"
 #include "widgets/world/PreviewDisplayWidget.h"
 #include "widgets/world/RenderGraphInspectorWidget.h"
@@ -510,6 +513,7 @@ struct MainWindow::Private {
         renderGraphDockWidget(nullptr),
         renderGraphInspectorWidget(nullptr),
         renderWindow(nullptr),
+        mcpServer(nullptr),
         scene(nullptr),
         currentFrame(0),
         currentPlaybackIndex(0),
@@ -539,6 +543,7 @@ struct MainWindow::Private {
   RenderGraphInspectorWidget* renderGraphInspectorWidget;
 
   RenderWindow* renderWindow;
+  mcp::McpServer* mcpServer;
 
   Scene* scene;
   int currentFrame;
@@ -720,6 +725,21 @@ MainWindow::MainWindow()
   resetPlaybackIndex();
   updateRenderGraphInspector();
   p->display->setScene(p->scene);
+
+  // Loopback-only MCP server (roadmap §4.6.i): starts as soon as the
+  // Modeler has a scene to serve — including the blank scene a fresh
+  // window opens with — and stops on window close (see closeEvent()).
+  p->mcpServer = new mcp::McpServer([this]() { return p->scene; }, this);
+  if (p->mcpServer->start()) {
+    const QString configPath = mcp::writeMcpConfig(*p->mcpServer);
+    if (!configPath.isEmpty()) {
+      statusBar()->showMessage(
+        tr("MCP server listening on 127.0.0.1:%1 — config written to %2")
+          .arg(p->mcpServer->port())
+          .arg(configPath),
+        8000);
+    }
+  }
 }
 
 void MainWindow::createActions() {
@@ -1387,6 +1407,8 @@ bool MainWindow::maybeSave() {
 
 void MainWindow::closeEvent(QCloseEvent* event) {
   if (maybeSave()) {
+    if (p->mcpServer)
+      p->mcpServer->stop();
     event->accept();
   } else {
     event->ignore();

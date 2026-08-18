@@ -23,8 +23,8 @@ if(RAYTRACER_BUILD_BENCHMARKS AND
    NOT RAYTRACER_BUILD_MODELER AND
    NOT RAYTRACER_BUILD_TESTS AND
    NOT RAYTRACER_BUILD_TOOLS)
-  list(FILTER RAYTRACER_SOURCES EXCLUDE REGEX "/(widgets|world)/")
-  list(FILTER RAYTRACER_HEADERS EXCLUDE REGEX "/include/(widgets|world)/")
+  list(FILTER RAYTRACER_SOURCES EXCLUDE REGEX "/(widgets|world|mcp)/")
+  list(FILTER RAYTRACER_HEADERS EXCLUDE REGEX "/include/(widgets|world|mcp)/")
   list(FILTER RAYTRACER_UIS EXCLUDE REGEX "/widgets/")
 endif()
 
@@ -49,6 +49,7 @@ target_link_libraries(raytracer
     Qt6::Widgets
     Qt6::Qml
     Qt6::OpenGL
+    Qt6::Network
     ZLIB::ZLIB
 )
 
