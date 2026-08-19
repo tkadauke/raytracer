@@ -4,7 +4,6 @@
 #include <QDoubleSpinBox>
 #include <QLabel>
 #include <QSignalBlocker>
-#include <QSizePolicy>
 #include <QVBoxLayout>
 
 #include <algorithm>
@@ -36,14 +35,8 @@ DoubleParameterWidget::DoubleParameterWidget(QWidget* parent)
   layout->setSpacing(2);
 
   p->label = new QLabel(this);
-  p->label->setWordWrap(true);
-  p->label->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
-  p->doubleEdit = new QDoubleSpinBox(this);
-  p->doubleEdit->setMinimumWidth(0);
-  p->doubleEdit->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
-  p->doubleEdit->setRange(-1000000.0, 1000000.0);
-  p->doubleEdit->setDecimals(6);
-  p->doubleEdit->setSingleStep(0.1);
+  configureLabel(p->label);
+  p->doubleEdit = makeSpinBoxEdit(this, -1000000.0, 1000000.0, 6, 0.1);
 
   layout->addWidget(p->label);
   layout->addWidget(p->doubleEdit);

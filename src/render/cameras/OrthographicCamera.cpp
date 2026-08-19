@@ -18,53 +18,27 @@ namespace {
   using render::detail::animatedVectorAt;
   using render::detail::checkedU32;
   using render::detail::checkGpuPathCount;
-  using render::detail::crossesInteriorKey;
   using render::detail::fillGpuDescriptorPlane;
   using render::detail::fillGpuDescriptorViewport;
-  using render::detail::hasDefinedDirection;
   using render::detail::hasStableBasis;
-  using render::detail::isLinearVectorTrack;
   using render::detail::LensDescriptorMotion;
-  using render::detail::linearDirectionSegmentStaysDefined;
   using render::detail::linearDirectionSegmentStaysOffUpAxis;
   using render::detail::nearlyEqual;
+  using render::detail::sampledLinearShutterMotionEndpoints;
 
   std::optional<LensDescriptorMotion>
   sampledShutterOrthographicMotion(const OrthographicCamera& camera) {
-    const auto* positionTrack = camera.animationTrack("position");
-    const auto* targetTrack = camera.animationTrack("target");
-    if (!positionTrack && !targetTrack) {
-      return std::nullopt;
-    }
-    if (!isLinearVectorTrack(positionTrack) || !isLinearVectorTrack(targetTrack)) {
-      return std::nullopt;
-    }
-
-    const double shutterOpen = camera.animationTimeForSample(0.0);
-    const double shutterClose = camera.animationTimeForSample(1.0);
-    if ((positionTrack && crossesInteriorKey(*positionTrack, shutterOpen, shutterClose)) ||
-        (targetTrack && crossesInteriorKey(*targetTrack, shutterOpen, shutterClose))) {
+    const auto endpoints = sampledLinearShutterMotionEndpoints(camera);
+    if (!endpoints ||
+        !linearDirectionSegmentStaysOffUpAxis(endpoints->directionAtOpen,
+                                              endpoints->directionAtClose)) {
       return std::nullopt;
     }
 
-    const Vector3d positionAtOpen =
-      animatedVectorAt(camera, "position", camera.position(), shutterOpen);
-    const Vector3d positionAtClose =
-      animatedVectorAt(camera, "position", camera.position(), shutterClose);
-    const Vector3d targetAtOpen = animatedVectorAt(camera, "target", camera.target(), shutterOpen);
-    const Vector3d targetAtClose =
-      animatedVectorAt(camera, "target", camera.target(), shutterClose);
-    const Vector3d directionAtOpen = targetAtOpen - positionAtOpen;
-    const Vector3d directionAtClose = targetAtClose - positionAtClose;
-    if (!hasDefinedDirection(positionAtOpen, targetAtOpen) ||
-        !hasDefinedDirection(positionAtClose, targetAtClose) ||
-        !linearDirectionSegmentStaysDefined(directionAtOpen, directionAtClose) ||
-        !linearDirectionSegmentStaysOffUpAxis(directionAtOpen, directionAtClose)) {
-      return std::nullopt;
-    }
-
-    const Matrix4d matrixAtOpen = Matrix4d::lookAt(positionAtOpen, targetAtOpen, Vector3d::up());
-    const Matrix4d matrixAtClose = Matrix4d::lookAt(positionAtClose, targetAtClose, Vector3d::up());
+    const Matrix4d matrixAtOpen =
+      Matrix4d::lookAt(endpoints->positionAtOpen, endpoints->targetAtOpen, Vector3d::up());
+    const Matrix4d matrixAtClose =
+      Matrix4d::lookAt(endpoints->positionAtClose, endpoints->targetAtClose, Vector3d::up());
     if (hasStableBasis(matrixAtOpen, matrixAtClose)) {
       return LensDescriptorMotion{gpuPrimaryPathMotionModeOriginDelta, matrixAtOpen,
                                   matrixAtOpen.transformDirection(Vector3d::forward()).normalized(),
@@ -72,9 +46,12 @@ namespace {
                                     matrixAtOpen.translationVector()};
     }
 
-    return LensDescriptorMotion{
-      gpuPrimaryPathMotionModeLookAt,   matrixAtOpen, positionAtOpen,
-      positionAtClose - positionAtOpen, targetAtOpen, targetAtClose - targetAtOpen};
+    return LensDescriptorMotion{gpuPrimaryPathMotionModeLookAt,
+                                matrixAtOpen,
+                                endpoints->positionAtOpen,
+                                endpoints->positionAtClose - endpoints->positionAtOpen,
+                                endpoints->targetAtOpen,
+                                endpoints->targetAtClose - endpoints->targetAtOpen};
   }
 
   Matrix4d animatedMatrixAt(const OrthographicCamera& camera, double time) {

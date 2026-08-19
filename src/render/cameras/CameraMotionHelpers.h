@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <limits>
+#include <optional>
 
 namespace render::detail {
   inline bool isLinearVectorTrack(const render::animation::AnimationTrack* track) {
@@ -68,6 +69,58 @@ namespace render::detail {
     }
     return (horizontalAtOpen + horizontalDelta * closestT).length() >
            std::numeric_limits<double>::epsilon();
+  }
+
+  /// The animated position/target/direction endpoints at shutter open and
+  /// close, shared by the pinhole and orthographic GPU motion-descriptor
+  /// samplers.
+  struct ShutterMotionEndpoints {
+    Vector3d positionAtOpen;
+    Vector3d positionAtClose;
+    Vector3d targetAtOpen;
+    Vector3d targetAtClose;
+    Vector3d directionAtOpen;
+    Vector3d directionAtClose;
+  };
+
+  /// Samples the "position"/"target" animation tracks at shutter open/close,
+  /// returning `std::nullopt` if there is nothing to sample: no tracks, a
+  /// non-linear track, a track with a keyframe inside the shutter interval,
+  /// or a direction that becomes undefined (position == target) at either
+  /// endpoint or anywhere on the linear segment between them.
+  inline std::optional<ShutterMotionEndpoints>
+  sampledLinearShutterMotionEndpoints(const Camera& camera) {
+    const auto* positionTrack = camera.animationTrack("position");
+    const auto* targetTrack = camera.animationTrack("target");
+    if (!positionTrack && !targetTrack) {
+      return std::nullopt;
+    }
+    if (!isLinearVectorTrack(positionTrack) || !isLinearVectorTrack(targetTrack)) {
+      return std::nullopt;
+    }
+
+    const double shutterOpen = camera.animationTimeForSample(0.0);
+    const double shutterClose = camera.animationTimeForSample(1.0);
+    if ((positionTrack && crossesInteriorKey(*positionTrack, shutterOpen, shutterClose)) ||
+        (targetTrack && crossesInteriorKey(*targetTrack, shutterOpen, shutterClose))) {
+      return std::nullopt;
+    }
+
+    ShutterMotionEndpoints endpoints;
+    endpoints.positionAtOpen = animatedVectorAt(camera, "position", camera.position(), shutterOpen);
+    endpoints.positionAtClose =
+      animatedVectorAt(camera, "position", camera.position(), shutterClose);
+    endpoints.targetAtOpen = animatedVectorAt(camera, "target", camera.target(), shutterOpen);
+    endpoints.targetAtClose = animatedVectorAt(camera, "target", camera.target(), shutterClose);
+    endpoints.directionAtOpen = endpoints.targetAtOpen - endpoints.positionAtOpen;
+    endpoints.directionAtClose = endpoints.targetAtClose - endpoints.positionAtClose;
+    if (!hasDefinedDirection(endpoints.positionAtOpen, endpoints.targetAtOpen) ||
+        !hasDefinedDirection(endpoints.positionAtClose, endpoints.targetAtClose) ||
+        !linearDirectionSegmentStaysDefined(endpoints.directionAtOpen, endpoints.directionAtClose)) {
+      return std::nullopt;
+    }
+
+    return endpoints;
   }
 
   inline bool hasStableBasis(const Matrix4d& openMatrix, const Matrix4d& closeMatrix) {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QSizePolicy>
 #include <QVariant>
 #include <QWidget>
 
@@ -7,6 +8,7 @@
 
 class Element;
 class QDoubleSpinBox;
+class QLabel;
 class QVBoxLayout;
 
 class AbstractParameterWidget : public QWidget {
@@ -46,6 +48,12 @@ protected:
   /// Lays out a short label plus @p edit in a single row appended to @p layout.
   static void addLabeledSpinBoxRow(QVBoxLayout* layout, const QString& name,
                                    QDoubleSpinBox* edit, QWidget* parent);
+
+  /// Configures the parameter-name caption label shared by the parameter
+  /// widgets: no minimum width, word wrap enabled, and the given horizontal
+  /// size policy (vertical stays `Preferred`).
+  static void configureLabel(QLabel* label,
+                             QSizePolicy::Policy horizontalPolicy = QSizePolicy::Ignored);
 
 private:
   struct Private;

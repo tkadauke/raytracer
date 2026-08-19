@@ -5,7 +5,6 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QSignalBlocker>
-#include <QSizePolicy>
 #include <QToolButton>
 #include <QVBoxLayout>
 
@@ -27,8 +26,7 @@ ColorParameterWidget::ColorParameterWidget(QWidget* parent)
   layout->setSpacing(2);
 
   p->label = new QLabel(this);
-  p->label->setWordWrap(true);
-  p->label->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+  configureLabel(p->label);
   p->rEdit = makeSpinBoxEdit(this, 0.0, 1000000.0, 3, 0.01);
   p->gEdit = makeSpinBoxEdit(this, 0.0, 1000000.0, 3, 0.01);
   p->bEdit = makeSpinBoxEdit(this, 0.0, 1000000.0, 3, 0.01);

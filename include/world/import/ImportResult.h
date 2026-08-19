@@ -83,6 +83,11 @@ namespace world {
     [[nodiscard]] static ImportResult failed(std::vector<ImportDiagnostic> diagnostics,
                                              ImportSourceMetadata source = ImportSourceMetadata());
 
+    /// Convenience for the common "couldn't open the source file" failure:
+    /// a single error diagnostic pointing at @p filename.
+    [[nodiscard]] static ImportResult unreadableSource(ImportSourceMetadata source,
+                                                        const QString& filename);
+
     [[nodiscard]] bool succeeded() const;
     [[nodiscard]] bool failed() const;
     [[nodiscard]] bool hasRoot() const;
