@@ -26,6 +26,7 @@ option(RAYTRACER_ENABLE_COVERAGE   "Build with gcov instrumentation" OFF)
 option(RAYTRACER_ENABLE_FUZZING    "Build LibFuzzer harnesses (needs Clang)" OFF)
 option(RAYTRACER_ENABLE_STATS      "Per-render performance counters (modernize.md §3.7)" OFF)
 option(RAYTRACER_ENABLE_MUTATION   "Build with the mull mutation-testing pass plugin (closes #28)" OFF)
+option(RAYTRACER_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" ON)
 if(APPLE)
   set(_RAYTRACER_METAL_WAVEFRONT_DEFAULT ON)
 else()
@@ -104,7 +105,11 @@ option(RAYTRACER_ENABLE_NATIVE_TUNING "Tune release builds for the current CPU" 
 # template type arguments (the SSE Vector specializations inherit from
 # Vector<N, T, __m128d, ...>). The attribute propagation warning is a false
 # positive for this intentional SIMD-specialization pattern.
-add_compile_options(-W -Wall -Werror -pedantic -Wno-extra-semi -Wno-ignored-attributes)
+set(_RAYTRACER_WARNING_FLAGS -W -Wall -pedantic -Wno-extra-semi -Wno-ignored-attributes)
+if(RAYTRACER_WARNINGS_AS_ERRORS)
+  list(APPEND _RAYTRACER_WARNING_FLAGS -Werror)
+endif()
+add_compile_options(${_RAYTRACER_WARNING_FLAGS})
 
 # Enable x86 SSE3 intrinsics across every config so the legacy vector/color
 # specializations under include/core/math/vector/sse3/ and

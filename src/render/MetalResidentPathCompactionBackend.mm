@@ -1,6 +1,6 @@
 #include "render/MetalResidentPathCompactionBackend.h"
 
-#include "render/MetalComputeHelper.h"
+#include "MetalComputeHelper.h"
 
 #include <algorithm>
 #include <cstring>

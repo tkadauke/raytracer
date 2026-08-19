@@ -11,6 +11,45 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Add `RAYTRACER_WARNINGS_AS_ERRORS`, defaulting to `ON`, so local builds can
+  temporarily compile warning-prone branches with `-DRAYTRACER_WARNINGS_AS_ERRORS=OFF`
+  without changing CI's default strict warning policy. — GPT-5 Codex
+- Add a right-side Chat dock (`ChatDockWidget`/`ChatThreadPanel`) to the Modeler, following
+  the existing `PropertyEditorWidget`/`PreviewDisplayWidget`/`RenderGraphInspectorWidget`
+  dock pattern, plus `claude` CLI subprocess/session management under `include/chat/`:
+  `ClaudeCliSession` spawns one `claude -p "<message>" --output-format stream-json
+  --input-format stream-json --mcp-config <path>` subprocess per send (`--resume
+  <session_id>` to continue a thread), and `StreamJsonLineParser` line-buffers its stdout
+  into parsed events. `ChatThread` owns the in-memory per-thread transcript and the
+  session-id-to-`--resume` bookkeeping — persistence across app restarts stays out of
+  scope for this Job (roadmap §4.6.i). Assistant text and MCP tool-call/tool-result events
+  render live in the dock as they stream in (`chat::formatChatMessageHtml()`). A live,
+  already-authenticated `claude` login isn't available in CI, so subprocess I/O framing and
+  stream-json parsing/rendering are covered with a fixture `claude` stand-in
+  (`test/fixtures/claude/fake_claude.py`) instead. — Claude Sonnet 5
+- Add the mutating scene-editing MCP tool surface to the Modeler's embedded MCP server
+  (`include/mcp/SceneEditor.h`, `include/mcp/SceneEditingTools.h`): `add_primitive`,
+  `transform`, `apply_material`, `select`, `delete`, `csg_union`, `csg_intersect`,
+  `csg_difference`, and `set_camera`. `McpServer` grew a generic `registerTool()` so
+  domain-specific tools don't have to live inside the transport class
+  (`mcp::toolTextResult()` factors out the shared `content`/`isError` result shape).
+  Every mutation routes through the same `SceneModel`/`QItemSelectionModel` operations a
+  menu-driven edit would (`SceneModel::addElement`/`deleteElement`/`moveRow`, now joined
+  by a new `SceneModel::indexForElement()` lookup) and the same `Element::read()`
+  JSON-to-`Q_PROPERTY` parser scene loading already uses, rather than poking `Element`
+  state directly — so `MainWindow`'s usual post-edit reaction (mark scene changed,
+  redraw, sync playback, `currentElementChanged()`) fires exactly as it would from a
+  menu action. `import_file`, `set_environment`, `run_script`, and
+  `get_`/`set_modifier_stack` remain deferred (roadmap §4.6.i). — Claude Sonnet 5
+- Embed a loopback-only (`127.0.0.1`, ephemeral port) MCP (Model Context Protocol) server
+  in the Modeler (`include/mcp/McpServer.h`, `include/mcp/QuerySceneTool.h`,
+  `include/mcp/McpConfigWriter.h`), starting with the Modeler window and stopping on close.
+  Implements the legacy HTTP+SSE transport (`GET /sse` + `POST /message`) with
+  `initialize`/`tools/list`/`tools/call`, bearer-token auth, and a single read-only
+  `query_scene` tool that reuses `Scene::write()`/`Element::write()` for the scene-graph
+  dump. Each launch writes a fresh port + token to a generated `claude --mcp-config` JSON
+  file so the `claude` CLI can drive a live Modeler instance — infrastructure foundation
+  for the AI-native chat sidebar (roadmap §4.6.i). — Claude Sonnet 5
 - Add `LDrawSubfileReference::toMatrix()` to `include/core/formats/ldraw/LDrawCommand.h`,
   eliminating the identical `transformForSubfileReference` free function duplicated in
   `LDrawSceneImporter.cpp` and `LDrawGeometryCompiler.cpp`. — Claude Sonnet 4.6

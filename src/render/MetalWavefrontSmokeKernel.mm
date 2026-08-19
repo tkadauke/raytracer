@@ -2,7 +2,7 @@
 
 #include "render/GpuIntersectionScene.h"
 
-#include "render/MetalComputeHelper.h"
+#include "MetalComputeHelper.h"
 #include "render/TimingHelpers.h"
 
 #include <algorithm>

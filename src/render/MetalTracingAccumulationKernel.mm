@@ -2,7 +2,7 @@
 
 #include "render/TracingAccumulationReference.h"
 
-#include "render/MetalComputeHelper.h"
+#include "MetalComputeHelper.h"
 
 #include <algorithm>
 #include <cstring>
