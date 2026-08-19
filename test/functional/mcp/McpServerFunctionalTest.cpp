@@ -3,7 +3,9 @@
 #include <memory>
 
 #include <QByteArray>
+#include <QCoreApplication>
 #include <QElapsedTimer>
+#include <QEventLoop>
 #include <QHostAddress>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -22,13 +24,19 @@ namespace McpServerFunctionalTest {
     // (or the timeout elapses), returning everything read so far. The real
     // HTTP+SSE framing is exercised end to end here, so responses can be
     // split across several TCP reads.
+    //
+    // Client and server sockets live in the same thread in this test, so a
+    // plain QTcpSocket::waitForReadyRead() is not enough: it only polls the
+    // client's own file descriptor and never lets the server-side
+    // QTcpServer/QTcpSocket (also owned by this thread) process
+    // newConnection()/readyRead() and write a response. Pumping
+    // QCoreApplication::processEvents() drives both sides.
     QByteArray readUntil(QTcpSocket& socket, const QByteArray& marker, int timeoutMs = 3000) {
       QByteArray buffer;
       QElapsedTimer timer;
       timer.start();
       while (!buffer.contains(marker) && timer.elapsed() < timeoutMs) {
-        if (socket.bytesAvailable() == 0)
-          socket.waitForReadyRead(100);
+        QCoreApplication::processEvents(QEventLoop::AllEvents, 20);
         buffer += socket.readAll();
       }
       return buffer;
