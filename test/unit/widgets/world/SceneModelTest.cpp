@@ -197,6 +197,58 @@ namespace SceneModelTest {
     EXPECT_EQ(parentGroup, childGroup->parent());
   }
 
+  TEST_F(SceneModelTest, ShouldComputeIndexForTopLevelElement) {
+    auto* scene = new Scene;
+    auto* sphere = new Sphere;
+    scene->addChild(sphere);
+
+    SceneModel model(scene);
+    const auto index = model.indexForElement(sphere);
+    ASSERT_TRUE(index.isValid());
+    EXPECT_EQ(sphere, static_cast<Element*>(index.internalPointer()));
+  }
+
+  TEST_F(SceneModelTest, ShouldComputeIndexForNestedElement) {
+    auto* scene = new Scene;
+    auto* group = new Group;
+    auto* sphere = new Sphere;
+    scene->addChild(group);
+    group->addChild(sphere);
+
+    SceneModel model(scene);
+    const auto index = model.indexForElement(sphere);
+    ASSERT_TRUE(index.isValid());
+    EXPECT_EQ(sphere, static_cast<Element*>(index.internalPointer()));
+
+    // Scene auto-generates a RenderIntentElement as its first visible child,
+    // so `group` isn't necessarily row 0 — compare against the model's own
+    // notion of the group's index rather than a hard-coded row.
+    EXPECT_EQ(model.parent(index), model.indexForElement(group));
+  }
+
+  TEST_F(SceneModelTest, ShouldComputeIndexForSceneItself) {
+    auto* scene = new Scene;
+    SceneModel model(scene);
+    const auto index = model.indexForElement(scene);
+    ASSERT_TRUE(index.isValid());
+    EXPECT_EQ(scene, static_cast<Element*>(index.internalPointer()));
+    EXPECT_FALSE(model.parent(index).isValid());
+  }
+
+  TEST_F(SceneModelTest, ShouldReturnInvalidIndexForNullElement) {
+    auto* scene = new Scene;
+    SceneModel model(scene);
+    EXPECT_FALSE(model.indexForElement(nullptr).isValid());
+  }
+
+  TEST_F(SceneModelTest, ShouldReturnInvalidIndexForElementNotInTree) {
+    auto* scene = new Scene;
+    SceneModel model(scene);
+
+    Sphere orphan;
+    EXPECT_FALSE(model.indexForElement(&orphan).isValid());
+  }
+
   TEST_F(SceneModelTest, ShouldPreserveGlobalTransformWhenReparentingIntoGroup) {
     auto* scene = new Scene;
     auto* group = new Group;

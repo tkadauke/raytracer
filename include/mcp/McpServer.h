@@ -12,6 +12,15 @@ class Scene;
 namespace mcp {
 
   /**
+    * Builds the `tools/call` result object (`content: [{type:"text",...}]`,
+    * `isError`) for a plain-text tool response. Shared by the built-in
+    * `query_scene` tool and every handler registered via
+    * `McpServer::registerTool()`, so every tool's success/error envelope
+    * looks the same on the wire.
+    */
+  QJsonObject toolTextResult(const QString& text, bool isError = false);
+
+  /**
     * Embedded MCP (Model Context Protocol) server for the Modeler.
     *
     * Implements just enough of the legacy HTTP+SSE transport for the
@@ -37,6 +46,23 @@ namespace mcp {
 
   public:
     using SceneProvider = std::function<Scene*()>;
+
+    /**
+      * Describes one `tools/list` entry for a tool registered via
+      * registerTool().
+      */
+    struct ToolDescriptor {
+      QString name;
+      QString description;
+      QJsonObject inputSchema;
+    };
+
+    /**
+      * Handles one `tools/call` invocation for a registered tool. Receives
+      * the call's `arguments` object and returns the full `tools/call`
+      * result object (`content`/`isError`) — see toolTextResult().
+      */
+    using ToolHandler = std::function<QJsonObject(const QJsonObject& arguments)>;
 
     /**
       * @p sceneProvider is invoked fresh for every `query_scene` tool call,
@@ -99,6 +125,15 @@ namespace mcp {
       *   `id`), which must not be sent back to the client.
       */
     [[nodiscard]] QJsonObject handleJsonRpcRequest(const QJsonObject& request) const;
+
+    /**
+      * Adds (or, for a repeat name, replaces) a `tools/call`-dispatchable
+      * tool beyond the built-in read-only `query_scene`. Mutating,
+      * domain-specific tools (scene editing, etc.) register here instead of
+      * being wired into McpServer's own JSON-RPC dispatch, so this class
+      * stays a generic MCP transport rather than growing a case per tool.
+      */
+    void registerTool(const ToolDescriptor& descriptor, ToolHandler handler);
 
   private slots:
     void handleNewConnection();
