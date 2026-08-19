@@ -15,8 +15,24 @@
 #include <QTcpSocket>
 #include <QUrl>
 #include <QUuid>
+#include <utility>
+#include <vector>
 
 namespace mcp {
+
+  QJsonObject toolTextResult(const QString& text, bool isError) {
+    QJsonObject contentBlock;
+    contentBlock[QStringLiteral("type")] = QStringLiteral("text");
+    contentBlock[QStringLiteral("text")] = text;
+
+    QJsonArray content;
+    content.append(contentBlock);
+
+    QJsonObject result;
+    result[QStringLiteral("content")] = content;
+    result[QStringLiteral("isError")] = isError;
+    return result;
+  }
 
   namespace {
     constexpr auto kJsonRpcVersion = "2.0";
@@ -148,6 +164,16 @@ namespace mcp {
     QHash<QString, QTcpSocket*> sseSocketsBySession;
     QHash<QTcpSocket*, QString> sessionsBySocket;
 
+    std::vector<std::pair<ToolDescriptor, ToolHandler>> registeredTools;
+
+    const std::pair<ToolDescriptor, ToolHandler>* findRegisteredTool(const QString& name) const {
+      for (const auto& entry : registeredTools) {
+        if (entry.first.name == name)
+          return &entry;
+      }
+      return nullptr;
+    }
+
     bool isAuthorized(const HttpRequest& request) const {
       if (authToken.isEmpty())
         return false;
@@ -239,6 +265,17 @@ namespace mcp {
     if (!isRunning())
       return QString();
     return QStringLiteral("http://127.0.0.1:%1/sse").arg(port());
+  }
+
+  void McpServer::registerTool(const ToolDescriptor& descriptor, ToolHandler handler) {
+    for (auto& entry : p->registeredTools) {
+      if (entry.first.name == descriptor.name) {
+        entry.first = descriptor;
+        entry.second = std::move(handler);
+        return;
+      }
+    }
+    p->registeredTools.emplace_back(descriptor, std::move(handler));
   }
 
   void McpServer::handleNewConnection() {
@@ -373,6 +410,14 @@ namespace mcp {
       QJsonArray tools;
       tools.append(tool);
 
+      for (const auto& entry : p->registeredTools) {
+        QJsonObject registeredTool;
+        registeredTool[QStringLiteral("name")] = entry.first.name;
+        registeredTool[QStringLiteral("description")] = entry.first.description;
+        registeredTool[QStringLiteral("inputSchema")] = entry.first.inputSchema;
+        tools.append(registeredTool);
+      }
+
       QJsonObject result;
       result[QStringLiteral("tools")] = tools;
       return makeResponse(QStringLiteral("result"), result);
@@ -385,34 +430,24 @@ namespace mcp {
       const QJsonObject params = request.value(QStringLiteral("params")).toObject();
       const QString toolName = params.value(QStringLiteral("name")).toString();
 
-      if (toolName != QString::fromLatin1(kQuerySceneTool)) {
-        QJsonObject error;
-        error[QStringLiteral("code")] = -32602;
-        error[QStringLiteral("message")] = QStringLiteral("Unknown tool: %1").arg(toolName);
-        return makeResponse(QStringLiteral("error"), error);
+      if (toolName == QString::fromLatin1(kQuerySceneTool)) {
+        Scene* scene = p->sceneProvider ? p->sceneProvider() : nullptr;
+        const QJsonObject result = scene
+          ? toolTextResult(QString::fromUtf8(
+              QJsonDocument(querySceneToJson(*scene)).toJson(QJsonDocument::Compact)))
+          : toolTextResult(QStringLiteral("No scene is currently open."), true);
+        return makeResponse(QStringLiteral("result"), result);
       }
 
-      Scene* scene = p->sceneProvider ? p->sceneProvider() : nullptr;
-
-      QJsonObject contentBlock;
-      contentBlock[QStringLiteral("type")] = QStringLiteral("text");
-      bool isError = false;
-      if (scene) {
-        const QJsonObject sceneJson = querySceneToJson(*scene);
-        contentBlock[QStringLiteral("text")] =
-          QString::fromUtf8(QJsonDocument(sceneJson).toJson(QJsonDocument::Compact));
-      } else {
-        isError = true;
-        contentBlock[QStringLiteral("text")] = QStringLiteral("No scene is currently open.");
+      if (const auto* entry = p->findRegisteredTool(toolName)) {
+        const QJsonObject arguments = params.value(QStringLiteral("arguments")).toObject();
+        return makeResponse(QStringLiteral("result"), entry->second(arguments));
       }
 
-      QJsonArray content;
-      content.append(contentBlock);
-
-      QJsonObject result;
-      result[QStringLiteral("content")] = content;
-      result[QStringLiteral("isError")] = isError;
-      return makeResponse(QStringLiteral("result"), result);
+      QJsonObject error;
+      error[QStringLiteral("code")] = -32602;
+      error[QStringLiteral("message")] = QStringLiteral("Unknown tool: %1").arg(toolName);
+      return makeResponse(QStringLiteral("error"), error);
     }
 
     // Notifications (e.g. `notifications/initialized`) and any other

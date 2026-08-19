@@ -60,6 +60,8 @@
 
 #include "mcp/McpConfigWriter.h"
 #include "mcp/McpServer.h"
+#include "mcp/SceneEditingTools.h"
+#include "mcp/SceneEditor.h"
 
 #include "widgets/world/PropertyEditorWidget.h"
 #include "widgets/world/PreviewDisplayWidget.h"
@@ -514,6 +516,8 @@ struct MainWindow::Private {
         renderGraphInspectorWidget(nullptr),
         renderWindow(nullptr),
         mcpServer(nullptr),
+        sceneEditor(nullptr),
+        itemSelectionModel(nullptr),
         scene(nullptr),
         currentFrame(0),
         currentPlaybackIndex(0),
@@ -544,6 +548,8 @@ struct MainWindow::Private {
 
   RenderWindow* renderWindow;
   mcp::McpServer* mcpServer;
+  mcp::SceneEditor* sceneEditor;
+  QItemSelectionModel* itemSelectionModel;
 
   Scene* scene;
   int currentFrame;
@@ -730,6 +736,19 @@ MainWindow::MainWindow()
   // Modeler has a scene to serve — including the blank scene a fresh
   // window opens with — and stops on window close (see closeEvent()).
   p->mcpServer = new mcp::McpServer([this]() { return p->scene; }, this);
+
+  // Mutating tools (roadmap §4.6.i, v1 tool surface) go through the exact
+  // same SceneModel/QItemSelectionModel the Elements dock uses, so
+  // agent-driven edits fire the same rowsInserted/rowsRemoved/moveRows and
+  // currentChanged signals a menu action would. elementChanged() re-runs
+  // this window's usual post-edit reaction (mark changed, redraw, sync
+  // playback, emit currentElementChanged()) exactly as PropertyEditorWidget's
+  // changed(Element*) already does.
+  p->sceneEditor =
+    new mcp::SceneEditor([this]() { return p->scene; }, p->elementModel, p->itemSelectionModel, this);
+  connect(p->sceneEditor, &mcp::SceneEditor::elementChanged, this, &MainWindow::elementChanged);
+  mcp::registerSceneEditingTools(*p->mcpServer, *p->sceneEditor);
+
   if (p->mcpServer->start()) {
     const QString configPath = mcp::writeMcpConfig(*p->mcpServer);
     if (!configPath.isEmpty()) {
@@ -2104,6 +2123,7 @@ QDockWidget* MainWindow::createElementSelector() {
   elementTree->setModel(p->elementModel);
   auto itemSelectionModel = new QItemSelectionModel(p->elementModel);
   elementTree->setSelectionModel(itemSelectionModel);
+  p->itemSelectionModel = itemSelectionModel;
 
   connect(itemSelectionModel, SIGNAL(currentChanged(const QModelIndex&, const QModelIndex&)), this,
           SLOT(elementSelected(const QModelIndex&, const QModelIndex&)));

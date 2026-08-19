@@ -767,25 +767,26 @@ A 2D draw-in-3D tool: strokes live at world positions, can be animated on the ti
 
 A chat interface in the editor with an LLM agent that has tool calls into the scene graph. Tool surface includes:
 
-- `add_primitive(type, position, params) → id`
-- `transform(id, matrix)`
-- `apply_material(id, name_or_inline_definition)`
-- `csg_union(a, b) → id`, `csg_intersect(a, b) → id`, `csg_difference(a, b) → id`
-- `import_file(path) → id`
-- ~~`query_scene() → JSON`~~ ✅ **Done.** Implemented as the embedded MCP server's first (and currently only) tool, reusing `Scene::write()`/`Element::write()` for the dump rather than a parallel schema — see implementation notes below.
-- `select(id)`, `delete(id)`
-- `set_camera(position, target, fov)`
+- ~~`add_primitive(type, position, params) → id`~~ ✅ **Done.** `mcp::SceneEditor::addPrimitive()` — Box/Sphere/Cylinder/Ring/Torus only; see implementation notes below.
+- ~~`transform(id, matrix)`~~ ✅ **Done**, with the actual signature settled as `transform(id, translate/rotate/scale)` instead of a matrix — each is an absolute Vector3 (translate/scale) or Euler-angle-radians Vector3 (rotate), matching `Transformable`'s own `position`/`rotation`/`scale` `Q_PROPERTY`s rather than a math-side matrix the UI never exposes.
+- ~~`apply_material(id, name_or_inline_definition)`~~ ✅ **Done**, restricted to Matte/Phong/Transparent materials for the inline-create path (matching `MainWindow`'s `addMatteMaterial`/`addPhongMaterial`/`addTransparentMaterial`).
+- ~~`csg_union(a, b) → id`, `csg_intersect(a, b) → id`, `csg_difference(a, b) → id`~~ ✅ **Done.**
+- `import_file(path) → id` — deferred; blocked on a modifier-stack story, see `set_modifier_stack` below.
+- ~~`query_scene() → JSON`~~ ✅ **Done.** Implemented as the embedded MCP server's first tool, reusing `Scene::write()`/`Element::write()` for the dump rather than a parallel schema — see implementation notes below.
+- ~~`select(id)`, `delete(id)`~~ ✅ **Done.**
+- ~~`set_camera(position, target, fov)`~~ ✅ **Done.** `fov` only applies when the scene's active camera type exposes a single `fieldOfView` property (e.g. `FishEyeCamera`); other camera types (Pinhole/Orthographic/ThinLens/TiltShift use `zoom`, Spherical splits into horizontal/vertical) have no one equivalent property, so `fov` is a no-op for them and the tool result notes as much.
 - `set_environment(hdri_path)`
-- `run_script(code) → id_list` — evaluate a parametric script and drop the result into the scene.
-- `get_modifier_stack(id) → JSON`, `set_modifier_stack(id, JSON)`
+- `run_script(code) → id_list` — evaluate a parametric script and drop the result into the scene. Blocked on the §7 scripted-DSL open question.
+- `get_modifier_stack(id) → JSON`, `set_modifier_stack(id, JSON)` — blocked on a modifier stack, which doesn't exist in the codebase yet.
 
-The agent observes user edits via the same scene graph, so the loop is bidirectional. The chat transcript is persisted per scene (keyed by the scene's stable `Element::id()`) under `QStandardPaths::AppDataLocation`, not embedded in the scene JSON itself. The chat UI and the remaining mutating tool calls above are still TODO — this Job only lands the read-only `query_scene` foundation.
+The agent observes user edits via the same scene graph, so the loop is bidirectional. The chat transcript is persisted per scene (keyed by the scene's stable `Element::id()`) under `QStandardPaths::AppDataLocation`, not embedded in the scene JSON itself. The chat UI and `import_file`/`set_environment`/`run_script`/`get_`/`set_modifier_stack` remain TODO — this Job lands the full v1 mutating tool surface on top of the read-only `query_scene` foundation.
 
 Implementation notes:
 
 - ✅ **Done.** Resolves the §7 "AI agent: cloud LLM or local?" open question in favor of the `claude` CLI (Claude CLI OAuth) rather than the Anthropic API-key sketch this section used to describe: Modeler shells out to the already-installed, already-authenticated `claude` CLI and never touches credentials itself.
 - ✅ **Done.** Rather than a Node/JS MCP-bridge subprocess translating to a private C++ RPC, `MainWindow` embeds the MCP server itself (`include/mcp/McpServer.h`): a loopback-only (`127.0.0.1`, never `0.0.0.0`) HTTP+SSE listener built with `QTcpServer` + `QJsonDocument`, implementing `initialize`/`tools/list`/`tools/call` directly against the live scene graph — no Node/JS runtime dependency anywhere in the repo. The server starts when the Modeler window has a scene open and stops on close; each launch (re)writes a fresh per-session port and bearer token to a generated `claude --mcp-config` JSON file (`include/mcp/McpConfigWriter.h`).
-- Mutating tool calls (once they land) should go through R3 serialization so they can be undone, replayed, and audited; `query_scene` is read-only and doesn't need this.
+- ✅ **Done.** `McpServer::registerTool()` turns McpServer into a generic MCP transport that any tool (built-in `query_scene` or externally registered) can hang off of, so mutation logic doesn't have to live inside the transport class.
+- ✅ **Done.** `mcp::SceneEditor` (`include/mcp/SceneEditor.h`) is *the* mutation surface: every mutating tool routes through the exact same `SceneModel`/`QItemSelectionModel` operations (`addElement`/`deleteElement`/`moveRow`) and the same `Element::read()` JSON-to-`Q_PROPERTY` parser scene loading already uses, rather than poking `Element` state directly. `MainWindow` wires `SceneEditor::elementChanged` into its own private `elementChanged()` slot, so agent-driven edits mark the scene changed, redraw the preview, and re-sync playback exactly as a menu action would. The codebase has no undo/redo stack yet (menu-driven edits don't have one either), so there's nothing R3-serialization-shaped to plug mutating tools into yet — revisit this note once undo/redo lands.
 
 #### 4.6.j Scripted parametric objects
 
