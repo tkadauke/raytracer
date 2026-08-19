@@ -3,7 +3,6 @@
 #include <QDoubleSpinBox>
 #include <QLabel>
 #include <QSignalBlocker>
-#include <QSizePolicy>
 #include <QVBoxLayout>
 
 Q_DECLARE_METATYPE(Vector3d);
@@ -23,8 +22,7 @@ VectorParameterWidget::VectorParameterWidget(QWidget* parent)
   layout->setSpacing(2);
 
   p->label = new QLabel(this);
-  p->label->setWordWrap(true);
-  p->label->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+  configureLabel(p->label);
   p->xEdit = makeSpinBoxEdit(this, -1000000.0, 1000000.0, 4, 0.1);
   p->yEdit = makeSpinBoxEdit(this, -1000000.0, 1000000.0, 4, 0.1);
   p->zEdit = makeSpinBoxEdit(this, -1000000.0, 1000000.0, 4, 0.1);

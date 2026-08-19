@@ -32,14 +32,11 @@ namespace {
   using render::detail::animatedVectorAt;
   using render::detail::checkedU32;
   using render::detail::checkGpuPathCount;
-  using render::detail::crossesInteriorKey;
   using render::detail::eyeOriginForMatrix;
   using render::detail::fillGpuDescriptorPlane;
   using render::detail::fillGpuDescriptorViewport;
-  using render::detail::hasDefinedDirection;
-  using render::detail::isLinearVectorTrack;
-  using render::detail::linearDirectionSegmentStaysDefined;
   using render::detail::nearlyEqual;
+  using render::detail::sampledLinearShutterMotionEndpoints;
 
   struct DescriptorMotion {
     std::uint32_t motionMode{gpuPrimaryPathMotionModeOriginDelta};
@@ -52,49 +49,28 @@ namespace {
 
   std::optional<DescriptorMotion> sampledShutterPinholeMotion(const PinholeCamera& camera,
                                                               double distance) {
-    const auto* positionTrack = camera.animationTrack("position");
-    const auto* targetTrack = camera.animationTrack("target");
-    if (!positionTrack && !targetTrack) {
-      return std::nullopt;
-    }
-    if (!isLinearVectorTrack(positionTrack) || !isLinearVectorTrack(targetTrack)) {
+    const auto endpoints = sampledLinearShutterMotionEndpoints(camera);
+    if (!endpoints) {
       return std::nullopt;
     }
 
-    const double shutterOpen = camera.animationTimeForSample(0.0);
-    const double shutterClose = camera.animationTimeForSample(1.0);
-    if ((positionTrack && crossesInteriorKey(*positionTrack, shutterOpen, shutterClose)) ||
-        (targetTrack && crossesInteriorKey(*targetTrack, shutterOpen, shutterClose))) {
-      return std::nullopt;
-    }
-
-    const Vector3d positionAtOpen =
-      animatedVectorAt(camera, "position", camera.position(), shutterOpen);
-    const Vector3d positionAtClose =
-      animatedVectorAt(camera, "position", camera.position(), shutterClose);
-    const Vector3d targetAtOpen = animatedVectorAt(camera, "target", camera.target(), shutterOpen);
-    const Vector3d targetAtClose =
-      animatedVectorAt(camera, "target", camera.target(), shutterClose);
-    const Vector3d directionAtOpen = targetAtOpen - positionAtOpen;
-    const Vector3d directionAtClose = targetAtClose - positionAtClose;
-    if (!hasDefinedDirection(positionAtOpen, targetAtOpen) ||
-        !hasDefinedDirection(positionAtClose, targetAtClose) ||
-        !linearDirectionSegmentStaysDefined(directionAtOpen, directionAtClose)) {
-      return std::nullopt;
-    }
-
-    const Matrix4d matrixAtOpen = Matrix4d::lookAt(positionAtOpen, targetAtOpen, Vector3d::up());
-    const Matrix4d matrixAtClose = Matrix4d::lookAt(positionAtClose, targetAtClose, Vector3d::up());
+    const Matrix4d matrixAtOpen =
+      Matrix4d::lookAt(endpoints->positionAtOpen, endpoints->targetAtOpen, Vector3d::up());
+    const Matrix4d matrixAtClose =
+      Matrix4d::lookAt(endpoints->positionAtClose, endpoints->targetAtClose, Vector3d::up());
     const Vector3d originAtOpen = eyeOriginForMatrix(matrixAtOpen, distance);
     const Vector3d originAtClose = eyeOriginForMatrix(matrixAtClose, distance);
-    if (nearlyEqual(directionAtClose, directionAtOpen)) {
+    if (nearlyEqual(endpoints->directionAtClose, endpoints->directionAtOpen)) {
       return DescriptorMotion{gpuPrimaryPathMotionModeOriginDelta, originAtOpen,
                               originAtClose - originAtOpen};
     }
 
-    return DescriptorMotion{gpuPrimaryPathMotionModeLookAt,   positionAtOpen,
-                            positionAtClose - positionAtOpen, targetAtOpen,
-                            targetAtClose - targetAtOpen,     distance};
+    return DescriptorMotion{gpuPrimaryPathMotionModeLookAt,
+                            endpoints->positionAtOpen,
+                            endpoints->positionAtClose - endpoints->positionAtOpen,
+                            endpoints->targetAtOpen,
+                            endpoints->targetAtClose - endpoints->targetAtOpen,
+                            distance};
   }
 
 }
@@ -135,26 +111,15 @@ std::unique_ptr<Camera::PrimaryRayGenerator> PinholeCamera::primaryRayGenerator(
     }
 
   private:
-    Vector3d animatedVector(const char* property, const Vector3d& fallback, double time) const {
-      const auto* track = m_camera.animationTrack(property);
-      if (!track) {
-        return fallback;
-      }
-      return fallback + track->sample(time).get<Vector3d>() -
-             track->sample(m_camera.animationFrame()).get<Vector3d>();
-    }
-
     Vector3d rayOriginAt(double time) const {
       if (!m_camera.animationTrack("position") && !m_camera.animationTrack("target")) {
         return m_origin;
       }
 
-      const Vector3d position = animatedVector("position", m_camera.position(), time);
-      const Vector3d target = animatedVector("target", m_camera.target(), time);
+      const Vector3d position = animatedVectorAt(m_camera, "position", m_camera.position(), time);
+      const Vector3d target = animatedVectorAt(m_camera, "target", m_camera.target(), time);
       const Matrix4d cameraMatrix = Matrix4d::lookAt(position, target, Vector3d::up());
-      return Vector3d(cameraMatrix.cell(0, 3) - cameraMatrix.cell(0, 2) * m_camera.distance(),
-                      cameraMatrix.cell(1, 3) - cameraMatrix.cell(1, 2) * m_camera.distance(),
-                      cameraMatrix.cell(2, 3) - cameraMatrix.cell(2, 2) * m_camera.distance());
+      return eyeOriginForMatrix(cameraMatrix, m_camera.distance());
     }
 
     std::shared_ptr<render::ViewPlane> m_plane;

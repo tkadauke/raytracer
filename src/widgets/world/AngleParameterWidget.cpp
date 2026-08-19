@@ -17,9 +17,7 @@ AngleParameterWidget::AngleParameterWidget(QWidget* parent)
     : AbstractParameterWidget(parent),
       p(std::make_unique<Private>()) {
   p->ui.setupUi(this);
-  p->ui.label->setMinimumWidth(0);
-  p->ui.label->setWordWrap(true);
-  p->ui.label->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+  configureLabel(p->ui.label);
   p->ui.angleEdit->setMinimumWidth(0);
   p->ui.angleEdit->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
   p->ui.angleType->setMinimumWidth(0);

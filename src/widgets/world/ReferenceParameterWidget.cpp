@@ -28,9 +28,7 @@ ReferenceParameterWidget::ReferenceParameterWidget(const QString& baseClassName,
   p->root = root;
 
   p->ui.setupUi(this);
-  p->ui.label->setMinimumWidth(0);
-  p->ui.label->setWordWrap(true);
-  p->ui.label->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
+  configureLabel(p->ui.label, QSizePolicy::Preferred);
   p->ui.comboBox->setMinimumWidth(0);
   p->ui.comboBox->setMinimumContentsLength(6);
   p->ui.comboBox->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);

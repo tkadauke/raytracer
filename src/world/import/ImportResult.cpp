@@ -125,6 +125,12 @@ namespace world {
     return result;
   }
 
+  ImportResult ImportResult::unreadableSource(ImportSourceMetadata source,
+                                              const QString& filename) {
+    return failed({ImportDiagnostic::error("Unable to read import source", filename)},
+                  std::move(source));
+  }
+
   bool ImportResult::succeeded() const {
     return hasRoot() && !hasErrors();
   }

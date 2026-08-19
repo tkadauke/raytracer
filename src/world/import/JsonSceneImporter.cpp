@@ -30,8 +30,7 @@ namespace world {
 
     QFile file(filename);
     if (!file.open(QIODevice::ReadOnly)) {
-      return ImportResult::failed({ImportDiagnostic::error("Unable to read import source", filename)},
-                                  source);
+      return ImportResult::unreadableSource(source, filename);
     }
 
     QJsonParseError parseError;

@@ -44,8 +44,7 @@ namespace world {
 
     std::ifstream input(filename.toStdString(), std::ios::binary);
     if (!input) {
-      return ImportResult::failed({ImportDiagnostic::error("Unable to read import source", filename)},
-                                  source);
+      return ImportResult::unreadableSource(source, filename);
     }
 
     Mesh mesh;

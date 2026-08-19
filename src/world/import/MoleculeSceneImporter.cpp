@@ -735,9 +735,7 @@ namespace world {
 
     ifstream input(filename.toStdString());
     if (!input) {
-      return ImportResult::failed(
-        {ImportDiagnostic::error(QStringLiteral("Unable to read import source"), filename)},
-        source);
+      return ImportResult::unreadableSource(source, filename);
     }
 
     const auto parsed =

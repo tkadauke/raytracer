@@ -33,8 +33,7 @@ ChoiceParameterWidget::ChoiceParameterWidget(QVariantList choices, QWidget* pare
   layout->setSpacing(2);
 
   p->label = new QLabel(this);
-  p->label->setWordWrap(true);
-  p->label->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+  configureLabel(p->label);
   p->comboBox = new QComboBox(this);
   p->comboBox->setObjectName(QStringLiteral("choiceComboBox"));
   p->comboBox->setMinimumWidth(0);

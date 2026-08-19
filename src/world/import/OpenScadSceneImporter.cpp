@@ -1180,8 +1180,7 @@ namespace world {
 
       QFile file(filename);
       if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        return ImportResult::failed(
-          {ImportDiagnostic::error("Unable to read import source", filename)}, source);
+        return ImportResult::unreadableSource(source, filename);
       }
 
       std::vector<ImportDiagnostic> diagnostics;

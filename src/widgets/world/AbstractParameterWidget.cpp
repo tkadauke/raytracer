@@ -101,3 +101,10 @@ void AbstractParameterWidget::addLabeledSpinBoxRow(QVBoxLayout* layout, const QS
   row->addWidget(edit, 1);
   layout->addLayout(row);
 }
+
+void AbstractParameterWidget::configureLabel(QLabel* label,
+                                             QSizePolicy::Policy horizontalPolicy) {
+  label->setMinimumWidth(0);
+  label->setWordWrap(true);
+  label->setSizePolicy(horizontalPolicy, QSizePolicy::Preferred);
+}
