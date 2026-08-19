@@ -69,6 +69,7 @@
 #include "widgets/world/RenderGraphTracePreviewWidget.h"
 #include "widgets/world/SceneModel.h"
 #include "widgets/world/RenderWindow.h"
+#include "widgets/chat/ChatDockWidget.h"
 
 #include "world/objects/Scene.h"
 #include "world/objects/Camera.h"
@@ -514,6 +515,7 @@ struct MainWindow::Private {
         playbackSummaryLabel(nullptr),
         renderGraphDockWidget(nullptr),
         renderGraphInspectorWidget(nullptr),
+        chatDockWidget(nullptr),
         renderWindow(nullptr),
         mcpServer(nullptr),
         sceneEditor(nullptr),
@@ -545,6 +547,7 @@ struct MainWindow::Private {
   QLabel* playbackSummaryLabel;
   QDockWidget* renderGraphDockWidget;
   RenderGraphInspectorWidget* renderGraphInspectorWidget;
+  ChatDockWidget* chatDockWidget;
 
   RenderWindow* renderWindow;
   mcp::McpServer* mcpServer;
@@ -681,6 +684,7 @@ MainWindow::MainWindow()
   addDockWidget(Qt::LeftDockWidgetArea, createElementSelector());
   addDockWidget(Qt::RightDockWidgetArea, createPropertyEditor());
   addDockWidget(Qt::RightDockWidgetArea, createPreviewDisplay());
+  addDockWidget(Qt::RightDockWidgetArea, createChatDock());
   addDockWidget(Qt::BottomDockWidgetArea, createTimelineControls());
   addDockWidget(Qt::BottomDockWidgetArea, createRenderGraphInspector());
 
@@ -751,6 +755,14 @@ MainWindow::MainWindow()
 
   if (p->mcpServer->start()) {
     const QString configPath = mcp::writeMcpConfig(*p->mcpServer);
+    // The chat dock's threads shell out to `claude --mcp-config <path>`
+    // for every send; wire the path through as soon as it's known rather
+    // than at dock-construction time, since the dock is created earlier
+    // in this constructor, before the MCP server (and its config file)
+    // exist yet.
+    if (p->chatDockWidget)
+      p->chatDockWidget->setMcpConfigPath(configPath);
+
     if (!configPath.isEmpty()) {
       statusBar()->showMessage(
         tr("MCP server listening on 127.0.0.1:%1 — config written to %2")
@@ -2142,6 +2154,15 @@ QDockWidget* MainWindow::createPreviewDisplay() {
 
   auto dockWidget = new QDockWidget("Preview", this);
   dockWidget->setWidget(p->materialDisplay);
+
+  return dockWidget;
+}
+
+QDockWidget* MainWindow::createChatDock() {
+  p->chatDockWidget = new ChatDockWidget(this);
+
+  auto dockWidget = new QDockWidget("Chat", this);
+  dockWidget->setWidget(p->chatDockWidget);
 
   return dockWidget;
 }
