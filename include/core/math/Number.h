@@ -154,3 +154,12 @@ inline T atLeast(T minimum, T value) {
 inline double finiteAtLeast(double minimum, double value) {
   return std::isfinite(value) ? std::max(minimum, value) : minimum;
 }
+
+/**
+  * @returns the largest power of two that is at most @p n, e.g. 1 for
+  * inputs in [1, 2), 2 for [2, 4), 4 for [4, 8). Used by the interlaced
+  * view-plane iterators to pick their initial pixel-block size.
+  */
+inline int largestPowerOfTwoAtMost(int n) {
+  return 1 << int(std::log(n));
+}

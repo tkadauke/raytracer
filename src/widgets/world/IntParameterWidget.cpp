@@ -31,7 +31,7 @@ const QVariant IntParameterWidget::value() const {
 }
 
 void IntParameterWidget::setValue(const QVariant& value) {
-  if (p->ui.intEdit->hasFocus())
+  if (anyHasFocus(p->ui.intEdit))
     return;
   const QSignalBlocker blocker(p->ui.intEdit);
   p->ui.intEdit->setValue(value.toInt());

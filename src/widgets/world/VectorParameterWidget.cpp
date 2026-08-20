@@ -65,7 +65,7 @@ const QVariant VectorParameterWidget::value() const {
 }
 
 void VectorParameterWidget::setValue(const QVariant& value) {
-  if (p->xEdit->hasFocus() || p->yEdit->hasFocus() || p->zEdit->hasFocus())
+  if (anyHasFocus(p->xEdit, p->yEdit, p->zEdit))
     return;
 
   setVector(value.value<Vector3d>());
