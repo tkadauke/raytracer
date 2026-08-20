@@ -11,8 +11,9 @@ text block and a `tool_use` block, one `user` message echoing back a
 
 Two message-text sentinels drive alternate paths so tests can exercise
 ClaudeCliSession's failure handling without a special CLI flag:
-- a message containing "TRIGGER_CRASH" exits nonzero before emitting anything
-  (simulates the process dying before any stream-json framing).
+- a message containing "TRIGGER_CRASH" writes a diagnostic to stderr and
+  exits nonzero before emitting anything (simulates the process dying
+  before any stream-json framing, e.g. an auth/config error).
 - a message containing "TRIGGER_FAILURE" emits a `result` event with
   `is_error: true` and exits nonzero.
 """
@@ -40,6 +41,8 @@ def main():
     session_id = resume or ("session-" + uuid.uuid4().hex[:8])
 
     if "TRIGGER_CRASH" in message:
+        sys.stderr.write("fatal: simulated crash trigger\n")
+        sys.stderr.flush()
         sys.exit(2)
 
     emit({"type": "system", "subtype": "init", "session_id": session_id})

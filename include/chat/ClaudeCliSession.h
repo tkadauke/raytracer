@@ -82,6 +82,7 @@ namespace chat {
 
   private slots:
     void handleReadyRead();
+    void handleReadyReadStandardError();
     void handleProcessFinished(int exitCode, QProcess::ExitStatus exitStatus);
     void handleErrorOccurred(QProcess::ProcessError error);
 
