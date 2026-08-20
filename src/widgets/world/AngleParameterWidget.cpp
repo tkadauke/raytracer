@@ -20,10 +20,7 @@ AngleParameterWidget::AngleParameterWidget(QWidget* parent)
   configureLabel(p->ui.label);
   p->ui.angleEdit->setMinimumWidth(0);
   p->ui.angleEdit->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
-  p->ui.angleType->setMinimumWidth(0);
-  p->ui.angleType->setMinimumContentsLength(6);
-  p->ui.angleType->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
-  p->ui.angleType->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
+  configureComboBox(p->ui.angleType);
   connect(p->ui.angleEdit, SIGNAL(textChanged(const QString&)), this, SLOT(parameterChanged()));
   connect(p->ui.angleType, SIGNAL(currentTextChanged(const QString&)), this, SLOT(recalculate()));
 }

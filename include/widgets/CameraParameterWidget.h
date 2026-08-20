@@ -3,6 +3,7 @@
 
 #include <QWidget>
 
+class QDoubleSpinBox;
 class QLabel;
 class QSlider;
 
@@ -33,4 +34,15 @@ protected:
     * `SphericalCameraParameterWidget`).
     */
   void connectDegreeSlider(QSlider* slider, QLabel* label);
+
+  /**
+    * Wires each of @p inputs' `valueChanged(double)` signal to
+    * `parameterChanged()`. Shared by the camera parameter widgets whose UI
+    * is a flat list of double spin boxes (`PinholeCameraParameterWidget`,
+    * `ThinLensCameraParameterWidget`).
+    */
+  template <typename... Inputs>
+  void connectValueChangedInputs(Inputs*... inputs) {
+    (connect(inputs, SIGNAL(valueChanged(double)), this, SLOT(parameterChanged())), ...);
+  }
 };

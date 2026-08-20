@@ -88,6 +88,17 @@ namespace engine::graph::detail {
     return atLeast(0, lod);
   }
 
+  /// @returns `*state` if non-null, otherwise @p fallback. Shared by the
+  /// pass-state `valueFromPass()` overrides, which look up their node's
+  /// state via `fromPass()` and fall back to a default value when absent —
+  /// most fall back to a default-constructed instance, but callers that
+  /// need a different fallback (e.g. `RasterShadowPassState::previewDefaults()`)
+  /// can pass one explicitly.
+  template<typename T>
+  [[nodiscard]] inline T valueOrDefault(const T* state, T fallback = T()) {
+    return state ? *state : fallback;
+  }
+
   template<typename Error>
   inline void rejectUnknownFields(const QJsonObject& object, const std::string& path,
                                   std::initializer_list<const char*> allowed, Error error) {

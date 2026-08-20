@@ -34,8 +34,7 @@ namespace engine::graph {
   }
 
   WireframePassState WireframePassState::valueFromPass(const RenderPassNode& pass) {
-    const auto* state = fromPass(pass);
-    return state ? *state : WireframePassState();
+    return detail::valueOrDefault(fromPass(pass));
   }
 
   QJsonObject WireframePassState::toJson() const {

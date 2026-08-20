@@ -21,7 +21,7 @@ using namespace render;
 namespace {
   using render::detail::checkedU32;
   using render::detail::checkGpuPathCount;
-  using render::detail::fillGpuDescriptorMatrixBasis;
+  using render::detail::fillGpuDescriptorPointSourceMotion;
   using render::detail::fillGpuDescriptorViewport;
   using render::detail::pointSourceDescriptorMotion;
 }
@@ -84,12 +84,7 @@ EquirectangularCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t
 
   GpuPrimaryPathDescriptor descriptor;
   descriptor.mode = gpuPrimaryPathGenerationModeEquirectangular;
-  descriptor.rectilinear.motionMode = motion->motionMode;
-  descriptor.rectilinear.originOrDirection = gpuFloat4(motion->matrix.translationVector(), 1.0f);
-  descriptor.rectilinear.motionOriginDelta = gpuFloat4(motion->motionOriginDelta, 0.0f);
-  descriptor.rectilinear.motionTarget = gpuFloat4(motion->target, 1.0f);
-  descriptor.rectilinear.motionTargetDelta = gpuFloat4(motion->targetDelta, 0.0f);
-  fillGpuDescriptorMatrixBasis(descriptor.rectilinear, motion->matrix);
+  fillGpuDescriptorPointSourceMotion(descriptor.rectilinear, *motion);
   descriptor.rectilinear.lensParameters = gpuFloat4(plane->width(), plane->height());
   fillGpuDescriptorViewport(descriptor.rectilinear, rect, actual, plane->sampler()->numSamples(),
                             sampleSeed);

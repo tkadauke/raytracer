@@ -72,4 +72,18 @@ namespace render::detail {
     rec.down = gpuFloat4(matrix.transformDirection(Vector3d(0.0, 1.0, 0.0)), 0.0f);
     rec.forward = gpuFloat4(matrix.transformDirection(Vector3d(0.0, 0.0, 1.0)), 0.0f);
   }
+
+  // Fill the motion fields plus the matrix basis from a point-source camera's
+  // resolved motion descriptor. Used by the point-source cameras (fish-eye,
+  // equirectangular) whose ray origin is simply the camera position; each
+  // still sets `descriptor.mode`/`lensParameters` itself afterward.
+  inline void fillGpuDescriptorPointSourceMotion(GpuRectilinearPrimaryPathDescriptor& rec,
+                                                 const PointSourceDescriptorMotion& motion) {
+    rec.motionMode = motion.motionMode;
+    rec.originOrDirection = gpuFloat4(motion.matrix.translationVector(), 1.0f);
+    rec.motionOriginDelta = gpuFloat4(motion.motionOriginDelta, 0.0f);
+    rec.motionTarget = gpuFloat4(motion.target, 1.0f);
+    rec.motionTargetDelta = gpuFloat4(motion.targetDelta, 0.0f);
+    fillGpuDescriptorMatrixBasis(rec, motion.matrix);
+  }
 }

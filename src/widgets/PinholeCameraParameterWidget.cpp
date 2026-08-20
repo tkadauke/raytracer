@@ -13,8 +13,7 @@ PinholeCameraParameterWidget::PinholeCameraParameterWidget(QWidget* parent)
     : CameraParameterWidget(parent),
       p(std::make_unique<Private>()) {
   p->ui.setupUi(this);
-  connect(p->ui.distanceInput, SIGNAL(valueChanged(double)), this, SLOT(parameterChanged()));
-  connect(p->ui.zoomInput, SIGNAL(valueChanged(double)), this, SLOT(parameterChanged()));
+  connectValueChangedInputs(p->ui.distanceInput, p->ui.zoomInput);
 }
 
 PinholeCameraParameterWidget::~PinholeCameraParameterWidget() {

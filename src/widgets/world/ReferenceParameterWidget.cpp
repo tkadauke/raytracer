@@ -29,10 +29,7 @@ ReferenceParameterWidget::ReferenceParameterWidget(const QString& baseClassName,
 
   p->ui.setupUi(this);
   configureLabel(p->ui.label, QSizePolicy::Preferred);
-  p->ui.comboBox->setMinimumWidth(0);
-  p->ui.comboBox->setMinimumContentsLength(6);
-  p->ui.comboBox->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
-  p->ui.comboBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+  configureComboBox(p->ui.comboBox, QSizePolicy::Expanding);
   connect(p->ui.comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(parameterChanged()));
 
   p->ui.comboBox->addItem(tr("<No Selection>"), makeVariant(nullptr));

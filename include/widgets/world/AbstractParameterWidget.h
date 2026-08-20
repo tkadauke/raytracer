@@ -7,6 +7,7 @@
 #include <memory>
 
 class Element;
+class QComboBox;
 class QDoubleSpinBox;
 class QLabel;
 class QVBoxLayout;
@@ -54,6 +55,14 @@ protected:
   /// size policy (vertical stays `Preferred`).
   static void configureLabel(QLabel* label,
                              QSizePolicy::Policy horizontalPolicy = QSizePolicy::Ignored);
+
+  /// Configures the size-adjust/minimum-content layout properties shared by
+  /// the combo-box-backed parameter widgets (angle unit, choice, reference):
+  /// no minimum width, a 6-character minimum content length that drives
+  /// size-adjustment, and the given horizontal size policy (vertical stays
+  /// `Fixed`).
+  static void configureComboBox(QComboBox* comboBox,
+                                QSizePolicy::Policy horizontalPolicy = QSizePolicy::Ignored);
 
   /// @returns true if any of @p widgets currently has keyboard focus. Used
   /// by `setValue`/`setColor`/`setVector` overrides to avoid clobbering a

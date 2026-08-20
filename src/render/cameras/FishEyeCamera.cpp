@@ -20,7 +20,7 @@ using namespace render;
 namespace {
   using render::detail::checkedU32;
   using render::detail::checkGpuPathCount;
-  using render::detail::fillGpuDescriptorMatrixBasis;
+  using render::detail::fillGpuDescriptorPointSourceMotion;
   using render::detail::fillGpuDescriptorViewport;
   using render::detail::pointSourceDescriptorMotion;
 }
@@ -79,12 +79,7 @@ FishEyeCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampleS
 
   GpuPrimaryPathDescriptor descriptor;
   descriptor.mode = gpuPrimaryPathGenerationModeFishEye;
-  descriptor.rectilinear.motionMode = motion->motionMode;
-  descriptor.rectilinear.originOrDirection = gpuFloat4(motion->matrix.translationVector(), 1.0f);
-  descriptor.rectilinear.motionOriginDelta = gpuFloat4(motion->motionOriginDelta, 0.0f);
-  descriptor.rectilinear.motionTarget = gpuFloat4(motion->target, 1.0f);
-  descriptor.rectilinear.motionTargetDelta = gpuFloat4(motion->targetDelta, 0.0f);
-  fillGpuDescriptorMatrixBasis(descriptor.rectilinear, motion->matrix);
+  fillGpuDescriptorPointSourceMotion(descriptor.rectilinear, *motion);
   descriptor.rectilinear.lensParameters =
     gpuFloat4(plane->width(), plane->height(), m_fieldOfView.radians());
   fillGpuDescriptorViewport(descriptor.rectilinear, rect, actual, plane->sampler()->numSamples(),
