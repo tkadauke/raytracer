@@ -96,6 +96,9 @@ namespace ClaudeCliSessionTest {
     ASSERT_TRUE(finishedSpy.wait(5000));
     ASSERT_EQ(1, finishedSpy.size());
     EXPECT_FALSE(finishedSpy[0][0].toBool());
+    // The subprocess's own stderr is more useful to an operator than a bare
+    // "claude exited with code 2" — see ClaudeCliSession::handleProcessFinished.
+    EXPECT_EQ(QStringLiteral("fatal: simulated crash trigger"), finishedSpy[0][1].toString());
   }
 
   TEST_F(ClaudeCliSessionTest, FailingToStartReportsFinishedWithoutHanging) {

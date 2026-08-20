@@ -40,6 +40,7 @@ namespace chat {
     QString resultMessage;
 
     QString processErrorString;
+    QByteArray capturedStderr;
   };
 
   ClaudeCliSession::ClaudeCliSession(QObject* parent)
@@ -59,6 +60,7 @@ namespace chat {
     p->resultSuccess = false;
     p->resultMessage.clear();
     p->processErrorString.clear();
+    p->capturedStderr.clear();
 
     p->process = new QProcess(this);
     p->process->setProgram(request.executable);
@@ -66,6 +68,8 @@ namespace chat {
 
     connect(p->process, &QProcess::readyReadStandardOutput, this,
             &ClaudeCliSession::handleReadyRead);
+    connect(p->process, &QProcess::readyReadStandardError, this,
+            &ClaudeCliSession::handleReadyReadStandardError);
     connect(p->process, &QProcess::finished, this, &ClaudeCliSession::handleProcessFinished);
     connect(p->process, &QProcess::errorOccurred, this, &ClaudeCliSession::handleErrorOccurred);
 
@@ -100,8 +104,16 @@ namespace chat {
       dispatchStreamEvent(event);
   }
 
+  void ClaudeCliSession::handleReadyReadStandardError() {
+    if (!p->process)
+      return;
+
+    p->capturedStderr += p->process->readAllStandardError();
+  }
+
   void ClaudeCliSession::handleProcessFinished(int exitCode, QProcess::ExitStatus exitStatus) {
     handleReadyRead();
+    handleReadyReadStandardError();
     for (const auto& event : p->parser.flush())
       dispatchStreamEvent(event);
 
@@ -116,9 +128,15 @@ namespace chat {
     } else {
       success = (exitStatus == QProcess::NormalExit && exitCode == 0);
       if (!success) {
-        errorMessage = p->processErrorString.isEmpty()
-                         ? tr("claude exited with code %1").arg(exitCode)
-                         : p->processErrorString;
+        // Prefer the CLI's own stderr — "claude exited with code 1" tells
+        // an operator nothing; the auth/config error claude printed does.
+        const QString stderrText = QString::fromUtf8(p->capturedStderr).trimmed();
+        if (!stderrText.isEmpty())
+          errorMessage = stderrText;
+        else if (!p->processErrorString.isEmpty())
+          errorMessage = p->processErrorString;
+        else
+          errorMessage = tr("claude exited with code %1").arg(exitCode);
       }
     }
 

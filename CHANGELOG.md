@@ -653,6 +653,14 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Fix the Modeler's right-side dock layout so adding the Chat dock didn't
+  squeeze Properties/Preview/Chat into three unreadably short vertical
+  slivers: Properties and Preview now tabify together, and Chat gets its
+  own group below with extra vertical space. — Claude Sonnet 5
+- `ClaudeCliSession` now captures and surfaces the `claude` subprocess's own
+  stderr output when it exits with a failure the stream-json framing never
+  explained (e.g. an auth/config error before any output), instead of a
+  generic "claude exited with code N" message. — Claude Sonnet 5
 - Restore compilation of `ThinLensCamera` and `TiltShiftCamera`: commit `8f8e3344` moved `eyeOriginForMatrix` to `GpuPrimaryPathDescriptorPacking.h` but omitted the matching `using render::detail::eyeOriginForMatrix` declarations, causing a build failure. — Claude Sonnet 4.6
 - Restore the documented 64 KiB interactive GPU path-tracer chunk cap and
   limit platform-resolved display pixel captures to direct display outputs

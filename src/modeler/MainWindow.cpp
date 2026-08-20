@@ -682,9 +682,23 @@ MainWindow::MainWindow()
   setCentralWidget(p->centralTabs);
 
   addDockWidget(Qt::LeftDockWidgetArea, createElementSelector());
-  addDockWidget(Qt::RightDockWidgetArea, createPropertyEditor());
-  addDockWidget(Qt::RightDockWidgetArea, createPreviewDisplay());
-  addDockWidget(Qt::RightDockWidgetArea, createChatDock());
+
+  // Properties and Preview stack into one tabbed group so the right dock
+  // area doesn't split three ways (which squeezed every dock, including
+  // the new Chat one, down to an unreadable sliver). Chat gets its own
+  // group below with extra vertical space, since a conversation needs
+  // more room than a property grid or material thumbnail.
+  auto* propertyEditorDockWidget = createPropertyEditor();
+  auto* previewDisplayDockWidget = createPreviewDisplay();
+  addDockWidget(Qt::RightDockWidgetArea, propertyEditorDockWidget);
+  addDockWidget(Qt::RightDockWidgetArea, previewDisplayDockWidget);
+  tabifyDockWidget(propertyEditorDockWidget, previewDisplayDockWidget);
+  propertyEditorDockWidget->raise();
+
+  auto* chatDockWidgetContainer = createChatDock();
+  addDockWidget(Qt::RightDockWidgetArea, chatDockWidgetContainer);
+  resizeDocks({propertyEditorDockWidget, chatDockWidgetContainer}, {1, 2}, Qt::Vertical);
+
   addDockWidget(Qt::BottomDockWidgetArea, createTimelineControls());
   addDockWidget(Qt::BottomDockWidgetArea, createRenderGraphInspector());
 
