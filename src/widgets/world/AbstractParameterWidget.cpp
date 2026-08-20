@@ -1,6 +1,7 @@
 #include "widgets/world/AbstractParameterWidget.h"
 #include "world/objects/Element.h"
 
+#include <QComboBox>
 #include <QDoubleSpinBox>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -107,4 +108,12 @@ void AbstractParameterWidget::configureLabel(QLabel* label,
   label->setMinimumWidth(0);
   label->setWordWrap(true);
   label->setSizePolicy(horizontalPolicy, QSizePolicy::Preferred);
+}
+
+void AbstractParameterWidget::configureComboBox(QComboBox* comboBox,
+                                                 QSizePolicy::Policy horizontalPolicy) {
+  comboBox->setMinimumWidth(0);
+  comboBox->setMinimumContentsLength(6);
+  comboBox->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+  comboBox->setSizePolicy(horizontalPolicy, QSizePolicy::Fixed);
 }

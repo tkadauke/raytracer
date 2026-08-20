@@ -167,8 +167,7 @@ namespace engine::graph {
   }
 
   RaytracerBeautyPassState RaytracerBeautyPassState::valueFromPass(const RenderPassNode& pass) {
-    const auto* state = fromPass(pass);
-    return state ? *state : RaytracerBeautyPassState();
+    return detail::valueOrDefault(fromPass(pass));
   }
 
   const RaytracerBeautyPassState* RaytracerBeautyPassState::asRaytracerBeautyPassState() const {

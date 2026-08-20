@@ -36,10 +36,7 @@ ChoiceParameterWidget::ChoiceParameterWidget(QVariantList choices, QWidget* pare
   configureLabel(p->label);
   p->comboBox = new QComboBox(this);
   p->comboBox->setObjectName(QStringLiteral("choiceComboBox"));
-  p->comboBox->setMinimumWidth(0);
-  p->comboBox->setMinimumContentsLength(6);
-  p->comboBox->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
-  p->comboBox->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
+  configureComboBox(p->comboBox);
 
   layout->addWidget(p->label);
   layout->addWidget(p->comboBox);

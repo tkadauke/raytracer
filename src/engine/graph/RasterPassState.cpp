@@ -1275,8 +1275,7 @@ namespace engine::graph {
   }
 
   RasterShadowPassState RasterShadowPassState::valueFromPass(const RenderPassNode& pass) {
-    const auto* state = fromPass(pass);
-    return state ? *state : RasterShadowPassState::previewDefaults();
+    return detail::valueOrDefault(fromPass(pass), RasterShadowPassState::previewDefaults());
   }
 
   const RasterShadowPassState* RasterShadowPassState::asRasterShadowPassState() const {
@@ -1364,8 +1363,7 @@ namespace engine::graph {
   }
 
   RasterVisibilityPassState RasterVisibilityPassState::valueFromPass(const RenderPassNode& pass) {
-    const auto* state = fromPass(pass);
-    return state ? *state : RasterVisibilityPassState();
+    return detail::valueOrDefault(fromPass(pass));
   }
 
   const RasterVisibilityPassState* RasterVisibilityPassState::asRasterVisibilityPassState() const {
@@ -1456,8 +1454,7 @@ namespace engine::graph {
   }
 
   RasterBeautyPassState RasterBeautyPassState::valueFromPass(const RenderPassNode& pass) {
-    const auto* state = fromPass(pass);
-    return state ? *state : RasterBeautyPassState();
+    return detail::valueOrDefault(fromPass(pass));
   }
 
   const RasterBeautyPassState* RasterBeautyPassState::asRasterBeautyPassState() const {
