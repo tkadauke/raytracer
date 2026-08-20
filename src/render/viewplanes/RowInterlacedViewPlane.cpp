@@ -1,10 +1,8 @@
 #include "render/viewplanes/RowInterlacedViewPlane.h"
 #include "render/viewplanes/ViewPlaneFactory.h"
 
-#include <algorithm>
-#include <cmath>
+#include "core/math/Number.h"
 
-using namespace std;
 using namespace render;
 
 namespace {
@@ -48,7 +46,7 @@ namespace {
   }
 
   int RowInterlaceIterator::initialJump() const {
-    return 1 << int(log(m_rect.height()));
+    return largestPowerOfTwoAtMost(m_rect.height());
   }
 }
 

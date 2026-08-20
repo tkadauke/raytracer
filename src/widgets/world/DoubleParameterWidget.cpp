@@ -57,7 +57,7 @@ const QVariant DoubleParameterWidget::value() const {
 }
 
 void DoubleParameterWidget::setValue(const QVariant& value) {
-  if (p->doubleEdit->hasFocus())
+  if (anyHasFocus(p->doubleEdit))
     return;
   const QSignalBlocker blocker(p->doubleEdit);
   p->doubleEdit->setValue(value.toDouble());

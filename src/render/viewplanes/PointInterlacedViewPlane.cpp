@@ -1,8 +1,9 @@
 #include "render/viewplanes/PointInterlacedViewPlane.h"
 #include "render/viewplanes/ViewPlaneFactory.h"
 
+#include "core/math/Number.h"
+
 #include <algorithm>
-#include <cmath>
 
 using namespace std;
 using namespace render;
@@ -56,7 +57,8 @@ namespace {
   }
 
   int PointInterlaceIterator::initialSize() const {
-    return min(1 << int(log(m_plane->width())), 1 << int(log(m_plane->height())));
+    return min(largestPowerOfTwoAtMost(m_plane->width()),
+               largestPowerOfTwoAtMost(m_plane->height()));
   }
 }
 

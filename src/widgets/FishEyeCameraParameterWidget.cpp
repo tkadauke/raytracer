@@ -16,13 +16,7 @@ FishEyeCameraParameterWidget::FishEyeCameraParameterWidget(QWidget* parent)
     : CameraParameterWidget(parent),
       p(std::make_unique<Private>()) {
   p->ui.setupUi(this);
-  // Update the value label when the slider moves.  Use a lambda rather than
-  // &QLabel::setNum to avoid the int/double overload ambiguity in Qt 6.
-  connect(p->ui.fieldOfViewSlider, &QSlider::valueChanged, this,
-          [this](int v) { p->ui.fieldOfViewLabel->setNum(v); });
-  connect(p->ui.fieldOfViewSlider, SIGNAL(valueChanged(int)), this, SLOT(parameterChanged()));
-  connect(p->ui.fieldOfViewSlider, &QSlider::valueChanged, p->ui.fieldOfViewLabel,
-          qOverload<int>(&QLabel::setNum));
+  connectDegreeSlider(p->ui.fieldOfViewSlider, p->ui.fieldOfViewLabel);
 }
 
 FishEyeCameraParameterWidget::~FishEyeCameraParameterWidget() {

@@ -62,7 +62,7 @@ Colord ColorParameterWidget::color() const {
 }
 
 void ColorParameterWidget::setColor(const Colord& color) {
-  if (p->rEdit->hasFocus() || p->gEdit->hasFocus() || p->bEdit->hasFocus())
+  if (anyHasFocus(p->rEdit, p->gEdit, p->bEdit))
     return;
 
   const QSignalBlocker blockR(p->rEdit);

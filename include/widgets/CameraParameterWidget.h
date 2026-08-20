@@ -3,6 +3,9 @@
 
 #include <QWidget>
 
+class QLabel;
+class QSlider;
+
 namespace render {
   class Camera;
 }
@@ -20,4 +23,14 @@ signals:
 
 protected slots:
   void parameterChanged();
+
+protected:
+  /**
+    * Wires a degree-valued slider to update its value @p label and to
+    * notify `changed()` on every move. Shared by the camera parameter
+    * widgets whose UI exposes a field-of-view slider plus a live-updating
+    * numeric label (`FishEyeCameraParameterWidget`,
+    * `SphericalCameraParameterWidget`).
+    */
+  void connectDegreeSlider(QSlider* slider, QLabel* label);
 };

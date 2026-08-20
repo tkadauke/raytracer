@@ -55,6 +55,16 @@ protected:
   static void configureLabel(QLabel* label,
                              QSizePolicy::Policy horizontalPolicy = QSizePolicy::Ignored);
 
+  /// @returns true if any of @p widgets currently has keyboard focus. Used
+  /// by `setValue`/`setColor`/`setVector` overrides to avoid clobbering a
+  /// field the user is actively typing in — single-widget parameter
+  /// widgets pass one edit, multi-component ones (color, vector) pass all
+  /// of their component edits.
+  template <typename... Widgets>
+  static bool anyHasFocus(Widgets*... widgets) {
+    return (... || widgets->hasFocus());
+  }
+
 private:
   struct Private;
   std::unique_ptr<Private> p;
