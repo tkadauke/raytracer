@@ -1,12 +1,14 @@
 #include "chat/ChatThread.h"
 
 #include <QMap>
+#include <QUuid>
 
 #include "chat/ClaudeCliSession.h"
 
 namespace chat {
 
   struct ChatThread::Private {
+    QString id;
     QString name;
     QString sessionId;
     bool busy = false;
@@ -19,12 +21,21 @@ namespace chat {
   };
 
   ChatThread::ChatThread(QString name, QObject* parent)
+      : ChatThread(QUuid::createUuid().toString(), std::move(name), parent) {
+  }
+
+  ChatThread::ChatThread(QString id, QString name, QObject* parent)
       : QObject(parent),
         p(std::make_unique<Private>()) {
+    p->id = std::move(id);
     p->name = std::move(name);
   }
 
   ChatThread::~ChatThread() = default;
+
+  const QString& ChatThread::id() const {
+    return p->id;
+  }
 
   const QString& ChatThread::name() const {
     return p->name;
@@ -75,6 +86,11 @@ namespace chat {
 
     setBusy(true);
     session->start(request);
+  }
+
+  void ChatThread::restore(QString sessionId, std::vector<ChatMessage> messages) {
+    p->sessionId = std::move(sessionId);
+    p->messages = std::move(messages);
   }
 
   void ChatThread::appendMessage(ChatMessage message) {
