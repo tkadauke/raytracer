@@ -27,8 +27,20 @@ namespace chat {
     Q_OBJECT
 
   public:
+    /// Generates a fresh id (QUuid, matching Element's own id scheme) — for
+    /// brand-new threads.
     explicit ChatThread(QString name, QObject* parent = nullptr);
+
+    /// Explicit id — for restoring a thread ChatThreadStore already
+    /// assigned an id to on a previous run. Callers should follow up with
+    /// restore() to bring back sessionId()/messages() too.
+    ChatThread(QString id, QString name, QObject* parent = nullptr);
+
     ~ChatThread() override;
+
+    /// Stable identity used as the on-disk filename by ChatThreadStore;
+    /// never changes for the lifetime of the thread.
+    [[nodiscard]] const QString& id() const;
 
     [[nodiscard]] const QString& name() const;
     void setName(QString name);
@@ -49,6 +61,16 @@ namespace chat {
       */
     void sendMessage(const QString& text, const QString& mcpConfigPath,
                      const QString& executable = QStringLiteral("claude"));
+
+    /**
+      * Restores persisted state loaded from a ChatThreadStore record: the
+      * captured `claude` session id (so the next sendMessage() resumes it)
+      * and the rendered transcript. Does not emit messageAppended for the
+      * restored messages — callers that need to render history (e.g.
+      * ChatThreadPanel) should iterate messages() directly after calling
+      * this, rather than relying on the per-append signal.
+      */
+    void restore(QString sessionId, std::vector<ChatMessage> messages);
 
   signals:
     /// Fired after any message (user, assistant, tool call/result, error)

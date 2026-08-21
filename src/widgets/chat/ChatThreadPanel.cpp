@@ -49,6 +49,12 @@ ChatThreadPanel::ChatThreadPanel(chat::ChatThread* thread, QWidget* parent)
   connect(p->thread, &chat::ChatThread::messageAppended, this,
           &ChatThreadPanel::handleMessageAppended);
   connect(p->thread, &chat::ChatThread::busyChanged, this, &ChatThreadPanel::handleBusyChanged);
+
+  // A thread restored from ChatThreadStore already has its transcript in
+  // messages() but never emitted messageAppended() for it (restore()
+  // deliberately doesn't fire that signal) — prime the display directly.
+  for (int i = 0; i < static_cast<int>(p->thread->messages().size()); ++i)
+    handleMessageAppended(i);
 }
 
 ChatThreadPanel::~ChatThreadPanel() = default;

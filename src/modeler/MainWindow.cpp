@@ -698,6 +698,10 @@ MainWindow::MainWindow()
   auto* chatDockWidgetContainer = createChatDock();
   addDockWidget(Qt::RightDockWidgetArea, chatDockWidgetContainer);
   resizeDocks({propertyEditorDockWidget, chatDockWidgetContainer}, {1, 2}, Qt::Vertical);
+  // A fresh window's scene has never been saved (p->fileName is null), so
+  // its chat threads start out draft-only (roadmap §4.6.i persistence) —
+  // see ChatDockWidget::setScene.
+  p->chatDockWidget->setScene(p->scene->id(), !p->fileName.isNull());
 
   addDockWidget(Qt::BottomDockWidgetArea, createTimelineControls());
   addDockWidget(Qt::BottomDockWidgetArea, createRenderGraphInspector());
@@ -1471,6 +1475,7 @@ void MainWindow::newFile() {
 
     p->scene = new ::Scene(nullptr);
     p->propertyEditorWidget->setRoot(p->scene);
+    p->chatDockWidget->setScene(p->scene->id(), !p->fileName.isNull());
 
     p->elementModel->setElement(p->scene);
     p->previewUseSceneIntentAct->setChecked(true);
@@ -1643,6 +1648,10 @@ void MainWindow::openFile(const QString& fileName) {
     p->fileName = opened.nativeSceneFile ? fileName : QString();
     addRecentFile(fileName);
     p->propertyEditorWidget->setRoot(p->scene);
+    // Non-native opens (imports) get a fresh Element id every load, just
+    // like an unsaved scene — draft-only until/unless it's saved natively,
+    // same as newFile()'s blank scene.
+    p->chatDockWidget->setScene(p->scene->id(), !p->fileName.isNull());
     p->elementModel->setElement(p->scene);
     p->previewUseSceneIntentAct->setChecked(true);
     applySceneRenderIntentToPreviewControls();
@@ -1716,8 +1725,12 @@ void MainWindow::saveFileAs() {
 
   if (!fileName.isNull()) {
     p->fileName = fileName;
-    if (p->scene->save(p->fileName))
+    if (p->scene->save(p->fileName)) {
       addRecentFile(p->fileName);
+      // Same scene id, now persisted — promotes any draft threads to disk
+      // rather than reloading (setScene() treats a same-id call as such).
+      p->chatDockWidget->setScene(p->scene->id(), true);
+    }
   }
 }
 

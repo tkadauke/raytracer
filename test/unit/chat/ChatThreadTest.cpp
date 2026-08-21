@@ -95,6 +95,37 @@ namespace ChatThreadTest {
     EXPECT_TRUE(thread.messages().empty());
   }
 
+  TEST_F(ChatThreadTest, DefaultConstructorGeneratesAUniqueId) {
+    chat::ChatThread first(QStringLiteral("Thread 1"));
+    chat::ChatThread second(QStringLiteral("Thread 2"));
+
+    EXPECT_FALSE(first.id().isEmpty());
+    EXPECT_NE(first.id(), second.id());
+  }
+
+  TEST_F(ChatThreadTest, ExplicitIdConstructorKeepsTheGivenId) {
+    chat::ChatThread thread(QStringLiteral("restored-id"), QStringLiteral("Restored"));
+
+    EXPECT_EQ(QStringLiteral("restored-id"), thread.id());
+    EXPECT_EQ(QStringLiteral("Restored"), thread.name());
+  }
+
+  TEST_F(ChatThreadTest, RestoreSetsSessionIdAndMessagesWithoutEmittingMessageAppended) {
+    chat::ChatThread thread(QStringLiteral("restored-id"), QStringLiteral("Restored"));
+    QSignalSpy appendedSpy(&thread, &chat::ChatThread::messageAppended);
+
+    chat::ChatMessage userMessage;
+    userMessage.role = chat::ChatMessageRole::User;
+    userMessage.text = QStringLiteral("hello from disk");
+
+    thread.restore(QStringLiteral("session-from-disk"), {userMessage});
+
+    EXPECT_EQ(QStringLiteral("session-from-disk"), thread.sessionId());
+    ASSERT_EQ(1u, thread.messages().size());
+    EXPECT_EQ(QStringLiteral("hello from disk"), thread.messages()[0].text);
+    EXPECT_EQ(0, appendedSpy.size());
+  }
+
   TEST_F(ChatThreadTest, CliFailureAppendsAnErrorMessage) {
     chat::ChatThread thread(QStringLiteral("Thread 1"));
 
