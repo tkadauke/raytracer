@@ -1,5 +1,6 @@
 #include "engine/raster/detail/RasterShadowMaps.h"
 
+#include "core/math/Number.h"
 #include "core/util/BufferUtils.h"
 
 #include <algorithm>
@@ -383,7 +384,7 @@ namespace engine::raster::detail {
         !std::isfinite(maxDepth))
       return linear;
 
-    const double lambda = std::isfinite(splitLambda) ? std::clamp(splitLambda, 0.0, 1.0) : 0.0;
+    const double lambda = finiteClampedUnit(splitLambda, 0.0);
     const double logarithmic = minDepth * std::pow(maxDepth / minDepth, ratio);
     return linear * (1.0 - lambda) + logarithmic * lambda;
   }
