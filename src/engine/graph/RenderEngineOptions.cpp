@@ -1129,7 +1129,7 @@ namespace engine::graph {
 
   void RenderRasterizerOptions::setBlendConstant(const Colord& color, double alpha) {
     m_blendConstantColor = color;
-    m_blendConstantAlpha = std::isfinite(alpha) ? std::clamp(alpha, 0.0, 1.0) : 1.0;
+    m_blendConstantAlpha = finiteClampedUnit(alpha, 1.0);
   }
 
   void RenderRasterizerOptions::setAlphaTestEnabled(bool enabled) {
@@ -1139,7 +1139,7 @@ namespace engine::graph {
   void RenderRasterizerOptions::setAlphaFunc(std::string func, double reference) {
     alphaFuncFromString(func, "rasterizer.framebuffer.alphaFunc");
     m_alphaFunc = std::move(func);
-    m_alphaReference = std::isfinite(reference) ? std::clamp(reference, 0.0, 1.0) : 0.0;
+    m_alphaReference = finiteClampedUnit(reference, 0.0);
   }
 
   void RenderRasterizerOptions::setShadowMapSize(int size) {
@@ -1151,7 +1151,7 @@ namespace engine::graph {
   }
 
   void RenderRasterizerOptions::setShadowCascadeSplitLambda(double lambda) {
-    m_shadowCascadeSplitLambda = std::isfinite(lambda) ? std::clamp(lambda, 0.0, 1.0) : 0.5;
+    m_shadowCascadeSplitLambda = finiteClampedUnit(lambda, 0.5);
   }
 
   void RenderRasterizerOptions::setShadowBias(double bias) {

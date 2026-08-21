@@ -3,6 +3,7 @@
 #include "core/json/JsonValue.h"
 #include "core/math/Number.h"
 #include "core/math/Rect.h"
+#include "engine/graph/RenderGraphTypes.h"
 
 #include <QJsonArray>
 #include <QJsonObject>
@@ -97,6 +98,28 @@ namespace engine::graph::detail {
   template<typename T>
   [[nodiscard]] inline T valueOrDefault(const T* state, T fallback = T()) {
     return state ? *state : fallback;
+  }
+
+  /// Looks up @p pass's typed state via @p asState (one of
+  /// `RenderPassState::asRasterXxxPassState()`), returning `nullptr` if the
+  /// pass carries no state at all, or throwing if it carries state of a
+  /// different type. Shared by the raster pass-state `fromPass()` overrides
+  /// that require their pass to carry the matching state type when any
+  /// state is present at all (`RasterShadowPassState`,
+  /// `RasterVisibilityPassState`, `RasterBeautyPassState`) — callers that
+  /// need additional preconditions (e.g. `RasterBeautyPassState` also
+  /// requires a rasterizer executor) check those before calling this.
+  template<typename State>
+  [[nodiscard]] inline const State* passStateOrThrow(const RenderPassNode& pass,
+                                                      const State* (RenderPassState::*asState)() const,
+                                                      const char* label) {
+    if (!pass.state)
+      return nullptr;
+
+    const State* state = (pass.state.get()->*asState)();
+    if (!state)
+      throw std::runtime_error("pass '" + pass.id + "' does not carry " + label);
+    return state;
   }
 
   template<typename Error>
