@@ -29,9 +29,18 @@ namespace chat {
   /**
     * Builds the exact argv `ClaudeCliSession::start()` hands to `QProcess`:
     * `-p "<message>" --output-format stream-json --verbose
-    * [--mcp-config <path>] [--resume <session_id>]`. Pure and
-    * process-free, so the framing this issue asks to be testable without a
-    * live CLI can be pinned directly.
+    * [--mcp-config <path> --allowedTools <our mcp tool names>]
+    * [--resume <session_id>]`. Pure and process-free, so the framing this
+    * issue asks to be testable without a live CLI can be pinned directly.
+    *
+    * `-p` mode has no human present to answer an interactive
+    * tool-permission prompt, so by default the CLI denies every tool call,
+    * including our own MCP tools. `--allowedTools` pre-approves exactly the
+    * `mcp__raytracer-modeler__*` tool names registered in
+    * `mcp::McpConfigWriter`/`mcp::SceneEditingTools` and nothing else —
+    * everything unexpected (Bash, Write, Edit, ...) stays blocked. Only
+    * added when `mcpConfigPath` is non-empty; with no MCP server there are
+    * no MCP tools to allow.
     */
   QStringList claudeCliArguments(const ClaudeCliRequest& request);
 
