@@ -28,7 +28,7 @@ namespace chat {
 
   /**
     * Builds the exact argv `ClaudeCliSession::start()` hands to `QProcess`:
-    * `-p "<message>" --output-format stream-json --input-format stream-json
+    * `-p "<message>" --output-format stream-json --verbose
     * [--mcp-config <path>] [--resume <session_id>]`. Pure and
     * process-free, so the framing this issue asks to be testable without a
     * live CLI can be pinned directly.
