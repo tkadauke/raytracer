@@ -75,10 +75,9 @@ namespace chat {
 
     p->running = true;
     p->process->start();
-    // The one-shot-per-send model never writes an interactive stdin turn;
-    // --input-format stream-json only matters for the -p message the CLI
-    // already received on argv, so close stdin immediately rather than
-    // leaving the child waiting on input that will never arrive.
+    // The one-shot-per-send model never writes an interactive stdin turn —
+    // the message is already on argv via -p — so close stdin immediately
+    // rather than leaving the child waiting on input that will never arrive.
     p->process->closeWriteChannel();
   }
 

@@ -18,7 +18,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   the existing `PropertyEditorWidget`/`PreviewDisplayWidget`/`RenderGraphInspectorWidget`
   dock pattern, plus `claude` CLI subprocess/session management under `include/chat/`:
   `ClaudeCliSession` spawns one `claude -p "<message>" --output-format stream-json
-  --input-format stream-json --mcp-config <path>` subprocess per send (`--resume
+  --verbose --mcp-config <path>` subprocess per send (`--resume
   <session_id>` to continue a thread), and `StreamJsonLineParser` line-buffers its stdout
   into parsed events. `ChatThread` owns the in-memory per-thread transcript and the
   session-id-to-`--resume` bookkeeping — persistence across app restarts stays out of
@@ -653,6 +653,13 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Drop `--input-format stream-json` from the `claude` CLI invocation in
+  `chat::claudeCliArguments()`: combined with `ClaudeCliSession::start()`
+  closing stdin immediately after launch, it starved the CLI of the
+  stream-json input it was told to expect, so it exited quickly with no
+  response and no error. The message is already passed via `-p`, so the
+  one-shot-per-send model never has anything to write to stdin. — Claude
+  Sonnet 5
 - Fix the Modeler's right-side dock layout so adding the Chat dock didn't
   squeeze Properties/Preview/Chat into three unreadably short vertical
   slivers: Properties and Preview now tabify together, and Chat gets its
