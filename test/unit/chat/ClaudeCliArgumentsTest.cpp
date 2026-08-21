@@ -17,7 +17,8 @@ namespace ClaudeCliArgumentsTest {
     EXPECT_EQ((QStringList{QStringLiteral("-p"), QStringLiteral("add a red sphere"),
                            QStringLiteral("--output-format"), QStringLiteral("stream-json"),
                            QStringLiteral("--input-format"), QStringLiteral("stream-json"),
-                           QStringLiteral("--mcp-config"), QStringLiteral("/tmp/mcp-config.json")}),
+                           QStringLiteral("--verbose"), QStringLiteral("--mcp-config"),
+                           QStringLiteral("/tmp/mcp-config.json")}),
               arguments);
   }
 
@@ -29,9 +30,9 @@ namespace ClaudeCliArgumentsTest {
 
     const QStringList arguments = chat::claudeCliArguments(request);
 
-    ASSERT_EQ(10, arguments.size());
-    EXPECT_EQ(QStringLiteral("--resume"), arguments[8]);
-    EXPECT_EQ(QStringLiteral("session-123"), arguments[9]);
+    ASSERT_EQ(11, arguments.size());
+    EXPECT_EQ(QStringLiteral("--resume"), arguments[9]);
+    EXPECT_EQ(QStringLiteral("session-123"), arguments[10]);
   }
 
   TEST(ClaudeCliArgumentsTest, EmptyMcpConfigPathOmitsTheFlagEntirely) {

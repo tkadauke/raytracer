@@ -6,7 +6,7 @@ namespace chat {
     QStringList arguments;
     arguments << QStringLiteral("-p") << request.message << QStringLiteral("--output-format")
               << QStringLiteral("stream-json") << QStringLiteral("--input-format")
-              << QStringLiteral("stream-json");
+              << QStringLiteral("stream-json") << QStringLiteral("--verbose");
 
     if (!request.mcpConfigPath.isEmpty())
       arguments << QStringLiteral("--mcp-config") << request.mcpConfigPath;
