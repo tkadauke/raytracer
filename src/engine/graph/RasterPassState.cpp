@@ -1051,7 +1051,7 @@ namespace engine::graph {
 
   void RasterFramebufferState::setBlendConstant(const Colord& color, double alpha) {
     m_blendConstantColor = color;
-    m_blendConstantAlpha = std::isfinite(alpha) ? std::clamp(alpha, 0.0, 1.0) : 1.0;
+    m_blendConstantAlpha = finiteClampedUnit(alpha, 1.0);
   }
 
   void RasterFramebufferState::setAlphaTestEnabled(bool enabled) {
@@ -1060,7 +1060,7 @@ namespace engine::graph {
 
   void RasterFramebufferState::setAlphaFunc(Rasterizer::AlphaFunc func, double reference) {
     m_alphaFunc = func;
-    m_alphaReference = std::isfinite(reference) ? std::clamp(reference, 0.0, 1.0) : 0.0;
+    m_alphaReference = finiteClampedUnit(reference, 0.0);
   }
 
   void RasterFramebufferState::setStencilTestEnabled(bool enabled) {
@@ -1199,7 +1199,7 @@ namespace engine::graph {
   }
 
   void RasterShadowState::setShadowCascadeSplitLambda(double lambda) {
-    m_cascadeSplitLambda = std::isfinite(lambda) ? std::clamp(lambda, 0.0, 1.0) : 0.5;
+    m_cascadeSplitLambda = finiteClampedUnit(lambda, 0.5);
   }
 
   void RasterShadowState::setShadowBias(double bias) {
@@ -1264,14 +1264,8 @@ namespace engine::graph {
   }
 
   const RasterShadowPassState* RasterShadowPassState::fromPass(const RenderPassNode& pass) {
-    if (!pass.state)
-      return nullptr;
-
-    const auto* state = pass.state->asRasterShadowPassState();
-    if (!state) {
-      throw std::runtime_error("pass '" + pass.id + "' does not carry raster shadow state");
-    }
-    return state;
+    return detail::passStateOrThrow(pass, &RenderPassState::asRasterShadowPassState,
+                                    "raster shadow state");
   }
 
   RasterShadowPassState RasterShadowPassState::valueFromPass(const RenderPassNode& pass) {
@@ -1352,14 +1346,8 @@ namespace engine::graph {
   }
 
   const RasterVisibilityPassState* RasterVisibilityPassState::fromPass(const RenderPassNode& pass) {
-    if (!pass.state)
-      return nullptr;
-
-    const auto* state = pass.state->asRasterVisibilityPassState();
-    if (!state) {
-      throw std::runtime_error("pass '" + pass.id + "' does not carry raster visibility state");
-    }
-    return state;
+    return detail::passStateOrThrow(pass, &RenderPassState::asRasterVisibilityPassState,
+                                    "raster visibility state");
   }
 
   RasterVisibilityPassState RasterVisibilityPassState::valueFromPass(const RenderPassNode& pass) {
@@ -1443,14 +1431,9 @@ namespace engine::graph {
   const RasterBeautyPassState* RasterBeautyPassState::fromPass(const RenderPassNode& pass) {
     if (pass.executor != RenderExecutorKind::Rasterizer)
       return nullptr;
-    if (!pass.state)
-      return nullptr;
 
-    const auto* state = pass.state->asRasterBeautyPassState();
-    if (!state) {
-      throw std::runtime_error("pass '" + pass.id + "' does not carry raster beauty state");
-    }
-    return state;
+    return detail::passStateOrThrow(pass, &RenderPassState::asRasterBeautyPassState,
+                                    "raster beauty state");
   }
 
   RasterBeautyPassState RasterBeautyPassState::valueFromPass(const RenderPassNode& pass) {

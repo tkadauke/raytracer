@@ -914,7 +914,7 @@ namespace engine::raster {
       return m_temporalCurrentFrameWeight;
     }
     inline void setTemporalCurrentFrameWeight(double weight) {
-      m_temporalCurrentFrameWeight = std::isfinite(weight) ? std::clamp(weight, 0.0, 1.0) : 0.1;
+      m_temporalCurrentFrameWeight = finiteClampedUnit(weight, 0.1);
     }
 
     /// Returns whether rasterized directional-light shadow maps are enabled.
@@ -1033,7 +1033,7 @@ namespace engine::raster {
     * </tr></table>
     */
     inline void setShadowCascadeSplitLambda(double lambda) {
-      m_shadowCascadeSplitLambda = std::isfinite(lambda) ? std::clamp(lambda, 0.0, 1.0) : 0.0;
+      m_shadowCascadeSplitLambda = finiteClampedUnit(lambda, 0.0);
     }
 
     /// Returns the constant light-space depth bias used by the shadow-map
@@ -1423,7 +1423,7 @@ namespace engine::raster {
     }
     inline void setAlphaFunc(AlphaFunc func, double reference) {
       m_alphaFunc = func;
-      m_alphaReference = std::isfinite(reference) ? std::clamp(reference, 0.0, 1.0) : 0.0;
+      m_alphaReference = finiteClampedUnit(reference, 0.0);
     }
 
     /// RGB channel mask applied after shading and blending. A disabled channel
@@ -1478,7 +1478,7 @@ namespace engine::raster {
       m_blendConstantColor = color;
     }
     inline void setBlendConstantAlpha(double alpha) {
-      m_blendConstantAlpha = std::isfinite(alpha) ? std::clamp(alpha, 0.0, 1.0) : 1.0;
+      m_blendConstantAlpha = finiteClampedUnit(alpha, 1.0);
     }
     inline void setBlendConstant(const Colord& color, double alpha) {
       setBlendConstantColor(color);

@@ -875,7 +875,7 @@ namespace engine::raster {
 
   void OpenGLRasterizer::setBlendConstant(const Colord& color, double alpha) {
     m_blendConstantColor = color;
-    m_blendConstantAlpha = std::isfinite(alpha) ? std::clamp(alpha, 0.0, 1.0) : 1.0;
+    m_blendConstantAlpha = finiteClampedUnit(alpha, 1.0);
   }
 
   bool OpenGLRasterizer::alphaTestEnabled() const {
@@ -896,7 +896,7 @@ namespace engine::raster {
 
   void OpenGLRasterizer::setAlphaFunc(Rasterizer::AlphaFunc func, double reference) {
     m_alphaFunc = func;
-    m_alphaReference = std::isfinite(reference) ? std::clamp(reference, 0.0, 1.0) : 0.0;
+    m_alphaReference = finiteClampedUnit(reference, 0.0);
   }
 
   bool OpenGLRasterizer::stencilTestEnabled() const {

@@ -163,3 +163,13 @@ inline double finiteAtLeast(double minimum, double value) {
 inline int largestPowerOfTwoAtMost(int n) {
   return 1 << int(std::log(n));
 }
+
+/**
+  * @returns @p value clamped to [0, 1], treating a non-finite @p value as
+  * @p fallback. Used by rasterizer setters for normalized quantities (blend
+  * constant alpha, alpha-test reference, shadow cascade split lambda) that
+  * accept externally supplied doubles which may be NaN or infinite.
+  */
+inline double finiteClampedUnit(double value, double fallback) {
+  return std::isfinite(value) ? std::clamp(value, 0.0, 1.0) : fallback;
+}
