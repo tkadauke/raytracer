@@ -1,5 +1,6 @@
 #include "render/RayCaster.h"
 #include "render/State.h"
+#include "render/materials/MirrorReflectionSample.h"
 #include "render/materials/ReflectiveMaterial.h"
 #include "core/math/HitPoint.h"
 #include "core/math/Ray.h"
@@ -13,16 +14,13 @@ Colord ReflectiveMaterial::shade(const render::RayCaster* raycaster, const rende
                                  render::State& state) const {
   auto color = PhongMaterial::shade(raycaster, scene, ray, hitPoint, state);
 
-  Vector3d out = -ray.direction();
-  Vector3d in;
-  Colord refl = m_reflectiveBRDF.sample(hitPoint, out, in);
-  Rayd reflected(hitPoint.point(), in);
+  const MirrorReflectionSample mirror =
+    sampleMirrorReflection(m_reflectiveBRDF, hitPoint, -ray.direction());
+  double normalDotIn = hitPoint.normal() * mirror.in;
 
-  double normalDotIn = hitPoint.normal() * in;
-
-  state.withThroughput(state.throughput * refl.max() * normalDotIn, [&] {
+  state.withThroughput(state.throughput * mirror.value.max() * normalDotIn, [&] {
     state.recordEvent(this, "ReflectiveMaterial: Tracing reflection");
-    color += refl * raycaster->rayColor(reflected.epsilonShifted(), state) * normalDotIn;
+    color += mirror.value * raycaster->rayColor(mirror.ray.epsilonShifted(), state) * normalDotIn;
   });
 
   return color;
@@ -36,13 +34,12 @@ render::WhittedShadeResult ReflectiveMaterial::shadeWhitted(const render::RayCas
   render::WhittedShadeResult result =
     PhongMaterial::shadeWhitted(raycaster, scene, ray, hitPoint, state);
 
-  Vector3d out = -ray.direction();
-  Vector3d in;
-  Colord refl = m_reflectiveBRDF.sample(hitPoint, out, in);
-  double normalDotIn = hitPoint.normal() * in;
+  const MirrorReflectionSample mirror =
+    sampleMirrorReflection(m_reflectiveBRDF, hitPoint, -ray.direction());
+  double normalDotIn = hitPoint.normal() * mirror.in;
 
   result.continuations.push_back(render::WhittedContinuation{
-    Rayd(hitPoint.point(), in).epsilonShifted(), refl * normalDotIn, refl.max() * normalDotIn});
+    mirror.ray.epsilonShifted(), mirror.value * normalDotIn, mirror.value.max() * normalDotIn});
   return result;
 }
 

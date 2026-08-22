@@ -277,8 +277,10 @@ namespace engine::raster::detail {
   OpenGLRasterMesh::Vertex OpenGLRasterMeshBuilder::vertexFor(const RasterTriangle& triangle,
                                                               const RasterVertex& vertex,
                                                               bool cameraIndependent) const {
-    const Colord albedo = triangle.rasterMaterial.albedo(
-      triangle.primitive, vertex.point, vertex.normal, vertex.uv, triangle.uvDx, triangle.uvDy);
+    const Colord albedo = triangle.rasterMaterial
+                            .albedo(triangle.primitive, vertex.point, vertex.normal, vertex.uv,
+                                    triangle.uvDx, triangle.uvDy)
+                            .clamped();
     const double alpha = triangle.rasterMaterial.alpha(
       triangle.primitive, vertex.point, vertex.normal, vertex.uv, triangle.uvDx, triangle.uvDy);
     const Vector3d normal = lightingNormalFor(triangle, vertex);
@@ -310,9 +312,9 @@ namespace engine::raster::detail {
             static_cast<float>(normal.x()),
             static_cast<float>(normal.y()),
             static_cast<float>(normal.z()),
-            static_cast<float>(std::clamp(albedo.r(), 0.0, 1.0)),
-            static_cast<float>(std::clamp(albedo.g(), 0.0, 1.0)),
-            static_cast<float>(std::clamp(albedo.b(), 0.0, 1.0)),
+            static_cast<float>(albedo.r()),
+            static_cast<float>(albedo.g()),
+            static_cast<float>(albedo.b()),
             static_cast<float>(std::clamp(alpha, 0.0, 1.0)),
             static_cast<float>(vertex.uv.x()),
             static_cast<float>(vertex.uv.y()),

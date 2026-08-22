@@ -74,6 +74,14 @@ protected:
     return (... || widgets->hasFocus());
   }
 
+  /// Wires each of @p edits' `valueChanged(double)` signal to
+  /// `parameterChanged()`. Shared by the multi-component parameter widgets
+  /// (color, vector) whose UI is a flat list of per-component spin boxes.
+  template <typename... Edits>
+  void connectValueChangedInputs(Edits*... edits) {
+    (connect(edits, SIGNAL(valueChanged(double)), this, SLOT(parameterChanged())), ...);
+  }
+
 private:
   struct Private;
   std::unique_ptr<Private> p;

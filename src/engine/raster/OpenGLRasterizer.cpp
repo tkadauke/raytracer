@@ -159,9 +159,10 @@ namespace engine::raster {
         glDisable(GL_SCISSOR_TEST);
         glEnable(GL_DEPTH_TEST);
         glDepthMask(GL_TRUE);
-        glClearColor(static_cast<GLfloat>(std::clamp(background.r(), 0.0, 1.0)),
-                     static_cast<GLfloat>(std::clamp(background.g(), 0.0, 1.0)),
-                     static_cast<GLfloat>(std::clamp(background.b(), 0.0, 1.0)), 1.0f);
+        const Colord clampedBackground = background.clamped();
+        glClearColor(static_cast<GLfloat>(clampedBackground.r()),
+                     static_cast<GLfloat>(clampedBackground.g()),
+                     static_cast<GLfloat>(clampedBackground.b()), 1.0f);
         glClearDepth(detail::normalizedDepthClearValue(m_depthClearValue));
         glStencilMask(0xff);
         glClearStencil(m_stencilClearValue);

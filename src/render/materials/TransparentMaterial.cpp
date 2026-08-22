@@ -1,6 +1,7 @@
 #include "render/RayCaster.h"
 #include "render/State.h"
 #include "render/brdf/BRDFSampling.h"
+#include "render/materials/MirrorReflectionSample.h"
 #include "render/materials/TransparentMaterial.h"
 #include "core/math/HitPoint.h"
 #include "core/math/Ray.h"
@@ -14,26 +15,24 @@ Colord TransparentMaterial::shade(const render::RayCaster* raycaster, const rend
                                   const Rayd& ray, const HitPoint& hitPoint,
                                   render::State& state) const {
   Vector3d out = -ray.direction();
-  Vector3d in;
-  Colord reflectedColor = m_reflectiveBRDF.sample(hitPoint, out, in);
-  Rayd reflected(hitPoint.point(), in);
+  const MirrorReflectionSample mirror = sampleMirrorReflection(m_reflectiveBRDF, hitPoint, out);
 
   auto color = PhongMaterial::shade(raycaster, scene, ray, hitPoint, state);
 
   if (m_specularBTDF.totalInternalReflection(ray, hitPoint)) {
     // TIR: full energy reflected, throughput unchanged (coefficient = 1.0).
     state.recordEvent(this, "TransparentMaterial: TIR, tracing full mirror reflection");
-    color += raycaster->rayColor(reflected.epsilonShifted(), state);
+    color += raycaster->rayColor(mirror.ray.epsilonShifted(), state);
   } else {
     Vector3d trans;
     Colord transmittedColor = m_specularBTDF.sample(hitPoint, out, trans);
     Rayd transmitted(hitPoint.point(), trans);
 
     state.withThroughput(
-      state.throughput * reflectedColor.max() * fabs(hitPoint.normal() * in), [&] {
+      state.throughput * mirror.value.max() * fabs(hitPoint.normal() * mirror.in), [&] {
         state.recordEvent(this, "TransparentMaterial: Tracing reflection");
-        color += reflectedColor * raycaster->rayColor(reflected.epsilonShifted(), state) *
-                 fabs(hitPoint.normal() * in);
+        color += mirror.value * raycaster->rayColor(mirror.ray.epsilonShifted(), state) *
+                 fabs(hitPoint.normal() * mirror.in);
       });
 
     state.withThroughput(
@@ -53,16 +52,14 @@ render::WhittedShadeResult TransparentMaterial::shadeWhitted(const render::RayCa
                                                              const HitPoint& hitPoint,
                                                              render::State& state) const {
   Vector3d out = -ray.direction();
-  Vector3d in;
-  Colord reflectedColor = m_reflectiveBRDF.sample(hitPoint, out, in);
-  Rayd reflected(hitPoint.point(), in);
+  const MirrorReflectionSample mirror = sampleMirrorReflection(m_reflectiveBRDF, hitPoint, out);
 
   render::WhittedShadeResult result =
     PhongMaterial::shadeWhitted(raycaster, scene, ray, hitPoint, state);
 
   if (m_specularBTDF.totalInternalReflection(ray, hitPoint)) {
     result.continuations.push_back(
-      render::WhittedContinuation{reflected.epsilonShifted(), Colord::white(), 1.0});
+      render::WhittedContinuation{mirror.ray.epsilonShifted(), Colord::white(), 1.0});
     return result;
   }
 
@@ -70,10 +67,10 @@ render::WhittedShadeResult TransparentMaterial::shadeWhitted(const render::RayCa
   Colord transmittedColor = m_specularBTDF.sample(hitPoint, out, trans);
   Rayd transmitted(hitPoint.point(), trans);
 
-  const double reflectionScale = fabs(hitPoint.normal() * in);
+  const double reflectionScale = fabs(hitPoint.normal() * mirror.in);
   result.continuations.push_back(
-    render::WhittedContinuation{reflected.epsilonShifted(), reflectedColor * reflectionScale,
-                                reflectedColor.max() * reflectionScale});
+    render::WhittedContinuation{mirror.ray.epsilonShifted(), mirror.value * reflectionScale,
+                                mirror.value.max() * reflectionScale});
 
   const double transmissionScale = fabs(hitPoint.normal() * trans);
   result.continuations.push_back(
