@@ -194,6 +194,14 @@ public:
   }
 
   /**
+    * @returns a color with each component clamped to [@p lo, @p hi].
+    */
+  [[nodiscard]] inline Derived clamped(T lo = T(0), T hi = T(1)) const {
+    return Derived(std::clamp(derived().r(), lo, hi), std::clamp(derived().g(), lo, hi),
+                   std::clamp(derived().b(), lo, hi));
+  }
+
+  /**
     * @returns the sum of the squared color components.
     */
   inline T squaredMagnitude() const {
