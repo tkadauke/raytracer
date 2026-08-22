@@ -44,12 +44,7 @@ ColorParameterWidget::ColorParameterWidget(QWidget* parent)
   addLabeledSpinBoxRow(layout, QStringLiteral("G"), p->gEdit, this);
   addLabeledSpinBoxRow(layout, QStringLiteral("B"), p->bEdit, this);
 
-  connect(p->rEdit, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this,
-          &ColorParameterWidget::parameterChanged);
-  connect(p->gEdit, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this,
-          &ColorParameterWidget::parameterChanged);
-  connect(p->bEdit, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this,
-          &ColorParameterWidget::parameterChanged);
+  connectValueChangedInputs(p->rEdit, p->gEdit, p->bEdit);
 
   connect(p->selectorButton, SIGNAL(clicked()), this, SLOT(selectorClicked()));
 }

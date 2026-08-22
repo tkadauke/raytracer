@@ -32,12 +32,7 @@ VectorParameterWidget::VectorParameterWidget(QWidget* parent)
   addLabeledSpinBoxRow(layout, QStringLiteral("Y"), p->yEdit, this);
   addLabeledSpinBoxRow(layout, QStringLiteral("Z"), p->zEdit, this);
 
-  connect(p->xEdit, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this,
-          &VectorParameterWidget::parameterChanged);
-  connect(p->yEdit, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this,
-          &VectorParameterWidget::parameterChanged);
-  connect(p->zEdit, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this,
-          &VectorParameterWidget::parameterChanged);
+  connectValueChangedInputs(p->xEdit, p->yEdit, p->zEdit);
 }
 
 VectorParameterWidget::~VectorParameterWidget() {

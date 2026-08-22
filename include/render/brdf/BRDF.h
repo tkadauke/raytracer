@@ -79,17 +79,6 @@ namespace render {
                              const Vector3d& in) const;
 
     /**
-      * Total hemispherical reflectance — the integral of `calculate`
-      * over all `in`. Used for the ambient term, which has no
-      * single incoming direction.
-      *
-      * Default returns black; override where a closed-form
-      * hemispherical integral exists (e.g. Lambertian: just the
-      * diffuse colour).
-      */
-    Colord reflectance(const HitPoint& hitPoint, const Vector3d& out) const override;
-
-    /**
       * Generate an incoming direction by importance-sampling the
       * BRDF. Writes the chosen direction into `in` and returns the
       * BRDF value at that draw.
