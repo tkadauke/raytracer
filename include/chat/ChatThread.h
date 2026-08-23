@@ -12,10 +12,11 @@ namespace chat {
   /**
     * One chat thread = one `claude` CLI session, per the chat-dock issue's
     * session model. Holds the in-memory transcript (persistence across app
-    * restarts is explicitly out of scope for this Job — see the issue) and
-    * drives a fresh `ClaudeCliSession` per `sendMessage()` call: the first
-    * send has no session id yet and omits `--resume`; every call after that
-    * resumes the session id captured from the first one.
+    * restarts is handled externally by `ChatThreadStore`/`restore()`, not
+    * by this class) and drives a fresh `ClaudeCliSession` per
+    * `sendMessage()` call: the first send has no session id yet and omits
+    * `--resume`; every call after that resumes the session id captured
+    * from the first one.
     *
     * "One live `claude` subprocess per active/in-flight thread; idle
     * threads have no running process" — `ChatThread` owns its current

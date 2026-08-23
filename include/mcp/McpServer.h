@@ -36,10 +36,12 @@ namespace mcp {
     *   matching SSE connection.
     *
     * Only `initialize`, `tools/list`, and `tools/call` are implemented;
-    * `tools/call` currently supports the single read-only `query_scene`
-    * tool. The server binds loopback only (`127.0.0.1`) on an ephemeral
-    * port, never `0.0.0.0`, and every request must present the per-session
-    * bearer token issued by start().
+    * `tools/call` dispatches to the built-in read-only `query_scene` tool
+    * plus whatever mutating, domain-specific tools have been added via
+    * registerTool() (see `mcp::registerSceneEditingTools()` for the v1
+    * scene-editing surface). The server binds loopback only (`127.0.0.1`)
+    * on an ephemeral port, never `0.0.0.0`, and every request must present
+    * the per-session bearer token issued by start().
     */
   class McpServer : public QObject {
     Q_OBJECT
