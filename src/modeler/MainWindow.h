@@ -15,6 +15,7 @@ class PreviewDisplayWidget;
 class RenderGraphInspectorWidget;
 class RenderDisplay;
 class SceneModel;
+class ChatDockWidget;
 
 class Element;
 class Scene;
@@ -164,6 +165,7 @@ private:
   QDockWidget* createPreviewDisplay();
   QDockWidget* createTimelineControls();
   QDockWidget* createRenderGraphInspector();
+  QDockWidget* createChatDock();
 
   void createActions();
   void createMenus();

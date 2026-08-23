@@ -266,6 +266,33 @@ void SceneModel::addElement(const QModelIndex& index, Element* element) {
   endInsertRows();
 }
 
+QModelIndex SceneModel::indexForElement(Element* element) const {
+  if (!element || element == m_rootItem)
+    return QModelIndex();
+
+  QList<Element*> chain;
+  for (Element* current = element; current && current != m_rootItem; current = current->parent())
+    chain.prepend(current);
+
+  if (chain.isEmpty() || chain.first()->parent() != m_rootItem)
+    return QModelIndex();
+
+  QModelIndex result;
+  for (Element* node : chain) {
+    Element* parentItem = node->parent();
+    if (!parentItem->displayInSceneModel() && parentItem != m_rootItem)
+      return QModelIndex();
+    if (!node->displayInSceneModel())
+      return QModelIndex();
+
+    const int row = visibleRowOf(parentItem, node);
+    result = index(row, 0, result);
+    if (!result.isValid())
+      return QModelIndex();
+  }
+  return result;
+}
+
 int SceneModel::visibleChildCount(Element* parent) const {
   int result = 0;
   for (Element* child : parent->childElements()) {

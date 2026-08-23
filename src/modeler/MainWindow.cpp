@@ -58,12 +58,18 @@
 #include "render/cameras/PinholeCamera.h"
 #include "core/math/HitPointInterval.h"
 
+#include "mcp/McpConfigWriter.h"
+#include "mcp/McpServer.h"
+#include "mcp/SceneEditingTools.h"
+#include "mcp/SceneEditor.h"
+
 #include "widgets/world/PropertyEditorWidget.h"
 #include "widgets/world/PreviewDisplayWidget.h"
 #include "widgets/world/RenderGraphInspectorWidget.h"
 #include "widgets/world/RenderGraphTracePreviewWidget.h"
 #include "widgets/world/SceneModel.h"
 #include "widgets/world/RenderWindow.h"
+#include "widgets/chat/ChatDockWidget.h"
 
 #include "world/objects/Scene.h"
 #include "world/objects/Camera.h"
@@ -509,7 +515,11 @@ struct MainWindow::Private {
         playbackSummaryLabel(nullptr),
         renderGraphDockWidget(nullptr),
         renderGraphInspectorWidget(nullptr),
+        chatDockWidget(nullptr),
         renderWindow(nullptr),
+        mcpServer(nullptr),
+        sceneEditor(nullptr),
+        itemSelectionModel(nullptr),
         scene(nullptr),
         currentFrame(0),
         currentPlaybackIndex(0),
@@ -537,8 +547,12 @@ struct MainWindow::Private {
   QLabel* playbackSummaryLabel;
   QDockWidget* renderGraphDockWidget;
   RenderGraphInspectorWidget* renderGraphInspectorWidget;
+  ChatDockWidget* chatDockWidget;
 
   RenderWindow* renderWindow;
+  mcp::McpServer* mcpServer;
+  mcp::SceneEditor* sceneEditor;
+  QItemSelectionModel* itemSelectionModel;
 
   Scene* scene;
   int currentFrame;
@@ -668,8 +682,27 @@ MainWindow::MainWindow()
   setCentralWidget(p->centralTabs);
 
   addDockWidget(Qt::LeftDockWidgetArea, createElementSelector());
-  addDockWidget(Qt::RightDockWidgetArea, createPropertyEditor());
-  addDockWidget(Qt::RightDockWidgetArea, createPreviewDisplay());
+
+  // Properties and Preview stack into one tabbed group so the right dock
+  // area doesn't split three ways (which squeezed every dock, including
+  // the new Chat one, down to an unreadable sliver). Chat gets its own
+  // group below with extra vertical space, since a conversation needs
+  // more room than a property grid or material thumbnail.
+  auto* propertyEditorDockWidget = createPropertyEditor();
+  auto* previewDisplayDockWidget = createPreviewDisplay();
+  addDockWidget(Qt::RightDockWidgetArea, propertyEditorDockWidget);
+  addDockWidget(Qt::RightDockWidgetArea, previewDisplayDockWidget);
+  tabifyDockWidget(propertyEditorDockWidget, previewDisplayDockWidget);
+  propertyEditorDockWidget->raise();
+
+  auto* chatDockWidgetContainer = createChatDock();
+  addDockWidget(Qt::RightDockWidgetArea, chatDockWidgetContainer);
+  resizeDocks({propertyEditorDockWidget, chatDockWidgetContainer}, {1, 2}, Qt::Vertical);
+  // A fresh window's scene has never been saved (p->fileName is null), so
+  // its chat threads start out draft-only (roadmap §4.6.i persistence) —
+  // see ChatDockWidget::setScene.
+  p->chatDockWidget->setScene(p->scene->id(), !p->fileName.isNull());
+
   addDockWidget(Qt::BottomDockWidgetArea, createTimelineControls());
   addDockWidget(Qt::BottomDockWidgetArea, createRenderGraphInspector());
 
@@ -720,6 +753,42 @@ MainWindow::MainWindow()
   resetPlaybackIndex();
   updateRenderGraphInspector();
   p->display->setScene(p->scene);
+
+  // Loopback-only MCP server (roadmap §4.6.i): starts as soon as the
+  // Modeler has a scene to serve — including the blank scene a fresh
+  // window opens with — and stops on window close (see closeEvent()).
+  p->mcpServer = new mcp::McpServer([this]() { return p->scene; }, this);
+
+  // Mutating tools (roadmap §4.6.i, v1 tool surface) go through the exact
+  // same SceneModel/QItemSelectionModel the Elements dock uses, so
+  // agent-driven edits fire the same rowsInserted/rowsRemoved/moveRows and
+  // currentChanged signals a menu action would. elementChanged() re-runs
+  // this window's usual post-edit reaction (mark changed, redraw, sync
+  // playback, emit currentElementChanged()) exactly as PropertyEditorWidget's
+  // changed(Element*) already does.
+  p->sceneEditor =
+    new mcp::SceneEditor([this]() { return p->scene; }, p->elementModel, p->itemSelectionModel, this);
+  connect(p->sceneEditor, &mcp::SceneEditor::elementChanged, this, &MainWindow::elementChanged);
+  mcp::registerSceneEditingTools(*p->mcpServer, *p->sceneEditor);
+
+  if (p->mcpServer->start()) {
+    const QString configPath = mcp::writeMcpConfig(*p->mcpServer);
+    // The chat dock's threads shell out to `claude --mcp-config <path>`
+    // for every send; wire the path through as soon as it's known rather
+    // than at dock-construction time, since the dock is created earlier
+    // in this constructor, before the MCP server (and its config file)
+    // exist yet.
+    if (p->chatDockWidget)
+      p->chatDockWidget->setMcpConfigPath(configPath);
+
+    if (!configPath.isEmpty()) {
+      statusBar()->showMessage(
+        tr("MCP server listening on 127.0.0.1:%1 — config written to %2")
+          .arg(p->mcpServer->port())
+          .arg(configPath),
+        8000);
+    }
+  }
 }
 
 void MainWindow::createActions() {
@@ -1387,6 +1456,8 @@ bool MainWindow::maybeSave() {
 
 void MainWindow::closeEvent(QCloseEvent* event) {
   if (maybeSave()) {
+    if (p->mcpServer)
+      p->mcpServer->stop();
     event->accept();
   } else {
     event->ignore();
@@ -1404,6 +1475,7 @@ void MainWindow::newFile() {
 
     p->scene = new ::Scene(nullptr);
     p->propertyEditorWidget->setRoot(p->scene);
+    p->chatDockWidget->setScene(p->scene->id(), !p->fileName.isNull());
 
     p->elementModel->setElement(p->scene);
     p->previewUseSceneIntentAct->setChecked(true);
@@ -1576,6 +1648,10 @@ void MainWindow::openFile(const QString& fileName) {
     p->fileName = opened.nativeSceneFile ? fileName : QString();
     addRecentFile(fileName);
     p->propertyEditorWidget->setRoot(p->scene);
+    // Non-native opens (imports) get a fresh Element id every load, just
+    // like an unsaved scene — draft-only until/unless it's saved natively,
+    // same as newFile()'s blank scene.
+    p->chatDockWidget->setScene(p->scene->id(), !p->fileName.isNull());
     p->elementModel->setElement(p->scene);
     p->previewUseSceneIntentAct->setChecked(true);
     applySceneRenderIntentToPreviewControls();
@@ -1649,8 +1725,12 @@ void MainWindow::saveFileAs() {
 
   if (!fileName.isNull()) {
     p->fileName = fileName;
-    if (p->scene->save(p->fileName))
+    if (p->scene->save(p->fileName)) {
       addRecentFile(p->fileName);
+      // Same scene id, now persisted — promotes any draft threads to disk
+      // rather than reloading (setScene() treats a same-id call as such).
+      p->chatDockWidget->setScene(p->scene->id(), true);
+    }
   }
 }
 
@@ -2082,6 +2162,7 @@ QDockWidget* MainWindow::createElementSelector() {
   elementTree->setModel(p->elementModel);
   auto itemSelectionModel = new QItemSelectionModel(p->elementModel);
   elementTree->setSelectionModel(itemSelectionModel);
+  p->itemSelectionModel = itemSelectionModel;
 
   connect(itemSelectionModel, SIGNAL(currentChanged(const QModelIndex&, const QModelIndex&)), this,
           SLOT(elementSelected(const QModelIndex&, const QModelIndex&)));
@@ -2100,6 +2181,15 @@ QDockWidget* MainWindow::createPreviewDisplay() {
 
   auto dockWidget = new QDockWidget("Preview", this);
   dockWidget->setWidget(p->materialDisplay);
+
+  return dockWidget;
+}
+
+QDockWidget* MainWindow::createChatDock() {
+  p->chatDockWidget = new ChatDockWidget(this);
+
+  auto dockWidget = new QDockWidget("Chat", this);
+  dockWidget->setWidget(p->chatDockWidget);
 
   return dockWidget;
 }

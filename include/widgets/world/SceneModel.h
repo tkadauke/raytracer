@@ -33,6 +33,19 @@ public:
   void deleteElement(const QModelIndex& index);
   void addElement(const QModelIndex& index, Element* element);
 
+  /**
+    * @returns the model index for @p element, or an invalid index if
+    *   @p element is null or not part of this model's tree (including when
+    *   it or an ancestor is hidden from the scene model, e.g. a generated
+    *   element).
+    *
+    * Lets callers that address elements by id (MCP tool calls, scripting)
+    * reuse the exact same `addElement()`/`deleteElement()`/`moveRow()`
+    * entry points a tree-view-driven edit would use, rather than poking
+    * `Element` parent/child pointers directly.
+    */
+  QModelIndex indexForElement(Element* element) const;
+
 private:
   int visibleChildCount(Element* parent) const;
   Element* visibleChildAt(Element* parent, int row) const;

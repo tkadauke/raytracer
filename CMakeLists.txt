@@ -199,7 +199,7 @@ if(APPLE AND NOT DEFINED CMAKE_PREFIX_PATH AND NOT DEFINED Qt6_DIR)
   endif()
 endif()
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Qml OpenGL)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Qml OpenGL Network Test)
 find_package(ZLIB REQUIRED)
 
 set(CMAKE_AUTOMOC ON)

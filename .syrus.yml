@@ -48,6 +48,7 @@ grade:
           ctest --test-dir build/coverage --output-on-failure
         PYTHONPATH=/tmp/gcovr-pkg python3 -m gcovr --root . \
           --gcov-ignore-parse-errors=negative_hits.warn_once_per_file \
+          -j 0 \
           --filter '^include/' \
           --filter '^src/' \
           --exclude '.*Test\.cpp' \
@@ -67,6 +68,14 @@ grade:
       # further, so this figure may need to grow once re-measured under the
       # cap. 150 min gives a 50 % buffer over the pre-cap time and covers
       # pod load variation; warm incremental rebuilds still finish in minutes.
+      #
+      # `gcovr`'s own "Reading coverage data..." pass invokes `gcov` once
+      # per compilation unit; with ~670 TUs that was serial and slow enough
+      # to stall right at the timeout boundary even after ctest itself had
+      # already passed in under two minutes. `-j 0` lets gcovr fan the
+      # per-TU `gcov` invocations out across all CPUs on the grading pod
+      # instead of running them one at a time — same coverage data, just
+      # not serialized.
       timeout_minutes: 150
 
     - name: opengl-egl

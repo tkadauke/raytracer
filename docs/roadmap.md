@@ -767,24 +767,27 @@ A 2D draw-in-3D tool: strokes live at world positions, can be animated on the ti
 
 A chat interface in the editor with an LLM agent that has tool calls into the scene graph. Tool surface includes:
 
-- `add_primitive(type, position, params) → id`
-- `transform(id, matrix)`
-- `apply_material(id, name_or_inline_definition)`
-- `csg_union(a, b) → id`, `csg_intersect(a, b) → id`, `csg_difference(a, b) → id`
-- `import_file(path) → id`
-- `query_scene() → JSON`
-- `select(id)`, `delete(id)`
-- `set_camera(position, target, fov)`
+- ~~`add_primitive(type, position, params) → id`~~ ✅ **Done.** `mcp::SceneEditor::addPrimitive()` — Box/Sphere/Cylinder/Ring/Torus only; see implementation notes below.
+- ~~`transform(id, matrix)`~~ ✅ **Done**, with the actual signature settled as `transform(id, translate/rotate/scale)` instead of a matrix — each is an absolute Vector3 (translate/scale) or Euler-angle-radians Vector3 (rotate), matching `Transformable`'s own `position`/`rotation`/`scale` `Q_PROPERTY`s rather than a math-side matrix the UI never exposes.
+- ~~`apply_material(id, name_or_inline_definition)`~~ ✅ **Done**, restricted to Matte/Phong/Transparent materials for the inline-create path (matching `MainWindow`'s `addMatteMaterial`/`addPhongMaterial`/`addTransparentMaterial`).
+- ~~`csg_union(a, b) → id`, `csg_intersect(a, b) → id`, `csg_difference(a, b) → id`~~ ✅ **Done.**
+- `import_file(path) → id` — deferred; blocked on a modifier-stack story, see `set_modifier_stack` below.
+- ~~`query_scene() → JSON`~~ ✅ **Done.** Implemented as the embedded MCP server's first tool, reusing `Scene::write()`/`Element::write()` for the dump rather than a parallel schema — see implementation notes below.
+- ~~`select(id)`, `delete(id)`~~ ✅ **Done.**
+- ~~`set_camera(position, target, fov)`~~ ✅ **Done.** `fov` only applies when the scene's active camera type exposes a single `fieldOfView` property (e.g. `FishEyeCamera`); other camera types (Pinhole/Orthographic/ThinLens/TiltShift use `zoom`, Spherical splits into horizontal/vertical) have no one equivalent property, so `fov` is a no-op for them and the tool result notes as much.
 - `set_environment(hdri_path)`
-- `run_script(code) → id_list` — evaluate a parametric script and drop the result into the scene.
-- `get_modifier_stack(id) → JSON`, `set_modifier_stack(id, JSON)`
+- `run_script(code) → id_list` — evaluate a parametric script and drop the result into the scene. Blocked on the §7 scripted-DSL open question.
+- `get_modifier_stack(id) → JSON`, `set_modifier_stack(id, JSON)` — blocked on a modifier stack, which doesn't exist in the codebase yet.
 
-The agent observes user edits via the same scene graph, so the loop is bidirectional. The chat transcript is persisted in the scene file so AI-assisted sessions can be resumed.
+The agent observes user edits via the same scene graph, so the loop is bidirectional. ~~The chat UI~~ ✅ **Done.** A right-side Chat dock (`ChatDockWidget`/`ChatThreadPanel`, following the existing `PropertyEditorWidget`/`PreviewDisplayWidget`/`RenderGraphInspectorWidget` dock pattern) holds multiple named threads against the current scene, each backed 1:1 by a `claude` CLI session (`include/chat/ClaudeCliSession.h`, `include/chat/ChatThread.h`); assistant text and MCP tool-call/tool-result events render live in the dock as they stream in. ~~The chat transcript is not yet persisted, though — persisting it per scene (keyed by the scene's stable `Element::id()`) under `QStandardPaths::AppDataLocation` stays TODO for a follow-up Job~~ ✅ **Done.** `chat::ChatThreadStore` (`include/chat/ChatThreadStore.h`) writes each thread's name, session id, and message log to `<AppDataLocation>/chats/<scene-id>/<thread-id>.json`; `ChatDockWidget::setScene()` reloads a scene's threads on open and switches away from them when the scene switches, tab-close deletes a thread's file, and a never-saved scene's threads stay draft-only until the scene is first saved. `import_file`/`set_environment`/`run_script`/`get_`/`set_modifier_stack` remain deferred.
 
 Implementation notes:
 
-- Anthropic's Claude with tool use is the default; the green-acres infrastructure has Claude API auth already.
-- Tool calls go through R3 serialization, so they can be undone, replayed, and audited.
+- ✅ **Done.** Resolves the §7 "AI agent: cloud LLM or local?" open question in favor of the `claude` CLI (Claude CLI OAuth) rather than the Anthropic API-key sketch this section used to describe: Modeler shells out to the already-installed, already-authenticated `claude` CLI and never touches credentials itself.
+- ✅ **Done.** Rather than a Node/JS MCP-bridge subprocess translating to a private C++ RPC, `MainWindow` embeds the MCP server itself (`include/mcp/McpServer.h`): a loopback-only (`127.0.0.1`, never `0.0.0.0`) HTTP+SSE listener built with `QTcpServer` + `QJsonDocument`, implementing `initialize`/`tools/list`/`tools/call` directly against the live scene graph — no Node/JS runtime dependency anywhere in the repo. The server starts when the Modeler window has a scene open and stops on close; each launch (re)writes a fresh per-session port and bearer token to a generated `claude --mcp-config` JSON file (`include/mcp/McpConfigWriter.h`).
+- ✅ **Done.** `McpServer::registerTool()` turns McpServer into a generic MCP transport that any tool (built-in `query_scene` or externally registered) can hang off of, so mutation logic doesn't have to live inside the transport class.
+- ✅ **Done.** `mcp::SceneEditor` (`include/mcp/SceneEditor.h`) is *the* mutation surface: every mutating tool routes through the exact same `SceneModel`/`QItemSelectionModel` operations (`addElement`/`deleteElement`/`moveRow`) and the same `Element::read()` JSON-to-`Q_PROPERTY` parser scene loading already uses, rather than poking `Element` state directly. `MainWindow` wires `SceneEditor::elementChanged` into its own private `elementChanged()` slot, so agent-driven edits mark the scene changed, redraw the preview, and re-sync playback exactly as a menu action would. The codebase has no undo/redo stack yet (menu-driven edits don't have one either), so there's nothing R3-serialization-shaped to plug mutating tools into yet — revisit this note once undo/redo lands.
+- ✅ **Done.** Chat dock + `claude` CLI subprocess/session management (`include/chat/`, `include/widgets/chat/`): one `ChatThread` = one `claude` CLI session, mirroring `mcp::SceneEditor`'s "reuse the transport, keep domain logic separate" split — `StreamJsonLineParser` line-buffers `--output-format stream-json` stdout into parsed JSON events with no `QProcess`/event-loop dependency (so the framing is testable with byte-array fixtures alone), `ClaudeCliSession` wraps one one-shot `QProcess` invocation and turns those events into Qt signals, and `ChatThread` spawns a fresh `ClaudeCliSession` per `sendMessage()` (no `--resume` on the first send; the session id captured from that send resumes every send after). "One live `claude` subprocess per active/in-flight thread; idle threads have no running process" holds because `ChatThread` only holds a `ClaudeCliSession` while a turn is in flight. Since a live, already-authenticated `claude` login isn't available in CI, `test/fixtures/claude/fake_claude.py` stands in for the real CLI in tests, emitting the same event shapes (including two failure-sentinel messages) so subprocess I/O framing and stream-json parsing/rendering stay covered without one.
 
 #### 4.6.j Scripted parametric objects
 
@@ -1131,7 +1134,7 @@ These need decisions before specific work starts. Calling them out so they don't
 - **Scripted DSL: which language first?** Python is more popular but adds a Python embedding dependency. JavaScript via QuickJS is small and self-contained. An OpenSCAD-style language is the most opinionated and the most work. The same DSL choice drives §4.3.b layer 4 (scripted textures) and §4.6.j (parametric objects), so picking once unlocks both.
 - **Material library distribution model.** Bundled in-tree, downloaded on first use, or referenced from a community repo (like Blender's asset library)?
 - **UI undo/redo granularity.** Per-property change, per-tool action, or per-scene-mutation? Affects the serialization design.
-- **AI agent: cloud LLM or local?** Cloud (Claude via API) is more capable today; local (llama.cpp, Ollama) is private and free at idle. Both are viable; the tool-call surface is the same. Probably default to cloud with a local-fallback knob.
+- ~~**AI agent: cloud LLM or local?**~~ ✅ **Resolved.** Cloud, via the `claude` CLI + OAuth rather than a directly-managed Anthropic API key — Modeler shells out to the already-authenticated `claude` CLI, which talks to the embedded per-Modeler-instance MCP server (§4.6.i) over loopback HTTP+SSE. A local-model fallback (llama.cpp, Ollama) remains a possible future knob since the tool-call surface (MCP) is the same either way, but is not planned work.
 - **GPU backend beyond the current compute path.** Metal and Vulkan compute are the first tracing backend targets and are already active. The remaining open decision is when, or whether, to add hardware ray tracing APIs such as Vulkan RT, Metal ray tracing, or NVIDIA-only OptiX after the flat-BVH compute path is measured.
 - **Compatibility: maintain the existing C++ scene-construction API forever, or sunset it once UI/serialization land?** It still backs several tests and scene-construction helpers, but the Modeler and JSON scenes are now the primary interactive path.
 

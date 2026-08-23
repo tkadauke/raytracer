@@ -11,6 +11,23 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Persist chat threads per scene (roadmap §4.6.i chat persistence, following up on
+  `ChatDockWidget`'s previously in-memory-only threads): `chat::ChatThreadStore`
+  (`include/chat/ChatThreadStore.h`) writes each thread's name, captured `claude` session
+  id, and rendered message/tool-call log to
+  `<AppDataLocation>/chats/<scene-id>/<thread-id>.json`, keyed by the open scene's stable
+  `Element::id()`. `ChatThread` gained a stable `id()` and a `restore()` entry point so a
+  loaded record can rehydrate a thread (including its `--resume`-able session id) without
+  replaying `messageAppended` for history already on disk. `ChatDockWidget::setScene()`
+  switches the visible tab list to the given scene's persisted threads (or opens one draft
+  thread if none exist yet), auto-saves on every message/session-id/rename change, and
+  deletes a thread's file when its tab closes. A scene that has never been saved has no
+  stable on-disk identity to key a directory by, so its threads stay draft-only (in-memory,
+  never reach the store) until the scene is first saved — `MainWindow::saveFileAs()`
+  promotes any open drafts to disk in place rather than discarding them, since `setScene()`
+  called with the *same* scene id just flips the persisted flag instead of reloading.
+  Double-clicking a tab label renames a thread; the existing tab-close button now also
+  deletes the on-disk file. — Claude Sonnet 5
 - Add `RAYTRACER_WARNINGS_AS_ERRORS`, defaulting to `ON`, so local builds can
   temporarily compile warning-prone branches with `-DRAYTRACER_WARNINGS_AS_ERRORS=OFF`
   without changing CI's default strict warning policy. — GPT-5 Codex
@@ -18,7 +35,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   the existing `PropertyEditorWidget`/`PreviewDisplayWidget`/`RenderGraphInspectorWidget`
   dock pattern, plus `claude` CLI subprocess/session management under `include/chat/`:
   `ClaudeCliSession` spawns one `claude -p "<message>" --output-format stream-json
-  --input-format stream-json --mcp-config <path>` subprocess per send (`--resume
+  --verbose --mcp-config <path>` subprocess per send (`--resume
   <session_id>` to continue a thread), and `StreamJsonLineParser` line-buffers its stdout
   into parsed events. `ChatThread` owns the in-memory per-thread transcript and the
   session-id-to-`--resume` bookkeeping — persistence across app restarts stays out of
@@ -653,6 +670,21 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Drop `--input-format stream-json` from the `claude` CLI invocation in
+  `chat::claudeCliArguments()`: combined with `ClaudeCliSession::start()`
+  closing stdin immediately after launch, it starved the CLI of the
+  stream-json input it was told to expect, so it exited quickly with no
+  response and no error. The message is already passed via `-p`, so the
+  one-shot-per-send model never has anything to write to stdin. — Claude
+  Sonnet 5
+- Fix the Modeler's right-side dock layout so adding the Chat dock didn't
+  squeeze Properties/Preview/Chat into three unreadably short vertical
+  slivers: Properties and Preview now tabify together, and Chat gets its
+  own group below with extra vertical space. — Claude Sonnet 5
+- `ClaudeCliSession` now captures and surfaces the `claude` subprocess's own
+  stderr output when it exits with a failure the stream-json framing never
+  explained (e.g. an auth/config error before any output), instead of a
+  generic "claude exited with code N" message. — Claude Sonnet 5
 - Restore compilation of `ThinLensCamera` and `TiltShiftCamera`: commit `8f8e3344` moved `eyeOriginForMatrix` to `GpuPrimaryPathDescriptorPacking.h` but omitted the matching `using render::detail::eyeOriginForMatrix` declarations, causing a build failure. — Claude Sonnet 4.6
 - Restore the documented 64 KiB interactive GPU path-tracer chunk cap and
   limit platform-resolved display pixel captures to direct display outputs
