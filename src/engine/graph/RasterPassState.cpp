@@ -18,7 +18,7 @@ namespace engine::graph {
     using Rasterizer = engine::raster::Rasterizer;
 
     [[noreturn]] void stateError(const std::string& path, const std::string& message) {
-      throw std::runtime_error("Invalid raster pass state at " + path + ": " + message);
+      detail::throwPassStateError("raster", path, message);
     }
 
     [[noreturn]] void openGLUnsupported(const std::string& feature) {

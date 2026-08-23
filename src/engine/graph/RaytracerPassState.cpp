@@ -28,7 +28,7 @@
 namespace engine::graph {
   namespace {
     [[noreturn]] void stateError(const std::string& path, const std::string& message) {
-      throw std::runtime_error("Invalid raytracer pass state at " + path + ": " + message);
+      detail::throwPassStateError("raytracer", path, message);
     }
 
     constexpr std::uint64_t maxExactJsonInteger = (1ull << 53) - 1;

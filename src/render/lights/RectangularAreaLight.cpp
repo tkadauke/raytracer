@@ -53,7 +53,7 @@ Colord RectangularAreaLight::radiance() const {
 }
 
 LightSample RectangularAreaLight::sample(const Vector3d& point) const {
-  return sample(point, Vector2d(0.5, 0.5));
+  return sampleAtCanonicalPoint(point);
 }
 
 LightSample RectangularAreaLight::sample(const Vector3d& point, const Vector2d& sample) const {

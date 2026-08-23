@@ -49,6 +49,27 @@ namespace render {
     Vector3d normalAtBarycentric(double beta, double gamma) const override;
 
   private:
+    /// Barycentric weights and ray distance found by `intersectBarycentric`,
+    /// shared by `intersect` and `intersects`.
+    struct BarycentricHit {
+      double t;
+      double beta;
+      double gamma;
+    };
+
+    /// Which check failed in `intersectBarycentric`, so callers can report
+    /// the same miss reason `intersect` and `intersects` always reported
+    /// before this logic was shared between them.
+    enum class BarycentricMiss { kBehindRay, kBetaOutOfRange, kGammaOutOfRange };
+
+    static const char* describe(BarycentricMiss reason);
+
+    /// Runs the Plücker/precomputed-normal ray-triangle test shared by
+    /// `intersect` and `intersects`. Returns the hit's `t`/`beta`/`gamma` on
+    /// success, or the failure reason on miss.
+    bool intersectBarycentric(const Rayd& ray, BarycentricHit& hit,
+                              BarycentricMiss& missReason) const;
+
     Vector3d interpolateNormal(float beta, float gamma) const;
 
     int k;
