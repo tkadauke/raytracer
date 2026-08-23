@@ -83,6 +83,16 @@ namespace engine::graph::detail {
     return !object.value(key).isUndefined();
   }
 
+  /// Builds the "Invalid <kind> pass state at <path>: <message>" runtime_error
+  /// shared by each pass-state type's local `stateError` callback (raster,
+  /// raytracer, wireframe, postprocess, ...) passed as the `Error` template
+  /// argument to the field-extraction helpers below.
+  [[noreturn]] inline void throwPassStateError(const char* passTypeName, const std::string& path,
+                                               const std::string& message) {
+    throw std::runtime_error(std::string("Invalid ") + passTypeName + " pass state at " + path +
+                             ": " + message);
+  }
+
   /// Clamps a level-of-detail value to the non-negative range shared by every
   /// `setLod()` on the rasterizer/wireframe pass-state and options types.
   [[nodiscard]] inline int clampedLod(int lod) {

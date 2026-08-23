@@ -438,6 +438,13 @@ namespace render {
       */
     [[nodiscard]] std::optional<Matrix4d> fixedShutterGpuCameraMatrix() const;
 
+    /// Build a primary ray for point-source-style cameras (fish-eye,
+    /// equirectangular, ...) whose ray always originates at the camera's
+    /// world position, differing only in the per-pixel `direction`.
+    inline Rayd rayFromPointSource(const Vector3d& direction) const {
+      return Rayd(matrix().translationVector(), direction);
+    }
+
     /// Write `color` (already divided by sample count) into every
     /// pixel of the iterator's footprint — single pixel for the
     /// regular iterator, the size×size block for interlaced

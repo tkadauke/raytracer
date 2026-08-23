@@ -61,8 +61,17 @@ void SmoothMeshTriangle::build(const Mesh* mesh, Composite* composite,
   }
 }
 
-const Primitive* SmoothMeshTriangle::intersect(const Rayd& ray, HitPointInterval& hitPoints,
-                                               render::State& state) const {
+const char* SmoothMeshTriangle::describe(BarycentricMiss reason) {
+  switch (reason) {
+    case BarycentricMiss::kBehindRay: return "behind ray";
+    case BarycentricMiss::kBetaOutOfRange: return "beta not in [0, 1]";
+    case BarycentricMiss::kGammaOutOfRange: return "gamma < 0 or beta + gamma > 1";
+  }
+  return "";
+}
+
+bool SmoothMeshTriangle::intersectBarycentric(const Rayd& ray, BarycentricHit& hit,
+                                              BarycentricMiss& missReason) const {
   int ku = mod3[k + 1];
   int kv = mod3[k + 2];
 
@@ -74,8 +83,8 @@ const Primitive* SmoothMeshTriangle::intersect(const Rayd& ray, HitPointInterval
 
   const double t = (nd - O[k] - nu * O[ku] - nv * O[kv]) * lnd;
   if (t < 0) {
-    state.miss(this, "SmoothMeshTriangle, behind ray");
-    return nullptr;
+    missReason = BarycentricMiss::kBehindRay;
+    return false;
   }
 
   const double hu = O[ku] + t * D[ku] - A[ku];
@@ -83,53 +92,44 @@ const Primitive* SmoothMeshTriangle::intersect(const Rayd& ray, HitPointInterval
 
   const double beta = hv * bnu + hu * bnv;
   if (beta < 0 || beta > 1) {
-    state.miss(this, "SmoothMeshTriangle, beta not in [0, 1]");
-    return nullptr;
+    missReason = BarycentricMiss::kBetaOutOfRange;
+    return false;
   }
 
   const double gamma = hu * cnu + hv * cnv;
   if (gamma < 0 || (beta + gamma) > 1) {
-    state.miss(this, "SmoothMeshTriangle, gamma < 0 or beta + gamma > 1");
+    missReason = BarycentricMiss::kGammaOutOfRange;
+    return false;
+  }
+
+  hit = BarycentricHit{t, beta, gamma};
+  return true;
+}
+
+const Primitive* SmoothMeshTriangle::intersect(const Rayd& ray, HitPointInterval& hitPoints,
+                                               render::State& state) const {
+  BarycentricHit hit;
+  BarycentricMiss missReason;
+  if (!intersectBarycentric(ray, hit, missReason)) {
+    state.miss(this, std::string("SmoothMeshTriangle, ") + describe(missReason));
     return nullptr;
   }
 
-  const double alpha = 1.0 - beta - gamma;
+  const double alpha = 1.0 - hit.beta - hit.gamma;
   const Vector2d uv = m_mesh->vertices()[m_index0].uv * alpha +
-                      m_mesh->vertices()[m_index1].uv * beta +
-                      m_mesh->vertices()[m_index2].uv * gamma;
-  hitPoints.add(HitPoint(this, t, ray.at(t), interpolateNormal(beta, gamma), uv));
+                      m_mesh->vertices()[m_index1].uv * hit.beta +
+                      m_mesh->vertices()[m_index2].uv * hit.gamma;
+  hitPoints.add(
+    HitPoint(this, hit.t, ray.at(hit.t), interpolateNormal(hit.beta, hit.gamma), uv));
   state.hit(this, "SmoothMeshTriangle");
   return this;
 }
 
 bool SmoothMeshTriangle::intersects(const Rayd& ray, render::State& state) const {
-  int ku = mod3[k + 1];
-  int kv = mod3[k + 2];
-
-  const Vector4d& O = ray.origin();
-  const Vector3d& D = ray.direction();
-  const Vector3d& A = m_mesh->vertices()[m_index0].point;
-
-  const double lnd = 1.0f / (D[k] + nu * D[ku] + nv * D[kv]);
-
-  const double t = (nd - O[k] - nu * O[ku] - nv * O[kv]) * lnd;
-  if (t < 0) {
-    state.shadowMiss(this, "SmoothMeshTriangle, behind ray");
-    return false;
-  }
-
-  const double hu = O[ku] + t * D[ku] - A[ku];
-  const double hv = O[kv] + t * D[kv] - A[kv];
-
-  const double beta = hv * bnu + hu * bnv;
-  if (beta < 0 || beta > 1) {
-    state.shadowMiss(this, "SmoothMeshTriangle, beta not in [0, 1]");
-    return false;
-  }
-
-  const double gamma = hu * cnu + hv * cnv;
-  if (gamma < 0 || (beta + gamma) > 1) {
-    state.shadowMiss(this, "SmoothMeshTriangle, gamma < 0 or beta + gamma > 1");
+  BarycentricHit hit;
+  BarycentricMiss missReason;
+  if (!intersectBarycentric(ray, hit, missReason)) {
+    state.shadowMiss(this, std::string("SmoothMeshTriangle, ") + describe(missReason));
     return false;
   }
 

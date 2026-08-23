@@ -12,7 +12,7 @@
 namespace engine::graph {
   namespace {
     [[noreturn]] void stateError(const std::string& path, const std::string& message) {
-      throw std::runtime_error("Invalid wireframe pass state at " + path + ": " + message);
+      detail::throwPassStateError("wireframe", path, message);
     }
 
   }

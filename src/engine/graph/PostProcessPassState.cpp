@@ -13,7 +13,7 @@
 namespace engine::graph {
   namespace {
     [[noreturn]] void stateError(const std::string& path, const std::string& message) {
-      throw std::runtime_error("Invalid postprocess pass state at " + path + ": " + message);
+      detail::throwPassStateError("postprocess", path, message);
     }
 
 

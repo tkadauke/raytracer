@@ -179,6 +179,11 @@ namespace render {
     virtual std::optional<Vector3d> positionalLightPosition() const;
 
   protected:
+    /// Shared by non-delta light subclasses whose one-argument `sample(point)`
+    /// override delegates to the two-argument overload with a fixed
+    /// canonical (0.5, 0.5) sample.
+    LightSample sampleAtCanonicalPoint(const Vector3d& point) const;
+
     void writeCommonFingerprint(std::ostream& out, const std::string& prefix) const;
     static void writeFingerprintColor(std::ostream& out, const std::string& name,
                                       const Colord& color);
