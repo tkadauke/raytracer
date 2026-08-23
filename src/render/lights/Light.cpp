@@ -18,6 +18,10 @@ LightSample Light::sample(const Vector3d& point, const Vector2d&) const {
   return sample(point);
 }
 
+LightSample Light::sampleAtCanonicalPoint(const Vector3d& point) const {
+  return sample(point, Vector2d(0.5, 0.5));
+}
+
 double Light::pdf(const Vector3d&, const Vector3d&) const {
   return 0.0;
 }

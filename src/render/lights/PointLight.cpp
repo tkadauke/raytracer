@@ -11,7 +11,7 @@ Colord PointLight::radiance() const {
 }
 
 LightSample PointLight::sample(const Vector3d& point) const {
-  return sample(point, Vector2d(0.5, 0.5));
+  return sampleAtCanonicalPoint(point);
 }
 
 LightSample PointLight::sample(const Vector3d& point, const Vector2d&) const {

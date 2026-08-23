@@ -60,8 +60,7 @@ Vector3d EquirectangularCamera::direction(double x, double y) const {
 }
 
 Rayd EquirectangularCamera::rayForPixel(double x, double y, render::SampleStream&) const {
-  Vector3d position = matrix().translationVector();
-  return Rayd(position, direction(x, y));
+  return rayFromPointSource(direction(x, y));
 }
 
 std::optional<GpuPrimaryPathDescriptor>
