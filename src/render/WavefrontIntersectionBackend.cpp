@@ -10,6 +10,7 @@
 #include "render/VulkanWavefrontSmokeKernel.h"
 #include "render/State.h"
 #include "render/primitives/Scene.h"
+#include "core/util/StringUtil.h"
 
 #include <algorithm>
 #include <chrono>
@@ -1159,8 +1160,7 @@ namespace render {
   }
 
   std::string WavefrontIntersectionBackendChoice::normalized(std::string value) {
-    std::transform(value.begin(), value.end(), value.begin(),
-                   [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+    value = core::util::lowercase(std::move(value));
     value.erase(
       std::remove_if(value.begin(), value.end(),
                      [](char ch) { return ch == '_' || ch == '-' || ch == ',' || ch == ' '; }),

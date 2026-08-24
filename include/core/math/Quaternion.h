@@ -2,6 +2,7 @@
 
 #include "core/InequalityOperator.h"
 #include "core/math/Matrix.h"
+#include "core/util/HashUtil.h"
 #include <cmath>
 #include <functional>
 
@@ -204,9 +205,9 @@ namespace std { // NOLINT(cert-dcl58-cpp) — extending std for UDTs is allowed
   struct hash<Quaternion<T>> {
     size_t operator()(const Quaternion<T>& q) const noexcept {
       size_t seed = hash<T>{}(q.w());
-      seed ^= hash<T>{}(q.x()) + size_t(0x9e3779b9) + (seed << 6) + (seed >> 2);
-      seed ^= hash<T>{}(q.y()) + size_t(0x9e3779b9) + (seed << 6) + (seed >> 2);
-      seed ^= hash<T>{}(q.z()) + size_t(0x9e3779b9) + (seed << 6) + (seed >> 2);
+      core::util::hashCombine(seed, hash<T>{}(q.x()));
+      core::util::hashCombine(seed, hash<T>{}(q.y()));
+      core::util::hashCombine(seed, hash<T>{}(q.z()));
       return seed;
     }
   };

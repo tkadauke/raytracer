@@ -9,6 +9,7 @@
 #include "core/math/Ray.h"
 #include "core/math/RayPacket.h"
 #include "core/simd/Float4.h"
+#include "core/util/HashUtil.h"
 #include "render/Stats.h"
 
 #include <array>
@@ -708,7 +709,7 @@ namespace std { // NOLINT(cert-dcl58-cpp) — extending std for UDTs is allowed
   struct hash<BoundingBox<T>> {
     size_t operator()(const BoundingBox<T>& b) const noexcept {
       size_t seed = hash<Vector3<T>>{}(b.min());
-      seed ^= hash<Vector3<T>>{}(b.max()) + size_t(0x9e3779b9) + (seed << 6) + (seed >> 2);
+      core::util::hashCombine(seed, hash<Vector3<T>>{}(b.max()));
       return seed;
     }
   };

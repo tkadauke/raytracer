@@ -1,5 +1,7 @@
 #pragma once
 
+#include "core/math/Vector.h"
+
 #include <QByteArray>
 
 #include <cstdint>
@@ -42,6 +44,18 @@ namespace core::formats {
     float value;
     std::memcpy(&value, &bits, sizeof(value));
     return value;
+  }
+
+  /// Reads three consecutive little-endian 32-bit floats starting at @p data
+  /// as a `Vector3d`. Shared by the binary-STL triangle readers (normal and
+  /// vertex records are each three such floats).
+  inline Vector3d readVector3Float32Le(const std::uint8_t* data) {
+    return Vector3d(readFloat32Le(data), readFloat32Le(data + 4), readFloat32Le(data + 8));
+  }
+
+  inline Vector3d readVector3Float32Le(const QByteArray& bytes, qsizetype offset) {
+    return Vector3d(readFloat32Le(bytes, offset), readFloat32Le(bytes, offset + 4),
+                    readFloat32Le(bytes, offset + 8));
   }
 
 }

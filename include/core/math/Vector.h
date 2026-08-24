@@ -9,6 +9,7 @@
 #include <type_traits>
 #include <algorithm>
 #include "core/DivisionByZeroException.h"
+#include "core/util/HashUtil.h"
 
 /**
   * This is a generic vector class with a fixed number of dimensions Dimensions
@@ -1363,7 +1364,7 @@ namespace std { // NOLINT(cert-dcl58-cpp) — extending std for UDTs is allowed
       size_t seed = 0;
       hash<T> h;
       for (int i = 0; i < Dimensions; ++i)
-        seed ^= h(v.coordinate(i)) + size_t(0x9e3779b9) + (seed << 6) + (seed >> 2);
+        core::util::hashCombine(seed, h(v.coordinate(i)));
       return seed;
     }
   };
@@ -1372,7 +1373,7 @@ namespace std { // NOLINT(cert-dcl58-cpp) — extending std for UDTs is allowed
   struct hash<Vector2<T>> {
     size_t operator()(const Vector2<T>& v) const noexcept {
       size_t seed = hash<T>{}(v.coordinate(0));
-      seed ^= hash<T>{}(v.coordinate(1)) + size_t(0x9e3779b9) + (seed << 6) + (seed >> 2);
+      core::util::hashCombine(seed, hash<T>{}(v.coordinate(1)));
       return seed;
     }
   };
@@ -1381,8 +1382,8 @@ namespace std { // NOLINT(cert-dcl58-cpp) — extending std for UDTs is allowed
   struct hash<Vector3<T>> {
     size_t operator()(const Vector3<T>& v) const noexcept {
       size_t seed = hash<T>{}(v.coordinate(0));
-      seed ^= hash<T>{}(v.coordinate(1)) + size_t(0x9e3779b9) + (seed << 6) + (seed >> 2);
-      seed ^= hash<T>{}(v.coordinate(2)) + size_t(0x9e3779b9) + (seed << 6) + (seed >> 2);
+      core::util::hashCombine(seed, hash<T>{}(v.coordinate(1)));
+      core::util::hashCombine(seed, hash<T>{}(v.coordinate(2)));
       return seed;
     }
   };
@@ -1391,9 +1392,9 @@ namespace std { // NOLINT(cert-dcl58-cpp) — extending std for UDTs is allowed
   struct hash<Vector4<T>> {
     size_t operator()(const Vector4<T>& v) const noexcept {
       size_t seed = hash<T>{}(v.coordinate(0));
-      seed ^= hash<T>{}(v.coordinate(1)) + size_t(0x9e3779b9) + (seed << 6) + (seed >> 2);
-      seed ^= hash<T>{}(v.coordinate(2)) + size_t(0x9e3779b9) + (seed << 6) + (seed >> 2);
-      seed ^= hash<T>{}(v.coordinate(3)) + size_t(0x9e3779b9) + (seed << 6) + (seed >> 2);
+      core::util::hashCombine(seed, hash<T>{}(v.coordinate(1)));
+      core::util::hashCombine(seed, hash<T>{}(v.coordinate(2)));
+      core::util::hashCombine(seed, hash<T>{}(v.coordinate(3)));
       return seed;
     }
   };

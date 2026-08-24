@@ -1,6 +1,7 @@
 #include "engine/raster/detail/RasterMSAA.h"
 
 #include "core/util/BufferUtils.h"
+#include "core/util/HashUtil.h"
 
 #include <atomic>
 
@@ -59,8 +60,8 @@ namespace engine::raster::detail {
   std::size_t MSAAFragmentShadeKeyHash::operator()(const MSAAFragmentShadeKey& key) const {
     const auto triangleBits = reinterpret_cast<std::uintptr_t>(key.triangle);
     std::size_t hash = static_cast<std::size_t>(triangleBits >> 4);
-    hash ^= static_cast<std::size_t>(key.x) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
-    hash ^= static_cast<std::size_t>(key.y) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+    core::util::hashCombine(hash, static_cast<std::size_t>(key.x));
+    core::util::hashCombine(hash, static_cast<std::size_t>(key.y));
     return hash;
   }
 

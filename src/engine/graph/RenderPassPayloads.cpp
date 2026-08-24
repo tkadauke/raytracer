@@ -140,33 +140,6 @@ namespace engine::graph {
       return std::isfinite(*minDepth) && std::isfinite(*maxDepth);
     }
 
-    bool hasFiniteColorRange(const Buffer<Colord>& buffer, Colord* minColor, Colord* maxColor) {
-      double minimum[3] = {std::numeric_limits<double>::infinity(),
-                           std::numeric_limits<double>::infinity(),
-                           std::numeric_limits<double>::infinity()};
-      double maximum[3] = {-std::numeric_limits<double>::infinity(),
-                           -std::numeric_limits<double>::infinity(),
-                           -std::numeric_limits<double>::infinity()};
-
-      for (int y = 0; y != buffer.height(); ++y) {
-        for (int x = 0; x != buffer.width(); ++x) {
-          for (int component = 0; component != 3; ++component) {
-            const double value = buffer[y][x][component];
-            if (!std::isfinite(value)) {
-              continue;
-            }
-            minimum[component] = std::min(minimum[component], value);
-            maximum[component] = std::max(maximum[component], value);
-          }
-        }
-      }
-
-      *minColor = Colord(minimum);
-      *maxColor = Colord(maximum);
-      return std::isfinite(minimum[0]) && std::isfinite(minimum[1]) && std::isfinite(minimum[2]) &&
-             std::isfinite(maximum[0]) && std::isfinite(maximum[1]) && std::isfinite(maximum[2]);
-    }
-
     class SceneRasterIdentityIds {
     public:
       explicit SceneRasterIdentityIds(const std::shared_ptr<render::Scene>& scene) {
@@ -2956,7 +2929,7 @@ namespace engine::graph {
 
         Colord minimum;
         Colord maximum;
-        if (!hasFiniteColorRange(worldPositions, &minimum, &maximum)) {
+        if (!finiteColorRange(worldPositions, &minimum, &maximum)) {
           color.clear(Colord::black());
           return;
         }

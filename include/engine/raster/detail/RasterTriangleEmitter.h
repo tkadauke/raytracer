@@ -4,6 +4,7 @@
 
 #include "core/geometry/Mesh.h"
 #include "core/math/BoundingBox.h"
+#include "core/util/HashUtil.h"
 #include "engine/raster/Rasterizer.h"
 #include "engine/raster/RasterVisibilitySet.h"
 #include "render/HomogeneousClipVolume.h"
@@ -348,10 +349,9 @@ namespace engine::raster::detail {
     };
     struct TessellationCacheKeyHash {
       std::size_t operator()(const TessellationCacheKey& key) const {
-        return std::hash<const render::Primitive*>()(key.primitive) ^
-               (std::hash<int>()(key.lod) + 0x9e3779b9 +
-                (std::hash<const render::Primitive*>()(key.primitive) << 6) +
-                (std::hash<const render::Primitive*>()(key.primitive) >> 2));
+        std::size_t seed = std::hash<const render::Primitive*>()(key.primitive);
+        core::util::hashCombine(seed, std::hash<int>()(key.lod));
+        return seed;
       }
     };
     mutable std::unordered_map<TessellationCacheKey, std::shared_ptr<Mesh>,

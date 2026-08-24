@@ -4,6 +4,7 @@
 #include "core/math/Number.h"
 #include "core/math/Rect.h"
 #include "engine/graph/RenderGraphTypes.h"
+#include "engine/raster/Rasterizer.h"
 
 #include <QJsonArray>
 #include <QJsonObject>
@@ -240,5 +241,163 @@ namespace engine::graph::detail {
         return name;
     }
     return fallback;
+  }
+
+  // ---- Rasterizer enum/mask string parsing -----------------------------
+  //
+  // Shared by RenderEngineOptions and RasterPassState, which each parse the
+  // same JSON string vocabulary into engine::raster::Rasterizer enums (or a
+  // color-write bitmask) but report errors through their own local `Error`
+  // callback (`optionsError` / `stateError`).
+
+  template<typename Error>
+  [[nodiscard]] inline std::uint8_t colorWriteMaskFromString(const std::string& value,
+                                                              const std::string& path,
+                                                              Error error) {
+    using Rasterizer = engine::raster::Rasterizer;
+    if (value == "none")
+      return 0;
+    if (value == "all")
+      return Rasterizer::ColorWriteAll;
+
+    std::uint8_t mask = 0;
+    for (const char ch : value) {
+      if (ch == 'r') {
+        mask |= Rasterizer::ColorWriteRed;
+      } else if (ch == 'g') {
+        mask |= Rasterizer::ColorWriteGreen;
+      } else if (ch == 'b') {
+        mask |= Rasterizer::ColorWriteBlue;
+      } else {
+        error(path, "expected r, g, b, all, or none");
+      }
+    }
+    return mask;
+  }
+
+  template<typename Error>
+  [[nodiscard]] inline engine::raster::Rasterizer::CullMode cullModeFromString(
+    const std::string& value, const std::string& path, Error error) {
+    using Rasterizer = engine::raster::Rasterizer;
+    if (value == "both")
+      return Rasterizer::CullMode::Both;
+    if (value == "back")
+      return Rasterizer::CullMode::Back;
+    if (value == "front")
+      return Rasterizer::CullMode::Front;
+    error(path, "expected both, back, or front");
+    throw std::logic_error("unreachable");
+  }
+
+  template<typename Error>
+  [[nodiscard]] inline engine::raster::Rasterizer::TessellationQuality
+  tessellationQualityFromString(const std::string& value, const std::string& path, Error error) {
+    using Rasterizer = engine::raster::Rasterizer;
+    if (value == "preview")
+      return Rasterizer::TessellationQuality::Preview;
+    if (value == "balanced")
+      return Rasterizer::TessellationQuality::Balanced;
+    if (value == "final")
+      return Rasterizer::TessellationQuality::Final;
+    error(path, "expected preview, balanced, or final");
+    throw std::logic_error("unreachable");
+  }
+
+  template<typename Error>
+  [[nodiscard]] inline engine::raster::Rasterizer::MSAAShadingMode msaaShadingModeFromString(
+    const std::string& value, const std::string& path, Error error) {
+    using Rasterizer = engine::raster::Rasterizer;
+    if (value == "per_sample")
+      return Rasterizer::MSAAShadingMode::PerSample;
+    if (value == "per_fragment")
+      return Rasterizer::MSAAShadingMode::PerFragment;
+    error(path, "expected per_sample or per_fragment");
+    throw std::logic_error("unreachable");
+  }
+
+  template<typename Error>
+  [[nodiscard]] inline engine::raster::Rasterizer::BlendFactor blendFactorFromString(
+    const std::string& value, const std::string& path, Error error) {
+    using Rasterizer = engine::raster::Rasterizer;
+    if (value == "zero")
+      return Rasterizer::BlendFactor::Zero;
+    if (value == "one")
+      return Rasterizer::BlendFactor::One;
+    if (value == "source_color")
+      return Rasterizer::BlendFactor::SourceColor;
+    if (value == "one_minus_source_color")
+      return Rasterizer::BlendFactor::OneMinusSourceColor;
+    if (value == "source_alpha")
+      return Rasterizer::BlendFactor::SourceAlpha;
+    if (value == "one_minus_source_alpha")
+      return Rasterizer::BlendFactor::OneMinusSourceAlpha;
+    if (value == "destination_color")
+      return Rasterizer::BlendFactor::DestinationColor;
+    if (value == "one_minus_destination_color")
+      return Rasterizer::BlendFactor::OneMinusDestinationColor;
+    if (value == "constant_color")
+      return Rasterizer::BlendFactor::ConstantColor;
+    if (value == "one_minus_constant_color")
+      return Rasterizer::BlendFactor::OneMinusConstantColor;
+    if (value == "constant_alpha")
+      return Rasterizer::BlendFactor::ConstantAlpha;
+    if (value == "one_minus_constant_alpha")
+      return Rasterizer::BlendFactor::OneMinusConstantAlpha;
+    error(path, "unknown blend factor");
+    throw std::logic_error("unreachable");
+  }
+
+  template<typename Error>
+  [[nodiscard]] inline engine::raster::Rasterizer::BlendOp blendOpFromString(
+    const std::string& value, const std::string& path, Error error) {
+    using Rasterizer = engine::raster::Rasterizer;
+    if (value == "add")
+      return Rasterizer::BlendOp::Add;
+    if (value == "subtract")
+      return Rasterizer::BlendOp::Subtract;
+    if (value == "reverse_subtract")
+      return Rasterizer::BlendOp::ReverseSubtract;
+    if (value == "min")
+      return Rasterizer::BlendOp::Min;
+    if (value == "max")
+      return Rasterizer::BlendOp::Max;
+    error(path, "expected add, subtract, reverse_subtract, min, or max");
+    throw std::logic_error("unreachable");
+  }
+
+  template<typename Error>
+  [[nodiscard]] inline engine::raster::Rasterizer::AlphaFunc alphaFuncFromString(
+    const std::string& value, const std::string& path, Error error) {
+    using Rasterizer = engine::raster::Rasterizer;
+    if (value == "never")
+      return Rasterizer::AlphaFunc::Never;
+    if (value == "less")
+      return Rasterizer::AlphaFunc::Less;
+    if (value == "equal")
+      return Rasterizer::AlphaFunc::Equal;
+    if (value == "less_equal")
+      return Rasterizer::AlphaFunc::LessEqual;
+    if (value == "greater")
+      return Rasterizer::AlphaFunc::Greater;
+    if (value == "greater_equal")
+      return Rasterizer::AlphaFunc::GreaterEqual;
+    if (value == "not_equal")
+      return Rasterizer::AlphaFunc::NotEqual;
+    if (value == "always")
+      return Rasterizer::AlphaFunc::Always;
+    error(path, "unknown alpha function");
+    throw std::logic_error("unreachable");
+  }
+
+  template<typename Error>
+  [[nodiscard]] inline engine::raster::Rasterizer::ShadowFilterMode shadowFilterModeFromString(
+    const std::string& value, const std::string& path, Error error) {
+    using Rasterizer = engine::raster::Rasterizer;
+    if (value == "pcf")
+      return Rasterizer::ShadowFilterMode::PCF;
+    if (value == "pcss")
+      return Rasterizer::ShadowFilterMode::PCSS;
+    error(path, "expected pcf or pcss");
+    throw std::logic_error("unreachable");
   }
 }

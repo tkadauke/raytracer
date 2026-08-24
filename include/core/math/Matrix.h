@@ -10,6 +10,7 @@
 #include "core/math/Vector.h"
 #include "core/math/Angle.h"
 #include "core/DivisionByZeroException.h"
+#include "core/util/HashUtil.h"
 
 template<class T>
 class Quaternion;
@@ -1777,7 +1778,7 @@ namespace std { // NOLINT(cert-dcl58-cpp) — extending std for UDTs is allowed
       hash<T> h;
       for (int row = 0; row < Dimensions; ++row)
         for (int col = 0; col < Dimensions; ++col)
-          seed ^= h(m[row][col]) + size_t(0x9e3779b9) + (seed << 6) + (seed >> 2);
+          core::util::hashCombine(seed, h(m[row][col]));
       return seed;
     }
   };
