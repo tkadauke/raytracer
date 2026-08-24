@@ -324,27 +324,52 @@ Later phases can expand this list incrementally, each with CPU/GPU parity tests.
 
 Tasks:
 
-- Add this plan and link it from `docs/plans/wavefront-and-path-tracing.md`
-  Phase 7+.
-- Record baseline CPU wavefront metrics for:
+- ~~Add this plan and link it from `docs/plans/wavefront-and-path-tracing.md`
+  Phase 7+.~~ ✅ **Done.** `docs/plans/wavefront-and-path-tracing.md` Phase 7+
+  names this plan as the intersection-service child slice.
+- ~~Record baseline CPU wavefront metrics for:
   - BVH-heavy primary rays;
   - imported mesh scene;
   - path-tracing indirect-bounce scene;
-  - transparent/glass scene that is expected to stay CPU-only initially.
-- Prototype one tiny compute kernel per platform outside the render path:
+  - transparent/glass scene that is expected to stay CPU-only initially.~~ ✅
+  **Partially done.** `benchmarks/WavefrontIntersectionBackendBenchmark.cpp`
+  registers `makeMeshHeavySupportedScene()` and
+  `makeIndirectDiffuseSupportedScene()` fixtures plus small/unsupported/mixed
+  scene workloads; a benchmark fixture specifically labeled as a
+  transparent/glass CPU-only baseline was not found by name.
+- ~~Prototype one tiny compute kernel per platform outside the render path:
   - Metal: upload a ray buffer and write back deterministic hit/miss dummy data.
-  - Vulkan: same shape on Linux.
-- Decide build flags and optional dependencies:
+  - Vulkan: same shape on Linux.~~ ✅ **Done.**
+  `src/render/MetalWavefrontSmokeKernel.mm` and
+  `src/render/VulkanWavefrontSmokeKernel.cpp` implement the smoke
+  upload/dispatch/readback kernels, exercised by
+  `VulkanWavefrontSmokeKernel.ReportsUnavailableWhenDisabled` and
+  `RunsDummyHitMissKernelWhenEnabled` in
+  `test/unit/render/WavefrontIntersectionBackendTest.cpp`.
+- ~~Decide build flags and optional dependencies:
   - `RAYTRACER_ENABLE_METAL_WAVEFRONT`;
   - `RAYTRACER_ENABLE_VULKAN_WAVEFRONT`;
-  - both off when toolchains are unavailable.
+  - both off when toolchains are unavailable.~~ ✅ **Done.** Both options are
+  defined in `CMakeLists.txt`, auto-enabled on the matching host platform, and
+  opt-outable via `RAYTRACER_DISABLE_METAL_WAVEFRONT` /
+  `RAYTRACER_DISABLE_VULKAN_WAVEFRONT`.
 
 Gate:
 
-- CPU behavior unchanged.
-- GPU backend unavailability is reported cleanly.
+- CPU behavior unchanged. ✅ **Partially done.** No dedicated
+  flags-off-vs-flags-on regression test was found; coverage is indirect via
+  `CpuWavefrontIntersectionBackend` execution-path tests in
+  `test/unit/render/WavefrontIntersectionBackendTest.cpp`.
+- GPU backend unavailability is reported cleanly. ✅ **Done.**
+  `MetalStubReportsUnavailableCpuFallback` and
+  `VulkanStubReportsUnavailableCpuFallback` in
+  `test/unit/render/WavefrontIntersectionBackendTest.cpp` assert clean
+  fallback reporting.
 - The chosen API/toolchain path can be configured on macOS and Linux without
-  breaking the default build.
+  breaking the default build. ✅ **Done.** `CMakePresets.json` adds
+  `release-metal-wavefront`/`benchmark-metal-wavefront` and
+  `release-vulkan-wavefront`/`benchmark-vulkan-wavefront` presets alongside
+  the unchanged default presets.
 
 Progress:
 
@@ -403,50 +428,96 @@ Progress:
 
 Tasks:
 
-- Add `WavefrontIntersectionBackend` and related data types.
-- Implement `CpuWavefrontIntersectionBackend` by wrapping the current
-  `intersectActiveFrontier(...)` behavior.
-- Route Whitted and path-tracing wavefront batches through the CPU backend
-  without changing output.
-- Add metrics:
+- ~~Add `WavefrontIntersectionBackend` and related data types.~~ ✅ **Done.**
+  `include/render/WavefrontIntersectionBackend.h` defines the class. The
+  concrete method set evolved from the original sketch (per-ray, frontier, and
+  batch overloads instead of a single `Span`-based `compileScene`/
+  `intersectClosest`/`intersectAny` triad), but the same responsibility split
+  is intact.
+- ~~Implement `CpuWavefrontIntersectionBackend` by wrapping the current
+  `intersectActiveFrontier(...)` behavior.~~ ✅ **Done**, with the wrapping
+  direction inverted from the plan text: `CpuWavefrontIntersectionBackend`
+  (`include/render/WavefrontIntersectionBackend.h`) delegates to
+  `Scene::intersect(...)`, and `intersectActiveFrontier(...)`
+  (`src/render/WhittedIntegrator.cpp`, `src/render/PathTracingIntegrator.cpp`)
+  takes the backend as a parameter rather than the backend wrapping it.
+- ~~Route Whitted and path-tracing wavefront batches through the CPU backend
+  without changing output.~~ ✅ **Done.** `WhittedIntegrator` and
+  `PathTracingIntegrator` pass `WavefrontIntersectionBackend&` into
+  `intersectActiveFrontier`/`intersectActiveFrontierBatch`.
+- ~~Add metrics:
   - backend name;
   - backend availability;
   - rays submitted;
   - closest-hit queries;
   - any-hit queries;
   - intersection time;
-  - fallback reason.
-- Expose backend selection through render intent / render graph state:
-  `auto`, `cpu`, `gpu`.
+  - fallback reason.~~ ✅ **Done.** Fields are spread across
+  `WavefrontIntersectionQueryTiming`, `Integrator.h`
+  (`closestHitQueries`/`anyHitQueries`), and
+  `WavefrontIntersectionBackend`'s availability/fallback accessors.
+- ~~Expose backend selection through render intent / render graph state:
+  `auto`, `cpu`, `gpu`.~~ ✅ **Done.** `Q_PROPERTY(QString
+  wavefrontIntersectionBackend ...)` on `include/world/objects/RenderIntentElement.h`,
+  parsed via `WavefrontIntersectionBackendChoice::fromString` and consumed by
+  `tools/rendercli/rendercli.cpp`.
 
 Gate:
 
-- Existing wavefront parity tests pass unchanged with the CPU backend.
+- Existing wavefront parity tests pass unchanged with the CPU backend. ✅
+  **Done.** `test/unit/render/WavefrontIntersectionBackendPerformanceTest.cpp`
+  and the `GpuIntersectionRequestMatchesCpuImageFor*` cases in
+  `test/unit/engine/wavefront/WavefrontRaytracerTest.cpp`.
 - rendercli graph JSON and trace metadata show the selected intersection
-  backend.
+  backend. ✅ **Done.** `tools/rendercli/rendercli.cpp` emits
+  `intersection_backend`, `intersection_backend_request`,
+  `intersection_backend_availability`, and `intersection_backend_fallback`
+  fields, asserted by `test/rendercli/TracingParityTest.cmake`.
 
 ## Phase 2 - compiled intersection scene
 
 Tasks:
 
-- Add a CPU-side `IntersectionSceneCompiler` that emits flat primitive records,
-  payload arrays, material/object lookup tables, and a flat-array BVH.
-- Start with triangle/mesh, sphere, plane, rectangle, disk, and static instance
+- ~~Add a CPU-side `IntersectionSceneCompiler` that emits flat primitive records,
+  payload arrays, material/object lookup tables, and a flat-array BVH.~~ ✅
+  **Done.** `include/render/IntersectionSceneCompiler.h` /
+  `src/render/IntersectionSceneCompiler.cpp` build `CompiledIntersectionScene`
+  via `IntersectionSceneBuilder`.
+- ~~Start with triangle/mesh, sphere, plane, rectangle, disk, and static instance
   records; extend the host/packed CPU contract to exact OpenCylinder before
-  enabling platform kernels for it.
-- Add explicit unsupported-reason collection.
-- Add unit tests for:
+  enabling platform kernels for it.~~ ✅ **Done.**
+  `IntersectionPrimitiveKind::OpenCylinder` and
+  `IntersectionSceneBuilder::addOpenCylinder` exist, tested by
+  `IntersectionSceneCompiler.CompilesOpenCylinderAsExactPayload` and
+  `CompiledIntersectionSceneIntersector.IntersectsOpenCylinderLikeRuntimeScene`
+  in `test/unit/render/IntersectionSceneCompilerTest.cpp`.
+- ~~Add explicit unsupported-reason collection.~~ ✅ **Done.**
+  `UnsupportedIntersectionPrimitive{objectId, primitiveName, reason}` and
+  `addUnsupportedPrimitive(...)`/`unsupportedReasonCounts()` in
+  `include/render/IntersectionSceneCompiler.h`.
+- ~~Add unit tests for:
   - supported primitive compilation;
   - unsupported primitive fallback reasons;
   - material/object id round-tripping;
   - static instance transform payloads;
-  - BVH bounds and bounded leaf ranges matching runtime bounds.
+  - BVH bounds and bounded leaf ranges matching runtime bounds.~~ ✅ **Done.**
+  All five sub-cases exist in `test/unit/render/IntersectionSceneCompilerTest.cpp`:
+  `CompilesSupportedPrimitivePayloads`; `RecordsUnsupportedPrimitiveReasons` /
+  `CountsUnsupportedPrimitiveReasonsInFirstSeenOrder`;
+  `RoundTripsMaterialAndObjectIds`; `RecordsStaticInstanceTransformPayloads`;
+  `BvhRootBoundsMatchRuntimeBounds` / `BuildsBoundedLeafBvhForManyPrimitives`.
 
 Gate:
 
 - CPU backend can optionally consume the compiled scene for diagnostics, but
-  default CPU rendering remains behaviorally identical.
-- Unsupported scenes fall back to CPU before render work starts.
+  default CPU rendering remains behaviorally identical. ✅ **Done.**
+  `CpuWavefrontIntersectionBackend` still traverses `runtime_scene` by default;
+  `WavefrontIntersectionAutoSelectionTest.KeepsSmallSupportedSceneOnCpuBeforeCompiling`
+  pins `executionPath == "runtime_scene"`.
+- Unsupported scenes fall back to CPU before render work starts. ✅ **Done.**
+  `WavefrontIntersectionBackendChoice::gpuSceneUnsupportedReason` rejects at
+  scene-compile time, tested by
+  `WavefrontIntersectionAutoSelectionTest.PolicyFallsBackForUnsupportedScene`.
 
 Progress:
 
@@ -471,19 +542,52 @@ Progress:
 
 Tasks:
 
-- Add Metal/Vulkan backend classes that implement availability checks and return
-  "unavailable" or "scene unsupported" without rendering.
-- Add rendercli option:
-  `--wavefront_intersection_backend auto|cpu|gpu`.
-- Add Modeler Render Settings advanced control for wavefront/path-tracer
-  intersection backend, hidden for engines that do not use wavefront batches.
-- Add graph trace/properties display for selected backend and fallback reason.
-- Keep `auto` selecting CPU until a GPU backend passes parity gates.
+- ~~Add Metal/Vulkan backend classes that implement availability checks and return
+  "unavailable" or "scene unsupported" without rendering.~~ ✅ **Done**, and
+  since superseded by Phase 4-6: `MetalWavefrontIntersectionBackend` /
+  `VulkanWavefrontIntersectionBackend`
+  (`include/render/WavefrontIntersectionBackend.h`) still report
+  availability/fallback cleanly, but for supported scenes on real hardware
+  they now execute real basic closest-hit/any-hit kernels rather than only
+  reporting unavailability.
+- ~~Add rendercli option:
+  `--wavefront_intersection_backend auto|cpu|gpu`.~~ ✅ **Done.** Registered
+  in `tools/rendercli/rendercli.cpp`, validated to reject anything but
+  `auto`/`cpu`/`gpu`, with an invalid-value case in
+  `test/rendercli/RaytracerOptionTest.cmake`.
+- ~~Add Modeler Render Settings advanced control for wavefront/path-tracer
+  intersection backend, hidden for engines that do not use wavefront
+  batches.~~ ✅ **Partially done.** The Modeler app lives at `src/modeler/`
+  (not under an `examples/Modeler` directory as this plan's wording implies)
+  and uses the shared `RenderSettingsWidget`
+  (`include/widgets/world/RenderSettingsWidget.h`,
+  `src/widgets/world/RenderSettingsWidget.cpp`), which has a
+  `wavefrontIntersectionBackend` combo box. Its visibility condition
+  (`RenderSettingsWidget.cpp`, around line 600) is narrower than "hidden for
+  all non-wavefront engines" — it shows for `Raytracer` or hybrid
+  wavefront-path-tracing cases specifically, not a blanket wavefront check.
+- ~~Add graph trace/properties display for selected backend and fallback
+  reason.~~ ✅ **Done.** `src/engine/graph/RenderPassPayloads.cpp` writes
+  `service["selectedBackend"]` and `fallbackReason` fields.
+- ~~Keep `auto` selecting CPU until a GPU backend passes parity gates.~~ ✅
+  **Done, then superseded by Phase 7.** This held through Phase 3-6;
+  `WavefrontIntersectionBackendAutoSelectionPolicy::decide(...)`
+  (`include/render/WavefrontIntersectionBackend.h`) now allows `auto` to
+  select GPU once platform availability, full scene support, and an
+  expected-ray-count/upload-amortization gate all pass, per
+  `PolicySelectsGpuForSupportedLargeCandidate`.
 
 Gate:
 
-- Users can request GPU and get a clear fallback, not a crash.
-- Tests cover invalid option combinations and trace fallback metadata.
+- Users can request GPU and get a clear fallback, not a crash. ✅ **Done.**
+  `MetalStubReportsUnavailableCpuFallback` /
+  `VulkanStubReportsUnavailableCpuFallback` in
+  `test/unit/render/WavefrontIntersectionBackendTest.cpp`.
+- Tests cover invalid option combinations and trace fallback metadata. ✅
+  **Done.** Combo rejection in `test/rendercli/RaytracerOptionTest.cmake`;
+  fallback-metadata assertions in
+  `test/unit/engine/graph/GraphRenderEngineTest.cpp` and
+  `test/unit/engine/graph/RaytracerPassStateTest.cpp`.
 
 Progress:
 
@@ -521,19 +625,53 @@ Progress:
 
 Tasks:
 
-- Upload flat-array BVH nodes, triangle payloads, material/object ids, and ray
+- ~~Upload flat-array BVH nodes, triangle payloads, material/object ids, and ray
+  frontiers.~~ ✅ **Done.** `GpuIntersectionScenePacker::packScene()`
+  (`src/render/GpuIntersectionScene.h`) converts `CompiledIntersectionScene`
+  into `GpuIntersectionSceneBuffers`; `packRay()`/`packMiss()` handle ray
   frontiers.
-- Implement iterative closest-hit BVH traversal in Metal and Vulkan compute.
-- Return hit/miss records with primitive id, material id, object id, `t`,
-  barycentric coordinates, and geometric normal.
-- Read back hit records and let CPU wavefront shading continue as today.
-- Keep the backend opt-in.
+- ~~Implement iterative closest-hit BVH traversal in Metal and Vulkan
+  compute.~~ ✅ **Done.** Vulkan: real GLSL compiled to embedded SPIR-V,
+  `src/render/shaders/vulkan_wavefront_triangle_closest.comp` /
+  `..._any.comp`, with iterative BVH stack traversal and per-kind
+  intersection routines. Metal: embedded MSL source strings (`kernel void
+  basicClosestHitKernel`/`basicAnyHitKernel`) compiled at runtime via
+  `MTLDevice newLibraryWithSource` in
+  `src/render/MetalWavefrontSmokeKernel.mm`.
+- ~~Return hit/miss records with primitive id, material id, object id, `t`,
+  barycentric coordinates, and geometric normal.~~ ✅ **Done.**
+  `GpuIntersectionHitRecord` (`include/render/GpuIntersectionScene.h`) has
+  `hit`, `material`, `object`, `primitiveRecord`, `distance`, `point`,
+  `normal`, `uv`, `barycentric`.
+- ~~Read back hit records and let CPU wavefront shading continue as today.~~ ✅
+  **Done.**
+  `WavefrontIntersectionBackend::closestHitResultFromPackedRecord(...)`
+  (`include/render/WavefrontIntersectionBackend.h`) converts a readback GPU
+  hit record into the CPU `WavefrontClosestHitResult`/`State` shading
+  contract.
+- ~~Keep the backend opt-in.~~ ✅ **Done.** `WavefrontIntersectionBackendChoice`
+  defaults to `Auto`, and
+  `WavefrontIntersectionBackendAutoSelectionPolicy` gates GPU selection on
+  platform availability, full scene support, and a minimum expected-ray
+  threshold — GPU is never silently used for small/unsupported/unavailable
+  cases.
 
 Gate:
 
-- GPU and CPU hit records match for mesh-only scenes within explicit tolerances.
-- Rendered output matches CPU wavefront for deterministic mesh scenes.
-- Metrics separate upload, kernel, and readback time.
+- GPU and CPU hit records match for mesh-only scenes within explicit
+  tolerances. ✅ **Done.**
+  `MetalWavefrontSmokeKernel.RunsTriangleClosestHitKernelWhenEnabled` (skips
+  via `GTEST_SKIP()` without a device) and the Vulkan equivalent in
+  `test/unit/render/WavefrontIntersectionBackendTest.cpp` use
+  `EXPECT_NEAR(..., 1e-5f)`-scale tolerances.
+- Rendered output matches CPU wavefront for deterministic mesh scenes. ✅
+  **Done.** `GpuIntersectionRequestMatchesCpuImageForSupportedWhittedScene`
+  and related cases in
+  `test/unit/engine/wavefront/WavefrontRaytracerTest.cpp` use
+  `BackendParityRenderCase::expectBuffersNear(cpu, gpu, 1.0e-4)`.
+- Metrics separate upload, kernel, and readback time. ✅ **Done.**
+  `include/render/WavefrontIntersectionQueryTiming.h` has `uploadSeconds`,
+  `kernelSeconds`, `readbackSeconds`.
 
 Progress:
 
@@ -635,24 +773,45 @@ Progress:
 
 Tasks:
 
-- Add GPU kernels/payloads for sphere, plane, rectangle, disk, and static
-  instance transforms.
+- ~~Add GPU kernels/payloads for sphere, plane, rectangle, disk, and static
+  instance transforms.~~ ✅ **Done.** Both
+  `src/render/shaders/vulkan_wavefront_triangle_closest.comp`/`_any.comp` and
+  the embedded Metal kernels in `src/render/MetalWavefrontSmokeKernel.mm`
+  handle these payload kinds and transform payloads.
 - Add exact host/packed CPU payloads for other common primitives before
   enabling platform kernels for them. ✅ **Done.** OpenCylinder and Torus now
   compile to exact packed CPU payloads, and the Metal/Vulkan basic kernels
   consume the same payloads for closest-hit and any-hit traversal.
-- Preserve material/object ids through instance transforms.
-- Add scene fixtures that mix triangles and exact primitives.
-- Add parity tests for:
+- ~~Preserve material/object ids through instance transforms.~~ ✅ **Done.**
+  `GpuIntersectionSceneTest.PackedInstanceMaterialOverrideUsesInstanceObjectId`
+  (`test/unit/render/GpuIntersectionSceneTest.cpp`) asserts `hit.object`/
+  `hit.material` match the transformed instance's overridden ids.
+- ~~Add scene fixtures that mix triangles and exact primitives.~~ ✅ **Done.**
+  `BackendParitySceneFactory::supportedPackedParityScene()`
+  (`test/unit/engine/wavefront/WavefrontRaytracerTest.cpp`) mixes sphere,
+  triangle, rectangle, disk, OpenCylinder, and a transformed instanced sphere.
+- ~~Add parity tests for:
   - hit distance;
   - normal direction;
   - barycentric/UV reconstruction where relevant;
-  - rendered image RMS.
+  - rendered image RMS.~~ ✅ **Done.** A shared
+  `expectPackedClosestHitMatchesCompiled()` helper in
+  `test/unit/render/GpuIntersectionSceneTest.cpp` checks distance, normal,
+  barycentric, and UV/point together against
+  `CompiledIntersectionSceneIntersector`; rendered-image RMS is covered by the
+  `GpuIntersectionRequestMatchesCpuImageFor*` tests in
+  `test/unit/engine/wavefront/WavefrontRaytracerTest.cpp`.
 
 Gate:
 
 - The common docs/example scenes that use only supported primitives can opt into
-  GPU intersection and match CPU wavefront output.
+  GPU intersection and match CPU wavefront output. ✅ **Partially done.**
+  Image-RMS CPU/GPU parity is proven on synthetic fixtures
+  (`supportedPackedParityScene()` in `WavefrontRaytracerTest.cpp`) and a
+  generated scene in `test/rendercli/RenderGraphOptionTest.cmake` ("wavefront
+  Torus GPU-request RMS matches CPU backend"), but no test was found that runs
+  a checked-in `examples/GeneratedRayTracer/scenes/*.json` example scene
+  through this specific CPU-vs-GPU comparison.
 
 Progress:
 
@@ -712,18 +871,36 @@ Progress:
 
 Tasks:
 
-- Add `intersectAny(...)` GPU query for shadow/visibility rays.
-- Add a batched any-hit backend entry point so multi-sample direct-light
+- ~~Add `intersectAny(...)` GPU query for shadow/visibility rays.~~ ✅
+  **Done.** Declared on `WavefrontIntersectionBackend` and its Cpu/Metal/Vulkan
+  implementations in `include/render/WavefrontIntersectionBackend.h`; GPU/packed
+  path routes through `GpuIntersectionIntersector::intersectAny(...)`.
+- ~~Add a batched any-hit backend entry point so multi-sample direct-light
   visibility can submit one bounded shadow-ray group per shading point instead
-  of one backend call per sample.
-- Define correctness rules for alpha/transparent materials. Initial any-hit can
-  be geometry-only and used only where CPU semantics are equivalent.
-- Add metrics for closest-hit vs any-hit batches.
-- Add direct-light/path-tracing tests where shadow rays use the GPU backend.
+  of one backend call per sample.~~ ✅ **Done.** `intersectAnyBatch(...)` plus
+  a `prefersAnyHitBatch(...)` capability hook exist on the same interface.
+- ~~Define correctness rules for alpha/transparent materials. Initial any-hit can
+  be geometry-only and used only where CPU semantics are equivalent.~~ ✅
+  **Done.** Any-hit stayed geometry-only, matching runtime
+  `Scene::occludes(...)` semantics. Note: this plan's own top "Status"
+  summary claims transparent-material leaves "explicitly opt out of the
+  packed intersection scene" — that specific claim looks stale/inaccurate;
+  see the report note below. It does not affect this any-hit task, which is
+  about the any-hit query being material-agnostic, not about excluding
+  transparent leaves from compilation.
+- ~~Add metrics for closest-hit vs any-hit batches.~~ ✅ **Done.**
+  `include/engine/wavefront/WavefrontRaytracer.h` has `closestHitQueries`/
+  `anyHitQueries` and per-depth `frontierClosestHitBatchChunksPerDepth`/
+  `directLightAnyHitBatchChunksPerDepth`.
+- ~~Add direct-light/path-tracing tests where shadow rays use the GPU
+  backend.~~ ✅ **Done.**
+  `GpuIntersectionRequestMatchesCpuImageForPathTracingDirectLightScene` in
+  `test/unit/engine/wavefront/WavefrontRaytracerTest.cpp`.
 
 Gate:
 
-- Direct-light scenes match CPU wavefront/path-tracing output.
+- Direct-light scenes match CPU wavefront/path-tracing output. ✅ **Done.**
+  Same test as above, `expectBuffersNear(*cpu, *gpu, 1.0e-4)`.
 - Unsupported transparency/alpha semantics fall back to CPU instead of producing
   incorrect shadows.
 
@@ -815,19 +992,32 @@ Progress:
 
 Tasks:
 
-- Add heuristic selection for `auto`:
+- ~~Add heuristic selection for `auto`:
   - GPU only when backend is available;
   - scene compiles fully;
-  - frontier size or expected ray count justifies upload/readback cost.
-- Add rendercli metrics summary fields for backend choice and transfer costs.
-- Add benchmark fixtures for mesh-heavy scenes and small scenes where CPU should
-  remain faster.
+  - frontier size or expected ray count justifies upload/readback cost.~~ ✅
+  **Done.** `WavefrontIntersectionBackendAutoSelectionPolicy::decide(...)`
+  (`src/render/WavefrontIntersectionBackend.cpp`) checks platform device
+  availability, platform render-path availability, full scene support, and an
+  expected-ray-count/upload-amortization threshold.
+- ~~Add rendercli metrics summary fields for backend choice and transfer
+  costs.~~ ✅ **Done.** `tools/rendercli/rendercli.cpp` prints
+  `intersection_backend_request`, `intersection_backend_fallback`, frontier
+  residency, and packed/host byte counters.
+- ~~Add benchmark fixtures for mesh-heavy scenes and small scenes where CPU
+  should remain faster.~~ ✅ **Done.**
+  `benchmarks/WavefrontIntersectionBackendBenchmark.cpp` registers
+  `makeSmallSupportedScene()` and `makeMeshHeavySupportedScene()` workloads.
 
 Gate:
 
 - GPU intersection is measurably faster on large supported scenes.
 - `auto` does not regress small scenes.
-- CPU fallback remains deterministic and visible in traces.
+- CPU fallback remains deterministic and visible in traces. ✅ **Partially
+  done.** Fallback reason is extensively tested and surfaced (e.g.
+  `RecordsGpuIntersectionBackendFallbackMetrics`,
+  `RecordsGpuIntersectionSceneUnsupportedFallbackMetrics`), but no dedicated
+  same-seed repeat-render determinism test was found.
 
 Progress:
 
@@ -1949,29 +2139,42 @@ Progress:
 
 Tests should be layered so GPU availability is optional:
 
-- Unit tests for compiled intersection-scene records and fallback reasons run on
-  every machine.
-- CPU backend tests run everywhere and pin behavior after the backend refactor.
-- GPU availability tests skip cleanly when Metal/Vulkan is unavailable.
-- GPU parity tests run only when the backend is available:
+- ~~Unit tests for compiled intersection-scene records and fallback reasons run on
+  every machine.~~ ✅ **Done.** `test/unit/render/IntersectionSceneCompilerTest.cpp`.
+- ~~CPU backend tests run everywhere and pin behavior after the backend
+  refactor.~~ ✅ **Done.** `test/unit/render/WavefrontIntersectionBackendTest.cpp`.
+- ~~GPU availability tests skip cleanly when Metal/Vulkan is unavailable.~~ ✅
+  **Done.** e.g. `MetalWavefrontSmokeKernel.RunsTriangleClosestHitKernelWhenEnabled`
+  uses `GTEST_SKIP()` without a device.
+- ~~GPU parity tests run only when the backend is available:
   - closest-hit record parity;
   - rendered image RMS parity;
   - trace metadata presence;
-  - fallback behavior for unsupported scenes.
-- rendercli functional tests cover:
+  - fallback behavior for unsupported scenes.~~ ✅ **Done.** Closest-hit
+  record parity and image-RMS parity are covered by the tests cited under
+  Phase 4/5 above; trace metadata presence and unsupported-scene fallback are
+  covered by `test/unit/engine/graph/GraphRenderEngineTest.cpp` and
+  `test/unit/engine/graph/RaytracerPassStateTest.cpp`.
+- ~~rendercli functional tests cover:
   - `--wavefront_intersection_backend cpu`;
   - `--wavefront_intersection_backend gpu` with fallback when unavailable;
   - graph export includes backend state;
-  - trace reports backend and fallback reason.
+  - trace reports backend and fallback reason.~~ ✅ **Done.**
+  `test/rendercli/RaytracerOptionTest.cmake` and
+  `test/rendercli/TracingParityTest.cmake`.
 
 No GPU backend should become the default until it has both correctness parity and
 performance evidence on at least one large supported scene.
 
 ## Documentation and UI
 
-- Update the wavefront/path-tracing textbook chapter once the CPU backend
+- ~~Update the wavefront/path-tracing textbook chapter once the CPU backend
   refactor lands, explaining that scheduling and intersection backend are
-  separate choices.
+  separate choices.~~ ✅ **Done.**
+  `docs/markdown/ray-rendering/wavefront-and-path-tracing.md` has a "Three
+  separate choices" section and an "Intersection backends" section explaining
+  that algorithm, schedule, and backend are deliberately separate, with
+  `auto`/`cpu`/`gpu` selection and fallback-reason visibility.
 - Add a small diagram/widget only after there is a working backend boundary:
   CPU shading loop, CPU/GPU intersection box, and hit records flowing back. ✅
   **Done.** The wavefront/path-tracing textbook backend widget now contrasts

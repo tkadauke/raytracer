@@ -51,12 +51,17 @@
   there's probably already drift somewhere; the only way to find it
   is "render breaks weirdly."
 
-- **`scripts/lib/colors.rb` had `blue` assigning to `@green`** for who
+- ~~**`scripts/lib/colors.rb` had `blue` assigning to `@green`** for who
   knows how long. No test caught it because there are no tests for
   the doc-render framework, and visually only a render that uses
   *both* `green()` and `blue()` exposes it. I introduced
   `panorama_scene` which uses both and the bug surfaced as "two of my
-  three coloured spheres rendered green."
+  three coloured spheres rendered green."~~ ✅ **Fixed.** Corrected in
+  commit `78936da`; `scripts/lib/colors.rb` now memoises each helper
+  into its own ivar (`@red`/`@green`/`@blue`/`@yellow`), and
+  `scripts/test/test_colors.rb`'s "different colours are distinct
+  instances" test pins the regression so a future copy-paste typo
+  fails loudly instead of silently.
 
 - **No staleness detection.** `--missing` only checks file existence.
   If you tweak `panorama_scene` to add a fifth sphere but the
