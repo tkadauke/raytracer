@@ -670,6 +670,17 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Fix a crash (SIGSEGV) when an MCP `delete` tool call removed the element
+  currently shown in the Properties dock: `mcp::SceneEditor::deleteElement()`
+  emits `elementChanged(nullptr)` after freeing the element, and
+  `MainWindow::elementChanged()` used to call `PropertyEditorWidget::update()`
+  unconditionally, dereferencing the now-dangling `Element*` still cached by
+  the property editor. `MainWindow::elementChanged(nullptr)` now calls
+  `PropertyEditorWidget::setElement(nullptr)` instead, clearing both the
+  cached element and its parameter widgets; `PropertyEditorWidget::update()`
+  also gained a null-`element` guard as defense in depth for any other
+  caller that invokes it without going through `elementChanged()`. — Claude
+  Sonnet 5
 - Drop `--input-format stream-json` from the `claude` CLI invocation in
   `chat::claudeCliArguments()`: combined with `ClaudeCliSession::start()`
   closing stdin immediately after launch, it starved the CLI of the
