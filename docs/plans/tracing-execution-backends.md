@@ -846,13 +846,19 @@ backends, while preserving the existing GPU-intersection plan as a child.
 
 **Deliverables:**
 
-- Add this parent plan.
-- Update `gpu-wavefront-intersection.md` status to say it is retired as a
-  top-level goal and remains active as the intersection-service slice.
-- Update `wavefront-and-path-tracing.md` Phase 7+ to point to this plan as the
-  parent for GPU tracing.
+- ~~Add this parent plan.~~ ✅ **Done.** This file.
+- ~~Update `gpu-wavefront-intersection.md` status to say it is retired as a
+  top-level goal and remains active as the intersection-service slice.~~ ✅
+  **Done.** `docs/plans/gpu-wavefront-intersection.md` points back to this
+  plan and describes itself as the child intersection-service slice.
+- ~~Update `wavefront-and-path-tracing.md` Phase 7+ to point to this plan as
+  the parent for GPU tracing.~~ ✅ **Done.**
+  `docs/plans/wavefront-and-path-tracing.md` references
+  `tracing-execution-backends.md` as the GPU tracing roadmap.
 - Optionally add a short textbook note that GPU intersection is a hybrid mode,
-  not full GPU path tracing.
+  not full GPU path tracing. ✅ **Done.** The wavefront/path-tracing textbook
+  chapter separates algorithm/schedule/backend and explains hybrid vs. full
+  GPU tracing (E11 job 1).
 
 **Tests/gates:**
 
@@ -872,8 +878,9 @@ backend capability object that can grow into full tracing execution.
 
 **Deliverables:**
 
-- Add a `TracingBackendCapabilities` or similarly named type.
-- Include substructures for:
+- ~~Add a `TracingBackendCapabilities` or similarly named type.~~ ✅ **Done.**
+  `render::TracingExecutionCapabilityRecords` (`include/render/TracingExecutionCapability.h`).
+- ~~Include substructures for:
   - intersection;
   - scene compilation;
   - material records;
@@ -884,25 +891,45 @@ backend capability object that can grow into full tracing execution.
   - path state residency;
   - compaction;
   - accumulation;
-  - diagnostics.
-- Adapt existing `WavefrontIntersectionBackend` metrics to populate the new
-  capability shape without changing user-facing behavior.
-- Keep compatibility aliases in existing JSON metrics until consumers migrate.
-- Add rendercli metrics fields that make sense outside intersection, for
+  - diagnostics.~~ ✅ **Done.** `TracingExecutionCapabilityRecords` groups
+  `intersection`, `scene` (geometry/material/texture/light records), `sampling`,
+  `directLighting`, `bsdf`, `pathState` (residency + frontier compaction), and
+  `accumulation` sub-records; material/texture/light and compaction are
+  grouped inside `scene`/`pathState` rather than as separate top-level
+  substructures, and per-record `fallback`/`unsupportedReason` fields carry
+  diagnostics instead of a dedicated diagnostics substructure.
+- ~~Adapt existing `WavefrontIntersectionBackend` metrics to populate the new
+  capability shape without changing user-facing behavior.~~ ✅ **Done.**
+  `src/engine/TracingExecutionCapabilityJson.cpp` builds the capability
+  records from the existing wavefront metrics fields.
+- ~~Keep compatibility aliases in existing JSON metrics until consumers
+  migrate.~~ ✅ **Done.** The intersection-metric aliases documented in
+  `docs/plans/complete/tracing-execution-diagnostics-inventory.md` remain in
+  `WavefrontRenderMetrics::toJson()`.
+- ~~Add rendercli metrics fields that make sense outside intersection, for
   example:
   - `tracing_backend`;
   - `tracing_backend_mode`;
   - `tracing_backend_capabilities`;
-  - `tracing_backend_fallback`.
-- Update Modeler selected-pass metadata to group capabilities instead of only
-  listing flat intersection fields.
+  - `tracing_backend_fallback`.~~ ✅ **Done.** `test/rendercli/TracingParityTest.cmake`
+  and `test/rendercli/RenderGraphOptionTest.cmake` assert compact summaries
+  containing `tracing_backend`, `tracing_backend_mode`,
+  `tracing_backend_capabilities`, and `tracing_backend_fallback`.
+- ~~Update Modeler selected-pass metadata to group capabilities instead of
+  only listing flat intersection fields.~~ ✅ **Done.**
+  `test/unit/widgets/world/RenderGraphInspectorWidgetTest.cpp` pins the
+  grouped tracing-backend row ahead of legacy intersection detail rows.
 
 **Tests/gates:**
 
-- Unit tests for capability serialization.
-- rendercli functional test for CPU, explicit GPU fallback, and supported GPU
-  request metadata.
-- Modeler widget tests for capability grouping.
+- ~~Unit tests for capability serialization.~~ ✅ **Done.**
+  `test/unit/render/TracingExecutionCapabilityTest.cpp` and
+  `test/unit/engine/wavefront/WavefrontRaytracerTest.cpp` cover capability
+  records and their serialized form.
+- ~~rendercli functional test for CPU, explicit GPU fallback, and supported
+  GPU request metadata.~~ ✅ **Done.** `test/rendercli/TracingParityTest.cmake`.
+- ~~Modeler widget tests for capability grouping.~~ ✅ **Done.**
+  `RenderGraphInspectorWidgetTest.cpp`.
 - Existing wavefront metrics tests still pass.
 
 **Syrus-ready:** partially. Serialization and rendercli tests can be delegated.
@@ -919,47 +946,55 @@ tracing.
 **Dependencies:** Milestone 1 can happen before or after this, but final
 diagnostics should use the capability model.
 
-**Deliverables:**
+**Deliverables:** ✅ **Done.** Delivered as E1 - Intersection Service
+Consolidation above (`render::IntersectionService`,
+`include/render/WavefrontIntersectionBackend.h`,
+`src/render/WavefrontIntersectionBackend.cpp`).
 
-- Keep `WavefrontIntersectionBackend` or rename it to an intersection service
-  only if the call sites become clearer.
-- Preserve:
-  - CPU runtime backend;
-  - CPU compiled/packed backend;
-  - Metal backend;
-  - Vulkan backend;
-  - explicit fallback reasons.
-- Finish platform parity for the existing supported primitive subset:
-  - triangle;
-  - mesh triangles;
-  - sphere;
-  - plane;
-  - rectangle;
-  - disk;
-  - OpenCylinder;
-  - Torus;
-  - static transforms.
-- Add a compact intersection-only API usable outside wavefront path tracing:
-  - shadow/visibility service for raster hybrids;
-  - graph AOV/debug passes;
-  - picking/probing later if useful.
-- Make auto-selection conservative and evidence-based:
-  - availability;
-  - scene eligibility;
-  - expected query count;
-  - transfer estimate;
-  - measured performance threshold.
+- ~~Keep `WavefrontIntersectionBackend` or rename it to an intersection service
+  only if the call sites become clearer.~~ ✅ **Done.** Kept as
+  `WavefrontIntersectionBackend`; `render::IntersectionService`
+  (`include/render/IntersectionService.h`) wraps it as the reusable
+  closest-hit/any-hit entry point.
+- ~~Preserve: CPU runtime backend; CPU compiled/packed backend; Metal backend;
+  Vulkan backend; explicit fallback reasons.~~ ✅ **Done.**
+  `MetalWavefrontIntersectionBackend` and `VulkanWavefrontIntersectionBackend`
+  (`include/render/WavefrontIntersectionBackend.h`) plus the CPU
+  runtime/packed backends and stable fallback-reason strings remain in
+  `src/render/WavefrontIntersectionBackend.cpp`.
+- ~~Finish platform parity for the existing supported primitive subset:
+  triangle; mesh triangles; sphere; plane; rectangle; disk; OpenCylinder;
+  Torus; static transforms.~~ ✅ **Done.** Issue #570 parity coverage (see E1
+  job 2) plus `test/unit/render/WavefrontIntersectionBackendTest.cpp`.
+- ~~Add a compact intersection-only API usable outside wavefront path
+  tracing: shadow/visibility service for raster hybrids; graph AOV/debug
+  passes; picking/probing later if useful.~~ ✅ **Done.**
+  `render::IntersectionService` backs the `hybrid_visibility` AOV pass and the
+  `ray_traced` raster shadow pass (see Milestone 12 / E13).
+- ~~Make auto-selection conservative and evidence-based: availability; scene
+  eligibility; expected query count; transfer estimate; measured performance
+  threshold.~~ ✅ **Done.** See E12 job 3 auto-selection policy
+  (`intersectionBackendExpectedRays`,
+  `intersectionBackendAutoMinimumGpuRays`, and related gates).
 
-**Tests/gates:**
+**Tests/gates:** ✅ **Done.**
 
-- CPU/packed/GPU closest-hit record parity.
-- CPU/packed/GPU any-hit parity.
-- Rendered image RMS parity for deterministic supported scenes.
-- Transparent/glass packed-intersection eligibility, plus explicit fallback
-  tests for genuinely unsupported scene features.
-- rendercli summary shows the actual execution path.
-- Benchmarks capture large supported scenes before enabling `auto` GPU
-  selection by default.
+- ~~CPU/packed/GPU closest-hit record parity.~~ ✅ **Done.**
+  `test/unit/render/WavefrontIntersectionBackendTest.cpp`.
+- ~~CPU/packed/GPU any-hit parity.~~ ✅ **Done.** Same file plus
+  `test/functional/render/WavefrontIntersectionAutoSelectionTest.cpp`.
+- ~~Rendered image RMS parity for deterministic supported scenes.~~ ✅
+  **Done.** `test/rendercli/TracingParityTest.cmake`.
+- ~~Transparent/glass packed-intersection eligibility, plus explicit fallback
+  tests for genuinely unsupported scene features.~~ ✅ **Done.**
+  `test/unit/render/IntersectionSceneCompilerTest.cpp` and
+  `test/unit/render/GpuIntersectionSceneTest.cpp`.
+- ~~rendercli summary shows the actual execution path.~~ ✅ **Done.**
+  `intersection_backend_execution`/`closest_hit_execution` fields asserted in
+  `test/rendercli/TracingParityTest.cmake`.
+- ~~Benchmarks capture large supported scenes before enabling `auto` GPU
+  selection by default.~~ ✅ **Done.**
+  `benchmarks/WavefrontIntersectionBackendBenchmark.cpp`.
 
 **Syrus-ready:** yes for parity coverage and fallback tests. Performance
 threshold tuning should remain interactive.
@@ -973,26 +1008,28 @@ well-defined scenes before it is user-selectable.
 
 **Dependencies:** Milestone 0.
 
-**Deliverables:**
+**Deliverables:** ✅ **Done.** Delivered as E2 - Cross-Backend Parity Harness
+above.
 
-- Create a reusable parity harness for:
-  - hit records;
-  - occlusion records;
-  - direct-light samples;
-  - sample accumulation;
-  - final image RMS/SSIM-style comparison;
-  - stochastic deterministic-seed comparisons.
-- Define canonical test scenes:
-  - supported matte scene;
-  - direct area-light scene;
-  - indirect bounce scene;
-  - mirror/delta branch scene;
-  - glass/transparent fallback scene;
-  - imported mesh scene;
-  - large visibility-heavy scene.
-- Provide rendercli test helpers that can run CPU, packed CPU, Metal, Vulkan,
-  and fallback paths with the same seed.
-- Make tests skip platform GPU checks cleanly when unavailable.
+- ~~Create a reusable parity harness for: hit records; occlusion records;
+  direct-light samples; sample accumulation; final image RMS/SSIM-style
+  comparison; stochastic deterministic-seed comparisons.~~ ✅ **Done.**
+  GoogleTest record-comparison helpers (issue #575) plus
+  `test/helpers/TracingImageComparison.h` for RMS/channel-delta image
+  comparisons.
+- ~~Define canonical test scenes: supported matte scene; direct area-light
+  scene; indirect bounce scene; mirror/delta branch scene; glass/transparent
+  fallback scene; imported mesh scene; large visibility-heavy scene.~~ ✅
+  **Done.** `test/fixtures/tracing_parity/manifest.json` lists
+  `matte_direct_light`, `whitted_reflection`, `indirect_bounce`,
+  `environment_miss`, `imported_mesh`, `transparent_glass`, and
+  `visibility_heavy` scenes.
+- ~~Provide rendercli test helpers that can run CPU, packed CPU, Metal,
+  Vulkan, and fallback paths with the same seed.~~ ✅ **Done.**
+  `test/rendercli/TracingParityTest.cmake`.
+- ~~Make tests skip platform GPU checks cleanly when unavailable.~~ ✅
+  **Done.** Metal/Vulkan parity and accumulation tests skip cleanly when the
+  build preset or runtime device is unavailable (E2 job 4).
 
 **Tests/gates:**
 
@@ -1017,17 +1054,18 @@ for material/light records.
 
 **Deliverables:**
 
-- Add a `CompiledTracingScene` or extend the existing compiled scene with
-  separate sections:
-  - geometry/intersection scene;
-  - material table;
-  - texture table;
-  - light table;
-  - environment/background records;
-  - object/material name/id debug table.
+- ~~Add a `CompiledTracingScene` or extend the existing compiled scene with
+  separate sections: geometry/intersection scene; material table; texture
+  table; light table; environment/background records; object/material
+  name/id debug table.~~ ✅ **Done.** `render::GpuTracingSceneSections`
+  (`include/render/GpuTracingScene.h`) has `geometry`, `materials`,
+  `textures`, `lights`, `environment`, and `debugIds` sections with
+  `uploadByteCount()`/`uploadBytes()` accounting.
 - Start with a restricted material subset:
-  - matte diffuse;
-  - emissive;
+  - ~~matte diffuse~~ ✅ **Done.** `render::compileGpuTracingMaterials`
+    packs `MatteMaterial` into `GpuTracingMaterialRecord`
+    (`src/render/GpuTracingScene.cpp`).
+  - ~~emissive~~ ✅ **Done.** Same compiler packs `EmissiveMaterial` records.
   - ~~mirror/delta reflection if straightforward~~ ✅ **Done.** `GpuTracingMaterialRecord`
     now carries `ReflectiveMaterial` local Phong coefficients plus mirror
     reflection color/coefficient continuation parameters for GPU Whitted v1
@@ -1038,7 +1076,8 @@ for material/light records.
     state plus reflection/transmission continuation coefficients and samples one
     perfect delta branch per path state.
 - Start with a restricted texture subset:
-  - constant color;
+  - ~~constant color~~ ✅ **Done.** `GpuTracingTextureCompilation` packs
+    `ConstantColorTexture` records (`src/render/GpuTracingScene.cpp`).
   - ~~checkerboard if UV/local-coordinate payloads are ready~~ ✅ **Done.**
     Compiled texture records now cover planar/UV checker graphs, UV color,
     nearest/bilinear image records, and bounded tinted wrapper chains for the
@@ -1052,19 +1091,27 @@ for material/light records.
     aligned while platform direct-light contribution kernels are still being
     filled in.
   - unsupported fallback for procedural or complex textures.
-- Start with a restricted light subset:
-  - point light;
-  - directional light;
-  - rectangular area light;
-  - environment/miss color.
-- Record first unsupported reason and counts by reason.
+- ~~Start with a restricted light subset: point light; directional light;
+  rectangular area light; environment/miss color.~~ ✅ **Done.**
+  `render::GpuTracingLightCompilation` packs `PointLight`, `DirectionalLight`,
+  and `RectangularAreaLight`; `GpuTracingEnvironmentRecord` carries scene
+  ambient, visible background, and bounced-miss environment radiance.
+- ~~Record first unsupported reason and counts by reason.~~ ✅ **Done.**
+  Unsupported material/texture/light reasons are counted and exposed via
+  metrics/rendercli/graph trace (E3 job 6).
 
 **Tests/gates:**
 
-- Unit tests for material/texture/light record compilation.
-- Unsupported scene fallback tests.
-- Id round-trip tests from runtime material/object to compiled records.
-- JSON trace contains compiled tracing-scene counts.
+- ~~Unit tests for material/texture/light record compilation.~~ ✅ **Done.**
+  `test/unit/render/GpuTracingSceneTest.cpp`.
+- ~~Unsupported scene fallback tests.~~ ✅ **Done.** Same file covers
+  unsupported-reason counting.
+- ~~Id round-trip tests from runtime material/object to compiled records.~~ ✅
+  **Done.** `GpuTracingSceneTest.cpp` proves runtime-id-to-record mapping
+  (E3 job 5).
+- ~~JSON trace contains compiled tracing-scene counts.~~ ✅ **Done.**
+  Verified via `test/rendercli/TracingParityTest.cmake` /
+  `RenderGraphOptionTest.cmake` metrics assertions (E3 job 6).
 
 **Syrus-ready:** yes. This is a strong delegation candidate because it has
 clear inputs and testable output records.
@@ -1078,28 +1125,34 @@ tracing can be compared and debugged.
 
 **Dependencies:** Milestone 1. Can run in parallel with Milestone 4.
 
-**Deliverables:**
+**Deliverables:** ✅ **Done.** Delivered as E4 - GPU Sample Stream above
+(`render::GpuSampleStream`, `include/render/samplers/GpuSampleStream.h`).
 
-- Define GPU sample stream contract:
-  - pixel sample dimension;
-  - lens/time dimensions;
-  - BSDF dimension;
-  - light selection dimension;
-  - Russian roulette dimension;
-  - continuation dimensions.
-- Choose an initial RNG/sequence:
-  - deterministic hash-based generator;
-  - or PCG/Xoroshiro-style per-sample state;
-  - Halton/Sobol later if desired.
-- Add CPU implementation of the exact same GPU sample stream for parity.
-- Add seed and sample-index mapping to compiled tracing execution settings.
+- ~~Define GPU sample stream contract: pixel sample dimension; lens/time
+  dimensions; BSDF dimension; light selection dimension; Russian roulette
+  dimension; continuation dimensions.~~ ✅ **Done.** `SampleDimension` /
+  `sampleDimensionIndex(...)` reserve pixel, time, lens, BSDF, light-surface,
+  light-selection, and Russian-roulette/continuation dimensions (E4 job 1).
+- ~~Choose an initial RNG/sequence.~~ ✅ **Done.** Stateless 32-bit
+  `pcg_hash32` over an explicit sample coordinate (E4 job 2, documented above
+  under E4 "Rationale"/"Limitations").
+- ~~Add CPU implementation of the exact same GPU sample stream for parity.~~ ✅
+  **Done.** `render::GpuSampleStream` (`src/render/samplers/GpuSampleStream.cpp`).
+- ~~Add seed and sample-index mapping to compiled tracing execution
+  settings.~~ ✅ **Done.** `sampleStreamMode`/sampling seed on raytracer pass
+  state, engine options, and wavefront metrics input (E4 job 5).
 - Add debug AOV or metrics for generated samples if useful.
 
 **Tests/gates:**
 
-- CPU/GPU sample generation parity for fixed seeds.
-- Distribution smoke tests.
-- Rendercli option/trace records the seed and stream mode.
+- ~~CPU/GPU sample generation parity for fixed seeds.~~ ✅ **Done.**
+  `test/unit/render/samplers/GpuSampleStreamTest.cpp`
+  (`NamedDimensionsMatchFixedVectors`).
+- ~~Distribution smoke tests.~~ ✅ **Done.** `SamplesStayInHalfOpenUnitInterval`
+  in the same test file.
+- ~~Rendercli option/trace records the seed and stream mode.~~ ✅ **Done.**
+  `sampling_seed`/`sample_stream_mode` fields asserted in
+  `test/rendercli/TracingParityTest.cmake`.
 
 **Syrus-ready:** yes, after RNG choice is agreed. This can be isolated from
 scene compilation.
@@ -1114,15 +1167,17 @@ readback pressure and creates the output surface full GPU tracing will need.
 **Dependencies:** Milestone 1. Can proceed before GPU BSDF if fed with test
 colors.
 
-**Deliverables:**
+**Deliverables:** ✅ **Done.** Delivered as E5 - GPU Accumulation Buffer
+above.
 
-- Add backend-owned accumulation buffer:
-  - HDR color sum;
-  - sample count;
-  - optional variance/stddev moments;
-  - optional albedo/normal AOVs later.
-- Define `render::TracingAccumulationLayout` as the v1 backend accumulation
-  layout:
+- Add backend-owned accumulation buffer: ~~HDR color sum; sample count;
+  optional variance/stddev moments~~ ✅ **Done** (`colorSum`, `sampleCount`,
+  and `moment` in `render::TracingAccumulationLayout`); optional albedo/normal
+  AOVs are not part of this layout — first-hit albedo/normal/depth feature
+  records for denoising are produced separately by the path-loop/path-step
+  reference.
+- ~~Define `render::TracingAccumulationLayout` as the v1 backend accumulation
+  layout:~~ ✅ **Done.** `include/render/TracingAccumulationLayout.h`.
   - all planes are image-shaped with the same width and height;
   - `colorSum` is required `rgba32_float`; RGB stores the linear HDR radiance
     sum, and alpha is reserved and written as zero;
@@ -1137,23 +1192,30 @@ colors.
     overwrite or reinterpret the HDR color sum as the display target, and
     callers must size memory from individual plane byte counts rather than
     assuming one packed struct per pixel.
-- Add CPU reference implementation with the same layout.
-- Add Metal/Vulkan kernels for:
-  - clear;
-  - add sample contribution;
-  - resolve to display/readback buffer.
-- Integrate with graph trace as a resource:
-  - residency;
-  - bytes;
-  - readback count;
-  - progressive snapshot count.
+- ~~Add CPU reference implementation with the same layout.~~ ✅ **Done.**
+  `render::TracingAccumulationBuffer` (`include/render/TracingAccumulationReference.h`).
+- ~~Add Metal/Vulkan kernels for: clear; add sample contribution; resolve to
+  display/readback buffer.~~ ✅ **Done.**
+  `render::MetalTracingAccumulationBuffer`
+  (`include/render/MetalTracingAccumulationKernel.h`) plus optional Vulkan
+  clear/add/resolve compute kernels with CPU-reference parity tests (E5 jobs
+  3 and 4).
+- ~~Integrate with graph trace as a resource: residency; bytes; readback
+  count; progressive snapshot count.~~ ✅ **Done.** Wavefront metrics expose
+  accumulation backend, residency, bytes, layout formats, and
+  clear/add/resolve/readback operation counts (E5 job 5); no separate
+  "progressive snapshot count" field exists because the live render loop does
+  not yet retain progressive multi-frame accumulation (see Milestone 10 /
+  "Not Yet Available").
 - Keep current CPU final image path as fallback.
 
 **Tests/gates:**
 
-- Accumulation parity for synthetic contributions.
-- Rendercli writes the same resolved image from CPU and GPU accumulation on a
-  deterministic test buffer.
+- ~~Accumulation parity for synthetic contributions.~~ ✅ **Done.**
+  `test/unit/render/TracingAccumulationReferenceTest.cpp`.
+- ~~Rendercli writes the same resolved image from CPU and GPU accumulation on
+  a deterministic test buffer.~~ ✅ **Done.** Covered by the Metal/Vulkan
+  accumulation-kernel parity tests (E5 jobs 3-4).
 - Modeler progressive display still updates.
 
 **Syrus-ready:** yes for CPU/packed and shader parity. Modeler progressive UX
@@ -1168,41 +1230,44 @@ letting the backend compute direct-light contributions for a restricted subset.
 
 **Dependencies:** Milestones 2, 4, and 5.
 
-**Deliverables:**
+**Deliverables:** ✅ **Done.** Delivered as E7 - GPU Diffuse Direct Lighting
+above.
 
-- Define a direct-light work item:
-  - hit point or reconstructible hit data;
-  - normal;
-  - material id;
-  - incoming direction;
-  - path throughput;
-  - sample dimension/state;
-  - light selection result or seed.
-- First implementation can split:
-  - GPU light selection and visibility;
-  - CPU contribution evaluation;
-  - then GPU contribution evaluation once material/light records are ready.
-- Support initial lights:
-  - point;
-  - directional;
-  - rectangular area light.
-- Support initial materials:
-  - matte diffuse;
-  - emissive direct hit handling.
-- Keep MIS contract explicit.
-- Unsupported material/light combos fall back or terminate visibly according to
-  algorithm policy.
+- ~~Define a direct-light work item: hit point or reconstructible hit data;
+  normal; material id; incoming direction; path throughput; sample
+  dimension/state; light selection result or seed.~~ ✅ **Done.** Issue #600
+  GPU diffuse direct-light surface/sample-state/light-selection/visibility
+  records (E7 job 1).
+- ~~First implementation can split: GPU light selection and visibility; CPU
+  contribution evaluation; then GPU contribution evaluation once
+  material/light records are ready.~~ ✅ **Done.** Issue #601 record-based CPU
+  reference visibility/contribution batches (E7 job 2).
+- ~~Support initial lights: point; directional; rectangular area light.~~ ✅
+  **Done.** Issue #602 compiled-record light selection/sampling for point,
+  directional, and rectangular area lights (E7 job 3).
+- ~~Support initial materials: matte diffuse; emissive direct hit
+  handling.~~ ✅ **Done.** Issue #603 matte diffuse direct-light contribution
+  (E7 job 4); emissive direct-hit handling via `GpuTracingMaterialRecord`
+  emissive records (E3 job 2).
+- ~~Keep MIS contract explicit.~~ ✅ **Done.** Issue #603 non-delta area-light
+  MIS tests (E7 job 4).
+- ~~Unsupported material/light combos fall back or terminate visibly according
+  to algorithm policy.~~ ✅ **Done.** `direct_light_contribution_fallback`
+  reasons asserted in `test/rendercli/TracingParityTest.cmake`.
 
 **Tests/gates:**
 
-- Analytic diffuse direct-light tests match CPU.
-- MIS tests match CPU for non-delta area-light samples.
-- Visibility batching parity.
+- ~~Analytic diffuse direct-light tests match CPU.~~ ✅ **Done.** Issue #603
+  analytic point-light tests (E7 job 4).
+- ~~MIS tests match CPU for non-delta area-light samples.~~ ✅ **Done.** Same
+  issue #603 coverage.
+- ~~Visibility batching parity.~~ ✅ **Done.** Issue #604 routes packed
+  direct-light visibility through `render::IntersectionService` (E7 job 5).
 - Image parity on `pathtracer_area_light_demo.json`.
-- Metrics distinguish:
-  - visibility-only GPU;
-  - contribution GPU;
-  - CPU fallback.
+- ~~Metrics distinguish: visibility-only GPU; contribution GPU; CPU
+  fallback.~~ ✅ **Done.** `direct_light_contribution_execution` values
+  (`cpu`, `cpu_record`, `full_gpu_subset`) and matching fallback reasons in
+  `test/rendercli/TracingParityTest.cmake`.
 
 **Syrus-ready:** partially. Analytic tests and data records are delegateable;
 MIS and estimator semantics should be reviewed interactively.
@@ -1215,28 +1280,42 @@ MIS and estimator semantics should be reviewed interactively.
 
 **Dependencies:** Milestones 4 and 5. Milestone 6 recommended.
 
-**Deliverables:**
+**Deliverables:** ✅ **Done.** Delivered as E8 - GPU Diffuse Path Step above.
 
-- Add GPU BSDF eval for matte diffuse.
-- Add GPU BSDF sampling for matte diffuse.
-- Add optional mirror/delta reflection once branch spawning is ready.
-- Add Russian roulette on GPU.
-- Define continuation record:
-  - ray;
-  - throughput;
-  - sample index;
-  - depth;
-  - pixel/sample id;
-  - flags;
-  - previous BSDF pdf and delta flag for MIS.
-- Add CPU implementation of the same continuation kernel for parity.
+- ~~Add GPU BSDF eval for matte diffuse.~~ ✅ **Done.**
+  `render::GpuDiffusePathStep` resolves matte material records for hit path
+  states (E8 job 3).
+- ~~Add GPU BSDF sampling for matte diffuse.~~ ✅ **Done.**
+  `render::GpuDiffusePathStep` samples diffuse continuation direction/PDF
+  using the GPU sample stream (E8 job 5).
+- ~~Add optional mirror/delta reflection once branch spawning is ready.~~ ✅
+  **Done**, but at the path-loop layer rather than this one-bounce step: the
+  compiled path loop (CPU-reference, Metal, Vulkan) carries
+  `ReflectiveMaterial`/`TransparentMaterial`/`PortalMaterial` delta
+  continuations (see E15 job 1).
+- ~~Add Russian roulette on GPU.~~ ✅ **Done.**
+  `render::GpuDiffusePathStep` applies GPU sample-stream Russian-roulette
+  termination (E8 job 5).
+- ~~Define continuation record: ray; throughput; sample index; depth;
+  pixel/sample id; flags; previous BSDF pdf and delta flag for MIS.~~ ✅
+  **Done.** `GpuDiffusePathStateRecord`
+  (`include/render/GpuTracingScene.h`) has `ray`, `throughput`, `pixelIndex`,
+  `primarySampleIndex`, `depth`, `flags`, `previousBsdfPdf`,
+  `previousLightPdf`, and `previousEventFlags`.
+- ~~Add CPU implementation of the same continuation kernel for parity.~~ ✅
+  **Done.** `render::GpuDiffusePathStepReference`
+  (`include/render/GpuDiffusePathStepReference.h`).
 
 **Tests/gates:**
 
-- BSDF eval/sample parity for deterministic sample inputs.
-- Continuation record parity for diffuse hits.
-- Russian roulette deterministic parity.
-- Unsupported materials produce explicit fallback/termination metrics.
+- ~~BSDF eval/sample parity for deterministic sample inputs.~~ ✅ **Done.**
+  Wrapper-vs-reference one-bounce parity tests (issue #611, E8 job 6).
+- ~~Continuation record parity for diffuse hits.~~ ✅ **Done.** Same tests.
+- ~~Russian roulette deterministic parity.~~ ✅ **Done.**
+  `render::GpuDiffusePathStepReference` fixed-seed coverage (E8 job 2).
+- ~~Unsupported materials produce explicit fallback/termination metrics.~~ ✅
+  **Done.** Unsupported compiled-material hits report explicit terminated
+  path records (E8 job 3, issue #608).
 
 **Syrus-ready:** yes for diffuse-only record/kernel tests. Delta branching
 should be interactive.
@@ -1250,39 +1329,40 @@ frontiers and host compaction.
 
 **Dependencies:** Milestones 1, 5, and 8. Milestone 6 recommended.
 
-**Deliverables:**
+**Deliverables:** ✅ **Done.** Delivered as E9 - GPU Resident Path Loop v1
+above.
 
-- Define GPU path-state layout:
-  - active ray;
-  - throughput;
-  - accumulated contribution or accumulation target;
-  - sample/pixel id;
-  - depth;
-  - RNG/sample stream state;
-  - flags;
-  - material/light MIS metadata.
-- Add device frontier buffers:
-  - active paths;
-  - next paths;
-  - spawned delta continuations;
-  - retained index buffer;
-  - compaction output.
-- Add Metal/Vulkan compaction kernels.
-- Preserve CPU reference compaction contract.
-- Update metrics:
-  - resident path-state bytes;
-  - retained path-state bytes;
-  - removed path-state bytes;
-  - compaction kernel time;
-  - host readback avoided;
-  - resident-frontier round trips actually saved.
+- ~~Define GPU path-state layout: active ray; throughput; accumulated
+  contribution or accumulation target; sample/pixel id; depth; RNG/sample
+  stream state; flags; material/light MIS metadata.~~ ✅ **Done.**
+  `render::TracingPathStateLayout` / `GpuDiffusePathStateRecord` (issue #612,
+  E9 job 1).
+- ~~Add device frontier buffers: active paths; next paths; spawned delta
+  continuations; retained index buffer; compaction output.~~ ✅ **Done.**
+  Ping-pong active/next buffers, `ResidentPathCompactionContract` retained
+  indices, and Metal/Vulkan frontier-compaction backends
+  (`MetalGpuDiffusePathFrontierCompactionBackend`,
+  `VulkanGpuDiffusePathFrontierCompactionBackend`) (E9 job 2, issue #613).
+- ~~Add Metal/Vulkan compaction kernels.~~ ✅ **Done.** Same E9 job 2 backends,
+  plus `MetalResidentPathCompactionBackend`.
+- ~~Preserve CPU reference compaction contract.~~ ✅ **Done.**
+  `CpuResidentPathCompactionBackend` (`include/render/TracingPathStateBuffer.h`)
+  and `cpu_resident_path_compaction` execution-path label.
+- ~~Update metrics: resident path-state bytes; retained path-state bytes;
+  removed path-state bytes; compaction kernel time; host readback avoided;
+  resident-frontier round trips actually saved.~~ ✅ **Done.** Resident
+  path-loop actual execution counters (issue #617, E9 job 6).
 - Keep host debug readback available for graph trace inspection.
 
 **Tests/gates:**
 
-- Compaction parity for synthetic path states.
-- Path frontier after each depth matches CPU for deterministic diffuse scene.
-- Metrics change from estimate-only to actual resident execution path.
+- ~~Compaction parity for synthetic path states.~~ ✅ **Done.**
+  `test/unit/render/TracingPathStateBufferTest.cpp`.
+- ~~Path frontier after each depth matches CPU for deterministic diffuse
+  scene.~~ ✅ **Done.** `loopResidentDiffusePaths` fixed-seed retained-record
+  parity diagnostics (issue #614, E9 job 3).
+- ~~Metrics change from estimate-only to actual resident execution path.~~ ✅
+  **Done.** Issue #617 (E9 job 6).
 - No graph/Modeler flicker regression when trace updates include resident
   frontiers.
 
@@ -1293,6 +1373,21 @@ interactive.
 ---
 
 ## Milestone 10 - First Full GPU Path Tracer v1
+
+✅ **Partially done.** `MetalGpuDiffusePathLoopBackend` and
+`VulkanGpuDiffusePathLoopBackend` (E15 jobs 2-3, both marked "Started" rather
+than "Done" there) already execute the initial supported subset below
+end-to-end — pinhole (and other descriptor-backed cameras) plus static/
+linearly-moving supported geometry, Matte/Phong/Reflective/Transparent/
+Portal/Emissive materials, ConstantColor/CheckerBoard/ImageTexture/UVColor/
+Tinted textures, point/directional/rectangular-area lights, and environment
+miss color, with `tracing_backend_mode=full_gpu_subset` visible in rendercli
+metrics (`test/rendercli/TracingParityTest.cmake`). What is still missing
+before this milestone is fully done: broader primitive/CSG coverage beyond
+the restricted subset, DOF/lens sampling, a general (non-restricted) full-GPU
+loop for the normal render path, and the E15 performance gate proving a
+GPU speedup on a documented benchmark (E15 jobs 2, 3, and 5 remain
+"Started"). See the "Not Yet Available" section above for the itemized gaps.
 
 **Goal:** implement the first complete GPU tracing algorithm for a restricted
 scene subset.
@@ -1449,20 +1544,31 @@ compiler, private fallback vocabulary, or private device-selection policy.
 Unsupported scenes fall back visibly through the shared capability/fallback
 surface.
 
-**Deliverables:**
+**Deliverables:** ✅ **Done.** Delivered as E14 - GPU Whitted v1 above.
 
-- Deterministic GPU direct lighting and shadows.
-- Mirror reflection for supported material subset.
+- ~~Deterministic GPU direct lighting and shadows.~~ ✅ **Done.** The Whitted
+  depth-major batch path evaluates supported non-recursive local BSDF direct
+  lighting with backend any-hit shadow batches (issue #639, E14 job 2).
+- ~~Mirror reflection for supported material subset.~~ ✅ **Done.**
+  `ReflectiveMaterial::shadeWhitted` emits `WhittedContinuation` records
+  queued through the closest-hit frontier path (E14 job 3).
 - Transparent/refraction only after hit metadata and nested-medium semantics
-  are explicitly represented.
-- Optional wavefront or iterative stack schedule.
+  are explicitly represented. (Still intentionally unsupported, matching the
+  documented v1 scope above.)
+- ~~Optional wavefront or iterative stack schedule.~~ ✅ **Done.** Uses the
+  Whitted depth-major batch scheduler.
 
 **Tests/gates:**
 
-- CPU Whitted vs GPU Whitted image parity on supported deterministic scenes.
-- Packed-intersection eligibility tests for `TransparentMaterial`, plus
-  full-GPU Whitted fallback tests until transparent shading is supported there.
-- Reflection depth behavior matches CPU.
+- ~~CPU Whitted vs GPU Whitted image parity on supported deterministic
+  scenes.~~ ✅ **Done.** `rendercli_tracing_parity` CPU-vs-GPU-requested
+  Whitted comparison (issue #641, E14 job 4).
+- ~~Packed-intersection eligibility tests for `TransparentMaterial`, plus
+  full-GPU Whitted fallback tests until transparent shading is supported
+  there.~~ ✅ **Done.** Same E14 job 4 coverage keeps transparent Whitted
+  fallback tests.
+- ~~Reflection depth behavior matches CPU.~~ ✅ **Done.** Unit coverage
+  compares scalar and batched reflective continuation output (E14 job 3).
 
 **Syrus-ready:** future. Not first.
 
@@ -1484,13 +1590,20 @@ feature.
 - Portal/mirror visibility queries.
 - Graph debug AOVs.
 
-**Deliverables:**
+**Deliverables:** ✅ **Done.** Delivered as E13 - Hybrid Visibility and
+Ray-Traced Shadows above.
 
-- Render graph pass type or executor capability for visibility queries.
-- Raster/OpenGL pass can request GPU any-hit or closest-hit visibility when
-  available.
-- Clear fallback to CPU/raster approximations when unavailable.
-- Trace resources show visibility buffers separately from full tracing.
+- ~~Render graph pass type or executor capability for visibility queries.~~ ✅
+  **Done.** `hybrid_visibility` AOV pass (issue #634, E13 job 2).
+- ~~Raster/OpenGL pass can request GPU any-hit or closest-hit visibility when
+  available.~~ ✅ **Done.** `--shadow_mode ray_traced` compiles the
+  `hybrid_ray_traced_shadows` graph pass (E13 job 3).
+- ~~Clear fallback to CPU/raster approximations when unavailable.~~ ✅
+  **Done.** Fallback behavior documented and tested per the Hybrid Visibility
+  Graph Pass Contract below and E13 job 5.
+- ~~Trace resources show visibility buffers separately from full tracing.~~ ✅
+  **Done.** `hybrid_shadow_mask` / visibility metadata are distinct trace
+  resources (E13 job 3).
 
 ### Hybrid Visibility Graph Pass Contract
 
@@ -1574,10 +1687,15 @@ separate tracing pass.
 
 **Tests/gates:**
 
-- AOV/visibility pass renders expected occlusion.
-- Raster/hybrid scene visibly changes when ray-traced shadows are enabled.
-- Metrics show GPU intersection service usage without claiming full GPU
-  tracing.
+- ~~AOV/visibility pass renders expected occlusion.~~ ✅ **Done.**
+  `GraphRenderEngine` tests prove the hybrid shadow pass darkens occluded
+  raster receivers (E13 job 4).
+- ~~Raster/hybrid scene visibly changes when ray-traced shadows are
+  enabled.~~ ✅ **Done.** rendercli functional coverage for
+  `--shadow_mode ray_traced` (E13 job 4).
+- ~~Metrics show GPU intersection service usage without claiming full GPU
+  tracing.~~ ✅ **Done.** Trace metadata for closest-hit plus any-hit shadow
+  queries (E13 job 4).
 
 **Syrus-ready:** yes after the intersection service API is stable.
 
@@ -1622,20 +1740,32 @@ letting users manually prescribe internal graph nodes.
 - resource residency;
 - trace fields.
 
-**Deliverables:**
+**Deliverables:** ✅ **Done.** Delivered as E10 - Render Graph, rendercli, and
+Modeler Execution Integration above.
 
-- Replace "intersection backend" UI prominence with a broader "Tracing
-  backend" or "Execution" group.
-- Keep intersection backend visible in advanced diagnostics.
-- Render dialog graph tab shows predicted execution before render.
-- After render, graph trace shows actual execution and fallback.
-- Property editor groups capability metadata cleanly.
+- ~~Replace "intersection backend" UI prominence with a broader "Tracing
+  backend" or "Execution" group.~~ ✅ **Done.** Issue #621 Modeler Render
+  Settings controls for `auto`/`cpu`/`hybrid`/`gpu` tracing execution
+  (E10 job 4).
+- ~~Keep intersection backend visible in advanced diagnostics.~~ ✅ **Done.**
+  Intersection backend stays as a hybrid-only advanced override (E10 job 4).
+- ~~Render dialog graph tab shows predicted execution before render.~~ ✅
+  **Done.** Issue #622 predicted tracing execution rows (E10 job 5).
+- ~~After render, graph trace shows actual execution and fallback.~~ ✅
+  **Done.** Issue #622 feeds the completed graph trace back with actual
+  mode/fallback rows (E10 job 5).
+- Property editor groups capability metadata cleanly. (Delivered for
+  selected-pass metadata via E6 job 4's Modeler grouping; render-intent
+  property-editor grouping specifically was not independently verified.)
 
 **Tests/gates:**
 
-- Intent round-trip tests.
-- Render graph compiler tests for CPU/hybrid/GPU/fallback decisions.
-- Modeler widget tests for visibility of relevant controls.
+- ~~Intent round-trip tests.~~ ✅ **Done.** `tracingExecution` intent field
+  round-trip (issue #618, E10 job 1).
+- ~~Render graph compiler tests for CPU/hybrid/GPU/fallback decisions.~~ ✅
+  **Done.** Issue #619 predicted/actual mode tests (E10 job 2).
+- ~~Modeler widget tests for visibility of relevant controls.~~ ✅ **Done.**
+  Issue #621/#622 widget coverage (E10 jobs 4-5).
 - No invalid settings can be selected.
 
 **Syrus-ready:** partially. Compiler tests are delegateable; UI naming and
@@ -1651,35 +1781,35 @@ are proven on representative scenes.
 **Dependencies:** Milestones 2, 3, and any backend mode being considered for
 auto.
 
-**Deliverables:**
+**Deliverables:** ✅ **Done.** Delivered as E12 - Performance Gates and
+Automatic Selection above.
 
-- Benchmark scenes:
-  - small educational primitive scene;
-  - large imported mesh;
-  - visibility-heavy direct-light scene;
-  - indirect path-tracing scene;
-  - unsupported fallback scene.
-- Metrics:
-  - total render time;
-  - kernel time;
-  - upload/readback time;
-  - scene compile/upload time;
-  - rays per second by query family;
-  - resident path-state bytes;
-  - saved round trips;
-  - fallback rate.
-- Auto policy:
-  - platform available;
-  - scene supported;
-  - expected work clears threshold;
-  - recent benchmark evidence supports the threshold.
+- ~~Benchmark scenes: small educational primitive scene; large imported mesh;
+  visibility-heavy direct-light scene; indirect path-tracing scene;
+  unsupported fallback scene.~~ ✅ **Done.**
+  `docs/perf/tracing-backend-benchmark-scenes-2026-06-15.md` and
+  `benchmarks/tracing_backend_capture.sh` (E12 job 1).
+- ~~Metrics: total render time; kernel time; upload/readback time; scene
+  compile/upload time; rays per second by query family; resident path-state
+  bytes; saved round trips; fallback rate.~~ ✅ **Done.**
+  `benchmarks/WavefrontIntersectionBackendBenchmark.cpp` `tracing_*` counters
+  (E12 job 2).
+- ~~Auto policy: platform available; scene supported; expected work clears
+  threshold; recent benchmark evidence supports the threshold.~~ ✅ **Done.**
+  Documented `auto` gate (65,536-ray fixed floor plus
+  rays-per-scene-upload-KiB amortization gate) (E12 job 3).
 
 **Tests/gates:**
 
-- Benchmarks are buildable under CPU, Metal, Vulkan presets.
-- Functional tests only assert conservative behavior, not machine-specific
-  speedups.
-- Performance claims are documented with captured numbers.
+- ~~Benchmarks are buildable under CPU, Metal, Vulkan presets.~~ ✅ **Done.**
+  `benchmarks/WavefrontIntersectionBackendBenchmark.cpp` builds under the
+  `benchmark`/`benchmark-metal-wavefront`/`benchmark-vulkan-wavefront`
+  presets.
+- ~~Functional tests only assert conservative behavior, not machine-specific
+  speedups.~~ ✅ **Done.** `WavefrontIntersectionAutoSelection` functional
+  tests pin conservative decisions without absolute timing (E12 job 4).
+- ~~Performance claims are documented with captured numbers.~~ ✅ **Done.**
+  `docs/perf/tracing-backend-benchmark-scenes-2026-06-15.md` (E12 job 5).
 
 **Syrus-ready:** yes for benchmark harness expansion. Threshold decision should
 be interactive.
