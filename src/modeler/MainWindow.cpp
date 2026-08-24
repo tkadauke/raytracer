@@ -1704,7 +1704,11 @@ void MainWindow::importFile() {
 
     p->scene->resolveElementReferences();
     resetPlaybackIndex();
-    elementChanged(nullptr);
+    // Import only adds elements; it never invalidates the currently
+    // displayed one, so refresh it in place rather than passing nullptr —
+    // elementChanged(nullptr) now means "the displayed element is gone"
+    // and clears the Properties dock, which would be wrong here.
+    elementChanged(p->currentElement);
     reportImportDiagnostics(imported.importResult);
   });
   thread->start();
@@ -2253,9 +2257,12 @@ QDockWidget* MainWindow::createRenderGraphInspector() {
   return dockWidget;
 }
 
-void MainWindow::elementChanged(Element*) {
+void MainWindow::elementChanged(Element* element) {
   p->scene->setChanged(true);
-  p->propertyEditorWidget->update();
+  if (!element)
+    p->propertyEditorWidget->setElement(nullptr);
+  else
+    p->propertyEditorWidget->update();
   syncPlaybackControls();
   updateWindowModified();
   if (p->previewUseSceneIntentAct && p->previewUseSceneIntentAct->isChecked())
