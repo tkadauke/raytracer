@@ -3,6 +3,7 @@
 #include "core/Buffer.h"
 #include "engine/graph/RenderGraphPreviewHelpers.h"
 #include "core/geometry/Mesh.h"
+#include "core/json/JsonValue.h"
 #include "core/math/HitPointInterval.h"
 #include "core/util/BufferUtils.h"
 #include "engine/TracingExecutionCapabilityJson.h"
@@ -584,19 +585,11 @@ namespace engine::graph {
     }
 
     QJsonArray unsignedArrayToJson(const std::vector<std::uint64_t>& values) {
-      QJsonArray result;
-      for (const std::uint64_t value : values) {
-        result.push_back(static_cast<double>(value));
-      }
-      return result;
+      return core::json::numericRangeToJsonArray(values);
     }
 
     QJsonArray doubleArrayToJson(const std::vector<double>& values) {
-      QJsonArray result;
-      for (const double value : values) {
-        result.push_back(value);
-      }
-      return result;
+      return core::json::numericRangeToJsonArray(values);
     }
 
     QJsonObject
