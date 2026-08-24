@@ -176,6 +176,9 @@ void PropertyEditorWidget::setElement(Element* element) {
 }
 
 void PropertyEditorWidget::update() {
+  if (!p->element)
+    return;
+
   for (const auto& widget : p->parameterWidgets) {
     const QString& parameterName = widget->parameterName();
     auto prop = p->element->property(parameterName.toStdString().c_str());

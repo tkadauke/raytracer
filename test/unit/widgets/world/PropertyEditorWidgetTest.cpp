@@ -137,6 +137,31 @@ namespace PropertyEditorWidgetTest {
     editor.setElement(nullptr);
   }
 
+  TEST_F(PropertyEditorWidgetTest, ShouldIgnoreUpdateCallsWithNoElementSelected) {
+    // Regression test: PropertyEditorWidget::update() used to dereference
+    // p->element unconditionally. MainWindow::elementChanged(nullptr) now
+    // calls setElement(nullptr) instead of update() when the currently
+    // displayed element goes away (e.g. deleted via the MCP delete tool
+    // while shown in the Properties dock), but update() also guards
+    // p->element itself so any other direct caller stays safe.
+    Scene root;
+    PropertyEditorWidget editor(&root);
+    editor.update();
+  }
+
+  TEST_F(PropertyEditorWidgetTest, ShouldIgnoreUpdateCallsAfterElementIsCleared) {
+    Scene root;
+    auto* camera = new PinholeCamera;
+    root.addChild(camera);
+
+    PropertyEditorWidget editor(&root);
+    editor.setElement(camera);
+    ASSERT_NE(nullptr, parameterWidget(editor, "position"));
+
+    editor.setElement(nullptr);
+    editor.update();
+  }
+
   TEST_F(PropertyEditorWidgetTest, ShouldAcceptElementSelection) {
     // Setting an element with several Q_PROPERTYs (PinholeCamera has
     // distance, zoom, plus inherited position/target) populates the
