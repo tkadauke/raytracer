@@ -1,6 +1,7 @@
 #include "engine/wavefront/WavefrontRaytracer.h"
 
 #include "core/Buffer.h"
+#include "core/json/JsonValue.h"
 #include "core/math/Constants.h"
 #include "core/math/Number.h"
 #include "core/util/BufferUtils.h"
@@ -1052,11 +1053,7 @@ namespace engine::wavefront {
 
     QJsonObject batchingJson;
     const auto integerArray = [](const std::vector<std::uint64_t>& values) {
-      QJsonArray result;
-      for (const std::uint64_t value : values) {
-        result.push_back(static_cast<double>(value));
-      }
-      return result;
+      return core::json::numericRangeToJsonArray(values);
     };
     const QJsonArray activeSamplesPerDepth = integerArray(batching.activeSamplesPerDepth);
     const QJsonArray retainedActiveSamplesPerDepth =

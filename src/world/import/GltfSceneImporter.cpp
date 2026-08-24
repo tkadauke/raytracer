@@ -97,10 +97,7 @@ namespace world {
     }
 
     QJsonArray jsonArray(std::initializer_list<double> values) {
-      QJsonArray result;
-      for (const double value : values)
-        result.append(value);
-      return result;
+      return core::json::numericRangeToJsonArray(values);
     }
 
     std::optional<double> accessorFloat(const core::gltf::Asset& asset,

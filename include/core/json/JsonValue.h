@@ -54,12 +54,22 @@ namespace core::json {
     return result;
   }
 
-  template<class Source, std::size_t Size>
-  inline QJsonArray numberArrayToJsonArray(const std::array<Source, Size>& values) {
+  /**
+    * Converts any iterable range of numeric values (a @c std::vector, a
+    * @c std::array, an @c std::initializer_list, ...) into a @c QJsonArray of
+    * doubles.
+    */
+  template<class Container>
+  inline QJsonArray numericRangeToJsonArray(const Container& values) {
     QJsonArray result;
     for (const auto& value : values)
       result.append(static_cast<double>(value));
     return result;
+  }
+
+  template<class Source, std::size_t Size>
+  inline QJsonArray numberArrayToJsonArray(const std::array<Source, Size>& values) {
+    return numericRangeToJsonArray(values);
   }
 
   template<std::size_t Size, class Message, class ErrorHandler>
