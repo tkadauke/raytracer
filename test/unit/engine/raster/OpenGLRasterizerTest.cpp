@@ -14,6 +14,7 @@
 #include "render/textures/ConstantColorTexture.h"
 #include "test/helpers/CameraTestHelper.h"
 #include "test/helpers/GuiTestHelper.h"
+#include "test/helpers/SceneTestHelper.h"
 
 #include "engine/raster/gl/AttachmentSet.h"
 #include "engine/raster/gl/Bindings.h"
@@ -269,14 +270,7 @@ namespace OpenGLRasterizerTest {
 
   namespace {
     std::shared_ptr<render::Scene> simpleSphereScene() {
-      auto scene = std::make_shared<render::Scene>(Colord(0.05, 0.05, 0.1));
-      auto sphere = std::make_shared<render::Sphere>(Vector3d::null, 1.0);
-      sphere->setMaterial(std::make_shared<render::MatteMaterial>(
-        std::make_shared<render::ConstantColorTexture>(Colord(0.8, 0.4, 0.2))));
-      scene->add(sphere);
-      scene->addLight(
-        std::make_shared<render::DirectionalLight>(Vector3d(0.0, 0.0, -1.0), Colord::white()));
-      return scene;
+      return test::helpers::litSphereScene(Colord(0.05, 0.05, 0.1), Colord(0.8, 0.4, 0.2));
     }
 
     bool tracesContain(const std::vector<std::string>& traces, const std::string& needle) {

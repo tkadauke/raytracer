@@ -5,13 +5,10 @@
 #include "engine/raster/OpenGLRasterizer.h"
 #include "engine/raster/Rasterizer.h"
 #include "render/cameras/PinholeCamera.h"
-#include "render/lights/DirectionalLight.h"
-#include "render/materials/MatteMaterial.h"
 #include "render/primitives/Scene.h"
-#include "render/primitives/Sphere.h"
-#include "render/textures/ConstantColorTexture.h"
 #include "test/helpers/CameraTestHelper.h"
 #include "test/helpers/GuiTestHelper.h"
+#include "test/helpers/SceneTestHelper.h"
 
 #include <QThread>
 
@@ -29,13 +26,7 @@ namespace OpenGLRepeatRenderTest {
 
   namespace {
     std::shared_ptr<Scene> sphereScene() {
-      auto scene = std::make_shared<Scene>(Colord(0.1, 0.1, 0.1));
-      auto sphere = std::make_shared<Sphere>(Vector3d::null, 1.0);
-      sphere->setMaterial(
-        std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::red())));
-      scene->add(sphere);
-      scene->addLight(std::make_shared<DirectionalLight>(Vector3d(0, 0, -1), Colord::white()));
-      return scene;
+      return test::helpers::litSphereScene(Colord(0.1, 0.1, 0.1), Colord::red());
     }
 
     template<typename Engine>

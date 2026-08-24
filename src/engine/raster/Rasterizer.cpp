@@ -1147,8 +1147,7 @@ void Rasterizer::setMSAASamples(int samples) {
 }
 
 void Rasterizer::setNearClipDepth(double depth) {
-  m_nearClipDepth =
-    std::isfinite(depth) ? std::max(kMinimumRasterClipDepth, depth) : kMinimumRasterClipDepth;
+  m_nearClipDepth = finiteAtLeast(kMinimumRasterClipDepth, depth);
   if (std::isfinite(m_farClipDepth) && m_farClipDepth <= m_nearClipDepth) {
     m_farClipDepth = minimumFarClipDepth(m_nearClipDepth);
   }

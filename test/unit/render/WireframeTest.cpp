@@ -3,7 +3,6 @@
 #include "core/Buffer.h"
 #include "core/geometry/Mesh.h"
 #include "engine/wireframe/Wireframe.h"
-#include "render/primitives/Box.h"
 #include "render/primitives/Curve.h"
 #include "render/primitives/Instance.h"
 #include "render/primitives/Primitive.h"
@@ -11,6 +10,7 @@
 #include "render/primitives/Sphere.h"
 #include "test/helpers/BufferTestHelper.h"
 #include "test/helpers/CameraTestHelper.h"
+#include "test/helpers/SceneTestHelper.h"
 
 #include <memory>
 
@@ -43,9 +43,7 @@ namespace WireframeTest {
   };
 
   static std::shared_ptr<render::Scene> sceneWithBox() {
-    auto scene = std::make_shared<Scene>(Colord::black());
-    scene->add(std::make_shared<Box>(Vector3d::null, Vector3d(1, 1, 1)));
-    return scene;
+    return test::helpers::sceneWithBox(Colord::black());
   }
 
   TEST(Wireframe, EmptySceneRendersBackground) {
