@@ -8,9 +8,9 @@
 
 ## 1. Executive Summary
 
-- **Migrate the build from a bespoke Rakefile to CMake 3.28+ with FetchContent** — the current Ruby/Rake build has hardcoded Homebrew paths, no cross-platform support, no package-manager integration, and cannot be consumed by IDEs or CI without friction.
-- **Replace vendored gtest/gmock (circa 2005-era headers) with GoogleTest 1.14 via CMake FetchContent** — removes ~3 MB of checked-in test framework code, enables upstream bug fixes, and unlocks modern test runners.
-- **Add a GitHub Actions CI pipeline** — there is zero CI today; every defect is detected manually. A working matrix build (GCC 13, Clang 18, macOS/arm64) with caching and coverage upload is achievable in a single sprint.
+- ~~**Migrate the build from a bespoke Rakefile to CMake 3.28+ with FetchContent** — the current Ruby/Rake build has hardcoded Homebrew paths, no cross-platform support, no package-manager integration, and cannot be consumed by IDEs or CI without friction.~~ ✅ **Done.** `21d2836c` ("build: add CMake 3.28 build alongside the Rakefile", 2026-04-29) and `275735f9` ("build: replace Rakefile compile pipeline with CMake wrappers", 2026-04-30) landed this; see §3.3 for the current preset surface (floor later lowered to 3.25).
+- ~~**Replace vendored gtest/gmock (circa 2005-era headers) with GoogleTest 1.14 via CMake FetchContent** — removes ~3 MB of checked-in test framework code, enables upstream bug fixes, and unlocks modern test runners.~~ ✅ **Done.** `242c19f6` ("test: switch to GoogleTest 1.14 via FetchContent") removed the vendored `gtest/`/`gmock/` directories; see §3.2 item 1 for the live `FetchContent_Declare` snippet.
+- **Add a GitHub Actions CI pipeline** — ~~there is zero CI today; every defect is detected manually.~~ Stale premise: it is no longer true that there's zero CI — Syrus-native graders (`coverage`, `opengl-egl`, `benchmark-build`, `textbook`) run per `.syrus.yml` on every implement→grade iteration (see §3.5, §4). The GitHub Actions pipeline itself, and the matrix/macOS coverage it would bring, remain undone — GitHub Actions is parked repo-wide on blocked billing (`6323011a`). A working matrix build (GCC 13, Clang 18, macOS/arm64) with caching and coverage upload is achievable in a single sprint.
 - **Harden the supply chain** — no Dependabot, no SBOM, no SAST, no secret scanning. Enable all four in one afternoon; they are free for public repos.
 - ~~**Replace Qt 4 with Qt 6** — Qt 4 reached end-of-life in December 2015. The codebase has already moved to Qt 5 paths in the Rakefile (`QT_BASE` points to a Qt5 Homebrew prefix); completing the move to Qt 6 eliminates a decade of unpatched CVEs.~~ ✅ **Done.** `4528a62b` ("Migrate from Qt 5 / QtScript to Qt 6 / QJSEngine", 2026-05-05) landed this — `CMakeLists.txt` now does `find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Qml OpenGL)` and `ScriptedSurface` uses `QJSEngine` in place of the removed `QScriptEngine`. This predates this file's last edit (`e203081a`, 2026-07-27) but was never reflected in the Current State table or §3.2/§4 below — corrected throughout this pass.
 
@@ -186,7 +186,7 @@ endif()
 
 ### 3.4 Testing
 
-**Current state:** 138 test files, GoogleTest/GMock, two runners (unit, functional), `lcov`/`gcovr` coverage. A 60% line-coverage floor is now enforced in Syrus CI via the `coverage` grader in `.syrus.yml` (added 2026-07; matches the floor in `docs/plans/github_actions/ci.yml`). No mutation testing. No fuzz tests.
+**Current state:** ~~138 test files~~ 325 test files (`find test -name '*Test.cpp' | wc -l`; see §2's test-count row for the up-to-date figure — not re-counted here to avoid a second stale number), GoogleTest/GMock, two runners (unit, functional), `lcov`/`gcovr` coverage. A 60% line-coverage floor is now enforced in Syrus CI via the `coverage` grader in `.syrus.yml` (added 2026-07; matches the floor in `docs/plans/github_actions/ci.yml`). ~~No mutation testing. No fuzz tests.~~ Both now exist in some form and were stale by the time of this edit — PLY fuzzing via LibFuzzer is done (item 3 below) and mutation testing is partially wired via `mull` (item 5 below).
 
 **Recommendations:**
 
@@ -225,17 +225,17 @@ feature macros.
 
 **Current state:** `test/functional/` has 114 `TEST_F` cases across 40 `*Test.cpp` files (up from the 91/35 recorded here previously — that count was already stale at this file's last edit) driven by a custom Given/When/Then framework (`test/functional/support/FeatureTest.h` + the `GIVEN/WHEN/THEN` macros in `GivenWhenThen.h`). Reads like English; three rough edges:
 
-1. **String-keyed step lookup at runtime.** Step names live in a `std::map<std::string, Step*>` populated at static-init time by `bool dummy = registerGiven(...)` initialisers. A typo or stale copy-paste prints `WARNING: 'given' step '...' is not defined!` to `stderr` but the `TEST_F` reports green. Real silent-failure path — invisible in CI summaries.
-2. **Hardcoded to one engine.** `RaytracerFeatureTest::render()` always constructs `engine::raytracer::Raytracer`. The Wireframe engine has only unit tests today; future path tracer / software rasterizer / GL viewport will too unless the fixture grows engine pluralism.
-3. **Hardcoded `redDiffuse` + `objectVisible/objectSize` semantics.** `objectVisible` literally counts red pixels in the buffer; tests can't easily assert non-red rendering. The `ShapeRecognition::recognizeCircle` heuristic is the only escape hatch and lives in `test/helpers/`.
+1. ~~**String-keyed step lookup at runtime.** Step names live in a `std::map<std::string, Step*>` populated at static-init time by `bool dummy = registerGiven(...)` initialisers. A typo or stale copy-paste prints `WARNING: 'given' step '...' is not defined!` to `stderr` but the `TEST_F` reports green. Real silent-failure path — invisible in CI summaries.~~ ✅ **Done.** See item A below — a step that doesn't match exactly one registered pattern now calls `GTEST_FAIL()` (`test/functional/support/FeatureTest.h`) instead of printing to `stderr`; the old `WARNING:`-and-green-test failure mode is gone.
+2. ~~**Hardcoded to one engine.** `RaytracerFeatureTest::render()` always constructs `engine::raytracer::Raytracer`. The Wireframe engine has only unit tests today; future path tracer / software rasterizer / GL viewport will too unless the fixture grows engine pluralism.~~ ✅ **Done.** See item B below — `test/functional/support/EngineFeatureTest.h` is now the abstract base with a `createEngine()` hook; `RaytracerFeatureTest` and `WireframeFeatureTest` are concrete subclasses sharing one step registry.
+3. **Hardcoded `redDiffuse` + `objectVisible/objectSize` semantics.** ⏳ **Partially done.** The engine-specific color is no longer hardcoded — `objectVisible`/`objectSize` now adapt via a virtual `primaryColor()` per §-B's `EngineFeatureTest` (Raytracer keeps red, Wireframe overrides to white edge color) — but the underlying "count pixels matching one color" approach is still there, so tests still can't easily assert multi-color or non-primary-color rendering. The `ShapeRecognition::recognizeCircle` escape hatch named here no longer exists — it was replaced by `Blob`/`Silhouette`/`ShapeClassifier` under item G below.
 
 **Coverage gaps from recent work:**
 
 - ~~`ThinLensCamera` — no functional tests (units exist).~~ ✅ **Done.** See `ThinLensCameraTest.FocalPlaneContractSharpVsBlurred` under item E below. `TiltShiftCamera`, `EquirectangularCamera` — still no functional tests (units exist).
-- `MatteMaterial`, `PhongMaterial` — no functional tests (Reflective + Portal do).
-- `LinearTonemap` / `ReinhardTonemap` / `AcesTonemap` — none.
-- `JitteredSampler` / `RegularSampler` / `RandomSampler` — none at integration level.
-- Wireframe engine — only unit tests, nothing at the scene-render level.
+- ~~`MatteMaterial`, `PhongMaterial` — no functional tests (Reflective + Portal do).~~ ✅ **Done.** See item E below — `MatteMaterialTest`/`PhongMaterialTest` under `test/functional/render/materials/`. This bullet wasn't struck when that item landed.
+- ~~`LinearTonemap` / `ReinhardTonemap` / `AcesTonemap` — none.~~ ✅ **Done.** See item E below — PR #58's `TonemapMonotonicityTest` (`test/functional/render/tonemap/`). This bullet wasn't struck when that item landed.
+- `JitteredSampler` / `RegularSampler` / `RandomSampler` — none at integration level. ⏳ **Partially done.** `RegularSampler` and `RandomSampler` now have integration-level coverage via `test/functional/render/samplers/SamplerDeterminismTest.cpp` (see item E's "Sampler determinism" bullet below). `JitteredSampler` still has none.
+- ~~Wireframe engine — only unit tests, nothing at the scene-render level.~~ ✅ **Done.** See item C below — `test/functional/engine/wireframe/WireframeTest.cpp`. This bullet wasn't struck when that item landed.
 - `BSDF` interface (just landed, §3.R6 phase 1) — no integration smoke.
 - ~~`PointLight` — no end-to-end shadow-boundary test.~~ ✅ **Done.** Functional test added in `test/functional/render/lights/PointLightTest.cpp` for PR #57.
 - Layout drift: empty `test/functional/raytracer/` directory; `MinkowskiSumTest.cpp` is mis-filed under `steps/` despite being a test, not steps.

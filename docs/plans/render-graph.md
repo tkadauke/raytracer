@@ -659,12 +659,23 @@ describe these passes, it is probably too narrow.
 
 These are executor-agnostic or appear at the end of almost every frame:
 
-- **Tonemap pass** - convert HDR scene-linear color into display/export color.
+- ~~**Tonemap pass** - convert HDR scene-linear color into display/export
+  color.~~ ✅ **Done.** `TonemapPass` (`src/engine/graph/RenderPassPayloads.cpp`)
+  executes as a `PostProcess`/`Tonemap`-kind node in every compiled beauty
+  chain, covered throughout `RenderGraphCompilerTest.cpp` and
+  `GraphRenderEngineTest.cpp`.
 - **Color-management pass** - apply output transform, gamma/OETF, display gamut,
   or a look/LUT.
 - **Exposure pass** - fixed exposure or auto-exposure based on scene luminance.
-- **AOV visualization pass** - convert depth, normals, object ids, material ids,
-  UVs, or motion vectors into inspectable color.
+- ~~**AOV visualization pass** - convert depth, normals, object ids, material
+  ids, UVs, or motion vectors into inspectable color.~~ ✅ **Done for
+  depth/stencil/object-id/material-id/world-position.** `DepthVisualizationPass`,
+  `StencilVisualizationPass`, `ObjectIdVisualizationPass`, and
+  `WorldPositionVisualizationPass` (`src/engine/graph/RenderPassPayloads.cpp`)
+  back the `--render_graph_view` AOV modes; e.g.
+  `RenderGraphCompilerTest.ObjectIdViewModeCompilesObjectIdAOVPlan` and
+  `StencilViewModeCompilesStencilAOVPlan`. UV and motion-vector visualization
+  are still missing.
 - **Compositor pass** - combine color, alpha, masks, depth, object ids, or
   explicit layers into the final image. ✅ **Partial.** Built-in `Composite`
   executor passes tagged `depth_composite` or `stencil_composite` can now choose
@@ -711,7 +722,10 @@ passes remains future raster graph work.
 Raster rendering is where graph-based decomposition is most immediately useful:
 
 - **Depth pre-pass** - render depth only before a color pass.
-- **Main forward raster pass** - shade visible triangles directly into color.
+- ~~**Main forward raster pass** - shade visible triangles directly into
+  color.~~ ✅ **Done.** `RasterBeautyPass` (`src/engine/graph/RenderPassPayloads.cpp`)
+  wraps `Rasterizer` as the `raster_beauty` graph node, covered by
+  `RasterPassStateTest.cpp` / `RenderGraphCompilerTest.cpp` / `RenderPlanTest.cpp`.
 - **G-buffer pass** - write depth, normal, material id, albedo, roughness,
   motion vectors, and object ids for deferred shading or post effects.
 - **Deferred lighting pass** - read G-buffer outputs and accumulate direct
@@ -744,7 +758,17 @@ Raster rendering is where graph-based decomposition is most immediately useful:
 - **Outline/silhouette pass** - edge detection from normals/depth/object ids or
   geometry-expanded silhouettes.
 - **Object-id/picking pass** - write stable selection ids for Modeler picking.
-- **Occlusion/visibility pass** - produce object visibility, queries, or masks.
+  ✅ **Partial.** `ObjectIdAOVPass` / `RasterObjectIdAOVPass`
+  (`src/engine/graph/RenderPassPayloads.cpp`) write a stable object-id
+  resource (`GraphRenderEngineTest.ExecutesObjectIdAOVViewAndRecordsColorTrace`),
+  but nothing in `include/widgets`/`src/widgets` consumes it for actual
+  Modeler click-to-select picking yet.
+- ~~**Occlusion/visibility pass** - produce object visibility, queries, or
+  masks.~~ ✅ **Done.** `RasterVisibilityCullingPass`
+  (`src/engine/graph/RenderPassPayloads.cpp`) backs a `RenderPassKind::Visibility`
+  `raster_visibility_set` node with artifact-cache reuse, tested by
+  `GraphRenderEngineTest.RasterVisibilityCullingReusesVisibilitySetArtifactCache`
+  and `RenderGraphCompilerTest` visibility-set assertions.
 
 Cross-check: raster passes need depth/stencil resources, scene selectors,
 alternate cameras, per-selector view-mode/shading-profile overrides, default
@@ -757,9 +781,17 @@ real portal/mirror support until stencil/depth-aware composition exists.
 Ray-style renderers also benefit from graph decomposition, especially for caches,
 hybrid previews, and progressive/denoised output:
 
-- **Primary-ray beauty pass** - trace camera rays and write HDR color.
-- **Raytraced shadow-mask pass** - compute visibility from surface points to
-  lights for a raster or deferred shading pass.
+- ~~**Primary-ray beauty pass** - trace camera rays and write HDR color.~~ ✅
+  **Done.** `RaytraceBeautyPass` (`src/engine/graph/RenderPassPayloads.cpp`)
+  wraps `Raytracer` as the `raytrace_beauty` graph node.
+- ~~**Raytraced shadow-mask pass** - compute visibility from surface points to
+  lights for a raster or deferred shading pass.~~ ✅ **Done.**
+  `HybridRayTracedShadowPass` plus `HybridShadowCompositePass`
+  (`src/engine/graph/RenderPassPayloads.cpp`) compile to a
+  `hybrid_ray_traced_shadows` node (`RenderPassKind::Shadow`,
+  `RenderExecutorKind::Raytracer`) feeding a raster receiver, pinned by
+  `RenderGraphCompilerTest` (`hybrid_ray_traced_shadows`, line ~2172) and
+  `GraphRenderEngineTest.LdrHybridRayTracedShadowsDarkenOccludedReceiver`.
 - **Reflection/refraction pass** - trace secondary rays as a separate resource
   for compositing or debugging.
 - **Photon-emission pass** - shoot photons from lights and store a photon map.
@@ -795,7 +827,9 @@ textures without adding those unimplemented resource types prematurely.
 Wireframe is not just a whole-frame engine; it is often an overlay or diagnostic
 mode:
 
-- **Wireframe beauty pass** - draw all visible edges over a background.
+- ~~**Wireframe beauty pass** - draw all visible edges over a background.~~ ✅
+  **Done.** `WireframeBeautyPass` (`src/engine/graph/RenderPassPayloads.cpp`)
+  wraps `Wireframe` as the `wireframe_beauty` graph node.
 - **Depth-aware wireframe overlay pass** - draw edges against an existing depth
   buffer.
 - **Hidden-line pass** - render visible and hidden edges with different styles.
@@ -1026,20 +1060,49 @@ describe which subset of the world a pass sees and how that subset is viewed.
 
 Minimum concepts:
 
-- surface visibility;
-- light visibility;
-- tags or layers;
+- ~~surface visibility;~~ ✅ **Done.** `RenderSceneAnalysis::recordVisibleSurface()`
+  / `visibleSurfaceCount()` (`include/engine/graph/RenderSceneAnalysis.h`),
+  tested by `RenderSceneAnalysis.RecordsVisibleSurfacesAndLights`.
+- ~~light visibility;~~ ✅ **Done.** `RenderSceneAnalysis::recordVisibleLight()`
+  / `visibleLightCount()`, same test as above.
+- ~~tags or layers;~~ ✅ **Done.**
+  `RenderSceneAnalysis::recordSelectableObject(objectId, objectName, tags,
+  layers, label)`, tested by
+  `RenderSceneAnalysis.RecordsSelectableObjectTagAndLayerSubsets` and
+  `MatchesAggregateTagAndLayerSelectors`.
 - stable scene selectors that can address one object, a subtree, a tag/layer, or
-  a material role;
+  a material role; ✅ **Partial.** `SceneSelector::Kind` covers `ObjectId`,
+  `ObjectName`, `Tag`, `Layer`, and `MaterialRole`
+  (`include/engine/graph/RenderGraphTypes.h`); there is no `Subtree` selector
+  kind anywhere in the codebase.
 - pass-specific include/exclude masks;
 - material/surface feature roles such as screen, portal, mirror, overlay-only;
-- per-selector executor, view-mode, shading-profile, and camera overrides;
-- nested scene references for render-to-texture surfaces;
-- alternate cameras such as reflected cameras and portal-transformed cameras;
+  ✅ **Partial.** Portal and mirror roles are concrete
+  (`RenderSceneAnalysis::recordPortalReceiverSurface` /
+  `recordPlanarMirrorSurface`, `DerivedCameraRef::Kind::{Portal,
+  PlanarMirror}`); `recordRenderTextureReceiver(subviewName)` links a surface
+  to a subview (screen-like behavior), but there is no formal "screen" or
+  "overlay-only" role type.
+- ~~per-selector executor, view-mode, shading-profile, and camera overrides;~~
+  ✅ **Done.** `RenderViewOverride{ selector; executor; viewMode;
+  shadingProfile; camera; ... }` (`RenderGraphTypes.h`), compiled in
+  `RenderGraphCompiler` and exercised extensively in
+  `RenderGraphCompilerTest.cpp`.
+- ~~nested scene references for render-to-texture surfaces;~~ ✅ **Done.**
+  `RenderSceneAnalysis::recordRenderTextureReceiver()` /
+  `renderTextureSubviewReceivers()` link a surface to a named subview,
+  consumed by `RenderGraphCompiler` to gate subview-to-receiver compositing.
+- ~~alternate cameras such as reflected cameras and portal-transformed
+  cameras;~~ ✅ **Done.** `DerivedCameraRef::Kind::{Portal, PlanarMirror}`
+  constructed in `RenderGraphCompiler::addAutomaticFeatureSubviews` and
+  resolved in `GraphRenderEngine::cameraForPass`.
 - inspection cameras that can render one camera's frustum from another
   perspective;
-- recursion limits for mirrors, portals, and screens that show scenes containing
-  themselves.
+- ~~recursion limits for mirrors, portals, and screens that show scenes
+  containing themselves.~~ ✅ **Done.** `RenderIntent::maxRenderToTextureRecursionDepth`
+  is enforced in `RenderGraphCompiler::addSubviewBranches`, tested by
+  `RenderGraphCompiler.TruncatesSubviewIntentAtRenderToTextureRecursionLimit`
+  and `TruncatesMutualPortalMirrorRecursionDeterministically`.
 
 The existing `world::Scene` is a good place to discover editable intent. The
 runtime `render::Scene` is a good executor input after the plan has decided what
@@ -1057,6 +1120,14 @@ struct RenderGraphOverrides {
   std::set<RenderFeatureKind> disabledFeatures;
 };
 ```
+
+✅ **Done.** `RenderGraphOverrides` exists verbatim (`include/engine/graph/RenderGraphTypes.h`)
+with all four fields applied together in `RenderPlan::withOverrides()`
+(`src/engine/graph/RenderPlan.cpp`), followed by `CullDependents` propagation.
+`RenderPlan.AppliesDisableOverridesByPassKindExecutorFeatureAndId` exercises
+all four fields in one test, and `src/widgets/world/RenderGraphInspectorWidget.cpp`
+reads/writes all four for UI toggling (see
+`test/unit/widgets/world/RenderGraphInspectorWidgetTest.cpp`).
 
 Disabling a pass cannot always mean "skip this node and keep going." The graph
 must know what to do with resources the disabled node would have produced.
@@ -1303,14 +1374,32 @@ their own worker strategies.
 
 Plan validation should catch:
 
-- missing producer for a read;
-- multiple writers to the same resource without an explicit resolve/composite;
-- read/write cycles;
-- resource dimension or sample-count mismatches;
+- ~~missing producer for a read;~~ ✅ **Done.** `RenderPlan::validate()` reports
+  `RenderPlanValidationError::Code::MissingProducer`
+  (`src/engine/graph/RenderPlan.cpp`), tested by
+  `RenderPlan.ReportsMissingProducerForTransientRead`.
+- ~~multiple writers to the same resource without an explicit
+  resolve/composite;~~ ✅ **Done.** `Code::DuplicateWriter` fires when a second
+  pass writes an already-produced resource, tested by
+  `RenderPlan.ReportsDuplicateWriters`.
+- ~~read/write cycles;~~ ✅ **Done.** `Code::Cycle` covers both a same-pass
+  read+write of a resource and a DFS cycle check over pass dependencies
+  (`RenderPlan.cpp`), tested by `RenderPlan.DetectsDependencyCycles`.
+- ~~resource dimension or sample-count mismatches;~~ ✅ **Done.**
+  `Code::InvalidResourceShape` rejects non-positive width/height/sample-count
+  and disabled-passthrough input/output shape mismatches (`RenderPlan.cpp`),
+  exercised by the `InvalidResourceShape` assertions in `RenderPlanTest.cpp`.
 - executor/resource-domain mismatch; ✅ **Done.** Current CPU-backed pass nodes
   reject `GPU` resources during plan validation until GPU-capable executors
   exist.
-- pass disabled with no valid default or dependent-culling path;
+- pass disabled with no valid default or dependent-culling path; ✅
+  **Partial.** `Code::DisabledRequiredPass` fires for a disabled pass with
+  `DisabledBehavior::Error` (`RenderPlan.cpp`), and the complementary
+  `SubstituteDefault`/`Passthrough`/`CullDependents` behaviors are tested
+  (`RenderPlan.DisabledSubstituteDefaultCanSatisfyConsumer`,
+  `DisabledPassthroughCanSatisfyConsumer`,
+  `DisabledCullDependencyDoesNotSatisfyConsumer`), but no test exercises the
+  `DisabledBehavior::Error` / `DisabledRequiredPass` path itself.
 - imported resource not provided; ✅ **Done for CPU color/depth/stencil/id
   inputs.** `GraphRenderEngine` now accepts bound imported/history color, depth,
   stencil, and integer-id resources and rejects unbound or unsupported external
@@ -1321,7 +1410,14 @@ Plan validation should catch:
   `--render_graph_material_id_in` using `resource=file` syntax.
 - exported resource not produced; ✅ **Done.** Plan validation now rejects
   exported resources with no declared producer.
-- mirror/portal/screen recursion over the configured limit.
+- ~~mirror/portal/screen recursion over the configured limit.~~ ✅ **Done, as
+  compiler-side truncation rather than a `RenderPlan` validation error.**
+  `RenderGraphCompiler::addSubviewBranches` stops expanding further subview
+  branches once `RenderIntent::maxRenderToTextureRecursionDepth` is reached and
+  emits a disabled `subviewRecursionLimitDiagnosticPass`
+  (`src/engine/graph/RenderGraphCompiler.cpp`), tested by
+  `RenderGraphCompiler.TruncatesSubviewIntentAtRenderToTextureRecursionLimit`
+  and `RenderGraphCompiler.TruncatesMutualPortalMirrorRecursionDeterministically`.
 
 Validation errors should be human-readable because the graph is a teaching
 object. Rendercli and Modeler should show why a plan is invalid.
