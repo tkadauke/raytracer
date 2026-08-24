@@ -118,14 +118,18 @@ namespace {
     return static_cast<std::uint64_t>(object.value(key).toDouble());
   }
 
+  std::string replaceWhitespaceWithUnderscore(std::string value) {
+    std::replace_if(
+      value.begin(), value.end(), [](unsigned char ch) { return std::isspace(ch) != 0; }, '_');
+    return value;
+  }
+
   std::string compactSummaryText(const QJsonValue& value, const std::string& empty) {
     std::string result = value.toString().toStdString();
     if (result.empty()) {
       return empty;
     }
-    std::replace_if(
-      result.begin(), result.end(), [](unsigned char ch) { return std::isspace(ch) != 0; }, '_');
-    return result;
+    return replaceWhitespaceWithUnderscore(std::move(result));
   }
 
   std::string compactSummaryBool(const QJsonValue& value, const std::string& empty) {
@@ -139,9 +143,7 @@ namespace {
     if (value.empty()) {
       return "unknown";
     }
-    std::replace_if(
-      value.begin(), value.end(), [](unsigned char ch) { return std::isspace(ch) != 0; }, '_');
-    return value;
+    return replaceWhitespaceWithUnderscore(std::move(value));
   }
 
   std::string compactUnsignedObjectPairs(const QJsonObject& object) {
