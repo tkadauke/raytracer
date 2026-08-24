@@ -3,8 +3,8 @@
 #include "engine/raster/OpenGLRasterizer.h"
 #include "engine/raster/Rasterizer.h"
 
-#include <algorithm>
-#include <cctype>
+#include "core/util/StringUtil.h"
+
 #include <stdexcept>
 #include <utility>
 
@@ -92,8 +92,6 @@ namespace engine::raster {
   }
 
   std::string RasterBackend::normalizedName(std::string value) {
-    std::transform(value.begin(), value.end(), value.begin(),
-                   [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
-    return value;
+    return core::util::lowercase(std::move(value));
   }
 }

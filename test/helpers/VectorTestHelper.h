@@ -1,17 +1,16 @@
 #ifndef VECTOR_TEST_HELPER_H
 #define VECTOR_TEST_HELPER_H
 
+#include "test/helpers/NearTestHelper.h"
+
 namespace testing {
   namespace internal {
     template<int Dimensions, class T, class StorageCellType, class Derived>
     bool vectorNear(const Vector<Dimensions, T, StorageCellType, Derived>& expected,
                     const Vector<Dimensions, T, StorageCellType, Derived>& actual,
                     const T& threshold = 0.0001) {
-      for (int i = 0; i != Dimensions; ++i) {
-        if (actual[i] < expected[i] - threshold || actual[i] > expected[i] + threshold)
-          return false;
-      }
-      return true;
+      return elementwiseNear(expected, actual, threshold, Dimensions,
+                             [](const auto& v, int i) -> const T& { return v[i]; });
     }
 
     template<int Dimensions, class T, class StorageCellType, class Derived>
@@ -21,16 +20,8 @@ namespace testing {
                          const Vector<Dimensions, T, StorageCellType, Derived>& val1,
                          const Vector<Dimensions, T, StorageCellType, Derived>& val2,
                          double abs_error) {
-      if (vectorNear(val1, val2, T(abs_error)))
-        return AssertionSuccess();
-
-      Message msg;
-      msg << "The difference between vectors " << expr1 << " and " << expr2 << " exceeds "
-          << abs_error_expr << ", where\n"
-          << expr1 << " evaluates to " << val1 << ",\n"
-          << expr2 << " evaluates to " << val2 << ", and\n"
-          << abs_error_expr << " evaluates to " << abs_error << ".";
-      return AssertionFailure(msg);
+      return nearAssertionResult("vectors", expr1, expr2, abs_error_expr, val1, val2, abs_error,
+                                 vectorNear(val1, val2, T(abs_error)));
     }
   }
 }

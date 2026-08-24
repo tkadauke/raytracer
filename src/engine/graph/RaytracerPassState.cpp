@@ -3,6 +3,7 @@
 #include "engine/graph/RenderGraphTypes.h"
 #include "engine/graph/detail/JsonStateHelpers.h"
 #include "core/util/QStringUtil.h"
+#include "core/util/StringUtil.h"
 #include "engine/graph/RenderPlan.h"
 #include "engine/raytracer/Raytracer.h"
 #include "engine/wavefront/WavefrontRaytracer.h"
@@ -18,7 +19,6 @@
 #include "render/viewplanes/ViewPlaneFactory.h"
 
 #include <algorithm>
-#include <cctype>
 #include <cmath>
 #include <cstdint>
 #include <initializer_list>
@@ -39,10 +39,14 @@ namespace engine::graph {
                                                                            : name + "Sampler";
     }
 
+    std::string normalizeToken(std::string value) {
+      value = core::util::lowercase(std::move(value));
+      std::replace(value.begin(), value.end(), '-', '_');
+      return value;
+    }
+
     std::string normalizedSampleStreamMode(std::string mode, const std::string& path) {
-      std::transform(mode.begin(), mode.end(), mode.begin(),
-                     [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
-      std::replace(mode.begin(), mode.end(), '-', '_');
+      mode = normalizeToken(std::move(mode));
       if (mode == "sampler" || mode == "sampler_backed")
         return "sampler";
       if (mode == "gpu_sample_stream" || mode == "gpu")
@@ -626,9 +630,7 @@ namespace engine::graph {
 
   std::string RaytracerBeautyPassState::normalizedIntegratorName(std::string integrator,
                                                                  const std::string& path) {
-    std::transform(integrator.begin(), integrator.end(), integrator.begin(),
-                   [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
-    std::replace(integrator.begin(), integrator.end(), '-', '_');
+    integrator = normalizeToken(std::move(integrator));
     if (integrator == "whitted")
       return "whitted";
     if (integrator == "pathtracer" || integrator == "path_tracer" || integrator == "pt")
@@ -638,9 +640,7 @@ namespace engine::graph {
 
   std::string RaytracerBeautyPassState::normalizedDenoiserName(std::string denoiser,
                                                                const std::string& path) {
-    std::transform(denoiser.begin(), denoiser.end(), denoiser.begin(),
-                   [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
-    std::replace(denoiser.begin(), denoiser.end(), '-', '_');
+    denoiser = normalizeToken(std::move(denoiser));
     if (denoiser == "none" || denoiser == "off" || denoiser == "disabled")
       return "none";
     if (denoiser == "box" || denoiser == "box_filter")

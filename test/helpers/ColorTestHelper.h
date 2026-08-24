@@ -1,15 +1,14 @@
 #ifndef COLOR_TEST_HELPER_H
 #define COLOR_TEST_HELPER_H
 
+#include "test/helpers/NearTestHelper.h"
+
 namespace testing {
   namespace internal {
     template<class T>
     bool colorNear(const Color<T>& expected, const Color<T>& actual, const T& threshold = 0.0001) {
-      for (int i = 0; i != 3; ++i) {
-        if (actual[i] < expected[i] - threshold || actual[i] > expected[i] + threshold)
-          return false;
-      }
-      return true;
+      return elementwiseNear(expected, actual, threshold, 3,
+                             [](const auto& c, int i) -> const T& { return c[i]; });
     }
 
     template<class T>
@@ -17,16 +16,8 @@ namespace testing {
     AssertionResult ColorNearPredFormat(const char* expr1, const char* expr2,
                                         const char* abs_error_expr, const Color<T>& val1,
                                         const Color<T>& val2, double abs_error) {
-      if (colorNear(val1, val2, T(abs_error)))
-        return AssertionSuccess();
-
-      Message msg;
-      msg << "The difference between colors " << expr1 << " and " << expr2 << " exceeds "
-          << abs_error_expr << ", where\n"
-          << expr1 << " evaluates to " << val1 << ",\n"
-          << expr2 << " evaluates to " << val2 << ", and\n"
-          << abs_error_expr << " evaluates to " << abs_error << ".";
-      return AssertionFailure(msg);
+      return nearAssertionResult("colors", expr1, expr2, abs_error_expr, val1, val2, abs_error,
+                                 colorNear(val1, val2, T(abs_error)));
     }
   }
 }
