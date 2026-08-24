@@ -1651,8 +1651,7 @@ namespace engine::graph {
         for (int y = 0; y != source.height(); ++y) {
           for (int x = 0; x != source.width(); ++x) {
             const double value = source[y][x];
-            const double normalized =
-              maximum > 0.0 && std::isfinite(value) ? std::clamp(value / maximum, 0.0, 1.0) : 0.0;
+            const double normalized = finiteClampedUnit(value / maximum, 0.0);
             destination[y][x] = Colord(normalized, normalized, normalized);
           }
         }
@@ -1708,14 +1707,11 @@ namespace engine::graph {
           for (int x = 0; x != source.width(); ++x) {
             const Colord value = source[y][x];
             const double scale = maximum > 0.0 ? 1.0 / maximum : 0.0;
-            destination[y][x] = Colord(normalized(value.r(), scale), normalized(value.g(), scale),
-                                       normalized(value.b(), scale));
+            destination[y][x] = Colord(finiteClampedUnit(value.r() * scale, 0.0),
+                                       finiteClampedUnit(value.g() * scale, 0.0),
+                                       finiteClampedUnit(value.b() * scale, 0.0));
           }
         }
-      }
-
-      double normalized(double value, double scale) const {
-        return std::isfinite(value) ? std::clamp(value * scale, 0.0, 1.0) : 0.0;
       }
     };
 

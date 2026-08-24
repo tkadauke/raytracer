@@ -39,6 +39,7 @@
 #include "test/helpers/CameraTestHelper.h"
 #include "test/helpers/ColorTestHelper.h"
 #include "test/helpers/MaterialTestHelper.h"
+#include "test/helpers/SceneTestHelper.h"
 
 #include <QThreadPool>
 
@@ -230,9 +231,7 @@ namespace RasterizerTest {
 
 
   static std::shared_ptr<Scene> sceneWithBox() {
-    auto scene = std::make_shared<Scene>(Colord::white());
-    scene->add(std::make_shared<Box>(Vector3d::null, Vector3d(1, 1, 1)));
-    return scene;
+    return test::helpers::sceneWithBox(Colord::white());
   }
 
   static std::shared_ptr<Scene> sceneWithSphere() {
