@@ -14,6 +14,7 @@
 #include "render/textures/ConstantColorTexture.h"
 #include "test/helpers/CameraTestHelper.h"
 #include "test/helpers/GuiTestHelper.h"
+#include "test/helpers/OpenGLTestHelper.h"
 #include "test/helpers/SceneTestHelper.h"
 
 #include "engine/raster/gl/AttachmentSet.h"
@@ -283,9 +284,7 @@ namespace OpenGLRasterizerTest {
   class OpenGLRasterizerMeshCache : public ::testing::GuiTest {};
 
   TEST_F(OpenGLRasterizerMeshCache, ReusesMeshAcrossRendersWithSameSceneAndCamera) {
-    if (!engine::raster::OpenGLOffscreenContext::probe().available()) {
-      GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
-    }
+    SKIP_IF_NO_OPENGL();
 
     auto scene = simpleSphereScene();
     auto cam = standardCamera();
@@ -302,9 +301,7 @@ namespace OpenGLRasterizerTest {
   }
 
   TEST_F(OpenGLRasterizerMeshCache, SkipsVertexBufferUploadOnCacheHit) {
-    if (!engine::raster::OpenGLOffscreenContext::probe().available()) {
-      GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
-    }
+    SKIP_IF_NO_OPENGL();
 
     auto scene = simpleSphereScene();
     auto cam = standardCamera();
@@ -323,9 +320,7 @@ namespace OpenGLRasterizerTest {
   }
 
   TEST_F(OpenGLRasterizerMeshCache, RebuildsMeshWhenSceneIdentityChanges) {
-    if (!engine::raster::OpenGLOffscreenContext::probe().available()) {
-      GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
-    }
+    SKIP_IF_NO_OPENGL();
 
     auto cam = standardCamera();
 
@@ -345,9 +340,7 @@ namespace OpenGLRasterizerTest {
   }
 
   TEST_F(OpenGLRasterizerMeshCache, CacheHitRefreshesViewPlaneSetup) {
-    if (!engine::raster::OpenGLOffscreenContext::probe().available()) {
-      GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
-    }
+    SKIP_IF_NO_OPENGL();
 
     auto scene = simpleSphereScene();
     auto cam = standardCamera();
@@ -391,9 +384,7 @@ namespace OpenGLRasterizerTest {
   }
 
   TEST_F(OpenGLRasterizerMeshCache, ReusesMeshAcrossCameraMovesForCameraIndependentBuilds) {
-    if (!engine::raster::OpenGLOffscreenContext::probe().available()) {
-      GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
-    }
+    SKIP_IF_NO_OPENGL();
 
     auto scene = simpleSphereScene();
     auto cam = standardCamera();
@@ -412,9 +403,7 @@ namespace OpenGLRasterizerTest {
   }
 
   TEST_F(OpenGLRasterizerMeshCache, LruRetainsEntriesAcrossMultiPassThrashing) {
-    if (!engine::raster::OpenGLOffscreenContext::probe().available()) {
-      GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
-    }
+    SKIP_IF_NO_OPENGL();
 
     // Three different scenes that miss each other's cache key. With a
     // single-entry cache they would invalidate each other on every
@@ -444,9 +433,7 @@ namespace OpenGLRasterizerTest {
   }
 
   TEST_F(OpenGLRasterizerMeshCache, RebuildsMeshWhenCameraMovesForDepthBiasedRenders) {
-    if (!engine::raster::OpenGLOffscreenContext::probe().available()) {
-      GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
-    }
+    SKIP_IF_NO_OPENGL();
 
     auto scene = simpleSphereScene();
     auto cam = standardCamera();
@@ -477,9 +464,7 @@ namespace OpenGLRasterizerTest {
   // assert that a two-pass plan with `Load` on the second pass actually
   // preserves the first pass's depth output instead of clearing.
   TEST_F(OpenGLRasterizerAttachmentLoad, ColorLoadOpRequiresSourceBuffer) {
-    if (!engine::raster::OpenGLOffscreenContext::probe().available()) {
-      GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
-    }
+    SKIP_IF_NO_OPENGL();
     auto scene = std::make_shared<render::Scene>(Colord::black());
     engine::raster::OpenGLRasterizer rasterizer(
       standardCamera(), scene);
@@ -489,9 +474,7 @@ namespace OpenGLRasterizerTest {
   }
 
   TEST_F(OpenGLRasterizerAttachmentLoad, ColorLoadOpAcceptsSourceBuffer) {
-    if (!engine::raster::OpenGLOffscreenContext::probe().available()) {
-      GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
-    }
+    SKIP_IF_NO_OPENGL();
     auto scene = std::make_shared<render::Scene>(Colord::black());
     engine::raster::OpenGLRasterizer rasterizer(
       standardCamera(), scene);
@@ -504,9 +487,7 @@ namespace OpenGLRasterizerTest {
   }
 
   TEST_F(OpenGLRasterizerAttachmentLoad, DepthLoadOpThrowsUntilResidencyFollowUp) {
-    if (!engine::raster::OpenGLOffscreenContext::probe().available()) {
-      GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
-    }
+    SKIP_IF_NO_OPENGL();
     auto scene = std::make_shared<render::Scene>(Colord::black());
     engine::raster::OpenGLRasterizer rasterizer(
       standardCamera(), scene);
@@ -522,9 +503,7 @@ namespace OpenGLRasterizerTest {
   }
 
   TEST_F(OpenGLRasterizerAttachmentLoad, StencilLoadOpThrowsUntilResidencyFollowUp) {
-    if (!engine::raster::OpenGLOffscreenContext::probe().available()) {
-      GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
-    }
+    SKIP_IF_NO_OPENGL();
     auto scene = std::make_shared<render::Scene>(Colord::black());
     engine::raster::OpenGLRasterizer rasterizer(
       standardCamera(), scene);
@@ -539,9 +518,7 @@ namespace OpenGLRasterizerTest {
   class OpenGLRasterizerAspect : public ::testing::GuiTest {};
 
   TEST_F(OpenGLRasterizerAspect, FitExactLeavesPillarboxBarsAroundInnerRect) {
-    if (!engine::raster::OpenGLOffscreenContext::probe().available()) {
-      GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
-    }
+    SKIP_IF_NO_OPENGL();
 
     auto scene = std::make_shared<render::Scene>(Colord(1.0, 1.0, 1.0));
     auto sphere = std::make_shared<render::Sphere>(Vector3d::null, 100.0);

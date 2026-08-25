@@ -136,10 +136,6 @@ Group::applyTransform(std::shared_ptr<render::Primitive> primitive) const {
   return result;
 }
 
-std::shared_ptr<render::Primitive> Group::toRaytracer(render::Scene* scene) const {
-  return toRaytracer(scene, StepPlaybackStyle());
-}
-
 std::shared_ptr<render::Primitive> Group::toRaytracer(render::Scene* scene,
                                                       const StepPlaybackStyle& style) const {
   const StepVisibilityEvaluator evaluator(stepPlaybackSelection(style));

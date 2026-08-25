@@ -758,6 +758,14 @@ namespace engine::graph {
       return result;
     }
 
+    void addTiming(QJsonObject& object, const render::WavefrontIntersectionQueryTiming& timing) {
+      object["uploadSeconds"] = timing.uploadSeconds;
+      object["kernelSeconds"] = timing.kernelSeconds;
+      object["readbackSeconds"] = timing.readbackSeconds;
+      object["executionPath"] = QString::fromStdString(timing.executionPath);
+      object["fallbackReason"] = QString::fromStdString(timing.fallbackReason);
+    }
+
     void addIntersectionServiceSceneDiagnostics(
       QJsonObject& service, const render::WavefrontIntersectionSceneDiagnostics& diagnostics) {
       const std::uint64_t supportedPrimitives =
@@ -2201,15 +2209,6 @@ namespace engine::graph {
         return 1.0 - std::clamp((distance - minDistance) / range, 0.0, 1.0);
       }
 
-      static void addTiming(QJsonObject& object,
-                            const render::WavefrontIntersectionQueryTiming& timing) {
-        object["uploadSeconds"] = timing.uploadSeconds;
-        object["kernelSeconds"] = timing.kernelSeconds;
-        object["readbackSeconds"] = timing.readbackSeconds;
-        object["executionPath"] = QString::fromStdString(timing.executionPath);
-        object["fallbackReason"] = QString::fromStdString(timing.fallbackReason);
-      }
-
       static void recordTrace(RenderExecutionContext& context,
                               const render::IntersectionServiceDiagnostics& diagnostics) {
         context.recordTraceMessage(
@@ -2422,15 +2421,6 @@ namespace engine::graph {
       }
 
     private:
-      static void addTiming(QJsonObject& object,
-                            const render::WavefrontIntersectionQueryTiming& timing) {
-        object["uploadSeconds"] = timing.uploadSeconds;
-        object["kernelSeconds"] = timing.kernelSeconds;
-        object["readbackSeconds"] = timing.readbackSeconds;
-        object["executionPath"] = QString::fromStdString(timing.executionPath);
-        object["fallbackReason"] = QString::fromStdString(timing.fallbackReason);
-      }
-
       static void recordTrace(RenderExecutionContext& context,
                               const render::IntersectionServiceDiagnostics& diagnostics) {
         context.recordTraceMessage("hybrid ray-traced shadows submitted " +

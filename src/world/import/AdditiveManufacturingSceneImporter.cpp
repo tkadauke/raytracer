@@ -5,11 +5,10 @@
 #include "render/materials/MatteMaterial.h"
 #include "render/primitives/MeshPrimitive.h"
 #include "render/textures/ConstantColorTexture.h"
+#include "world/import/ImportedSceneDefaults.h"
 #include "world/import/SceneImporterRegistry.h"
 #include "world/objects/CompiledPrimitive.h"
-#include "world/objects/DirectionalLight.h"
 #include "world/objects/Group.h"
-#include "world/objects/PinholeCamera.h"
 #include "world/objects/Scene.h"
 
 #include <QByteArray>
@@ -19,7 +18,6 @@
 #include <QRegularExpression>
 #include <QXmlStreamReader>
 
-#include <algorithm>
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -255,25 +253,17 @@ namespace {
   }
 
   void addDefaultView(Scene& scene, const Mesh& mesh) {
-    const BoundingBoxd bounds = boundsFor(mesh);
-    const Vector3d center = bounds.isValid() ? bounds.center() : Vector3d::null;
-    const Vector3d size = bounds.isValid() ? bounds.size() : Vector3d(1.0, 1.0, 1.0);
-    const double distance = std::max({size.x(), size.y(), size.z(), 1.0}) * 3.0;
-
-    auto camera = std::make_unique<PinholeCamera>();
-    camera->setId("additive-camera");
-    camera->setName(QStringLiteral("Additive Manufacturing Camera"));
-    camera->setPosition(center + Vector3d(0.0, -distance, distance * 0.65));
-    camera->setTarget(center);
-    camera->setDistance(distance);
-    camera->setZoom(1.2);
-    scene.addChild(std::move(camera));
-
-    auto light = std::make_unique<DirectionalLight>();
-    light->setId("additive-light");
-    light->setName(QStringLiteral("Additive Manufacturing Light"));
-    light->setDirection(Vector3d(-0.4, -0.6, -1.0));
-    scene.addChild(std::move(light));
+    // Order matches world::BoundsFramedViewSpec's member declaration order:
+    // fallbackSize, minDistanceFloor, distanceMultiplier, positionDirection,
+    // zoom, cameraId, cameraName, lightId, lightName, lightDirection.
+    world::addBoundsFramedCameraAndLight(
+      scene, boundsFor(mesh),
+      world::BoundsFramedViewSpec{
+        Vector3d(1.0, 1.0, 1.0), 1.0, 3.0, Vector3d(0.0, -1.0, 0.65), 1.2,
+        QStringLiteral("additive-camera"), QStringLiteral("Additive Manufacturing Camera"),
+        QStringLiteral("additive-light"), QStringLiteral("Additive Manufacturing Light"),
+        Vector3d(-0.4, -0.6, -1.0),
+      });
   }
 
   std::shared_ptr<render::Primitive> primitiveFor(Mesh mesh) {

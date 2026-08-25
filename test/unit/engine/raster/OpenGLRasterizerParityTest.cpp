@@ -15,6 +15,7 @@
 #include "render/textures/ConstantColorTexture.h"
 #include "test/helpers/CameraTestHelper.h"
 #include "test/helpers/GuiTestHelper.h"
+#include "test/helpers/OpenGLTestHelper.h"
 
 #include <cmath>
 #include <cstddef>
@@ -110,9 +111,7 @@ namespace OpenGLRasterizerParityTest {
   class OpenGLRasterizerParity : public ::testing::GuiTest {};
 
   TEST_F(OpenGLRasterizerParity, LitSphereMatchesCpuWithinTolerance) {
-    if (!OpenGLOffscreenContext::probe().available()) {
-      GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
-    }
+    SKIP_IF_NO_OPENGL();
 
     auto scene = litSphereScene();
     auto cam = standardCamera();
@@ -133,9 +132,7 @@ namespace OpenGLRasterizerParityTest {
   }
 
   TEST_F(OpenGLRasterizerParity, FlatRectangleMatchesCpuWithinTolerance) {
-    if (!OpenGLOffscreenContext::probe().available()) {
-      GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
-    }
+    SKIP_IF_NO_OPENGL();
 
     auto scene = litRectangleScene();
     auto cam = standardCamera();
@@ -215,9 +212,7 @@ namespace OpenGLRasterizerParityTest {
   // Using `firstColored...` keeps the test robust to small projection /
   // sphere-tessellation rounding differences between CPU and GPU.
   TEST_F(OpenGLRasterizerParity, RendersSphereInLowerHalfWhenCenteredAtPositiveY) {
-    if (!OpenGLOffscreenContext::probe().available()) {
-      GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
-    }
+    SKIP_IF_NO_OPENGL();
 
     auto scene = orientedSphereScene(Vector3d(0, 1.5, 0), Colord(0.8, 0.2, 0.2));
     auto cam = standardCamera();
@@ -234,9 +229,7 @@ namespace OpenGLRasterizerParityTest {
   }
 
   TEST_F(OpenGLRasterizerParity, RendersSphereInRightHalfWhenCenteredAtPositiveX) {
-    if (!OpenGLOffscreenContext::probe().available()) {
-      GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
-    }
+    SKIP_IF_NO_OPENGL();
 
     auto scene = orientedSphereScene(Vector3d(1.5, 0, 0), Colord(0.2, 0.8, 0.2));
     auto cam = standardCamera();
@@ -269,9 +262,7 @@ namespace OpenGLRasterizerParityTest {
   }
 
   TEST_F(OpenGLRasterizerParity, BackCullModeMatchesCpuOnBackFacingGeometry) {
-    if (!OpenGLOffscreenContext::probe().available()) {
-      GTEST_SKIP() << "OpenGL offscreen context unavailable on this host";
-    }
+    SKIP_IF_NO_OPENGL();
 
     auto scene = backFacingRectangleScene();
     auto cam = standardCamera();

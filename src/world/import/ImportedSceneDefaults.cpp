@@ -8,9 +8,33 @@
 #include <QColor>
 #include <QRegularExpression>
 
+#include <algorithm>
 #include <stdexcept>
 
 namespace world {
+
+  void addBoundsFramedCameraAndLight(Scene& scene, const BoundingBoxd& bounds,
+                                     const BoundsFramedViewSpec& spec) {
+    const Vector3d center = bounds.isValid() ? bounds.center() : Vector3d::null;
+    const Vector3d size = bounds.isValid() ? bounds.size() : spec.fallbackSize;
+    const double distance =
+      std::max({size.x(), size.y(), size.z(), spec.minDistanceFloor}) * spec.distanceMultiplier;
+
+    auto camera = std::make_unique<PinholeCamera>();
+    camera->setId(spec.cameraId);
+    camera->setName(spec.cameraName);
+    camera->setPosition(center + spec.positionDirection * distance);
+    camera->setTarget(center);
+    camera->setDistance(distance);
+    camera->setZoom(spec.zoom);
+    scene.addChild(std::move(camera));
+
+    auto light = std::make_unique<DirectionalLight>();
+    light->setId(spec.lightId);
+    light->setName(spec.lightName);
+    light->setDirection(spec.lightDirection);
+    scene.addChild(std::move(light));
+  }
 
   ImportedSceneDefaults::ImportedSceneDefaults()
       : m_ambientColor(0.8, 0.8, 0.8),

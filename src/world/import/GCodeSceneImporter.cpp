@@ -5,11 +5,10 @@
 #include "core/util/QStringUtil.h"
 #include "core/geometry/AttributeColorMap.h"
 #include "render/primitives/Curve.h"
+#include "world/import/ImportedSceneDefaults.h"
 #include "world/import/SceneImporterRegistry.h"
 #include "world/objects/CompiledPrimitive.h"
-#include "world/objects/DirectionalLight.h"
 #include "world/objects/Group.h"
-#include "world/objects/PinholeCamera.h"
 #include "world/objects/Scene.h"
 
 #include <QFileInfo>
@@ -173,25 +172,17 @@ namespace {
   }
 
   void addDefaultView(Scene& scene, const GCodePathProgram& paths) {
-    const BoundingBoxd bounds = boundsFor(paths);
-    const Vector3d center = bounds.isValid() ? bounds.center() : Vector3d::null;
-    const Vector3d size = bounds.isValid() ? bounds.size() : Vector3d(20.0, 20.0, 1.0);
-    const double distance = std::max({size.x(), size.y(), size.z(), 10.0}) * 2.4;
-
-    auto camera = std::make_unique<PinholeCamera>();
-    camera->setId("gcode-camera");
-    camera->setName(QStringLiteral("G-code Camera"));
-    camera->setPosition(center + Vector3d(0.0, 0.0, -distance));
-    camera->setTarget(center);
-    camera->setDistance(distance);
-    camera->setZoom(0.1);
-    scene.addChild(std::move(camera));
-
-    auto light = std::make_unique<DirectionalLight>();
-    light->setId("gcode-light");
-    light->setName(QStringLiteral("G-code Light"));
-    light->setDirection(Vector3d(-0.3, -0.5, -1.0));
-    scene.addChild(std::move(light));
+    // Order matches world::BoundsFramedViewSpec's member declaration order:
+    // fallbackSize, minDistanceFloor, distanceMultiplier, positionDirection,
+    // zoom, cameraId, cameraName, lightId, lightName, lightDirection.
+    world::addBoundsFramedCameraAndLight(
+      scene, boundsFor(paths),
+      world::BoundsFramedViewSpec{
+        Vector3d(20.0, 20.0, 1.0), 10.0, 2.4, Vector3d(0.0, 0.0, -1.0), 0.1,
+        QStringLiteral("gcode-camera"), QStringLiteral("G-code Camera"),
+        QStringLiteral("gcode-light"), QStringLiteral("G-code Light"),
+        Vector3d(-0.3, -0.5, -1.0),
+      });
   }
 
   double rangeMaximum(const ScalarRange& range, double fallback) {
