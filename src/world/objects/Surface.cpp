@@ -46,10 +46,6 @@ void Surface::read(const QJsonObject& json) {
   validateSceneMarkers();
 }
 
-std::shared_ptr<render::Primitive> Surface::toRaytracer(render::Scene* scene) const {
-  return toRaytracer(scene, StepPlaybackStyle());
-}
-
 std::shared_ptr<render::Primitive> Surface::toRaytracer(render::Scene* scene,
                                                         const StepPlaybackStyle& style) const {
   if (!visible())

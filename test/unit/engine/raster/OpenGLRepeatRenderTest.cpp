@@ -8,6 +8,7 @@
 #include "render/primitives/Scene.h"
 #include "test/helpers/CameraTestHelper.h"
 #include "test/helpers/GuiTestHelper.h"
+#include "test/helpers/OpenGLTestHelper.h"
 #include "test/helpers/SceneTestHelper.h"
 
 #include <QThread>
@@ -39,9 +40,7 @@ namespace OpenGLRepeatRenderTest {
   }
 
   TEST_F(OpenGLRepeatRender, CpuVsGpuTimingSweep) {
-    if (!OpenGLOffscreenContext::probe().available()) {
-      GTEST_SKIP() << "no offscreen GL";
-    }
+    SKIP_IF_NO_OPENGL();
     for (int size : {512, 1024, 1920}) {
       Buffer<Colord> bufCpu(size, size);
       Buffer<Colord> bufGpu(size, size);
@@ -67,9 +66,7 @@ namespace OpenGLRepeatRenderTest {
   }
 
   TEST_F(OpenGLRepeatRender, GpuFreshInstanceReusesSharedCache) {
-    if (!OpenGLOffscreenContext::probe().available()) {
-      GTEST_SKIP() << "no offscreen GL";
-    }
+    SKIP_IF_NO_OPENGL();
     // Mirrors the Modeler/graph-engine pattern: every frame constructs a
     // fresh OpenGLRasterizer via RasterBackend::createEngine, but the
     // sharedResources() cache should make frame 2+ as fast as steady-state
@@ -131,9 +128,7 @@ namespace OpenGLRepeatRenderTest {
   }
 
   TEST_F(OpenGLRepeatRender, GpuSharedCacheSurvivesPerFrameWorkerThreads) {
-    if (!OpenGLOffscreenContext::probe().available()) {
-      GTEST_SKIP() << "no offscreen GL";
-    }
+    SKIP_IF_NO_OPENGL();
     // Mirrors the Modeler render-job pattern: each render is dispatched
     // to a fresh QThread that exits immediately after the render finishes.
     // The shared OpenGLRasterResourceCache lives across threads through

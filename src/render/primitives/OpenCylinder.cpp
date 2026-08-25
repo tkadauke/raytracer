@@ -13,8 +13,7 @@
 using namespace std;
 using namespace render;
 
-const Primitive* OpenCylinder::intersect(const Rayd& ray, HitPointInterval& hitPoints,
-                                         render::State& state) const {
+int OpenCylinder::solveSideHits(const Rayd& ray, double t[2]) const {
   double ox = ray.origin().x();
   double oz = ray.origin().z();
   double dx = ray.direction().x();
@@ -24,8 +23,13 @@ const Primitive* OpenCylinder::intersect(const Rayd& ray, HitPointInterval& hitP
   double b = 2.0 * (ox * dx + oz * dz);
   double c = ox * ox + oz * oz - m_radius * m_radius;
 
+  return Quadric<double>(a, b, c).solveInto(t);
+}
+
+const Primitive* OpenCylinder::intersect(const Rayd& ray, HitPointInterval& hitPoints,
+                                         render::State& state) const {
   double t[2] = {};
-  int results = Quadric<double>(a, b, c).solveInto(t);
+  int results = solveSideHits(ray, t);
 
   if (results < 2) {
     state.miss(this, "OpenCylinder, ray miss");
@@ -70,17 +74,8 @@ Result OpenCylinder::intersectPacketHitsFor(const Packet& rays, const StateArray
     State& state = *states[lane];
     const Rayd ray = rays.rayd(lane);
 
-    const double ox = ray.origin().x();
-    const double oz = ray.origin().z();
-    const double dx = ray.direction().x();
-    const double dz = ray.direction().z();
-
-    const double a = dx * dx + dz * dz;
-    const double b = 2.0 * (ox * dx + oz * dz);
-    const double c = ox * ox + oz * oz - m_radius * m_radius;
-
     double t[2] = {};
-    const int roots = Quadric<double>(a, b, c).solveInto(t);
+    const int roots = solveSideHits(ray, t);
     if (roots < 2) {
       state.miss(this, "OpenCylinder, ray miss");
       continue;
@@ -143,17 +138,8 @@ Result OpenCylinder::intersectPacketIntervalsFor(const Packet& rays,
     State& state = *states[lane];
     const Rayd ray = rays.rayd(lane);
 
-    const double ox = ray.origin().x();
-    const double oz = ray.origin().z();
-    const double dx = ray.direction().x();
-    const double dz = ray.direction().z();
-
-    const double a = dx * dx + dz * dz;
-    const double b = 2.0 * (ox * dx + oz * dz);
-    const double c = ox * ox + oz * oz - m_radius * m_radius;
-
     double t[2] = {};
-    const int roots = Quadric<double>(a, b, c).solveInto(t);
+    const int roots = solveSideHits(ray, t);
     if (roots < 2) {
       state.miss(this, "OpenCylinder, ray miss");
       continue;
@@ -207,17 +193,8 @@ OpenCylinder::intersectPacketIntervals(const Ray8& rays,
 }
 
 bool OpenCylinder::intersects(const Rayd& ray, render::State& state) const {
-  double ox = ray.origin().x();
-  double oz = ray.origin().z();
-  double dx = ray.direction().x();
-  double dz = ray.direction().z();
-
-  double a = dx * dx + dz * dz;
-  double b = 2.0 * (ox * dx + oz * dz);
-  double c = ox * ox + oz * oz - m_radius * m_radius;
-
   double t[2] = {};
-  int results = Quadric<double>(a, b, c).solveInto(t);
+  int results = solveSideHits(ray, t);
 
   if (results < 2) {
     state.shadowMiss(this, "OpenCylinder, ray miss");
