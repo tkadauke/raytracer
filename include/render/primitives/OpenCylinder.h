@@ -87,6 +87,10 @@ namespace render {
     template<typename Packet, typename StateArray, typename Result>
     Result intersectPacketIntervalsFor(const Packet& rays, const StateArray& states) const;
     Vector2d sideUvAt(const Vector3d& point) const;
+    // Solves for the two ray parameters where `ray` crosses the infinite
+    // cylindrical side surface (Y axis, radius m_radius), writing them to
+    // t[0]/t[1] and returning the root count from Quadric::solveInto.
+    int solveSideHits(const Rayd& ray, double t[2]) const;
 
     double m_radius;
     double m_halfHeight;

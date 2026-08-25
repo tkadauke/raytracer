@@ -4566,3 +4566,28 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - The whole compile pipeline from the `Rakefile` (Qt path constants, `.moc`/`ui_*.h`/`.o` rules, header-dependency scanner, per-example link blocks) — replaced with thin `cmake --preset` wrappers. ~150 lines deleted. — Claude Opus 4.7
 - 58 redundant `#include "<X>.moc"` lines from .cpp files — leftover from the old manual-moc workflow; AUTOMOC handles moc generation now. — Claude Opus 4.7
 - Custom `Ray.cpp` (just two static-member specialisations); inlined into `Ray.h` as C++17 `inline` variables. — Claude Opus 4.7
+
+### Changed
+
+- Deduplicated a handful of small copy-pasted helpers found in another scheduled
+  sweep. `OpenCylinder`'s side-quadric setup (`a`/`b`/`c` coefficients plus
+  `Quadric::solveInto`) was repeated in four methods; extracted into a private
+  `solveSideHits()` instance method. `GlossySpecular::calculate` manually
+  re-expanded the reflection formula instead of calling the `Vector3d::reflect()`
+  instance method already used two lines away in `sample()`/`pdf()`.
+  `AdditiveManufacturingSceneImporter` and `GCodeSceneImporter` each hand-rolled
+  an identical bounds-to-camera/light framing routine (differing only in their
+  numeric constants); consolidated into `world::addBoundsFramedCameraAndLight()`
+  in `ImportedSceneDefaults.h`. `Surface::toRaytracer(Scene*)` and
+  `Group::toRaytracer(Scene*)` each had an identical one-argument overload that
+  just delegated to their two-argument sibling with a default-constructed
+  `StepPlaybackStyle`; replaced with a default argument on the two-argument
+  overload in both classes. `RenderPassPayloads.cpp`'s `HybridVisibilityAOVPass`
+  and `HybridRayTracedShadowPass` each had a byte-identical private
+  `addTiming(QJsonObject&, WavefrontIntersectionQueryTiming)` helper; hoisted to
+  a single file-scope function. ~20 copy-pasted
+  `if (!OpenGLOffscreenContext::probe().available()) GTEST_SKIP() << ...;` test
+  guards across `OpenGLRasterizerTest.cpp`, `OpenGLRasterizerParityTest.cpp`, and
+  `OpenGLRepeatRenderTest.cpp` now share a `SKIP_IF_NO_OPENGL()` macro in the new
+  `test/helpers/OpenGLTestHelper.h`. Pure refactor — no behavioral changes
+  intended. — Claude Sonnet 5

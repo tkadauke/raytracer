@@ -4,6 +4,7 @@
 
 #include <QString>
 
+#include "world/objects/StepVisibilityEvaluator.h"
 #include "world/objects/Transformable.h"
 
 namespace render {
@@ -12,7 +13,6 @@ namespace render {
 }
 
 class Material;
-struct StepPlaybackStyle;
 
 /**
   * Abstract base class for visible objects. All Surfaces have a transformation
@@ -151,9 +151,8 @@ public:
     * Converts this surface into a render::Primitive.
     */
   void read(const QJsonObject& json) override;
-  std::shared_ptr<render::Primitive> toRaytracer(render::Scene* scene) const;
   std::shared_ptr<render::Primitive> toRaytracer(render::Scene* scene,
-                                                 const StepPlaybackStyle& style) const;
+                                                 const StepPlaybackStyle& style = StepPlaybackStyle()) const;
   void contributeToRenderGraphAnalysis(engine::graph::RenderSceneAnalysis& analysis) const override;
   bool canHaveChild(Element* child) const override;
   bool isPropertyVisible(const QString& propertyName) const override;

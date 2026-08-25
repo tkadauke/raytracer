@@ -4,9 +4,8 @@
 
 #include <QString>
 
+#include "world/objects/StepVisibilityEvaluator.h"
 #include "world/objects/Transformable.h"
-
-struct StepPlaybackStyle;
 
 namespace render {
   class Primitive;
@@ -172,9 +171,8 @@ public:
     * Converts visible child geometry into a transformed runtime composite.
     * Hidden groups return null and do not register descendant lights.
     */
-  std::shared_ptr<render::Primitive> toRaytracer(render::Scene* scene) const;
   std::shared_ptr<render::Primitive> toRaytracer(render::Scene* scene,
-                                                 const StepPlaybackStyle& style) const;
+                                                 const StepPlaybackStyle& style = StepPlaybackStyle()) const;
   void contributeToRenderGraphAnalysis(engine::graph::RenderSceneAnalysis& analysis) const override;
 
   /**
