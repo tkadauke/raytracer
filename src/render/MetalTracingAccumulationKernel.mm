@@ -12,6 +12,7 @@
 
 namespace render {
   using render::detail::sharedMetalDevice;
+  using render::detail::metalDeviceAvailable;
   using render::detail::sharedCommandQueue;
   using render::detail::metalError;
 
@@ -156,9 +157,7 @@ namespace render {
   }
 
   bool MetalTracingAccumulationKernel::deviceAvailable() const {
-    @autoreleasepool {
-      return sharedMetalDevice() != nil;
-    }
+    return metalDeviceAvailable();
   }
 
   std::string MetalTracingAccumulationKernel::deviceUnavailableReason() const {
