@@ -1,5 +1,6 @@
 #include "render/IntersectionSceneCompiler.h"
 #include "render/primitives/MeshTriangle.h"
+#include "render/primitives/detail/TriangleIntersection.h"
 #include "PacketStateHelpers.h"
 #include "core/geometry/Mesh.h"
 #include "core/math/RayPacket.h"
@@ -126,30 +127,10 @@ PrimitivePacketHit8 MeshTriangle::intersectPacketHits(const Ray8& rays,
     State& state = *states[lane];
     const Rayd ray = rays.rayd(lane);
 
-    const double a = v0.x() - v1.x();
-    const double b = v0.x() - v2.x();
-    const double c = ray.direction().x();
-    const double d = v0.x() - ray.origin().x();
-    const double e = v0.y() - v1.y();
-    const double f = v0.y() - v2.y();
-    const double g = ray.direction().y();
-    const double h = v0.y() - ray.origin().y();
-    const double i = v0.z() - v1.z();
-    const double j = v0.z() - v2.z();
-    const double k = ray.direction().z();
-    const double l = v0.z() - ray.origin().z();
-
-    const double m = f * k - g * j;
-    const double n = h * k - g * l;
-    const double p = f * l - h * j;
-    const double q = g * i - e * k;
-    const double r = e * l - h * i;
-    const double s = e * j - f * i;
-    const double invDenom = 1.0 / (a * m + b * q + c * s);
-
-    const double beta = (d * m - b * n - c * p) * invDenom;
-    const double gamma = (a * n + d * q + c * r) * invDenom;
-    const double distance = (a * p - b * r + d * s) * invDenom;
+    const auto solution = detail::solveTriangleBarycentric(v0, v1, v2, ray);
+    const double beta = solution.beta;
+    const double gamma = solution.gamma;
+    const double distance = solution.distance;
 
     if (beta < 0.0 || beta > 1.0 || gamma < 0.0 || beta + gamma > 1.0 ||
         distance < minimumHitDistance()) {

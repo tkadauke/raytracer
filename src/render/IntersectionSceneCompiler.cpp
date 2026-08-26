@@ -10,6 +10,7 @@
 #include "core/math/Quadric.h"
 #include "core/math/Quartic.h"
 #include "render/primitives/Scene.h"
+#include "render/primitives/detail/TriangleIntersection.h"
 
 using namespace render;
 
@@ -756,43 +757,22 @@ std::optional<CompiledIntersectionHit> CompiledIntersectionSceneIntersector::int
   const Vector3d& point1 = payload.point1;
   const Vector3d& point2 = payload.point2;
 
-  const double a = point0.x() - point1.x();
-  const double b = point0.x() - point2.x();
-  const double c = localRay.direction().x();
-  const double d = point0.x() - localRay.origin().x();
-  const double e = point0.y() - point1.y();
-  const double f = point0.y() - point2.y();
-  const double g = localRay.direction().y();
-  const double h = point0.y() - localRay.origin().y();
-  const double i = point0.z() - point1.z();
-  const double j = point0.z() - point2.z();
-  const double k = localRay.direction().z();
-  const double l = point0.z() - localRay.origin().z();
-
-  const double m = f * k - g * j;
-  const double n = h * k - g * l;
-  const double p = f * l - h * j;
-  const double q = g * i - e * k;
-  const double r = e * l - h * i;
-  const double s = e * j - f * i;
-
-  const double denominator = a * m + b * q + c * s;
-  if (denominator == 0.0) {
+  const auto solution = detail::solveTriangleBarycentric(point0, point1, point2, localRay);
+  if (solution.denominator == 0.0) {
     return std::nullopt;
   }
 
-  const double invDenom = 1.0 / denominator;
-  const double beta = (d * m - b * n - c * p) * invDenom;
+  const double beta = solution.beta;
   if (beta < 0.0 || beta > 1.0) {
     return std::nullopt;
   }
 
-  const double gamma = (a * n + d * q + c * r) * invDenom;
+  const double gamma = solution.gamma;
   if (gamma < 0.0 || gamma > 1.0 || beta + gamma > 1.0) {
     return std::nullopt;
   }
 
-  const double distance = (a * p - b * r + d * s) * invDenom;
+  const double distance = solution.distance;
   if (distance < payload.minimumHitDistance) {
     return std::nullopt;
   }

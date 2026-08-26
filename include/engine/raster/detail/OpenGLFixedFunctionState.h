@@ -163,9 +163,10 @@ namespace engine::raster::detail {
       return;
     }
     glEnable(GL_BLEND);
-    glBlendColor(static_cast<GLclampf>(std::clamp(state.blendConstantColor.r(), 0.0, 1.0)),
-                 static_cast<GLclampf>(std::clamp(state.blendConstantColor.g(), 0.0, 1.0)),
-                 static_cast<GLclampf>(std::clamp(state.blendConstantColor.b(), 0.0, 1.0)),
+    const Colord clampedBlendColor = state.blendConstantColor.clamped();
+    glBlendColor(static_cast<GLclampf>(clampedBlendColor.r()),
+                 static_cast<GLclampf>(clampedBlendColor.g()),
+                 static_cast<GLclampf>(clampedBlendColor.b()),
                  static_cast<GLclampf>(std::clamp(state.blendConstantAlpha, 0.0, 1.0)));
     glBlendFunc(toGLBlendFactor(state.sourceBlendFactor),
                 toGLBlendFactor(state.destinationBlendFactor));

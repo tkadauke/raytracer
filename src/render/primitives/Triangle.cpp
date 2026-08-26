@@ -1,6 +1,7 @@
 #include "render/State.h"
 #include "render/IntersectionSceneCompiler.h"
 #include "render/primitives/Triangle.h"
+#include "render/primitives/detail/TriangleIntersection.h"
 #include "PacketStateHelpers.h"
 #include "core/SimdFeatures.h"
 #include "core/geometry/Mesh.h"
@@ -14,28 +15,15 @@ using namespace render;
 
 const Primitive* Triangle::intersect(const Rayd& ray, HitPointInterval& hitPoints,
                                      render::State& state) const {
-  double a = m_point0.x() - m_point1.x(), b = m_point0.x() - m_point2.x(), c = ray.direction().x(),
-         d = m_point0.x() - ray.origin().x();
-  double e = m_point0.y() - m_point1.y(), f = m_point0.y() - m_point2.y(), g = ray.direction().y(),
-         h = m_point0.y() - ray.origin().y();
-  double i = m_point0.z() - m_point1.z(), j = m_point0.z() - m_point2.z(), k = ray.direction().z(),
-         l = m_point0.z() - ray.origin().z();
-
-  double m = f * k - g * j, n = h * k - g * l, p = f * l - h * j;
-  double q = g * i - e * k, r = e * l - h * i, s = e * j - f * i;
-
-  double invDenom = 1.0 / (a * m + b * q + c * s);
-
-  double e1 = d * m - b * n - c * p;
-  double beta = e1 * invDenom;
+  const auto solution = detail::solveTriangleBarycentric(m_point0, m_point1, m_point2, ray);
+  const double beta = solution.beta;
 
   if (beta < 0.0 || beta > 1.0) {
     state.miss(this, "Triangle, beta not in [0, 1]");
     return nullptr;
   }
 
-  double e2 = a * n + d * q + c * r;
-  double gamma = e2 * invDenom;
+  const double gamma = solution.gamma;
 
   if (gamma < 0.0 || gamma > 1.0) {
     state.miss(this, "Triangle, gamma not in [0, 1]");
@@ -47,8 +35,7 @@ const Primitive* Triangle::intersect(const Rayd& ray, HitPointInterval& hitPoint
     return nullptr;
   }
 
-  double e3 = a * p - b * r + d * s;
-  double t = e3 * invDenom;
+  double t = solution.distance;
 
   Vector3d hitPoint = ray.at(t);
   hitPoints.add(HitPoint(this, t, hitPoint, m_normal));
@@ -133,34 +120,14 @@ Result Triangle::intersectPacketHitsFor(const Packet& rays, const StateArray& st
     State& state = *states[lane];
     const Rayd ray = rays.rayd(lane);
 
-    const double a = m_point0.x() - m_point1.x();
-    const double b = m_point0.x() - m_point2.x();
-    const double c = ray.direction().x();
-    const double d = m_point0.x() - ray.origin().x();
-    const double e = m_point0.y() - m_point1.y();
-    const double f = m_point0.y() - m_point2.y();
-    const double g = ray.direction().y();
-    const double h = m_point0.y() - ray.origin().y();
-    const double i = m_point0.z() - m_point1.z();
-    const double j = m_point0.z() - m_point2.z();
-    const double k = ray.direction().z();
-    const double l = m_point0.z() - ray.origin().z();
-
-    const double m = f * k - g * j;
-    const double n = h * k - g * l;
-    const double p = f * l - h * j;
-    const double q = g * i - e * k;
-    const double r = e * l - h * i;
-    const double s = e * j - f * i;
-
-    const double invDenom = 1.0 / (a * m + b * q + c * s);
-    const double beta = (d * m - b * n - c * p) * invDenom;
+    const auto solution = detail::solveTriangleBarycentric(m_point0, m_point1, m_point2, ray);
+    const double beta = solution.beta;
     if (beta < 0.0 || beta > 1.0) {
       state.miss(this, "Triangle, beta not in [0, 1]");
       continue;
     }
 
-    const double gamma = (a * n + d * q + c * r) * invDenom;
+    const double gamma = solution.gamma;
     if (gamma < 0.0 || gamma > 1.0) {
       state.miss(this, "Triangle, gamma not in [0, 1]");
       continue;
@@ -171,7 +138,7 @@ Result Triangle::intersectPacketHitsFor(const Packet& rays, const StateArray& st
       continue;
     }
 
-    const double t = (a * p - b * r + d * s) * invDenom;
+    const double t = solution.distance;
     if (t < 0.0) {
       state.miss(this, "Triangle, behind ray");
       continue;
