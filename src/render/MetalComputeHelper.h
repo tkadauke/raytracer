@@ -17,6 +17,12 @@ inline id<MTLDevice> sharedMetalDevice() {
   return device;
 }
 
+inline bool metalDeviceAvailable() {
+  @autoreleasepool {
+    return sharedMetalDevice() != nil;
+  }
+}
+
 inline id<MTLCommandQueue> sharedCommandQueue() {
   static id<MTLCommandQueue> queue = [] {
     id<MTLDevice> device = sharedMetalDevice();

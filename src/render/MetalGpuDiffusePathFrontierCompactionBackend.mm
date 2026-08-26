@@ -13,6 +13,7 @@
 
 namespace render {
   using render::detail::sharedMetalDevice;
+  using render::detail::metalDeviceAvailable;
   using render::detail::sharedCommandQueue;
   using render::detail::metalError;
   using render::detail::secondsBetween;
@@ -134,9 +135,7 @@ namespace render {
   }
 
   bool MetalGpuDiffusePathFrontierCompactionBackend::deviceAvailable() const {
-    @autoreleasepool {
-      return sharedMetalDevice() != nil;
-    }
+    return metalDeviceAvailable();
   }
 
   std::string MetalGpuDiffusePathFrontierCompactionBackend::deviceUnavailableReason() const {
