@@ -2,6 +2,7 @@
 
 #include "core/math/Constants.h"
 #include "render/GpuTracingTextureEvaluator.h"
+#include "render/brdf/BRDFSampling.h"
 
 #include <algorithm>
 #include <cmath>
@@ -70,15 +71,7 @@ namespace render {
   double GpuTracingBsdfEvaluator::phongLobePdf(const GpuTracingMaterialRecord& material,
                                                const Vector3d& normal, const Vector3d& wi,
                                                const Vector3d& wo) {
-    if (normal * wi < 0.0 || normal * wo < 0.0) {
-      return 0.0;
-    }
-    const Vector3d lobeAxis = (-wi).reflect(normal).normalized();
-    const double lobeDotOut = lobeAxis * wo.normalized();
-    if (lobeDotOut <= 0.0) {
-      return 0.0;
-    }
-    return ((material.parameters[3] + 1.0) * invTAU) * std::pow(lobeDotOut, material.parameters[3]);
+    return render::phongLobePdf(normal, wi, wo, material.parameters[3]);
   }
 
   double GpuTracingBsdfEvaluator::finiteBsdfPdf(const GpuTracingMaterialRecord& material,

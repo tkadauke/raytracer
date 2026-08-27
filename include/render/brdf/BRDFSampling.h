@@ -58,4 +58,20 @@ namespace render {
             axis * cosTheta)
       .normalized();
   }
+
+  /// PDF of a direction `wo` under a Phong lobe reflected off surface normal
+  /// `n` around the incoming direction `wi`, matching phongLobeDirection()'s
+  /// sampling distribution.
+  inline double phongLobePdf(const Vector3d& n, const Vector3d& wi, const Vector3d& wo,
+                             double exponent) {
+    if (n * wi < 0.0 || n * wo < 0.0)
+      return 0.0;
+
+    const Vector3d lobeAxis = (-wi).reflect(n).normalized();
+    const double lobeDotOut = lobeAxis * wo.normalized();
+    if (lobeDotOut <= 0.0)
+      return 0.0;
+
+    return ((exponent + 1.0) * invTAU) * std::pow(lobeDotOut, exponent);
+  }
 }

@@ -5,6 +5,7 @@
 #include "engine/graph/RaytracerPassState.h"
 #include "engine/graph/RenderGraphTypes.h"
 #include "engine/graph/WireframePassState.h"
+#include "engine/graph/detail/JsonStateHelpers.h"
 
 #include <algorithm>
 #include <stdexcept>
@@ -94,9 +95,10 @@ namespace engine::graph {
       }
     }
 
-    throw std::runtime_error("Invalid render graph JSON at " + path +
-                             ": parameters are not supported for pass kind '" + toString(kind) +
-                             "' and executor '" + toString(executor) + "'");
+    detail::throwLabeledJsonError(
+      "render graph JSON", path,
+      std::string("parameters are not supported for pass kind '") + toString(kind) +
+        "' and executor '" + toString(executor) + "'");
   }
 
   const RasterBeautyPassState* RenderPassState::asRasterBeautyPassState() const {
