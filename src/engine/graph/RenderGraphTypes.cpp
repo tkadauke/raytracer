@@ -31,7 +31,7 @@ using core::util::trim;
 namespace engine::graph {
   namespace {
     [[noreturn]] void jsonError(const std::string& path, const std::string& message) {
-      throw std::runtime_error("Invalid render graph JSON at " + path + ": " + message);
+      detail::throwLabeledJsonError("render graph JSON", path, message);
     }
 
     std::string stringField(const QJsonObject& object, const char* key, const std::string& path,

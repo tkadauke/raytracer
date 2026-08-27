@@ -112,39 +112,11 @@ namespace engine::graph {
       return result;
     }
 
-    bool finiteColorRange(const Buffer<Colord>& source, Colord* minimum, Colord* maximum) {
-      double minValues[3] = {std::numeric_limits<double>::infinity(),
-                             std::numeric_limits<double>::infinity(),
-                             std::numeric_limits<double>::infinity()};
-      double maxValues[3] = {-std::numeric_limits<double>::infinity(),
-                             -std::numeric_limits<double>::infinity(),
-                             -std::numeric_limits<double>::infinity()};
-
-      for (int y = 0; y != source.height(); ++y) {
-        for (int x = 0; x != source.width(); ++x) {
-          for (int component = 0; component != 3; ++component) {
-            const double value = source[y][x][component];
-            if (!std::isfinite(value)) {
-              continue;
-            }
-            minValues[component] = std::min(minValues[component], value);
-            maxValues[component] = std::max(maxValues[component], value);
-          }
-        }
-      }
-
-      *minimum = Colord(minValues);
-      *maximum = Colord(maxValues);
-      return std::isfinite(minValues[0]) && std::isfinite(minValues[1]) &&
-             std::isfinite(minValues[2]) && std::isfinite(maxValues[0]) &&
-             std::isfinite(maxValues[1]) && std::isfinite(maxValues[2]);
-    }
-
     std::shared_ptr<const Buffer<Colord>> worldPositionPreviewFor(const Buffer<Colord>& source) {
       auto result = std::make_shared<Buffer<Colord>>(source.width(), source.height());
       Colord minimum;
       Colord maximum;
-      if (!finiteColorRange(source, &minimum, &maximum)) {
+      if (!finiteRange(source, &minimum, &maximum)) {
         result->clear(Colord::black());
         return result;
       }

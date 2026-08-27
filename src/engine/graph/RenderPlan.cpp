@@ -158,7 +158,7 @@ namespace engine::graph {
     }
 
     [[noreturn]] void jsonError(const std::string& path, const std::string& message) {
-      throw std::runtime_error("Invalid render plan JSON at " + path + ": " + message);
+      detail::throwLabeledJsonError("render plan JSON", path, message);
     }
 
     QJsonArray arrayField(const QJsonObject& object, const char* key, const std::string& path) {

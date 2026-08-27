@@ -3,6 +3,7 @@
 #include "core/Buffer.h"
 #include "core/util/QStringUtil.h"
 #include "engine/graph/RenderGraphExecutionTrace.h"
+#include "engine/graph/RenderGraphPreviewHelpers.h"
 
 #include <QFont>
 #include <QImage>
@@ -35,25 +36,15 @@ namespace {
   QImage depthPreviewImage(const Buffer<double>& buffer) {
     double minDepth = std::numeric_limits<double>::infinity();
     double maxDepth = -std::numeric_limits<double>::infinity();
-    for (int y = 0; y != buffer.height(); ++y) {
-      for (int x = 0; x != buffer.width(); ++x) {
-        const double depth = buffer[y][x];
-        if (!std::isfinite(depth))
-          continue;
-        minDepth = std::min(minDepth, depth);
-        maxDepth = std::max(maxDepth, depth);
-      }
-    }
+    finiteRange(buffer, &minDepth, &maxDepth);
 
     QImage image(buffer.width(), buffer.height(), QImage::Format_RGB32);
-    const bool hasFiniteDepth = std::isfinite(minDepth) && std::isfinite(maxDepth);
-    const double range = hasFiniteDepth ? std::max(maxDepth - minDepth, 1e-9) : 1.0;
     for (int y = 0; y != buffer.height(); ++y) {
       for (int x = 0; x != buffer.width(); ++x) {
         const double depth = buffer[y][x];
         int gray = 0;
         if (std::isfinite(depth)) {
-          const double normalized = 1.0 - std::clamp((depth - minDepth) / range, 0.0, 1.0);
+          const double normalized = depthGrayscale(depth, minDepth, maxDepth);
           gray = static_cast<int>(std::round(normalized * 255.0));
         }
         image.setPixel(x, y, qRgb(gray, gray, gray));
