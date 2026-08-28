@@ -26,6 +26,8 @@ namespace {
   using render::detail::eyeOriginForMatrix;
   using render::detail::fillGpuDescriptorPlane;
   using render::detail::fillGpuDescriptorViewport;
+  using render::detail::hasValidGpuPrimaryPathSampler;
+  using render::detail::isEmptyGpuPrimaryPathRect;
   using render::detail::lensDescriptorMotion;
   using render::detail::LensDescriptorMotion;
 }
@@ -167,7 +169,7 @@ std::unique_ptr<Camera::PrimaryRayGenerator> ThinLensCamera::primaryRayGenerator
 std::optional<GpuPrimaryPathDescriptor>
 ThinLensCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampleSeed) const {
   auto plane = viewPlane();
-  if (!plane || !plane->sampler() || plane->sampler()->numSamples() <= 0) {
+  if (!hasValidGpuPrimaryPathSampler(plane)) {
     return std::nullopt;
   }
   if (animationTrack("distance") || animationTrack("zoom") || animationTrack("apertureRadius") ||
@@ -181,7 +183,7 @@ ThinLensCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sample
   }
 
   const Recti actual = renderableRect(rect);
-  if (actual.width() <= 0 || actual.height() <= 0) {
+  if (isEmptyGpuPrimaryPathRect(actual)) {
     return std::nullopt;
   }
 

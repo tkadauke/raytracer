@@ -1085,6 +1085,50 @@ namespace engine::graph {
       return TraceSession(executionTraceRecorder,
                           executionTraceRecorder->begin(plan, inputFingerprint));
     }
+
+    struct PreparedRender {
+      RenderPlan plan;
+      std::uint64_t renderGeneration;
+      TraceSession traceSession;
+      RenderResourceStorage storage;
+    };
+
+    // Compiles/validates the plan, binds external inputs, claims a render
+    // generation, and allocates+binds resource storage — the setup shared by
+    // every GraphRenderEngine::render() overload before they diverge into
+    // their own pass-execution and output paths.
+    PreparedRender prepareRender(GraphRenderEngine& engine, int width, int height,
+                                 bool enforceMatchingOutputSize) {
+      RenderPlan plan = explicitPlan ? *explicitPlan : engine.compilePlan({width, height, 1});
+      lastPlan = plan;
+
+      auto validation = plan.validate();
+      const auto hazards = plan.validateParallelExecutionHazards();
+      for (const auto& hazard : hazards.errors()) {
+        validation.add(hazard);
+      }
+      if (!validation.valid()) {
+        throw std::runtime_error(validationMessage(validation));
+      }
+      if (plan.hasMultipleExecutionCameraRefs()) {
+        throw std::runtime_error("GraphRenderEngine cannot execute a plan with multiple scene "
+                                 "camera references yet");
+      }
+      requireExternalInputsBound(plan, externalResources);
+      if (enforceMatchingOutputSize) {
+        requireMatchingOutputSize(plan, width, height);
+      }
+      const std::uint64_t renderGeneration = claimExecutionGeneration();
+      TraceSession traceSession = beginTraceIfEnabled(plan, engine.executionInputFingerprint());
+      notifyRenderStarted(engine, renderGeneration);
+
+      RenderResourceStorage storage;
+      storage.allocate(plan.resources());
+      bindExternalInputs(storage, plan, externalResources);
+
+      return PreparedRender{std::move(plan), renderGeneration, std::move(traceSession),
+                            std::move(storage)};
+    }
   };
 
   GraphRenderEngine::GraphRenderEngine(std::shared_ptr<render::Scene> scene)
@@ -1365,30 +1409,11 @@ namespace engine::graph {
       return;
     }
 
-    RenderPlan plan =
-      p->explicitPlan ? *p->explicitPlan : compilePlan({buffer.width(), buffer.height(), 1});
-    p->lastPlan = plan;
-
-    auto validation = plan.validate();
-    const auto hazards = plan.validateParallelExecutionHazards();
-    for (const auto& hazard : hazards.errors()) {
-      validation.add(hazard);
-    }
-    if (!validation.valid()) {
-      throw std::runtime_error(validationMessage(validation));
-    }
-    if (plan.hasMultipleExecutionCameraRefs()) {
-      throw std::runtime_error("GraphRenderEngine cannot execute a plan with multiple scene "
-                               "camera references yet");
-    }
-    requireExternalInputsBound(plan, p->externalResources);
-    const std::uint64_t renderGeneration = p->claimExecutionGeneration();
-    TraceSession traceSession = p->beginTraceIfEnabled(plan, executionInputFingerprint());
-    notifyRenderStarted(*this, renderGeneration);
-
-    RenderResourceStorage storage;
-    storage.allocate(plan.resources());
-    bindExternalInputs(storage, plan, p->externalResources);
+    auto prepared = p->prepareRender(*this, buffer.width(), buffer.height(), false);
+    RenderPlan& plan = prepared.plan;
+    const std::uint64_t renderGeneration = prepared.renderGeneration;
+    TraceSession& traceSession = prepared.traceSession;
+    RenderResourceStorage& storage = prepared.storage;
 
     GraphExecutionRuntime runtime{p->cancelled, p->executionTraceRecorder,
                                   std::make_shared<ActivePassSet>()};
@@ -1448,31 +1473,11 @@ namespace engine::graph {
       return;
     }
 
-    RenderPlan plan =
-      p->explicitPlan ? *p->explicitPlan : compilePlan({buffer.width(), buffer.height(), 1});
-    p->lastPlan = plan;
-
-    auto validation = plan.validate();
-    const auto hazards = plan.validateParallelExecutionHazards();
-    for (const auto& hazard : hazards.errors()) {
-      validation.add(hazard);
-    }
-    if (!validation.valid()) {
-      throw std::runtime_error(validationMessage(validation));
-    }
-    if (plan.hasMultipleExecutionCameraRefs()) {
-      throw std::runtime_error("GraphRenderEngine cannot execute a plan with multiple scene "
-                               "camera references yet");
-    }
-    requireExternalInputsBound(plan, p->externalResources);
-    requireMatchingOutputSize(plan, buffer.width(), buffer.height());
-    const std::uint64_t renderGeneration = p->claimExecutionGeneration();
-    TraceSession traceSession = p->beginTraceIfEnabled(plan, executionInputFingerprint());
-    notifyRenderStarted(*this, renderGeneration);
-
-    RenderResourceStorage storage;
-    storage.allocate(plan.resources());
-    bindExternalInputs(storage, plan, p->externalResources);
+    auto prepared = p->prepareRender(*this, buffer.width(), buffer.height(), true);
+    RenderPlan& plan = prepared.plan;
+    const std::uint64_t renderGeneration = prepared.renderGeneration;
+    TraceSession& traceSession = prepared.traceSession;
+    RenderResourceStorage& storage = prepared.storage;
     const auto displayTonemap = displayTonemapForPlan(plan, *this);
     std::mutex displayStateMutex;
     std::map<RenderPassId, RenderResourceId> directDisplayWrites;

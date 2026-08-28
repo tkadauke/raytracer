@@ -21,6 +21,25 @@ namespace engine::raster::gl {
       }
       return clamped / (1.0 - clamped);
     }
+
+    // Reads a single-component attachment back from `fbo` and writes it into
+    // `target`, flipping the GL bottom-left origin to the buffer's top-left
+    // origin. Shared by copyDepthTo/copyStencilTo, which only differ in the
+    // GL pixel type/format and the per-pixel value transform.
+    template<typename Pixel, typename TargetBuffer, typename Transform>
+    void readAttachmentFlipped(GLuint fbo, int width, int height, GLenum format, GLenum type,
+                               Pixel fillValue, TargetBuffer& target, Transform transform) {
+      glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+      std::vector<Pixel> pixels(static_cast<std::size_t>(width * height), fillValue);
+      glReadPixels(0, 0, width, height, format, type, pixels.data());
+
+      for (int y = 0; y != height; ++y) {
+        const int sourceY = height - 1 - y;
+        for (int x = 0; x != width; ++x) {
+          target[y][x] = transform(pixels[static_cast<std::size_t>(sourceY * width + x)]);
+        }
+      }
+    }
   }
 
   AttachmentSet::~AttachmentSet() {
@@ -175,17 +194,8 @@ namespace engine::raster::gl {
     const int width = std::min(target.width(), m_width);
     const int height = std::min(target.height(), m_height);
 
-    glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
-    std::vector<GLfloat> pixels(static_cast<std::size_t>(width * height), 1.0f);
-    glReadPixels(0, 0, width, height, GL_DEPTH_COMPONENT, GL_FLOAT, pixels.data());
-
-    for (int y = 0; y != height; ++y) {
-      const int sourceY = height - 1 - y;
-      for (int x = 0; x != width; ++x) {
-        target[y][x] =
-          linearDepthFromGlDepth(pixels[static_cast<std::size_t>(sourceY * width + x)]);
-      }
-    }
+    readAttachmentFlipped<GLfloat>(m_fbo, width, height, GL_DEPTH_COMPONENT, GL_FLOAT, 1.0f, target,
+                                   linearDepthFromGlDepth);
   }
 
   void AttachmentSet::copyStencilTo(::Buffer<std::uint8_t>& target) {
@@ -199,15 +209,7 @@ namespace engine::raster::gl {
     const int width = std::min(target.width(), m_width);
     const int height = std::min(target.height(), m_height);
 
-    glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
-    std::vector<GLubyte> pixels(static_cast<std::size_t>(width * height), 0);
-    glReadPixels(0, 0, width, height, GL_STENCIL_INDEX, GL_UNSIGNED_BYTE, pixels.data());
-
-    for (int y = 0; y != height; ++y) {
-      const int sourceY = height - 1 - y;
-      for (int x = 0; x != width; ++x) {
-        target[y][x] = pixels[static_cast<std::size_t>(sourceY * width + x)];
-      }
-    }
+    readAttachmentFlipped<GLubyte>(m_fbo, width, height, GL_STENCIL_INDEX, GL_UNSIGNED_BYTE,
+                                   GLubyte{0}, target, [](GLubyte value) { return value; });
   }
 }

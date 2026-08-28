@@ -35,6 +35,8 @@ namespace {
   using render::detail::eyeOriginForMatrix;
   using render::detail::fillGpuDescriptorPlane;
   using render::detail::fillGpuDescriptorViewport;
+  using render::detail::hasValidGpuPrimaryPathSampler;
+  using render::detail::isEmptyGpuPrimaryPathRect;
   using render::detail::nearlyEqual;
   using render::detail::sampledLinearShutterMotionEndpoints;
 
@@ -133,7 +135,7 @@ std::unique_ptr<Camera::PrimaryRayGenerator> PinholeCamera::primaryRayGenerator(
 std::optional<GpuPrimaryPathDescriptor>
 PinholeCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampleSeed) const {
   auto plane = viewPlane();
-  if (!plane || !plane->sampler() || plane->sampler()->numSamples() <= 0) {
+  if (!hasValidGpuPrimaryPathSampler(plane)) {
     return std::nullopt;
   }
 
@@ -149,7 +151,7 @@ PinholeCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampleS
   }
 
   const Recti actual = renderableRect(rect);
-  if (actual.width() <= 0 || actual.height() <= 0) {
+  if (isEmptyGpuPrimaryPathRect(actual)) {
     return std::nullopt;
   }
 

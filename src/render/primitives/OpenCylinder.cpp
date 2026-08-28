@@ -238,14 +238,7 @@ Vector3d OpenCylinder::farthestPoint(const Vector3d& direction) const {
 }
 
 Vector2d OpenCylinder::sideUvAt(const Vector3d& point) const {
-  double u = std::atan2(point.z(), point.x()) / (2.0 * M_PI);
-  if (u < 0.0) {
-    u += 1.0;
-  }
-
-  const double height = 2.0 * m_halfHeight;
-  const double v = height == 0.0 ? 0.0 : (point.y() + m_halfHeight) / height;
-  return Vector2d(u, v);
+  return IntersectionOpenCylinderPayload{m_radius, m_halfHeight}.sideUvAt(point);
 }
 
 std::shared_ptr<Mesh> OpenCylinder::tessellate(int lod) const {
