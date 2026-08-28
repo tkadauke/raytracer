@@ -60,8 +60,7 @@ namespace engine::graph {
                                std::size_t tile, double minDepth, double maxDepth) {
       const double depth = visibilitySet.nearestTileDepth(tile);
       if (std::isfinite(depth)) {
-        const double range = std::max(maxDepth - minDepth, 1e-9);
-        const double normalized = 1.0 - std::clamp((depth - minDepth) / range, 0.0, 1.0);
+        const double normalized = depthGrayscale(depth, minDepth, maxDepth);
         return Colord(0.08, 0.35 + normalized * 0.55, 0.18);
       }
       if (visibilitySet.tileCovered(tile)) {

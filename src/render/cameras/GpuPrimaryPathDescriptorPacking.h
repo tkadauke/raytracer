@@ -3,12 +3,14 @@
 #include "render/cameras/SampledShutterDescriptorMotion.h"
 #include "render/GpuFloat4.h"
 #include "render/GpuPrimaryPathDescriptor.h"
+#include "render/samplers/Sampler.h"
 #include "render/viewplanes/ViewPlane.h"
 #include "core/math/Matrix.h"
 #include "core/math/Vector.h"
 
 #include <cstdint>
 #include <limits>
+#include <memory>
 #include <stdexcept>
 #include <string>
 
@@ -18,6 +20,19 @@ namespace render::detail {
       throw std::overflow_error(std::string(label) + " exceeds GPU 32-bit count range");
     }
     return static_cast<std::uint32_t>(value);
+  }
+
+  // Shared first guard clause for every camera's gpuPrimaryPathDescriptor()
+  // override: a GPU descriptor needs a view plane with a configured sampler
+  // emitting at least one sample per pixel.
+  inline bool hasValidGpuPrimaryPathSampler(const std::shared_ptr<ViewPlane>& plane) {
+    return plane && plane->sampler() && plane->sampler()->numSamples() > 0;
+  }
+
+  // Shared second guard clause: the clamped renderable rect must not be
+  // empty (e.g. a fully letterboxed FitExact rect at this render size).
+  inline bool isEmptyGpuPrimaryPathRect(const Recti& actual) {
+    return actual.width() <= 0 || actual.height() <= 0;
   }
 
   inline void checkGpuPathCount(const Recti& actual, int numSamples) {

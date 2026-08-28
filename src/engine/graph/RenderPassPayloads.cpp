@@ -2159,11 +2159,7 @@ namespace engine::graph {
         if (!std::isfinite(minDistance) || !std::isfinite(maxDistance)) {
           return 1.0;
         }
-        const double range = maxDistance - minDistance;
-        if (range <= 1e-9) {
-          return 1.0;
-        }
-        return 1.0 - std::clamp((distance - minDistance) / range, 0.0, 1.0);
+        return depthGrayscale(distance, minDistance, maxDistance);
       }
 
       static void recordTrace(RenderExecutionContext& context,

@@ -23,6 +23,8 @@ namespace {
   using render::detail::checkGpuPathCount;
   using render::detail::fillGpuDescriptorMatrixBasis;
   using render::detail::fillGpuDescriptorViewport;
+  using render::detail::hasValidGpuPrimaryPathSampler;
+  using render::detail::isEmptyGpuPrimaryPathRect;
 }
 
 std::shared_ptr<Camera> SphericalCamera::clone() const {
@@ -59,7 +61,7 @@ Rayd SphericalCamera::rayForPixel(double x, double y, render::SampleStream&) con
 std::optional<GpuPrimaryPathDescriptor>
 SphericalCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampleSeed) const {
   auto plane = viewPlane();
-  if (!plane || !plane->sampler() || plane->sampler()->numSamples() <= 0) {
+  if (!hasValidGpuPrimaryPathSampler(plane)) {
     return std::nullopt;
   }
   if (animationTrack("horizontalFieldOfView") || animationTrack("verticalFieldOfView")) {
@@ -100,7 +102,7 @@ SphericalCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampl
   }
 
   const Recti actual = renderableRect(rect);
-  if (actual.width() <= 0 || actual.height() <= 0) {
+  if (isEmptyGpuPrimaryPathRect(actual)) {
     return std::nullopt;
   }
 
