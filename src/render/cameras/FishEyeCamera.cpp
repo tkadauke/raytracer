@@ -22,6 +22,8 @@ namespace {
   using render::detail::checkGpuPathCount;
   using render::detail::fillGpuDescriptorPointSourceMotion;
   using render::detail::fillGpuDescriptorViewport;
+  using render::detail::hasValidGpuPrimaryPathSampler;
+  using render::detail::isEmptyGpuPrimaryPathRect;
   using render::detail::pointSourceDescriptorMotion;
 }
 
@@ -58,7 +60,7 @@ Rayd FishEyeCamera::rayForPixel(double x, double y, render::SampleStream&) const
 std::optional<GpuPrimaryPathDescriptor>
 FishEyeCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampleSeed) const {
   auto plane = viewPlane();
-  if (!plane || !plane->sampler() || plane->sampler()->numSamples() <= 0) {
+  if (!hasValidGpuPrimaryPathSampler(plane)) {
     return std::nullopt;
   }
   if (animationTrack("fieldOfView")) {
@@ -70,7 +72,7 @@ FishEyeCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampleS
   }
 
   const Recti actual = renderableRect(rect);
-  if (actual.width() <= 0 || actual.height() <= 0) {
+  if (isEmptyGpuPrimaryPathRect(actual)) {
     return std::nullopt;
   }
 

@@ -21,6 +21,8 @@ namespace {
   using render::detail::checkGpuPathCount;
   using render::detail::fillGpuDescriptorPlane;
   using render::detail::fillGpuDescriptorViewport;
+  using render::detail::hasValidGpuPrimaryPathSampler;
+  using render::detail::isEmptyGpuPrimaryPathRect;
   using render::detail::lensDescriptorMotion;
   using render::detail::LensDescriptorMotion;
 }
@@ -100,7 +102,7 @@ Rayd TiltShiftCamera::rayForPixelWithLens(double x, double y, double lensU, doub
 std::optional<GpuPrimaryPathDescriptor>
 TiltShiftCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampleSeed) const {
   auto plane = viewPlane();
-  if (!plane || !plane->sampler() || plane->sampler()->numSamples() <= 0) {
+  if (!hasValidGpuPrimaryPathSampler(plane)) {
     return std::nullopt;
   }
   if (animationTrack("distance") || animationTrack("zoom") || animationTrack("apertureRadius") ||
@@ -114,7 +116,7 @@ TiltShiftCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampl
   }
 
   const Recti actual = renderableRect(rect);
-  if (actual.width() <= 0 || actual.height() <= 0) {
+  if (isEmptyGpuPrimaryPathRect(actual)) {
     return std::nullopt;
   }
 

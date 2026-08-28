@@ -21,6 +21,8 @@ namespace {
   using render::detail::fillGpuDescriptorPlane;
   using render::detail::fillGpuDescriptorViewport;
   using render::detail::hasStableBasis;
+  using render::detail::hasValidGpuPrimaryPathSampler;
+  using render::detail::isEmptyGpuPrimaryPathRect;
   using render::detail::LensDescriptorMotion;
   using render::detail::linearDirectionSegmentStaysOffUpAxis;
   using render::detail::nearlyEqual;
@@ -137,7 +139,7 @@ std::unique_ptr<Camera::PrimaryRayGenerator> OrthographicCamera::primaryRayGener
 std::optional<GpuPrimaryPathDescriptor>
 OrthographicCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampleSeed) const {
   auto plane = viewPlane();
-  if (!plane || !plane->sampler() || plane->sampler()->numSamples() <= 0) {
+  if (!hasValidGpuPrimaryPathSampler(plane)) {
     return std::nullopt;
   }
   std::optional<LensDescriptorMotion> motion;
@@ -153,7 +155,7 @@ OrthographicCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sa
   }
 
   const Recti actual = renderableRect(rect);
-  if (actual.width() <= 0 || actual.height() <= 0) {
+  if (isEmptyGpuPrimaryPathRect(actual)) {
     return std::nullopt;
   }
 
