@@ -380,6 +380,8 @@ namespace world {
     using core::formats::readFloat32Le;
     using core::formats::readUint16Le;
     using core::formats::readUint32Le;
+    using core::formats::readVector2fLe;
+    using core::formats::readVector3fLe;
 
     std::vector<Vector3d> readVec3Accessor(const core::gltf::Asset& asset,
                                            std::size_t accessorIndex, const char* semantic) {
@@ -400,7 +402,7 @@ namespace world {
         if (!data)
           throw std::runtime_error(
             QString("glTF %1 accessor data is unavailable").arg(semantic).toStdString());
-        values.emplace_back(readFloat32Le(data), readFloat32Le(data + 4), readFloat32Le(data + 8));
+        values.push_back(readVector3fLe(data));
       }
       return values;
     }
@@ -424,7 +426,7 @@ namespace world {
         if (!data)
           throw std::runtime_error(
             QString("glTF %1 accessor data is unavailable").arg(semantic).toStdString());
-        values.emplace_back(readFloat32Le(data), readFloat32Le(data + 4));
+        values.push_back(readVector2fLe(data));
       }
       return values;
     }

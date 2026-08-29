@@ -34,8 +34,8 @@ namespace {
            std::equal(prefix.begin(), prefix.end(), first);
   }
 
-  using core::formats::readFloat32Le;
   using core::formats::readUint32Le;
+  using core::formats::readVector3fLe;
 
   Vector3d normalFromWinding(const std::array<Vector3d, 3>& vertices) {
     Vector3d normal = (vertices[2] - vertices[0]) ^ (vertices[1] - vertices[0]);
@@ -179,16 +179,11 @@ namespace core::formats::stl {
 
     const std::uint8_t* cursor = data + kBinaryHeaderBytes + kBinaryCountBytes;
     for (std::uint32_t triangle = 0; triangle != count; ++triangle) {
-      const Vector3d facetNormal(readFloat32Le(cursor + 0),
-                                 readFloat32Le(cursor + 4),
-                                 readFloat32Le(cursor + 8));
+      const Vector3d facetNormal = readVector3fLe(cursor);
       std::array<Vector3d, 3> vertices = {
-        Vector3d(readFloat32Le(cursor + 12), readFloat32Le(cursor + 16),
-                 readFloat32Le(cursor + 20)),
-        Vector3d(readFloat32Le(cursor + 24), readFloat32Le(cursor + 28),
-                 readFloat32Le(cursor + 32)),
-        Vector3d(readFloat32Le(cursor + 36), readFloat32Le(cursor + 40),
-                 readFloat32Le(cursor + 44)),
+        readVector3fLe(cursor + 12),
+        readVector3fLe(cursor + 24),
+        readVector3fLe(cursor + 36),
       };
 
       if (!finiteVector(vertices[0]) || !finiteVector(vertices[1]) || !finiteVector(vertices[2]))
