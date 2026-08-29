@@ -1,5 +1,7 @@
 #pragma once
 
+#include "core/math/Vector.h"
+
 #include <QByteArray>
 
 #include <cstdint>
@@ -24,6 +26,14 @@ namespace core::formats {
     return value;
   }
 
+  inline Vector2d readVector2fLe(const std::uint8_t* data) {
+    return Vector2d(readFloat32Le(data), readFloat32Le(data + 4));
+  }
+
+  inline Vector3d readVector3fLe(const std::uint8_t* data) {
+    return Vector3d(readFloat32Le(data), readFloat32Le(data + 4), readFloat32Le(data + 8));
+  }
+
   // Unchecked little-endian reads from a QByteArray at a byte offset. Callers
   // are responsible for verifying the offset lies within bounds beforehand.
   inline std::uint16_t readUint16Le(const QByteArray& bytes, qsizetype offset) {
@@ -42,6 +52,15 @@ namespace core::formats {
     float value;
     std::memcpy(&value, &bits, sizeof(value));
     return value;
+  }
+
+  inline Vector2d readVector2fLe(const QByteArray& bytes, qsizetype offset) {
+    return Vector2d(readFloat32Le(bytes, offset), readFloat32Le(bytes, offset + 4));
+  }
+
+  inline Vector3d readVector3fLe(const QByteArray& bytes, qsizetype offset) {
+    return Vector3d(readFloat32Le(bytes, offset), readFloat32Le(bytes, offset + 4),
+                    readFloat32Le(bytes, offset + 8));
   }
 
 }
