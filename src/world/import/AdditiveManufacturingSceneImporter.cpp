@@ -25,9 +25,9 @@
 #include <vector>
 
 namespace {
-  using core::formats::readFloat32Le;
   using core::formats::readUint16Le;
   using core::formats::readUint32Le;
+  using core::formats::readVector3fLe;
 
   constexpr std::uint32_t ZipLocalFileHeaderSignature = 0x04034b50;
   constexpr std::uint16_t ZipStored = 0;
@@ -218,14 +218,10 @@ namespace {
     Mesh mesh;
     int offset = 84;
     for (std::uint32_t triangle = 0; triangle != triangleCount; ++triangle) {
-      const Vector3d normal(readFloat32Le(bytes, offset), readFloat32Le(bytes, offset + 4),
-                            readFloat32Le(bytes, offset + 8));
-      const Vector3d a(readFloat32Le(bytes, offset + 12), readFloat32Le(bytes, offset + 16),
-                       readFloat32Le(bytes, offset + 20));
-      const Vector3d b(readFloat32Le(bytes, offset + 24), readFloat32Le(bytes, offset + 28),
-                       readFloat32Le(bytes, offset + 32));
-      const Vector3d c(readFloat32Le(bytes, offset + 36), readFloat32Le(bytes, offset + 40),
-                       readFloat32Le(bytes, offset + 44));
+      const Vector3d normal = readVector3fLe(bytes, offset);
+      const Vector3d a = readVector3fLe(bytes, offset + 12);
+      const Vector3d b = readVector3fLe(bytes, offset + 24);
+      const Vector3d c = readVector3fLe(bytes, offset + 36);
       addTriangle(mesh, a, b, c, normal);
       offset += 50;
     }
