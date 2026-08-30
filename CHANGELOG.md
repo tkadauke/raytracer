@@ -11,6 +11,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Add `Matrix::toFloatArray()` for row-major float-array conversion, replacing the local
+  GPU intersection matrix packing helpers with a core matrix method. — GPT-5 Codex
 - Persist chat threads per scene (roadmap §4.6.i chat persistence, following up on
   `ChatDockWidget`'s previously in-memory-only threads): `chat::ChatThreadStore`
   (`include/chat/ChatThreadStore.h`) writes each thread's name, captured `claude` session

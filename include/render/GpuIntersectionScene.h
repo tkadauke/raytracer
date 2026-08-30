@@ -177,8 +177,6 @@ namespace render {
 
   private:
     [[nodiscard]] float packScalar(double value) const;
-    [[nodiscard]] std::array<float, 16> packMatrix(const Matrix3d& value) const;
-    [[nodiscard]] std::array<float, 16> packMatrix(const Matrix4d& value) const;
     [[nodiscard]] GpuIntersectionBounds packBounds(const BoundingBoxd& bounds) const;
     [[nodiscard]] GpuIntersectionPrimitiveKind
     packPrimitiveKind(IntersectionPrimitiveKind kind) const;
