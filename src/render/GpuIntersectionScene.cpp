@@ -200,27 +200,6 @@ float GpuIntersectionScenePacker::packScalar(double value) const {
   return static_cast<float>(value);
 }
 
-std::array<float, 16> GpuIntersectionScenePacker::packMatrix(const Matrix3d& value) const {
-  std::array<float, 16> packed{};
-  for (int row = 0; row != 3; ++row) {
-    for (int column = 0; column != 3; ++column) {
-      packed[static_cast<std::size_t>(row * 4 + column)] = packScalar(value[row][column]);
-    }
-  }
-  packed[15] = 1.0f;
-  return packed;
-}
-
-std::array<float, 16> GpuIntersectionScenePacker::packMatrix(const Matrix4d& value) const {
-  std::array<float, 16> packed{};
-  for (int row = 0; row != 4; ++row) {
-    for (int column = 0; column != 4; ++column) {
-      packed[static_cast<std::size_t>(row * 4 + column)] = packScalar(value[row][column]);
-    }
-  }
-  return packed;
-}
-
 GpuIntersectionBounds GpuIntersectionScenePacker::packBounds(const BoundingBoxd& bounds) const {
   return GpuIntersectionBounds{bounds.min().toFloat4(), bounds.max().toFloat4()};
 }
@@ -319,8 +298,8 @@ GpuIntersectionScenePacker::packTorusPayload(const IntersectionTorusPayload& pay
 GpuIntersectionTransformPayload GpuIntersectionScenePacker::packTransformPayload(
   const IntersectionTransformPayload& payload) const {
   return GpuIntersectionTransformPayload{
-    packMatrix(payload.pointMatrix), packMatrix(payload.normalMatrix),
-    packMatrix(payload.inversePointMatrix), packMatrix(payload.inverseDirectionMatrix),
+    payload.pointMatrix.toFloatArray<4>(), payload.normalMatrix.toFloatArray<4>(),
+    payload.inversePointMatrix.toFloatArray<4>(), payload.inverseDirectionMatrix.toFloatArray<4>(),
     payload.motionDelta.toFloat4(0.0f)};
 }
 

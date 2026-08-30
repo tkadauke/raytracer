@@ -6,6 +6,7 @@
 #include <type_traits>
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <limits>
 #include "core/math/Vector.h"
 #include "core/math/Angle.h"
@@ -146,6 +147,32 @@ public:
   }
   [[nodiscard]] inline constexpr T* data() noexcept {
     return &m_cells[0][0];
+  }
+
+  /**
+    * @returns a row-major floating-point array representation of this matrix.
+    *
+    * If @c StorageDimensions is larger than this matrix, the extra cells are
+    * identity-padded so, for example, a 3x3 transform can be embedded in a
+    * 4x4 storage block for GPU upload.
+    */
+  template<int StorageDimensions = Dimensions>
+  [[nodiscard]] inline constexpr std::array<float, StorageDimensions * StorageDimensions>
+  toFloatArray() const noexcept {
+    static_assert(StorageDimensions >= Dimensions,
+                  "Matrix::toFloatArray storage dimensions must fit the source matrix");
+
+    std::array<float, StorageDimensions * StorageDimensions> result{};
+    for (int row = 0; row != StorageDimensions; ++row) {
+      for (int column = 0; column != StorageDimensions; ++column) {
+        const std::size_t index = static_cast<std::size_t>(row * StorageDimensions + column);
+        if (row < Dimensions && column < Dimensions)
+          result[index] = static_cast<float>(m_cells[row][column]);
+        else if (row == column)
+          result[index] = 1.0f;
+      }
+    }
+    return result;
   }
 
   /**
