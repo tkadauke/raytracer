@@ -252,6 +252,28 @@ namespace MatrixTest {
     ASSERT_EQ(matrix, matrix.transposed().transposed());
   }
 
+  TYPED_TEST(MatrixTest, ToFloatArrayReturnsRowMajorMatrixCells) {
+    Matrix<3, TypeParam> m({{TypeParam(1.5), TypeParam(2.5), TypeParam(3.5)},
+                            {TypeParam(4.5), TypeParam(5.5), TypeParam(6.5)},
+                            {TypeParam(7.5), TypeParam(8.5), TypeParam(9.5)}});
+
+    const std::array<float, 9> values = m.toFloatArray();
+
+    EXPECT_EQ((std::array<float, 9>{1.5f, 2.5f, 3.5f, 4.5f, 5.5f, 6.5f, 7.5f, 8.5f, 9.5f}), values);
+  }
+
+  TYPED_TEST(MatrixTest, ToFloatArrayEmbedsMatrixInLargerIdentityPaddedStorage) {
+    Matrix<3, TypeParam> m({{TypeParam(1.5), TypeParam(2.5), TypeParam(3.5)},
+                            {TypeParam(4.5), TypeParam(5.5), TypeParam(6.5)},
+                            {TypeParam(7.5), TypeParam(8.5), TypeParam(9.5)}});
+
+    const std::array<float, 16> values = m.template toFloatArray<4>();
+
+    EXPECT_EQ((std::array<float, 16>{1.5f, 2.5f, 3.5f, 0.0f, 4.5f, 5.5f, 6.5f, 0.0f, 7.5f, 8.5f,
+                                     9.5f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f}),
+              values);
+  }
+
   TYPED_TEST(MatrixTest, ShouldStreamMatrixToString) {
     Matrix<3, TypeParam> matrix({{1, 2, 1}, {3, 0, 2}, {4, 1, 1}});
     ostringstream str;
