@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "world/objects/Surface.h"
+#include "world/objects/VectorNormalization.h"
 
 /**
   * Represents a box primitive.
@@ -46,7 +47,7 @@ public:
     * </tr></table>
     */
   inline void setSize(const Vector3d& size) {
-    m_size = size.abs().cwiseMax(Vector3d(0.000001, 0.000001, 0.000001));
+    m_size = world_objects::detail::absoluteComponentsAtLeast(size, 0.000001);
     // recalculate bevel radius, in case the size shrunk so far that the
     // previous radius is too big
     setBevelRadius(bevelRadius());
