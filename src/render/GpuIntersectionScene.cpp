@@ -955,36 +955,20 @@ GpuIntersectionIntersector::transformRay(const GpuIntersectionRay& ray,
   origin[0] -= transform.motionDelta[0] * ray.timeSample;
   origin[1] -= transform.motionDelta[1] * ray.timeSample;
   origin[2] -= transform.motionDelta[2] * ray.timeSample;
-  transformed.origin = transformPoint(transform.inversePointMatrix, origin);
-  transformed.direction = transformDirection(transform.inverseDirectionMatrix, ray.direction);
+  transformed.origin = gpuTransformPoint(transform.inversePointMatrix, origin);
+  transformed.direction = gpuTransformDirection(transform.inverseDirectionMatrix, ray.direction);
   return transformed;
 }
 
 GpuIntersectionIntersector::ClosestHit GpuIntersectionIntersector::transformHit(
   const ClosestHit& hit, const GpuIntersectionTransformPayload& transform, float timeSample) const {
   ClosestHit transformed = hit;
-  transformed.point = transformPoint(transform.pointMatrix, hit.point);
+  transformed.point = gpuTransformPoint(transform.pointMatrix, hit.point);
   transformed.point[0] += transform.motionDelta[0] * timeSample;
   transformed.point[1] += transform.motionDelta[1] * timeSample;
   transformed.point[2] += transform.motionDelta[2] * timeSample;
-  transformed.normal = normalize3(transformDirection(transform.normalMatrix, hit.normal));
+  transformed.normal = normalize3(gpuTransformDirection(transform.normalMatrix, hit.normal));
   return transformed;
-}
-
-GpuFloat4 GpuIntersectionIntersector::transformPoint(const std::array<float, 16>& matrix,
-                                                     const GpuFloat4& point) const {
-  return {
-    matrix[0] * point[0] + matrix[1] * point[1] + matrix[2] * point[2] + matrix[3] * point[3],
-    matrix[4] * point[0] + matrix[5] * point[1] + matrix[6] * point[2] + matrix[7] * point[3],
-    matrix[8] * point[0] + matrix[9] * point[1] + matrix[10] * point[2] + matrix[11] * point[3],
-    matrix[12] * point[0] + matrix[13] * point[1] + matrix[14] * point[2] + matrix[15] * point[3]};
-}
-
-GpuFloat4 GpuIntersectionIntersector::transformDirection(const std::array<float, 16>& matrix,
-                                                         const GpuFloat4& direction) const {
-  return {matrix[0] * direction[0] + matrix[1] * direction[1] + matrix[2] * direction[2],
-          matrix[4] * direction[0] + matrix[5] * direction[1] + matrix[6] * direction[2],
-          matrix[8] * direction[0] + matrix[9] * direction[1] + matrix[10] * direction[2], 0.0f};
 }
 
 GpuFloat4 GpuIntersectionIntersector::normalize3(GpuFloat4 value) const {

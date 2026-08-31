@@ -761,30 +761,18 @@ namespace {
     return {transparentTransmissionDirection(material, wi, normal), transmissionWeightColor};
   }
 
-  Vector3d transformPoint(const std::array<float, 4>& row0, const std::array<float, 4>& row1,
-                          const std::array<float, 4>& row2, const std::array<float, 4>&,
-                          const Vector3d& point) {
-    return Vector3d(row0[0] * point.x() + row0[1] * point.y() + row0[2] * point.z() + row0[3],
-                    row1[0] * point.x() + row1[1] * point.y() + row1[2] * point.z() + row1[3],
-                    row2[0] * point.x() + row2[1] * point.y() + row2[2] * point.z() + row2[3]);
-  }
-
-  Vector3d transformDirection(const std::array<float, 4>& row0, const std::array<float, 4>& row1,
-                              const std::array<float, 4>& row2, const Vector3d& direction) {
-    return Vector3d(row0[0] * direction.x() + row0[1] * direction.y() + row0[2] * direction.z(),
-                    row1[0] * direction.x() + row1[1] * direction.y() + row1[2] * direction.z(),
-                    row2[0] * direction.x() + row2[1] * direction.y() + row2[2] * direction.z());
-  }
-
   Rayd portalContinuationRay(const GpuTracingMaterialRecord& material,
                              const GpuIntersectionHitRecord& hit, const Rayd& ray) {
     const Rayd shifted = Rayd(Vector4d(hit.point), ray.direction()).epsilonShifted();
-    return Rayd(Vector4d(transformPoint(material.portalOriginMatrix0, material.portalOriginMatrix1,
-                                        material.portalOriginMatrix2, material.portalOriginMatrix3,
-                                        Vector3d(shifted.origin()))),
-                transformDirection(material.portalDirectionMatrix0, material.portalDirectionMatrix1,
-                                   material.portalDirectionMatrix2, shifted.direction())
-                  .normalized());
+    const Vector3d origin(gpuTransformPoint(
+      material.portalOriginMatrix0, material.portalOriginMatrix1, material.portalOriginMatrix2,
+      material.portalOriginMatrix3, Vector3d(shifted.origin()).toFloat4(1.0f)));
+    const Vector3d direction =
+      Vector3d(
+        gpuTransformDirection(material.portalDirectionMatrix0, material.portalDirectionMatrix1,
+                              material.portalDirectionMatrix2, shifted.direction().toFloat4()))
+        .normalized();
+    return Rayd(Vector4d(origin), direction);
   }
 
   void terminate(GpuDiffusePathStateRecord& pathState) {

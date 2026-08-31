@@ -270,10 +270,6 @@ namespace render {
     [[nodiscard]] ClosestHit transformHit(const ClosestHit& hit,
                                           const GpuIntersectionTransformPayload& transform,
                                           float timeSample) const;
-    [[nodiscard]] GpuFloat4 transformPoint(const std::array<float, 16>& matrix,
-                                           const GpuFloat4& point) const;
-    [[nodiscard]] GpuFloat4 transformDirection(const std::array<float, 16>& matrix,
-                                               const GpuFloat4& direction) const;
     [[nodiscard]] GpuFloat4 normalize3(GpuFloat4 value) const;
   };
 }
