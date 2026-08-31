@@ -678,9 +678,10 @@ These are executor-agnostic or appear at the end of almost every frame:
   are still missing.
 - **Compositor pass** - combine color, alpha, masks, depth, object ids, or
   explicit layers into the final image. ✅ **Partial.** Built-in `Composite`
-  executor passes tagged `depth_composite` or `stencil_composite` can now choose
-  foreground color over base color through graph-visible depth and stencil
-  resources.
+  executor passes tagged `depth_composite`, `stencil_composite`, or
+  `ray_traced_shadows` can now combine graph-visible color, depth, stencil, and
+  shadow-mask resources. Arbitrary layer stacks, alpha blending, and
+  user-authored compositor chains remain future work.
 - **Postprocess anti-aliasing pass** - FXAA, SMAA, or other image-space AA.
 - **Temporal accumulation pass** - TAA, temporal denoising, progressive sample
   accumulation, or history blending.
@@ -830,8 +831,13 @@ mode:
 - ~~**Wireframe beauty pass** - draw all visible edges over a background.~~ ✅
   **Done.** `WireframeBeautyPass` (`src/engine/graph/RenderPassPayloads.cpp`)
   wraps `Wireframe` as the `wireframe_beauty` graph node.
+- ~~**Wireframe overlay pass** - draw tessellated edges over an existing color
+  resource.~~ ✅ **Done.** `WireframeOverlayPass` now executes graph-visible
+  overlay nodes and `CurveOverlayPass` can draw semantic curve center lines over
+  the existing image. Depth-aware overlay rejection remains TODO because the
+  overlay payload does not consume the base depth buffer yet.
 - **Depth-aware wireframe overlay pass** - draw edges against an existing depth
-  buffer.
+  buffer so hidden overlay edges can be rejected or styled differently.
 - **Hidden-line pass** - render visible and hidden edges with different styles.
 - **Silhouette/crease pass** - draw only important contour or feature edges.
 - **Selection-outline pass** - draw selected objects or hovered objects.
@@ -1424,20 +1430,23 @@ object. Rendercli and Modeler should show why a plan is invalid.
 
 ## First implementation slice
 
-Status: started. The initial foundation now lives in `include/engine/graph/`
-and `src/engine/graph/`: render intent, scene selectors, resource descriptors,
-CPU resource storage, pass declarations, virtual pass payloads with per-pass
-execution context, plan validation, graph override disabling, text/DOT/JSON
-plan export, a minimal compiler that emits a whole-frame beauty pass, optional
-wireframe overlay pass, and tonemap/export pass, a graph engine facade that can
-execute that dependency-ordered color chain through Raytracer/Rasterizer/Wireframe plus
-PostProcess tonemapping, graph-visible typed pass state for replaying raster
-beauty-pass controls, a display-buffer fast path for progressive simple previews,
-dual HDR/display raytracer beauty output for progressive previews with
-postprocess passes, typed raster preview shadow-pass state, optional scene JSON
-render intent, and the textbook's render-graph volume.
-Scene-feature expansion, arbitrary history-dependent postprocess execution, and
-history resources remain TODO.
+Status: active and partially implemented. The initial foundation now lives in
+`include/engine/graph/` and `src/engine/graph/`: render intent, scene selectors,
+resource descriptors, CPU resource storage, pass declarations, virtual pass
+payloads with per-pass execution context, plan validation, graph override
+disabling, text/DOT/JSON plan export, a compiler that emits whole-frame beauty
+passes, optional wireframe/curve overlay passes, postprocess AA, tonemap/export
+passes, raster preview shadow passes, raytraced shadow masks, visibility and AOV
+passes, render-to-texture subviews, and depth/stencil/shadow composites. The
+graph engine facade executes dependency-ordered resource chains through
+Raytracer/Wavefront/Rasterizer/Wireframe/PostProcess/Composite executors, with
+graph-visible typed state for replaying raster and wireframe pass controls, a
+display-buffer fast path for progressive simple previews, dual HDR/display
+raytracer beauty output for progressive previews with postprocess passes,
+optional scene JSON render intent, and the textbook's render-graph volume.
+Selector-feature expansion beyond current stencil/composite branches, arbitrary
+history-dependent postprocess execution, and automatic history resources remain
+TODO.
 
 Implement the smallest graph that proves the architecture:
 
@@ -1453,9 +1462,11 @@ Implement the smallest graph that proves the architecture:
    shape, `world::Scene` persists an optional top-level `renderIntent` block,
    and rendercli/Modeler layer temporary preview overrides on top.
 4. Add `RenderGraphCompiler` so plans can be compiled, inspected, exported, and
-   manipulated without rendering. ✅ Done for the first whole-frame beauty,
-   optional wireframe overlay, and tonemap/export compiler; scene-feature
-   expansion remains TODO.
+   manipulated without rendering. ✅ Done for whole-frame beauty,
+   wireframe/curve overlays, postprocess AA, tonemap/export, AOV views,
+   raster-preview shadows, hybrid raytraced shadows, selector-derived stencil
+   composites, and automatic portal/mirror/screen render-to-texture subviews.
+   Scene-feature expansion beyond those families remains TODO.
 5. Add `GraphRenderEngine` that can either compile from intent or execute a
    precompiled plan. ✅ Done for the first execution slice: whole-frame beauty
    passes backed by Raytracer, Rasterizer, or Wireframe, the first wireframe
@@ -1469,9 +1480,11 @@ Implement the smallest graph that proves the architecture:
    - `WireframeOverlayPass`;
    - `TonemapPass` or final copy/tonemap stage.
    ✅ Done for the current supported pass set: whole-frame raytracer,
-   rasterizer, and wireframe beauty passes, a non-depth-aware wireframe overlay
-   pass, plus tonemap now execute through virtual payload classes. A
-   depth-aware overlay payload remains for the later depth/composite slice.
+   wavefront, rasterizer, and wireframe beauty passes, non-depth-aware
+   wireframe and curve overlays, readback, postprocess AA, AOV visualization,
+   shadow, visibility, composite, and tonemap passes now execute through
+   virtual payload classes. A depth-aware overlay payload remains for a later
+   depth/composite slice.
 7. Add node disabling with `Passthrough` and `SubstituteDefault` for the first
    supported pass kinds. ✅ Done for disabled default substitution and color
    passthrough in the dependency-ordered graph engine.
