@@ -2,6 +2,7 @@
 #include <memory>
 
 #include "world/objects/Material.h"
+#include "world/objects/VectorNormalization.h"
 #include "core/Color.h"
 #include "core/math/Matrix.h"
 #include "core/math/Vector.h"
@@ -80,7 +81,7 @@ public:
     * clamped away from zero so the transform remains invertible.
     */
   inline void setScale(const Vector3d& scale) {
-    m_scale = scale.abs().cwiseMax(Vector3d(0.000001, 0.000001, 0.000001));
+    m_scale = world_objects::detail::absoluteComponentsAtLeast(scale, 0.000001);
   }
 
   /**

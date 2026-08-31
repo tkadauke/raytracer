@@ -1,6 +1,7 @@
 #pragma once
 
 #include "world/objects/Element.h"
+#include "world/objects/VectorNormalization.h"
 #include "core/math/Number.h"
 #include "core/math/Vector.h"
 #include "core/math/Matrix.h"
@@ -94,7 +95,7 @@ public:
     * </tr></table>
     */
   inline void setScale(const Vector3d& scale) {
-    m_scale = scale.abs().cwiseMax(Vector3d(0.000001, 0.000001, 0.000001));
+    m_scale = world_objects::detail::absoluteComponentsAtLeast(scale, 0.000001);
   }
 
   /**
