@@ -136,10 +136,12 @@ Tasks:
   `Buffer<Colord>` through `setColorLoadSource`; the rasterizer
   uploads it via a temporary `GL_RGBA32F` texture + `glBlitFramebuffer`
   into the AttachmentSet's color renderbuffer at pass start, then
-  masks the color clear bit. Depth and stencil Load still throw with
-  narrower messages naming the missing slice. True GPU-resident Load
-  (no CPU round-trip when both producer and consumer are GPU-domain)
-  needs the `OpenGLRasterResource` substrate from Phase 0/1.
+  masks the color clear bit. The public API also carries
+  `setDepthLoadSource` and `setStencilLoadSource`, but the OpenGL backend
+  still rejects those Load modes after validating that a source buffer was
+  supplied because the depth/stencil upload helpers are not implemented yet.
+  True GPU-resident Load (no CPU round-trip when both producer and consumer are
+  GPU-domain) still needs Phase 1's resident producer/consumer path.
 - ~~Make a small parity test: a "preserve depth across two GPU passes"
   scene where the second pass's `depthLoadOp = Load` and the first
   pass's depth must show through.~~ ⏳ **Blocked on depth Load.**
@@ -147,8 +149,9 @@ Tasks:
   in `OpenGLRasterizer.cpp`.~~ ✅ **Done.** The original generic
   throws are gone. Two narrower throws remain — "Load requires a
   source buffer" (the contract check; fires when the caller misuses
-  the API) and "depth/stencil Load not yet implemented" (narrower
-  message naming the missing slice). The five tests in
+  `setColorLoadSource` / `setDepthLoadSource` / `setStencilLoadSource`) and
+  "depth/stencil Load not yet implemented" (narrower message naming the
+  missing slice). The five tests in
   `OpenGLRasterizerTest.cpp` cover both new throw paths plus the
   color Load success path. Commit: see the corresponding
   rasterizer change.
