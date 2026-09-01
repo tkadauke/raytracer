@@ -9,6 +9,12 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ## Unreleased
 
+### Changed
+
+- Make Syrus coverage builds use `sccache` with coverage path mapping and
+  relocated gcov data, plus a validation script for two-checkout cache-safety
+  evidence. — GPT-5 Codex
+
 ### Added
 
 - Add `Matrix::toFloatArray()` for row-major float-array conversion, replacing the local
