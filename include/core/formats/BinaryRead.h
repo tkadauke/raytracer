@@ -4,6 +4,7 @@
 
 #include <QByteArray>
 
+#include <array>
 #include <cstdint>
 #include <cstring>
 
@@ -26,12 +27,20 @@ namespace core::formats {
     return value;
   }
 
+  template<std::size_t Size>
+  inline std::array<float, Size> readFloat32ArrayLe(const std::uint8_t* data) {
+    std::array<float, Size> result{};
+    for (std::size_t i = 0; i != Size; ++i)
+      result[i] = readFloat32Le(data + i * sizeof(float));
+    return result;
+  }
+
   inline Vector2d readVector2fLe(const std::uint8_t* data) {
-    return Vector2d(readFloat32Le(data), readFloat32Le(data + 4));
+    return Vector2d(readFloat32ArrayLe<2>(data));
   }
 
   inline Vector3d readVector3fLe(const std::uint8_t* data) {
-    return Vector3d(readFloat32Le(data), readFloat32Le(data + 4), readFloat32Le(data + 8));
+    return Vector3d(readFloat32ArrayLe<3>(data));
   }
 
   // Unchecked little-endian reads from a QByteArray at a byte offset. Callers
@@ -54,13 +63,20 @@ namespace core::formats {
     return value;
   }
 
+  template<std::size_t Size>
+  inline std::array<float, Size> readFloat32ArrayLe(const QByteArray& bytes, qsizetype offset) {
+    std::array<float, Size> result{};
+    for (std::size_t i = 0; i != Size; ++i)
+      result[i] = readFloat32Le(bytes, offset + static_cast<qsizetype>(i * sizeof(float)));
+    return result;
+  }
+
   inline Vector2d readVector2fLe(const QByteArray& bytes, qsizetype offset) {
-    return Vector2d(readFloat32Le(bytes, offset), readFloat32Le(bytes, offset + 4));
+    return Vector2d(readFloat32ArrayLe<2>(bytes, offset));
   }
 
   inline Vector3d readVector3fLe(const QByteArray& bytes, qsizetype offset) {
-    return Vector3d(readFloat32Le(bytes, offset), readFloat32Le(bytes, offset + 4),
-                    readFloat32Le(bytes, offset + 8));
+    return Vector3d(readFloat32ArrayLe<3>(bytes, offset));
   }
 
 }
