@@ -136,7 +136,19 @@ if(RAYTRACER_ENABLE_ASAN)
 endif()
 
 if(RAYTRACER_ENABLE_COVERAGE)
-  add_compile_options(-O1 -fprofile-arcs -ftest-coverage)
+  # Keep source references in gcov notes relative to the checkout so cached
+  # coverage artifacts from another absolute Syrus workspace do not point
+  # gcovr at stale source paths.
+  add_compile_options(
+    -O1
+    -fprofile-arcs
+    -ftest-coverage
+    -ffile-prefix-map=${CMAKE_SOURCE_DIR}=.
+    -fdebug-prefix-map=${CMAKE_BINARY_DIR}=.
+  )
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    add_compile_options(-fprofile-prefix-map=${CMAKE_SOURCE_DIR}=.)
+  endif()
   add_link_options(-fprofile-arcs -ftest-coverage)
 endif()
 
