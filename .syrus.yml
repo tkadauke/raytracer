@@ -87,7 +87,7 @@ grade:
       # in CI — without this, the coverage grader runs the same tests but
       # they silently `GTEST_SKIP` when no GL context is available.
       #
-      # `unit_tests` has no `QGuiApplication`, so on Linux the
+      # `opengl_egl_tests` has no process-wide `QGuiApplication`, so on Linux the
       # `engine::raster::gl::createOffscreenContext()` factory picks
       # `EglContext` (Mesa surfaceless EGL). `LIBGL_ALWAYS_SOFTWARE=1`
       # forces software rasterization so results stay deterministic
@@ -99,12 +99,12 @@ grade:
       run: |
         export SCCACHE_BASEDIRS="${SCCACHE_BASEDIRS:+${SCCACHE_BASEDIRS}:}$PWD" && \
         cmake --preset coverage -DCMAKE_CXX_COMPILER_LAUNCHER=sccache && \
-        cmake --build --preset coverage --target unit_tests --parallel 2 && \
+        cmake --build --preset coverage --target opengl_egl_tests --parallel 2 && \
         log=build/coverage/opengl-egl.log && \
         gcov_prefix_strip=$(python3 -c 'from pathlib import Path; print(len(Path.cwd().parts) - 1)') && \
         QT_QPA_PLATFORM=offscreen LIBGL_ALWAYS_SOFTWARE=1 \
           GCOV_PREFIX="$PWD" GCOV_PREFIX_STRIP="$gcov_prefix_strip" \
-          build/coverage/test/unit/unit_tests \
+          build/coverage/test/unit/opengl_egl_tests \
             --gtest_filter='OpenGL*:*Egl*:*Cgl*:*GlAvailability*:*AttachmentSet*:*Parity*' \
             2>&1 | tee "$log" && \
         # gtest prints `[  PASSED  ] N tests.` exactly once at the end;
@@ -117,9 +117,9 @@ grade:
         echo "opengl-egl lane: $passed tests passed through EGL surfaceless"
       # Configures build/coverage independently because Syrus graders may
       # start from a fresh workspace or run before the coverage lane. A cold
-      # `unit_tests` build shares much of the coverage grader's compile cost,
-      # so keep enough headroom for an independently scheduled run; warm
-      # incremental rebuilds still finish in minutes.
+      # The focused target keeps this lane independent of the full unit suite's
+      # compile cost; keep enough headroom for an independently scheduled cold
+      # build of the raytracer library and the OpenGL test subset.
       timeout_minutes: 45
 
     - name: benchmark-build
