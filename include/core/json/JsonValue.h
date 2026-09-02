@@ -9,6 +9,7 @@
 #include <array>
 #include <cmath>
 #include <optional>
+#include <type_traits>
 #include <utility>
 
 namespace core::json {
@@ -72,6 +73,13 @@ namespace core::json {
     return numericRangeToJsonArray(values);
   }
 
+  template<class Value, std::size_t Size>
+  inline Value valueFromJsonArray(const QJsonArray& array) {
+    static_assert(std::is_constructible_v<Value, std::array<double, Size>>,
+                  "Value must be constructible from the requested numeric array size");
+    return Value(numberArrayFromJsonArray<Size>(array));
+  }
+
   template<std::size_t Size, class Message, class ErrorHandler>
   inline std::optional<std::array<double, Size>>
   requireNumberArray(const QJsonValue& value, Message arrayMessage, Message sizeMessage,
@@ -83,6 +91,14 @@ namespace core::json {
     return numberArrayFromJsonArray<Size>(array);
   }
 
+  template<class Value, std::size_t Size, class Message, class ErrorHandler>
+  inline Value requireValue(const QJsonValue& value, Message arrayMessage, Message sizeMessage,
+                            Message numberMessage, ErrorHandler&& error) {
+    const auto values = requireNumberArray<Size>(value, arrayMessage, sizeMessage, numberMessage,
+                                                std::forward<ErrorHandler>(error));
+    return values ? Value(*values) : Value();
+  }
+
   inline QJsonArray vector3ToJsonArray(const Vector3d& value) {
     return numberArrayToJsonArray(value.toArray());
   }
@@ -92,27 +108,25 @@ namespace core::json {
   }
 
   inline Vector3d vector3FromJsonArray(const QJsonArray& array) {
-    return Vector3d(numberArrayFromJsonArray<3>(array));
+    return valueFromJsonArray<Vector3d, 3>(array);
   }
 
   inline Colord colorFromJsonArray(const QJsonArray& array) {
-    return Colord(numberArrayFromJsonArray<3>(array));
+    return valueFromJsonArray<Colord, 3>(array);
   }
 
   template<class Message, class ErrorHandler>
   inline Vector3d requireVector3(const QJsonValue& value, Message arrayMessage, Message sizeMessage,
                                  Message numberMessage, ErrorHandler&& error) {
-    const auto values = requireNumberArray<3>(value, arrayMessage, sizeMessage, numberMessage,
-                                              std::forward<ErrorHandler>(error));
-    return values ? Vector3d(*values) : Vector3d();
+    return requireValue<Vector3d, 3>(value, arrayMessage, sizeMessage, numberMessage,
+                                    std::forward<ErrorHandler>(error));
   }
 
   template<class Message, class ErrorHandler>
   inline Colord requireColor(const QJsonValue& value, Message arrayMessage, Message sizeMessage,
                              Message numberMessage, ErrorHandler&& error) {
-    const auto values = requireNumberArray<3>(value, arrayMessage, sizeMessage, numberMessage,
-                                              std::forward<ErrorHandler>(error));
-    return values ? Colord(*values) : Colord();
+    return requireValue<Colord, 3>(value, arrayMessage, sizeMessage, numberMessage,
+                                   std::forward<ErrorHandler>(error));
   }
 
 }

@@ -55,6 +55,14 @@ TEST(JsonValueTest, RequiresTypedNumberArrayWithExpectedSize) {
   EXPECT_DOUBLE_EQ(3.0, result->at(2));
 }
 
+TEST(JsonValueTest, ConvertsJsonArrayToConstructibleValue) {
+  const QJsonArray value{1.0, 2.0, 3.0, 4.0};
+
+  const auto result = core::json::valueFromJsonArray<Vector4d, 4>(value);
+
+  EXPECT_EQ(Vector4d(1.0, 2.0, 3.0, 4.0), result);
+}
+
 TEST(JsonValueTest, RequiresVector3FromJsonValue) {
   const QJsonValue value(QJsonArray{1.0, 2.0, 3.0});
 
@@ -63,6 +71,16 @@ TEST(JsonValueTest, RequiresVector3FromJsonValue) {
     [](std::optional<int>, const char*) { throw std::runtime_error("unexpected error"); });
 
   EXPECT_EQ(Vector3d(1.0, 2.0, 3.0), result);
+}
+
+TEST(JsonValueTest, RequiresConstructibleValueFromJsonValue) {
+  const QJsonValue value(QJsonArray{1.0, 2.0, 3.0, 4.0});
+
+  const Vector4d result = core::json::requireValue<Vector4d, 4>(
+    value, "not-array", "wrong-size", "not-number",
+    [](std::optional<int>, const char*) { throw std::runtime_error("unexpected error"); });
+
+  EXPECT_EQ(Vector4d(1.0, 2.0, 3.0, 4.0), result);
 }
 
 TEST(JsonValueTest, RequiresColorFromJsonValue) {
