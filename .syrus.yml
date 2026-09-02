@@ -42,9 +42,12 @@ grade:
       run: |
         set -e
         python3 -m pip install --target /tmp/gcovr-pkg --upgrade --quiet gcovr
-        cmake --preset coverage
+        export SCCACHE_BASEDIRS="${SCCACHE_BASEDIRS:+${SCCACHE_BASEDIRS}:}$PWD"
+        cmake --preset coverage -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
         cmake --build --preset coverage --parallel 2
+        gcov_prefix_strip=$(python3 -c 'from pathlib import Path; print(len(Path.cwd().parts) - 1)')
         QT_QPA_PLATFORM=offscreen LIBGL_ALWAYS_SOFTWARE=1 \
+          GCOV_PREFIX="$PWD" GCOV_PREFIX_STRIP="$gcov_prefix_strip" \
           ctest --test-dir build/coverage --output-on-failure
         PYTHONPATH=/tmp/gcovr-pkg python3 -m gcovr --root . \
           --gcov-ignore-parse-errors=negative_hits.warn_once_per_file \
@@ -94,10 +97,13 @@ grade:
       # signals the worker image is missing Mesa's `libgl1-mesa-dri`
       # runtime or `libegl-mesa0` and the GL lane is silently no-op.
       run: |
-        cmake --preset coverage && \
+        export SCCACHE_BASEDIRS="${SCCACHE_BASEDIRS:+${SCCACHE_BASEDIRS}:}$PWD" && \
+        cmake --preset coverage -DCMAKE_CXX_COMPILER_LAUNCHER=sccache && \
         cmake --build --preset coverage --target unit_tests --parallel 2 && \
         log=build/coverage/opengl-egl.log && \
+        gcov_prefix_strip=$(python3 -c 'from pathlib import Path; print(len(Path.cwd().parts) - 1)') && \
         QT_QPA_PLATFORM=offscreen LIBGL_ALWAYS_SOFTWARE=1 \
+          GCOV_PREFIX="$PWD" GCOV_PREFIX_STRIP="$gcov_prefix_strip" \
           build/coverage/test/unit/unit_tests \
             --gtest_filter='OpenGL*:*Egl*:*Cgl*:*GlAvailability*:*AttachmentSet*:*Parity*' \
             2>&1 | tee "$log" && \
