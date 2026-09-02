@@ -45,6 +45,30 @@ target_link_libraries(unit_tests PRIVATE
   GTest::gmock_main
 )
 
+set(OPENGL_EGL_TEST_SOURCES
+  "${CMAKE_CURRENT_SOURCE_DIR}/unit/engine/raster/gl/AttachmentSetCacheTest.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/unit/engine/raster/gl/ContextTest.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/unit/engine/raster/gl/EglContextTest.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/unit/engine/raster/OpenGLRasterMeshTest.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/unit/engine/raster/OpenGLRasterResourceTest.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/unit/engine/raster/OpenGLRasterizerParityTest.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/unit/engine/raster/OpenGLRasterizerTest.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/unit/engine/raster/OpenGLRepeatRenderTest.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/unit/engine/raster/OpenGLShadowSamplingPlanTest.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/unit/engine/raster/OpenGLShadowTextureDataTest.cpp"
+)
+
+add_executable(opengl_egl_tests EXCLUDE_FROM_ALL ${OPENGL_EGL_TEST_SOURCES})
+set_target_properties(opengl_egl_tests PROPERTIES
+  AUTOMOC ON
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/unit"
+)
+target_compile_options(opengl_egl_tests PRIVATE ${_RAYTRACER_TEST_COMPILE_OPTIONS})
+target_link_libraries(opengl_egl_tests PRIVATE
+  test_helpers
+  GTest::gmock_main
+)
+
 add_executable(functional_tests ${FUNCTIONAL_TEST_SOURCES})
 set_target_properties(functional_tests PROPERTIES
   AUTOMOC ON
