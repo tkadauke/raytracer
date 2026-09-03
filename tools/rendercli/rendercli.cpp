@@ -10,6 +10,7 @@
 
 #include "RenderCliSceneLoader.h"
 
+#include "core/json/JsonValue.h"
 #include "world/objects/Scene.h"
 #include "world/objects/Camera.h"
 #include "world/objects/Group.h"
@@ -908,32 +909,15 @@ namespace {
 
   private:
     std::uint64_t unsignedArrayBack(const QJsonArray& array) const {
-      if (array.isEmpty()) {
-        return 0;
-      }
-      return static_cast<std::uint64_t>(array.at(array.size() - 1).toDouble());
+      return core::json::numberArrayBack<std::uint64_t>(array);
     }
 
     std::uint64_t unsignedArraySum(const QJsonArray& array) const {
-      std::uint64_t result = 0;
-      for (const QJsonValue& value : array) {
-        result += static_cast<std::uint64_t>(value.toDouble());
-      }
-      return result;
+      return core::json::numberArraySum<std::uint64_t>(array);
     }
 
     std::string unsignedArraySummary(const QJsonArray& array) const {
-      if (array.isEmpty()) {
-        return "none";
-      }
-      std::string result;
-      for (int index = 0; index != array.size(); ++index) {
-        if (!result.empty()) {
-          result += ",";
-        }
-        result += std::to_string(static_cast<std::uint64_t>(array.at(index).toDouble()));
-      }
-      return result;
+      return core::json::numberArraySummary<std::uint64_t>(array, ",", "none");
     }
 
     double ratio(double numerator, double denominator) const {
@@ -1058,7 +1042,7 @@ namespace {
     }
 
     double doubleArrayBack(const QJsonArray& array) const {
-      return array.isEmpty() ? 0.0 : array.at(array.size() - 1).toDouble();
+      return core::json::numberArrayBack<double>(array);
     }
   };
 
