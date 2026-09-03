@@ -3,6 +3,7 @@
 #include "engine/graph/RenderGraphExecutionTrace.h"
 #include "engine/graph/RenderPassState.h"
 #include "engine/graph/RaytracerPassState.h"
+#include "core/json/JsonValue.h"
 #include "core/util/QStringUtil.h"
 
 #include <QBrush>
@@ -436,29 +437,17 @@ qulonglong RenderGraphInspectorWidget::Private::jsonIntegerValue(const QJsonObje
 }
 
 qulonglong RenderGraphInspectorWidget::Private::jsonIntegerArraySum(const QJsonArray& array) const {
-  qulonglong result = 0;
-  for (const QJsonValue& value : array) {
-    result += static_cast<qulonglong>(value.toDouble());
-  }
-  return result;
+  return core::json::numberArraySum<qulonglong>(array);
 }
 
 qulonglong
 RenderGraphInspectorWidget::Private::jsonIntegerArrayBack(const QJsonArray& array) const {
-  if (array.isEmpty()) {
-    return 0;
-  }
-  return static_cast<qulonglong>(array.last().toDouble());
+  return core::json::numberArrayBack<qulonglong>(array);
 }
 
 QString
 RenderGraphInspectorWidget::Private::jsonIntegerArraySummary(const QJsonArray& array) const {
-  QStringList values;
-  values.reserve(array.size());
-  for (const QJsonValue& value : array) {
-    values.push_back(QString::number(static_cast<qulonglong>(value.toDouble())));
-  }
-  return values.join(QStringLiteral(", "));
+  return QString::fromStdString(core::json::numberArraySummary<qulonglong>(array, ", "));
 }
 
 QString
