@@ -9,6 +9,7 @@
 #include <array>
 #include <cmath>
 #include <optional>
+#include <string>
 #include <type_traits>
 #include <utility>
 
@@ -73,6 +74,34 @@ namespace core::json {
     return numericRangeToJsonArray(values);
   }
 
+  template<class Result>
+  inline Result numberArraySum(const QJsonArray& array) {
+    Result result = 0;
+    for (const QJsonValue& value : array)
+      result += static_cast<Result>(value.toDouble());
+    return result;
+  }
+
+  template<class Result>
+  inline Result numberArrayBack(const QJsonArray& array) {
+    return array.isEmpty() ? Result(0) : static_cast<Result>(array.at(array.size() - 1).toDouble());
+  }
+
+  template<class Result>
+  inline std::string numberArraySummary(const QJsonArray& array, const char* separator,
+                                        const char* empty = "") {
+    if (array.isEmpty())
+      return empty;
+
+    std::string result;
+    for (int index = 0; index != array.size(); ++index) {
+      if (!result.empty())
+        result += separator;
+      result += std::to_string(static_cast<Result>(array.at(index).toDouble()));
+    }
+    return result;
+  }
+
   template<class Value, std::size_t Size>
   inline Value valueFromJsonArray(const QJsonArray& array) {
     static_assert(std::is_constructible_v<Value, std::array<double, Size>>,
@@ -95,7 +124,7 @@ namespace core::json {
   inline Value requireValue(const QJsonValue& value, Message arrayMessage, Message sizeMessage,
                             Message numberMessage, ErrorHandler&& error) {
     const auto values = requireNumberArray<Size>(value, arrayMessage, sizeMessage, numberMessage,
-                                                std::forward<ErrorHandler>(error));
+                                                 std::forward<ErrorHandler>(error));
     return values ? Value(*values) : Value();
   }
 
@@ -119,7 +148,7 @@ namespace core::json {
   inline Vector3d requireVector3(const QJsonValue& value, Message arrayMessage, Message sizeMessage,
                                  Message numberMessage, ErrorHandler&& error) {
     return requireValue<Vector3d, 3>(value, arrayMessage, sizeMessage, numberMessage,
-                                    std::forward<ErrorHandler>(error));
+                                     std::forward<ErrorHandler>(error));
   }
 
   template<class Message, class ErrorHandler>

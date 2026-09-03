@@ -102,6 +102,32 @@ TEST(JsonValueTest, ConvertsStdArrayToJsonArray) {
   EXPECT_DOUBLE_EQ(4.0, result[2].toDouble());
 }
 
+TEST(JsonValueTest, SumsNumericJsonArrayAsRequestedType) {
+  const QJsonArray json{1.0, 2.0, 3.0};
+
+  EXPECT_EQ(6u, core::json::numberArraySum<unsigned int>(json));
+}
+
+TEST(JsonValueTest, ReturnsNumericJsonArrayBackAsRequestedType) {
+  const QJsonArray json{1.25, 2.5, 3.75};
+
+  EXPECT_DOUBLE_EQ(3.75, core::json::numberArrayBack<double>(json));
+  EXPECT_EQ(3u, core::json::numberArrayBack<unsigned int>(json));
+}
+
+TEST(JsonValueTest, ReturnsZeroForEmptyNumericJsonArrayBack) {
+  EXPECT_EQ(0u, core::json::numberArrayBack<unsigned int>(QJsonArray{}));
+}
+
+TEST(JsonValueTest, SummarizesNumericJsonArrayWithSeparatorAndEmptyText) {
+  const QJsonArray json{1.0, 2.0, 3.0};
+
+  EXPECT_EQ("1,2,3", core::json::numberArraySummary<unsigned int>(json, ",", "none"));
+  EXPECT_EQ("1, 2, 3", core::json::numberArraySummary<unsigned int>(json, ", "));
+  EXPECT_EQ("none", core::json::numberArraySummary<unsigned int>(QJsonArray{}, ",", "none"));
+  EXPECT_EQ("", core::json::numberArraySummary<unsigned int>(QJsonArray{}, ", "));
+}
+
 TEST(JsonValueTest, ReportsNonNumericArrayIndex) {
   const QJsonValue value(QJsonArray{1.0, "two", 3.0});
   std::optional<int> failedIndex;
