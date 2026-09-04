@@ -56,14 +56,6 @@ namespace {
     return normalFromWinding(vertices);
   }
 
-  void addTriangle(Mesh& mesh, const Vector3d& normal, const std::array<Vector3d, 3>& vertices) {
-    const int base = static_cast<int>(mesh.vertices().size());
-    mesh.addVertex(vertices[0], normal);
-    mesh.addVertex(vertices[1], normal);
-    mesh.addVertex(vertices[2], normal);
-    mesh.addFace({base, base + 1, base + 2});
-  }
-
   void expectToken(std::istream& input, const std::string& expected) {
     std::string token;
     if (!(input >> token))
@@ -165,7 +157,7 @@ namespace core::formats::stl {
 
       const Vector3d normal = normalizedFacetNormal(facetNormal, vertices);
       if (mesh)
-        addTriangle(*mesh, normal, vertices);
+        mesh->addTriangle(vertices, normal);
       ++m_triangleCount;
     }
 
@@ -191,7 +183,7 @@ namespace core::formats::stl {
 
       const Vector3d normal = normalizedFacetNormal(facetNormal, vertices);
       if (mesh)
-        addTriangle(*mesh, normal, vertices);
+        mesh->addTriangle(vertices, normal);
       cursor += kBinaryTriangleBytes;
     }
   }

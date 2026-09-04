@@ -70,6 +70,28 @@ namespace MeshTest {
     EXPECT_EQ(Colord::red(), *this->mesh.faceColor(1));
   }
 
+  TEST_F(MeshTest, ShouldAddTriangleFromPointsAndSharedNormal) {
+    const auto vertexCount = this->mesh.vertices().size();
+    const auto faceCount = this->mesh.faces().size();
+    const Vector3d normal(0, 0, -1);
+
+    this->mesh.addTriangle(Vector3d(2, 0, 0), Vector3d(3, 0, 0), Vector3d(2, 1, 0), normal);
+
+    ASSERT_EQ(vertexCount + 3, this->mesh.vertices().size());
+    ASSERT_EQ(faceCount + 1, this->mesh.faces().size());
+    EXPECT_EQ(Vector3d(2, 0, 0), this->mesh.vertices()[vertexCount].point);
+    EXPECT_EQ(Vector3d(3, 0, 0), this->mesh.vertices()[vertexCount + 1].point);
+    EXPECT_EQ(Vector3d(2, 1, 0), this->mesh.vertices()[vertexCount + 2].point);
+    EXPECT_EQ(normal, this->mesh.vertices()[vertexCount].normal);
+    EXPECT_EQ(normal, this->mesh.vertices()[vertexCount + 1].normal);
+    EXPECT_EQ(normal, this->mesh.vertices()[vertexCount + 2].normal);
+    EXPECT_EQ(makeStdVector(static_cast<int>(vertexCount), static_cast<int>(vertexCount + 1),
+                            static_cast<int>(vertexCount + 2)),
+              this->mesh.faces().back());
+    ASSERT_EQ(this->mesh.faces().size(), this->mesh.faceColors().size());
+    EXPECT_FALSE(this->mesh.faceColor(faceCount).has_value());
+  }
+
   TEST_F(MeshTest, ShouldThrowExceptionIfFaceHasLessThanThreeVertices) {
     ASSERT_THROW(this->mesh.addFace(makeStdVector(1)), InvalidMeshFaceException);
   }
