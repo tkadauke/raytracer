@@ -55,11 +55,7 @@ namespace {
   void addTriangle(Mesh& mesh, const Vector3d& a, const Vector3d& b, const Vector3d& c,
                    std::optional<Vector3d> suppliedNormal = std::nullopt) {
     const Vector3d normal = suppliedNormal.value_or(normalFor(a, b, c));
-    const int base = static_cast<int>(mesh.vertices().size());
-    mesh.addVertex(a, normal);
-    mesh.addVertex(b, normal);
-    mesh.addVertex(c, normal);
-    mesh.addFace({base, base + 1, base + 2});
+    mesh.addTriangle(a, b, c, normal);
   }
 
   double attributeDouble(const QXmlStreamAttributes& attributes, const QString& name) {
