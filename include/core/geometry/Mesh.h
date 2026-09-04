@@ -194,6 +194,27 @@ public:
   }
 
   /**
+    * Adds three vertices with the same @p normal and connects them with one
+    * triangular face.
+    */
+  inline void addTriangle(const std::array<Vector3d, 3>& points, const Vector3d& normal) {
+    const int base = static_cast<int>(m_vertices.size());
+    addVertex(points[0], normal);
+    addVertex(points[1], normal);
+    addVertex(points[2], normal);
+    addFace({base, base + 1, base + 2});
+  }
+
+  /**
+    * Adds three vertices with the same @p normal and connects them with one
+    * triangular face.
+    */
+  inline void addTriangle(const Vector3d& a, const Vector3d& b, const Vector3d& c,
+                          const Vector3d& normal) {
+    addTriangle(std::array<Vector3d, 3>{a, b, c}, normal);
+  }
+
+  /**
     * Adds the given @p face to this mesh.
     */
   inline void addFace(const Face& face) {
