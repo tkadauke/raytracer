@@ -18,21 +18,6 @@ namespace {
     const auto& b = p.boundingBox();
     return (b.min() + b.max()) * 0.5;
   }
-
-  // Pick the axis with the largest extent in the given centroid
-  // bounding box. The longest axis gives the most freedom to
-  // partition primitives; SAH would pick this on its own most of the
-  // time, but axis-first short-circuiting saves the per-axis sort.
-  int longestAxis(const BoundingBoxd& centroidBox) {
-    if (!centroidBox.isValid())
-      return 0;
-    const auto d = centroidBox.max() - centroidBox.min();
-    if (d.x() >= d.y() && d.x() >= d.z())
-      return 0;
-    if (d.y() >= d.z())
-      return 1;
-    return 2;
-  }
 }
 
 BVH::~BVH() = default;
@@ -71,7 +56,7 @@ std::unique_ptr<BVH::Node> BVH::build(std::vector<std::shared_ptr<Primitive>> pr
   for (const auto& p : prims) {
     centroidBox.include(centroidOf(*p));
   }
-  const int axis = longestAxis(centroidBox);
+  const int axis = centroidBox.longestAxis();
 
   // Sort by centroid along the chosen axis. The sweep below relies on
   // the primitives being ordered so that a "split at index i" means
