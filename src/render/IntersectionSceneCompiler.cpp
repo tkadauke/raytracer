@@ -121,14 +121,7 @@ namespace {
       for (std::uint32_t index = first; index != first + count; ++index) {
         bounds.include(centroid(primitives[index]));
       }
-
-      const Vector3d size = bounds.size();
-      int axis = 0;
-      if (size[1] > size[axis])
-        axis = 1;
-      if (size[2] > size[axis])
-        axis = 2;
-      return axis;
+      return bounds.longestAxis();
     }
 
     Vector3d centroid(const IntersectionPrimitiveRecord& primitive) const {
