@@ -138,6 +138,22 @@ public:
   }
 
   /**
+    * @returns the index of the axis (0 = X, 1 = Y, 2 = Z) along which size()
+    *   is largest. Ties favor the lower-index axis. Returns 0 for an invalid
+    *   bounding box. Used by BVH construction to pick a split axis.
+    */
+  [[nodiscard]] inline int longestAxis() const noexcept {
+    if (!isValid())
+      return 0;
+    const auto s = size();
+    if (s.x() >= s.y() && s.x() >= s.z())
+      return 0;
+    if (s.y() >= s.z())
+      return 1;
+    return 2;
+  }
+
+  /**
     * @returns the width of the bounding box, i.e. the size along the X axis.
     */
   [[nodiscard]] inline T width() const noexcept {

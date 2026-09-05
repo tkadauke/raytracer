@@ -108,6 +108,35 @@ namespace BoundingBoxTest {
     ASSERT_EQ(Vector3<TypeParam>::null, bbox.center());
   }
 
+  TYPED_TEST(BoundingBoxTest, ShouldReturnLongestAxisX) {
+    BoundingBox<TypeParam> bbox(Vector3<TypeParam>(0, 0, 0), Vector3<TypeParam>(5, 3, 4));
+    ASSERT_EQ(0, bbox.longestAxis());
+  }
+
+  TYPED_TEST(BoundingBoxTest, ShouldReturnLongestAxisY) {
+    BoundingBox<TypeParam> bbox(Vector3<TypeParam>(0, 0, 0), Vector3<TypeParam>(3, 5, 4));
+    ASSERT_EQ(1, bbox.longestAxis());
+  }
+
+  TYPED_TEST(BoundingBoxTest, ShouldReturnLongestAxisZ) {
+    BoundingBox<TypeParam> bbox(Vector3<TypeParam>(0, 0, 0), Vector3<TypeParam>(3, 4, 5));
+    ASSERT_EQ(2, bbox.longestAxis());
+  }
+
+  TYPED_TEST(BoundingBoxTest, ShouldFavorLowerIndexAxisOnTie) {
+    BoundingBox<TypeParam> bbox(Vector3<TypeParam>(0, 0, 0), Vector3<TypeParam>(5, 5, 5));
+    ASSERT_EQ(0, bbox.longestAxis());
+
+    BoundingBox<TypeParam> yzTie(Vector3<TypeParam>(0, 0, 0), Vector3<TypeParam>(3, 5, 5));
+    ASSERT_EQ(1, yzTie.longestAxis());
+  }
+
+  TYPED_TEST(BoundingBoxTest, ShouldReturnAxisZeroForInvalidBoundingBoxLongestAxis) {
+    BoundingBox<TypeParam> bbox(Vector3<TypeParam>(1, 1, 1), Vector3<TypeParam>(-1, -1, -1));
+    ASSERT_FALSE(bbox.isValid());
+    ASSERT_EQ(0, bbox.longestAxis());
+  }
+
   TYPED_TEST(BoundingBoxTest, ShouldCompareSameInstanceForEquality) {
     BoundingBox<TypeParam> bbox(Vector3<TypeParam>(-1, -1, -1), Vector3<TypeParam>(1, 1, 1));
     ASSERT_TRUE(bbox == bbox);
