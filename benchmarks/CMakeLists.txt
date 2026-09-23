@@ -7,6 +7,16 @@ set(BENCHMARK_ENABLE_INSTALL       OFF CACHE BOOL "" FORCE)
 set(BENCHMARK_ENABLE_GTEST_TESTS   OFF CACHE BOOL "" FORCE)
 set(BENCHMARK_ENABLE_WERROR        OFF CACHE BOOL "" FORCE)
 
+# Google Benchmark's own configure probes for GNU regex support by trying to
+# compile and run a snippet that includes <gnuregex.h>. That header isn't
+# shipped by glibc on Debian/Ubuntu, so the probe is always going to report
+# "unavailable" here anyway (benchmark falls back to the already-detected
+# HAVE_STD_REGEX). Pre-seed the compile result so cxx_feature_check's
+# try_run() is skipped rather than executed: CMake aborts configuration
+# outright if a try_run's build reports success but produced no output to
+# execute, which happens on this image's caching compiler wrapper.
+set(COMPILE_HAVE_GNU_POSIX_REGEX FALSE CACHE INTERNAL "gnuregex.h is not available on glibc")
+
 FetchContent_Declare(
   benchmark
   GIT_REPOSITORY https://github.com/google/benchmark.git
