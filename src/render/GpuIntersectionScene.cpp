@@ -1,5 +1,7 @@
 #include "render/GpuIntersectionScene.h"
 
+#include "render/detail/OpenCylinderUv.h"
+
 #include <algorithm>
 #include <cmath>
 
@@ -786,13 +788,8 @@ GpuIntersectionIntersector::intersectOpenCylinder(
                originZ + directionZ * bestDistance, 1.0f};
   hit.normal = {hit.point[0] * inverseRadius, 0.0f, hit.point[2] * inverseRadius, 0.0f};
 
-  constexpr float twoPi = 6.28318530717958647692f;
-  float u = std::atan2(hit.point[2], hit.point[0]) / twoPi;
-  if (u < 0.0f) {
-    u += 1.0f;
-  }
-  const float height = 2.0f * halfHeight;
-  const float v = height == 0.0f ? 0.0f : (hit.point[1] + halfHeight) / height;
+  const auto [u, v] =
+    render::detail::cylinderSideUv(hit.point[0], hit.point[2], hit.point[1], halfHeight);
   hit.uv = {u, v, 0.0f, 0.0f};
   return hit;
 }

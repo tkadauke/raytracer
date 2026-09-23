@@ -1,6 +1,7 @@
 #include "render/primitives/Curve.h"
 
 #include "core/geometry/Mesh.h"
+#include "core/math/Constants.h"
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
 #include "core/math/RayPacket.h"
@@ -15,7 +16,6 @@ using namespace render;
 
 namespace {
   constexpr double kSegmentEpsilon = 1e-12;
-  constexpr double kPi = 3.141592653589793238462643383279502884;
 
   bool isUsableSegment(const Vector3d& start, const Vector3d& end) {
     return (end - start).squaredLength() > kSegmentEpsilon * kSegmentEpsilon;
@@ -53,7 +53,7 @@ namespace {
       const Vector3d center = ring == 0 ? start : end;
       const double vCoord = ring == 0 ? v0 : v1;
       for (int i = 0; i != sides; ++i) {
-        const double theta = 2.0 * kPi * static_cast<double>(i) / static_cast<double>(sides);
+        const double theta = TAU * static_cast<double>(i) / static_cast<double>(sides);
         const Vector3d normal = (u * std::cos(theta) + v * std::sin(theta)).normalized();
         mesh.addVertex(center + normal * radius, normal,
                        Vector2d(static_cast<double>(i) / static_cast<double>(sides), vCoord));

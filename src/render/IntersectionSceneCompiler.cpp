@@ -9,6 +9,7 @@
 #include "core/geometry/Mesh.h"
 #include "core/math/Quadric.h"
 #include "core/math/Quartic.h"
+#include "render/detail/OpenCylinderUv.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/detail/TriangleIntersection.h"
 
@@ -165,14 +166,7 @@ Vector3d IntersectionOpenCylinderPayload::normalAt(const Vector3d& point) const 
 }
 
 Vector2d IntersectionOpenCylinderPayload::sideUvAt(const Vector3d& point) const {
-  constexpr double twoPi = 6.28318530717958647692;
-  double u = std::atan2(point.z(), point.x()) / twoPi;
-  if (u < 0.0) {
-    u += 1.0;
-  }
-
-  const double height = 2.0 * halfHeight;
-  const double v = height == 0.0 ? 0.0 : (point.y() + halfHeight) / height;
+  const auto [u, v] = render::detail::cylinderSideUv(point.x(), point.z(), point.y(), halfHeight);
   return Vector2d(u, v);
 }
 
