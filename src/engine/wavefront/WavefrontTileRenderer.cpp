@@ -195,7 +195,7 @@ namespace engine::wavefront::detail {
       auto plane = camera.viewPlane();
       const auto sampler = plane->sampler();
       const auto primaryRayGenerator = camera.primaryRayGenerator();
-      for (render::ViewPlane::Iterator pixel = plane->begin(actualRect),
+      for (render::ViewPlane::Iterator pixel = plane->pixelBegin(actualRect),
                                        end = plane->end(actualRect);
            pixel != end; ++pixel) {
         if (camera.isCancelled()) {
@@ -269,7 +269,7 @@ namespace engine::wavefront::detail {
         render::SampleStreamStorage extraSampleStreams;
         std::vector<std::size_t> extraSamplePixelIndices;
         std::size_t pixelIndex = 0;
-        for (render::ViewPlane::Iterator pixel = plane->begin(actualRect),
+        for (render::ViewPlane::Iterator pixel = plane->pixelBegin(actualRect),
                                          end = plane->end(actualRect);
              pixel != end; ++pixel, ++pixelIndex) {
           if (camera.isCancelled()) {
@@ -347,7 +347,7 @@ namespace engine::wavefront::detail {
       render::SampleStreamStorage sampleStreams;
       sampleStreams.reserve(static_cast<std::size_t>(std::max(0, actualRect.width())) *
                             static_cast<std::size_t>(std::max(0, actualRect.height())));
-      for (render::ViewPlane::Iterator pixel = plane->begin(actualRect),
+      for (render::ViewPlane::Iterator pixel = plane->pixelBegin(actualRect),
                                        end = plane->end(actualRect);
            pixel != end; ++pixel) {
         if (camera.isCancelled()) {
