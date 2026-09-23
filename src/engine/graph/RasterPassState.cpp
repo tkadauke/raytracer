@@ -44,42 +44,12 @@ namespace engine::graph {
         "balanced");
     }
 
-    Rasterizer::TessellationQuality tessellationQualityFromString(const std::string& value,
-                                                                  const std::string& path) {
-      if (value == "preview")
-        return Rasterizer::TessellationQuality::Preview;
-      if (value == "balanced")
-        return Rasterizer::TessellationQuality::Balanced;
-      if (value == "final")
-        return Rasterizer::TessellationQuality::Final;
-      stateError(path, "expected preview, balanced, or final");
-    }
-
-    Rasterizer::CullMode cullModeFromString(const std::string& value, const std::string& path) {
-      if (value == "both")
-        return Rasterizer::CullMode::Both;
-      if (value == "back")
-        return Rasterizer::CullMode::Back;
-      if (value == "front")
-        return Rasterizer::CullMode::Front;
-      stateError(path, "expected both, back, or front");
-    }
-
     const char* toString(Rasterizer::MSAAShadingMode mode) {
       return detail::enumName<Rasterizer::MSAAShadingMode>(
         mode,
         {{Rasterizer::MSAAShadingMode::PerSample, "per_sample"},
          {Rasterizer::MSAAShadingMode::PerFragment, "per_fragment"}},
         "per_sample");
-    }
-
-    Rasterizer::MSAAShadingMode msaaShadingModeFromString(const std::string& value,
-                                                          const std::string& path) {
-      if (value == "per_sample")
-        return Rasterizer::MSAAShadingMode::PerSample;
-      if (value == "per_fragment")
-        return Rasterizer::MSAAShadingMode::PerFragment;
-      stateError(path, "expected per_sample or per_fragment");
     }
 
     const char* toString(Rasterizer::DepthPrepassMode mode) {
@@ -141,35 +111,6 @@ namespace engine::graph {
         "one");
     }
 
-    Rasterizer::BlendFactor blendFactorFromString(const std::string& value,
-                                                  const std::string& path) {
-      if (value == "zero")
-        return Rasterizer::BlendFactor::Zero;
-      if (value == "one")
-        return Rasterizer::BlendFactor::One;
-      if (value == "source_color")
-        return Rasterizer::BlendFactor::SourceColor;
-      if (value == "one_minus_source_color")
-        return Rasterizer::BlendFactor::OneMinusSourceColor;
-      if (value == "source_alpha")
-        return Rasterizer::BlendFactor::SourceAlpha;
-      if (value == "one_minus_source_alpha")
-        return Rasterizer::BlendFactor::OneMinusSourceAlpha;
-      if (value == "destination_color")
-        return Rasterizer::BlendFactor::DestinationColor;
-      if (value == "one_minus_destination_color")
-        return Rasterizer::BlendFactor::OneMinusDestinationColor;
-      if (value == "constant_color")
-        return Rasterizer::BlendFactor::ConstantColor;
-      if (value == "one_minus_constant_color")
-        return Rasterizer::BlendFactor::OneMinusConstantColor;
-      if (value == "constant_alpha")
-        return Rasterizer::BlendFactor::ConstantAlpha;
-      if (value == "one_minus_constant_alpha")
-        return Rasterizer::BlendFactor::OneMinusConstantAlpha;
-      stateError(path, "unknown blend factor");
-    }
-
     const char* toString(Rasterizer::BlendOp op) {
       return detail::enumName<Rasterizer::BlendOp>(
         op,
@@ -179,20 +120,6 @@ namespace engine::graph {
          {Rasterizer::BlendOp::Min, "min"},
          {Rasterizer::BlendOp::Max, "max"}},
         "add");
-    }
-
-    Rasterizer::BlendOp blendOpFromString(const std::string& value, const std::string& path) {
-      if (value == "add")
-        return Rasterizer::BlendOp::Add;
-      if (value == "subtract")
-        return Rasterizer::BlendOp::Subtract;
-      if (value == "reverse_subtract")
-        return Rasterizer::BlendOp::ReverseSubtract;
-      if (value == "min")
-        return Rasterizer::BlendOp::Min;
-      if (value == "max")
-        return Rasterizer::BlendOp::Max;
-      stateError(path, "expected add, subtract, reverse_subtract, min, or max");
     }
 
     const char* toString(Rasterizer::DepthFunc func) {
@@ -241,26 +168,6 @@ namespace engine::graph {
          {Rasterizer::AlphaFunc::NotEqual, "not_equal"},
          {Rasterizer::AlphaFunc::Always, "always"}},
         "always");
-    }
-
-    Rasterizer::AlphaFunc alphaFuncFromString(const std::string& value, const std::string& path) {
-      if (value == "never")
-        return Rasterizer::AlphaFunc::Never;
-      if (value == "less")
-        return Rasterizer::AlphaFunc::Less;
-      if (value == "equal")
-        return Rasterizer::AlphaFunc::Equal;
-      if (value == "less_equal")
-        return Rasterizer::AlphaFunc::LessEqual;
-      if (value == "greater")
-        return Rasterizer::AlphaFunc::Greater;
-      if (value == "greater_equal")
-        return Rasterizer::AlphaFunc::GreaterEqual;
-      if (value == "not_equal")
-        return Rasterizer::AlphaFunc::NotEqual;
-      if (value == "always")
-        return Rasterizer::AlphaFunc::Always;
-      stateError(path, "unknown alpha function");
     }
 
     const char* toString(Rasterizer::StencilFunc func) {
@@ -366,15 +273,6 @@ namespace engine::graph {
         "pcf");
     }
 
-    Rasterizer::ShadowFilterMode shadowFilterModeFromString(const std::string& value,
-                                                            const std::string& path) {
-      if (value == "pcf")
-        return Rasterizer::ShadowFilterMode::PCF;
-      if (value == "pcss")
-        return Rasterizer::ShadowFilterMode::PCSS;
-      stateError(path, "expected pcf or pcss");
-    }
-
     std::string colorWriteMaskString(std::uint8_t mask) {
       mask &= Rasterizer::ColorWriteAll;
       if (mask == 0)
@@ -388,27 +286,6 @@ namespace engine::graph {
       if (mask & Rasterizer::ColorWriteBlue)
         result.push_back('b');
       return result;
-    }
-
-    std::uint8_t colorWriteMaskFromString(const std::string& value, const std::string& path) {
-      if (value == "none")
-        return 0;
-      if (value == "all")
-        return Rasterizer::ColorWriteAll;
-
-      std::uint8_t mask = 0;
-      for (const char ch : value) {
-        if (ch == 'r') {
-          mask |= Rasterizer::ColorWriteRed;
-        } else if (ch == 'g') {
-          mask |= Rasterizer::ColorWriteGreen;
-        } else if (ch == 'b') {
-          mask |= Rasterizer::ColorWriteBlue;
-        } else {
-          stateError(path, "expected r, g, b, all, or none");
-        }
-      }
-      return mask;
     }
   }
 
@@ -474,13 +351,13 @@ namespace engine::graph {
     if (detail::hasField(object, "lod"))
       state.setLod(detail::intField(object, "lod", path, stateError));
     if (detail::hasField(object, "quality"))
-      state.setTessellationQuality(
-        tessellationQualityFromString(detail::stringField(object, "quality", path, stateError), path + ".quality"));
+      state.setTessellationQuality(detail::tessellationQualityFromString(
+        detail::stringField(object, "quality", path, stateError), path + ".quality", stateError));
     if (detail::hasField(object, "maxScreenSpaceError"))
       state.setMaximumScreenSpaceError(detail::doubleField(object, "maxScreenSpaceError", path, stateError));
     if (detail::hasField(object, "cullMode"))
-      state.setCullMode(
-        cullModeFromString(detail::stringField(object, "cullMode", path, stateError), path + ".cullMode"));
+      state.setCullMode(detail::cullModeFromString(
+        detail::stringField(object, "cullMode", path, stateError), path + ".cullMode", stateError));
     return state;
   }
 
@@ -587,8 +464,9 @@ namespace engine::graph {
     if (detail::hasField(object, "msaaSamples"))
       state.setMSAASamples(detail::intField(object, "msaaSamples", path, stateError));
     if (detail::hasField(object, "msaaShadingMode"))
-      state.setMSAAShadingMode(msaaShadingModeFromString(
-        detail::stringField(object, "msaaShadingMode", path, stateError), path + ".msaaShadingMode"));
+      state.setMSAAShadingMode(detail::msaaShadingModeFromString(
+        detail::stringField(object, "msaaShadingMode", path, stateError), path + ".msaaShadingMode",
+        stateError));
     if (detail::hasField(object, "postProcessAA"))
       state.setPostProcessAA(postProcessAAFromString(detail::stringField(object, "postProcessAA", path, stateError),
                                                      path + ".postProcessAA"));
@@ -755,24 +633,29 @@ namespace engine::graph {
     if (detail::hasField(object, "depthWrite"))
       state.setDepthWriteEnabled(detail::boolField(object, "depthWrite", path, stateError));
     if (detail::hasField(object, "colorWriteMask"))
-      state.setColorWriteMask(colorWriteMaskFromString(detail::stringField(object, "colorWriteMask", path, stateError),
-                                                       path + ".colorWriteMask"));
+      state.setColorWriteMask(detail::colorWriteMaskFromString(
+        detail::stringField(object, "colorWriteMask", path, stateError), path + ".colorWriteMask",
+        stateError));
     if (detail::hasField(object, "blending"))
       state.setBlendingEnabled(detail::boolField(object, "blending", path, stateError));
     if (detail::hasField(object, "blendSource") || detail::hasField(object, "blendDestination")) {
       const auto source =
         detail::hasField(object, "blendSource")
-          ? blendFactorFromString(detail::stringField(object, "blendSource", path, stateError), path + ".blendSource")
+          ? detail::blendFactorFromString(
+              detail::stringField(object, "blendSource", path, stateError), path + ".blendSource",
+              stateError)
           : Rasterizer::BlendFactor::One;
       const auto destination =
         detail::hasField(object, "blendDestination")
-          ? blendFactorFromString(detail::stringField(object, "blendDestination", path, stateError),
-                                  path + ".blendDestination")
+          ? detail::blendFactorFromString(
+              detail::stringField(object, "blendDestination", path, stateError),
+              path + ".blendDestination", stateError)
           : Rasterizer::BlendFactor::Zero;
       state.setBlendFactors(source, destination);
     }
     if (detail::hasField(object, "blendOp"))
-      state.setBlendOp(blendOpFromString(detail::stringField(object, "blendOp", path, stateError), path + ".blendOp"));
+      state.setBlendOp(detail::blendOpFromString(
+        detail::stringField(object, "blendOp", path, stateError), path + ".blendOp", stateError));
     if (detail::hasField(object, "blendConstantColor") || detail::hasField(object, "blendConstantAlpha")) {
       const Colord color = detail::hasField(object, "blendConstantColor")
                              ? detail::colorFromJson(object, "blendConstantColor", path, stateError)
@@ -787,7 +670,8 @@ namespace engine::graph {
     if (detail::hasField(object, "alphaFunc") || detail::hasField(object, "alphaReference")) {
       const auto func =
         detail::hasField(object, "alphaFunc")
-          ? alphaFuncFromString(detail::stringField(object, "alphaFunc", path, stateError), path + ".alphaFunc")
+          ? detail::alphaFuncFromString(detail::stringField(object, "alphaFunc", path, stateError),
+                                        path + ".alphaFunc", stateError)
           : Rasterizer::AlphaFunc::Always;
       const double reference =
         detail::hasField(object, "alphaReference") ? detail::doubleField(object, "alphaReference", path, stateError) : 0.0;
@@ -1141,8 +1025,9 @@ namespace engine::graph {
     if (detail::hasField(object, "filterRadius"))
       state.setShadowFilterRadius(detail::intField(object, "filterRadius", path, stateError));
     if (detail::hasField(object, "filterMode"))
-      state.setShadowFilterMode(
-        shadowFilterModeFromString(detail::stringField(object, "filterMode", path, stateError), path + ".filterMode"));
+      state.setShadowFilterMode(detail::shadowFilterModeFromString(
+        detail::stringField(object, "filterMode", path, stateError), path + ".filterMode",
+        stateError));
     return state;
   }
 

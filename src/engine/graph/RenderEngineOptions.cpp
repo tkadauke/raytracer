@@ -40,57 +40,6 @@ namespace engine::graph {
       return result;
     }
 
-    std::uint8_t colorWriteMaskFromString(const std::string& value, const std::string& path) {
-      if (value == "none")
-        return 0;
-      if (value == "all")
-        return Rasterizer::ColorWriteAll;
-
-      std::uint8_t mask = 0;
-      for (const char ch : value) {
-        if (ch == 'r') {
-          mask |= Rasterizer::ColorWriteRed;
-        } else if (ch == 'g') {
-          mask |= Rasterizer::ColorWriteGreen;
-        } else if (ch == 'b') {
-          mask |= Rasterizer::ColorWriteBlue;
-        } else {
-          optionsError(path, "expected r, g, b, all, or none");
-        }
-      }
-      return mask;
-    }
-
-    Rasterizer::CullMode cullModeFromString(const std::string& value, const std::string& path) {
-      if (value == "both")
-        return Rasterizer::CullMode::Both;
-      if (value == "back")
-        return Rasterizer::CullMode::Back;
-      if (value == "front")
-        return Rasterizer::CullMode::Front;
-      optionsError(path, "expected both, back, or front");
-    }
-
-    Rasterizer::TessellationQuality tessellationQualityFromString(const std::string& value,
-                                                                  const std::string& path) {
-      if (value == "preview")
-        return Rasterizer::TessellationQuality::Preview;
-      if (value == "balanced")
-        return Rasterizer::TessellationQuality::Balanced;
-      if (value == "final")
-        return Rasterizer::TessellationQuality::Final;
-      optionsError(path, "expected preview, balanced, or final");
-    }
-
-    Rasterizer::MSAAShadingMode msaaShadingModeFromString(const std::string& value,
-                                                          const std::string& path) {
-      if (value == "per_sample")
-        return Rasterizer::MSAAShadingMode::PerSample;
-      if (value == "per_fragment")
-        return Rasterizer::MSAAShadingMode::PerFragment;
-      optionsError(path, "expected per_sample or per_fragment");
-    }
-
     Rasterizer::PostProcessAA rasterPostProcessAA(RenderPostProcessAA aa) {
       if (aa == RenderPostProcessAA::FXAA)
         return Rasterizer::PostProcessAA::FXAA;
@@ -99,78 +48,6 @@ namespace engine::graph {
       if (aa == RenderPostProcessAA::TAA)
         return Rasterizer::PostProcessAA::TAA;
       return Rasterizer::PostProcessAA::None;
-    }
-
-    Rasterizer::BlendFactor blendFactorFromString(const std::string& value,
-                                                  const std::string& path) {
-      if (value == "zero")
-        return Rasterizer::BlendFactor::Zero;
-      if (value == "one")
-        return Rasterizer::BlendFactor::One;
-      if (value == "source_color")
-        return Rasterizer::BlendFactor::SourceColor;
-      if (value == "one_minus_source_color")
-        return Rasterizer::BlendFactor::OneMinusSourceColor;
-      if (value == "source_alpha")
-        return Rasterizer::BlendFactor::SourceAlpha;
-      if (value == "one_minus_source_alpha")
-        return Rasterizer::BlendFactor::OneMinusSourceAlpha;
-      if (value == "destination_color")
-        return Rasterizer::BlendFactor::DestinationColor;
-      if (value == "one_minus_destination_color")
-        return Rasterizer::BlendFactor::OneMinusDestinationColor;
-      if (value == "constant_color")
-        return Rasterizer::BlendFactor::ConstantColor;
-      if (value == "one_minus_constant_color")
-        return Rasterizer::BlendFactor::OneMinusConstantColor;
-      if (value == "constant_alpha")
-        return Rasterizer::BlendFactor::ConstantAlpha;
-      if (value == "one_minus_constant_alpha")
-        return Rasterizer::BlendFactor::OneMinusConstantAlpha;
-      optionsError(path, "unknown blend factor");
-    }
-
-    Rasterizer::BlendOp blendOpFromString(const std::string& value, const std::string& path) {
-      if (value == "add")
-        return Rasterizer::BlendOp::Add;
-      if (value == "subtract")
-        return Rasterizer::BlendOp::Subtract;
-      if (value == "reverse_subtract")
-        return Rasterizer::BlendOp::ReverseSubtract;
-      if (value == "min")
-        return Rasterizer::BlendOp::Min;
-      if (value == "max")
-        return Rasterizer::BlendOp::Max;
-      optionsError(path, "expected add, subtract, reverse_subtract, min, or max");
-    }
-
-    Rasterizer::AlphaFunc alphaFuncFromString(const std::string& value, const std::string& path) {
-      if (value == "never")
-        return Rasterizer::AlphaFunc::Never;
-      if (value == "less")
-        return Rasterizer::AlphaFunc::Less;
-      if (value == "equal")
-        return Rasterizer::AlphaFunc::Equal;
-      if (value == "less_equal")
-        return Rasterizer::AlphaFunc::LessEqual;
-      if (value == "greater")
-        return Rasterizer::AlphaFunc::Greater;
-      if (value == "greater_equal")
-        return Rasterizer::AlphaFunc::GreaterEqual;
-      if (value == "not_equal")
-        return Rasterizer::AlphaFunc::NotEqual;
-      if (value == "always")
-        return Rasterizer::AlphaFunc::Always;
-      optionsError(path, "unknown alpha function");
-    }
-
-    Rasterizer::ShadowFilterMode shadowFilterModeFromString(const std::string& value,
-                                                            const std::string& path) {
-      if (value == "pcf")
-        return Rasterizer::ShadowFilterMode::PCF;
-      if (value == "pcss")
-        return Rasterizer::ShadowFilterMode::PCSS;
-      optionsError(path, "expected pcf or pcss");
     }
 
     template<class T>
@@ -738,9 +615,9 @@ namespace engine::graph {
     if (detail::hasField(framebuffer, "depthBias"))
       options.setDepthBias(detail::doubleField(framebuffer, "depthBias", path + ".framebuffer", optionsError));
     if (detail::hasField(framebuffer, "colorWriteMask"))
-      options.setColorWriteMask(
-        colorWriteMaskFromString(detail::stringField(framebuffer, "colorWriteMask", path + ".framebuffer", optionsError),
-                                 path + ".framebuffer.colorWriteMask"));
+      options.setColorWriteMask(detail::colorWriteMaskFromString(
+        detail::stringField(framebuffer, "colorWriteMask", path + ".framebuffer", optionsError),
+        path + ".framebuffer.colorWriteMask", optionsError));
     if (detail::hasField(framebuffer, "blending"))
       options.setBlendingEnabled(detail::boolField(framebuffer, "blending", path + ".framebuffer", optionsError));
     if (detail::hasField(framebuffer, "blendSource") || detail::hasField(framebuffer, "blendDestination")) {
@@ -871,17 +748,19 @@ namespace engine::graph {
       state.geometry().setLod(*m_lod);
     if (m_tessellationQuality) {
       state.geometry().setTessellationQuality(
-        tessellationQualityFromString(*m_tessellationQuality, "rasterizer.geometry.quality"));
+        detail::tessellationQualityFromString(*m_tessellationQuality,
+                                              "rasterizer.geometry.quality", optionsError));
     }
     if (m_maximumScreenSpaceError)
       state.geometry().setMaximumScreenSpaceError(*m_maximumScreenSpaceError);
     if (m_cullMode)
-      state.geometry().setCullMode(cullModeFromString(*m_cullMode, "rasterizer.geometry.cullMode"));
+      state.geometry().setCullMode(detail::cullModeFromString(
+        *m_cullMode, "rasterizer.geometry.cullMode", optionsError));
     if (m_msaaSamples)
       state.sampling().setMSAASamples(*m_msaaSamples);
     if (m_msaaShadingMode) {
-      state.sampling().setMSAAShadingMode(
-        msaaShadingModeFromString(*m_msaaShadingMode, "rasterizer.sampling.msaaShadingMode"));
+      state.sampling().setMSAAShadingMode(detail::msaaShadingModeFromString(
+        *m_msaaShadingMode, "rasterizer.sampling.msaaShadingMode", optionsError));
     } else if (m_backend && m_backend->isOpenGL() && state.sampling().msaaSamples() > 1) {
       state.sampling().setMSAAShadingMode(Rasterizer::MSAAShadingMode::PerFragment);
     }
@@ -910,14 +789,14 @@ namespace engine::graph {
       state.framebuffer().setBlendingEnabled(*m_blendingEnabled);
     if (m_sourceBlendFactor || m_destinationBlendFactor) {
       state.framebuffer().setBlendFactors(
-        blendFactorFromString(m_sourceBlendFactor.value_or("one"),
-                              "rasterizer.framebuffer.blendSource"),
-        blendFactorFromString(m_destinationBlendFactor.value_or("zero"),
-                              "rasterizer.framebuffer.blendDestination"));
+        detail::blendFactorFromString(m_sourceBlendFactor.value_or("one"),
+                              "rasterizer.framebuffer.blendSource", optionsError),
+        detail::blendFactorFromString(m_destinationBlendFactor.value_or("zero"),
+                              "rasterizer.framebuffer.blendDestination", optionsError));
     }
     if (m_blendOp)
       state.framebuffer().setBlendOp(
-        blendOpFromString(*m_blendOp, "rasterizer.framebuffer.blendOp"));
+        detail::blendOpFromString(*m_blendOp, "rasterizer.framebuffer.blendOp", optionsError));
     if (m_blendConstantColor || m_blendConstantAlpha) {
       state.framebuffer().setBlendConstant(m_blendConstantColor.value_or(Colord::white()),
                                            m_blendConstantAlpha.value_or(1.0));
@@ -926,7 +805,8 @@ namespace engine::graph {
       state.framebuffer().setAlphaTestEnabled(*m_alphaTestEnabled);
     if (m_alphaFunc || m_alphaReference) {
       state.framebuffer().setAlphaFunc(
-        alphaFuncFromString(m_alphaFunc.value_or("always"), "rasterizer.framebuffer.alphaFunc"),
+        detail::alphaFuncFromString(m_alphaFunc.value_or("always"),
+                                    "rasterizer.framebuffer.alphaFunc", optionsError),
         m_alphaReference.value_or(0.0));
     }
     if (includeShadowMapEnable) {
@@ -944,7 +824,8 @@ namespace engine::graph {
         state.shadows().setShadowFilterRadius(*m_shadowFilterRadius);
       if (m_shadowFilterMode) {
         state.shadows().setShadowFilterMode(
-          shadowFilterModeFromString(*m_shadowFilterMode, "rasterizer.shadows.filterMode"));
+          detail::shadowFilterModeFromString(*m_shadowFilterMode,
+                                             "rasterizer.shadows.filterMode", optionsError));
       }
     }
     return state;
@@ -966,7 +847,8 @@ namespace engine::graph {
       state.shadows().setShadowFilterRadius(*m_shadowFilterRadius);
     if (m_shadowFilterMode)
       state.shadows().setShadowFilterMode(
-        shadowFilterModeFromString(*m_shadowFilterMode, "rasterizer.shadows.filterMode"));
+        detail::shadowFilterModeFromString(*m_shadowFilterMode, "rasterizer.shadows.filterMode",
+                                           optionsError));
     return state;
   }
 
@@ -975,13 +857,14 @@ namespace engine::graph {
     if (m_lod)
       state.geometry().setLod(*m_lod);
     if (m_tessellationQuality) {
-      state.geometry().setTessellationQuality(
-        tessellationQualityFromString(*m_tessellationQuality, "rasterizer.geometry.quality"));
+      state.geometry().setTessellationQuality(detail::tessellationQualityFromString(
+        *m_tessellationQuality, "rasterizer.geometry.quality", optionsError));
     }
     if (m_maximumScreenSpaceError)
       state.geometry().setMaximumScreenSpaceError(*m_maximumScreenSpaceError);
     if (m_cullMode)
-      state.geometry().setCullMode(cullModeFromString(*m_cullMode, "rasterizer.geometry.cullMode"));
+      state.geometry().setCullMode(detail::cullModeFromString(
+        *m_cullMode, "rasterizer.geometry.cullMode", optionsError));
     const RasterBeautyPassState beautyState =
       beautyPassState(1, RenderPostProcessAA::None, false, false);
     state.setFrontToBackOrderingEnabled(
@@ -1011,7 +894,7 @@ namespace engine::graph {
   }
 
   void RenderRasterizerOptions::setTessellationQuality(std::string quality) {
-    tessellationQualityFromString(quality, "rasterizer.geometry.quality");
+    detail::tessellationQualityFromString(quality, "rasterizer.geometry.quality", optionsError);
     m_tessellationQuality = std::move(quality);
   }
 
@@ -1020,7 +903,7 @@ namespace engine::graph {
   }
 
   void RenderRasterizerOptions::setCullMode(std::string mode) {
-    cullModeFromString(mode, "rasterizer.geometry.cullMode");
+    detail::cullModeFromString(mode, "rasterizer.geometry.cullMode", optionsError);
     m_cullMode = std::move(mode);
   }
 
@@ -1091,7 +974,7 @@ namespace engine::graph {
   }
 
   void RenderRasterizerOptions::setMSAAShadingMode(std::string mode) {
-    msaaShadingModeFromString(mode, "rasterizer.sampling.msaaShadingMode");
+    detail::msaaShadingModeFromString(mode, "rasterizer.sampling.msaaShadingMode", optionsError);
     m_msaaShadingMode = std::move(mode);
   }
 
@@ -1116,14 +999,15 @@ namespace engine::graph {
   }
 
   void RenderRasterizerOptions::setBlendFactors(std::string source, std::string destination) {
-    blendFactorFromString(source, "rasterizer.framebuffer.blendSource");
-    blendFactorFromString(destination, "rasterizer.framebuffer.blendDestination");
+    detail::blendFactorFromString(source, "rasterizer.framebuffer.blendSource", optionsError);
+    detail::blendFactorFromString(destination, "rasterizer.framebuffer.blendDestination",
+                                  optionsError);
     m_sourceBlendFactor = std::move(source);
     m_destinationBlendFactor = std::move(destination);
   }
 
   void RenderRasterizerOptions::setBlendOp(std::string op) {
-    blendOpFromString(op, "rasterizer.framebuffer.blendOp");
+    detail::blendOpFromString(op, "rasterizer.framebuffer.blendOp", optionsError);
     m_blendOp = std::move(op);
   }
 
@@ -1137,7 +1021,7 @@ namespace engine::graph {
   }
 
   void RenderRasterizerOptions::setAlphaFunc(std::string func, double reference) {
-    alphaFuncFromString(func, "rasterizer.framebuffer.alphaFunc");
+    detail::alphaFuncFromString(func, "rasterizer.framebuffer.alphaFunc", optionsError);
     m_alphaFunc = std::move(func);
     m_alphaReference = finiteClampedUnit(reference, 0.0);
   }
@@ -1167,7 +1051,7 @@ namespace engine::graph {
   }
 
   void RenderRasterizerOptions::setShadowFilterMode(std::string mode) {
-    shadowFilterModeFromString(mode, "rasterizer.shadows.filterMode");
+    detail::shadowFilterModeFromString(mode, "rasterizer.shadows.filterMode", optionsError);
     m_shadowFilterMode = std::move(mode);
   }
 
