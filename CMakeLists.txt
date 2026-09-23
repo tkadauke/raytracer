@@ -1,4 +1,39 @@
 cmake_minimum_required(VERSION 3.25)
+
+# Some Syrus worker images point c++/cc/g++/clang++ (via /usr/local/bin,
+# which precedes /usr/bin in PATH) at /usr/local/bin/syrus-sccache-compiler,
+# a wrapper script that already shells out to sccache itself before
+# delegating to the real compiler at /usr/bin/<name>. When a build also
+# requests CMAKE_CXX_COMPILER_LAUNCHER=sccache (the coverage/opengl-egl
+# graders do this for cache-safe reuse across Syrus workspaces, see commit
+# "Enable cache-safe sccache reuse for coverage builds"), CMake ends up
+# invoking `sccache <wrapper-script>` for every compile. sccache can't
+# identify a shell script as a supported compiler and every compile fails
+# with "Compiler not supported: ''". Resolve CMAKE_CXX_COMPILER to the real
+# binary underneath the wrapper before project() runs its own compiler
+# detection, so the launcher wraps a real compiler exactly once.
+if(CMAKE_CXX_COMPILER_LAUNCHER MATCHES "sccache")
+  if(DEFINED ENV{CXX})
+    set(_raytracer_cxx_candidate "$ENV{CXX}")
+  elseif(CMAKE_CXX_COMPILER)
+    set(_raytracer_cxx_candidate "${CMAKE_CXX_COMPILER}")
+  else()
+    set(_raytracer_cxx_candidate "c++")
+  endif()
+  get_filename_component(_raytracer_cxx_name "${_raytracer_cxx_candidate}" NAME)
+  find_program(_raytracer_cxx_wrapper NAMES "${_raytracer_cxx_name}")
+  if(_raytracer_cxx_wrapper)
+    get_filename_component(_raytracer_cxx_resolved "${_raytracer_cxx_wrapper}" REALPATH)
+    get_filename_component(_raytracer_cxx_resolved_name "${_raytracer_cxx_resolved}" NAME)
+    if(_raytracer_cxx_resolved_name STREQUAL "syrus-sccache-compiler")
+      find_program(_raytracer_cxx_real NAMES "${_raytracer_cxx_name}" PATHS /usr/bin NO_DEFAULT_PATH)
+      if(_raytracer_cxx_real)
+        set(CMAKE_CXX_COMPILER "${_raytracer_cxx_real}" CACHE STRING "" FORCE)
+      endif()
+    endif()
+  endif()
+endif()
+
 project(raytracer
   VERSION 0.1.0
   DESCRIPTION "Multithreaded raytracing library with interactive Qt viewer"
