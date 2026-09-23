@@ -213,6 +213,28 @@ if(APPLE AND NOT DEFINED CMAKE_PREFIX_PATH AND NOT DEFINED Qt6_DIR)
   endif()
 endif()
 
+# CMAKE_LIBRARY_ARCHITECTURE is normally inferred by parsing the compiler's
+# verbose (-v) implicit search-path output. When CMAKE_CXX_COMPILER resolves
+# to a wrapper script that discards stderr on success (e.g. a caching
+# frontend), that parsing yields nothing, CMAKE_LIBRARY_ARCHITECTURE stays
+# empty, and find_package(Qt6 ...) can't see the Debian/Ubuntu multiarch
+# config paths (/usr/lib/<triplet>/cmake/...) even though Qt6 is installed.
+# Fall back to asking the compiler directly via -dumpmachine, which every
+# wrapper still has to pass through since it's a normal stdout-producing
+# invocation.
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NOT CMAKE_LIBRARY_ARCHITECTURE)
+  execute_process(
+    COMMAND "${CMAKE_CXX_COMPILER}" -dumpmachine
+    OUTPUT_VARIABLE _raytracer_cxx_machine
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+    RESULT_VARIABLE _raytracer_dumpmachine_result
+  )
+  if(_raytracer_dumpmachine_result EQUAL 0 AND _raytracer_cxx_machine)
+    set(CMAKE_LIBRARY_ARCHITECTURE "${_raytracer_cxx_machine}")
+  endif()
+endif()
+
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Qml OpenGL Network Test)
 find_package(ZLIB REQUIRED)
 

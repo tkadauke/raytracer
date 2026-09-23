@@ -9,6 +9,21 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ## Unreleased
 
+### Fixed
+
+- Fix `cmake --preset coverage|benchmark|...` failing to configure on Linux
+  images where the C++ compiler is invoked through a wrapper script that
+  doesn't emit the verbose (`-v`) diagnostic output CMake parses to infer
+  `CMAKE_LIBRARY_ARCHITECTURE`. Without that variable, `find_package(Qt6
+  ...)` couldn't see the Debian/Ubuntu multiarch config paths even though Qt6
+  was installed. `CMakeLists.txt` now falls back to `${CMAKE_CXX_COMPILER}
+  -dumpmachine` on Linux when the built-in detection comes up empty. Also
+  pre-seed Google Benchmark's `GNU_POSIX_REGEX` feature probe (a header
+  glibc doesn't ship, so the check was always going to report "unavailable"
+  here) so its `try_run` isn't invoked at all — invoking it was tripping the
+  same class of compiler-wrapper interaction and aborting configuration
+  outright. — Claude Sonnet 5
+
 ### Changed
 
 - Make Syrus coverage builds use `sccache` with coverage path mapping and
