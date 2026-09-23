@@ -42,6 +42,14 @@ namespace render {
     return (tangent * x + bitangent * y + n * z).normalized();
   }
 
+  /// Mirror-reflect incoming direction `wi` off surface normal `n`, returning
+  /// the normalized reflection direction. Used both as the Phong lobe axis
+  /// and as the raw mirror continuation direction; `n` is expected to already
+  /// be normalized.
+  inline Vector3d mirrorReflectionDirection(const Vector3d& n, const Vector3d& wi) {
+    return (-wi).reflect(n).normalized();
+  }
+
   /// Sample a direction from a Phong lobe around the given reflection `axis`.
   inline Vector3d phongLobeDirection(const Vector3d& axis, const Vector2d& sample,
                                      double exponent) {
@@ -67,7 +75,7 @@ namespace render {
     if (n * wi < 0.0 || n * wo < 0.0)
       return 0.0;
 
-    const Vector3d lobeAxis = (-wi).reflect(n).normalized();
+    const Vector3d lobeAxis = mirrorReflectionDirection(n, wi);
     const double lobeDotOut = lobeAxis * wo.normalized();
     if (lobeDotOut <= 0.0)
       return 0.0;

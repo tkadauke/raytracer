@@ -260,9 +260,7 @@ namespace {
 
   std::shared_ptr<render::Primitive> primitiveFor(Mesh mesh) {
     auto material = std::make_shared<render::MatteMaterial>(
-      std::make_shared<render::ConstantColorTexture>(Colord(0.86, 0.68, 0.36)));
-    material->setAmbientCoefficient(0.65);
-    material->setDiffuseCoefficient(0.8);
+      std::make_shared<render::ConstantColorTexture>(Colord(0.86, 0.68, 0.36)), 0.65, 0.8);
 
     auto primitive = std::make_shared<render::MeshPrimitive>(
       std::move(mesh), render::MeshPrimitive::NormalMode::Flat);

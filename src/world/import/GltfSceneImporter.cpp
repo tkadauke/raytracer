@@ -474,10 +474,7 @@ namespace world {
         return nullptr;
 
       const auto& source = asset.materials[*materialIndex];
-      auto material = std::make_shared<render::MatteMaterial>(baseColorTextureFor(asset, source));
-      material->setAmbientCoefficient(0.65);
-      material->setDiffuseCoefficient(0.8);
-      return material;
+      return std::make_shared<render::MatteMaterial>(baseColorTextureFor(asset, source), 0.65, 0.8);
     }
 
     std::shared_ptr<render::Primitive> primitiveFor(const core::gltf::Asset& asset,

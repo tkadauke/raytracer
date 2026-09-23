@@ -26,7 +26,7 @@ Colord GlossySpecular::sample(const HitPoint& hitPoint, const Vector3d& wi, Vect
     return Colord::black();
   }
 
-  const Vector3d lobeAxis = (-wi).reflect(n).normalized();
+  const Vector3d lobeAxis = mirrorReflectionDirection(n, wi);
   wo = phongLobeDirection(lobeAxis, samplePoint, exponent());
   pdfValue = pdf(hitPoint, wi, wo);
   if (pdfValue == 0.0)

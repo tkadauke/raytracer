@@ -56,11 +56,8 @@ namespace world {
       if (!resource)
         return nullptr;
 
-      auto material = std::make_shared<render::MatteMaterial>(
-        std::make_shared<render::ConstantColorTexture>(resource->color));
-      material->setAmbientCoefficient(1.0);
-      material->setDiffuseCoefficient(0.75);
-      return material;
+      return std::make_shared<render::MatteMaterial>(
+        std::make_shared<render::ConstantColorTexture>(resource->color), 1.0, 0.75);
     }
 
     render::MeshPrimitive::FaceMaterials faceMaterialsFor(const core::threemf::ObjectMesh& object) {
@@ -72,7 +69,7 @@ namespace world {
     }
 
     Matrix4d unitScaleMatrix(double scale) {
-      return Matrix4d(Matrix3d::scale(scale, scale, scale));
+      return Matrix4d(Matrix3d::scale(scale));
     }
 
     std::shared_ptr<render::Primitive> primitiveFor(const core::threemf::ObjectMesh& object,

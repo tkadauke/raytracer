@@ -106,7 +106,7 @@ namespace {
       transform.setCell(1, 1, -options.scale);
       transform.setCell(2, 2, -options.scale);
     } else {
-      transform = Matrix4d(Matrix3d::scale(options.scale, options.scale, options.scale));
+      transform = Matrix4d(Matrix3d::scale(options.scale));
     }
     return transform;
   }

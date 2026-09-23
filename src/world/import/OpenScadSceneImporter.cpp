@@ -1086,11 +1086,8 @@ namespace world {
     }
 
     std::shared_ptr<render::Material> defaultOpenScadMaterial() {
-      auto material = std::make_shared<render::MatteMaterial>(
-        std::make_shared<render::ConstantColorTexture>(Colord(0.72, 0.72, 0.68)));
-      material->setAmbientCoefficient(0.85);
-      material->setDiffuseCoefficient(0.65);
-      return material;
+      return std::make_shared<render::MatteMaterial>(
+        std::make_shared<render::ConstantColorTexture>(Colord(0.72, 0.72, 0.68)), 0.85, 0.65);
     }
 
     ImportProvenance openScadProvenance(const ImportSourceMetadata& source, const QString& sourceId,

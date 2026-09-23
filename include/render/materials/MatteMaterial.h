@@ -65,6 +65,19 @@ namespace render {
     }
 
     /**
+      * Constructs a matte material with the given texture and explicit
+      * ambient and diffuse coefficients.
+      */
+    inline MatteMaterial(std::shared_ptr<render::Texturec> texture, double ambientCoefficient,
+                         double diffuseCoefficient)
+        : Material(),
+          m_diffuseTexture(texture),
+          m_normalTexture(nullptr),
+          m_ambientCoefficient(ambientCoefficient),
+          m_diffuseCoefficient(diffuseCoefficient) {
+    }
+
+    /**
       * @returns the diffuse texture.
       */
     inline std::shared_ptr<render::Texturec> diffuseTexture() const {

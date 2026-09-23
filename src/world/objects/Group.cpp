@@ -46,11 +46,8 @@ namespace {
   }
 
   std::shared_ptr<render::Material> stepPlaybackMaterial(const Colord& color) {
-    auto material = std::make_shared<render::MatteMaterial>(
-      std::make_shared<render::ConstantColorTexture>(color));
-    material->setAmbientCoefficient(1.0);
-    material->setDiffuseCoefficient(0.65);
-    return material;
+    return std::make_shared<render::MatteMaterial>(
+      std::make_shared<render::ConstantColorTexture>(color), 1.0, 0.65);
   }
 
   StepVisibilitySelection stepPlaybackSelection(const StepPlaybackStyle& style) {

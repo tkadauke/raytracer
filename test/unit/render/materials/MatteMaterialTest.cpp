@@ -29,6 +29,14 @@ namespace MatteMaterialTest {
     ASSERT_EQ(texture, material.diffuseTexture());
   }
 
+  TEST(MatteMaterial, ShouldInitializeWithTextureAndExplicitCoefficients) {
+    auto texture = std::make_shared<ConstantColorTexture>(Colord(0, 1, 0));
+    MatteMaterial material(texture, 0.65, 0.8);
+    ASSERT_EQ(texture, material.diffuseTexture());
+    ASSERT_EQ(0.65, material.ambientCoefficient());
+    ASSERT_EQ(0.8, material.diffuseCoefficient());
+  }
+
   TEST(MatteMaterial, ShouldSetDiffuseTexture) {
     MatteMaterial material;
 

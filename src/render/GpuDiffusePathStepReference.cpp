@@ -689,7 +689,7 @@ namespace {
     const double specularWeight = 1.0 - diffuseWeight;
     const double remappedX =
       specularWeight > 0.0 ? (selector - diffuseWeight) / specularWeight : selector;
-    return phongLobeDirection((-wi).reflect(normal).normalized(), Vector2d(remappedX, y),
+    return phongLobeDirection(mirrorReflectionDirection(normal, wi), Vector2d(remappedX, y),
                               material.parameters[3]);
   }
 
@@ -698,7 +698,7 @@ namespace {
   }
 
   Vector3d mirrorContinuationDirection(const Vector3d& wi, const Vector3d& normal) {
-    return (-wi).reflect(normal).normalized();
+    return mirrorReflectionDirection(normal, wi);
   }
 
   double transparentEta(const GpuTracingMaterialRecord& material, const Vector3d& wi,

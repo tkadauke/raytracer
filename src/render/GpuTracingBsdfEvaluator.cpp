@@ -48,7 +48,7 @@ namespace render {
     if (normal * wi < 0.0 || normal * wo < 0.0) {
       return Colord::black();
     }
-    const Vector3d lobeAxis = (-wi).reflect(normal).normalized();
+    const Vector3d lobeAxis = mirrorReflectionDirection(normal, wi);
     const double lobeDotOut = lobeAxis * wo.normalized();
     if (lobeDotOut <= 0.0) {
       return Colord::black();
