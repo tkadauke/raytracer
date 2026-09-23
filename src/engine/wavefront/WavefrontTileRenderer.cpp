@@ -47,16 +47,12 @@ namespace engine::wavefront::detail {
           const Colord before =
             m_hasPrevious && index < m_previous.size() ? m_previous[index].color : Colord::black();
           const int area = std::max(1, pixels[index].area());
-          squaredSum += colorDeltaSquared(before, pixels[index].color) * static_cast<double>(area);
+          squaredSum += before.squaredDistanceTo(pixels[index].color) * static_cast<double>(area);
           weightedPixelCount += static_cast<std::uint64_t>(area);
         }
         return weightedPixelCount == 0
                  ? 0.0
                  : std::sqrt(squaredSum / static_cast<double>(weightedPixelCount));
-      }
-
-      double colorDeltaSquared(const Colord& before, const Colord& after) const {
-        return (after - before).squaredMagnitude();
       }
 
       bool m_hasPrevious{false};

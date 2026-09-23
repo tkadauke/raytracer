@@ -210,6 +210,14 @@ public:
   }
 
   /**
+    * @returns the sum of the squared per-component differences between this
+    *   color and @p other.
+    */
+  inline T squaredDistanceTo(const Derived& other) const {
+    return (derived() - other).squaredMagnitude();
+  }
+
+  /**
     * @returns the red value of this color as an integer, clipped to [0, 255].
     */
   inline unsigned char rInt() const {
