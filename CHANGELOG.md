@@ -11,6 +11,16 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Fix `WavefrontTileRenderer` tile loops generating extra/duplicate primary
+  samples when a render is split across worker tiles smaller than the
+  camera's view plane. The default `PointInterlacedViewPlane` derives its
+  progressive interlace block size from the *entire* view plane, not the
+  rect being iterated, so `ViewPlane::begin(actualRect)` could step past a
+  narrow tile's right edge and revisit pixels there. Switched the tile
+  sample-generation, adaptive-resample, and denoiser-feature loops to
+  `ViewPlane::pixelBegin(actualRect)`, the exact per-pixel iterator already
+  used for the same purpose elsewhere (e.g. the GPU diffuse path-loop CPU
+  reference). — Claude Sonnet 5
 - Fix `cmake --preset coverage|benchmark|...` failing to configure on Linux
   images where the C++ compiler is invoked through a wrapper script that
   doesn't emit the verbose (`-v`) diagnostic output CMake parses to infer
