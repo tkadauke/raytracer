@@ -50,6 +50,30 @@ namespace render {
     return (-wi).reflect(n).normalized();
   }
 
+  /// Orient a refractive-index ratio `eta` (inside/outside) for the side of
+  /// the surface `cosTheta = n * wi` indicates the ray is on, inverting it
+  /// when the ray approaches from behind the surface normal.
+  inline double orientedRefractionEta(double cosTheta, double eta) {
+    return cosTheta < 0.0 ? 1.0 / eta : eta;
+  }
+
+  /// True if refraction with the given incidence cosine and already-oriented
+  /// `eta` (see orientedRefractionEta()) undergoes total internal reflection.
+  inline bool totalInternalReflects(double cosTheta, double eta) {
+    return 1.0 - (1.0 - cosTheta * cosTheta) / (eta * eta) < 0.0;
+  }
+
+  /// Refract direction `wi` through a surface with normal `n` and base
+  /// refractive-index ratio `eta`, flipping the normal and orienting `eta`
+  /// (see orientedRefractionEta()) to the side `wi` approaches from first.
+  /// Assumes the caller has already ruled out total internal reflection.
+  inline Vector3d refractedDirection(const Vector3d& n, const Vector3d& wi, double eta) {
+    const double cosTheta = n * wi;
+    const double orientedEta = orientedRefractionEta(cosTheta, eta);
+    const Vector3d orientedNormal = cosTheta < 0.0 ? -n : n;
+    return wi.refract(orientedNormal, orientedEta);
+  }
+
   /// Sample a direction from a Phong lobe around the given reflection `axis`.
   inline Vector3d phongLobeDirection(const Vector3d& axis, const Vector2d& sample,
                                      double exponent) {

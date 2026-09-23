@@ -703,26 +703,17 @@ namespace {
 
   double transparentEta(const GpuTracingMaterialRecord& material, const Vector3d& wi,
                         const Vector3d& normal) {
-    const double ior = material.transmissionParameters[1];
-    return (normal * wi) < 0.0 ? 1.0 / ior : ior;
+    return orientedRefractionEta(normal * wi, material.transmissionParameters[1]);
   }
 
   bool transparentTotalInternalReflection(const GpuTracingMaterialRecord& material,
                                           const Vector3d& wi, const Vector3d& normal) {
-    const double cosTheta = normal * wi;
-    const double eta = transparentEta(material, wi, normal);
-    return 1.0 - (1.0 - cosTheta * cosTheta) / (eta * eta) < 0.0;
+    return totalInternalReflects(normal * wi, transparentEta(material, wi, normal));
   }
 
   Vector3d transparentTransmissionDirection(const GpuTracingMaterialRecord& material,
                                             const Vector3d& wi, const Vector3d& normal) {
-    Vector3d orientedNormal = normal;
-    double eta = material.transmissionParameters[1];
-    if ((orientedNormal * wi) < 0.0) {
-      orientedNormal = -orientedNormal;
-      eta = 1.0 / eta;
-    }
-    return wi.refract(orientedNormal, eta).normalized();
+    return refractedDirection(normal, wi, material.transmissionParameters[1]).normalized();
   }
 
   struct DeltaContinuation {
