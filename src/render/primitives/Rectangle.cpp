@@ -1,6 +1,7 @@
 #include "render/State.h"
 #include "render/IntersectionSceneCompiler.h"
 #include "render/primitives/Rectangle.h"
+#include "render/primitives/detail/PlaneIntersection.h"
 #include "core/geometry/Mesh.h"
 #include "core/math/Ray.h"
 #include "core/math/RayPacket.h"
@@ -12,17 +13,12 @@ using namespace render;
 
 const Primitive* Rectangle::intersect(const Rayd& ray, HitPointInterval& hitPoints,
                                       render::State& state) const {
-  const double denominator = ray.direction() * m_normal;
-  if (denominator == 0.0) {
+  const auto planeParameter = render::detail::solvePlaneParameter(m_corner, m_normal, ray);
+  if (!planeParameter) {
     state.miss(this, "Rectangle, parallel");
     return nullptr;
   }
-
-  double t = (m_corner - ray.origin()) * m_normal / denominator;
-  if (!std::isfinite(t)) {
-    state.miss(this, "Rectangle, parallel");
-    return nullptr;
-  }
+  const double t = *planeParameter;
 
   Vector3d hitPoint = ray.at(t);
   Vector3d difference = hitPoint - m_corner;
@@ -65,17 +61,12 @@ Result Rectangle::intersectPacketHitsFor(const Packet& rays, const StateArray& s
     }
     State& state = *states[lane];
     const Rayd ray = rays.rayd(lane);
-    const double denominator = ray.direction() * m_normal;
-    if (denominator == 0.0) {
+    const auto planeParameter = render::detail::solvePlaneParameter(m_corner, m_normal, ray);
+    if (!planeParameter) {
       state.miss(this, "Rectangle, parallel");
       continue;
     }
-
-    const double t = (m_corner - ray.origin()) * m_normal / denominator;
-    if (!std::isfinite(t)) {
-      state.miss(this, "Rectangle, parallel");
-      continue;
-    }
+    const double t = *planeParameter;
 
     const Vector3d hitPoint = ray.at(t);
     const Vector3d difference = hitPoint - m_corner;

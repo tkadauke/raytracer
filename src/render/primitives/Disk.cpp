@@ -1,6 +1,7 @@
 #include "render/State.h"
 #include "render/IntersectionSceneCompiler.h"
 #include "render/primitives/Disk.h"
+#include "render/primitives/detail/PlaneIntersection.h"
 #include "core/math/Ray.h"
 #include "core/math/RayPacket.h"
 #include "core/math/HitPointInterval.h"
@@ -12,17 +13,12 @@ using namespace render;
 
 const Primitive* Disk::intersect(const Rayd& ray, HitPointInterval& hitPoints,
                                  render::State& state) const {
-  const double denominator = ray.direction() * m_normal;
-  if (denominator == 0.0) {
+  const auto planeParameter = render::detail::solvePlaneParameter(m_center, m_normal, ray);
+  if (!planeParameter) {
     state.miss(this, "Disk, parallel");
     return nullptr;
   }
-
-  const double t = (m_center - ray.origin()) * m_normal / denominator;
-  if (!std::isfinite(t)) {
-    state.miss(this, "Disk, parallel");
-    return nullptr;
-  }
+  const double t = *planeParameter;
 
   Vector4d hitPoint = ray.at(t);
 
@@ -55,17 +51,12 @@ Result Disk::intersectPacketHitsFor(const Packet& rays, const StateArray& states
     }
     State& state = *states[lane];
     const Rayd ray = rays.rayd(lane);
-    const double denominator = ray.direction() * m_normal;
-    if (denominator == 0.0) {
+    const auto planeParameter = render::detail::solvePlaneParameter(m_center, m_normal, ray);
+    if (!planeParameter) {
       state.miss(this, "Disk, parallel");
       continue;
     }
-
-    const double t = (m_center - ray.origin()) * m_normal / denominator;
-    if (!std::isfinite(t)) {
-      state.miss(this, "Disk, parallel");
-      continue;
-    }
+    const double t = *planeParameter;
 
     const Vector4d hitPoint = ray.at(t);
 
