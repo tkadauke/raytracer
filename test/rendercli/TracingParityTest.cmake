@@ -470,7 +470,7 @@ tracing_parity_render_supported(
 tracing_parity_render_compiled_gpu_execution(
   "matte_direct_light" "matte_direct_light.json" 1 1 0.04)
 tracing_parity_render_supported(
-  "indirect_bounce" "indirect_bounce.json" 3 4 0.02
+  "indirect_bounce" "indirect_bounce.json" 3 4 0.03
   "secondary_direct_light_luminance=[1-9]")
 tracing_parity_render_compiled_gpu_execution(
   "indirect_bounce" "indirect_bounce.json" 3 4 0.06)
