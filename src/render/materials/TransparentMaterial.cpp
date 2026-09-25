@@ -181,7 +181,7 @@ render::MaterialBsdfSample
 TransparentMaterial::sampleTotalInternalReflectionBsdf(const HitPoint& hitPoint,
                                                        const Vector3d& wi) const {
   render::MaterialBsdfSample result;
-  result.direction = (-wi).reflect(hitPoint.normal()).normalized();
+  result.direction = mirrorReflectionDirection(hitPoint.normal(), wi);
   result.value = Colord::white();
   result.pdf = 1.0;
   result.isDelta = true;

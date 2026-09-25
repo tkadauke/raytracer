@@ -1,6 +1,7 @@
 #include "render/lights/RectangularAreaLight.h"
 
 #include "core/math/Constants.h"
+#include "render/GpuRectangularLightHelpers.h"
 #include "render/materials/EmissiveMaterial.h"
 #include "render/primitives/Rectangle.h"
 
@@ -145,21 +146,7 @@ Vector3d RectangularAreaLight::samplePoint(const Vector2d& sample) const {
 }
 
 bool RectangularAreaLight::containsPoint(const Vector3d& point) const {
-  const Vector3d local = point - center();
-  const double uu = edgeU() * edgeU();
-  const double uv = edgeU() * edgeV();
-  const double vv = edgeV() * edgeV();
-  const double lu = local * edgeU();
-  const double lv = local * edgeV();
-  const double determinant = uu * vv - uv * uv;
-  if (std::abs(determinant) <= tolerance) {
-    return false;
-  }
-
-  const double u = (vv * lu - uv * lv) / determinant;
-  const double v = (uu * lv - uv * lu) / determinant;
-  return u >= -0.5 - tolerance && u <= 0.5 + tolerance && v >= -0.5 - tolerance &&
-         v <= 0.5 + tolerance;
+  return rectangularContainsPoint(center(), edgeU(), edgeV(), point, tolerance);
 }
 
 double RectangularAreaLight::surfaceCosine(const Vector3d& directionToLight) const {

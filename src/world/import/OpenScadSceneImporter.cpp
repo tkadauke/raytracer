@@ -5,6 +5,7 @@
 #include "core/formats/stl/StlFile.h"
 #include "core/geometry/Mesh.h"
 #include "core/math/Angle.h"
+#include "core/math/Constants.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/primitives/MeshPrimitive.h"
 #include "render/textures/ConstantColorTexture.h"
@@ -1281,8 +1282,7 @@ namespace world {
     if (!transformable)
       return;
 
-    const double halfPi = std::acos(-1.0) / 2.0;
-    transformable->setRotation(transformable->rotation() + Vector3d(halfPi, 0.0, 0.0));
+    transformable->setRotation(transformable->rotation() + Vector3d(PI_OVER_2, 0.0, 0.0));
     transformable->setMetadataValue("coordinateConversion", "openscad_z_up_to_product_view_up");
   }
 }

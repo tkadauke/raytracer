@@ -13,26 +13,6 @@ namespace render {
   namespace {
     constexpr double tolerance = 1e-9;
 
-    bool areaLightContainsPoint(const GpuTracingLightRecord& light, const Vector3d& point) {
-      const Vector3d edgeU = Vector3d(light.u);
-      const Vector3d edgeV = Vector3d(light.v);
-      const Vector3d local = point - Vector3d(light.positionOrDirection);
-      const double uu = edgeU * edgeU;
-      const double uv = edgeU * edgeV;
-      const double vv = edgeV * edgeV;
-      const double lu = local * edgeU;
-      const double lv = local * edgeV;
-      const double determinant = uu * vv - uv * uv;
-      if (std::abs(determinant) <= tolerance) {
-        return false;
-      }
-
-      const double u = (vv * lu - uv * lv) / determinant;
-      const double v = (uu * lv - uv * lu) / determinant;
-      return u >= -0.5 - tolerance && u <= 0.5 + tolerance && v >= -0.5 - tolerance &&
-             v <= 0.5 + tolerance;
-    }
-
     GpuCompiledLightSample invalidSample(GpuCompiledLightSampleStatus status,
                                          const Vector2d& lightSample = Vector2d(0.5, 0.5)) {
       GpuCompiledLightSample sample;
@@ -183,7 +163,7 @@ namespace render {
     }
 
     const Vector3d lightPoint = point + direction * t;
-    if (!areaLightContainsPoint(light, lightPoint)) {
+    if (!rectangularLightContainsPoint(light, lightPoint, tolerance)) {
       return 0.0;
     }
 

@@ -9,7 +9,7 @@ using namespace render;
 
 Colord GlossySpecular::calculate(const HitPoint& hitPoint, const Vector3d& out,
                                  const Vector3d& in) const {
-  Vector3d lobeDirection = (-in).reflect(hitPoint.normal());
+  Vector3d lobeDirection = mirrorReflectionDirection(hitPoint.normal(), in);
   double lobeDotOut = lobeDirection * out;
   if (lobeDotOut > 0.0)
     return specularColor() * specularCoefficient() * pow(lobeDotOut, exponent());

@@ -15,8 +15,7 @@ namespace {
   // split axis — sorting by centroid (not by AABB extent) keeps
   // straddling primitives from biasing the partition toward one side.
   Vector3d centroidOf(const Primitive& p) {
-    const auto& b = p.boundingBox();
-    return (b.min() + b.max()) * 0.5;
+    return p.boundingBox().center();
   }
 }
 

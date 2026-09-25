@@ -4,6 +4,7 @@
 #include "core/geometry/Mesh.h"
 #include "core/formats/gltf/GltfReader.h"
 #include "core/json/JsonValue.h"
+#include "core/math/Constants.h"
 #include "core/math/Matrix.h"
 #include "core/math/Quaternion.h"
 #include "render/materials/MatteMaterial.h"
@@ -1032,8 +1033,7 @@ namespace world {
       return;
     }
 
-    const double pi = std::acos(-1.0);
-    transformable->setRotation(transformable->rotation() + Vector3d(0.0, 0.0, pi));
+    transformable->setRotation(transformable->rotation() + Vector3d(0.0, 0.0, PI));
     transformable->setMetadataValue("coordinateConversion", "gltf_y_up_to_product_view_up");
   }
 

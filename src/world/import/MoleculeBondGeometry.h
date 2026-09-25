@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/math/Constants.h"
 #include "core/math/Quaternion.h"
 
 #include <algorithm>
@@ -23,7 +24,7 @@ namespace world {
     if (dot > 1.0 - 1e-9) {
       rotation = Matrix4d();
     } else if (dot < -1.0 + 1e-9) {
-      rotation = Quaterniond::fromAxisAngle(Vector3d(1, 0, 0), std::acos(-1.0)).toMatrix4();
+      rotation = Quaterniond::fromAxisAngle(Vector3d(1, 0, 0), PI).toMatrix4();
     } else {
       const auto axis = (up ^ direction).normalized();
       rotation = Quaterniond::fromAxisAngle(axis, std::acos(dot)).toMatrix4();
