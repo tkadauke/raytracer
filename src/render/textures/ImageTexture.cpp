@@ -44,6 +44,12 @@ std::shared_ptr<ImageTexture> ImageTexture::fromFile(TextureMapping2D* mapping,
   if (image.isNull())
     throw std::runtime_error("Unable to load image texture: " + path);
 
+  const std::vector<Colord> pixels = decodePixels(image);
+  return std::make_shared<ImageTexture>(mapping, image.width(), image.height(), pixels,
+                                        filter, wrap);
+}
+
+std::vector<Colord> ImageTexture::decodePixels(const QImage& image) {
   const QImage converted = image.convertToFormat(QImage::Format_RGBA8888);
   std::vector<Colord> pixels;
   pixels.reserve(static_cast<std::size_t>(converted.width() * converted.height()));
@@ -53,8 +59,7 @@ std::shared_ptr<ImageTexture> ImageTexture::fromFile(TextureMapping2D* mapping,
       pixels.emplace_back(color.redF(), color.greenF(), color.blueF());
     }
   }
-  return std::make_shared<ImageTexture>(mapping, converted.width(), converted.height(), pixels,
-                                        filter, wrap);
+  return pixels;
 }
 
 int ImageTexture::width(int level) const {
