@@ -97,12 +97,7 @@ namespace world {
       if (length <= std::numeric_limits<double>::epsilon())
         return;
 
-      auto cylinder = std::make_unique<Cylinder>();
-      cylinder->setName(
-        QStringLiteral("Bond %1-%2").arg(first.serialNumber).arg(second.serialNumber));
-      cylinder->setRadius(options.bondRadius);
-      cylinder->setHeight(length);
-      cylinder->setMatrix(bondTransform(first.position, second.position));
+      auto cylinder = makeBondCylinder(first, second, options.bondRadius);
       cylinder->setGenerated(true);
       cylinder->setMetadataValue(QStringLiteral("moleculeBondInferred"), bond.inferred);
 

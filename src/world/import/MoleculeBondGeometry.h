@@ -1,10 +1,15 @@
 #pragma once
 
+#include "core/formats/molecule/Molecule.h"
 #include "core/math/Quaternion.h"
+#include "world/objects/Cylinder.h"
+
+#include <QString>
 
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <memory>
 
 namespace world {
 
@@ -30,6 +35,17 @@ namespace world {
     }
 
     return Matrix4d::translate(center) * rotation;
+  }
+
+  inline std::unique_ptr<Cylinder>
+  makeBondCylinder(const molecule::Atom& first, const molecule::Atom& second, double bondRadius) {
+    auto cylinder = std::make_unique<Cylinder>();
+    cylinder->setName(
+      QStringLiteral("Bond %1-%2").arg(first.serialNumber).arg(second.serialNumber));
+    cylinder->setRadius(bondRadius);
+    cylinder->setHeight(first.position.distanceTo(second.position));
+    cylinder->setMatrix(bondTransform(first.position, second.position));
+    return cylinder;
   }
 
 }
