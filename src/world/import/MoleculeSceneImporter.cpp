@@ -505,12 +505,7 @@ namespace world {
                                           options.representation);
             }
 
-            auto* cylinder = new Cylinder;
-            cylinder->setName(
-              QStringLiteral("Bond %1-%2").arg(first.serialNumber).arg(second.serialNumber));
-            cylinder->setRadius(renderOptions.bondRadius);
-            cylinder->setHeight(length);
-            cylinder->setMatrix(bondTransform(first.position, second.position));
+            auto* cylinder = makeBondCylinder(first, second, renderOptions.bondRadius).release();
             auto material = makeMaterial(colorForBond(first, options.colorScheme, chainOrdinals));
             cylinder->setMaterial(material.get());
             cylinder->addChild(std::move(material));

@@ -3,6 +3,7 @@
 #include "core/Exception.h"
 #include "core/formats/ldraw/LDrawColorTable.h"
 #include "core/json/JsonValue.h"
+#include "core/util/QStringUtil.h"
 #include "core/formats/ldraw/LDrawFileResolver.h"
 #include "core/formats/ldraw/LDrawGeometryCompiler.h"
 #include "core/formats/ldraw/LDrawSearchPaths.h"
@@ -83,9 +84,7 @@ namespace {
 
   world::imports::LDrawImportOptions::CoordinateConversion
   coordinateConversionFromString(QString value) {
-    value = value.trimmed().toLower();
-    value.remove('_');
-    value.remove('-');
+    value = normalizeOptionToken(value);
     if (value == "ldrawtoraytracer" || value == "raytracer" || value == "yup")
       return world::imports::LDrawImportOptions::CoordinateConversion::LDrawToRaytracer;
     return world::imports::LDrawImportOptions::CoordinateConversion::None;
