@@ -19,3 +19,12 @@ inline QString dashIfEmpty(const QString& value) {
 inline std::invalid_argument invalidArgument(const QString& message) {
   return std::invalid_argument(message.toStdString());
 }
+
+inline QString normalizeOptionToken(QString value, bool stripSpaces = false) {
+  value = value.trimmed().toLower();
+  value.remove('_');
+  value.remove('-');
+  if (stripSpaces)
+    value.remove(' ');
+  return value;
+}

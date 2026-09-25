@@ -80,11 +80,7 @@ namespace {
   };
 
   QString normalizedOption(QString value) {
-    value = value.trimmed().toLower();
-    value.remove('_');
-    value.remove('-');
-    value.remove(' ');
-    return value;
+    return normalizeOptionToken(value, /*stripSpaces=*/true);
   }
 
   bool optionBool(const world::ImportOptions& options, const QString& name, bool fallback) {
