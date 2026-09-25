@@ -20,6 +20,7 @@
 using namespace render;
 
 namespace {
+  using render::detail::cameraBasisForMatrix;
   using render::detail::checkedU32;
   using render::detail::checkGpuPathCount;
   using render::detail::concentricMapToDisc;
@@ -189,9 +190,7 @@ ThinLensCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sample
 
   checkGpuPathCount(actual, plane->sampler()->numSamples());
 
-  const Vector3d forward = motion->matrixAtOpen.transformDirection(Vector3d(0, 0, 1)).normalized();
-  const Vector3d right = motion->matrixAtOpen.transformDirection(Vector3d(1, 0, 0));
-  const Vector3d up = motion->matrixAtOpen.transformDirection(Vector3d(0, 1, 0));
+  const detail::CameraBasis basis = cameraBasisForMatrix(motion->matrixAtOpen);
 
   auto descriptorPlane = plane->clone();
   descriptorPlane->setup(motion->planeMatrix(), plane->window());
@@ -205,9 +204,9 @@ ThinLensCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sample
   descriptor.rectilinear.motionTargetDelta = gpuFloat4(motion->targetDelta, 0.0f);
   descriptor.rectilinear.motionParameters = gpuFloat4(m_distance, m_apertureRadius);
   fillGpuDescriptorPlane(descriptor.rectilinear, *descriptorPlane);
-  descriptor.rectilinear.lensRight = gpuFloat4(right * m_apertureRadius, 0.0f);
-  descriptor.rectilinear.lensUp = gpuFloat4(up * m_apertureRadius, 0.0f);
-  descriptor.rectilinear.forward = gpuFloat4(forward, 0.0f);
+  descriptor.rectilinear.lensRight = gpuFloat4(basis.right * m_apertureRadius, 0.0f);
+  descriptor.rectilinear.lensUp = gpuFloat4(basis.up * m_apertureRadius, 0.0f);
+  descriptor.rectilinear.forward = gpuFloat4(basis.forward, 0.0f);
   descriptor.rectilinear.lensParameters = gpuFloat4(m_distance + m_focalDistance, 0.0);
   fillGpuDescriptorViewport(descriptor.rectilinear, rect, actual, plane->sampler()->numSamples(),
                             sampleSeed);

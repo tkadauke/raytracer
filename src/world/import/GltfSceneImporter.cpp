@@ -24,7 +24,6 @@
 #include "world/objects/Scene.h"
 #include "world/objects/Transformable.h"
 
-#include <QColor>
 #include <QFileInfo>
 #include <QImage>
 #include <QJsonArray>
@@ -268,17 +267,9 @@ namespace world {
       if (decoded.isNull())
         return nullptr;
 
-      const QImage converted = decoded.convertToFormat(QImage::Format_RGBA8888);
-      std::vector<Colord> pixels;
-      pixels.reserve(static_cast<std::size_t>(converted.width() * converted.height()));
-      for (int y = 0; y != converted.height(); ++y) {
-        for (int x = 0; x != converted.width(); ++x) {
-          const QColor color = QColor::fromRgba(converted.pixel(x, y));
-          pixels.emplace_back(color.redF(), color.greenF(), color.blueF());
-        }
-      }
-      return std::make_shared<render::ImageTexture>(new render::UVMapping2D, converted.width(),
-                                                    converted.height(), pixels, filter, wrap);
+      const std::vector<Colord> pixels = render::ImageTexture::decodePixels(decoded);
+      return std::make_shared<render::ImageTexture>(new render::UVMapping2D, decoded.width(),
+                                                    decoded.height(), pixels, filter, wrap);
     }
 
     std::shared_ptr<render::Texturec> baseColorTextureFor(const core::gltf::Asset& asset,
