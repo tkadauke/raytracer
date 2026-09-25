@@ -69,6 +69,21 @@ namespace render::detail {
     return matrix.transformPoint(Vector3d(0.0, 0.0, -distance));
   }
 
+  // A camera matrix's local forward/right/up axes in world space, as used by
+  // cameras that need the full orthonormal basis rather than just one axis
+  // (lens-disc offsets, tilt/shift rotation, GPU descriptor packing).
+  struct CameraBasis {
+    Vector3d forward;
+    Vector3d right;
+    Vector3d up;
+  };
+
+  inline CameraBasis cameraBasisForMatrix(const Matrix4d& matrix) {
+    return CameraBasis{matrix.transformDirection(Vector3d(0.0, 0.0, 1.0)).normalized(),
+                       matrix.transformDirection(Vector3d(1.0, 0.0, 0.0)),
+                       matrix.transformDirection(Vector3d(0.0, 1.0, 0.0))};
+  }
+
   // Fill the topLeft/right/down rectilinear plane basis from a view plane's
   // pixel grid. Used by all cameras that project through a flat view plane.
   inline void fillGpuDescriptorPlane(GpuRectilinearPrimaryPathDescriptor& rec,

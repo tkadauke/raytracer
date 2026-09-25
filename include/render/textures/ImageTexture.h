@@ -8,6 +8,8 @@
 #include <string>
 #include <vector>
 
+class QImage;
+
 namespace render {
   class TextureMapping2D;
 
@@ -45,6 +47,13 @@ namespace render {
     fromFile(TextureMapping2D* mapping, const std::string& path,
              ImageTextureFilter filter = ImageTextureFilter::Nearest,
              ImageTextureWrap wrap = ImageTextureWrap::Repeat);
+
+    /**
+      * Decodes an arbitrary QImage into a flat row-major Colord buffer,
+      * converting to RGBA8888 first so callers don't need to reason about
+      * the image's original pixel format.
+      */
+    static std::vector<Colord> decodePixels(const QImage& image);
 
     int width(int level = 0) const;
     int height(int level = 0) const;
