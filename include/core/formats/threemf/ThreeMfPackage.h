@@ -36,6 +36,15 @@ namespace core::threemf {
     [[nodiscard]] QByteArray part(const QString& partName) const;
     [[nodiscard]] QStringList partNames() const;
 
+    /**
+      * @returns the part name of this package's 3D model entry, resolved via
+      *   the OPC relationship pointing at "/3dmodel", falling back to the
+      *   conventional "3D/3dmodel.model" path, and then to any part ending
+      *   in ".model".
+      * @throws ThreeMfPackageError if no model part can be found.
+      */
+    [[nodiscard]] QString modelPartName() const;
+
   private:
     std::map<QString, QByteArray> m_parts;
   };
