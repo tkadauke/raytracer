@@ -3,6 +3,7 @@
 #include "core/formats/BinaryRead.h"
 
 #include <QFile>
+#include <QXmlStreamReader>
 
 #include <algorithm>
 #include <cstdint>
@@ -146,6 +147,37 @@ namespace core::threemf {
     for (const auto& [name, data] : m_parts)
       names.push_back(name);
     return names;
+  }
+
+  QString ThreeMfPackage::modelPartName() const {
+    if (contains("_rels/.rels")) {
+      QXmlStreamReader xml(part("_rels/.rels"));
+      while (xml.readNextStartElement()) {
+        if (xml.name() == QStringLiteral("Relationships")) {
+          while (xml.readNextStartElement()) {
+            if (xml.name() == QStringLiteral("Relationship")) {
+              const QString type = xml.attributes().value("Type").toString();
+              const QString target = xml.attributes().value("Target").toString();
+              if (type.contains("/3dmodel") && !target.isEmpty())
+                return normalizedPartName(target);
+            }
+            xml.skipCurrentElement();
+          }
+        } else {
+          xml.skipCurrentElement();
+        }
+      }
+    }
+
+    if (contains("3D/3dmodel.model"))
+      return "3D/3dmodel.model";
+
+    for (const QString& name : partNames()) {
+      if (name.endsWith(".model", Qt::CaseInsensitive))
+        return name;
+    }
+
+    throw ThreeMfPackageError("3MF package does not contain a model part");
   }
 
 }

@@ -1,6 +1,7 @@
 #include "world/import/AdditiveManufacturingSceneImporter.h"
 
 #include "core/formats/BinaryRead.h"
+#include "core/formats/threemf/ThreeMfPackage.h"
 #include "core/geometry/Mesh.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/primitives/MeshPrimitive.h"
@@ -25,12 +26,8 @@
 #include <vector>
 
 namespace {
-  using core::formats::readUint16Le;
   using core::formats::readUint32Le;
   using core::formats::readVector3fLe;
-
-  constexpr std::uint32_t ZipLocalFileHeaderSignature = 0x04034b50;
-  constexpr std::uint16_t ZipStored = 0;
 
   struct MeshDocument {
     Mesh mesh;
@@ -113,41 +110,13 @@ namespace {
     return mesh;
   }
 
-  QByteArray firstStored3MfModel(const QByteArray& package) {
-    int offset = 0;
-    while (offset + 30 <= package.size()) {
-      if (readUint32Le(package, offset) != ZipLocalFileHeaderSignature)
-        break;
-
-      const std::uint16_t method = readUint16Le(package, offset + 8);
-      const std::uint32_t compressedSize = readUint32Le(package, offset + 18);
-      const std::uint16_t nameLength = readUint16Le(package, offset + 26);
-      const std::uint16_t extraLength = readUint16Le(package, offset + 28);
-      const int nameOffset = offset + 30;
-      const int dataOffset = nameOffset + nameLength + extraLength;
-      const int nextOffset = dataOffset + static_cast<int>(compressedSize);
-      if (nameOffset + nameLength > package.size() || dataOffset > package.size() ||
-          nextOffset > package.size()) {
-        throw std::runtime_error("3MF package has a truncated local file header");
-      }
-
-      const QString name =
-        QString::fromUtf8(package.constData() + nameOffset, static_cast<int>(nameLength));
-      if (name.endsWith(QStringLiteral(".model"), Qt::CaseInsensitive)) {
-        if (method != ZipStored) {
-          throw std::runtime_error("compressed 3MF package entries are not supported");
-        }
-        return package.mid(dataOffset, static_cast<int>(compressedSize));
-      }
-
-      offset = nextOffset;
+  MeshDocument parse3Mf(const QString& filename, const QByteArray& bytes) {
+    QByteArray xml = bytes;
+    if (bytes.startsWith("PK\003\004")) {
+      const auto package = core::threemf::ThreeMfPackage::read(filename);
+      xml = package.part(package.modelPartName());
     }
 
-    throw std::runtime_error("3MF package did not contain a model entry");
-  }
-
-  MeshDocument parse3Mf(const QByteArray& bytes) {
-    const QByteArray xml = bytes.startsWith("PK\003\004") ? firstStored3MfModel(bytes) : bytes;
     MeshDocument document;
     document.mesh = parse3MfModelXml(xml);
     document.formatName = QStringLiteral("3MF model");
@@ -275,7 +244,7 @@ namespace {
     if (extension == QStringLiteral("stl"))
       return parseStl(bytes);
     if (extension == QStringLiteral("3mf"))
-      return parse3Mf(bytes);
+      return parse3Mf(filename, bytes);
     throw std::runtime_error("unsupported additive manufacturing extension");
   }
 }
