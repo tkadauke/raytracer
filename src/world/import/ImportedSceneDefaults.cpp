@@ -1,5 +1,6 @@
 #include "world/import/ImportedSceneDefaults.h"
 
+#include "core/util/QColorUtil.h"
 #include "world/objects/DirectionalLight.h"
 #include "world/objects/Light.h"
 #include "world/objects/PinholeCamera.h"
@@ -151,7 +152,7 @@ namespace world {
         QString("%1 must be a color name or hex color").arg(optionName).toStdString());
     }
 
-    return Colord(color.redF(), color.greenF(), color.blueF());
+    return qColorToColord(color);
   }
 
   bool ImportedSceneDefaults::sceneHasLight(const Scene& scene) const {

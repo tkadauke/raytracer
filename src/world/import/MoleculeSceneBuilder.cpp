@@ -35,18 +35,6 @@ namespace world {
       return styles;
     }
 
-    std::unique_ptr<PhongMaterial> makeMaterial(Element* parent, const Colord& color) {
-      auto material = std::make_unique<PhongMaterial>(parent);
-      material->setName(QStringLiteral("Material"));
-      material->setSpecularCoefficient(0.25);
-      material->setExponent(24);
-
-      auto texture = new ConstantColorTexture(material.get());
-      texture->setColor(color);
-      material->setDiffuseTexture(texture);
-      return material;
-    }
-
     QString modelName(int modelId) {
       return QStringLiteral("Model %1").arg(modelId);
     }
@@ -84,7 +72,7 @@ namespace world {
       sphere->setMetadataValue(QStringLiteral("moleculeElement"),
                                QString::fromStdString(normalizedElement(atom.element)));
 
-      auto material = makeMaterial(sphere.get(), style.color);
+      auto material = makeMoleculeMaterial(style.color, sphere.get());
       sphere->setMaterial(material.release());
       residueGroup.addChild(std::move(sphere));
     }
@@ -101,10 +89,29 @@ namespace world {
       cylinder->setGenerated(true);
       cylinder->setMetadataValue(QStringLiteral("moleculeBondInferred"), bond.inferred);
 
-      auto material = makeMaterial(cylinder.get(), Colord(0.75, 0.75, 0.75));
+      auto material = makeMoleculeMaterial(Colord(0.75, 0.75, 0.75), cylinder.get());
       cylinder->setMaterial(material.release());
       bondGroup.addChild(std::move(cylinder));
     }
+  }
+
+  std::unique_ptr<PhongMaterial> makeMoleculeMaterial(const Colord& color, Element* parent) {
+    auto material = std::make_unique<PhongMaterial>(parent);
+    material->setName(QStringLiteral("Material"));
+    material->setSpecularCoefficient(0.25);
+    material->setExponent(24);
+
+    if (parent) {
+      auto* texture = new ConstantColorTexture(material.get());
+      texture->setColor(color);
+      material->setDiffuseTexture(texture);
+    } else {
+      auto* texture = new ConstantColorTexture;
+      texture->setColor(color);
+      material->setDiffuseTexture(texture);
+      material->addChild(texture);
+    }
+    return material;
   }
 
   MoleculeElementStyle moleculeElementStyle(const std::string& element) {
