@@ -1,5 +1,7 @@
 #include "widgets/world/ColorParameterWidget.h"
 
+#include "core/util/QColorUtil.h"
+
 #include <QColorDialog>
 #include <QDoubleSpinBox>
 #include <QHBoxLayout>
@@ -81,14 +83,6 @@ void ColorParameterWidget::selectorClicked() {
     return;
   setColor(qColorToColord(newColor));
   parameterChanged();
-}
-
-Colord ColorParameterWidget::qColorToColord(const QColor& color) {
-  return Colord::fromRGB(color.red(), color.green(), color.blue());
-}
-
-QColor ColorParameterWidget::colordToQColor(const Colord& color) {
-  return QColor(color.rInt(), color.gInt(), color.bInt());
 }
 
 const QVariant ColorParameterWidget::value() const {

@@ -7,7 +7,6 @@
 #include "MoleculeNormalization.h"
 #include "world/import/MoleculeSceneBuilder.h"
 #include "world/import/SceneImporterRegistry.h"
-#include "world/objects/ConstantColorTexture.h"
 #include "world/objects/Curve.h"
 #include "world/objects/Cylinder.h"
 #include "world/objects/Element.h"
@@ -117,19 +116,6 @@ namespace world {
         return chainPalette()[index % chainPalette().size()];
       }
       return Colord(0.70, 0.70, 0.74);
-    }
-
-    std::unique_ptr<PhongMaterial> makeMaterial(const Colord& color) {
-      auto material = std::make_unique<PhongMaterial>();
-      material->setName(QStringLiteral("Material"));
-      material->setSpecularCoefficient(0.25);
-      material->setExponent(24);
-
-      auto texture = new ConstantColorTexture;
-      texture->setColor(color);
-      material->setDiffuseTexture(texture);
-      material->addChild(texture);
-      return material;
     }
 
     const molecule::Atom* alphaCarbonFor(const molecule::Residue& residue,
@@ -434,8 +420,8 @@ namespace world {
                                     : elementStyle.displayRadius * renderOptions.atomRadiusScale;
             atomSphere->setRadius(radius);
             atomSphere->setPosition(atom.position);
-            auto material =
-              makeMaterial(colorForAtom(atom, category, options.colorScheme, chainOrdinals));
+            auto material = makeMoleculeMaterial(
+              colorForAtom(atom, category, options.colorScheme, chainOrdinals));
             atomSphere->setMaterial(material.get());
             atomSphere->addChild(std::move(material));
             atomSphere->setMetadataValue(GroupMetadata::sourceFormatKey(),
@@ -503,7 +489,8 @@ namespace world {
             }
 
             auto* cylinder = makeBondCylinder(first, second, renderOptions.bondRadius).release();
-            auto material = makeMaterial(colorForBond(first, options.colorScheme, chainOrdinals));
+            auto material =
+              makeMoleculeMaterial(colorForBond(first, options.colorScheme, chainOrdinals));
             cylinder->setMaterial(material.get());
             cylinder->addChild(std::move(material));
             cylinder->setMetadataValue(GroupMetadata::sourceFormatKey(),
