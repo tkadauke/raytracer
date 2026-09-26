@@ -94,17 +94,15 @@ Rayd ThinLensCamera::rayForPixelWithLens(double x, double y, double lensU, doubl
   // m_focalDistance). Project the pinhole ray onto the forward axis to
   // get t — that's how far along the ray we have to travel to reach
   // the focal plane.
-  Vector3d forward = cameraMatrix.transformDirection(Vector3d(0, 0, 1));
-  double t = (m_distance + m_focalDistance) / (pinholeDir * forward);
+  const detail::CameraBasis basis = cameraBasisForMatrix(cameraMatrix);
+  double t = (m_distance + m_focalDistance) / (pinholeDir * basis.forward);
   Vector3d focalPoint = eyeOrigin + pinholeDir * t;
 
   // Shift the ray origin along the lens disc; the ray still has to pass
   // through focalPoint so that focal-distance geometry stays sharp. The
   // displaced origin lives on a disc of radius apertureRadius oriented
   // along the camera's local x/y plane.
-  Vector3d right = cameraMatrix.transformDirection(Vector3d(1, 0, 0));
-  Vector3d up = cameraMatrix.transformDirection(Vector3d(0, 1, 0));
-  Vector3d lensOffset = (right * lensU + up * lensV) * m_apertureRadius;
+  Vector3d lensOffset = (basis.right * lensU + basis.up * lensV) * m_apertureRadius;
   Vector3d lensOrigin = eyeOrigin + lensOffset;
 
   return Rayd(lensOrigin, (focalPoint - lensOrigin).normalized());
@@ -159,12 +157,10 @@ std::unique_ptr<Camera::PrimaryRayGenerator> ThinLensCamera::primaryRayGenerator
     double m_apertureRadius;
   };
 
-  const Matrix4d& cameraMatrix = matrix();
-  return std::make_unique<ThinLensPrimaryRayGenerator>(
-    viewPlane(), eyeOrigin(), cameraMatrix.transformDirection(Vector3d(0, 0, 1)),
-    cameraMatrix.transformDirection(Vector3d(1, 0, 0)),
-    cameraMatrix.transformDirection(Vector3d(0, 1, 0)), m_distance, m_focalDistance,
-    m_apertureRadius);
+  const detail::CameraBasis basis = cameraBasisForMatrix(matrix());
+  return std::make_unique<ThinLensPrimaryRayGenerator>(viewPlane(), eyeOrigin(), basis.forward,
+                                                       basis.right, basis.up, m_distance,
+                                                       m_focalDistance, m_apertureRadius);
 }
 
 std::optional<GpuPrimaryPathDescriptor>
