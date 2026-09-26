@@ -10,6 +10,7 @@
 #include "world/objects/ConstantColorTexture.h"
 #include "world/objects/Curve.h"
 #include "world/objects/Cylinder.h"
+#include "world/objects/Element.h"
 #include "world/objects/Group.h"
 #include "world/objects/PhongMaterial.h"
 #include "world/objects/Sphere.h"
@@ -154,16 +155,11 @@ namespace world {
       return provenance;
     }
 
-    void applyCommonGroupMetadata(Group& group, const QString& sourceId, const QString& kind) {
-      group.setMetadataValue(GroupMetadata::sourceFormatKey(), QStringLiteral("molecule"));
-      group.setMetadataValue(GroupMetadata::sourceIdKey(), sourceId);
-      group.setMetadataValue(QStringLiteral("molecule.kind"), kind);
-    }
-
-    void applyCommonCurveMetadata(Curve& curve, const QString& sourceId, const QString& kind) {
-      curve.setMetadataValue(GroupMetadata::sourceFormatKey(), QStringLiteral("molecule"));
-      curve.setMetadataValue(GroupMetadata::sourceIdKey(), sourceId);
-      curve.setMetadataValue(QStringLiteral("molecule.kind"), kind);
+    void applyCommonMoleculeMetadata(Element& element, const QString& sourceId,
+                                     const QString& kind) {
+      element.setMetadataValue(GroupMetadata::sourceFormatKey(), QStringLiteral("molecule"));
+      element.setMetadataValue(GroupMetadata::sourceIdKey(), sourceId);
+      element.setMetadataValue(QStringLiteral("molecule.kind"), kind);
     }
 
     ImportDiagnostic convertDiagnostic(const molecule::Diagnostic& diagnostic,
@@ -320,7 +316,7 @@ namespace world {
       curve->setWidth(backboneMode == QStringLiteral("overlay") ? 0.0 : backboneWidth);
       curve->setTessellationMode(backboneMode == QStringLiteral("tube") ? QStringLiteral("tube")
                                                                         : QStringLiteral("ribbon"));
-      applyCommonCurveMetadata(*curve, sourceIdForBackbone(chain), QStringLiteral("backbone"));
+      applyCommonMoleculeMetadata(*curve, sourceIdForBackbone(chain), QStringLiteral("backbone"));
       curve->setMetadataValue(QStringLiteral("modelId"), chain.modelId);
       curve->setMetadataValue(QStringLiteral("chainId"), qstr(chain.id));
       curve->setMetadataValue(QStringLiteral("molecule.representation"), backboneMode);
@@ -352,8 +348,9 @@ namespace world {
     const QString moleculeId = qstr(molecule.metadata().id);
     root->setName(qstr(molecule.metadata().title).isEmpty() ? QStringLiteral("Molecule")
                                                             : qstr(molecule.metadata().title));
-    applyCommonGroupMetadata(*root, moleculeId.isEmpty() ? QStringLiteral("molecule") : moleculeId,
-                             QStringLiteral("molecule"));
+    applyCommonMoleculeMetadata(*root,
+                                moleculeId.isEmpty() ? QStringLiteral("molecule") : moleculeId,
+                                QStringLiteral("molecule"));
     if (!moleculeId.isEmpty())
       root->setMetadataValue(QStringLiteral("molecule.id"), moleculeId);
     if (!molecule.metadata().title.empty())
@@ -371,7 +368,7 @@ namespace world {
       auto* modelGroup = new Group;
       modelGroup->setName(QString("Model %1").arg(model.id));
       modelGroup->setLabel(modelGroup->name());
-      applyCommonGroupMetadata(*modelGroup, sourceIdForModel(model.id), QStringLiteral("model"));
+      applyCommonMoleculeMetadata(*modelGroup, sourceIdForModel(model.id), QStringLiteral("model"));
       modelGroup->setMetadataValue(QStringLiteral("modelId"), model.id);
       setImportProvenance(*modelGroup, provenanceFor(source, sourceIdForModel(model.id),
                                                      QString("MODEL %1").arg(model.id),
@@ -384,7 +381,7 @@ namespace world {
         chainGroup->setName(qstr(chain.id).isEmpty() ? QString("Chain <blank>")
                                                      : QString("Chain %1").arg(qstr(chain.id)));
         chainGroup->setLabel(chainGroup->name());
-        applyCommonGroupMetadata(*chainGroup, sourceIdForChain(chain), QStringLiteral("chain"));
+        applyCommonMoleculeMetadata(*chainGroup, sourceIdForChain(chain), QStringLiteral("chain"));
         chainGroup->setMetadataValue(QStringLiteral("modelId"), chain.modelId);
         chainGroup->setMetadataValue(QStringLiteral("chainId"), qstr(chain.id));
         setImportProvenance(*chainGroup, provenanceFor(source, sourceIdForChain(chain),
@@ -405,8 +402,8 @@ namespace world {
           residueGroup->setName(
             QString("%1 %2").arg(qstr(residue.name)).arg(residue.sequenceNumber));
           residueGroup->setLabel(residueGroup->name());
-          applyCommonGroupMetadata(*residueGroup, sourceIdForResidue(residue),
-                                   QStringLiteral("residue"));
+          applyCommonMoleculeMetadata(*residueGroup, sourceIdForResidue(residue),
+                                      QStringLiteral("residue"));
           const QString category = residueCategory(residue, molecule);
           residueGroup->setMetadataValue(QStringLiteral("modelId"), residue.modelId);
           residueGroup->setMetadataValue(QStringLiteral("chainId"), qstr(residue.chainId));
@@ -496,9 +493,9 @@ namespace world {
               bondGroup = std::make_unique<Group>();
               bondGroup->setName(QStringLiteral("Bonds"));
               bondGroup->setLabel(bondGroup->name());
-              applyCommonGroupMetadata(*bondGroup,
-                                       sourceIdForChain(chain) + QStringLiteral("/bonds"),
-                                       QStringLiteral("bonds"));
+              applyCommonMoleculeMetadata(*bondGroup,
+                                          sourceIdForChain(chain) + QStringLiteral("/bonds"),
+                                          QStringLiteral("bonds"));
               bondGroup->setMetadataValue(QStringLiteral("modelId"), model.id);
               bondGroup->setMetadataValue(QStringLiteral("chainId"), qstr(chain.id));
               bondGroup->setMetadataValue(QStringLiteral("molecule.representation"),

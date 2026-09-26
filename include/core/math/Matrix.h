@@ -1420,6 +1420,24 @@ public:
   }
 
   /**
+    * @returns a matrix that represents a uniform scaling by factor, embedded
+    *   as the top-left 3x3 block of an otherwise identity 4x4 matrix.
+    */
+  [[nodiscard]] inline static constexpr Matrix4<T> scale(const T& factor) noexcept {
+    return Matrix4<T>(Matrix3<T>::scale(factor));
+  }
+
+  /**
+    * @returns a matrix that represents a scaling of the x axis with xFactor,
+    *   the y axis with yFactor, and the z axis with zFactor, embedded as the
+    *   top-left 3x3 block of an otherwise identity 4x4 matrix.
+    */
+  [[nodiscard]] inline static constexpr Matrix4<T> scale(const T& xFactor, const T& yFactor,
+                                                         const T& zFactor) noexcept {
+    return Matrix4<T>(Matrix3<T>::scale(xFactor, yFactor, zFactor));
+  }
+
+  /**
     * @returns the translation vector \f$(x,y,z)\f$ extracted from the matrix:
     *
     * \f[\left(\begin{array}{cccc}

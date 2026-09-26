@@ -82,7 +82,7 @@ namespace world {
         Matrix4d::translate(node.translation[0], node.translation[1], node.translation[2]);
       const Quaterniond rotation(node.rotation[3], node.rotation[0], node.rotation[1],
                                  node.rotation[2]);
-      const Matrix4d scale = Matrix4d(Matrix3d::scale(node.scale[0], node.scale[1], node.scale[2]));
+      const Matrix4d scale = Matrix4d::scale(node.scale[0], node.scale[1], node.scale[2]);
       return translation * rotation.normalized().toMatrix4() * scale;
     }
 

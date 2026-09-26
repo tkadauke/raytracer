@@ -72,7 +72,7 @@ namespace world {
     }
 
     Matrix4d unitScaleMatrix(double scale) {
-      return Matrix4d(Matrix3d::scale(scale, scale, scale));
+      return Matrix4d::scale(scale);
     }
 
     std::shared_ptr<render::Primitive> primitiveFor(const core::threemf::ObjectMesh& object,
