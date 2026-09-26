@@ -12,7 +12,6 @@
 
 #include <QFileInfo>
 #include <QJsonObject>
-#include <QXmlStreamReader>
 
 #include <memory>
 #include <sstream>
@@ -20,37 +19,6 @@
 
 namespace world {
   namespace {
-    QString modelPartName(const core::threemf::ThreeMfPackage& package) {
-      if (package.contains("_rels/.rels")) {
-        QXmlStreamReader xml(package.part("_rels/.rels"));
-        while (xml.readNextStartElement()) {
-          if (xml.name() == QStringLiteral("Relationships")) {
-            while (xml.readNextStartElement()) {
-              if (xml.name() == QStringLiteral("Relationship")) {
-                const QString type = xml.attributes().value("Type").toString();
-                const QString target = xml.attributes().value("Target").toString();
-                if (type.contains("/3dmodel") && !target.isEmpty())
-                  return core::threemf::normalizedPartName(target);
-              }
-              xml.skipCurrentElement();
-            }
-          } else {
-            xml.skipCurrentElement();
-          }
-        }
-      }
-
-      if (package.contains("3D/3dmodel.model"))
-        return "3D/3dmodel.model";
-
-      for (const QString& part : package.partNames()) {
-        if (part.endsWith(".model", Qt::CaseInsensitive))
-          return part;
-      }
-
-      throw core::threemf::ThreeMfPackageError("3MF package does not contain a model part");
-    }
-
     std::shared_ptr<render::Material>
     materialFor(const std::optional<core::threemf::MaterialResource>& resource) {
       if (!resource)
@@ -138,7 +106,7 @@ namespace world {
 
     try {
       const auto package = core::threemf::ThreeMfPackage::read(filename);
-      const QString modelPart = modelPartName(package);
+      const QString modelPart = package.modelPartName();
       const auto model = core::threemf::ThreeMfModelParser().parse(package.part(modelPart));
 
       auto root = std::make_unique<Group>();
