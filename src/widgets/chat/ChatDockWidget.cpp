@@ -12,6 +12,16 @@
 #include "chat/ChatThreadStore.h"
 #include "widgets/chat/ChatThreadPanel.h"
 
+namespace {
+  template<class Fn>
+  void forEachThreadPanel(QTabWidget* tabs, Fn&& fn) {
+    for (int i = 0; i < tabs->count(); ++i) {
+      if (auto* panel = qobject_cast<ChatThreadPanel*>(tabs->widget(i)))
+        fn(panel);
+    }
+  }
+}
+
 struct ChatDockWidget::Private {
   QTabWidget* tabs = nullptr;
   QToolButton* newThreadButton = nullptr;
@@ -52,18 +62,13 @@ ChatDockWidget::~ChatDockWidget() = default;
 
 void ChatDockWidget::setMcpConfigPath(const QString& path) {
   p->mcpConfigPath = path;
-  for (int i = 0; i < p->tabs->count(); ++i) {
-    if (auto* panel = qobject_cast<ChatThreadPanel*>(p->tabs->widget(i)))
-      panel->setMcpConfigPath(path);
-  }
+  forEachThreadPanel(p->tabs, [&](ChatThreadPanel* panel) { panel->setMcpConfigPath(path); });
 }
 
 void ChatDockWidget::setClaudeExecutable(const QString& executable) {
   p->claudeExecutable = executable;
-  for (int i = 0; i < p->tabs->count(); ++i) {
-    if (auto* panel = qobject_cast<ChatThreadPanel*>(p->tabs->widget(i)))
-      panel->setClaudeExecutable(executable);
-  }
+  forEachThreadPanel(p->tabs,
+                     [&](ChatThreadPanel* panel) { panel->setClaudeExecutable(executable); });
 }
 
 void ChatDockWidget::setThreadStoreBaseDirectory(const QString& baseDirectory) {
@@ -77,10 +82,7 @@ void ChatDockWidget::setScene(const QString& sceneId, bool sceneIsPersisted) {
     // threads to disk instead of discarding and reloading them.
     p->sceneIsPersisted = sceneIsPersisted;
     if (p->sceneIsPersisted) {
-      for (int i = 0; i < p->tabs->count(); ++i) {
-        if (auto* panel = qobject_cast<ChatThreadPanel*>(p->tabs->widget(i)))
-          persistThread(panel->thread());
-      }
+      forEachThreadPanel(p->tabs, [&](ChatThreadPanel* panel) { persistThread(panel->thread()); });
     }
     return;
   }
@@ -213,8 +215,8 @@ void ChatDockWidget::tabDoubleClicked(int index) {
     return;
 
   bool ok = false;
-  const QString name = QInputDialog::getText(this, tr("Rename Chat"), tr("Name"),
-                                              QLineEdit::Normal, panel->thread()->name(), &ok);
+  const QString name = QInputDialog::getText(this, tr("Rename Chat"), tr("Name"), QLineEdit::Normal,
+                                             panel->thread()->name(), &ok);
   if (ok)
     renameThread(index, name);
 }
