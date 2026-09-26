@@ -4,6 +4,8 @@
 #include "render/textures/TextureWrap.h"
 #include "render/textures/mappings/TextureMapping2D.h"
 
+#include "core/util/QColorUtil.h"
+
 #include <QColor>
 #include <QImage>
 
@@ -56,7 +58,7 @@ std::vector<Colord> ImageTexture::decodePixels(const QImage& image) {
   for (int y = 0; y != converted.height(); ++y) {
     for (int x = 0; x != converted.width(); ++x) {
       const QColor color = QColor::fromRgba(converted.pixel(x, y));
-      pixels.emplace_back(color.redF(), color.greenF(), color.blueF());
+      pixels.push_back(qColorToColord(color));
     }
   }
   return pixels;

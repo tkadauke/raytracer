@@ -152,6 +152,14 @@ namespace {
         element->moveToThread(qApp->thread());
     }
 
+    QString firstImportErrorSuffix(const world::ImportResult& importResult) const {
+      for (const auto& diagnostic : importResult.diagnostics()) {
+        if (diagnostic.isError())
+          return QString(": %1").arg(diagnostic.message);
+      }
+      return QString();
+    }
+
     std::unique_ptr<Element> wrapDirectImportRoot(const QString& fileName,
                                                   const world::SceneImporter& importer,
                                                   const world::ImportOptions& importOptions,
@@ -213,12 +221,7 @@ namespace {
       opened.importResult = importer->importFile(m_fileName, importOptions);
       if (opened.importResult.failed()) {
         opened.errorMessage = QString("Could not import %1").arg(m_fileName);
-        for (const auto& diagnostic : opened.importResult.diagnostics()) {
-          if (diagnostic.isError()) {
-            opened.errorMessage += QString(": %1").arg(diagnostic.message);
-            break;
-          }
-        }
+        opened.errorMessage += firstImportErrorSuffix(opened.importResult);
         return opened;
       }
 
@@ -281,12 +284,7 @@ namespace {
       imported.importResult = importer->importFile(m_fileName, importOptions);
       if (imported.importResult.failed()) {
         imported.errorMessage = QString("Could not import %1").arg(m_fileName);
-        for (const auto& diagnostic : imported.importResult.diagnostics()) {
-          if (diagnostic.isError()) {
-            imported.errorMessage += QString(": %1").arg(diagnostic.message);
-            break;
-          }
-        }
+        imported.errorMessage += firstImportErrorSuffix(imported.importResult);
         return imported;
       }
 

@@ -23,9 +23,6 @@ protected:
   void setLabelText(const QString& text) override;
 
 private:
-  Colord qColorToColord(const QColor& color);
-  QColor colordToQColor(const Colord& color);
-
   struct Private;
   std::unique_ptr<Private> p;
 };
