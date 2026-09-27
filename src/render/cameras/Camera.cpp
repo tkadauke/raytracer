@@ -1,4 +1,5 @@
 #include "render/cameras/Camera.h"
+#include "CameraMotionHelpers.h"
 #include "core/math/Rect.h"
 #include "render/SamplingSeed.h"
 #include "render/viewplanes/ViewPlane.h"
@@ -37,16 +38,6 @@ namespace {
 
   unsigned int packedRgb(const Colord& color) {
     return color.rgb();
-  }
-
-  Vector3d animatedVectorAt(const Camera& camera, const char* property, const Vector3d& fallback,
-                            double time) {
-    const auto* track = camera.animationTrack(property);
-    if (!track) {
-      return fallback;
-    }
-    return fallback + track->sample(time).get<Vector3d>() -
-           track->sample(camera.animationFrame()).get<Vector3d>();
   }
 }
 
@@ -103,8 +94,9 @@ std::optional<Matrix4d> Camera::fixedShutterGpuCameraMatrix() const {
   }
 
   const double animationTime = animationTimeForSample(0.0);
-  const Vector3d animatedPosition = animatedVectorAt(*this, "position", m_position, animationTime);
-  const Vector3d animatedTarget = animatedVectorAt(*this, "target", m_target, animationTime);
+  const Vector3d animatedPosition =
+    detail::animatedVectorAt(*this, "position", m_position, animationTime);
+  const Vector3d animatedTarget = detail::animatedVectorAt(*this, "target", m_target, animationTime);
   return Matrix4d::lookAt(animatedPosition, animatedTarget, Vector3d::up());
 }
 

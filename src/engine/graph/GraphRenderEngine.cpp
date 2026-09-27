@@ -2,6 +2,7 @@
 
 #include "core/Buffer.h"
 #include "core/util/BufferUtils.h"
+#include "core/util/DefinitionRegistry.h"
 #include "engine/graph/RenderGraphArtifactCache.h"
 #include "engine/graph/RenderGraphPreviewHelpers.h"
 #include "engine/graph/RenderPassPayload.h"
@@ -485,14 +486,10 @@ namespace engine::graph {
     }
 
     const DisabledPassHandler& disabledPassHandler(DisabledBehavior disabledBehavior) {
-      const auto& all = disabledPassHandlers();
-      const auto it = std::find_if(all.begin(), all.end(), [&](const auto* handler) {
-        return handler->matches(disabledBehavior);
-      });
-      if (it == all.end()) {
-        throw std::runtime_error("unsupported disabled render graph pass behavior");
-      }
-      return **it;
+      return core::util::requireDefinition(
+        disabledPassHandlers(),
+        [&](const auto* handler) { return handler->matches(disabledBehavior); },
+        "unsupported disabled render graph pass behavior");
     }
 
     const DisabledPassHandler& applyDisabledPass(const RenderPassNode& pass,

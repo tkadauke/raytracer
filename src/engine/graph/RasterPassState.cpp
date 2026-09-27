@@ -3,6 +3,7 @@
 #include "engine/graph/detail/JsonStateHelpers.h"
 #include "engine/graph/RenderPlan.h"
 #include "engine/raster/OpenGLRasterizer.h"
+#include "engine/raster/detail/RasterMSAA.h"
 #include "core/util/QStringUtil.h"
 
 #include <algorithm>
@@ -629,15 +630,7 @@ namespace engine::graph {
   }
 
   void RasterSamplingState::setMSAASamples(int samples) {
-    if (samples <= 1) {
-      m_msaaSamples = 1;
-    } else if (samples <= 2) {
-      m_msaaSamples = 2;
-    } else if (samples <= 4) {
-      m_msaaSamples = 4;
-    } else {
-      m_msaaSamples = 8;
-    }
+    m_msaaSamples = engine::raster::detail::snappedMSAASampleCount(samples);
   }
 
   void RasterSamplingState::setMSAAShadingMode(Rasterizer::MSAAShadingMode mode) {
