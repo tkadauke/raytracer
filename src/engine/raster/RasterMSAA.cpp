@@ -12,6 +12,18 @@ namespace engine::raster::detail {
     }
   }
 
+  int snappedMSAASampleCount(int samples) {
+    if (samples <= 1) {
+      return 1;
+    } else if (samples <= 2) {
+      return 2;
+    } else if (samples <= 4) {
+      return 4;
+    } else {
+      return 8;
+    }
+  }
+
   MSAASamplePattern::MSAASamplePattern(int sampleCount) {
     switch (sampleCount) {
     case 2:

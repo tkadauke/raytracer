@@ -3,6 +3,7 @@
 #include "engine/graph/RasterPassState.h"
 #include "engine/graph/RaytracerPassState.h"
 #include "engine/graph/WireframePassState.h"
+#include "core/util/DefinitionRegistry.h"
 
 #include <algorithm>
 #include <stdexcept>
@@ -179,22 +180,14 @@ namespace engine::graph {
   }
 
   const RenderExecutorDefinition& renderExecutorDefinition(RenderExecutorPreference executor) {
-    const auto& all = definitions();
-    const auto it = std::find_if(all.begin(), all.end(), [&](const auto* definition) {
-      return definition->matches(executor);
-    });
-    if (it == all.end()) {
-      throw std::runtime_error("unsupported render executor preference");
-    }
-    return **it;
+    return core::util::requireDefinition(
+      definitions(), [&](const auto* definition) { return definition->matches(executor); },
+      "unsupported render executor preference");
   }
 
   const RenderExecutorDefinition* renderExecutorDefinition(RenderExecutorKind executor) {
-    const auto& all = definitions();
-    const auto it = std::find_if(all.begin(), all.end(), [&](const auto* definition) {
-      return definition->matches(executor);
-    });
-    return it == all.end() ? nullptr : *it;
+    return core::util::findDefinition(
+      definitions(), [&](const auto* definition) { return definition->matches(executor); });
   }
 
   RenderConcurrencyLimit defaultConcurrencyLimit(RenderExecutorKind executor) {

@@ -2,6 +2,7 @@
 
 #include "engine/graph/RenderGraphCompiler.h"
 #include "engine/graph/RasterPassState.h"
+#include "core/util/DefinitionRegistry.h"
 
 #include <algorithm>
 #include <utility>
@@ -214,19 +215,14 @@ namespace engine::graph {
   }
 
   const RenderAOVDefinition* renderAOVDefinition(RenderViewMode viewMode) {
-    const auto& all = definitions();
-    const auto it = std::find_if(all.begin(), all.end(), [&](const RenderAOVDefinition* aov) {
-      return aov->viewMode() == viewMode;
-    });
-    return it == all.end() ? nullptr : *it;
+    return core::util::findDefinition(
+      definitions(), [&](const RenderAOVDefinition* aov) { return aov->viewMode() == viewMode; });
   }
 
   const RenderAOVDefinition* renderAOVDefinitionForName(const std::string& normalizedName) {
-    const auto& all = definitions();
-    const auto it = std::find_if(all.begin(), all.end(), [&](const RenderAOVDefinition* aov) {
+    return core::util::findDefinition(definitions(), [&](const RenderAOVDefinition* aov) {
       return aov->matchesName(normalizedName);
     });
-    return it == all.end() ? nullptr : *it;
   }
 
   std::vector<const RenderAOVDefinition*> renderAOVDefinitions() {

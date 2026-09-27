@@ -112,6 +112,7 @@
 #include "world/import/SceneImporter.h"
 #include "world/import/SceneImporterRegistry.h"
 #include "core/util/QStringUtil.h"
+#include "core/util/DefinitionRegistry.h"
 
 namespace {
   using PropertyRows = QVector<QPair<QString, QString>>;
@@ -415,13 +416,10 @@ namespace {
 
   const PreviewEngineIntentDefinition&
   previewEngineIntentDefinition(RenderDisplay::EngineKind kind) {
-    const auto& all = previewEngineIntentDefinitions();
-    const auto it = std::find_if(all.begin(), all.end(),
-                                 [&](const auto* definition) { return definition->matches(kind); });
-    if (it == all.end()) {
-      throw std::runtime_error("unsupported preview engine kind");
-    }
-    return **it;
+    return core::util::requireDefinition(
+      previewEngineIntentDefinitions(),
+      [&](const auto* definition) { return definition->matches(kind); },
+      "unsupported preview engine kind");
   }
 
   QString producerText(const engine::graph::RenderPlan& plan,
