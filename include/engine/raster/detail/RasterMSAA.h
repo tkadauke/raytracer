@@ -25,6 +25,10 @@ namespace engine::raster::detail {
   void resetMSAATileScratchAllocationCount();
   std::size_t msaaTileScratchAllocationCount();
 
+  // Snaps a requested MSAA sample count to the nearest supported value: 1, 2,
+  // 4, or 8.
+  int snappedMSAASampleCount(int samples);
+
   struct MSAAFragmentShadeKey {
     const RasterTriangle* triangle;
     int x;

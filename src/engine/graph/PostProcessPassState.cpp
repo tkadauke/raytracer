@@ -4,6 +4,7 @@
 #include "engine/graph/detail/JsonStateHelpers.h"
 #include "render/postprocess/Fxaa.h"
 #include "render/postprocess/Smaa.h"
+#include "core/util/DefinitionRegistry.h"
 
 #include <initializer_list>
 #include <stdexcept>
@@ -85,10 +86,8 @@ namespace engine::graph {
   }
 
   const PostProcessAADefinition* postProcessAADefinition(RenderPostProcessAA aa) {
-    const auto& all = definitions();
-    const auto it = std::find_if(all.begin(), all.end(),
-                                 [&](const auto* definition) { return definition->matches(aa); });
-    return it == all.end() ? nullptr : *it;
+    return core::util::findDefinition(
+      definitions(), [&](const auto* definition) { return definition->matches(aa); });
   }
 
   std::shared_ptr<const PostProcessAAState> PostProcessAAState::fromJson(const QJsonObject& object,
