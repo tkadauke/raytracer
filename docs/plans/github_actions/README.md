@@ -25,7 +25,7 @@ let those workflows migrate too.
 
 | Old location | Status | Notes |
 |---|---|---|
-| `.github/workflows/ci.yml` | Replaced (partially) by `.syrus.yml` | `build-test`, `benchmark-build`, and `textbook` graders run in Syrus — see "What lives in Syrus" below. The sanitize/fuzz/coverage/lint/docker/sbom jobs are awaiting Syrus's post-grade primitive. |
+| `.github/workflows/ci.yml` | Replaced (partially) by `.syrus.yml` | `coverage` (build+test+60% line-coverage floor, replacing the old `build-test` job), `opengl-egl`, `benchmark-build`, and `textbook` graders run in Syrus — see "What lives in Syrus" below. ✅ **Done: the coverage floor.** `docs/plans/github_actions/ci.yml`'s `COVERAGE_LINE_FLOOR` is now enforced per-iteration by the `coverage` grader in `.syrus.yml` rather than awaiting a post-grade primitive. The sanitize/fuzz/lint/docker/sbom jobs remain parked, still awaiting Syrus's post-grade primitive (see "What's missing" below). |
 | `.github/workflows/codeql.yml` | Parked | CodeQL uploads SARIF to GitHub's Security tab, which is a GitHub-only sink. No Syrus equivalent. |
 | `.github/workflows/docs.yml` | Parked | Doxygen + textbook publish to GitHub Pages. Pages deploy is a GitHub-only primitive. |
 | `.github/workflows/mutation.yml` | Parked | Monthly `mull-runner` against the math module. Cron-triggered; Syrus has no cron equivalent. |
@@ -34,11 +34,12 @@ let those workflows migrate too.
 
 ## What lives in Syrus today
 
-Three graders run in the implement → grade iteration loop:
+Four graders run in the implement → grade iteration loop:
 
-1. **`build-test`** — `cmake --preset release && cmake --build --preset release --parallel && QT_QPA_PLATFORM=offscreen ctest --preset release --parallel $(nproc) --output-on-failure`. Catches compile and correctness regressions in one pass. Single compiler (g++-12); incremental rebuilds across iterations.
-2. **`benchmark-build`** — `cmake --preset benchmark && cmake --build --preset benchmark --target benchmarks --parallel && ./build/benchmark/benchmarks/benchmarks --benchmark_list_tests=true`. Catches compile/link errors and benchmark registration drift for sources excluded from the default release build, without running timing-sensitive measurements.
-3. **`textbook`** — `rake docs:textbook:check && rake docs:textbook:source-map && git diff --exit-code -- docs/markdown/appendix/c-source-map.md`. Catches markdown drift and stale generated source-map appendix.
+1. **`coverage`** — configures the `coverage` CMake preset, builds, runs the full `ctest` suite (offscreen Qt platform, software GL), then measures line coverage with `gcovr` and enforces a 60% floor. This is now the primary compile+correctness gate, superseding the `build-test` job described below — it subsumes build-test's job and additionally enforces the coverage floor that `ci.yml`'s `COVERAGE_LINE_FLOOR` used to gate.
+2. **`opengl-egl`** — dedicated lane that builds and runs `opengl_egl_tests` through Mesa's surfaceless EGL backend, failing loudly if zero tests pass (signals a missing Mesa runtime rather than silently no-op'ing).
+3. **`benchmark-build`** — `cmake --preset benchmark && cmake --build --preset benchmark --target benchmarks --parallel && ./build/benchmark/benchmarks/benchmarks --benchmark_list_tests=true`. Catches compile/link errors and benchmark registration drift for sources excluded from the default release build, without running timing-sensitive measurements.
+4. **`textbook`** — `rake docs:textbook:check && rake docs:textbook:source-map && git diff --exit-code -- docs/markdown/appendix/c-source-map.md`. Catches markdown drift and stale generated source-map appendix.
 
 See `.syrus.yml` at the repo root for the full configuration.
 

@@ -1090,7 +1090,11 @@ for material/light records.
     records, so Phong, Reflective, and Transparent local surface terms remain
     aligned while platform direct-light contribution kernels are still being
     filled in.
-  - unsupported fallback for procedural or complex textures.
+  - ~~unsupported fallback for procedural or complex textures.~~ ✅ **Done.**
+    `GpuTracingTextureCompilation::unsupportedTextures` records a reason per
+    unsupported texture (`src/render/GpuTracingScene.cpp`), and material
+    compilation surfaces the first unsupported texture reason
+    (`makeGpuTracingTextureRecord`/`prefixedReason` in the same file).
 - ~~Start with a restricted light subset: point light; directional light;
   rectangular area light; environment/miss color.~~ ✅ **Done.**
   `render::GpuTracingLightCompilation` packs `PointLight`, `DirectionalLight`,
