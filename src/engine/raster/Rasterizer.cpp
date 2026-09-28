@@ -328,15 +328,8 @@ namespace {
   };
 
   double projectedBoundsArea(const RasterTriangle& triangle) {
-    const double minX =
-      std::min({triangle.vertices[0].x, triangle.vertices[1].x, triangle.vertices[2].x});
-    const double maxX =
-      std::max({triangle.vertices[0].x, triangle.vertices[1].x, triangle.vertices[2].x});
-    const double minY =
-      std::min({triangle.vertices[0].y, triangle.vertices[1].y, triangle.vertices[2].y});
-    const double maxY =
-      std::max({triangle.vertices[0].y, triangle.vertices[1].y, triangle.vertices[2].y});
-    return std::max(0.0, maxX - minX) * std::max(0.0, maxY - minY);
+    const auto bounds = triangle.screenBounds();
+    return std::max(0.0, bounds.maxX - bounds.minX) * std::max(0.0, bounds.maxY - bounds.minY);
   }
 
   double triangleDepthKey(const RasterTriangle& triangle) {

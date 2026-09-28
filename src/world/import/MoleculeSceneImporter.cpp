@@ -471,8 +471,7 @@ namespace world {
             if (!includesAtom(first, options) || !includesAtom(second, options))
               continue;
 
-            const auto length = first.position.distanceTo(second.position);
-            if (length <= std::numeric_limits<double>::epsilon())
+            if (bondIsDegenerate(first.position, second.position))
               continue;
 
             if (!bondGroup) {

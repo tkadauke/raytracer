@@ -81,8 +81,7 @@ namespace world {
                  const MoleculeRenderOptions& options) {
       const auto& first = molecule.atoms()[bond.firstAtomIndex];
       const auto& second = molecule.atoms()[bond.secondAtomIndex];
-      const auto length = first.position.distanceTo(second.position);
-      if (length <= std::numeric_limits<double>::epsilon())
+      if (bondIsDegenerate(first.position, second.position))
         return;
 
       auto cylinder = makeBondCylinder(first, second, options.bondRadius);

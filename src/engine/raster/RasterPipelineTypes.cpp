@@ -255,14 +255,7 @@ namespace engine::raster::detail {
   }
 
   void RasterTriangleSet::add(const RasterTriangle& triangle) {
-    const double minX =
-      std::min({triangle.vertices[0].x, triangle.vertices[1].x, triangle.vertices[2].x});
-    const double maxX =
-      std::max({triangle.vertices[0].x, triangle.vertices[1].x, triangle.vertices[2].x});
-    const double minY =
-      std::min({triangle.vertices[0].y, triangle.vertices[1].y, triangle.vertices[2].y});
-    const double maxY =
-      std::max({triangle.vertices[0].y, triangle.vertices[1].y, triangle.vertices[2].y});
+    const auto [minX, maxX, minY, maxY] = triangle.screenBounds();
     // Triangle sets are reused for all MSAA samples, so bins cover the possible
     // half-pixel sample-offset envelope around fractional vertices.
     const int rawMinX = static_cast<int>(std::ceil(minX - 0.5));

@@ -13,6 +13,10 @@
 
 namespace world {
 
+  inline bool bondIsDegenerate(const Vector3d& first, const Vector3d& second) {
+    return first.distanceTo(second) <= std::numeric_limits<double>::epsilon();
+  }
+
   inline Matrix4d bondTransform(const Vector3d& first, const Vector3d& second) {
     const auto center = (first + second) * 0.5;
     const auto delta = second - first;
