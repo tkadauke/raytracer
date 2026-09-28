@@ -4494,9 +4494,18 @@ rendercli_compare_images("${wavefront_denoise_quality_reference}"
                          NAME "wavefront filtered low-spp RMS against reference"
                          RMS_DELTA_VARIABLE wavefront_denoise_filtered_rms
                          OUTPUT_VARIABLE wavefront_denoise_filtered_compare)
-if(wavefront_denoise_filtered_rms GREATER 0.03)
+# a44dc4a8 fixed WavefrontTileRenderer to iterate exact per-pixel samples
+# (plane->pixelBegin(actualRect) instead of plane->begin(actualRect), which
+# could inflate the primary sample count for tiles narrower than the view
+# plane's interlace block size). That's a legitimate bug fix, but this
+# scene's low-spp raw/filtered renders are noisier as a result, so the
+# threshold calibrated before that fix (5dd19bd8) no longer holds. Filtered
+# RMS now reproduces deterministically at 0.0337583439 across independent
+# release and coverage builds; give it headroom instead of chasing the
+# moving noise floor.
+if(wavefront_denoise_filtered_rms GREATER 0.04)
   _rendercli_fail("wavefront bilateral denoise quality threshold"
-                  "expected filtered RMS at most 0.03, got ${wavefront_denoise_filtered_rms}"
+                  "expected filtered RMS at most 0.04, got ${wavefront_denoise_filtered_rms}"
                   "" "" "${wavefront_denoise_filtered_compare}" "")
 endif()
 
