@@ -10,6 +10,7 @@
 #include "render/primitives/Primitive.h"
 #include "render/viewplanes/ViewPlane.h"
 
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <cstdint>
@@ -155,6 +156,14 @@ namespace engine::raster::detail {
   // Prepared triangle handed from the emitter to the raster pass. It stores the
   // three raster vertices plus enough scene identity to support material
   // evaluation, fragment shader inputs, and face-indexed diagnostic colors.
+  // Axis-aligned screen-space bounds of a projected triangle's three vertices.
+  struct RasterScreenBounds {
+    double minX;
+    double maxX;
+    double minY;
+    double maxY;
+  };
+
   struct RasterTriangle {
     std::array<RasterVertex, 3> vertices;
     const render::Primitive* primitive;
@@ -165,6 +174,13 @@ namespace engine::raster::detail {
     Vector2d uvDy;
     std::uint64_t faceIdx;
     bool conservativeDepthOcclusionEligible{false};
+
+    RasterScreenBounds screenBounds() const {
+      return {std::min({vertices[0].x, vertices[1].x, vertices[2].x}),
+              std::max({vertices[0].x, vertices[1].x, vertices[2].x}),
+              std::min({vertices[0].y, vertices[1].y, vertices[2].y}),
+              std::max({vertices[0].y, vertices[1].y, vertices[2].y})};
+    }
   };
 
   // Borrowed full-frame outputs used by diagnostics and picking experiments.
