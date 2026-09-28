@@ -24,10 +24,20 @@
 > triangle, sphere, plane, rectangle, disk, exact OpenCylinder, exact Torus,
 > static-transform payloads, and linear instance motion deltas can run through
 > the packed CPU kernel contract and the platform basic-kernel contract.
-> Transparent-material leaves now explicitly opt out of the packed
-> intersection scene so glass/refraction renders stay on the runtime CPU
-> intersection path until the packed/GPU hit metadata contract is precise
-> enough for Whitted continuation rays.
+> Transparent-material leaves now explicitly opt out of the separate,
+> more-restricted GPU diffuse path-loop compiled scene (Phase 8/E15 scope, in
+> `docs/plans/tracing-execution-backends.md`) so glass/refraction path-tracing
+> renders stay on the CPU reference loop until the path-loop hit metadata
+> contract is precise enough for Whitted-style continuation rays. **Correction
+> (verified against the codebase):** transparent materials are *not* excluded
+> from this plan's own packed wavefront intersection scene — the compiler
+> supports them fully (`IntersectionSceneCompiler.TransparentMaterialsCompileIntoPackedScene`
+> in `test/unit/render/IntersectionSceneCompilerTest.cpp` asserts
+> `fullySupported()` for a `TransparentMaterial` sphere), and any-hit shadow
+> queries are geometry-only for both CPU and packed/GPU paths (matching
+> `Scene::occludes(...)` in `src/render/primitives/Scene.cpp`, which ignores
+> material entirely). The earlier wording in this Status block conflated the
+> two compiled-scene representations; see Phase 6 below for the same finding.
 > Metal-only smoke kernels prove optional compute dispatch
 > outside the render path, and render-path Metal basic closest-hit and any-hit
 > kernels can execute for prepared triangle, sphere, plane, rectangle, disk,
@@ -902,7 +912,11 @@ Gate:
 - Direct-light scenes match CPU wavefront/path-tracing output. ✅ **Done.**
   Same test as above, `expectBuffersNear(*cpu, *gpu, 1.0e-4)`.
 - Unsupported transparency/alpha semantics fall back to CPU instead of producing
-  incorrect shadows.
+  incorrect shadows. ✅ **Done, by construction.** `Scene::occludes(...)`
+  (`src/render/primitives/Scene.cpp`) is geometry-only and ignores material for
+  every CPU shadow ray, so the packed/GPU any-hit path being material-agnostic
+  cannot diverge from CPU shadow correctness — there is no alpha-dependent CPU
+  behavior to fall back from. No dedicated fallback branch was needed or found.
 
 Progress:
 
@@ -1012,7 +1026,24 @@ Tasks:
 Gate:
 
 - GPU intersection is measurably faster on large supported scenes.
-- `auto` does not regress small scenes.
+  **Partially done.** `benchmarks/WavefrontIntersectionBackendBenchmark.cpp`
+  registers `bm_requestedGpuClosestHitBatch`/`bm_requestedGpuAnyHitBatch`/
+  `bm_requestedGpuMixedClosestAndAnyHitBatch` fixtures that, on hardware with a
+  Metal or Vulkan device, dispatch the real platform kernel and can be compared
+  against `bm_runtimeCpuClosestHit`/`bm_packedClosestHit`. What's missing: no
+  before/after numbers are checked into the repo (benchmarks were not run here
+  per this audit's constraints), and `WavefrontIntersectionBackendPerformanceTest.cpp`
+  only pins packed-CPU-vs-runtime-CPU speedup
+  (`PackedClosestHitIsAtLeast10xFasterThanRuntimeSceneOnMeshHeavyScene`), not
+  GPU-vs-CPU.
+- `auto` does not regress small scenes. **Partially done.**
+  `WavefrontIntersectionBackendAutoSelectionPolicy` has an explicit
+  expected-ray-count/upload-amortization threshold gate
+  (`PolicySelectsGpuForSupportedLargeCandidate`,
+  `WavefrontIntersectionAutoSelectionTest.KeepsSmallSupportedSceneOnCpuBeforeCompiling`)
+  so small scenes stay on CPU by policy; what's missing is a measured
+  before/after benchmark proving no regression on real GPU hardware, since that
+  requires a device this audit did not run against.
 - CPU fallback remains deterministic and visible in traces. ✅ **Partially
   done.** Fallback reason is extensively tested and surfaced (e.g.
   `RecordsGpuIntersectionBackendFallbackMetrics`,
@@ -1167,6 +1198,30 @@ Possible follow-ups after the hybrid intersection backend is stable:
 - Full GPU shading/path transport for a restricted material subset.
 - Shared shader source strategy if native Metal/Vulkan kernels become too much
   duplicate maintenance.
+
+**Partially done, summarized.** The very long Progress log below (200+ entries)
+documents extensive scaffolding work for the first three follow-ups —
+backend-owned frontier handles, `metal_shared`/`vulkan_host_coherent` prepared
+frontiers, frontier-compaction request/result plumbing, resident-direct-light
+capability flags, and matching diagnostics/metrics/UI surfacing — but the
+entries are explicit and consistent that the actual device-resident execution
+has **not** landed: frontiers/path state are still host-resident by default
+("current handle is host-resident", "still host-owned `BatchPath` storage"),
+public GPU frontier compaction is still reported as unsupported ("public GPU
+frontier-compaction capability remains disabled"), and resident direct-light
+batches remain gated off ("shading still creates and consumes direct-light
+batches on the host"). What exists today is a lower-level, tested Metal/Vulkan
+*prepared ray-batch* compaction primitive
+(`MetalWavefrontPreparedScene`/`VulkanWavefrontPreparedScene` ray-batch
+compaction APIs, exercised by `bm_metalPreparedRayBatchCompaction`/
+`bm_vulkanPreparedRayBatchCompaction`), not scheduler-owned GPU frontier
+residency across depths. Hardware ray tracing backends (Vulkan RT, Metal RT)
+and full GPU shading/path transport have no evidence of any implementation
+work — they remain open, matching the Non-goals/scope note at the top of this
+plan that GPU shading/BSDF/path transport belongs to
+`tracing-execution-backends.md`. No shared shader source strategy (Slang,
+wgpu/Dawn, etc.) was found; kernels remain native MSL/GLSL as originally
+planned.
 
 Progress:
 
