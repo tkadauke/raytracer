@@ -11,6 +11,16 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- Loosen the `rendercli_render_graph` wavefront bilateral denoise quality
+  threshold in `RenderGraphOptionTest.cmake` from 0.03 to 0.04. `a44dc4a8`
+  fixed `WavefrontTileRenderer` to iterate exact per-pixel samples instead of
+  a tile-edge-inflated count, which is a legitimate correctness fix, but it
+  also makes this scene's low-spp raw/filtered renders slightly noisier than
+  when the 0.03 threshold was calibrated (`5dd19bd8`). The filtered RMS now
+  reproduces deterministically at 0.0337583439 across independent release
+  and coverage builds; the new threshold keeps the test as a real quality
+  gate with headroom over that observed value instead of chasing a noise
+  floor that moved for a good reason. — Claude Sonnet 5
 - Loosen the `indirect_bounce` tracing-parity RMS threshold in
   `TracingParityTest.cmake` from 0.02 to 0.03. The CPU (`runtime_scene`) and
   GPU-requested (`packed_cpu` fallback) intersection backends have always
