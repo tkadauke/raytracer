@@ -686,7 +686,15 @@ These are executor-agnostic or appear at the end of almost every frame:
 - **Temporal accumulation pass** - TAA, temporal denoising, progressive sample
   accumulation, or history blending.
 - **Denoise pass** - read noisy color plus albedo/normal/depth feature buffers
-  and produce filtered color.
+  and produce filtered color. **Partial, different shape than proposed.**
+  `render::Denoiser` / `BilateralDenoiser` / `BoxDenoiser`
+  (`include/render/denoise/`) and `RaytracerPassState::setDenoiser(...)` let a
+  wavefront/path-tracer beauty pass request denoising with feature-buffer
+  capture; `applyPostPathLoopDenoiser(...)`
+  (`src/engine/graph/RenderPassPayloads.cpp`) runs it inline at the end of that
+  same beauty pass execution. There is no separate `RenderPassKind` value or
+  standalone graph node for denoising, and feature buffers are not exposed as
+  graph-visible resources another pass could read.
 - **Blur/filter pass** - Gaussian blur, bilateral blur, Kawase blur, box blur,
   shadow-mask blur, or separable horizontal/vertical image filters.
 - **Bloom/glare pass** - threshold bright regions, blur, then composite.
@@ -807,7 +815,13 @@ hybrid previews, and progressive/denoised output:
 - **Path-sample accumulation pass** - accumulate many stochastic samples per
   pixel over time or batches.
 - **Variance/statistics pass** - write sample variance, convergence, or adaptive
-  sampling masks.
+  sampling masks. ✅ **Partial.** `SampleStddevAOVPass` /
+  `SampleStddevColorAOVPass` (`src/engine/graph/RenderPassPayloads.cpp`) are
+  discrete `RenderPassKind::AOV` graph nodes that write scalar/per-channel
+  sample-radiance standard-deviation resources for wavefront/path-tracer
+  renders, reachable via `--render_graph_view sample_stddev` /
+  `sample_stddev_color` (see also the AOV exports section below). Convergence
+  and adaptive-sampling masks are not produced as graph resources.
 - **Adaptive-sampling scheduler pass** - choose which pixels need more samples.
 - **Denoiser feature pass** - output albedo, normal, depth, motion vectors, and
   variance for a denoiser.
