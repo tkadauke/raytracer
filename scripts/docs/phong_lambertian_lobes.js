@@ -103,24 +103,6 @@ class PhongLambertianLobes {
     return this.specularCoefficient * Math.pow(alignment, this.exponent);
   }
 
-  addArrowMarker(id, color) {
-    const defs = this.canvas.add('defs');
-    const marker = createSvgElement('marker', {
-      id,
-      markerWidth: 10,
-      markerHeight: 10,
-      refX: 8,
-      refY: 3,
-      orient: 'auto',
-      markerUnits: 'strokeWidth',
-    });
-    marker.appendChild(createSvgElement('path', {
-      d: 'M0,0 L0,6 L9,3 z',
-      fill: color,
-    }));
-    defs.appendChild(marker);
-  }
-
   addLine(start, end, attrs = {}) {
     this.canvas.add('line', {
       x1: start.x,
@@ -238,9 +220,9 @@ class PhongLambertianLobes {
 
   render() {
     this.canvas.clear();
-    this.addArrowMarker('normal-arrow', '#222');
-    this.addArrowMarker('light-vector-arrow', '#f08c00');
-    this.addArrowMarker('view-vector-arrow', '#2f9e44');
+    this.canvas.arrowMarker('normal-arrow', '#222');
+    this.canvas.arrowMarker('light-vector-arrow', '#f08c00');
+    this.canvas.arrowMarker('view-vector-arrow', '#2f9e44');
 
     this.addLine(new Vector(70, this.origin.y), new Vector(430, this.origin.y), {
       stroke: '#555',

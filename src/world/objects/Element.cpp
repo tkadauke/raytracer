@@ -394,16 +394,7 @@ void Element::joinParent() {
 }
 
 Element* Element::findById(const QString& id) {
-  if (id == this->id()) {
-    return this;
-  } else {
-    for (const auto& child : childElements()) {
-      auto result = child->findById(id);
-      if (result)
-        return result;
-    }
-  }
-  return nullptr;
+  return const_cast<Element*>(const_cast<const Element*>(this)->findById(id));
 }
 
 const Element* Element::findById(const QString& id) const {
@@ -438,12 +429,7 @@ void Element::contributeSelectableObjectToRenderGraphAnalysis(
 }
 
 void Element::attachRuntimeAnimationTracks(render::Object& object) const {
-  const auto* root = this;
-  while (root->parent()) {
-    root = root->parent();
-  }
-
-  const auto* scene = qobject_cast<const Scene*>(root);
+  const auto* scene = qobject_cast<const Scene*>(root());
   if (!scene || !scene->animation())
     return;
 

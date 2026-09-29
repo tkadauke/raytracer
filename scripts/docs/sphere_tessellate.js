@@ -18,15 +18,13 @@
 //  - LOD doubles BOTH dimensions, so vertex count grows ~4× per
 //    level (lod 0 → 153, lod 1 → 561, lod 2 → 2145…).
 
-const clampSphereLod = (value, min, max) => Math.max(min, Math.min(max, value));
-
 class SphereTessellate {
   constructor() {
     this.lod = 0;       // 8 << lod latBands, 16 << lod lonSegs
   }
 
   setLod(lod) {
-    this.lod = clampSphereLod(Math.round(lod), 0, 3);
+    this.lod = FigureMath.clamp(Math.round(lod), 0, 3);
   }
 
   latBands() { return 8 << this.lod; }

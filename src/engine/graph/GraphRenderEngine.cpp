@@ -3,6 +3,7 @@
 #include "core/Buffer.h"
 #include "core/util/BufferUtils.h"
 #include "core/util/DefinitionRegistry.h"
+#include "engine/graph/detail/BufferPackHelpers.h"
 #include "engine/graph/RenderGraphArtifactCache.h"
 #include "engine/graph/RenderGraphPreviewHelpers.h"
 #include "engine/graph/RenderPassPayload.h"
@@ -172,35 +173,14 @@ namespace engine::graph {
 
     void requireMatchingSize(const Buffer<Colord>& source, const Buffer<Colord>& destination,
                              const std::string& action) {
-      if (!core::util::bufferDimensionsEqual(source, destination)) {
-        throw std::runtime_error(action + " requires matching color buffer dimensions");
-      }
-    }
-
-    void requireMatchingSize(const Buffer<Colord>& source, const Buffer<unsigned int>& destination,
-                             const std::string& action) {
-      if (!core::util::bufferDimensionsEqual(source, destination)) {
-        throw std::runtime_error(action + " requires matching color buffer dimensions");
-      }
-    }
-
-    void packColorBuffer(const Buffer<Colord>& source, Buffer<unsigned int>& destination) {
-      requireMatchingSize(source, destination, "color pack");
-      for (int y = 0; y != source.height(); ++y) {
-        for (int x = 0; x != source.width(); ++x) {
-          destination[y][x] = source[y][x].rgb();
-        }
-      }
+      detail::requireMatchingBufferSize(source, destination,
+                                        action + " requires matching color buffer dimensions");
     }
 
     void packColorBuffer(const Buffer<Colord>& source, Buffer<unsigned int>& destination,
-                         const std::shared_ptr<render::Tonemap>& tonemap) {
-      requireMatchingSize(source, destination, "color pack");
-      for (int y = 0; y != source.height(); ++y) {
-        for (int x = 0; x != source.width(); ++x) {
-          destination[y][x] = (tonemap ? tonemap->apply(source[y][x]) : source[y][x]).rgb();
-        }
-      }
+                         const std::shared_ptr<render::Tonemap>& tonemap = nullptr) {
+      detail::packColorBuffer(source, destination, tonemap,
+                              "color pack requires matching color buffer dimensions");
     }
 
     void pointDefaultCameraAtOrigin(const std::shared_ptr<render::Camera>& camera) {

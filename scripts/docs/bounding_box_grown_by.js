@@ -32,25 +32,6 @@ class BoundingBoxGrownBy {
     return this.topleft.plus(new Vector(this.size.x, 0));
   }
 
-  addArrowMarker() {
-    const defs = createSvgElement('defs');
-    const marker = createSvgElement('marker', {
-      id: this.arrowId,
-      markerWidth: 10,
-      markerHeight: 10,
-      refX: 8,
-      refY: 3,
-      orient: 'auto',
-      markerUnits: 'strokeWidth',
-    });
-    marker.appendChild(createSvgElement('path', {
-      d: 'M0,0 L0,6 L9,3 z',
-      fill: '#111',
-    }));
-    defs.appendChild(marker);
-    this.canvas.append(defs);
-  }
-
   addRectangle(topleft, size, dashed = false) {
     this.canvas.add('rect', {
       x: topleft.x,
@@ -78,7 +59,7 @@ class BoundingBoxGrownBy {
 
   render() {
     this.canvas.clear();
-    this.addArrowMarker();
+    this.canvas.arrowMarker(this.arrowId);
     this.addArrow(this.topleft, this.vector.multiply(-1));
     this.addArrow(
       this.topleft.plus(new Vector(this.size.x, 0)),

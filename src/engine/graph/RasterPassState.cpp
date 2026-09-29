@@ -1290,11 +1290,7 @@ namespace engine::graph {
   }
 
   void RasterShadowPassState::writeTo(RenderPassNode& pass) const {
-    if (empty()) {
-      pass.state.reset();
-    } else {
-      pass.state = std::make_shared<RasterShadowPassState>(*this);
-    }
+    detail::writeStateTo(*this, pass);
   }
 
   std::size_t RasterShadowPassState::writeToRasterShadowPasses(RenderPlan& plan) const {
@@ -1365,11 +1361,7 @@ namespace engine::graph {
   }
 
   void RasterVisibilityPassState::writeTo(RenderPassNode& pass) const {
-    if (empty()) {
-      pass.state.reset();
-    } else {
-      pass.state = std::make_shared<RasterVisibilityPassState>(*this);
-    }
+    detail::writeStateTo(*this, pass);
   }
 
   RasterGeometryState& RasterVisibilityPassState::geometry() {
@@ -1476,11 +1468,7 @@ namespace engine::graph {
   }
 
   void RasterBeautyPassState::writeTo(RenderPassNode& pass) const {
-    if (empty()) {
-      pass.state.reset();
-    } else {
-      pass.state = std::make_shared<RasterBeautyPassState>(*this);
-    }
+    detail::writeStateTo(*this, pass);
     pass.concurrency = m_execution.backend().isOpenGL() ? RenderConcurrencyLimit::limited(1)
                                                         : RenderConcurrencyLimit::parallel();
     pass.canRunConcurrently = pass.concurrency.allowsParallelExecution();

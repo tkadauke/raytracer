@@ -57,11 +57,7 @@ namespace engine::graph {
   }
 
   void WireframePassState::writeTo(RenderPassNode& pass) const {
-    if (empty()) {
-      pass.state.reset();
-    } else {
-      pass.state = std::make_shared<WireframePassState>(*this);
-    }
+    detail::writeStateTo(*this, pass);
   }
 
   std::size_t WireframePassState::writeToWireframePasses(RenderPlan& plan) const {

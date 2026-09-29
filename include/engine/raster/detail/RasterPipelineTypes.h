@@ -148,6 +148,12 @@ namespace engine::raster::detail {
   Recti intersectRasterRects(const Recti& a, const Recti& b);
   bool rasterRectEmpty(const Recti& rect);
 
+  // Twice the signed area of the 2D triangle (x0,y0)-(x1,y1)-(x2,y2). The sign
+  // encodes winding order; zero means the triangle is degenerate on screen.
+  inline double signedArea2D(double x0, double y0, double x1, double y1, double x2, double y2) {
+    return (x1 - x0) * (y2 - y0) - (y1 - y0) * (x2 - x0);
+  }
+
   struct RasterPoint2d {
     double x;
     double y;

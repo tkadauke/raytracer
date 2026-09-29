@@ -12,6 +12,7 @@
 #include <cmath>
 #include <cstdint>
 #include <initializer_list>
+#include <memory>
 #include <stdexcept>
 #include <string>
 
@@ -247,5 +248,16 @@ namespace engine::graph::detail {
         return name;
     }
     return fallback;
+  }
+
+  // Shared by the pass-state `writeTo(RenderPassNode&)` overrides: clears the
+  // node's state when @p state is empty, otherwise stores a copy of it.
+  template<class State>
+  inline void writeStateTo(const State& state, RenderPassNode& pass) {
+    if (state.empty()) {
+      pass.state.reset();
+    } else {
+      pass.state = std::make_shared<State>(state);
+    }
   }
 }

@@ -96,25 +96,6 @@ class PortalMaterialRayRedirection {
     return element;
   }
 
-  addArrowMarker() {
-    const defs = this.canvas.add('defs');
-    const marker = createSvgElement('marker', {
-      id: 'portal-ray-arrow',
-      markerWidth: 10,
-      markerHeight: 10,
-      refX: 8,
-      refY: 3,
-      orient: 'auto',
-      markerUnits: 'strokeWidth',
-    });
-    const path = createSvgElement('path', {
-      d: 'M0,0 L0,6 L9,3 z',
-      fill: '#111',
-    });
-    marker.appendChild(path);
-    defs.appendChild(marker);
-  }
-
   panel(origin, size, title) {
     this.canvas.add('rect', {
       x: origin.x,
@@ -131,7 +112,7 @@ class PortalMaterialRayRedirection {
 
   render() {
     this.canvas.clear();
-    this.addArrowMarker();
+    this.canvas.arrowMarker('portal-ray-arrow');
     this.panel(this.sceneOrigin, this.sceneSize, 'Scene ray hits portal material');
     this.panel(this.queryOrigin, this.querySize, 'Transformed scene query');
     this.renderPortalPanel();

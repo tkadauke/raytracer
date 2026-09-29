@@ -177,6 +177,17 @@ public:
     return static_cast<Element*>(QObject::parent());
   }
 
+  /**
+    * Walks up the parent chain and returns the topmost ancestor (typically
+    * the containing Scene). Returns this element itself if it has no parent.
+    */
+  inline Element* root() const {
+    Element* root = const_cast<Element*>(this);
+    while (root->parent())
+      root = root->parent();
+    return root;
+  }
+
   inline const QList<Element*> childElements() const {
     return m_childElements;
   }

@@ -362,11 +362,7 @@ namespace engine::graph {
   }
 
   void RaytracerBeautyPassState::writeTo(RenderPassNode& pass) const {
-    if (empty()) {
-      pass.state.reset();
-    } else {
-      pass.state = std::make_shared<RaytracerBeautyPassState>(*this);
-    }
+    detail::writeStateTo(*this, pass);
   }
 
   std::size_t RaytracerBeautyPassState::writeToRaytracerBeautyPasses(RenderPlan& plan) const {

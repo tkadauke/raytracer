@@ -14,15 +14,13 @@
 //    parameter is buying you, at a linear cost in vertex/triangle
 //    count.
 
-const clampLod = (value, min, max) => Math.max(min, Math.min(max, value));
-
 class DiskTessellate {
   constructor() {
     this.lod = 0;       // 16 << lod segments
   }
 
   setLod(lod) {
-    this.lod = clampLod(Math.round(lod), 0, 4);
+    this.lod = FigureMath.clamp(Math.round(lod), 0, 4);
   }
 
   segments() {
