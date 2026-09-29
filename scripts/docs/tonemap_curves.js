@@ -27,7 +27,7 @@ class TonemapCurves {
   }
 
   setInput(value) {
-    this.input = Math.max(0.0, Math.min(this.maxInput, value));
+    this.input = FigureMath.clamp(value, 0.0, this.maxInput);
   }
 
   // Each operator as a pure function. Mirrors the C++ implementations

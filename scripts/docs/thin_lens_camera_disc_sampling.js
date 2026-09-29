@@ -16,8 +16,6 @@
 // samples STRATIFIED rather than purely random; that's why bokeh
 // converges at O(1/N) instead of O(1/√N).
 
-const clampN = (value, min, max) => Math.max(min, Math.min(max, value));
-
 // Shirley's "A Low Distortion Map Between Disk and Square" (1997).
 // Same code as the C++ implementation in
 // src/raytracer/cameras/ThinLensCamera.cpp.
@@ -42,7 +40,7 @@ class ThinLensDiscSampling {
   }
 
   setN(n) {
-    this.n = clampN(Math.round(n), 2, 20);
+    this.n = FigureMath.clamp(Math.round(n), 2, 20);
   }
 
   createCanvas() {

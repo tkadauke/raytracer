@@ -1,5 +1,3 @@
-const clampRay = (value, min, max) => Math.max(min, Math.min(max, value));
-
 class RayAt {
   constructor() {
     this.origin = new Vector(4, -1);
@@ -30,7 +28,7 @@ class RayAt {
   }
 
   setT(t) {
-    this.t = clampRay(t, -1.0, 1.7);
+    this.t = FigureMath.clamp(t, -1.0, 1.7);
   }
 
   createCanvas() {

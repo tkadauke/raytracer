@@ -109,8 +109,8 @@ class ShapeDescriptors {
         },
         onDrag: (point) => {
           this.vertices[index] = {
-            x: this.clamp(point.x, this.canvasArea.x + 4, this.canvasArea.x + this.canvasArea.width - 4),
-            y: this.clamp(point.y, this.canvasArea.y + 4, this.canvasArea.y + this.canvasArea.height - 4),
+            x: FigureMath.clamp(point.x, this.canvasArea.x + 4, this.canvasArea.x + this.canvasArea.width - 4),
+            y: FigureMath.clamp(point.y, this.canvasArea.y + 4, this.canvasArea.y + this.canvasArea.height - 4),
           };
           this.render();
         },
@@ -260,9 +260,6 @@ class ShapeDescriptors {
     return { isCircle, isRectangle };
   }
 
-  clamp(v, min, max) {
-    return Math.max(min, Math.min(max, v));
-  }
 }
 
 ((scriptElement) => {

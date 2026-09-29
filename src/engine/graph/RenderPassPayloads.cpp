@@ -7,6 +7,7 @@
 #include "core/math/HitPointInterval.h"
 #include "core/util/BufferUtils.h"
 #include "engine/TracingExecutionCapabilityJson.h"
+#include "engine/graph/detail/BufferPackHelpers.h"
 #include "engine/graph/GraphRenderEngine.h"
 #include "engine/graph/PostProcessPassState.h"
 #include "engine/graph/RasterShadowMapArtifact.h"
@@ -106,23 +107,14 @@ namespace engine::graph {
 
     void requireMatchingSize(const Buffer<Colord>& source, const Buffer<Colord>& destination,
                              const std::string& action) {
-      if (!core::util::bufferDimensionsEqual(source, destination)) {
-        throw std::runtime_error(action + " requires matching color buffer dimensions");
-      }
+      detail::requireMatchingBufferSize(source, destination,
+                                        action + " requires matching color buffer dimensions");
     }
 
     void requireMatchingSize(const Buffer<double>& source, const Buffer<Colord>& destination,
                              const std::string& action) {
-      if (!core::util::bufferDimensionsEqual(source, destination)) {
-        throw std::runtime_error(action + " requires matching depth/color buffer dimensions");
-      }
-    }
-
-    void requireMatchingSize(const Buffer<Colord>& source, const Buffer<unsigned int>& destination,
-                             const std::string& action) {
-      if (!core::util::bufferDimensionsEqual(source, destination)) {
-        throw std::runtime_error(action + " requires matching color/display buffer dimensions");
-      }
+      detail::requireMatchingBufferSize(source, destination,
+                                        action + " requires matching depth/color buffer dimensions");
     }
 
     class SceneRasterIdentityIds {
@@ -1217,12 +1209,9 @@ namespace engine::graph {
 
     void packColorBuffer(const Buffer<Colord>& source, Buffer<unsigned int>& destination,
                          const std::shared_ptr<render::Tonemap>& tonemap) {
-      requireMatchingSize(source, destination, "compiled diffuse path-loop color pack");
-      for (int y = 0; y != source.height(); ++y) {
-        for (int x = 0; x != source.width(); ++x) {
-          destination[y][x] = (tonemap ? tonemap->apply(source[y][x]) : source[y][x]).rgb();
-        }
-      }
+      detail::packColorBuffer(
+        source, destination, tonemap,
+        "compiled diffuse path-loop color pack requires matching color/display buffer dimensions");
     }
 
     /**

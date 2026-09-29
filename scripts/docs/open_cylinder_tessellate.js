@@ -16,15 +16,13 @@
 //    surface shades smoothly across edges even at low LOD — the
 //    polygon is silhouetted, not faceted in the lighting.
 
-const clampCylLod = (value, min, max) => Math.max(min, Math.min(max, value));
-
 class OpenCylinderTessellate {
   constructor() {
     this.lod = 0;       // 16 << lod segments
   }
 
   setLod(lod) {
-    this.lod = clampCylLod(Math.round(lod), 0, 4);
+    this.lod = FigureMath.clamp(Math.round(lod), 0, 4);
   }
 
   segments() {

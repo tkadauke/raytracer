@@ -4,6 +4,7 @@
 #include <cctype>
 #include <cerrno>
 #include <cstdlib>
+#include <limits>
 #include <optional>
 #include <string>
 #include <utility>
@@ -44,6 +45,20 @@ namespace core::util {
       return std::nullopt;
     }
     return value;
+  }
+
+  /**
+    * Strictly parses @p text as an `int` using `tryParseStrictLong` in the
+    * given @p base, additionally rejecting values outside `int`'s range.
+    * Returns `std::nullopt` on any parse failure or out-of-range value.
+    */
+  inline std::optional<int> tryParseStrictInt(const std::string& text, int base = 10) {
+    const auto value = tryParseStrictLong(text, base);
+    if (!value || *value < std::numeric_limits<int>::min() ||
+        *value > std::numeric_limits<int>::max()) {
+      return std::nullopt;
+    }
+    return static_cast<int>(*value);
   }
 
   inline std::string trim(std::string value) {

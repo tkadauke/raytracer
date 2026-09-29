@@ -2,7 +2,6 @@
 #include "core/util/StringUtil.h"
 
 #include <cctype>
-#include <limits>
 #include <optional>
 
 using namespace std;
@@ -60,10 +59,7 @@ namespace {
   }
 
   optional<int> parseIntValue(const string& text) {
-    const auto value = core::util::tryParseStrictLong(text);
-    if (!value || *value < numeric_limits<int>::min() || *value > numeric_limits<int>::max())
-      return nullopt;
-    return static_cast<int>(*value);
+    return core::util::tryParseStrictInt(text);
   }
 
   string commandName(const Word& word) {

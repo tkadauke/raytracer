@@ -1171,6 +1171,36 @@ test('Production widgets use shared stroke width constants', () => {
   assert.deepEqual(offenders, []);
 });
 
+test('Production widgets use FigureMath.clamp instead of local clamp reimplementations', () => {
+  // Matches the exact `Math.max(min, Math.min(max, value))` clamp body
+  // (regardless of the value parameter's name). Deliberately narrower than a
+  // generic Math.max(Math.min(...)) scan: several widgets legitimately use
+  // that same nesting shape for unrelated math (e.g. ray/slab interval
+  // tests), and a broad scan would false-positive on those.
+  const clampBodyPattern = /Math\.max\(min,\s*Math\.min\(max,\s*\w+\)\)/;
+  const docsDir = path.resolve(__dirname, '..', 'docs');
+  const offenders = fs.readdirSync(docsDir)
+    .filter(file => file.endsWith('.js') && file !== 'figure.js')
+    .filter((file) => clampBodyPattern.test(fs.readFileSync(path.join(docsDir, file), 'utf8')));
+  assert.deepEqual(offenders, []);
+});
+
+test('Production widgets use FigureSvg.arrowMarker instead of hand-rolled arrow markers', () => {
+  const docsDir = path.resolve(__dirname, '..', 'docs');
+  const offenders = fs.readdirSync(docsDir)
+    .filter(file => file.endsWith('.js') && file !== 'figure.js')
+    // bvh_sah_traversal.js hand-rolls its marker with a pre-existing
+    // refx/refy (lowercase) typo; SVG attribute names are case-sensitive,
+    // so switching to arrowMarker()'s correct refX/refY would change the
+    // rendered arrow position. Left alone pending a dedicated bug fix.
+    .filter(file => file !== 'bvh_sah_traversal.js')
+    .filter((file) => {
+      const source = fs.readFileSync(path.join(docsDir, file), 'utf8');
+      return source.includes("d: 'M0,0 L0,6 L9,3 z'");
+    });
+  assert.deepEqual(offenders, []);
+});
+
 test('Migrated widgets use shared figure math instead of local vector libraries', () => {
   const docsDir = path.resolve(__dirname, '..', 'docs');
   const vectorDuplicatePattern =

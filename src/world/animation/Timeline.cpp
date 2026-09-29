@@ -1,12 +1,12 @@
 #include "world/animation/Timeline.h"
 
-#include <cmath>
 #include <stdexcept>
 #include <utility>
 
 #include <QJsonArray>
 #include <QString>
 
+#include "core/json/JsonValue.h"
 #include "core/util/QStringUtil.h"
 #include "world/objects/Scene.h"
 
@@ -18,7 +18,7 @@ namespace {
       throw invalidArgument(QString("animation field '%1' must be an integer").arg(name));
 
     const auto numeric = value.toDouble();
-    if (std::floor(numeric) != numeric)
+    if (!core::json::isIntegerValued(numeric))
       throw invalidArgument(QString("animation field '%1' must be an integer").arg(name));
 
     return static_cast<int>(numeric);

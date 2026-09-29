@@ -194,7 +194,7 @@ class GridDDATraversal {
 
   render() {
     this.canvas.clear();
-    this.addArrowMarker();
+    this.canvas.arrowMarker('grid-dda-arrow');
     const result = this.traversal();
     this.renderGrid();
     this.renderPrimitiveDistribution();
@@ -203,25 +203,6 @@ class GridDDATraversal {
     this.renderRay(result);
     this.renderLabels(result);
     this.renderHandles();
-  }
-
-  addArrowMarker() {
-    const defs = createSvgElement('defs');
-    const marker = createSvgElement('marker', {
-      id: 'grid-dda-arrow',
-      markerWidth: 10,
-      markerHeight: 10,
-      refX: 8,
-      refY: 3,
-      orient: 'auto',
-      markerUnits: 'strokeWidth',
-    });
-    marker.appendChild(createSvgElement('path', {
-      d: 'M0,0 L0,6 L9,3 z',
-      fill: '#111',
-    }));
-    defs.appendChild(marker);
-    this.canvas.append(defs);
   }
 
   renderGrid() {

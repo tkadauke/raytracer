@@ -3,7 +3,6 @@
 #include "core/formats/ldraw/LDrawParseError.h"
 #include "core/util/StringUtil.h"
 
-#include <limits>
 #include <string>
 
 namespace ldraw_internal {
@@ -18,10 +17,10 @@ namespace ldraw_internal {
     int base = 10;
     if (text.size() > 2 && text[0] == '0' && (text[1] == 'x' || text[1] == 'X'))
       base = 16;
-    const auto value = core::util::tryParseStrictLong(text, base);
-    if (!value || *value < std::numeric_limits<int>::min() || *value > std::numeric_limits<int>::max())
+    const auto value = core::util::tryParseStrictInt(text, base);
+    if (!value)
       throwParseError(lineNumber, "invalid integer for " + fieldName + ": '" + text + "'", file, line);
-    return static_cast<int>(*value);
+    return *value;
   }
 }
 

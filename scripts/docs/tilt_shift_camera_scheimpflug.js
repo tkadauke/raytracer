@@ -45,7 +45,7 @@ class ScheimpflugConvergence {
   }
 
   setTilt(deg) {
-    this.tiltDeg = Math.max(-45, Math.min(45, deg));
+    this.tiltDeg = FigureMath.clamp(deg, -45, 45);
   }
 
   // Compute the focal point for a given pixel, intersecting the eye→pixel

@@ -26,15 +26,13 @@
 //    cleaner than the sphere's, even though the surface is more
 //    complex.
 
-const clampTorusLod = (value, min, max) => Math.max(min, Math.min(max, value));
-
 class TorusTessellate {
   constructor() {
     this.lod = 0;       // 16 << lod major and minor segs
   }
 
   setLod(lod) {
-    this.lod = clampTorusLod(Math.round(lod), 0, 3);
+    this.lod = FigureMath.clamp(Math.round(lod), 0, 3);
   }
 
   majorSegs() { return 16 << this.lod; }
