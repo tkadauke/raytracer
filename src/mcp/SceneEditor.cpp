@@ -58,6 +58,13 @@ namespace mcp {
   Element* SceneEditor::insertElement(std::unique_ptr<Element> element) {
     Element* raw = element.release();
     m_sceneModel->addElement(QModelIndex(), raw);
+
+    if (Scene* liveScene = scene()) {
+      raw->setName(QStringLiteral("%1 %2")
+                     .arg(raw->metaObject()->className())
+                     .arg(liveScene->childElements().size()));
+    }
+
     return raw;
   }
 
@@ -86,9 +93,6 @@ namespace mcp {
       return failure(QStringLiteral("Unknown element type: %1").arg(type));
 
     Element* element = insertElement(std::move(created));
-    element->setName(QStringLiteral("%1 %2")
-                       .arg(element->metaObject()->className())
-                       .arg(liveScene->childElements().size()));
 
     QJsonObject json = params;
     if (!position.isUndefined() && !position.isNull() && dynamic_cast<Transformable*>(element))
@@ -154,9 +158,6 @@ namespace mcp {
         return failure(QStringLiteral("Unknown material type: %1").arg(materialType));
 
       Element* materialElement = insertElement(std::move(created));
-      materialElement->setName(QStringLiteral("%1 %2")
-                                 .arg(materialElement->metaObject()->className())
-                                 .arg(liveScene->childElements().size()));
       materialElement->read(inlineMaterial.value(QStringLiteral("params")).toObject());
       materialId = materialElement->id();
     } else {
@@ -234,9 +235,6 @@ namespace mcp {
       return failure(QStringLiteral("Unknown CSG type: %1").arg(typeName));
 
     Element* csgElement = insertElement(std::move(created));
-    csgElement->setName(QStringLiteral("%1 %2")
-                          .arg(csgElement->metaObject()->className())
-                          .arg(liveScene->childElements().size()));
 
     if (!reparent(a, csgElement) || !reparent(b, csgElement)) {
       return failure(

@@ -48,25 +48,6 @@ class RayProject {
     return new Ray(this.origin, this.direction(), true);
   }
 
-  addArrowMarker() {
-    const defs = createSvgElement('defs');
-    const marker = createSvgElement('marker', {
-      id: this.arrowId,
-      markerWidth: 10,
-      markerHeight: 10,
-      refX: 8,
-      refY: 3,
-      orient: 'auto',
-      markerUnits: 'strokeWidth',
-    });
-    marker.appendChild(createSvgElement('path', {
-      d: 'M0,0 L0,6 L9,3 z',
-      fill: '#111',
-    }));
-    defs.appendChild(marker);
-    this.canvas.append(defs);
-  }
-
   addLine(start, end, attrs = {}) {
     this.canvas.add('line', {
       x1: start.x,
@@ -156,7 +137,7 @@ class RayProject {
 
   render() {
     this.canvas.clear();
-    this.addArrowMarker();
+    this.canvas.arrowMarker(this.arrowId);
     this.renderAxes();
     this.renderProjectionLine();
 

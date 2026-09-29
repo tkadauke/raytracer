@@ -26,8 +26,8 @@ namespace engine::raster::detail {
     // Projected signed area used only for face-culling decisions. The winding
     // sign convention is pinned by rasterizer and tessellation tests.
     double signedScreenArea(const ClipVert& v0, const ClipVert& v1, const ClipVert& v2) {
-      return (v1.screen.x() - v0.screen.x()) * (v2.screen.y() - v0.screen.y()) -
-             (v1.screen.y() - v0.screen.y()) * (v2.screen.x() - v0.screen.x());
+      return signedArea2D(v0.screen.x(), v0.screen.y(), v1.screen.x(), v1.screen.y(), v2.screen.x(),
+                          v2.screen.y());
     }
   }
 

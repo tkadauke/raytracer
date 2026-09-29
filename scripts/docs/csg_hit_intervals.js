@@ -216,21 +216,7 @@ class CsgHitIntervals {
 
   renderAxis() {
     const axisY = 28;
-    const defs = this.canvas.add('defs');
-    const marker = createSvgElement('marker', {
-      id: 'csg-hit-intervals-arrow',
-      markerWidth: 10,
-      markerHeight: 10,
-      refX: 8,
-      refY: 3,
-      orient: 'auto',
-      markerUnits: 'strokeWidth',
-    });
-    marker.appendChild(createSvgElement('path', {
-      d: 'M0,0 L0,6 L9,3 z',
-      fill: '#222',
-    }));
-    defs.appendChild(marker);
+    this.canvas.arrowMarker('csg-hit-intervals-arrow', '#222');
     this.addLine(this.bounds.left, axisY, this.bounds.right, axisY, {
       'marker-end': 'url(#csg-hit-intervals-arrow)',
     });

@@ -85,12 +85,7 @@ QString SourceAsset::resolvedSourcePath() const {
   if (m_sourcePath.isEmpty() || !QFileInfo(m_sourcePath).isRelative())
     return m_sourcePath;
 
-  const Element* root = this;
-  while (root->parent()) {
-    root = root->parent();
-  }
-
-  const QString sourceFile = root->property("_sourceFile").toString();
+  const QString sourceFile = root()->property("_sourceFile").toString();
   const QString basePath = QFileInfo(sourceFile).absolutePath();
   const QDir baseDir(basePath.isEmpty() ? QDir::currentPath() : basePath);
   return baseDir.filePath(m_sourcePath);

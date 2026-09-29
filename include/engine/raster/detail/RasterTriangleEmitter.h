@@ -324,7 +324,7 @@ namespace engine::raster::detail {
       const auto& v0 = triangle.vertices[0];
       const auto& v1 = triangle.vertices[1];
       const auto& v2 = triangle.vertices[2];
-      return (v1.x - v0.x) * (v2.y - v0.y) - (v1.y - v0.y) * (v2.x - v0.x) == 0.0;
+      return signedArea2D(v0.x, v0.y, v1.x, v1.y, v2.x, v2.y) == 0.0;
     }
 
     const render::Scene* m_scene;

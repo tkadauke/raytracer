@@ -1,7 +1,6 @@
 #include "world/animation/AnimationTrack.h"
 
 #include <algorithm>
-#include <cmath>
 #include <stdexcept>
 #include <utility>
 
@@ -114,7 +113,7 @@ namespace {
       throw invalidArgument("animation key field 'frame' must be an integer");
 
     const auto frame = value.toDouble();
-    if (std::floor(frame) != frame)
+    if (!core::json::isIntegerValued(frame))
       throw invalidArgument("animation key field 'frame' must be an integer");
 
     return static_cast<int>(frame);
@@ -153,7 +152,7 @@ namespace {
       throw evaluationError(track, "integer key values must be integers");
 
     const auto number = value.toDouble();
-    if (std::floor(number) != number)
+    if (!core::json::isIntegerValued(number))
       throw evaluationError(track, "integer key values must be integers");
 
     return static_cast<int>(number);
