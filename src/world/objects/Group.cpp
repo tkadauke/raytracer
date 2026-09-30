@@ -148,20 +148,7 @@ std::shared_ptr<render::Primitive> Group::toRaytracer(render::Scene* scene,
 
   auto composite = make_named<render::Composite>();
 
-  for (const auto& child : childElements()) {
-    if (auto surface = qobject_cast<Surface*>(child)) {
-      auto primitive = surface->toRaytracer(scene, style);
-      if (primitive)
-        composite->add(primitive);
-    } else if (auto group = qobject_cast<Group*>(child)) {
-      auto primitive = group->toRaytracer(scene, style);
-      if (primitive)
-        composite->add(primitive);
-    } else if (auto light = qobject_cast<Light*>(child)) {
-      if (light->visible())
-        scene->addLight(light->toRaytracer());
-    }
-  }
+  addChildPrimitivesTo(*composite, scene, style);
 
   if (composite->primitives().empty())
     return nullptr;

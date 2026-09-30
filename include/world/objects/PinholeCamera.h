@@ -68,11 +68,7 @@ public:
     * </tr></table>
     */
   inline void setZoom(double zoom) {
-    if (zoom <= 0) {
-      m_zoom = 1;
-    } else {
-      m_zoom = zoom;
-    }
+    m_zoom = clampedZoom(zoom);
   }
 
   /**

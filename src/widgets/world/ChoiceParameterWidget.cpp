@@ -28,12 +28,7 @@ ChoiceParameterWidget::ChoiceParameterWidget(QVariantList choices, QWidget* pare
       p(std::make_unique<Private>()) {
   p->choices = std::move(choices);
 
-  auto* layout = new QVBoxLayout(this);
-  layout->setContentsMargins(2, 2, 2, 2);
-  layout->setSpacing(2);
-
-  p->label = new QLabel(this);
-  configureLabel(p->label);
+  auto* layout = makeParameterLayout(p->label);
   p->comboBox = new QComboBox(this);
   p->comboBox->setObjectName(QStringLiteral("choiceComboBox"));
   configureComboBox(p->comboBox);
