@@ -23,12 +23,7 @@ struct ColorParameterWidget::Private {
 ColorParameterWidget::ColorParameterWidget(QWidget* parent)
     : AbstractParameterWidget(parent),
       p(std::make_unique<Private>()) {
-  auto* layout = new QVBoxLayout(this);
-  layout->setContentsMargins(2, 2, 2, 2);
-  layout->setSpacing(2);
-
-  p->label = new QLabel(this);
-  configureLabel(p->label);
+  auto* layout = makeParameterLayout(p->label);
   p->rEdit = makeSpinBoxEdit(this, 0.0, 1000000.0, 3, 0.01);
   p->gEdit = makeSpinBoxEdit(this, 0.0, 1000000.0, 3, 0.01);
   p->bEdit = makeSpinBoxEdit(this, 0.0, 1000000.0, 3, 0.01);

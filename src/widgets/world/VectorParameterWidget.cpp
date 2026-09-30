@@ -17,12 +17,7 @@ struct VectorParameterWidget::Private {
 VectorParameterWidget::VectorParameterWidget(QWidget* parent)
     : AbstractParameterWidget(parent),
       p(std::make_unique<Private>()) {
-  auto* layout = new QVBoxLayout(this);
-  layout->setContentsMargins(2, 2, 2, 2);
-  layout->setSpacing(2);
-
-  p->label = new QLabel(this);
-  configureLabel(p->label);
+  auto* layout = makeParameterLayout(p->label);
   p->xEdit = makeSpinBoxEdit(this, -1000000.0, 1000000.0, 4, 0.1);
   p->yEdit = makeSpinBoxEdit(this, -1000000.0, 1000000.0, 4, 0.1);
   p->zEdit = makeSpinBoxEdit(this, -1000000.0, 1000000.0, 4, 0.1);

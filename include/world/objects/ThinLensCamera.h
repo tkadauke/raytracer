@@ -80,7 +80,7 @@ public:
     * to 1 (the math is undefined at zero zoom).
     */
   inline void setZoom(double z) {
-    m_zoom = z <= 0 ? 1 : z;
+    m_zoom = clampedZoom(z);
   }
 
   /**

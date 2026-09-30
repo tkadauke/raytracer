@@ -30,12 +30,7 @@ struct DoubleParameterWidget::Private {
 DoubleParameterWidget::DoubleParameterWidget(QWidget* parent)
     : AbstractParameterWidget(parent),
       p(std::make_unique<Private>()) {
-  auto* layout = new QVBoxLayout(this);
-  layout->setContentsMargins(2, 2, 2, 2);
-  layout->setSpacing(2);
-
-  p->label = new QLabel(this);
-  configureLabel(p->label);
+  auto* layout = makeParameterLayout(p->label);
   p->doubleEdit = makeSpinBoxEdit(this, -1000000.0, 1000000.0, 6, 0.1);
 
   layout->addWidget(p->label);

@@ -56,6 +56,12 @@ protected:
   static void configureLabel(QLabel* label,
                              QSizePolicy::Policy horizontalPolicy = QSizePolicy::Ignored);
 
+  /// Builds the top-level `QVBoxLayout` (2px margins/spacing, parented to
+  /// this widget) and the configured caption label shared by every
+  /// parameter widget's constructor. Writes the new label to @p label and
+  /// returns the layout.
+  QVBoxLayout* makeParameterLayout(QLabel*& label);
+
   /// Configures the size-adjust/minimum-content layout properties shared by
   /// the combo-box-backed parameter widgets (angle unit, choice, reference):
   /// no minimum width, a 6-character minimum content length that drives

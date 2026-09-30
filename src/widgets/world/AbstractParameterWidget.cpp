@@ -110,6 +110,17 @@ void AbstractParameterWidget::configureLabel(QLabel* label,
   label->setSizePolicy(horizontalPolicy, QSizePolicy::Preferred);
 }
 
+QVBoxLayout* AbstractParameterWidget::makeParameterLayout(QLabel*& label) {
+  auto* layout = new QVBoxLayout(this);
+  layout->setContentsMargins(2, 2, 2, 2);
+  layout->setSpacing(2);
+
+  label = new QLabel(this);
+  configureLabel(label);
+
+  return layout;
+}
+
 void AbstractParameterWidget::configureComboBox(QComboBox* comboBox,
                                                  QSizePolicy::Policy horizontalPolicy) {
   comboBox->setMinimumWidth(0);
