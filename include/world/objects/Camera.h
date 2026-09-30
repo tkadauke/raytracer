@@ -74,6 +74,14 @@ public:
 protected:
   void applyCameraProperties(const std::shared_ptr<render::Camera>& camera) const;
 
+  /**
+    * Coerces non-positive zoom values to 1 (the math is undefined at zero
+    * zoom); positive values pass through unchanged.
+    */
+  static inline double clampedZoom(double zoom) {
+    return zoom <= 0 ? 1 : zoom;
+  }
+
 private:
   Vector3d m_position;
   Vector3d m_target;

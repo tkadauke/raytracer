@@ -54,14 +54,10 @@ class RasterizerPerspectiveUV {
     return this.panelWidth * 2 + this.gap;
   }
 
-  lerp(a, b, t) {
-    return a + (b - a) * t;
-  }
-
   interpolatePoint(a, b, t) {
     return {
-      x: this.lerp(a.x, b.x, t),
-      y: this.lerp(a.y, b.y, t),
+      x: FigureMath.lerp(a.x, b.x, t),
+      y: FigureMath.lerp(a.y, b.y, t),
     };
   }
 
@@ -101,9 +97,9 @@ class RasterizerPerspectiveUV {
       },
       perspectivePoint: (u, v) => {
         const point3 = {
-          x: this.lerp(-halfWidth, halfWidth, u),
-          y: this.lerp(-halfHeight, halfHeight, v),
-          z: this.lerp(leftDepth, rightDepth, u),
+          x: FigureMath.lerp(-halfWidth, halfWidth, u),
+          y: FigureMath.lerp(-halfHeight, halfHeight, v),
+          z: FigureMath.lerp(leftDepth, rightDepth, u),
         };
         return toPanel({ x: point3.x / point3.z, y: point3.y / point3.z });
       },

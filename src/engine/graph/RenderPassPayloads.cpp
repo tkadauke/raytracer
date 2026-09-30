@@ -91,6 +91,20 @@ namespace engine::graph {
       }
     }
 
+    /**
+      * Sets up @p plane for @p targetRect and returns the rect that should
+      * actually be sampled: @p targetRect, snapped to the view plane's
+      * letterboxed inner rect when its aspect mode is FitExact.
+      */
+    Recti fitExactRenderRect(render::ViewPlane& plane, const Matrix4d& cameraMatrix,
+                             const Recti& targetRect) {
+      plane.setup(cameraMatrix, targetRect);
+      if (plane.aspectMode() == render::AspectMode::FitExact) {
+        return plane.innerRect();
+      }
+      return targetRect;
+    }
+
     void requireStencilResource(const RenderResourceStorage& storage,
                                 const RenderResourceId& resource, const RenderPassNode& pass) {
       if (!storage.resource(resource).stencilBacked()) {
@@ -1879,12 +1893,7 @@ namespace engine::graph {
         }
         const auto& descriptor = context.storage().descriptor(write.resource);
         const Recti targetRect(descriptor.width, descriptor.height);
-        plane->setup(camera->matrix(), targetRect);
-
-        Recti renderRect = targetRect;
-        if (plane->aspectMode() == render::AspectMode::FitExact) {
-          renderRect = plane->innerRect();
-        }
+        const Recti renderRect = fitExactRenderRect(*plane, camera->matrix(), targetRect);
 
         render::NullSampleStream stream;
         for (int y = renderRect.top(); y < renderRect.bottom(); ++y) {
@@ -2066,12 +2075,7 @@ namespace engine::graph {
         }
 
         const Recti targetRect(output.width(), output.height());
-        plane->setup(camera->matrix(), targetRect);
-
-        Recti renderRect = targetRect;
-        if (plane->aspectMode() == render::AspectMode::FitExact) {
-          renderRect = plane->innerRect();
-        }
+        const Recti renderRect = fitExactRenderRect(*plane, camera->matrix(), targetRect);
 
         std::vector<render::State> states;
         std::vector<render::WavefrontClosestHitQuery> queries;
@@ -2248,11 +2252,7 @@ namespace engine::graph {
         }
 
         const Recti targetRect(mask.width(), mask.height());
-        plane->setup(camera->matrix(), targetRect);
-        Recti renderRect = targetRect;
-        if (plane->aspectMode() == render::AspectMode::FitExact) {
-          renderRect = plane->innerRect();
-        }
+        const Recti renderRect = fitExactRenderRect(*plane, camera->matrix(), targetRect);
 
         std::vector<render::State> primaryStates;
         std::vector<render::WavefrontClosestHitQuery> primaryQueries;

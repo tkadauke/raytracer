@@ -1,8 +1,12 @@
 #include "world/objects/Transformable.h"
+#include "world/objects/Group.h"
+#include "world/objects/Light.h"
 #include "world/objects/Material.h"
+#include "world/objects/Surface.h"
 #include "world/objects/TransformComposition.h"
 #include "render/primitives/Instance.h"
 #include "render/primitives/Composite.h"
+#include "render/primitives/Scene.h"
 
 Transformable::Transformable(Element* parent)
     : Element(parent),
@@ -58,4 +62,22 @@ void Transformable::moveBy(const Vector3d& vector, bool global) {
     offset = Matrix3d(localTransform()) * vector;
   }
   setPosition(position() + offset);
+}
+
+void Transformable::addChildPrimitivesTo(render::Composite& composite, render::Scene* scene,
+                                         const StepPlaybackStyle& style) const {
+  for (const auto& child : childElements()) {
+    if (Surface* surface = qobject_cast<Surface*>(child)) {
+      auto primitive = surface->toRaytracer(scene, style);
+      if (primitive)
+        composite.add(primitive);
+    } else if (Group* group = qobject_cast<Group*>(child)) {
+      auto primitive = group->toRaytracer(scene, style);
+      if (primitive)
+        composite.add(primitive);
+    } else if (Light* light = qobject_cast<Light*>(child)) {
+      if (light->visible())
+        scene->addLight(light->toRaytracer());
+    }
+  }
 }

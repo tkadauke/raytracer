@@ -6,6 +6,13 @@
 #include "core/math/Vector.h"
 #include "core/math/Matrix.h"
 
+namespace render {
+  class Composite;
+  class Scene;
+}
+
+struct StepPlaybackStyle;
+
 /**
   * Represents an object with a position, size and/or orientation. This includes
   * all visible objects, and lights.
@@ -129,6 +136,14 @@ public:
 protected:
   void leaveParent() override;
   void joinParent() override;
+
+  /**
+    * Converts each child Surface/Group into a runtime primitive and adds it
+    * to @p composite, and registers each visible child Light with @p scene.
+    * Shared by Surface::toRaytracer and Group::toRaytracer.
+    */
+  void addChildPrimitivesTo(render::Composite& composite, render::Scene* scene,
+                            const StepPlaybackStyle& style) const;
 
 private:
   Vector3d m_position;
