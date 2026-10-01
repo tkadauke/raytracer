@@ -1595,16 +1595,21 @@ void MainWindow::openRecentFile() {
     openFile(fileName);
 }
 
+QProgressDialog* MainWindow::showIndeterminateProgress(const QString& labelText) {
+  auto* progress = new QProgressDialog(labelText, QString(), 0, 0, this);
+  progress->setCancelButton(nullptr);
+  progress->setMinimumDuration(0);
+  progress->setWindowModality(Qt::WindowModal);
+  progress->show();
+  return progress;
+}
+
 void MainWindow::openFile(const QString& fileName) {
   if (fileName.isNull() || !maybeSave())
     return;
 
   const QString displayName = QFileInfo(fileName).fileName();
-  auto* progress = new QProgressDialog(tr("Opening %1...").arg(displayName), QString(), 0, 0, this);
-  progress->setCancelButton(nullptr);
-  progress->setMinimumDuration(0);
-  progress->setWindowModality(Qt::WindowModal);
-  progress->show();
+  auto* progress = showIndeterminateProgress(tr("Opening %1...").arg(displayName));
 
   auto* thread = new SceneOpenThread(fileName, this);
   connect(thread, &QThread::finished, this, [this, fileName, progress, thread]() {
@@ -1667,12 +1672,8 @@ void MainWindow::importFile() {
   if (fileName.isNull())
     return;
 
-  auto* progress = new QProgressDialog(tr("Importing %1...").arg(QFileInfo(fileName).fileName()),
-                                       QString(), 0, 0, this);
-  progress->setCancelButton(nullptr);
-  progress->setMinimumDuration(0);
-  progress->setWindowModality(Qt::WindowModal);
-  progress->show();
+  auto* progress =
+    showIndeterminateProgress(tr("Importing %1...").arg(QFileInfo(fileName).fileName()));
 
   auto* thread = new SceneImportThread(fileName, this);
   connect(thread, &QThread::finished, this, [this, fileName, progress, thread]() {

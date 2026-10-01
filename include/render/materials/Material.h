@@ -62,6 +62,19 @@ namespace render {
     std::optional<Rayd> continuationRay;
 
     Rayd rayFrom(const HitPoint& hitPoint) const;
+
+    /// Builds a delta (perfect-specular) sample: pdf = 1.0, isDelta = true,
+    /// direction normalized. Shared by every material whose BSDF has a
+    /// finite set of exactly-enumerable branches (mirror reflection,
+    /// refraction, total internal reflection, portal redirection).
+    static MaterialBsdfSample delta(const Vector3d& direction, const Colord& value) {
+      MaterialBsdfSample result;
+      result.direction = direction.normalized();
+      result.value = value;
+      result.pdf = 1.0;
+      result.isDelta = true;
+      return result;
+    }
   };
 
   struct WhittedContinuation {
