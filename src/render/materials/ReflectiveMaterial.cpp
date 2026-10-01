@@ -69,17 +69,12 @@ double ReflectiveMaterial::bsdfPdf(const HitPoint&, const Vector3d&, const Vecto
 
 render::MaterialBsdfSample ReflectiveMaterial::reflectionDeltaBsdfSample(const HitPoint& hitPoint,
                                                                          const Vector3d& wi) const {
-  render::MaterialBsdfSample result;
   if (reflectionCoefficient() <= 0.0 || reflectionColor() == Colord::black()) {
-    return result;
+    return render::MaterialBsdfSample();
   }
 
   Vector3d direction;
   const Colord reflected = m_reflectiveBRDF.sample(hitPoint, wi, direction);
   const double reflectionScale = std::fabs(hitPoint.normal() * direction);
-  result.direction = direction.normalized();
-  result.value = reflected * reflectionScale;
-  result.pdf = 1.0;
-  result.isDelta = true;
-  return result;
+  return render::MaterialBsdfSample::delta(direction, reflected * reflectionScale);
 }
