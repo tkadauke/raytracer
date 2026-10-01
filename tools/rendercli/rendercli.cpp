@@ -45,6 +45,7 @@
 
 #include "core/Buffer.h"
 #include "core/math/Constants.h"
+#include "core/util/QStringUtil.h"
 
 #include "engine/graph/RenderAOV.h"
 
@@ -1047,11 +1048,8 @@ namespace {
   };
 
   QString normalizedRasterOption(QString value) {
-    value = value.trimmed().toLower();
-    value.remove('_');
-    value.remove('-');
+    value = normalizeOptionToken(value, /*stripSpaces=*/true);
     value.remove(',');
-    value.remove(' ');
     return value;
   }
 

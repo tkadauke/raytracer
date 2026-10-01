@@ -152,38 +152,25 @@ TransparentMaterial::bsdfSamplingWeights(bool totalInternalReflection) const {
 render::MaterialBsdfSample TransparentMaterial::sampleReflectionBsdf(const HitPoint& hitPoint,
                                                                      const Vector3d& wi,
                                                                      double selectionWeight) const {
-  render::MaterialBsdfSample result;
   Vector3d direction;
   const Colord reflectedColor = m_reflectiveBRDF.sample(hitPoint, wi, direction);
   const double reflectionScale = fabs(hitPoint.normal() * direction);
-  result.direction = direction.normalized();
-  result.value = reflectedColor * (reflectionScale / selectionWeight);
-  result.pdf = 1.0;
-  result.isDelta = true;
-  return result;
+  return render::MaterialBsdfSample::delta(direction,
+                                           reflectedColor * (reflectionScale / selectionWeight));
 }
 
 render::MaterialBsdfSample
 TransparentMaterial::sampleTransmissionBsdf(const HitPoint& hitPoint, const Vector3d& wi,
                                             double selectionWeight) const {
-  render::MaterialBsdfSample result;
   Vector3d direction;
   const Colord transmittedColor = m_specularBTDF.sample(hitPoint, wi, direction);
   const double transmissionScale = fabs(hitPoint.normal() * direction);
-  result.direction = direction.normalized();
-  result.value = transmittedColor * (transmissionScale / selectionWeight);
-  result.pdf = 1.0;
-  result.isDelta = true;
-  return result;
+  return render::MaterialBsdfSample::delta(
+    direction, transmittedColor * (transmissionScale / selectionWeight));
 }
 
 render::MaterialBsdfSample
 TransparentMaterial::sampleTotalInternalReflectionBsdf(const HitPoint& hitPoint,
                                                        const Vector3d& wi) const {
-  render::MaterialBsdfSample result;
-  result.direction = (-wi).reflect(hitPoint.normal()).normalized();
-  result.value = Colord::white();
-  result.pdf = 1.0;
-  result.isDelta = true;
-  return result;
+  return render::MaterialBsdfSample::delta((-wi).reflect(hitPoint.normal()), Colord::white());
 }

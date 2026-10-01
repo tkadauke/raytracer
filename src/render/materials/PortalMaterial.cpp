@@ -47,12 +47,9 @@ Colord PortalMaterial::evalBsdf(const HitPoint&, const Vector3d&, const Vector3d
 
 render::MaterialBsdfSample PortalMaterial::sampleBsdf(const HitPoint& hitPoint, const Vector3d& wi,
                                                       const Vector2d&) const {
-  render::MaterialBsdfSample result;
-  result.continuationRay = redirectedRay(hitPoint, wi);
-  result.direction = result.continuationRay->direction().normalized();
-  result.value = m_filterColor;
-  result.pdf = 1.0;
-  result.isDelta = true;
+  const Rayd ray = redirectedRay(hitPoint, wi);
+  render::MaterialBsdfSample result = render::MaterialBsdfSample::delta(ray.direction(), m_filterColor);
+  result.continuationRay = ray;
   return result;
 }
 

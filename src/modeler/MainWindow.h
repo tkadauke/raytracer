@@ -9,6 +9,7 @@
 #include <string>
 
 class QDockWidget;
+class QProgressDialog;
 
 class PropertyEditorWidget;
 class PreviewDisplayWidget;
@@ -172,6 +173,7 @@ private:
 
   bool maybeSave();
   void openFile(const QString& fileName);
+  QProgressDialog* showIndeterminateProgress(const QString& labelText);
   void loadRecentFiles();
   void addRecentFile(const QString& fileName);
   void removeRecentFile(const QString& fileName);
