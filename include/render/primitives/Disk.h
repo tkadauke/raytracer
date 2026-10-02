@@ -71,6 +71,8 @@ namespace render {
     template<typename Packet, typename StateArray, typename Result>
     Result intersectPacketHitsFor(const Packet& rays, const StateArray& states) const;
 
+    double calculateIntersectionDistance(const Rayd& ray) const;
+
     Vector4d m_center;
     Vector3d m_normal;
     double m_radius, m_squaredRadius;

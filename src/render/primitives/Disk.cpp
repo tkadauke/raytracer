@@ -10,15 +10,14 @@
 
 using namespace render;
 
+double Disk::calculateIntersectionDistance(const Rayd& ray) const {
+  const double denominator = ray.direction() * m_normal;
+  return (m_center - ray.origin()) * m_normal / denominator;
+}
+
 const Primitive* Disk::intersect(const Rayd& ray, HitPointInterval& hitPoints,
                                  render::State& state) const {
-  const double denominator = ray.direction() * m_normal;
-  if (denominator == 0.0) {
-    state.miss(this, "Disk, parallel");
-    return nullptr;
-  }
-
-  const double t = (m_center - ray.origin()) * m_normal / denominator;
+  const double t = calculateIntersectionDistance(ray);
   if (!std::isfinite(t)) {
     state.miss(this, "Disk, parallel");
     return nullptr;
@@ -55,13 +54,7 @@ Result Disk::intersectPacketHitsFor(const Packet& rays, const StateArray& states
     }
     State& state = *states[lane];
     const Rayd ray = rays.rayd(lane);
-    const double denominator = ray.direction() * m_normal;
-    if (denominator == 0.0) {
-      state.miss(this, "Disk, parallel");
-      continue;
-    }
-
-    const double t = (m_center - ray.origin()) * m_normal / denominator;
+    const double t = calculateIntersectionDistance(ray);
     if (!std::isfinite(t)) {
       state.miss(this, "Disk, parallel");
       continue;
