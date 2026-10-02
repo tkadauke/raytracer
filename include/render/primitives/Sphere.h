@@ -113,6 +113,10 @@ namespace render {
     template<typename Packet, typename StateArray, typename Result>
     Result intersectPacketIntervalsFor(const Packet& rays, const StateArray& states) const;
 
+    /// Solves `|o + t*d|^2 = radius^2` for t. Returns false (discriminant <=
+    /// 0) when the ray misses the sphere entirely.
+    bool solveQuadratic(const Vector3d& o, const Vector3d& d, double& t1, double& t2) const;
+
     Vector3d m_origin;
     double m_radius;
   };

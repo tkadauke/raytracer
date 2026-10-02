@@ -85,6 +85,20 @@ namespace render {
     template<typename Packet, typename StateArray, typename Result>
     Result intersectPacketIntervalsFor(const Packet& rays, const StateArray& states) const;
 
+    /// Per-axis slab test against the box's extent, given `d = center -
+    /// ray.origin()`. Returns true as soon as an axis proves the ray misses
+    /// (t1 > t2); `found` reports whether any non-parallel axis was
+    /// processed. `parallel` collects the bitmask of axes the ray runs
+    /// parallel to (and so couldn't narrow t1/t2 on).
+    bool intersectSlabs(const Vector3d& d, const Vector3d& direction, double& t1, double& t2,
+                        Vector3d& normal1, Vector3d& normal2, int& parallel, bool& found) const;
+
+    /// For axes the ray ran parallel to (per `parallel`'s bitmask), checks
+    /// whether the ray's offset along that axis at t1/t2 falls outside the
+    /// box's extent.
+    bool parallelAxisOutOfBounds(const Vector3d& d, const Vector3d& direction, int parallel,
+                                 double t1, double t2) const;
+
     Vector3d m_center, m_edge;
   };
 }
