@@ -16,37 +16,43 @@ using namespace std;
 using namespace render;
 
 
+bool Sphere::solveQuadratic(const Vector3d& o, const Vector3d& d, double& t1, double& t2) const {
+  const double od = o * d, dd = d * d;
+  const double discriminant = od * od - dd * (o * o - m_radius * m_radius);
+
+  if (discriminant <= 0.0) {
+    return false;
+  }
+
+  const double discriminantRoot = sqrt(discriminant);
+  t1 = (-od - discriminantRoot) / dd;
+  t2 = (-od + discriminantRoot) / dd;
+  return true;
+}
+
 const Primitive* Sphere::intersect(const Rayd& ray, HitPointInterval& hitPoints,
                                    render::State& state) const {
   RAYTRACER_STATS_INC(raySphereIntersect);
-  const Vector3d &o = ray.origin() - m_origin, d = ray.direction();
+  const Vector3d o = ray.origin() - m_origin, d = ray.direction();
 
-  double od = o * d, dd = d * d;
-  double discriminant = od * od - dd * (o * o - m_radius * m_radius);
-
-  if (discriminant < 0) {
+  double t1, t2;
+  if (!solveQuadratic(o, d, t1, t2)) {
     state.miss(this, "Sphere, ray miss");
     return nullptr;
-  } else if (discriminant > 0) {
-    double discriminantRoot = sqrt(discriminant);
-    double t1 = (-od - discriminantRoot) / dd;
-    double t2 = (-od + discriminantRoot) / dd;
-
-    Vector3d hitPoint1 = ray.at(t1), hitPoint2 = ray.at(t2);
-
-    hitPoints.add(HitPoint(this, t1, hitPoint1, (hitPoint1 - m_origin) / m_radius),
-                  HitPoint(this, t2, hitPoint2, (hitPoint2 - m_origin) / m_radius));
-
-    if (t1 <= 0 && t2 <= 0) {
-      state.miss(this, "Sphere, behind ray");
-      return nullptr;
-    } else {
-      state.hit(this, "Sphere");
-      return this;
-    }
   }
-  state.miss(this, "Sphere, ray miss");
-  return nullptr;
+
+  Vector3d hitPoint1 = ray.at(t1), hitPoint2 = ray.at(t2);
+
+  hitPoints.add(HitPoint(this, t1, hitPoint1, (hitPoint1 - m_origin) / m_radius),
+                HitPoint(this, t2, hitPoint2, (hitPoint2 - m_origin) / m_radius));
+
+  if (t1 <= 0 && t2 <= 0) {
+    state.miss(this, "Sphere, behind ray");
+    return nullptr;
+  } else {
+    state.hit(this, "Sphere");
+    return this;
+  }
 }
 
 RayPacketIntersection4 Sphere::intersectPacket(const Ray4& rays, render::State& state) const {
@@ -114,18 +120,12 @@ Result Sphere::intersectPacketHitsFor(const Packet& rays, const StateArray& stat
     const Vector3d o = ray.origin() - m_origin;
     const Vector3d d = ray.direction();
 
-    const double od = o * d;
-    const double dd = d * d;
-    const double discriminant = od * od - dd * (o * o - m_radius * m_radius);
-
-    if (discriminant <= 0.0) {
+    double t1, t2;
+    if (!solveQuadratic(o, d, t1, t2)) {
       state.miss(this, "Sphere, ray miss");
       continue;
     }
 
-    const double discriminantRoot = sqrt(discriminant);
-    const double t1 = (-od - discriminantRoot) / dd;
-    const double t2 = (-od + discriminantRoot) / dd;
     if (t1 <= 0.0 && t2 <= 0.0) {
       state.miss(this, "Sphere, behind ray");
       continue;
@@ -162,18 +162,12 @@ Result Sphere::intersectPacketIntervalsFor(const Packet& rays, const StateArray&
     const Vector3d o = ray.origin() - m_origin;
     const Vector3d d = ray.direction();
 
-    const double od = o * d;
-    const double dd = d * d;
-    const double discriminant = od * od - dd * (o * o - m_radius * m_radius);
-
-    if (discriminant <= 0.0) {
+    double t1, t2;
+    if (!solveQuadratic(o, d, t1, t2)) {
       state.miss(this, "Sphere, ray miss");
       continue;
     }
 
-    const double discriminantRoot = sqrt(discriminant);
-    const double t1 = (-od - discriminantRoot) / dd;
-    const double t2 = (-od + discriminantRoot) / dd;
     const Vector3d hitPoint1 = ray.at(t1);
     const Vector3d hitPoint2 = ray.at(t2);
     HitPointInterval hitPoints(HitPoint(this, t1, hitPoint1, (hitPoint1 - m_origin) / m_radius),
@@ -205,29 +199,21 @@ Sphere::intersectPacketIntervals(const Ray8& rays, const PrimitivePacketState8& 
 
 bool Sphere::intersects(const Rayd& ray, render::State& state) const {
   RAYTRACER_STATS_INC(raySphereIntersects);
-  const Vector3d &o = ray.origin() - m_origin, d = ray.direction();
+  const Vector3d o = ray.origin() - m_origin, d = ray.direction();
 
-  double od = o * d, dd = d * d;
-  double discriminant = od * od - dd * (o * o - m_radius * m_radius);
-
-  if (discriminant < 0) {
+  double t1, t2;
+  if (!solveQuadratic(o, d, t1, t2)) {
     state.shadowMiss(this, "Sphere, ray miss");
     return false;
-  } else if (discriminant > 0) {
-    double discriminantRoot = sqrt(discriminant);
-    double t1 = (-od - discriminantRoot) / dd;
-    double t2 = (-od + discriminantRoot) / dd;
-    if (t1 <= 0 && t2 <= 0) {
-      state.shadowMiss(this, "Sphere, behind ray");
-      return false;
-    }
-
-    state.shadowHit(this, "Sphere");
-    return true;
   }
 
-  state.shadowMiss(this, "Sphere, ray miss");
-  return false;
+  if (t1 <= 0 && t2 <= 0) {
+    state.shadowMiss(this, "Sphere, behind ray");
+    return false;
+  }
+
+  state.shadowHit(this, "Sphere");
+  return true;
 }
 
 void Sphere::appendIntersectionSceneRecord(IntersectionSceneBuilder& builder,
