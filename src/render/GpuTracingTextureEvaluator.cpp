@@ -75,27 +75,25 @@ namespace render {
 
       const Vector2d st = textureCoordinates(texture, hit);
       if ((texture.flags & gpuTracingTextureFilterBilinearFlag) != 0u) {
-        const double x = normalizedTextureCoordinate(texture, st.x()) * width - 0.5;
-        const double y = normalizedTextureCoordinate(texture, st.y()) * height - 0.5;
-        const int x0 = static_cast<int>(std::floor(x));
-        const int y0 = static_cast<int>(std::floor(y));
-        const double tx = x - x0;
-        const double ty = y - y0;
+        const BilinearTexelOffset x =
+          bilinearTexelOffset(normalizedTextureCoordinate(texture, st.x()) * width - 0.5);
+        const BilinearTexelOffset y =
+          bilinearTexelOffset(normalizedTextureCoordinate(texture, st.y()) * height - 0.5);
 
         const Colord c00 =
-          imageTexelColor(texture, imageTextureWrappedCoordinate(texture, x0, width),
-                          imageTextureWrappedCoordinate(texture, y0, height), width, hit, depth);
+          imageTexelColor(texture, imageTextureWrappedCoordinate(texture, x.lower, width),
+                          imageTextureWrappedCoordinate(texture, y.lower, height), width, hit, depth);
         const Colord c10 =
-          imageTexelColor(texture, imageTextureWrappedCoordinate(texture, x0 + 1, width),
-                          imageTextureWrappedCoordinate(texture, y0, height), width, hit, depth);
+          imageTexelColor(texture, imageTextureWrappedCoordinate(texture, x.lower + 1, width),
+                          imageTextureWrappedCoordinate(texture, y.lower, height), width, hit, depth);
         const Colord c01 = imageTexelColor(
-          texture, imageTextureWrappedCoordinate(texture, x0, width),
-          imageTextureWrappedCoordinate(texture, y0 + 1, height), width, hit, depth);
+          texture, imageTextureWrappedCoordinate(texture, x.lower, width),
+          imageTextureWrappedCoordinate(texture, y.lower + 1, height), width, hit, depth);
         const Colord c11 = imageTexelColor(
-          texture, imageTextureWrappedCoordinate(texture, x0 + 1, width),
-          imageTextureWrappedCoordinate(texture, y0 + 1, height), width, hit, depth);
+          texture, imageTextureWrappedCoordinate(texture, x.lower + 1, width),
+          imageTextureWrappedCoordinate(texture, y.lower + 1, height), width, hit, depth);
 
-        return c00.lerp(c10, tx).lerp(c01.lerp(c11, tx), ty);
+        return bilinearBlend(c00, c10, c01, c11, x.fraction, y.fraction);
       }
 
       const int x = imageTextureCoordinate(texture, st.x(), width);

@@ -1,6 +1,7 @@
 #include "render/lights/RectangularAreaLight.h"
 
 #include "core/math/Constants.h"
+#include "render/lights/RectangularAreaLightMath.h"
 #include "render/materials/EmissiveMaterial.h"
 #include "render/primitives/Rectangle.h"
 
@@ -74,7 +75,7 @@ LightSample RectangularAreaLight::sample(const Vector3d& point, const Vector2d& 
     return {directionToLight, Colord::black(), distance, 0.0, false};
   }
 
-  const double solidAnglePdf = (distance * distance) / (cosLight * area());
+  const double solidAnglePdf = rectangularAreaLightSolidAnglePdf(distance, cosLight, area());
   return {directionToLight, radiance(), distance, solidAnglePdf, false};
 }
 
@@ -88,7 +89,7 @@ double RectangularAreaLight::pdf(const Vector3d& point, const Vector3d& directio
     return 0.0;
   }
 
-  const double t = ((center() - point) * normal()) / normalDotDirection;
+  const double t = rectangularAreaLightPlaneHitDistance(center(), point, normal(), normalDotDirection);
   if (t <= tolerance) {
     return 0.0;
   }
@@ -103,7 +104,7 @@ double RectangularAreaLight::pdf(const Vector3d& point, const Vector3d& directio
     return 0.0;
   }
 
-  return (t * t) / (cosLight * area());
+  return rectangularAreaLightSolidAnglePdf(t, cosLight, area());
 }
 
 bool RectangularAreaLight::isDelta() const {
