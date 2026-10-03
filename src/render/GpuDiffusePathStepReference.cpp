@@ -701,28 +701,15 @@ namespace {
     return (-wi).reflect(normal).normalized();
   }
 
-  double transparentEta(const GpuTracingMaterialRecord& material, const Vector3d& wi,
-                        const Vector3d& normal) {
-    const double ior = material.transmissionParameters[1];
-    return (normal * wi) < 0.0 ? 1.0 / ior : ior;
-  }
-
-  bool transparentTotalInternalReflection(const GpuTracingMaterialRecord& material,
-                                          const Vector3d& wi, const Vector3d& normal) {
-    const double cosTheta = normal * wi;
-    const double eta = transparentEta(material, wi, normal);
-    return 1.0 - (1.0 - cosTheta * cosTheta) / (eta * eta) < 0.0;
+  Vector3d::OrientedRefraction transparentRefraction(const GpuTracingMaterialRecord& material,
+                                                     const Vector3d& wi, const Vector3d& normal) {
+    return wi.orientedRefraction(normal, material.transmissionParameters[1]);
   }
 
   Vector3d transparentTransmissionDirection(const GpuTracingMaterialRecord& material,
                                             const Vector3d& wi, const Vector3d& normal) {
-    Vector3d orientedNormal = normal;
-    double eta = material.transmissionParameters[1];
-    if ((orientedNormal * wi) < 0.0) {
-      orientedNormal = -orientedNormal;
-      eta = 1.0 / eta;
-    }
-    return wi.refract(orientedNormal, eta).normalized();
+    const auto refraction = transparentRefraction(material, wi, normal);
+    return wi.refract(refraction.normal, refraction.eta).normalized();
   }
 
   struct DeltaContinuation {
@@ -733,7 +720,7 @@ namespace {
   DeltaContinuation transparentContinuation(const GpuTracingMaterialRecord& material,
                                             const Vector3d& wi, const Vector3d& normal,
                                             double selector) {
-    if (transparentTotalInternalReflection(material, wi, normal)) {
+    if (transparentRefraction(material, wi, normal).totalInternalReflection) {
       return {mirrorContinuationDirection(wi, normal), Colord::white()};
     }
 
@@ -754,7 +741,7 @@ namespace {
     if (transmissionWeight <= 0.0) {
       return {};
     }
-    const double eta = transparentEta(material, wi, normal);
+    const double eta = transparentRefraction(material, wi, normal).eta;
     const Colord transmissionWeightColor =
       Colord::white() *
       (static_cast<double>(material.transmissionParameters[0]) / (eta * eta) / transmissionWeight);

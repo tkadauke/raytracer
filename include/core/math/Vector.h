@@ -607,6 +607,43 @@ public:
   }
 
   /**
+    * Result of orientedRefraction(): the surface normal and refractive-index
+    * ratio, re-oriented so this vector and the normal are on the same side,
+    * plus whether that configuration is beyond the critical angle.
+    */
+  struct OrientedRefraction {
+    VectorType normal;
+    T eta;
+    bool totalInternalReflection;
+  };
+
+  /**
+    * @returns the refraction geometry of this vector (pointing away from the
+    *   surface, e.g. a view or incident direction) through a surface whose
+    *   normal \f$n\f$ may point to either side, with relative refractive
+    *   index \f$ior = n_\text{inside}/n_\text{outside}\f$.
+    *
+    * Flips \f$n\f$ and inverts \f$ior\f$ as needed so the returned normal is
+    * on the same side as this vector (i.e. \f$\cos\theta \geq 0\f$), and
+    * reports whether that orientation is beyond the critical angle, i.e.
+    * \f$1-(1-\cos^2\theta)/\eta^2 < 0\f$ — in that case refract() must not be
+    * called with the returned normal/eta.
+    */
+  [[nodiscard]] inline OrientedRefraction orientedRefraction(const VectorType& n,
+                                                              const T& ior) const noexcept {
+    VectorType normal = n;
+    T eta = ior;
+    T cosTheta = derived() * normal;
+    if (cosTheta < T(0)) {
+      normal = -normal;
+      eta = T(1) / eta;
+      cosTheta = -cosTheta;
+    }
+    bool tir = T(1) - (T(1) - cosTheta * cosTheta) / (eta * eta) < T(0);
+    return {normal, eta, tir};
+  }
+
+  /**
     * @returns true if this vector is approximately equal to other within
     *   component-wise absolute tolerance \f$\epsilon\f$.
     */
