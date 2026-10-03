@@ -124,6 +124,18 @@ namespace {
     return document;
   }
 
+  std::optional<Vector3d> parseVector3Tokens(const QStringList& tokens, int firstIndex) {
+    bool okX = false;
+    bool okY = false;
+    bool okZ = false;
+    const double x = tokens[firstIndex].toDouble(&okX);
+    const double y = tokens[firstIndex + 1].toDouble(&okY);
+    const double z = tokens[firstIndex + 2].toDouble(&okZ);
+    if (!okX || !okY || !okZ)
+      return std::nullopt;
+    return Vector3d(x, y, z);
+  }
+
   Mesh parseAsciiStl(const QByteArray& bytes) {
     Mesh mesh;
     const QString text = QString::fromUtf8(bytes);
@@ -135,26 +147,14 @@ namespace {
       const QString token = tokens[i].toLower();
       if (token == QStringLiteral("facet") && i + 4 < tokens.size() &&
           tokens[i + 1].toLower() == QStringLiteral("normal")) {
-        bool okX = false;
-        bool okY = false;
-        bool okZ = false;
-        const double x = tokens[i + 2].toDouble(&okX);
-        const double y = tokens[i + 3].toDouble(&okY);
-        const double z = tokens[i + 4].toDouble(&okZ);
-        if (okX && okY && okZ)
-          facetNormal = Vector3d(x, y, z);
+        facetNormal = parseVector3Tokens(tokens, i + 2);
         i += 4;
       } else if (token == QStringLiteral("vertex") && i + 3 < tokens.size()) {
-        bool okX = false;
-        bool okY = false;
-        bool okZ = false;
-        const double x = tokens[i + 1].toDouble(&okX);
-        const double y = tokens[i + 2].toDouble(&okY);
-        const double z = tokens[i + 3].toDouble(&okZ);
-        if (!okX || !okY || !okZ) {
+        const std::optional<Vector3d> vertex = parseVector3Tokens(tokens, i + 1);
+        if (!vertex) {
           throw std::runtime_error("STL vertex coordinate is not numeric");
         }
-        facetVertices.emplace_back(x, y, z);
+        facetVertices.push_back(*vertex);
         if (facetVertices.size() == 3) {
           addTriangle(mesh, facetVertices[0], facetVertices[1], facetVertices[2], facetNormal);
           facetVertices.clear();

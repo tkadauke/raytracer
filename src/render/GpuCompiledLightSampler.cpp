@@ -3,6 +3,7 @@
 #include "core/math/Constants.h"
 #include "render/GpuFloat4.h"
 #include "render/GpuRectangularLightHelpers.h"
+#include "render/lights/RectangularAreaLightMath.h"
 
 #include <algorithm>
 #include <cmath>
@@ -146,7 +147,7 @@ namespace render {
         return invalidSample(GpuCompiledLightSampleStatus::BackFacing, lightSample);
       }
 
-      const double solidAnglePdf = (distance * distance) / (cosLight * area);
+      const double solidAnglePdf = rectangularAreaLightSolidAnglePdf(distance, cosLight, area);
       return {GpuCompiledLightSampleStatus::Valid,
               directionToLight,
               Colord(light.parameters),
@@ -177,7 +178,8 @@ namespace render {
       return 0.0;
     }
 
-    const double t = ((Vector3d(light.positionOrDirection) - point) * normal) / normalDotDirection;
+    const double t = rectangularAreaLightPlaneHitDistance(
+      Vector3d(light.positionOrDirection), point, normal, normalDotDirection);
     if (t <= tolerance) {
       return 0.0;
     }
@@ -192,6 +194,6 @@ namespace render {
       return 0.0;
     }
 
-    return (t * t) / (cosLight * rectangularLightArea(light));
+    return rectangularAreaLightSolidAnglePdf(t, cosLight, rectangularLightArea(light));
   }
 }
