@@ -207,11 +207,8 @@ namespace world::imports {
                          std::vector<LDrawDiagnostic>* diagnostics) {
     removeGeneratedChildren(group);
 
-    auto compiled = std::make_unique<CompiledPrimitive>(compileLDraw(options, diagnostics));
-    compiled->setId(group->id() + ":compiled-geometry");
-    compiled->setName(group->name().isEmpty() ? QString("Imported Geometry")
-                                              : group->name() + " Geometry");
-    group->addChild(std::move(compiled));
+    CompiledPrimitive::attachTo(*group, compileLDraw(options, diagnostics),
+                                QStringLiteral("Imported Geometry"));
   }
 
   void resolveLDrawAuthoringImports(Element* root, const QString& libraryRootOverride,

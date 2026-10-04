@@ -17,14 +17,6 @@ namespace {
     return core::util::lowercase(path.generic_string());
   }
 
-  fs::path normalizeExistingPath(const fs::path& path) {
-    std::error_code error;
-    const fs::path canonical = fs::weakly_canonical(path, error);
-    if (!error)
-      return canonical;
-    return path.lexically_normal();
-  }
-
   [[noreturn]] void throwResolverError(const string& detail) {
     throw LDrawParseError(0, detail, __FILE__, __LINE__);
   }
@@ -121,7 +113,7 @@ void LDrawLibraryResolver::clearCache() {
 }
 
 LDrawLibraryResolver::MutableDocumentPtr LDrawLibraryResolver::loadMutable(const fs::path& path) {
-  const fs::path normalized = normalizeExistingPath(path);
+  const fs::path normalized = core::normalizeExistingPath(path);
   const string key = toLookupKey(normalized);
   const auto cached = m_cache.find(key);
   if (cached != m_cache.end())
@@ -144,7 +136,7 @@ LDrawLibraryResolver::MutableDocumentPtr LDrawLibraryResolver::loadMutable(const
 LDrawLibraryResolver::MutableDocumentPtr LDrawLibraryResolver::loadWithSubfiles(
   const fs::path& path,
   vector<fs::path>& stack) {
-  const fs::path normalized = normalizeExistingPath(path);
+  const fs::path normalized = core::normalizeExistingPath(path);
   const vector<fs::path> cycle = findCycle(stack, normalized);
   if (!cycle.empty()) {
     ostringstream message;

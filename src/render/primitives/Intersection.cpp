@@ -108,12 +108,7 @@ Result Intersection::intersectPacketIntervalsFor(const Packet& rays,
   for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
     if (hitCounts[lane] == requiredHits && !intervals[lane].empty()) {
       HitPointInterval interval = intervals[lane];
-      const HitPoint& hitPoint = interval.minWithPositiveDistance();
-      const Primitive* primitive = hitPoint.primitive();
-      if (!hitPoint.isUndefined() && material()) {
-        interval.setPrimitive(this);
-        primitive = this;
-      }
+      const Primitive* primitive = resolveIntervalOwner(interval);
       result.setInterval(lane, primitive, interval, scalarFallbacks[lane]);
     }
   }
