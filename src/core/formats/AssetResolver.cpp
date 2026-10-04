@@ -11,18 +11,19 @@
 namespace fs = std::filesystem;
 
 namespace core {
+
+  fs::path normalizeExistingPath(const fs::path& path) {
+    std::error_code error;
+    const fs::path canonical = fs::weakly_canonical(path, error);
+    if (!error)
+      return canonical;
+    return path.lexically_normal();
+  }
+
   namespace {
     fs::path normalizedRoot(const fs::path& path) {
       if (path.empty())
         return ".";
-      return path.lexically_normal();
-    }
-
-    fs::path normalizedExistingPath(const fs::path& path) {
-      std::error_code error;
-      const fs::path canonical = fs::weakly_canonical(path, error);
-      if (!error)
-        return canonical;
       return path.lexically_normal();
     }
 
@@ -70,7 +71,7 @@ namespace core {
           return {};
       }
 
-      return isRegularFile(resolved) ? normalizedExistingPath(resolved) : fs::path();
+      return isRegularFile(resolved) ? normalizeExistingPath(resolved) : fs::path();
     }
 
     fs::path findCaseInsensitive(const fs::path& path) {
@@ -101,11 +102,11 @@ namespace core {
           return {};
       }
 
-      return isRegularFile(resolved) ? normalizedExistingPath(resolved) : fs::path();
+      return isRegularFile(resolved) ? normalizeExistingPath(resolved) : fs::path();
     }
 
     std::string identityFor(const fs::path& path, AssetCaseSensitivity caseSensitivity) {
-      std::string identity = normalizedExistingPath(path).generic_string();
+      std::string identity = normalizeExistingPath(path).generic_string();
       if (caseSensitivity == AssetCaseSensitivity::CaseInsensitive) {
         identity = core::util::lowercase(std::move(identity));
       }
@@ -207,7 +208,7 @@ namespace core {
   }
 
   ResolvedAsset AssetResolver::resolvedAssetForPath(const fs::path& path) const {
-    const fs::path normalized = normalizedExistingPath(path);
+    const fs::path normalized = normalizeExistingPath(path);
     return {normalized, identityFor(normalized, m_caseSensitivity)};
   }
 

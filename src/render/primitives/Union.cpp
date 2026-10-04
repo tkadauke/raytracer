@@ -23,17 +23,7 @@ const Primitive* Union::intersect(const Rayd& ray, HitPointInterval& hitPoints,
     }
   }
 
-  auto hitPoint = hitPoints.minWithPositiveDistance();
-  if (hitPoint.isUndefined()) {
-    return nullptr;
-  } else {
-    if (material()) {
-      hitPoints.setPrimitive(this);
-      return this;
-    } else {
-      return hitPoint.primitive();
-    }
-  }
+  return resolveIntervalOwner(hitPoints);
 }
 
 PrimitivePacketHit4 Union::intersectPacketHits(const Ray4& rays,
@@ -80,12 +70,7 @@ Result Union::intersectPacketIntervalsFor(const Packet& rays, const StateArray& 
   for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
     if (!intervals[lane].empty()) {
       HitPointInterval interval = intervals[lane];
-      const HitPoint& hitPoint = interval.minWithPositiveDistance();
-      const Primitive* primitive = hitPoint.primitive();
-      if (!hitPoint.isUndefined() && material()) {
-        interval.setPrimitive(this);
-        primitive = this;
-      }
+      const Primitive* primitive = resolveIntervalOwner(interval);
       result.setInterval(lane, primitive, interval, scalarFallbacks[lane]);
     }
   }

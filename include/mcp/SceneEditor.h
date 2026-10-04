@@ -136,6 +136,13 @@ namespace mcp {
     bool reparent(Element* element, Element* newParent);
     Scene* scene() const;
 
+    /**
+      * Looks up the element named by @p id in the live scene. On failure
+      * (no live scene, or no element with that id), sets @p failureResult to
+      * the standard "No element with id ..." failure and returns null.
+      */
+    Element* requireElement(const QString& id, EditResult& failureResult) const;
+
     SceneProvider m_sceneProvider;
     SceneModel* m_sceneModel;
     QItemSelectionModel* m_selectionModel;

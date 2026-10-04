@@ -23,17 +23,7 @@ const Primitive* ClosedSolidUnion::intersect(const Rayd& ray, HitPointInterval& 
   }
   hitPoints = hitPoints.merged();
 
-  auto hitPoint = hitPoints.minWithPositiveDistance();
-  if (hitPoint.isUndefined()) {
-    return nullptr;
-  } else {
-    if (material()) {
-      hitPoints.setPrimitive(this);
-      return this;
-    } else {
-      return hitPoint.primitive();
-    }
-  }
+  return resolveIntervalOwner(hitPoints);
 }
 
 PrimitivePacketHit4
@@ -81,12 +71,7 @@ Result ClosedSolidUnion::intersectPacketIntervalsFor(const Packet& rays,
   for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
     if (!intervals[lane].empty()) {
       HitPointInterval merged = intervals[lane].merged();
-      const HitPoint& hitPoint = merged.minWithPositiveDistance();
-      const Primitive* primitive = hitPoint.primitive();
-      if (!hitPoint.isUndefined() && material()) {
-        merged.setPrimitive(this);
-        primitive = this;
-      }
+      const Primitive* primitive = resolveIntervalOwner(merged);
       result.setInterval(lane, primitive, merged, scalarFallbacks[lane]);
     }
   }

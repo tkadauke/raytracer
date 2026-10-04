@@ -7,6 +7,11 @@
 
 namespace core {
 
+  // Resolves to the canonical form of `path` when the filesystem can answer
+  // that (i.e. the path exists), falling back to lexical normalization
+  // otherwise so callers always get a usable path back.
+  [[nodiscard]] std::filesystem::path normalizeExistingPath(const std::filesystem::path& path);
+
   enum class AssetCaseSensitivity {
     Exact,
     CaseInsensitive
