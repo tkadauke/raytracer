@@ -32,17 +32,7 @@ const Primitive* Difference::intersect(const Rayd& ray, HitPointInterval& hitPoi
     firstElement = false;
   }
 
-  auto hitPoint = hitPoints.minWithPositiveDistance();
-  if (hitPoint.isUndefined()) {
-    return nullptr;
-  } else {
-    if (material()) {
-      hitPoints.setPrimitive(this);
-      return this;
-    } else {
-      return hitPoint.primitive();
-    }
-  }
+  return resolveIntervalOwner(hitPoints);
 }
 
 PrimitivePacketHit4 Difference::intersectPacketHits(const Ray4& rays,
@@ -116,12 +106,7 @@ Result Difference::intersectPacketIntervalsFor(const Packet& rays, const StateAr
   for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
     if (firstChildHit[lane] && !intervals[lane].empty()) {
       HitPointInterval interval = intervals[lane];
-      const HitPoint& hitPoint = interval.minWithPositiveDistance();
-      const Primitive* primitive = hitPoint.primitive();
-      if (!hitPoint.isUndefined() && material()) {
-        interval.setPrimitive(this);
-        primitive = this;
-      }
+      const Primitive* primitive = resolveIntervalOwner(interval);
       result.setInterval(lane, primitive, interval, scalarFallbacks[lane]);
     }
   }

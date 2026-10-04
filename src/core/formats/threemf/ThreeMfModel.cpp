@@ -87,8 +87,10 @@ namespace core::threemf {
       // 3MF stores affine transforms as row-major 4x3 matrices. The final row
       // contains translation, while this renderer uses a 4x4 column-translation
       // affine matrix for point transforms.
-      return Matrix4d(values[0], values[1], values[2], values[9], values[3], values[4], values[5],
-                      values[10], values[6], values[7], values[8], values[11], 0.0, 0.0, 0.0, 1.0);
+      const std::array<double, 9> rotation{values[0], values[1], values[2], values[3], values[4],
+                                           values[5], values[6], values[7], values[8]};
+      const Vector3d translation(values[9], values[10], values[11]);
+      return Matrix4d::fromRotationAndTranslation(rotation, translation);
     }
 
     std::optional<MaterialResource> triangleMaterial(const QXmlStreamReader& xml,

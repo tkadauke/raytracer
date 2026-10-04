@@ -55,6 +55,14 @@ namespace mcp {
     return m_sceneProvider ? m_sceneProvider() : nullptr;
   }
 
+  Element* SceneEditor::requireElement(const QString& id, EditResult& failureResult) const {
+    Scene* liveScene = scene();
+    Element* element = liveScene ? liveScene->findById(id) : nullptr;
+    if (!element)
+      failureResult = failure(QStringLiteral("No element with id %1").arg(id));
+    return element;
+  }
+
   Element* SceneEditor::insertElement(std::unique_ptr<Element> element) {
     Element* raw = element.release();
     m_sceneModel->addElement(QModelIndex(), raw);
@@ -107,10 +115,10 @@ namespace mcp {
 
   EditResult SceneEditor::transform(const QString& id, const QJsonValue& translate,
                                     const QJsonValue& rotate, const QJsonValue& scale) {
-    Scene* liveScene = scene();
-    Element* element = liveScene ? liveScene->findById(id) : nullptr;
+    EditResult failureResult;
+    Element* element = requireElement(id, failureResult);
     if (!element)
-      return failure(QStringLiteral("No element with id %1").arg(id));
+      return failureResult;
 
     if (!dynamic_cast<Transformable*>(element))
       return failure(QStringLiteral("Element %1 is not transformable").arg(id));
@@ -179,10 +187,10 @@ namespace mcp {
       return success();
     }
 
-    Scene* liveScene = scene();
-    Element* element = liveScene ? liveScene->findById(id) : nullptr;
+    EditResult failureResult;
+    Element* element = requireElement(id, failureResult);
     if (!element)
-      return failure(QStringLiteral("No element with id %1").arg(id));
+      return failureResult;
 
     const QModelIndex index = m_sceneModel->indexForElement(element);
     if (!index.isValid())
@@ -195,12 +203,12 @@ namespace mcp {
   }
 
   EditResult SceneEditor::deleteElement(const QString& id) {
-    Scene* liveScene = scene();
-    Element* element = liveScene ? liveScene->findById(id) : nullptr;
+    EditResult failureResult;
+    Element* element = requireElement(id, failureResult);
     if (!element)
-      return failure(QStringLiteral("No element with id %1").arg(id));
+      return failureResult;
 
-    if (element == liveScene)
+    if (element == scene())
       return failure(QStringLiteral("Cannot delete the scene root"));
 
     const QModelIndex index = m_sceneModel->indexForElement(element);

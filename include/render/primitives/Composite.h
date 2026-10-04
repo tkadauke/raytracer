@@ -137,6 +137,20 @@ namespace render {
     [[nodiscard]] bool hasFlattenableClosedSolidUnionChildBounds() const;
 
     /**
+      * Shared tail of the CSG composites' interval resolution: finds the
+      * closest positive-distance hit in interval and, if this composite has
+      * its own material, claims ownership of the whole interval (stamping
+      * every hit point's primitive with `this`) so material lookup follows
+      * the composite rather than the child that was actually hit.
+      *
+      * @returns the primitive that owns the resulting hit — either `this`
+      *   (when this composite has a material) or the closest child hit's
+      *   own primitive (which is null if interval has no positive-distance
+      *   hit).
+      */
+    [[nodiscard]] const Primitive* resolveIntervalOwner(HitPointInterval& interval) const;
+
+    /**
       * @returns the union of every child's bounding box, or a
       * default-constructed (empty) box for an empty composite.
       * Cached by the `Primitive` base.

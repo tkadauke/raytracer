@@ -71,10 +71,7 @@ namespace world {
 
     auto primitive = std::make_shared<render::MeshPrimitive>(
       std::move(mesh), render::MeshPrimitive::NormalMode::Flat);
-    auto compiled = std::make_unique<CompiledPrimitive>(primitive);
-    compiled->setId(root->id() + ":compiled-geometry");
-    compiled->setName(root->name().isEmpty() ? QString("STL Geometry") : root->name() + " Geometry");
-    root->addChild(std::move(compiled));
+    CompiledPrimitive::attachTo(*root, std::move(primitive), QStringLiteral("STL Geometry"));
 
     ImportResult result(std::move(root), source);
     result.addDiagnostic(ImportDiagnostic::warning(

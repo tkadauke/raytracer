@@ -1420,6 +1420,25 @@ public:
   }
 
   /**
+    * @returns an affine matrix built from a row-major 3x3 rotation/scale
+    *   block rotation (indices 0..8, row by row) and a translation column,
+    *   with the bottom row filled in as \f$(0, 0, 0, 1)\f$:
+    *
+    * \f[\left(\begin{array}{cccc}
+    *   r_0 & r_1 & r_2 & t_0 \\
+    *   r_3 & r_4 & r_5 & t_1 \\
+    *   r_6 & r_7 & r_8 & t_2 \\
+    *   0   & 0   & 0   & 1 \\
+    * \end{array}\right)\f]
+    */
+  [[nodiscard]] inline static constexpr Matrix4<T> fromRotationAndTranslation(
+    const std::array<T, 9>& rotation, const Vector3<T>& translation) noexcept {
+    return Matrix4<T>(rotation[0], rotation[1], rotation[2], translation.x(), rotation[3],
+                      rotation[4], rotation[5], translation.y(), rotation[6], rotation[7],
+                      rotation[8], translation.z(), 0, 0, 0, 1);
+  }
+
+  /**
     * @returns a matrix that represents a uniform scaling by factor, embedded
     *   as the top-left 3x3 block of an otherwise identity 4x4 matrix.
     */
