@@ -820,8 +820,10 @@ Gate:
   (`supportedPackedParityScene()` in `WavefrontRaytracerTest.cpp`) and a
   generated scene in `test/rendercli/RenderGraphOptionTest.cmake` ("wavefront
   Torus GPU-request RMS matches CPU backend"), but no test was found that runs
-  a checked-in `examples/GeneratedRayTracer/scenes/*.json` example scene
-  through this specific CPU-vs-GPU comparison.
+  a checked-in `scenes/*.json` example scene (the actual location of example
+  scene files in this repository, e.g. `scenes/dice.json` — not
+  `examples/GeneratedRayTracer/scenes/` as this gate's original wording
+  implied) through this specific CPU-vs-GPU comparison.
 
 Progress:
 

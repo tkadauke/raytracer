@@ -418,9 +418,13 @@ Already covered for the shipped batch/frontier path:
   there. For the shipped batch/frontier path, the equivalent question *is*
   answered and is exhaustive by construction: `Material::requiresWhittedPacketHitRefinement()`
   (`include/render/materials/Material.h`, default `true` = conservative
-  scalar refinement) is the single fallback predicate, overridden `false`
-  with a diagnostic label by `MatteMaterial` and `ReflectiveMaterial`
-  (`whittedPacketHitRefinementLabel()`), plus partial-packet-size handling in
+  scalar refinement) is the single fallback predicate. As of this audit it is
+  overridden `false` with a diagnostic label by five of the six concrete
+  materials — `MatteMaterial`, `ReflectiveMaterial`, `TransparentMaterial`,
+  `PortalMaterial`, and `PhongMaterial` (`whittedPacketHitRefinementLabel()`)
+  — leaving only `EmissiveMaterial` on the conservative scalar-refinement
+  default, wider coverage than the two materials this bullet originally
+  listed, plus partial-packet-size handling in
   `WhittedIntegrator::intersectQueuedRayPacket[8]`. Fallback counts are
   tracked per-reason in `frontierPacketScalarFallbackRaysByReason`, so silent
   fallbacks are not a risk in the shipped path — but the direct-camera-loop

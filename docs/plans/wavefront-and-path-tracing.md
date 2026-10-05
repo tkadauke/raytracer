@@ -21,6 +21,20 @@
 > roadmap in `docs/plans/tracing-execution-backends.md`; this plan remains the
 > CPU schedule and path-tracing semantics reference.
 >
+> **Re-audited 2026-10-05.** Phases 1-6 still hold; re-verified against
+> `include/engine/wavefront/`, `src/engine/wavefront/`,
+> `render::PathTracingIntegrator`, and `render::BilateralDenoiser` on disk.
+> One correctness fix landed since the last update and is noted inline at
+> Phase 4: `WavefrontTileRenderer` (`src/engine/wavefront/WavefrontTileRenderer.cpp`)
+> switched its per-tile sample-generation loops from `ViewPlane::begin(rect)`
+> to `ViewPlane::pixelBegin(rect)` (commit `a44dc4a8`, 2026-09-23) after the
+> progressive-interlace iterator was found to revisit pixels past a tile's
+> right edge on narrow tiles, inflating primary-sample counts. GPU tracing
+> progress (now including default-enabled full-GPU path-loop backends on
+> some platforms) continues entirely under
+> `docs/plans/tracing-execution-backends.md` / `docs/roadmap.md` §4.1, out of
+> this plan's CPU-wavefront scope — see the updated GPU-offload pointer below.
+>
 > **Rule:** the wavefront engine is a **sibling** to the existing
 > `Raytracer`, not a replacement. Both ship; the user chooses through render
 > intent / render graph compilation. Reuses the shared substrate
@@ -63,11 +77,22 @@ The natural progression continues past wavefront:
 
 5. **GPU offload.** Wavefront is the canonical GPU ray-tracing
    architecture (Laine, Karras & Aila 2013 introduced it for that
-   reason). The repository now has an OpenGL raster backend, graph
-   GPU/CPU resource-domain plumbing, and a hybrid GPU-intersection
-   service, but those are not full GPU tracing by themselves. CPU
-   wavefront came first; full CPU/hybrid/GPU tracing execution is now
-   tracked in `docs/plans/tracing-execution-backends.md`.
+   reason). CPU wavefront came first; full CPU/hybrid/GPU tracing
+   execution is tracked in `docs/plans/tracing-execution-backends.md`.
+   ⏳ **Substantially advanced since this sentence was written, out of
+   this plan's scope.** As of the 2026-10-05 re-audit, that parent plan
+   and `docs/roadmap.md` §4.1 describe packed CPU/Metal/Vulkan
+   closest-hit/any-hit kernels, `render::IntersectionService`, compiled
+   GPU tracing scene records, deterministic GPU sample streams,
+   CPU/Metal/Vulkan accumulation surfaces, cross-backend parity
+   fixtures, and restricted Metal/Vulkan full-GPU diffuse path-loop
+   backends for supported compiled scenes — the Metal and Vulkan
+   wavefront/full-GPU path-loop backends are now enabled by default on
+   macOS and Linux builds respectively where the toolchain supports
+   them (see `CHANGELOG.md`). Remaining GPU work (broader GPU-owned
+   path state, unrestricted BSDF/direct-light/path-continuation
+   coverage, hardware ray tracing) stays tracked entirely in that
+   parent plan, not here.
 
 Each builds on the previous. This plan covers (2) in detail, (3) and
 (4) in sketch, and (5) as a future-work pointer.
@@ -405,12 +430,17 @@ not as the default first path-tracing design.
 Each phase is a separate PR. Convergence-test infrastructure ships
 with the first phase that introduces it; subsequent phases reuse it.
 
-### Phase 0 — design lock
+### ~~Phase 0 — design lock~~ ✅ **Done.**
 
 Resolve open questions below. Tree-branching sequencing is now locked; the
 remaining design decisions are convergence detection, first-phase memory layout,
 and how much scalar path-tracing behavior to factor before wavefront owns the
 queues. Commit decisions to this doc before starting the bare wavefront engine.
+All of the blocking design questions were resolved before Phase 3 (the bare
+wavefront engine) shipped — see the [Open questions](#open-questions) section,
+where items 1-3 and 5-9 are marked resolved; only item 4 (`PixelState` memory
+layout / SoA) remains open, and it's explicitly deferred to Phase 7+, not a
+Phase 0 blocker.
 
 ### ~~Phase 1 — throughput-based cutoff in the existing engine~~ ✅ **Done.**
 
@@ -841,6 +871,22 @@ the latest packet-bookkeeping work: `raytracer_whitted` median ~11.94 ms,
 `rms_delta=0.0` / `differing_pixels=0`. That closes the v1 wall-clock gate; any
 future adaptive-depth retune should be treated as Phase 7+ policy/performance
 work rather than a blocker for the CPU wavefront renderer.
+
+⏳ **Correctness follow-up (2026-09-23).** The per-tile primary-sample
+generation loops above iterated worker tiles via `ViewPlane::begin(actualRect)`.
+For the default `PointInterlacedViewPlane`, the progressive interlace block
+size is derived from the *entire* view plane, not the rect being iterated, so
+on multi-threaded renders with tiles narrower than that block size the scan
+could step past a tile's right edge and revisit pixels there, inflating
+primary-sample counts (and any metric derived from them). Commit `a44dc4a8`
+switched `WavefrontTileRenderer`'s sample-generation, adaptive-resample, and
+denoiser-feature loops to `ViewPlane::pixelBegin(actualRect)`, the exact
+per-pixel iterator already used for the same purpose elsewhere (e.g. the GPU
+diffuse path-loop CPU reference). This does not change the Phase 3/4 parity
+or wall-clock conclusions below — those gates compare rendered images, not raw
+sample counts — but some of the narrative capture numbers above (sample
+counts, tile load figures) predate this fix and may have been mildly inflated
+on narrow-tile configurations.
 
 **Goal**: render faster than `Raytracer` on common scenes without
 visible quality loss. ✅ **Done for v1.**
