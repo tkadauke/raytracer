@@ -151,9 +151,12 @@ Tasks:
   source buffer" (the contract check; fires when the caller misuses
   `setColorLoadSource` / `setDepthLoadSource` / `setStencilLoadSource`) and
   "depth/stencil Load not yet implemented" (narrower message naming the
-  missing slice). The five tests in
-  `OpenGLRasterizerTest.cpp` cover both new throw paths plus the
-  color Load success path. Commit: see the corresponding
+  missing slice). Four tests in the `OpenGLRasterizerAttachmentLoad`
+  fixture in `OpenGLRasterizerTest.cpp`
+  (`ColorLoadOpRequiresSourceBuffer`, `ColorLoadOpAcceptsSourceBuffer`,
+  `DepthLoadOpThrowsUntilResidencyFollowUp`,
+  `StencilLoadOpThrowsUntilResidencyFollowUp`) cover both new throw paths
+  plus the color Load success path. Commit: see the corresponding
   rasterizer change.
 
 ## Phase 3 — graph-driven scheduling polish
