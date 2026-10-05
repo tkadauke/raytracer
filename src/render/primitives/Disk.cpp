@@ -94,8 +94,7 @@ void Disk::appendIntersectionSceneRecord(IntersectionSceneBuilder& builder,
 }
 
 BoundingBoxd Disk::calculateBoundingBox() const {
-  Vector3d radius(m_radius, m_radius, m_radius);
-  return BoundingBoxd(m_center - radius, m_center + radius);
+  return BoundingBoxd::centeredCube(m_center, m_radius);
 }
 
 Vector3d Disk::farthestPoint(const Vector3d& direction) const {

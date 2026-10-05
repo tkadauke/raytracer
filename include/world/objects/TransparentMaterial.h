@@ -54,7 +54,7 @@ public:
     * </tr></table>
     */
   inline void setTransmissionCoefficient(double coeff) {
-    m_transmissionCoefficient = Ranged(0, 1).clamp(coeff);
+    m_transmissionCoefficient = Ranged::unit().clamp(coeff);
   }
 
   /**
@@ -124,7 +124,7 @@ public:
     * </tr></table>
     */
   inline void setReflectionCoefficient(double coeff) {
-    m_reflectionCoefficient = Ranged(0, 1).clamp(coeff);
+    m_reflectionCoefficient = Ranged::unit().clamp(coeff);
   }
 
 protected:

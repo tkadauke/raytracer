@@ -51,7 +51,7 @@ namespace render {
     }
 
     inline void setTransmissionCoefficient(double coeff) {
-      m_transmissionCoefficient = Ranged(0, 1).clamp(coeff);
+      m_transmissionCoefficient = Ranged::unit().clamp(coeff);
     }
 
     inline double refractionIndex() const {

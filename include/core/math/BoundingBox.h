@@ -83,6 +83,17 @@ public:
   }
 
   /**
+    * @returns the bounding box of a cube of side length `2 * radius`,
+    *   centered at @p center. Used by primitives (e.g. Sphere, Disk) whose
+    *   bounds are a simple sphere-of-influence around a center point.
+    */
+  [[nodiscard]] static inline BoundingBox<T> centeredCube(const Vector3<T>& center,
+                                                          const T& radius) noexcept {
+    const Vector3<T> extent(radius, radius, radius);
+    return BoundingBox<T>(center - extent, center + extent);
+  }
+
+  /**
     * @returns true if the bounding box is valid, false otherwise. A bounding
     *   box is only valid if all components of min() are smaller than or equal
     *   to their corresponding component of max().
