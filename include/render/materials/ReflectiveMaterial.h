@@ -1,8 +1,7 @@
 #pragma once
 #include <memory>
 
-#include "render/materials/PhongMaterial.h"
-#include "render/brdf/PerfectSpecular.h"
+#include "render/materials/ReflectiveBRDFMaterial.h"
 
 namespace render {
   /**
@@ -46,14 +45,14 @@ namespace render {
     * <script type="text/javascript" src="reflective_material_recursion.js"></script>
     * @endhtmlonly
     */
-  class ReflectiveMaterial : public PhongMaterial {
+  class ReflectiveMaterial : public ReflectiveBRDFMaterial {
   public:
     /**
       * Constructs a default reflective material with no diffuse texture, a
       * reflection coefficient of 0.75 and a white reflection color.
       */
     inline ReflectiveMaterial()
-        : PhongMaterial() {
+        : ReflectiveBRDFMaterial() {
       setReflectionCoefficient(0.75);
       setReflectionColor(Colord::white());
     }
@@ -63,7 +62,7 @@ namespace render {
       * coefficient of 0.75 and a white reflection color.
       */
     inline explicit ReflectiveMaterial(std::shared_ptr<render::Texturec> diffuseTexture)
-        : PhongMaterial(diffuseTexture) {
+        : ReflectiveBRDFMaterial(diffuseTexture) {
       setReflectionCoefficient(0.75);
       setReflectionColor(Colord::white());
     }
@@ -74,21 +73,14 @@ namespace render {
       */
     inline explicit ReflectiveMaterial(std::shared_ptr<render::Texturec> diffuseTexture,
                                        const Colord& specular)
-        : PhongMaterial(diffuseTexture, specular) {
+        : ReflectiveBRDFMaterial(diffuseTexture, specular) {
       setReflectionCoefficient(0.75);
       setReflectionColor(Colord::white());
     }
 
     /**
-      * @returns the reflection color.
-      */
-    inline const Colord& reflectionColor() const {
-      return m_reflectiveBRDF.reflectionColor();
-    }
-
-    /**
       * Sets the material's reflection color.
-      * 
+      *
       * <table><tr>
       * <td>@image html reflective_material_reflection_color_red.png "red"</td>
       * <td>@image html reflective_material_reflection_color_yellow.png "yellow"</td>
@@ -100,19 +92,12 @@ namespace render {
       * </tr></table>
       */
     inline void setReflectionColor(const Colord& color) {
-      m_reflectiveBRDF.setReflectionColor(color);
-    }
-
-    /**
-      * @returns the reflection coefficient.
-      */
-    inline double reflectionCoefficient() const {
-      return m_reflectiveBRDF.reflectionCoefficient();
+      ReflectiveBRDFMaterial::setReflectionColor(color);
     }
 
     /**
       * Sets the reflection coefficient.
-      * 
+      *
       * <table><tr>
       * <td>@image html reflective_material_reflection_coeff_0.0.png "reflectionCoefficient=0"</td>
       * <td>@image html reflective_material_reflection_coeff_0.25.png "reflectionCoefficient=0.25"</td>
@@ -122,7 +107,7 @@ namespace render {
       * </tr></table>
       */
     inline void setReflectionCoefficient(double coeff) {
-      m_reflectiveBRDF.setReflectionCoefficient(coeff);
+      ReflectiveBRDFMaterial::setReflectionCoefficient(coeff);
     }
 
     Colord shade(const render::RayCaster* raycaster, const render::Scene& scene, const Rayd& ray,
@@ -175,7 +160,5 @@ namespace render {
   protected:
     MaterialBsdfSample reflectionDeltaBsdfSample(const HitPoint& hitPoint,
                                                  const Vector3d& wi) const;
-
-    render::PerfectSpecular m_reflectiveBRDF;
   };
 }

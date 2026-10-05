@@ -65,7 +65,7 @@ namespace render {
     }
 
     inline void setReflectionCoefficient(double coeff) {
-      m_reflectionCoefficient = Ranged(0, 1).clamp(coeff);
+      m_reflectionCoefficient = Ranged::unit().clamp(coeff);
     }
 
   private:

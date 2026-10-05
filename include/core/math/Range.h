@@ -61,6 +61,14 @@ public:
     return ::random<T>(begin(), end());
   }
 
+  /**
+    * @returns the range [0, 1], used to clamp normalized coefficients
+    *   (e.g. BRDF reflection/transmission coefficients).
+    */
+  [[nodiscard]] static inline constexpr Range<T> unit() noexcept {
+    return Range<T>(0, 1);
+  }
+
 private:
   T m_begin;
   T m_end;
