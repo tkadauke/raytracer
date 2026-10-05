@@ -50,7 +50,7 @@ namespace render {
     }
 
     inline void setSpecularCoefficient(double coeff) {
-      m_specularCoefficient = Ranged(0, 1).clamp(coeff);
+      m_specularCoefficient = Ranged::unit().clamp(coeff);
     }
 
     inline double exponent() const {

@@ -1,8 +1,7 @@
 #pragma once
 #include <memory>
 
-#include "render/materials/PhongMaterial.h"
-#include "render/brdf/PerfectSpecular.h"
+#include "render/materials/ReflectiveBRDFMaterial.h"
 #include "render/brdf/PerfectTransmitter.h"
 
 namespace render {
@@ -53,14 +52,14 @@ namespace render {
     * <script type="text/javascript" src="transparent_material_refraction.js"></script>
     * @endhtmlonly
     */
-  class TransparentMaterial : public PhongMaterial {
+  class TransparentMaterial : public ReflectiveBRDFMaterial {
   public:
     /**
       * Constructs a transparent material with no diffuse texture and a
       * refraction index of 1.
       */
     inline TransparentMaterial()
-        : PhongMaterial() {
+        : ReflectiveBRDFMaterial() {
       setRefractionIndex(1);
       setTransmissionCoefficient(1);
     }
@@ -70,15 +69,8 @@ namespace render {
       * index of 1.
       */
     inline explicit TransparentMaterial(std::shared_ptr<render::Texturec> diffuseTexture)
-        : PhongMaterial(diffuseTexture) {
+        : ReflectiveBRDFMaterial(diffuseTexture) {
       setRefractionIndex(1);
-    }
-
-    /**
-      * @returns the material's reflection color.
-      */
-    inline const Colord& reflectionColor() const {
-      return m_reflectiveBRDF.reflectionColor();
     }
 
     /**
@@ -95,14 +87,7 @@ namespace render {
       * </tr></table>
       */
     inline void setReflectionColor(const Colord& color) {
-      m_reflectiveBRDF.setReflectionColor(color);
-    }
-
-    /**
-      * @returns the material's reflection coefficient.
-      */
-    inline double reflectionCoefficient() const {
-      return m_reflectiveBRDF.reflectionCoefficient();
+      ReflectiveBRDFMaterial::setReflectionColor(color);
     }
 
     /**
@@ -117,7 +102,7 @@ namespace render {
       * </tr></table>
       */
     inline void setReflectionCoefficient(double coeff) {
-      m_reflectiveBRDF.setReflectionCoefficient(coeff);
+      ReflectiveBRDFMaterial::setReflectionCoefficient(coeff);
     }
 
     /**
@@ -233,7 +218,6 @@ namespace render {
     MaterialBsdfSample sampleTotalInternalReflectionBsdf(const HitPoint& hitPoint,
                                                          const Vector3d& wi) const;
 
-    render::PerfectSpecular m_reflectiveBRDF;
     render::PerfectTransmitter m_specularBTDF;
   };
 }
