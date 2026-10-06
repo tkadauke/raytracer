@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include "core/Color.h"
 #include "render/Object.h"
 
@@ -97,4 +99,18 @@ namespace render {
       return GpuDisplayResolveTonemap::Unsupported;
     }
   };
+
+  /// Display-resolve implementation for `tonemap`; a null tonemap resolves linearly.
+  inline GpuDisplayResolveTonemap
+  platformDisplayResolveTonemap(const std::shared_ptr<Tonemap>& tonemap) {
+    if (!tonemap) {
+      return GpuDisplayResolveTonemap::Linear;
+    }
+    return tonemap->gpuDisplayResolveTonemap();
+  }
+
+  /// True when `tonemap` (or the null/linear default) can be resolved by the platform display path.
+  inline bool supportsPlatformDisplayResolve(const std::shared_ptr<Tonemap>& tonemap) {
+    return platformDisplayResolveTonemap(tonemap) != GpuDisplayResolveTonemap::Unsupported;
+  }
 }
