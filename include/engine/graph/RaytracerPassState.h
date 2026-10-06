@@ -95,6 +95,9 @@ namespace engine::graph {
     std::optional<render::WavefrontIntersectionBackendChoice> tracingBackend() const;
     std::optional<TracingExecutionPreference> tracingExecution() const;
     std::optional<TracingExecutionPreference> predictedTracingExecution() const;
+    bool explicitlyRequestedGpuTracing() const;
+    bool predictedGpuTracing() const;
+    bool requestedOrPredictedGpuTracing() const;
     const std::string& tracingExecutionFallbackReason() const;
     std::optional<render::WavefrontIntersectionBackendChoice> intersectionBackend() const;
     std::optional<int> russianRouletteDepth() const;
