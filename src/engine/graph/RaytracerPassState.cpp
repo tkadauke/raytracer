@@ -547,6 +547,19 @@ namespace engine::graph {
     return m_predictedTracingExecution;
   }
 
+  bool RaytracerBeautyPassState::explicitlyRequestedGpuTracing() const {
+    return m_tracingExecution && *m_tracingExecution == TracingExecutionPreference::GPU;
+  }
+
+  bool RaytracerBeautyPassState::predictedGpuTracing() const {
+    return m_predictedTracingExecution &&
+           *m_predictedTracingExecution == TracingExecutionPreference::GPU;
+  }
+
+  bool RaytracerBeautyPassState::requestedOrPredictedGpuTracing() const {
+    return predictedGpuTracing() || explicitlyRequestedGpuTracing();
+  }
+
   const std::string& RaytracerBeautyPassState::tracingExecutionFallbackReason() const {
     return m_tracingExecutionFallbackReason;
   }

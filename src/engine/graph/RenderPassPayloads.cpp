@@ -1080,23 +1080,9 @@ namespace engine::graph {
       return metadata;
     }
 
-    bool predictedGpuTracing(const RaytracerBeautyPassState& state) {
-      return state.predictedTracingExecution() &&
-             *state.predictedTracingExecution() == TracingExecutionPreference::GPU;
-    }
-
-    bool explicitlyRequestedGpuTracing(const RaytracerBeautyPassState& state) {
-      return state.tracingExecution() &&
-             *state.tracingExecution() == TracingExecutionPreference::GPU;
-    }
-
-    bool requestedOrPredictedGpuTracing(const RaytracerBeautyPassState& state) {
-      return predictedGpuTracing(state) || explicitlyRequestedGpuTracing(state);
-    }
-
     std::optional<std::string>
     compiledDiffusePathLoopFallbackReason(const RaytracerBeautyPassState& state) {
-      if (!requestedOrPredictedGpuTracing(state)) {
+      if (!state.requestedOrPredictedGpuTracing()) {
         return "compiled diffuse path loop requires requested or predicted GPU tracing execution";
       }
       return state.compiledDiffusePathLoopBackendFallbackReason();
@@ -1165,20 +1151,20 @@ namespace engine::graph {
       const std::shared_ptr<const render::GpuDiffusePathLoopBackend> configuredBackend =
         graph.gpuDiffusePathLoopBackend();
       if (graph.hasGpuDiffusePathLoopBackendOverride()) {
-        if (!explicitlyRequestedGpuTracing(state) && configuredBackend &&
+        if (!state.explicitlyRequestedGpuTracing() && configuredBackend &&
             !configuredBackend->fullGpuPathLoopAvailable()) {
           return {nullptr, configuredBackend->fullGpuPathLoopUnavailableReason()};
         }
         return {configuredBackend, {}};
       }
 
-      if (requestedOrPredictedGpuTracing(state)) {
+      if (state.requestedOrPredictedGpuTracing()) {
         render::GpuDiffusePathLoopBackendChoice fullGpuBackend =
           render::GpuDiffusePathLoopBackend::defaultFullGpuBackendForGpuRequest(sections, settings);
         if (fullGpuBackend.backend) {
           return fullGpuBackend;
         }
-        if (!explicitlyRequestedGpuTracing(state)) {
+        if (!state.explicitlyRequestedGpuTracing()) {
           return {nullptr, std::move(fullGpuBackend.fallbackReason)};
         }
         return {configuredBackend, std::move(fullGpuBackend.fallbackReason)};
@@ -1206,19 +1192,6 @@ namespace engine::graph {
       return QStringLiteral(
                "GPU tracing request executed by compiled CPU-reference diffuse path loop; ") +
              reason;
-    }
-
-    render::GpuDisplayResolveTonemap
-    platformDisplayResolveTonemap(const std::shared_ptr<render::Tonemap>& tonemap) {
-      if (!tonemap) {
-        return render::GpuDisplayResolveTonemap::Linear;
-      }
-      return tonemap->gpuDisplayResolveTonemap();
-    }
-
-    bool supportsPlatformDisplayResolve(const std::shared_ptr<render::Tonemap>& tonemap) {
-      return platformDisplayResolveTonemap(tonemap) !=
-             render::GpuDisplayResolveTonemap::Unsupported;
     }
 
     void packColorBuffer(const Buffer<Colord>& source, Buffer<unsigned int>& destination,
@@ -1359,7 +1332,7 @@ namespace engine::graph {
                                              std::string& fallbackReason) const {
         const RaytracerBeautyPassState state =
           RaytracerBeautyPassState::valueFromPass(context.pass());
-        if (!requestedOrPredictedGpuTracing(state)) {
+        if (!state.requestedOrPredictedGpuTracing()) {
           return false;
         }
 
@@ -1433,7 +1406,7 @@ namespace engine::graph {
           denoiser ? denoiser->requestedFeatures() : render::DenoiserFeatureRequest{};
         settings.captureDiagnostics = context.graph().executionTraceEnabled();
         settings.captureDenoiserFeatures = denoiserFeatureRequest.any();
-        settings.displayResolveTonemap = platformDisplayResolveTonemap(wavefront.tonemap());
+        settings.displayResolveTonemap = render::platformDisplayResolveTonemap(wavefront.tonemap());
         settings.interactiveDisplay =
           displayTarget != nullptr && context.graph().progressiveDisplayEnabled();
         const render::GpuDiffusePathLoopBackendChoice pathLoopBackendSelection =
@@ -1461,7 +1434,7 @@ namespace engine::graph {
         const bool wantsPlatformDisplayResolve =
           displayTarget && settings.interactiveDisplay &&
           !context.graph().executionTraceEnabled() && !settings.captureDiagnostics &&
-          supportsPlatformDisplayResolve(wavefront.tonemap());
+          render::supportsPlatformDisplayResolve(wavefront.tonemap());
         render::GpuDiffusePrimaryPathStateGenerationOptions generationOptions;
         generationOptions.forceHostPrimaryRayGenerator =
           compiledDiffusePathLoopUsesHostSamplerPrimaryPaths(state);
