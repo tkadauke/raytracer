@@ -4,6 +4,7 @@
 #include "render/RenderEngine.h"
 #include "render/TracingAccumulationLayout.h"
 #include "render/TracingExecutionCapability.h"
+#include "render/WavefrontBatchMetricsQueries.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -63,7 +64,7 @@ namespace engine::wavefront {
       std::string decision;
     } scheduling;
 
-    struct BatchSummary {
+    struct BatchSummary : render::WavefrontBatchMetricsQueries<BatchSummary> {
       std::string sampleStreamMode;
       std::string integrator;
       std::string executionMode;
@@ -253,44 +254,10 @@ namespace engine::wavefront {
 
       void addIntegratorMetrics(const render::IntegratorBatchMetrics& metrics);
       void addIntersectionBackendMetrics(const render::IntegratorBatchMetrics& metrics);
-      [[nodiscard]] double frontierCompactionRemovedSampleFraction() const;
-      [[nodiscard]] double frontierCompactionMovedRetainedSampleFraction() const;
-      [[nodiscard]] bool hasCompactionCandidateDepth(std::size_t depth) const;
-      [[nodiscard]] std::uint64_t compactionCandidateSamplesAtDepth(std::size_t depth) const;
-      [[nodiscard]] std::uint64_t compactionCandidateDepthCount() const;
-      [[nodiscard]] std::uint64_t compactionCandidateSampleCount() const;
       [[nodiscard]] std::uint64_t compactionCandidatePackedRayBytes() const;
       [[nodiscard]] std::uint64_t compactionCandidateStateHandleBytes() const;
-      [[nodiscard]] std::uint64_t compactionCandidateHostPathStateBytes() const;
-      [[nodiscard]] double compactionCandidateSampleFraction() const;
-      [[nodiscard]] std::uint64_t largestCompactionCandidateDepth() const;
-      [[nodiscard]] std::uint64_t largestCompactionCandidateSampleCount() const;
       [[nodiscard]] std::uint64_t largestCompactionCandidatePackedRayBytes() const;
       [[nodiscard]] std::uint64_t largestCompactionCandidateStateHandleBytes() const;
-      [[nodiscard]] std::uint64_t largestCompactionCandidateHostPathStateBytes() const;
-      [[nodiscard]] double largestCompactionCandidateSampleFraction() const;
-      [[nodiscard]] bool hasMixedQueryDepth(std::size_t depth) const;
-      [[nodiscard]] std::uint64_t frontierQueryRoundTrips() const;
-      [[nodiscard]] std::uint64_t residentFrontierQueryRoundTripsEstimate() const;
-      [[nodiscard]] std::uint64_t residentFrontierQueryRoundTripSavingsEstimate() const;
-      [[nodiscard]] std::uint64_t directLightAnyHitQueryRoundTrips() const;
-      [[nodiscard]] std::uint64_t residentDirectLightBatchRoundTripsEstimate() const;
-      [[nodiscard]] std::uint64_t residentDirectLightBatchRoundTripSavingsEstimate() const;
-      [[nodiscard]] bool hasResidentDirectLightBatchCandidateDepth(std::size_t depth) const;
-      [[nodiscard]] std::uint64_t residentDirectLightBatchCandidateDepthCount() const;
-      [[nodiscard]] std::uint64_t residentDirectLightBatchCandidateRayCount() const;
-      [[nodiscard]] std::uint64_t residentDirectLightBatchCandidateHostBytes() const;
-      [[nodiscard]] std::uint64_t residentDirectLightBatchHostBytesAtDepth(std::size_t depth) const;
-      [[nodiscard]] std::uint64_t largestResidentDirectLightBatchDepth() const;
-      [[nodiscard]] std::uint64_t largestResidentDirectLightBatchRayCount() const;
-      [[nodiscard]] std::uint64_t largestResidentDirectLightBatchPackedRayBytes() const;
-      [[nodiscard]] std::uint64_t largestResidentDirectLightBatchHostBytes() const;
-      [[nodiscard]] std::uint64_t mixedQueryDepthCount() const;
-      [[nodiscard]] std::uint64_t mixedQueryDepthRoundTrips() const;
-      [[nodiscard]] std::uint64_t mixedQueryDepthRays() const;
-      [[nodiscard]] std::uint64_t mixedQueryDepthClosestHitRays() const;
-      [[nodiscard]] std::uint64_t mixedQueryDepthAnyHitRays() const;
-      [[nodiscard]] std::uint64_t mixedQueryDepthReadbackBytes() const;
       [[nodiscard]] std::uint64_t mixedQueryDepthClosestHitReadbackBytes() const;
       [[nodiscard]] std::uint64_t mixedQueryDepthAnyHitReadbackBytes() const;
       [[nodiscard]] double intersectionBackendKernelRaysPerSecond() const;
