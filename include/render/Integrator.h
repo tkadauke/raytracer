@@ -4,6 +4,7 @@
 #include "core/math/Ray.h"
 #include "render/TracingAccumulationLayout.h"
 #include "render/WavefrontFrontierCompaction.h"
+#include "render/WavefrontBatchMetricsQueries.h"
 #include "render/WavefrontIntersectionQueryTiming.h"
 
 #include <cstddef>
@@ -38,7 +39,7 @@ namespace render {
     }
   };
 
-  struct IntegratorBatchMetrics {
+  struct IntegratorBatchMetrics : WavefrontBatchMetricsQueries<IntegratorBatchMetrics> {
     bool usedScalarFallback{false};
     std::vector<std::uint64_t> activeSamplesPerDepth;
     std::vector<std::uint64_t> frontierRayHitsPerDepth;
@@ -243,22 +244,10 @@ namespace render {
     void recordResidentPathLoopExecution(const ResidentPathLoopDiagnostics& diagnostics,
                                          std::uint64_t roundTrips = 0);
     void recordResidentPathLoopAccumulation(const TracingAccumulationDiagnostics& diagnostics);
-    [[nodiscard]] double frontierCompactionRemovedSampleFraction() const;
-    [[nodiscard]] double frontierCompactionMovedRetainedSampleFraction() const;
-    [[nodiscard]] bool hasCompactionCandidateDepth(std::size_t depth) const;
-    [[nodiscard]] std::uint64_t compactionCandidateSamplesAtDepth(std::size_t depth) const;
-    [[nodiscard]] std::uint64_t compactionCandidateDepthCount() const;
-    [[nodiscard]] std::uint64_t compactionCandidateSampleCount() const;
     [[nodiscard]] std::uint64_t compactionCandidatePackedRayBytes() const;
     [[nodiscard]] std::uint64_t compactionCandidateStateHandleBytes() const;
-    [[nodiscard]] std::uint64_t compactionCandidateHostPathStateBytes() const;
-    [[nodiscard]] double compactionCandidateSampleFraction() const;
-    [[nodiscard]] std::uint64_t largestCompactionCandidateDepth() const;
-    [[nodiscard]] std::uint64_t largestCompactionCandidateSampleCount() const;
     [[nodiscard]] std::uint64_t largestCompactionCandidatePackedRayBytes() const;
     [[nodiscard]] std::uint64_t largestCompactionCandidateStateHandleBytes() const;
-    [[nodiscard]] std::uint64_t largestCompactionCandidateHostPathStateBytes() const;
-    [[nodiscard]] double largestCompactionCandidateSampleFraction() const;
     void recordFrontierIntersections(std::uint64_t hitRays, std::uint64_t missRays);
     void recordFrontierTraversal(std::uint64_t packetChunks, std::uint64_t packetRays,
                                  std::uint64_t ray4PacketChunks, std::uint64_t ray8PacketChunks,
@@ -295,28 +284,6 @@ namespace render {
                                               const WavefrontIntersectionBackend& backend,
                                               const WavefrontAnyHitFrontier& frontier,
                                               const WavefrontIntersectionQueryTiming& timing = {});
-    [[nodiscard]] bool hasMixedQueryDepth(std::size_t depth) const;
-    [[nodiscard]] std::uint64_t frontierQueryRoundTrips() const;
-    [[nodiscard]] std::uint64_t residentFrontierQueryRoundTripsEstimate() const;
-    [[nodiscard]] std::uint64_t residentFrontierQueryRoundTripSavingsEstimate() const;
-    [[nodiscard]] std::uint64_t directLightAnyHitQueryRoundTrips() const;
-    [[nodiscard]] std::uint64_t residentDirectLightBatchRoundTripsEstimate() const;
-    [[nodiscard]] std::uint64_t residentDirectLightBatchRoundTripSavingsEstimate() const;
-    [[nodiscard]] bool hasResidentDirectLightBatchCandidateDepth(std::size_t depth) const;
-    [[nodiscard]] std::uint64_t residentDirectLightBatchCandidateDepthCount() const;
-    [[nodiscard]] std::uint64_t residentDirectLightBatchCandidateRayCount() const;
-    [[nodiscard]] std::uint64_t residentDirectLightBatchCandidateHostBytes() const;
-    [[nodiscard]] std::uint64_t residentDirectLightBatchHostBytesAtDepth(std::size_t depth) const;
-    [[nodiscard]] std::uint64_t largestResidentDirectLightBatchDepth() const;
-    [[nodiscard]] std::uint64_t largestResidentDirectLightBatchRayCount() const;
-    [[nodiscard]] std::uint64_t largestResidentDirectLightBatchPackedRayBytes() const;
-    [[nodiscard]] std::uint64_t largestResidentDirectLightBatchHostBytes() const;
-    [[nodiscard]] std::uint64_t mixedQueryDepthCount() const;
-    [[nodiscard]] std::uint64_t mixedQueryDepthRoundTrips() const;
-    [[nodiscard]] std::uint64_t mixedQueryDepthRays() const;
-    [[nodiscard]] std::uint64_t mixedQueryDepthClosestHitRays() const;
-    [[nodiscard]] std::uint64_t mixedQueryDepthAnyHitRays() const;
-    [[nodiscard]] std::uint64_t mixedQueryDepthReadbackBytes() const;
     [[nodiscard]] std::uint64_t mixedQueryDepthClosestHitReadbackBytes() const;
     [[nodiscard]] std::uint64_t mixedQueryDepthAnyHitReadbackBytes() const;
     void recordPacketScalarFallbacksByReason(const std::map<std::string, std::uint64_t>& reasons);
