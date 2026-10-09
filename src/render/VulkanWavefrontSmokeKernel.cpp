@@ -674,16 +674,6 @@ namespace render {
         check(vkEndCommandBuffer(commandBuffer), "Vulkan wavefront smoke command buffer end");
       }
 
-      void submitAndWait(VkQueue queue, VkCommandBuffer commandBuffer) const {
-        VkSubmitInfo submitInfo{};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &commandBuffer;
-        check(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE),
-              "Vulkan wavefront smoke queue submit");
-        check(vkQueueWaitIdle(queue), "Vulkan wavefront smoke queue wait");
-      }
-
       std::vector<std::uint32_t> readBack(VkDevice device, VkDeviceMemory outputMemory,
                                           VkDeviceSize size, std::size_t resultCount) const {
         return readBackRecords<std::uint32_t>(device, outputMemory, size, resultCount,

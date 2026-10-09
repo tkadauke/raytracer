@@ -383,6 +383,16 @@ protected:
     return commandBuffer;
   }
 
+  void submitAndWait(VkQueue queue, VkCommandBuffer commandBuffer) const {
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &commandBuffer;
+    check(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE),
+          contextOp("queue submit").c_str());
+    check(vkQueueWaitIdle(queue), contextOp("queue wait").c_str());
+  }
+
   template<typename Record>
   std::vector<Record> readBackRecords(VkDevice device, VkDeviceMemory outputMemory,
                                       VkDeviceSize byteCount, std::size_t resultCount,

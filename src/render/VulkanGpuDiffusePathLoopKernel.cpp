@@ -757,16 +757,6 @@ namespace render {
         return currentDescriptorSet;
       }
 
-      void submitAndWait(VkQueue queue, VkCommandBuffer commandBuffer) const {
-        VkSubmitInfo submitInfo{};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &commandBuffer;
-        check(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE),
-              "Vulkan diffuse path-loop queue submit");
-        check(vkQueueWaitIdle(queue), "Vulkan diffuse path-loop queue wait");
-      }
-
       template<typename Record>
       Record readBackOne(VkDevice device, VkDeviceMemory outputMemory,
                          const char* operation) const {
