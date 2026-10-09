@@ -442,13 +442,7 @@ namespace render {
         check(vkEndCommandBuffer(commandBuffer),
               "Vulkan tracing accumulation command buffer end");
 
-        VkSubmitInfo submitInfo{};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &commandBuffer;
-        check(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE),
-              "Vulkan tracing accumulation queue submit");
-        check(vkQueueWaitIdle(queue), "Vulkan tracing accumulation queue wait");
+        submitAndWait(queue, commandBuffer);
       }
 
     };

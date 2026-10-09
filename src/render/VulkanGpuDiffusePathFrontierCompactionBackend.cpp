@@ -310,15 +310,6 @@ namespace render {
               "Vulkan diffuse frontier compaction command buffer end");
       }
 
-      void submitAndWait(VkQueue queue, VkCommandBuffer commandBuffer) const {
-        VkSubmitInfo submitInfo{};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &commandBuffer;
-        check(vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE),
-              "Vulkan diffuse frontier compaction queue submit");
-        check(vkQueueWaitIdle(queue), "Vulkan diffuse frontier compaction queue wait");
-      }
     };
 #endif
   }
