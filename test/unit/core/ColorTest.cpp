@@ -232,6 +232,12 @@ namespace ColorTest {
     ASSERT_NEAR(0.0625 + 0.25 + 0.5625, color.squaredMagnitude(), 0.0001);
   }
 
+  TYPED_TEST(ColorTest, ShouldReturnSquaredDistanceToOtherColor) {
+    Color<TypeParam> before(0.25, 0.5, 0.75), after(0.5, 0.25, 1.0);
+    ASSERT_NEAR(0.0625 * 3, before.squaredDistanceTo(after), 0.0001);
+    ASSERT_NEAR(0.0, before.squaredDistanceTo(before), 0.0001);
+  }
+
   TYPED_TEST(ColorTest, ShouldAdd) {
     Color<TypeParam> color1(0.3, 0.1, 0.4), color2(0.1, 0.1, 0.2);
     Color<TypeParam> color3 = color1 + color2;
