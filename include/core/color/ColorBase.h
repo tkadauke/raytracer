@@ -210,6 +210,14 @@ public:
   }
 
   /**
+    * @returns the squared Euclidean distance between this color and @p other,
+    *   treating both as RGB triples.
+    */
+  inline T squaredDistanceTo(const Derived& other) const {
+    return (other - derived()).squaredMagnitude();
+  }
+
+  /**
     * @returns the red value of this color as an integer, clipped to [0, 255].
     */
   inline unsigned char rInt() const {
