@@ -120,13 +120,9 @@ namespace {
     return count * bytesPerPath;
   }
 
-  double colorDeltaSquared(const Colord& before, const Colord& after) {
-    return (after - before).squaredMagnitude();
-  }
-
   void recordStepRadianceDelta(GpuDiffusePathStepResult& result, const Colord& before,
                                const GpuDiffusePathStateRecord& after) {
-    const double deltaSquared = colorDeltaSquared(before, Colord(after.accumulatedRadiance));
+    const double deltaSquared = before.squaredDistanceTo(Colord(after.accumulatedRadiance));
     result.radianceDeltaSquaredSum += deltaSquared;
     result.maxRadianceDelta = std::max(result.maxRadianceDelta, std::sqrt(deltaSquared));
   }

@@ -1217,6 +1217,6 @@ namespace render {
   }
 
   double Integrator::radianceDeltaSquared(const Colord& before, const Colord& after) const {
-    return (after - before).squaredMagnitude();
+    return before.squaredDistanceTo(after);
   }
 }
