@@ -27,6 +27,7 @@
 #include "render/lights/Light.h"
 #include "render/materials/Material.h"
 #include "core/math/Vector.h"
+#include "test/helpers/JsonTestHelper.h"
 #include "core/math/Angle.h"
 #include "core/Color.h"
 #include "test/helpers/VectorTestHelper.h"
@@ -55,6 +56,8 @@ Q_DECLARE_METATYPE(Colord);
 
 namespace SceneTest {
   using ::testing::HasSubstr;
+  using test::helpers::colorValue;
+  using test::helpers::vectorValue;
 
   // Register the custom metatypes the world::* Q_PROPERTYs use. Without
   // this, QMetaProperty::read silently returns an invalid QVariant for
@@ -74,14 +77,6 @@ namespace SceneTest {
     }
   };
   static const MetaTypeRegistrar s_registrar;
-
-  QJsonValue vectorValue(double x, double y, double z) {
-    return QJsonValue(QJsonArray({x, y, z}));
-  }
-
-  QJsonValue colorValue(double r, double g, double b) {
-    return QJsonValue(QJsonArray({r, g, b}));
-  }
 
   std::shared_ptr<render::MeshPrimitive> twoTriangleMeshPrimitive() {
     Mesh mesh;

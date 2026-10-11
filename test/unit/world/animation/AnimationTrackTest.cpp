@@ -11,6 +11,7 @@
 #include "core/Color.h"
 #include "core/math/Angle.h"
 #include "core/math/Vector.h"
+#include "test/helpers/JsonTestHelper.h"
 #include "world/animation/AnimationTrack.h"
 #include "world/objects/Material.h"
 #include "world/objects/PhongMaterial.h"
@@ -27,6 +28,9 @@ Q_DECLARE_METATYPE(Colord);
 namespace AnimationTrackTest {
   using core::math::interpolation::InterpolationMode;
   using ::testing::HasSubstr;
+  using test::helpers::colorValue;
+  using test::helpers::keyJson;
+  using test::helpers::vectorValue;
 
   struct MetaTypeRegistrar {
     MetaTypeRegistrar() {
@@ -38,21 +42,6 @@ namespace AnimationTrackTest {
     }
   };
   static const MetaTypeRegistrar s_registrar;
-
-  QJsonValue vectorValue(double x, double y, double z) {
-    return QJsonValue(QJsonArray({x, y, z}));
-  }
-
-  QJsonValue colorValue(double r, double g, double b) {
-    return QJsonValue(QJsonArray({r, g, b}));
-  }
-
-  QJsonObject keyJson(int frame, const QJsonValue& value) {
-    QJsonObject json;
-    json["frame"] = frame;
-    json["value"] = value;
-    return json;
-  }
 
   QJsonObject trackJson(const QString& target, const QString& property, const QJsonArray& keys,
                         const QString& interpolation = "linear") {
