@@ -10,6 +10,7 @@
 #include <QJsonValue>
 
 #include "core/math/Vector.h"
+#include "test/helpers/JsonTestHelper.h"
 #include "world/animation/AnimationTrack.h"
 #include "world/animation/Timeline.h"
 #include "world/objects/PinholeCamera.h"
@@ -17,17 +18,8 @@
 
 namespace TimelineTest {
   using ::testing::HasSubstr;
-
-  QJsonValue vectorValue(double x, double y, double z) {
-    return QJsonValue(QJsonArray({x, y, z}));
-  }
-
-  QJsonObject keyJson(int frame, const QJsonValue& value) {
-    QJsonObject json;
-    json["frame"] = frame;
-    json["value"] = value;
-    return json;
-  }
+  using test::helpers::keyJson;
+  using test::helpers::vectorValue;
 
   QJsonObject trackJson(const QString& target, const QString& property, const QJsonArray& keys,
                         const QString& interpolation = "linear") {
