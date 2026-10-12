@@ -64,10 +64,6 @@ namespace render {
         : VulkanComputeHelper("Vulkan tracing accumulation",
                               "raytracer Vulkan tracing accumulation") {}
 
-      bool deviceAvailable() const {
-        return deviceUnavailableReason().empty();
-      }
-
       std::string deviceUnavailableReason() const {
         VkInstance instance = VK_NULL_HANDLE;
         try {

@@ -35,10 +35,6 @@ namespace render {
       VulkanSmokeRuntime()
         : VulkanComputeHelper("Vulkan wavefront smoke", "raytracer Vulkan wavefront smoke probe") {}
 
-      bool deviceAvailable() const {
-        return deviceUnavailableReason().empty();
-      }
-
       std::string deviceUnavailableReason() const {
         VkInstance instance = VK_NULL_HANDLE;
         try {
