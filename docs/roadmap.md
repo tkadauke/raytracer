@@ -675,6 +675,10 @@ Read and write wherever it's reasonable. The guiding rule: if a format is used a
   ~~Shared sidecar asset resolver for importer search paths and cache keys.~~ ✅
   **Done.** `core::AssetResolver` resolves current-file-relative and configured
   search-root assets with explicit case-sensitivity behavior for Epic #230.
+  ~~Archive-backed asset lookup.~~ ✅ **Done.** `core::ArchiveAssetResolver`
+  resolves importer references inside ZIP archives (entry-relative, then archive
+  root, with the same case-sensitivity and missing-asset reporting) for Epic
+  #230; wiring it into individual importers remains TODO.
   ~~Shared scene-importer interface.~~ ✅ **Done.** `world::SceneImporter`,
   `ImportOptions`, `ImportResult`, and `ImportDiagnostic` define the
   format-neutral importer contract for Epic #230; wiring concrete LDraw import

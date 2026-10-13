@@ -268,4 +268,52 @@ namespace SceneModelTest {
     EXPECT_EQ(before, sphere->globalTransform());
     EXPECT_EQ(Vector3d(-8, 0, 0), sphere->position());
   }
+
+  TEST_F(SceneModelTest, ShouldRenameElementThroughEditRole) {
+    auto* scene = new Scene;
+    auto* group = new Group;
+    scene->addChild(group);
+
+    SceneModel model(scene);
+    auto root = model.index(0, 0, QModelIndex());
+    auto groupIndex = model.index(1, 0, root);
+
+    EXPECT_TRUE(model.flags(groupIndex) & Qt::ItemIsEditable);
+    EXPECT_TRUE(model.setData(groupIndex, "Wheels", Qt::EditRole));
+    EXPECT_EQ("Wheels", group->name());
+    EXPECT_EQ("Wheels", model.data(groupIndex, Qt::DisplayRole).toString());
+    EXPECT_EQ("Wheels", model.data(groupIndex, Qt::EditRole).toString());
+  }
+
+  TEST_F(SceneModelTest, ShouldToggleGroupVisibilityThroughCheckState) {
+    auto* scene = new Scene;
+    auto* group = new Group;
+    scene->addChild(group);
+
+    SceneModel model(scene);
+    auto root = model.index(0, 0, QModelIndex());
+    auto groupIndex = model.index(1, 0, root);
+
+    EXPECT_TRUE(model.flags(groupIndex) & Qt::ItemIsUserCheckable);
+    EXPECT_EQ(Qt::Checked, model.data(groupIndex, Qt::CheckStateRole).toInt());
+    EXPECT_TRUE(model.setData(groupIndex, Qt::Unchecked, Qt::CheckStateRole));
+    EXPECT_FALSE(group->visible());
+    EXPECT_EQ(Qt::Unchecked, model.data(groupIndex, Qt::CheckStateRole).toInt());
+    EXPECT_TRUE(model.setData(groupIndex, Qt::Checked, Qt::CheckStateRole));
+    EXPECT_TRUE(group->visible());
+  }
+
+  TEST_F(SceneModelTest, ShouldNotOfferCheckStateForNonGroups) {
+    auto* scene = new Scene;
+    auto* sphere = new Sphere;
+    scene->addChild(sphere);
+
+    SceneModel model(scene);
+    auto root = model.index(0, 0, QModelIndex());
+    auto sphereIndex = model.index(1, 0, root);
+
+    EXPECT_FALSE(model.flags(sphereIndex) & Qt::ItemIsUserCheckable);
+    EXPECT_FALSE(model.data(sphereIndex, Qt::CheckStateRole).isValid());
+    EXPECT_FALSE(model.setData(sphereIndex, Qt::Unchecked, Qt::CheckStateRole));
+  }
 }

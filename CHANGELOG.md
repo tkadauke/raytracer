@@ -13,6 +13,15 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 - Add rendercli CTest coverage for `--disable_feature` and drop it and `--sampler`
   from the option-coverage audit allowlist. — Claude Sonnet 5.5
+- `core::ArchiveAssetResolver` resolves importer asset references inside ZIP
+  archives (entry-relative then archive-root lookup, optional case-insensitive
+  matching, `AssetResolutionError` listing searched archives), closing the
+  archive-lookup acceptance item of Epic #230. — Claude Sonnet 5.5
+- Modeler's Elements tree now supports inline rename (double-click / F2) for
+  any non-generated element and a visibility checkbox on `Group` nodes,
+  completing the Modeler create/rename/reparent/toggle workflow for generic
+  scene groups. `SceneModel` gained `setData()` for `Qt::EditRole` and
+  `Qt::CheckStateRole`. — Claude Sonnet 5.5
 
 ### Fixed
 
