@@ -1094,7 +1094,9 @@ Minimum concepts:
   a material role; ✅ **Partial.** `SceneSelector::Kind` covers `ObjectId`,
   `ObjectName`, `Tag`, `Layer`, and `MaterialRole`
   (`include/engine/graph/RenderGraphTypes.h`); there is no `Subtree` selector
-  kind anywhere in the codebase.
+  kind anywhere in the codebase. `MaterialRole` selectors parse but are rejected by
+  `RenderSceneAnalysis::requireResolvableSelectors` with an explicit
+  "not supported yet" diagnostic (`RenderGraphCompiler.RejectsMaterialRoleSelectorSpecificOverrides`).
 - pass-specific include/exclude masks;
 - material/surface feature roles such as screen, portal, mirror, overlay-only;
   ✅ **Partial.** Portal and mirror roles are concrete

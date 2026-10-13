@@ -256,6 +256,25 @@ namespace RenderGraphCompilerTest {
     }
   }
 
+  TEST(RenderGraphCompiler, RejectsMaterialRoleSelectorSpecificOverrides) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    RenderViewOverride override;
+    override.selector = SceneSelector::materialRole("screen");
+    override.viewMode = RenderViewMode::Wireframe;
+    intent.viewOverrides.push_back(override);
+
+    // Rejected even when the scene has not recorded any selectable subsets.
+    RenderSceneAnalysis analysis;
+    try {
+      compiler.compile({64, 64, 1}, intent, analysis);
+      FAIL() << "Expected material_role selector diagnostic";
+    } catch (const std::runtime_error& e) {
+      EXPECT_THAT(e.what(), HasSubstr("does not support material_role selectors yet"));
+      EXPECT_THAT(e.what(), HasSubstr("object_id, object_name, tag, or layer"));
+    }
+  }
+
   TEST(RenderGraphCompiler, UsesWavefrontExecutorPreference) {
     RenderGraphCompiler compiler;
     RenderIntent intent;

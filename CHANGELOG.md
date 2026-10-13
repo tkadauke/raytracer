@@ -27,6 +27,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   plus `maxConcurrentPasses`, derived from the per-pass start/finish offsets.
   — Claude Sonnet 5.5
 
+### Changed
+
+- Selector-specific render intent that uses a `material_role` selector now fails with an explicit "not supported yet" diagnostic instead of resolving as a missing subset (advances the selector/per-subtree routing epic). — Claude Sonnet 5.5
+
 ### Fixed
 
 - Loosen the `rendercli_render_graph` wavefront bilateral denoise quality
