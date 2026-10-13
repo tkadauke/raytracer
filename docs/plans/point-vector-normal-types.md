@@ -714,6 +714,8 @@ Resolve the remaining open questions above. Commit decisions to this
 doc. **No code changes yet.** (Most of Phase 0 was completed in the
 2026-05-11 design discussion that produced the current draft.)
 
+> **Progress:** ✅ Partial — 3D `Point3` / `Direction3` / `Normal3` / `NormalMatrix3` landed in `include/core/math/Geometry.h` (reusing the existing `Vector3` as the vector type, no `Vec`/`Mat` base templates, no `Transform3` yet). Phases 2+ not started.
+
 ### Phase 1 — introduce the 3D types alongside `Vector3<T>` / `Matrix4<T>`
 
 Add the `Vec<T, N, Tag, Policy>` / `Mat<R, C, T, Tag>` template
