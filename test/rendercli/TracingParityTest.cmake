@@ -158,7 +158,11 @@ endfunction()
 function(tracing_parity_render_supported category scene_file depth samples rms_threshold
          extra_gpu_stdout_regex)
   tracing_parity_slug(slug "${category}")
-  set(scene_path "${tracing_parity_fixture_dir}/${scene_file}")
+  if(IS_ABSOLUTE "${scene_file}")
+    set(scene_path "${scene_file}")
+  else()
+    set(scene_path "${tracing_parity_fixture_dir}/${scene_file}")
+  endif()
   set(cpu_render "${TEST_OUTPUT_DIR}/${slug}-cpu.png")
   set(cpu_metrics "${TEST_OUTPUT_DIR}/${slug}-cpu-metrics.json")
   set(gpu_request_render "${TEST_OUTPUT_DIR}/${slug}-gpu-request.png")
@@ -272,7 +276,11 @@ endfunction()
 function(tracing_parity_render_compiled_gpu_execution category scene_file depth samples
          scalar_rms_threshold)
   tracing_parity_slug(slug "${category}")
-  set(scene_path "${tracing_parity_fixture_dir}/${scene_file}")
+  if(IS_ABSOLUTE "${scene_file}")
+    set(scene_path "${scene_file}")
+  else()
+    set(scene_path "${tracing_parity_fixture_dir}/${scene_file}")
+  endif()
   set(cpu_scalar_render "${TEST_OUTPUT_DIR}/${slug}-scalar-cpu.png")
   set(gpu_execution_render "${TEST_OUTPUT_DIR}/${slug}-compiled-gpu-execution.png")
   set(gpu_execution_metrics "${TEST_OUTPUT_DIR}/${slug}-compiled-gpu-execution-metrics.json")
@@ -491,6 +499,11 @@ tracing_parity_render_compiled_gpu_execution(
   "transparent_glass" "transparent_fallback.json" 4 1 0.10)
 tracing_parity_render_compiled_gpu_execution(
   "visibility_heavy" "visibility_heavy.json" 2 1 0.12)
+tracing_parity_render_supported(
+  "area_light_demo" "${PROJECT_SOURCE_DIR}/scenes/pathtracer_area_light_demo.json" 3 4 0.03
+  "direct_light_samples=[1-9][0-9]*")
+tracing_parity_render_compiled_gpu_execution(
+  "area_light_demo" "${PROJECT_SOURCE_DIR}/scenes/pathtracer_area_light_demo.json" 3 4 0.10)
 render_whitted_gpu_parity(
   "matte-direct-light" "${PROJECT_SOURCE_DIR}/test/fixtures/tracing_parity/matte_direct_light.json"
   2)
