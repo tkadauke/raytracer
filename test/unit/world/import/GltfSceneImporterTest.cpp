@@ -41,6 +41,39 @@ namespace GltfSceneImporterTest {
       return path;
     }
 
+    QString writeGlb(const QByteArray& json, const QByteArray& binary) {
+      auto appendUint32 = [](QByteArray& bytes, quint32 value) {
+        for (int shift = 0; shift < 32; shift += 8)
+          bytes.append(static_cast<char>((value >> shift) & 0xffu));
+      };
+      QByteArray paddedJson = json;
+      while (paddedJson.size() % 4 != 0)
+        paddedJson.append(' ');
+      QByteArray paddedBinary = binary;
+      while (paddedBinary.size() % 4 != 0)
+        paddedBinary.append('\0');
+
+      QByteArray bytes;
+      appendUint32(bytes, 0x46546c67u);
+      appendUint32(bytes, 2);
+      appendUint32(bytes, static_cast<quint32>(12 + 8 + paddedJson.size() + 8 + paddedBinary.size()));
+      appendUint32(bytes, static_cast<quint32>(paddedJson.size()));
+      appendUint32(bytes, 0x4e4f534au);
+      bytes.append(paddedJson);
+      appendUint32(bytes, static_cast<quint32>(paddedBinary.size()));
+      appendUint32(bytes, 0x004e4942u);
+      bytes.append(paddedBinary);
+
+      QTemporaryFile file;
+      file.setAutoRemove(false);
+      EXPECT_TRUE(file.open());
+      file.write(bytes);
+      const QString path = file.fileName() + ".glb";
+      file.close();
+      EXPECT_TRUE(QFile::rename(file.fileName(), path));
+      return path;
+    }
+
     render::MeshPrimitive* importedMeshPrimitive(const world::ImportResult& result) {
       auto* scene = qobject_cast<Group*>(result.groupRoot()->childElements()[0]);
       auto* node = qobject_cast<Group*>(scene->childElements()[0]);
@@ -364,6 +397,44 @@ namespace GltfSceneImporterTest {
     ASSERT_NE(nullptr, cameraNode);
     ASSERT_EQ(1, cameraNode->childElements().size());
     EXPECT_NE(nullptr, qobject_cast<PinholeCamera*>(cameraNode->childElements()[0]));
+  }
+
+  TEST(GltfSceneImporter, ImportsBinaryGlbContainerWithEmbeddedBuffer) {
+    QByteArray binary;
+    const float positions[] = {0, 0, 0, 1, 0, 0, 0, 1, 0};
+    binary.append(reinterpret_cast<const char*>(positions), sizeof(positions));
+    const quint16 indices[] = {0, 1, 2};
+    binary.append(reinterpret_cast<const char*>(indices), sizeof(indices));
+    const QString path = writeGlb(R"JSON({
+      "asset": {"version": "2.0"},
+      "scene": 0,
+      "scenes": [{"nodes": [0]}],
+      "nodes": [{"name": "Glb Node", "mesh": 0}],
+      "meshes": [{"primitives": [{"attributes": {"POSITION": 0}, "indices": 1}]}],
+      "buffers": [{"byteLength": 44}],
+      "bufferViews": [
+        {"buffer": 0, "byteOffset": 0, "byteLength": 36},
+        {"buffer": 0, "byteOffset": 36, "byteLength": 6}
+      ],
+      "accessors": [
+        {"bufferView": 0, "componentType": 5126, "count": 3, "type": "VEC3",
+         "min": [0, 0, 0], "max": [1, 1, 0]},
+        {"bufferView": 1, "componentType": 5123, "count": 3, "type": "SCALAR"}
+      ]
+    })JSON",
+                                  binary);
+
+    world::GltfSceneImporter importer;
+    const auto result = importer.importFile(path);
+    QFile::remove(path);
+
+    ASSERT_TRUE(result.succeeded());
+    ASSERT_NE(nullptr, result.groupRoot());
+    auto* primitive = importedMeshPrimitive(result);
+    ASSERT_NE(nullptr, primitive);
+    ASSERT_NE(nullptr, primitive->mesh());
+    EXPECT_EQ(3u, primitive->mesh()->vertices().size());
+    EXPECT_EQ(1u, primitive->mesh()->faces().size());
   }
 
   TEST(GltfSceneImporter, ImportsPerspectiveAndOrthographicCamerasFromNodes) {
