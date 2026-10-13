@@ -1270,7 +1270,7 @@ above.
   issue #603 coverage.
 - ~~Visibility batching parity.~~ ✅ **Done.** Issue #604 routes packed
   direct-light visibility through `render::IntersectionService` (E7 job 5).
-- Image parity on `pathtracer_area_light_demo.json`.
+- ~~Image parity on `pathtracer_area_light_demo.json`.~~ ✅ **Done.** `area_light_demo` CPU vs GPU-requested and compiled-execution image parity in `test/rendercli/TracingParityTest.cmake`.
 - ~~Metrics distinguish: visibility-only GPU; contribution GPU; CPU
   fallback.~~ ✅ **Done.** `direct_light_contribution_execution` values
   (`cpu`, `cpu_record`, `full_gpu_subset`) and matching fallback reasons in
