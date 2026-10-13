@@ -785,8 +785,11 @@ memory from the individual plane byte counts rather than assuming one packed
 struct per pixel. `render::TracingAccumulationBuffer` is the CPU reference for
 clear, sample add, optional raw-second-moment accumulation, and LDR resolve.
 Metal-enabled builds also expose optional clear, sample-add, and LDR resolve
-kernels through `render::MetalTracingAccumulationBuffer`; Vulkan kernels and
-resource diagnostics are follow-up jobs under the GPU accumulation-buffer epic.
+kernels through `render::MetalTracingAccumulationBuffer`, and Vulkan-enabled
+builds expose the equivalent synthetic accumulation kernel
+(`VulkanTracingAccumulationKernel`). Every path reports
+`render::TracingAccumulationDiagnostics` (residency, resident bytes,
+operation counts, readback) so CPU and GPU results can be compared.
 
 ---
 
@@ -1267,7 +1270,7 @@ above.
   issue #603 coverage.
 - ~~Visibility batching parity.~~ ✅ **Done.** Issue #604 routes packed
   direct-light visibility through `render::IntersectionService` (E7 job 5).
-- Image parity on `pathtracer_area_light_demo.json`.
+- ~~Image parity on `pathtracer_area_light_demo.json`.~~ ✅ **Done.** `area_light_demo` CPU vs GPU-requested and compiled-execution image parity in `test/rendercli/TracingParityTest.cmake`.
 - ~~Metrics distinguish: visibility-only GPU; contribution GPU; CPU
   fallback.~~ ✅ **Done.** `direct_light_contribution_execution` values
   (`cpu`, `cpu_record`, `full_gpu_subset`) and matching fallback reasons in

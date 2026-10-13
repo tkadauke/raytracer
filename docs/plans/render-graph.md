@@ -1094,7 +1094,9 @@ Minimum concepts:
   a material role; ✅ **Partial.** `SceneSelector::Kind` covers `ObjectId`,
   `ObjectName`, `Tag`, `Layer`, and `MaterialRole`
   (`include/engine/graph/RenderGraphTypes.h`); there is no `Subtree` selector
-  kind anywhere in the codebase.
+  kind anywhere in the codebase. `MaterialRole` selectors parse but are rejected by
+  `RenderSceneAnalysis::requireResolvableSelectors` with an explicit
+  "not supported yet" diagnostic (`RenderGraphCompiler.RejectsMaterialRoleSelectorSpecificOverrides`).
 - pass-specific include/exclude masks;
 - material/surface feature roles such as screen, portal, mirror, overlay-only;
   ✅ **Partial.** Portal and mirror roles are concrete
@@ -1102,7 +1104,9 @@ Minimum concepts:
   `recordPlanarMirrorSurface`, `DerivedCameraRef::Kind::{Portal,
   PlanarMirror}`); `recordRenderTextureReceiver(subviewName)` links a surface
   to a subview (screen-like behavior), but there is no formal "screen" or
-  "overlay-only" role type.
+  "overlay-only" role type. Modeler's Add Scene Element → Render-Texture Screen
+  authors a receiver rectangle plus its `screen` subview
+  (`Scene::ensureRenderTextureSubview`).
 - ~~per-selector executor, view-mode, shading-profile, and camera overrides;~~
   ✅ **Done.** `RenderViewOverride{ selector; executor; viewMode;
   shadingProfile; camera; ... }` (`RenderGraphTypes.h`), compiled in
@@ -1725,7 +1729,10 @@ workers, observes serial/limited/parallel per-pass executor caps, and
 deterministically skips queued dependents after cancellation or failure.
 Verification commands:
 `build/release/test/unit/unit_tests --gtest_filter='GraphRenderEngine.RunsIndependentCpuSafePassesConcurrently:GraphRenderEngine.DependentsReadyInSameWaveCanOverlap:GraphRenderEngine.LimitedExecutorCapKeepsExtraReadyPassQueued:GraphRenderEngine.SerialExecutorLimitPreservesPassOrder:GraphRenderEngine.CancellationSkipsQueuedDependentPasses:GraphRenderEngine.FailingPassSkipsDependentsDeterministically'`
-and `ctest --preset release --output-on-failure`.
+and `ctest --preset release --output-on-failure`. Execution trace JSON (including
+`rendercli --render_graph_trace_out`) also reports `activePassSets` and
+`maxConcurrentPasses`, derived from per-pass start/finish offsets by
+`RenderGraphExecutionTrace::activePassSegments()`.
 
 ### History resources
 

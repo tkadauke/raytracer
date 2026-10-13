@@ -76,6 +76,7 @@
 #include "world/objects/SourceAsset.h"
 #include "world/objects/Sphere.h"
 #include "world/objects/Box.h"
+#include "world/objects/Rectangle.h"
 #include "world/objects/Cylinder.h"
 #include "world/objects/Ring.h"
 #include "world/objects/Torus.h"
@@ -578,6 +579,7 @@ struct MainWindow::Private {
   QAction* addTorusAct;
   QAction* addScriptAct;
   QAction* addGroupAct;
+  QAction* addRenderTextureScreenAct;
 
   QAction* addIntersectionAct;
   QAction* addUnionAct;
@@ -848,6 +850,11 @@ void MainWindow::createActions() {
   p->addGroupAct = new QAction(tr("Group"), this);
   p->addGroupAct->setStatusTip(tr("Add a Group to organize scene elements"));
   connect(p->addGroupAct, SIGNAL(triggered()), this, SLOT(addGroup()));
+
+  p->addRenderTextureScreenAct = new QAction(tr("Render-Texture Screen"), this);
+  p->addRenderTextureScreenAct->setStatusTip(
+    tr("Add a rectangle that displays a nested rasterized render of the scene"));
+  connect(p->addRenderTextureScreenAct, SIGNAL(triggered()), this, SLOT(addRenderTextureScreen()));
 
   p->addIntersectionAct = new QAction(tr("Intersection"), this);
   p->addIntersectionAct->setStatusTip(tr("Add an intersection to the scene"));
@@ -1316,6 +1323,7 @@ void MainWindow::createMenus() {
 
   auto addSceneElement = p->editMenu->addMenu(tr("Add Scene Element"));
   addSceneElement->addAction(p->addGroupAct);
+  addSceneElement->addAction(p->addRenderTextureScreenAct);
 
   auto addComposite = p->editMenu->addMenu(tr("Add Composite"));
   addComposite->addAction(p->addIntersectionAct);
@@ -1747,6 +1755,17 @@ void MainWindow::add() {
 
 void MainWindow::addBox() {
   add<Box>();
+}
+
+void MainWindow::addRenderTextureScreen() {
+  const QString subviewName = QStringLiteral("screen");
+  auto* screen = new Rectangle(nullptr);
+  screen->setName(QString("Screen %1").arg(p->scene->childElements().size()));
+  screen->setRenderTextureSubview(subviewName);
+
+  p->scene->ensureRenderTextureSubview(subviewName.toStdString());
+  p->elementModel->addElement(p->currentIndex, screen);
+  elementChanged(screen);
 }
 
 void MainWindow::addSphere() {

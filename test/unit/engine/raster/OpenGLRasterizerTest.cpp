@@ -6,6 +6,7 @@
 #include "engine/raster/OpenGLOffscreenContext.h"
 #include "engine/raster/OpenGLRasterizer.h"
 #include "engine/raster/RasterVisibilitySet.h"
+#include "engine/raster/detail/OpenGLRasterResource.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/lights/DirectionalLight.h"
 #include "render/materials/MatteMaterial.h"
@@ -484,6 +485,47 @@ namespace OpenGLRasterizerTest {
     rasterizer.setColorLoadSource(&source);
     Buffer<Colord> buffer(8, 8);
     EXPECT_NO_THROW(rasterizer.render(buffer));
+  }
+
+  TEST_F(OpenGLRasterizerAttachmentLoad, ResidentColorPublishedAndLoadedWithoutCpuReadback) {
+    SKIP_IF_NO_OPENGL();
+    auto lit = test::helpers::litSphereScene(Colord(0.1, 0.1, 0.1), Colord::red());
+    engine::raster::OpenGLRasterizer producer(standardCamera(), lit);
+    producer.setPublishResidentColor(true);
+    Buffer<Colord> reference(16, 16);
+    producer.render(reference);
+
+    auto resident = producer.takeResidentColor();
+    ASSERT_NE(resident, nullptr);
+    EXPECT_TRUE(resident->valid());
+    EXPECT_EQ(resident->width(), 16);
+    EXPECT_EQ(resident->height(), 16);
+    EXPECT_EQ(producer.takeResidentColor(), nullptr);
+
+    // The consumer draws an empty scene; Load must preserve the producer's
+    // pixels straight from the GPU texture.
+    auto empty = std::make_shared<render::Scene>(Colord::black());
+    engine::raster::OpenGLRasterizer consumer(standardCamera(), empty);
+    consumer.setColorLoadOp(engine::raster::Rasterizer::AttachmentLoadOp::Load);
+    consumer.setColorLoadResource(resident.get());
+    Buffer<Colord> loaded(16, 16);
+    ASSERT_NO_THROW(consumer.render(loaded));
+    for (int y = 0; y != 16; ++y) {
+      for (int x = 0; x != 16; ++x) {
+        EXPECT_NEAR(loaded[y][x].r(), reference[y][x].r(), 1.0 / 255.0);
+        EXPECT_NEAR(loaded[y][x].g(), reference[y][x].g(), 1.0 / 255.0);
+        EXPECT_NEAR(loaded[y][x].b(), reference[y][x].b(), 1.0 / 255.0);
+      }
+    }
+  }
+
+  TEST_F(OpenGLRasterizerAttachmentLoad, ResidentColorNotPublishedUnlessRequested) {
+    SKIP_IF_NO_OPENGL();
+    auto scene = std::make_shared<render::Scene>(Colord::black());
+    engine::raster::OpenGLRasterizer rasterizer(standardCamera(), scene);
+    Buffer<Colord> buffer(8, 8);
+    rasterizer.render(buffer);
+    EXPECT_EQ(rasterizer.takeResidentColor(), nullptr);
   }
 
   TEST_F(OpenGLRasterizerAttachmentLoad, DepthLoadOpThrowsUntilResidencyFollowUp) {

@@ -22,6 +22,27 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   completing the Modeler create/rename/reparent/toggle workflow for generic
   scene groups. `SceneModel` gained `setData()` for `Qt::EditRole` and
   `Qt::CheckStateRole`. — Claude Sonnet 5.5
+- Render graph execution traces (and `rendercli --render_graph_trace_out`
+  JSON) now include `activePassSets`, a timeline of which passes ran together,
+  plus `maxConcurrentPasses`, derived from the per-pass start/finish offsets.
+  — Claude Sonnet 5.5
+
+- Modeler: Edit → Add Scene Element → Render-Texture Screen adds a rectangle
+  wired to a `screen` subview, and `Scene::ensureRenderTextureSubview()` declares
+  the matching rasterized nested render in the scene's render intent without
+  overriding an authored subview of the same name. Advances the render-to-texture
+  screen epic (issue #492). — Claude Sonnet 5.5
+- `OpenGLRasterizer` can publish its stored color attachment as a GPU-resident
+  `OpenGLRasterResource` (`setPublishResidentColor` / `takeResidentColor`) and
+  consume one for color `Load` (`setColorLoadResource`) via a GPU blit with no
+  CPU readback or upload; a resource from a different GL context is rejected.
+  Advances `docs/plans/opengl-gpu-residency.md` Phases 1-2 for color only. —
+  Claude Sonnet 5.5
+- `Light::bounds()` exposes optional world-space bounds for lights (point and rectangular area lights; directional lights are unbounded), completing the power/bounds metadata for Epic #358. — Claude Sonnet 5.5
+
+### Changed
+
+- Selector-specific render intent that uses a `material_role` selector now fails with an explicit "not supported yet" diagnostic instead of resolving as a missing subset (advances the selector/per-subtree routing epic). — Claude Sonnet 5.5
 
 ### Fixed
 
@@ -78,6 +99,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- Added CPU vs GPU-requested image parity coverage for `scenes/pathtracer_area_light_demo.json` in the rendercli tracing parity test, closing the E7 area-light image-parity gate. — Claude Sonnet 5.5
 - Add `Matrix::toFloatArray()` for row-major float-array conversion, replacing the local
   GPU intersection matrix packing helpers with a core matrix method. — GPT-5 Codex
 - Persist chat threads per scene (roadmap §4.6.i chat persistence, following up on

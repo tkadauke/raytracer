@@ -499,6 +499,35 @@ namespace SceneTest {
     EXPECT_TRUE(analysis.renderTextureSubviewReceivers().count("surface-feed"));
   }
 
+  TEST(Scene, EnsureRenderTextureSubviewAddsWholeFrameRasterSubview) {
+    Scene scene;
+    EXPECT_FALSE(scene.hasRenderIntent());
+
+    EXPECT_TRUE(scene.ensureRenderTextureSubview("screen"));
+
+    ASSERT_TRUE(scene.hasRenderIntent());
+    ASSERT_EQ(1u, scene.renderIntent().subviews.size());
+    const auto& subview = scene.renderIntent().subviews.front();
+    EXPECT_EQ("screen", subview.name);
+    EXPECT_TRUE(subview.view.appliesToWholeFrame());
+    ASSERT_TRUE(subview.view.executor.has_value());
+    EXPECT_EQ(engine::graph::RenderExecutorPreference::Rasterizer, *subview.view.executor);
+  }
+
+  TEST(Scene, EnsureRenderTextureSubviewKeepsExistingSubview) {
+    Scene scene;
+    EXPECT_TRUE(scene.ensureRenderTextureSubview("screen",
+                                                 engine::graph::RenderExecutorPreference::Wireframe));
+
+    EXPECT_FALSE(scene.ensureRenderTextureSubview("screen"));
+
+    ASSERT_EQ(1u, scene.renderIntent().subviews.size());
+    EXPECT_EQ(engine::graph::RenderExecutorPreference::Wireframe,
+              *scene.renderIntent().subviews.front().view.executor);
+    EXPECT_TRUE(scene.ensureRenderTextureSubview("other"));
+    EXPECT_EQ(2u, scene.renderIntent().subviews.size());
+  }
+
   TEST(Scene, ShouldPreserveRenderTextureReceiversAcrossJsonRoundTrip) {
     Scene scene;
     auto* material = new MatteMaterial;

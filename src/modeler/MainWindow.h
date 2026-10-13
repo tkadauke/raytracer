@@ -70,6 +70,7 @@ private slots:
   void addTorus();
   void addScript();
   void addGroup();
+  void addRenderTextureScreen();
 
   void addIntersection();
   void addUnion();

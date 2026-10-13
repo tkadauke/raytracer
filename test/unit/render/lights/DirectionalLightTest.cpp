@@ -6,6 +6,11 @@
 namespace DirectionalLightTest {
   using namespace render;
 
+  TEST(DirectionalLight, BoundsAreUnbounded) {
+    DirectionalLight light(Vector3d(0, -1, 0), Colord::white());
+    EXPECT_FALSE(light.bounds().has_value());
+  }
+
   TEST(DirectionalLight, ShouldInitializeWithValues) {
     DirectionalLight light(Vector3d(-0.5, -1, -0.5), Colord::white());
   }
