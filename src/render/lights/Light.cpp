@@ -38,6 +38,10 @@ std::optional<Colord> Light::power() const {
   return std::nullopt;
 }
 
+std::optional<BoundingBoxd> Light::bounds() const {
+  return std::nullopt;
+}
+
 std::shared_ptr<render::Primitive> Light::emitterPrimitive() const {
   return nullptr;
 }

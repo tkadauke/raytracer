@@ -67,6 +67,15 @@ namespace RectangularAreaLightTest {
     EXPECT_EQ(Colord(0.25, 0.5, 0.75) * 6.0 * PI, *light.power());
   }
 
+  TEST(RectangularAreaLight, BoundsEncloseTheRectangle) {
+    RectangularAreaLight light(Vector3d(0, 2, 0), Vector3d(2, 0, 0), Vector3d(0, 0, 4),
+                               Colord::white());
+    const auto bounds = light.bounds();
+    ASSERT_TRUE(bounds.has_value());
+    EXPECT_EQ(Vector3d(-1, 2, -2), bounds->min());
+    EXPECT_EQ(Vector3d(1, 2, 2), bounds->max());
+  }
+
   TEST(RectangularAreaLight, ExposesVisibleEmitterPrimitive) {
     RectangularAreaLight light(Vector3d(0, 2, 0), Vector3d(2, 0, 0), Vector3d(0, 0, 2),
                                Colord(0.25, 0.5, 0.75));

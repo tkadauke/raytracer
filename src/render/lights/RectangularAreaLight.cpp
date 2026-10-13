@@ -119,6 +119,17 @@ std::optional<Colord> RectangularAreaLight::power() const {
   return radiance() * area() * PI;
 }
 
+std::optional<BoundingBoxd> RectangularAreaLight::bounds() const {
+  const Vector3d halfU = edgeU() * 0.5;
+  const Vector3d halfV = edgeV() * 0.5;
+  // The rectangle is center +/- halfU +/- halfV; its box is center +/- (|halfU| + |halfV|)
+  // per axis.
+  const Vector3d extent(std::abs(halfU.x()) + std::abs(halfV.x()),
+                        std::abs(halfU.y()) + std::abs(halfV.y()),
+                        std::abs(halfU.z()) + std::abs(halfV.z()));
+  return BoundingBoxd(center() - extent, center() + extent);
+}
+
 std::shared_ptr<render::Primitive> RectangularAreaLight::emitterPrimitive() const {
   if (area() <= tolerance) {
     return nullptr;

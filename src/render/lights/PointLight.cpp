@@ -23,6 +23,10 @@ std::optional<Colord> PointLight::power() const {
   return color();
 }
 
+std::optional<BoundingBoxd> PointLight::bounds() const {
+  return BoundingBoxd(position(), position());
+}
+
 const char* PointLight::fingerprintType() const {
   return "PointLight";
 }
