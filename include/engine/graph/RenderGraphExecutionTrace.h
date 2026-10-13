@@ -127,6 +127,16 @@ namespace engine::graph {
   };
 
   /**
+    * Interval of a graph execution during which the same set of passes was
+    * running. Consecutive segments always differ in their pass sets.
+    */
+  struct RenderGraphActivePassSegment {
+    std::chrono::nanoseconds start{0};
+    std::chrono::nanoseconds end{0};
+    std::vector<RenderPassId> passes;
+  };
+
+  /**
     * Result of one graph execution, separate from the declarative plan.
     */
   class RenderGraphExecutionTrace {
@@ -143,6 +153,18 @@ namespace engine::graph {
     std::vector<const RenderGraphResourceDiff*> diffsForResource(const RenderResourceId& id) const;
     bool matchesPlan(const RenderPlan& plan) const;
     bool matchesPlanAndInputs(const RenderPlan& plan, const std::string& inputFingerprint) const;
+
+    /**
+      * Timeline of which passes were running together, derived from the
+      * per-pass start and finish/failure offsets. Passes that never started
+      * or took no measurable time are not included; sorted pass ids make the
+      * result deterministic.
+      */
+    std::vector<RenderGraphActivePassSegment> activePassSegments() const;
+
+    /** Largest number of passes that were running at the same time. */
+    std::size_t maxConcurrentPasses() const;
+
     QJsonObject toJson() const;
 
   private:

@@ -4302,6 +4302,27 @@ namespace GraphRenderEngineTest {
     ASSERT_TRUE(secondTrace->finishedAt());
     EXPECT_LT(*firstTrace->startedAt(), *secondTrace->finishedAt());
     EXPECT_LT(*secondTrace->startedAt(), *firstTrace->finishedAt());
+
+    EXPECT_EQ(2u, trace->maxConcurrentPasses());
+    bool sawBothActive = false;
+    for (const auto& segment : trace->activePassSegments()) {
+      if (segment.passes == std::vector<RenderPassId>{"beauty_a", "beauty_b"}) {
+        sawBothActive = true;
+        EXPECT_LT(segment.start, segment.end);
+      }
+    }
+    EXPECT_TRUE(sawBothActive);
+
+    const QJsonObject json = trace->toJson();
+    EXPECT_EQ(2, json["maxConcurrentPasses"].toInt());
+    bool jsonHasBoth = false;
+    for (const QJsonValue& entry : json["activePassSets"].toArray()) {
+      const QJsonArray ids = entry.toObject()["passes"].toArray();
+      if (ids.size() == 2 && ids[0].toString() == "beauty_a" && ids[1].toString() == "beauty_b") {
+        jsonHasBoth = true;
+      }
+    }
+    EXPECT_TRUE(jsonHasBoth);
   }
 
   TEST(GraphRenderEngine, ImportedParallelResourceHazardFailsClearly) {
