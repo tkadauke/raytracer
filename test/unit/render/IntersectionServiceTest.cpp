@@ -4,8 +4,11 @@
 #include "render/GpuIntersectionScene.h"
 #include "render/State.h"
 #include "render/primitives/Difference.h"
+#include "render/primitives/Disk.h"
+#include "render/primitives/Plane.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
+#include "render/primitives/Torus.h"
 
 #include "core/math/HitPoint.h"
 
@@ -608,6 +611,72 @@ namespace IntersectionServiceTest {
     EXPECT_EQ("packed_cpu", service.diagnostics().closestHitExecutionPath);
     EXPECT_EQ("metal", service.diagnostics().anyHitExecutionPath);
     EXPECT_EQ("mixed", service.diagnostics().fallbackReason);
+  }
+
+  TEST(IntersectionService, RequestedGpuMatchesRuntimeCpuClosestAndAnyHitOnMixedSupportedScene) {
+    Scene scene;
+    scene.add(std::make_shared<Sphere>(Vector3d(0, 0, 3), 1.0));
+    scene.add(std::make_shared<Plane>(Vector3d(0, 1, 0), 2.0));
+    scene.add(std::make_shared<Disk>(Vector3d(4, 0, 6), Vector3d(0, 0, 1), 1.5));
+    scene.add(std::make_shared<Torus>(2.0, 0.5));
+
+    const std::vector<Rayd> rays = {
+      Rayd(Vector3d(0, 0, 0), Vector3d::forward()),
+      Rayd(Vector3d(4, 0, 0), Vector3d::forward()),
+      Rayd(Vector3d(0, 0, -6), Vector3d::forward()),
+      Rayd(Vector3d(0, 0, 0), Vector3d(0, -1, 0)),
+      Rayd(Vector3d(20, 20, 20), Vector3d(1, 1, 1)),
+    };
+    const double maxDistance = 4.0;
+
+    IntersectionService cpu(scene, WavefrontIntersectionBackendChoice::cpu());
+    IntersectionService gpu(scene, WavefrontIntersectionBackendChoice::gpu());
+
+    // The scene is fully supported, so nothing may be reported as an
+    // unsupported-scene fallback even when no platform device is present.
+    EXPECT_TRUE(gpu.diagnostics().scene.compiled);
+    EXPECT_EQ(0u, gpu.diagnostics().scene.unsupportedPrimitives);
+
+    std::vector<State> cpuStates(rays.size()), gpuStates(rays.size());
+    std::vector<WavefrontClosestHitQuery> cpuClosest, gpuClosest;
+    std::vector<WavefrontAnyHitQuery> cpuAny, gpuAny;
+    for (std::size_t i = 0; i < rays.size(); ++i) {
+      cpuClosest.push_back({rays[i], &cpuStates[i]});
+      gpuClosest.push_back({rays[i], &gpuStates[i]});
+      cpuAny.push_back({rays[i], maxDistance, &cpuStates[i]});
+      gpuAny.push_back({rays[i], maxDistance, &gpuStates[i]});
+    }
+
+    const auto cpuHits = cpu.closestHits(cpuClosest);
+    const auto gpuHits = gpu.closestHits(gpuClosest);
+    ASSERT_EQ(rays.size(), cpuHits.size());
+    ASSERT_EQ(rays.size(), gpuHits.size());
+    bool sawHit = false, sawMiss = false;
+    for (std::size_t i = 0; i < rays.size(); ++i) {
+      ASSERT_EQ(cpuHits[i].hit(), gpuHits[i].hit()) << "ray " << i;
+      if (cpuHits[i].hit()) {
+        sawHit = true;
+        EXPECT_EQ(cpuHits[i].primitive, gpuHits[i].primitive) << "ray " << i;
+        EXPECT_NEAR(cpuHits[i].hitPoint.distance(), gpuHits[i].hitPoint.distance(), 1e-4)
+          << "ray " << i;
+      } else {
+        sawMiss = true;
+      }
+    }
+    EXPECT_TRUE(sawHit);
+    EXPECT_TRUE(sawMiss);
+
+    const WavefrontOcclusionFlags cpuFlags = cpu.anyHits(cpuAny);
+    const WavefrontOcclusionFlags gpuFlags = gpu.anyHits(gpuAny);
+    ASSERT_EQ(cpuFlags.size(), gpuFlags.size());
+    for (std::size_t i = 0; i < cpuFlags.size(); ++i) {
+      EXPECT_EQ(cpuFlags[i] != 0, gpuFlags[i] != 0) << "ray " << i;
+    }
+
+    // A requested GPU backend that cannot run on the platform must say so.
+    if (gpu.diagnostics().selectedBackend == "cpu" || gpu.diagnostics().availability != "available") {
+      EXPECT_FALSE(gpu.diagnostics().fallbackReason.empty());
+    }
   }
 
   TEST(IntersectionService, ReportsFallbackForUnsupportedGpuScene) {
