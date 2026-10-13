@@ -38,6 +38,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   CPU readback or upload; a resource from a different GL context is rejected.
   Advances `docs/plans/opengl-gpu-residency.md` Phases 1-2 for color only. —
   Claude Sonnet 5.5
+- `Light::bounds()` exposes optional world-space bounds for lights (point and rectangular area lights; directional lights are unbounded), completing the power/bounds metadata for Epic #358. — Claude Sonnet 5.5
 
 ### Changed
 
