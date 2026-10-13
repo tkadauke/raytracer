@@ -22,6 +22,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   completing the Modeler create/rename/reparent/toggle workflow for generic
   scene groups. `SceneModel` gained `setData()` for `Qt::EditRole` and
   `Qt::CheckStateRole`. — Claude Sonnet 5.5
+- Render graph execution traces (and `rendercli --render_graph_trace_out`
+  JSON) now include `activePassSets`, a timeline of which passes ran together,
+  plus `maxConcurrentPasses`, derived from the per-pass start/finish offsets.
+  — Claude Sonnet 5.5
 
 ### Fixed
 

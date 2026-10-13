@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <set>
 #include <sstream>
 #include <stdexcept>
 #include <utility>
@@ -559,13 +560,85 @@ namespace engine::graph {
     return matchesPlan(plan) && m_inputFingerprint == inputFingerprint;
   }
 
+  std::vector<RenderGraphActivePassSegment> RenderGraphExecutionTrace::activePassSegments() const {
+    struct Event {
+      std::chrono::nanoseconds time;
+      bool starts;
+      RenderPassId id;
+    };
+
+    std::vector<Event> events;
+    for (const auto& pass : m_passes) {
+      if (!pass.m_startedOffset)
+        continue;
+      std::optional<std::chrono::nanoseconds> end = pass.m_finishedOffset;
+      if (!end)
+        end = pass.m_failedOffset;
+      if (!end || *end <= *pass.m_startedOffset)
+        continue;
+      events.push_back({*pass.m_startedOffset, true, pass.passId()});
+      events.push_back({*end, false, pass.passId()});
+    }
+
+    // Ends sort before starts at the same instant so back-to-back passes do
+    // not appear to overlap.
+    std::sort(events.begin(), events.end(), [](const Event& a, const Event& b) {
+      if (a.time != b.time)
+        return a.time < b.time;
+      if (a.starts != b.starts)
+        return !a.starts;
+      return a.id < b.id;
+    });
+
+    std::vector<RenderGraphActivePassSegment> segments;
+    std::set<RenderPassId> active;
+    for (std::size_t i = 0; i < events.size();) {
+      const auto time = events[i].time;
+      if (!active.empty())
+        segments.back().end = time;
+      for (; i < events.size() && events[i].time == time; ++i) {
+        if (events[i].starts)
+          active.insert(events[i].id);
+        else
+          active.erase(events[i].id);
+      }
+      if (!active.empty()) {
+        segments.push_back({time, time, std::vector<RenderPassId>(active.begin(), active.end())});
+      }
+    }
+    return segments;
+  }
+
+  std::size_t RenderGraphExecutionTrace::maxConcurrentPasses() const {
+    std::size_t result = 0;
+    for (const auto& segment : activePassSegments()) {
+      result = std::max(result, segment.passes.size());
+    }
+    return result;
+  }
+
   QJsonObject RenderGraphExecutionTrace::toJson() const {
     QJsonArray passes;
     for (const auto& pass : m_passes) {
       passes.push_back(pass.toJson());
     }
 
+    QJsonArray activeSets;
+    for (const auto& segment : activePassSegments()) {
+      QJsonArray ids;
+      for (const auto& id : segment.passes) {
+        ids.push_back(QString::fromStdString(id));
+      }
+      QJsonObject entry;
+      entry["startMs"] = segment.start.count() / 1000000.0;
+      entry["endMs"] = segment.end.count() / 1000000.0;
+      entry["passes"] = ids;
+      activeSets.push_back(entry);
+    }
+
     QJsonObject object;
+    object["activePassSets"] = activeSets;
+    object["maxConcurrentPasses"] = static_cast<int>(maxConcurrentPasses());
     object["plan"] = m_plan.toJson();
     object["inputFingerprint"] = QString::fromStdString(m_inputFingerprint);
     object["passes"] = passes;
