@@ -785,8 +785,11 @@ memory from the individual plane byte counts rather than assuming one packed
 struct per pixel. `render::TracingAccumulationBuffer` is the CPU reference for
 clear, sample add, optional raw-second-moment accumulation, and LDR resolve.
 Metal-enabled builds also expose optional clear, sample-add, and LDR resolve
-kernels through `render::MetalTracingAccumulationBuffer`; Vulkan kernels and
-resource diagnostics are follow-up jobs under the GPU accumulation-buffer epic.
+kernels through `render::MetalTracingAccumulationBuffer`, and Vulkan-enabled
+builds expose the equivalent synthetic accumulation kernel
+(`VulkanTracingAccumulationKernel`). Every path reports
+`render::TracingAccumulationDiagnostics` (residency, resident bytes,
+operation counts, readback) so CPU and GPU results can be compared.
 
 ---
 
