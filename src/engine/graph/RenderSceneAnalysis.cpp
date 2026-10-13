@@ -242,6 +242,15 @@ namespace engine::graph {
 
   void RenderSceneAnalysis::requireResolvableSelectors(const RenderIntent& intent,
                                                        const std::string& context) const {
+    for (const auto& viewOverride : intent.selectorSpecificOverrides()) {
+      if (viewOverride.selector.kind == SceneSelector::Kind::MaterialRole) {
+        throw std::runtime_error(
+          context + " does not support material_role selectors yet (" +
+          viewOverride.selector.displayText() +
+          "); route by object_id, object_name, tag, or layer instead");
+      }
+    }
+
     if (!hasKnownSelectableSubsets()) {
       return;
     }
