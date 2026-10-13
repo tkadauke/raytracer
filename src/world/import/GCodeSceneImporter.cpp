@@ -51,7 +51,7 @@ namespace {
     return raw;
   }
 
-  enum class VisualizationMode { MoveType, Layer, Tool, Speed, Temperature, ExtrusionTravel };
+  enum class VisualizationMode { MoveType, Layer, Tool, Speed, Temperature, ExtrusionTravel, Extrusion, Feature };
 
   struct ScalarRange {
     double minimum = std::numeric_limits<double>::infinity();
@@ -77,6 +77,7 @@ namespace {
   struct GCodePathStats {
     ScalarRange speed;
     ScalarRange temperature;
+    ScalarRange extrusion;
   };
 
   QString normalizedOption(QString value) {
@@ -116,6 +117,10 @@ namespace {
       return VisualizationMode::Speed;
     if (normalized == "temperature" || normalized == "temp" || normalized == "nozzletemperature")
       return VisualizationMode::Temperature;
+    if (normalized == "extrusion" || normalized == "extrusionamount" || normalized == "flow")
+      return VisualizationMode::Extrusion;
+    if (normalized == "feature" || normalized == "featuretype" || normalized == "features")
+      return VisualizationMode::Feature;
     if (normalized == "extrusiontravel" || normalized == "movetype" || normalized == "move")
       return VisualizationMode::ExtrusionTravel;
     return VisualizationMode::MoveType;
@@ -144,6 +149,8 @@ namespace {
       if (const auto* temperature = path.polyline.segmentAttributeAs<double>(i, "temperature")) {
         stats.temperature.include(*temperature);
       }
+      if (const auto* extrusion = path.polyline.segmentAttributeAs<double>(i, "extrusion_amount"))
+        stats.extrusion.include(*extrusion);
     }
   }
 
@@ -205,6 +212,14 @@ namespace {
                                              Colord(0.0, 0.55, 1.0), Colord(1.0, 0.2, 0.0));
     }
 
+    if (mode == VisualizationMode::Extrusion) {
+      return core::AttributeColorMap::scalar("extrusion_amount", rangeMinimum(stats.extrusion, 0.0),
+                                             rangeMaximum(stats.extrusion, 1.0),
+                                             Colord(0.15, 0.15, 0.15), Colord(1.0, 0.85, 0.1));
+    }
+    if (mode == VisualizationMode::Feature)
+      return core::AttributeColorMap::categorical("feature_type");
+
     auto colorMap = core::AttributeColorMap::categorical("move_type");
     colorMap.setCategoryColor(std::string("extrusion"), Colord(0.95, 0.45, 0.1));
     colorMap.setCategoryColor(std::string("travel"), Colord(0.1, 0.45, 0.95));
@@ -248,7 +263,8 @@ namespace world {
                          false,
                          {QStringLiteral("move_type"), QStringLiteral("layer"),
                           QStringLiteral("tool"), QStringLiteral("speed"),
-                          QStringLiteral("temperature"), QStringLiteral("extrusion_travel")}},
+                          QStringLiteral("temperature"), QStringLiteral("extrusion"),
+                          QStringLiteral("feature"), QStringLiteral("extrusion_travel")}},
       ImportOptionSchema{QStringLiteral("hide_travel"),
                          ImportOptionType::Boolean,
                          QStringLiteral("Hide travel moves"),

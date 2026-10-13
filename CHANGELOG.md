@@ -3658,6 +3658,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   `rendercli` model import and G-code layer visualization, with docs covering
   the supported G-code subset and additive mesh non-goals for Epic #235. —
   GPT-5
+- **G-code extrusion and feature-type color modes.** G-code imports accept
+  `visualization=extrusion` (scalar ramp on per-segment extrusion amount) and
+  `visualization=feature` (categorical by slicer feature type), completing the
+  Epic #235 visualization mode set. — Claude Sonnet 5.5
 - **G-code additive manufacturing visualization modes.** Imported G-code
   toolpaths can now color by layer, tool, speed, temperature, or
   extrusion/travel mode, and `rendercli` exposes G-code layer filtering and

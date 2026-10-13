@@ -105,6 +105,32 @@ namespace GCodeSceneImporterTest {
     EXPECT_EQ(core::AttributeColorMap::Mode::Scalar, curve->segmentColorMap()->mode());
   }
 
+  TEST(GCodeSceneImporter, SelectsExtrusionAndFeatureColorMaps) {
+    world::GCodeSceneImporter importer;
+    const struct {
+      const char* option;
+      const char* attribute;
+      core::AttributeColorMap::Mode mode;
+    } cases[] = {
+      {"extrusion", "extrusion_amount", core::AttributeColorMap::Mode::Scalar},
+      {"feature", "feature_type", core::AttributeColorMap::Mode::Categorical},
+    };
+    for (const auto& c : cases) {
+      world::ImportOptions options;
+      options.setValue("visualization", c.option);
+      const auto result = importer.importFile("test/fixtures/gcode/absolute_layers.gcode", options);
+      ASSERT_TRUE(result.succeeded());
+      const auto primitives = compiledPrimitives(result.sceneRoot());
+      ASSERT_FALSE(primitives.empty());
+      auto curve =
+        std::dynamic_pointer_cast<render::Curve>(primitives.front()->toRaytracerPrimitive());
+      ASSERT_NE(nullptr, curve);
+      ASSERT_TRUE(curve->segmentColorMap());
+      EXPECT_EQ(c.attribute, curve->segmentColorMap()->attributeName());
+      EXPECT_EQ(c.mode, curve->segmentColorMap()->mode());
+    }
+  }
+
   TEST(GCodeSceneImporter, CanHideTravelMoves) {
     world::GCodeSceneImporter importer;
     world::ImportOptions options;
