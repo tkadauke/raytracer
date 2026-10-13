@@ -9,6 +9,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ## Unreleased
 
+### Added
+
+- Add rendercli CTest coverage for `--disable_feature` and drop it and `--sampler`
+  from the option-coverage audit allowlist. — Claude Sonnet 5.5
+
 ### Fixed
 
 - Loosen the `rendercli_render_graph` wavefront bilateral denoise quality
