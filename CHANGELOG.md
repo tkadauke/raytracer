@@ -63,8 +63,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   evidence. — GPT-5 Codex
 
 ### Added
-- Added CPU vs GPU-requested image parity coverage for `scenes/pathtracer_area_light_demo.json` in the rendercli tracing parity test, closing the E7 area-light image-parity gate. — Claude Sonnet 5.5
 
+- Added CPU vs GPU-requested image parity coverage for `scenes/pathtracer_area_light_demo.json` in the rendercli tracing parity test, closing the E7 area-light image-parity gate. — Claude Sonnet 5.5
 - Add `Matrix::toFloatArray()` for row-major float-array conversion, replacing the local
   GPU intersection matrix packing helpers with a core matrix method. — GPT-5 Codex
 - Persist chat threads per scene (roadmap §4.6.i chat persistence, following up on
