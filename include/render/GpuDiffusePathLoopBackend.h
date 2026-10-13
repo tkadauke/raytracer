@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace render {
@@ -98,6 +99,40 @@ namespace render {
     GpuDiffusePathLoopPlatformResult&& platformResult, const char* backendDisplayName,
     const char* platformName, const char* pathStateResidency, const char* accumulationBackend,
     const char* accumulationResidency);
+
+  /**
+    * Converts a platform kernel result (any struct exposing the same field
+    * names) into the shared platform result consumed by
+    * makePlatformGpuDiffusePathLoopResult().
+    */
+  template<class KernelResult>
+  [[nodiscard]] GpuDiffusePathLoopPlatformResult
+  platformResultFromKernelResult(KernelResult&& result) {
+    GpuDiffusePathLoopPlatformResult platform;
+    platform.echoedParameters = result.echoedParameters;
+    platform.resolvedPathStates = std::move(result.resolvedPathStates);
+    platform.nextPathStates = std::move(result.nextPathStates);
+    platform.stepRecords = std::move(result.stepRecords);
+    platform.denoiserFeatureRecords = std::move(result.denoiserFeatureRecords);
+    platform.retainedPathCount = result.retainedPathCount;
+    platform.activePathCountsPerDepth = std::move(result.activePathCountsPerDepth);
+    platform.radianceDeltaSquaredSumPerDepth = std::move(result.radianceDeltaSquaredSumPerDepth);
+    platform.maxRadianceDeltaPerDepth = std::move(result.maxRadianceDeltaPerDepth);
+    platform.accumulationColorSums = std::move(result.accumulationColorSums);
+    platform.accumulationSampleCounts = std::move(result.accumulationSampleCounts);
+    platform.resolvedDisplayPixels = std::move(result.resolvedDisplayPixels);
+    platform.resolvedDisplayReadbacks = platform.resolvedDisplayPixels.empty() ? 0u : 1u;
+    platform.executionPath = std::move(result.executionPath);
+    platform.schedule = std::move(result.schedule);
+    platform.pathStateResidency = std::move(result.pathStateResidency);
+    platform.retainedFrontierDispatchesIndirect = result.retainedFrontierDispatchesIndirect;
+    platform.sceneUploadCacheHit = result.sceneUploadCacheHit;
+    platform.sceneUploadBytesWritten = result.sceneUploadBytesWritten;
+    platform.uploadWorkerSeconds = result.uploadWorkerSeconds;
+    platform.kernelWorkerSeconds = result.kernelWorkerSeconds;
+    platform.readbackWorkerSeconds = result.readbackWorkerSeconds;
+    return platform;
+  }
   [[nodiscard]] GpuDiffusePathLoopBackendChoice selectFullGpuDiffusePathLoopBackend(
     const std::vector<std::shared_ptr<const GpuDiffusePathLoopBackend>>& backends,
     const GpuTracingSceneSections& scene, const GpuDiffusePathLoopSettings& settings);
