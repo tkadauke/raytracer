@@ -1,5 +1,6 @@
 #include "widgets/world/SceneModel.h"
 #include "world/objects/Element.h"
+#include "world/objects/Group.h"
 
 #include <QMimeData>
 #include <QIODevice>
@@ -90,16 +91,48 @@ QVariant SceneModel::data(const QModelIndex& index, int role) const {
   if (!index.isValid())
     return QVariant();
 
+  auto item = static_cast<Element*>(index.internalPointer());
+
+  if (role == Qt::CheckStateRole) {
+    if (auto* group = qobject_cast<Group*>(item))
+      return group->visible() ? Qt::Checked : Qt::Unchecked;
+    return QVariant();
+  }
+
+  if (role == Qt::EditRole)
+    return item->name();
+
   if (role != Qt::DisplayRole)
     return QVariant();
-
-  auto item = static_cast<Element*>(index.internalPointer());
 
   if (index.column() == 0) {
     return item->displayName();
   } else {
     return QVariant();
   }
+}
+
+bool SceneModel::setData(const QModelIndex& index, const QVariant& value, int role) {
+  if (!index.isValid())
+    return false;
+
+  auto* item = static_cast<Element*>(index.internalPointer());
+  if (!item || item->isGenerated())
+    return false;
+
+  if (role == Qt::EditRole) {
+    item->setName(value.toString());
+  } else if (role == Qt::CheckStateRole) {
+    auto* group = qobject_cast<Group*>(item);
+    if (!group)
+      return false;
+    group->setVisible(value.toInt() == Qt::Checked);
+  } else {
+    return false;
+  }
+
+  emit dataChanged(index, index);
+  return true;
 }
 
 Qt::ItemFlags SceneModel::flags(const QModelIndex& index) const {
@@ -112,8 +145,11 @@ Qt::ItemFlags SceneModel::flags(const QModelIndex& index) const {
   if (item && item->isGenerated())
     return Qt::ItemIsEnabled | Qt::ItemIsSelectable | defaultFlags;
 
-  return Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled |
-         defaultFlags;
+  Qt::ItemFlags result = Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsEditable |
+                         Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled | defaultFlags;
+  if (qobject_cast<Group*>(item))
+    result |= Qt::ItemIsUserCheckable;
+  return result;
 }
 
 QVariant SceneModel::headerData(int section, Qt::Orientation orientation, int role) const {
