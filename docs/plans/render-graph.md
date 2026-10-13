@@ -1104,7 +1104,9 @@ Minimum concepts:
   `recordPlanarMirrorSurface`, `DerivedCameraRef::Kind::{Portal,
   PlanarMirror}`); `recordRenderTextureReceiver(subviewName)` links a surface
   to a subview (screen-like behavior), but there is no formal "screen" or
-  "overlay-only" role type.
+  "overlay-only" role type. Modeler's Add Scene Element → Render-Texture Screen
+  authors a receiver rectangle plus its `screen` subview
+  (`Scene::ensureRenderTextureSubview`).
 - ~~per-selector executor, view-mode, shading-profile, and camera overrides;~~
   ✅ **Done.** `RenderViewOverride{ selector; executor; viewMode;
   shadingProfile; camera; ... }` (`RenderGraphTypes.h`), compiled in

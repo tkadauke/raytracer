@@ -326,6 +326,23 @@ bool Scene::hasRenderIntent() const {
   return m_hasRenderIntent;
 }
 
+bool Scene::ensureRenderTextureSubview(const std::string& name,
+                                       engine::graph::RenderExecutorPreference executor) {
+  for (const auto& subview : m_renderIntent.subviews) {
+    if (subview.name == name) {
+      return false;
+    }
+  }
+
+  engine::graph::RenderSubviewIntent subview;
+  subview.name = name;
+  subview.view.selector = engine::graph::SceneSelector::all();
+  subview.view.executor = executor;
+  m_renderIntent.subviews.push_back(std::move(subview));
+  m_hasRenderIntent = true;
+  return true;
+}
+
 engine::graph::RenderIntent Scene::renderIntentWithActiveCameraDefault() const {
   engine::graph::RenderIntent intent =
     hasRenderIntent() ? renderIntent() : engine::graph::RenderIntent();
