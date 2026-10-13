@@ -1725,7 +1725,10 @@ workers, observes serial/limited/parallel per-pass executor caps, and
 deterministically skips queued dependents after cancellation or failure.
 Verification commands:
 `build/release/test/unit/unit_tests --gtest_filter='GraphRenderEngine.RunsIndependentCpuSafePassesConcurrently:GraphRenderEngine.DependentsReadyInSameWaveCanOverlap:GraphRenderEngine.LimitedExecutorCapKeepsExtraReadyPassQueued:GraphRenderEngine.SerialExecutorLimitPreservesPassOrder:GraphRenderEngine.CancellationSkipsQueuedDependentPasses:GraphRenderEngine.FailingPassSkipsDependentsDeterministically'`
-and `ctest --preset release --output-on-failure`.
+and `ctest --preset release --output-on-failure`. Execution trace JSON (including
+`rendercli --render_graph_trace_out`) also reports `activePassSets` and
+`maxConcurrentPasses`, derived from per-pass start/finish offsets by
+`RenderGraphExecutionTrace::activePassSegments()`.
 
 ### History resources
 

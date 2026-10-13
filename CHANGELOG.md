@@ -9,6 +9,13 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ## Unreleased
 
+### Added
+
+- Render graph execution traces (and `rendercli --render_graph_trace_out`
+  JSON) now include `activePassSets`, a timeline of which passes ran together,
+  plus `maxConcurrentPasses`, derived from the per-pass start/finish offsets.
+  — Claude Sonnet 5.5
+
 ### Fixed
 
 - Loosen the `rendercli_render_graph` wavefront bilateral denoise quality
