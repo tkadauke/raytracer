@@ -9,6 +9,14 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ## Unreleased
 
+### Added
+
+- Modeler's Elements tree now supports inline rename (double-click / F2) for
+  any non-generated element and a visibility checkbox on `Group` nodes,
+  completing the Modeler create/rename/reparent/toggle workflow for generic
+  scene groups. `SceneModel` gained `setData()` for `Qt::EditRole` and
+  `Qt::CheckStateRole`. — Claude Sonnet 5.5
+
 ### Fixed
 
 - Loosen the `rendercli_render_graph` wavefront bilateral denoise quality

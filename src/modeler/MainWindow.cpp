@@ -2170,6 +2170,8 @@ QDockWidget* MainWindow::createElementSelector() {
 
   connect(p->elementModel, SIGNAL(rowsMoved(const QModelIndex&, int, int, const QModelIndex&, int)),
           this, SLOT(reorder()));
+  connect(p->elementModel, SIGNAL(dataChanged(const QModelIndex&, const QModelIndex&)), this,
+          SLOT(reorder()));
 
   auto dockWidget = new QDockWidget("Elements", this);
   dockWidget->setWidget(elementTree);
