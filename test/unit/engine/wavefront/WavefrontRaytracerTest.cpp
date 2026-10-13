@@ -607,6 +607,20 @@ namespace WavefrontRaytracerTest {
     EXPECT_EQ(6, integrator->maximumRecursionDepth());
   }
 
+  TEST(WavefrontRaytracer, ReappliesMaximumRecursionDepthWhenIntegratorChangesAfterClone) {
+    auto renderer = std::make_shared<WavefrontRaytracer>(std::make_shared<render::Scene>());
+    renderer->setIntegrator(std::make_unique<DepthRecordingIntegrator>());
+    renderer->setMaximumRecursionDepth(5);
+
+    auto clone = std::dynamic_pointer_cast<WavefrontRaytracer>(renderer->cloneForRender());
+    ASSERT_NE(nullptr, clone);
+    clone->setIntegrator(std::make_unique<DepthRecordingIntegrator>());
+
+    const auto* cloned = dynamic_cast<const DepthRecordingIntegrator*>(&clone->integrator());
+    ASSERT_NE(nullptr, cloned);
+    EXPECT_EQ(5, cloned->maximumRecursionDepth());
+  }
+
   TEST(WavefrontRaytracer, ReportsIntersectionThroughputMetrics) {
     engine::wavefront::WavefrontRenderMetrics metrics;
     metrics.batching.intersectionRaysSubmitted = 12;
