@@ -113,6 +113,12 @@ Tasks:
 
 Tasks:
 
+- ✅ **Partially done (color only, rasterizer API).** `OpenGLRasterizer`
+  exposes `setPublishResidentColor` / `takeResidentColor` and
+  `setColorLoadResource`, backed by `AttachmentSet::snapshotColorTexture` and
+  `loadColorFromTexture`. Still TODO: depth/stencil, and the graph executor
+  binding resources into `RenderResourceStorage` and choosing resident over
+  CPU Load.
 - Teach `OpenGLRasterizer` to publish its FBO color attachment as an
   `OpenGLRasterResource` on the storage when a downstream consumer pass
   declares OpenGL-domain input. Skip the `copyColorTo` readback for that

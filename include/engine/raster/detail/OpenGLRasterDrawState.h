@@ -8,9 +8,12 @@
 #include "engine/raster/detail/OpenGLShadowTextureData.h"
 
 #include <cstdint>
+#include <memory>
 #include <optional>
 
 namespace engine::raster::detail {
+  class OpenGLRasterResource;
+
   /**
     * Per-render configuration for `OpenGLRasterDrawPass`. Populated by
     * `OpenGLRasterizer::renderOpenGL` and passed in as one bundle so
@@ -32,6 +35,12 @@ namespace engine::raster::detail {
     Recti scissorRect;
     Rasterizer::AttachmentLoadOp colorLoadOp{Rasterizer::AttachmentLoadOp::Clear};
     const Buffer<Colord>* loadColorAttachment{nullptr};
+    /// GPU-resident source for color Load; takes precedence over
+    /// `loadColorAttachment` and skips the CPU upload.
+    const OpenGLRasterResource* loadColorResource{nullptr};
+    /// When non-null and color is stored, the pass snapshots its color
+    /// attachment into this slot instead of leaving it only for readback.
+    std::shared_ptr<OpenGLRasterResource>* residentColorOutput{nullptr};
     Rasterizer::AttachmentStoreOp colorStoreOp{Rasterizer::AttachmentStoreOp::Store};
     std::uint8_t colorWriteMask{Rasterizer::ColorWriteAll};
     bool blendingEnabled{false};

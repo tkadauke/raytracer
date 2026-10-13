@@ -107,6 +107,18 @@ namespace engine::raster::gl {
     /// `glBlitFramebuffer` into a temporary single-sample read FBO.
     void copyColorTo(::Buffer<Colord>& target);
 
+    /// Resolve the color attachment into a freshly allocated single-sample
+    /// `GL_RGBA8` texture that stays on the GPU. Returns the texture handle,
+    /// or 0 with `errorMessage()` set on failure. The caller owns the
+    /// handle. Leaves this set's FBO bound.
+    GLuint snapshotColorTexture();
+
+    /// Blit `texture` (a single-sample `width` x `height` color texture) into
+    /// this set's color attachment without any CPU round-trip. Returns false
+    /// with `errorMessage()` set when the source FBO is incomplete. Leaves
+    /// this set's FBO bound.
+    bool loadColorFromTexture(GLuint texture, int width, int height);
+
     /// Read the depth attachment as normalized [0, 1] doubles with
     /// the same row-flip as `copyColorTo`. Sets `errorMessage()` and
     /// no-ops when `samples() > 0`.
