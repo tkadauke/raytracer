@@ -25,6 +25,7 @@ namespace render {
     LightSample sample(const Vector3d& point) const override;
     LightSample sample(const Vector3d& point, const Vector2d& sample) const override;
     std::optional<Colord> power() const override;
+    std::optional<BoundingBoxd> bounds() const override;
     const char* fingerprintType() const override;
     void writeFingerprint(std::ostream& out, const std::string& prefix) const override;
     std::optional<Vector3d> positionalLightPosition() const override;

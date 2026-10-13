@@ -18,6 +18,14 @@ namespace PointLightTest {
     ASSERT_EQ(Colord::white(), light.color());
   }
 
+  TEST(PointLight, BoundsAreDegenerateBoxAtPosition) {
+    PointLight light(Vector3d(1, 2, 3), Colord::white());
+    const auto bounds = light.bounds();
+    ASSERT_TRUE(bounds.has_value());
+    EXPECT_EQ(Vector3d(1, 2, 3), bounds->min());
+    EXPECT_EQ(Vector3d(1, 2, 3), bounds->max());
+  }
+
   TEST(PointLight, ShouldReturnDirection) {
     PointLight light(Vector3d(1, 0, 0), Colord::white());
     Vector3d point(2, 5, 3);

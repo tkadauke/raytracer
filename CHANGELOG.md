@@ -9,6 +9,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ## Unreleased
 
+### Added
+
+- `Light::bounds()` exposes optional world-space bounds for lights (point and rectangular area lights; directional lights are unbounded), completing the power/bounds metadata for Epic #358. — Claude Sonnet 5.5
+
 ### Fixed
 
 - Loosen the `rendercli_render_graph` wavefront bilateral denoise quality

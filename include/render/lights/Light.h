@@ -2,6 +2,7 @@
 
 #include "core/math/Vector.h"
 #include "core/Color.h"
+#include "core/math/BoundingBox.h"
 
 #include "render/Object.h"
 
@@ -141,6 +142,14 @@ namespace render {
       * Infinite emitters such as directional lights return `std::nullopt`.
       */
     virtual std::optional<Colord> power() const;
+
+    /**
+      * @returns the world-space axis-aligned bounds of the emitter, or
+      * `std::nullopt` for unbounded lights such as directional lights. Point
+      * lights return a degenerate box at their position. Light-tree and
+      * many-light sampling use this together with `power()` to cluster lights.
+      */
+    virtual std::optional<BoundingBoxd> bounds() const;
 
     /**
       * @returns optional scene geometry for finite lights that should be
