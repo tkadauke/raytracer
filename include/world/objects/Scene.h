@@ -136,6 +136,20 @@ public:
     * @returns true if the scene JSON owns an explicit `renderIntent` block.
     */
   bool hasRenderIntent() const;
+
+  /**
+    * Makes sure the saved render intent declares a whole-frame subview named
+    * `name`, so surfaces whose `renderTextureSubview` names it have a nested
+    * render to display. An existing subview with that name is left untouched,
+    * so authored executor choices are never overridden. Marks the render
+    * intent as present.
+    *
+    * @returns true if a subview was added, false if one already existed.
+    */
+  bool ensureRenderTextureSubview(
+    const std::string& name,
+    engine::graph::RenderExecutorPreference executor =
+      engine::graph::RenderExecutorPreference::Rasterizer);
   /**
     * @returns the saved render intent, or the default intent when none is saved,
     *   with the active scene camera installed as the default graph camera when

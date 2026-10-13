@@ -9,6 +9,14 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ## Unreleased
 
+### Added
+
+- Modeler: Edit → Add Scene Element → Render-Texture Screen adds a rectangle
+  wired to a `screen` subview, and `Scene::ensureRenderTextureSubview()` declares
+  the matching rasterized nested render in the scene's render intent without
+  overriding an authored subview of the same name. Advances the render-to-texture
+  screen epic (issue #492). — Claude Sonnet 5.5
+
 ### Fixed
 
 - Loosen the `rendercli_render_graph` wavefront bilateral denoise quality
