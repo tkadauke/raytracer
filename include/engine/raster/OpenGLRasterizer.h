@@ -20,6 +20,7 @@ namespace engine::raster {
   namespace detail {
     class ShadowMaps;
     struct OpenGLRasterResourceCache;
+    class OpenGLRasterResource;
   }
 
   /**
@@ -126,6 +127,18 @@ namespace engine::raster {
     void setColorLoadOp(Rasterizer::AttachmentLoadOp op);
     const Buffer<Colord>* colorLoadSource() const;
     void setColorLoadSource(const Buffer<Colord>* buffer);
+    /// GPU-resident color Load source (e.g. from `takeResidentColor()` of a
+    /// previous pass). Preferred over `setColorLoadSource`; the resource must
+    /// outlive the render and come from the same rasterizer resource cache.
+    const detail::OpenGLRasterResource* colorLoadResource() const;
+    void setColorLoadResource(const detail::OpenGLRasterResource* resource);
+    /// When enabled, a stored color attachment is also snapshotted into a
+    /// GPU-resident texture retrievable with `takeResidentColor()`.
+    bool publishResidentColor() const;
+    void setPublishResidentColor(bool enabled);
+    /// Transfers ownership of the color resource published by the last
+    /// render; null when none was published.
+    std::shared_ptr<detail::OpenGLRasterResource> takeResidentColor() const;
     Rasterizer::AttachmentStoreOp colorStoreOp() const;
     void setColorStoreOp(Rasterizer::AttachmentStoreOp op);
 
@@ -232,6 +245,9 @@ namespace engine::raster {
     Recti m_scissorRect;
     Rasterizer::AttachmentLoadOp m_colorLoadOp{Rasterizer::AttachmentLoadOp::Clear};
     const Buffer<Colord>* m_loadColorAttachment{nullptr};
+    const detail::OpenGLRasterResource* m_loadColorResource{nullptr};
+    bool m_publishResidentColor{false};
+    mutable std::shared_ptr<detail::OpenGLRasterResource> m_residentColor;
     Rasterizer::AttachmentStoreOp m_colorStoreOp{Rasterizer::AttachmentStoreOp::Store};
     Rasterizer::DepthFunc m_depthFunc{Rasterizer::DepthFunc::Less};
     double m_depthBias{0.0};

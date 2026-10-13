@@ -32,6 +32,12 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   the matching rasterized nested render in the scene's render intent without
   overriding an authored subview of the same name. Advances the render-to-texture
   screen epic (issue #492). — Claude Sonnet 5.5
+- `OpenGLRasterizer` can publish its stored color attachment as a GPU-resident
+  `OpenGLRasterResource` (`setPublishResidentColor` / `takeResidentColor`) and
+  consume one for color `Load` (`setColorLoadResource`) via a GPU blit with no
+  CPU readback or upload; a resource from a different GL context is rejected.
+  Advances `docs/plans/opengl-gpu-residency.md` Phases 1-2 for color only. —
+  Claude Sonnet 5.5
 
 ### Changed
 
