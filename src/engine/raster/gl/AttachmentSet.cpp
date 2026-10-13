@@ -183,6 +183,66 @@ namespace engine::raster::gl {
     }
   }
 
+  GLuint AttachmentSet::snapshotColorTexture() {
+    m_errorMessage.clear();
+    if (!m_fbo) {
+      m_errorMessage = "AttachmentSet has no color attachment to snapshot";
+      return 0;
+    }
+    GLuint texture = 0;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_width, m_height, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                 nullptr);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    GLuint snapshotFbo = 0;
+    glGenFramebuffers(1, &snapshotFbo);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, snapshotFbo);
+    glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
+    if (glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+      glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
+      glDeleteFramebuffers(1, &snapshotFbo);
+      glDeleteTextures(1, &texture);
+      m_errorMessage = "AttachmentSet color snapshot FBO incomplete";
+      return 0;
+    }
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo);
+    glBlitFramebuffer(0, 0, m_width, m_height, 0, 0, m_width, m_height, GL_COLOR_BUFFER_BIT,
+                      GL_NEAREST);
+    glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
+    glDeleteFramebuffers(1, &snapshotFbo);
+    return texture;
+  }
+
+  bool AttachmentSet::loadColorFromTexture(GLuint texture, int width, int height) {
+    m_errorMessage.clear();
+    if (!m_fbo || texture == 0) {
+      m_errorMessage = "AttachmentSet color load requires a valid texture";
+      return false;
+    }
+    const int copyWidth = std::min(width, m_width);
+    const int copyHeight = std::min(height, m_height);
+    GLuint sourceFbo = 0;
+    glGenFramebuffers(1, &sourceFbo);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, sourceFbo);
+    glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
+    if (glCheckFramebufferStatus(GL_READ_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+      glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
+      glDeleteFramebuffers(1, &sourceFbo);
+      m_errorMessage = "AttachmentSet color load source FBO incomplete";
+      return false;
+    }
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo);
+    glBlitFramebuffer(0, 0, copyWidth, copyHeight, 0, 0, copyWidth, copyHeight,
+                      GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
+    glDeleteFramebuffers(1, &sourceFbo);
+    return true;
+  }
+
   void AttachmentSet::copyDepthTo(::Buffer<double>& target) {
     if (!m_fbo || target.width() <= 0 || target.height() <= 0) {
       return;

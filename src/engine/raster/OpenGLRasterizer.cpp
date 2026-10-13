@@ -6,6 +6,7 @@
 #include <mutex>
 #include "engine/raster/detail/OpenGLRasterAttributeBinder.h"
 #include "engine/raster/detail/OpenGLRasterMesh.h"
+#include "engine/raster/detail/OpenGLRasterResource.h"
 #include "engine/raster/detail/OpenGLRasterResourceCache.h"
 #include "engine/raster/detail/OpenGLRasterShaderSources.h"
 #include "engine/raster/detail/OpenGLShadowSamplingPlan.h"
@@ -56,6 +57,8 @@ namespace engine::raster {
             m_scissorRect(state.scissorRect),
             m_colorLoadOp(state.colorLoadOp),
             m_loadColorAttachment(state.loadColorAttachment),
+            m_loadColorResource(state.loadColorResource),
+            m_residentColorOutput(state.residentColorOutput),
             m_colorStoreOp(state.colorStoreOp),
             m_colorWriteMask(state.colorWriteMask),
             m_blendingEnabled(state.blendingEnabled),
@@ -123,6 +126,17 @@ namespace engine::raster {
           timings.glFinishElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
             std::chrono::steady_clock::now() - glFinishStarted);
           const auto readbackStarted = std::chrono::steady_clock::now();
+          if (m_residentColorOutput && m_colorStoreOp == Rasterizer::AttachmentStoreOp::Store) {
+            const GLuint texture = attachmentSet->snapshotColorTexture();
+            if (texture == 0) {
+              throw std::runtime_error("OpenGL raster backend could not publish resident color: " +
+                                       attachmentSet->errorMessage());
+            }
+            *m_residentColorOutput = std::make_shared<detail::OpenGLRasterResource>(
+              engine::graph::RenderResourceType::Color,
+              detail::OpenGLRasterResource::HandleKind::Texture, texture, m_width, m_height, 1,
+              m_resources.context);
+          }
           if (target && m_colorStoreOp == Rasterizer::AttachmentStoreOp::Store) {
             attachmentSet->copyColorTo(*target);
           }
@@ -168,7 +182,16 @@ namespace engine::raster {
         glStencilMask(0xff);
         glClearStencil(m_stencilClearValue);
         GLbitfield clearMask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT;
-        if (m_colorLoadOp == Rasterizer::AttachmentLoadOp::Load && m_loadColorAttachment) {
+        if (m_colorLoadOp == Rasterizer::AttachmentLoadOp::Load && m_loadColorResource) {
+          gl::AttachmentSet* current = m_resources.acquireAttachmentSet(m_width, m_height, m_samples);
+          if (!current->loadColorFromTexture(m_loadColorResource->handle(),
+                                             m_loadColorResource->width(),
+                                             m_loadColorResource->height())) {
+            throw std::runtime_error("OpenGL raster backend resident color Load failed: " +
+                                     current->errorMessage());
+          }
+          clearMask &= ~static_cast<GLbitfield>(GL_COLOR_BUFFER_BIT);
+        } else if (m_colorLoadOp == Rasterizer::AttachmentLoadOp::Load && m_loadColorAttachment) {
           uploadLoadColor(*m_loadColorAttachment);
           clearMask &= ~static_cast<GLbitfield>(GL_COLOR_BUFFER_BIT);
         }
@@ -457,6 +480,8 @@ namespace engine::raster {
       Recti m_scissorRect;
       Rasterizer::AttachmentLoadOp m_colorLoadOp;
       const Buffer<Colord>* m_loadColorAttachment;
+      const detail::OpenGLRasterResource* m_loadColorResource;
+      std::shared_ptr<detail::OpenGLRasterResource>* m_residentColorOutput;
       Rasterizer::AttachmentStoreOp m_colorStoreOp;
       std::uint8_t m_colorWriteMask;
       bool m_blendingEnabled;
@@ -530,6 +555,8 @@ namespace engine::raster {
     }
     clone->setColorLoadOp(m_colorLoadOp);
     clone->setColorLoadSource(m_loadColorAttachment);
+    clone->setColorLoadResource(m_loadColorResource);
+    clone->setPublishResidentColor(m_publishResidentColor);
     clone->setColorStoreOp(m_colorStoreOp);
     clone->setColorWriteMask(m_colorWriteMask);
     clone->setBlendingEnabled(m_blendingEnabled);
@@ -755,6 +782,26 @@ namespace engine::raster {
 
   void OpenGLRasterizer::setColorLoadSource(const Buffer<Colord>* buffer) {
     m_loadColorAttachment = buffer;
+  }
+
+  const detail::OpenGLRasterResource* OpenGLRasterizer::colorLoadResource() const {
+    return m_loadColorResource;
+  }
+
+  void OpenGLRasterizer::setColorLoadResource(const detail::OpenGLRasterResource* resource) {
+    m_loadColorResource = resource;
+  }
+
+  bool OpenGLRasterizer::publishResidentColor() const {
+    return m_publishResidentColor;
+  }
+
+  void OpenGLRasterizer::setPublishResidentColor(bool enabled) {
+    m_publishResidentColor = enabled;
+  }
+
+  std::shared_ptr<detail::OpenGLRasterResource> OpenGLRasterizer::takeResidentColor() const {
+    return std::move(m_residentColor);
   }
 
   Rasterizer::AttachmentStoreOp OpenGLRasterizer::colorStoreOp() const {
@@ -1157,7 +1204,9 @@ namespace engine::raster {
         throw std::runtime_error(message);
       }
     };
-    requireLoadSource("color", m_colorLoadOp, m_loadColorAttachment);
+    requireLoadSource("color", m_colorLoadOp,
+                      m_loadColorResource ? static_cast<const void*>(m_loadColorResource)
+                                          : static_cast<const void*>(m_loadColorAttachment));
     requireLoadSource("depth", m_depthLoadOp, m_loadDepthAttachment);
     requireLoadSource("stencil", m_stencilLoadOp, m_loadStencilAttachment);
 
@@ -1187,6 +1236,11 @@ namespace engine::raster {
       // start clean instead of retrying the failed migration every
       // frame.
       m_resources = std::make_shared<detail::OpenGLRasterResourceCache>();
+    }
+    if (m_loadColorResource && m_colorLoadOp == Rasterizer::AttachmentLoadOp::Load &&
+        m_loadColorResource->sourceContextIdentity() != m_resources->context.get()) {
+      throw std::runtime_error("OpenGL raster backend resident color Load source belongs to a "
+                               "different GL context; schedule a Readback node instead");
     }
     // The context only manages lifecycle now; attachment dimensions
     // and sample counts live on the per-render attachment set (see
@@ -1317,6 +1371,9 @@ namespace engine::raster {
     drawState.scissorRect = m_scissorRect;
     drawState.colorLoadOp = m_colorLoadOp;
     drawState.loadColorAttachment = m_loadColorAttachment;
+    drawState.loadColorResource = m_loadColorResource;
+    m_residentColor.reset();
+    drawState.residentColorOutput = m_publishResidentColor ? &m_residentColor : nullptr;
     drawState.colorStoreOp = m_colorStoreOp;
     drawState.colorWriteMask = m_colorWriteMask;
     drawState.blendingEnabled = m_blendingEnabled;

@@ -9,6 +9,15 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ## Unreleased
 
+### Added
+
+- `OpenGLRasterizer` can publish its stored color attachment as a GPU-resident
+  `OpenGLRasterResource` (`setPublishResidentColor` / `takeResidentColor`) and
+  consume one for color `Load` (`setColorLoadResource`) via a GPU blit with no
+  CPU readback or upload; a resource from a different GL context is rejected.
+  Advances `docs/plans/opengl-gpu-residency.md` Phases 1-2 for color only. —
+  Claude Sonnet 5.5
+
 ### Fixed
 
 - Loosen the `rendercli_render_graph` wavefront bilateral denoise quality
