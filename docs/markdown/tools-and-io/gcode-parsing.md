@@ -57,3 +57,8 @@ and are ignored when they do not affect the visible path preview.
 - `test/unit/world/import/GCodeSceneImporterTest.cpp`
 - `test/fixtures/gcode/`
 <!-- /source-anchors -->
+
+The importer's `visualization` option picks the per-segment color map:
+`move_type` (default), `layer`, `tool`, `speed`, `temperature`, `extrusion`
+(scalar ramp on extrusion amount), `feature` (categorical by slicer feature
+type), or `extrusion_travel`.
