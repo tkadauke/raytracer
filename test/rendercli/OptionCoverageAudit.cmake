@@ -9,9 +9,7 @@ if(NOT DEFINED RENDERCLI_TEST_FILES)
 endif()
 
 set(allowlisted_options
-  disable_feature
   no_render_graph
-  sampler
 )
 
 file(STRINGS "${RENDERCLI_SOURCE}" rendercli_lines)
