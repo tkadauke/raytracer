@@ -44,6 +44,15 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 - Selector-specific render intent that uses a `material_role` selector now fails with an explicit "not supported yet" diagnostic instead of resolving as a missing subset (advances the selector/per-subtree routing epic). — Claude Sonnet 5.5
 
+- Add `core/math/Geometry.h` with semantic geometry types `Point3`, `Direction3`,
+  `Normal3` and the inverse-transpose `NormalMatrix3` (first slice of the
+  Point/Vector/Direction/Normal split, issue #359). `Point + Point`, `Point *
+  scalar`, `Matrix * Normal` and `NormalMatrix * {Vector,Direction,Point}` fail
+  to compile; `Matrix4 * Point3` translates while `Matrix4 * Direction3` does
+  not; debug builds assert `w == 1` and unit length. The existing `Vector3` is
+  the free-form vector type. Existing call sites are not migrated yet. —
+  Claude Sonnet 5.5
+
 ### Fixed
 
 - Loosen the `rendercli_render_graph` wavefront bilateral denoise quality
