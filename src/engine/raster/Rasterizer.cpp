@@ -237,18 +237,12 @@ namespace {
     }
   }
 
-  Colord colorFromPackedRgb(unsigned int rgb) {
-    return Colord(static_cast<double>((rgb >> 16) & 0xFF) / 255.0,
-                  static_cast<double>((rgb >> 8) & 0xFF) / 255.0,
-                  static_cast<double>(rgb & 0xFF) / 255.0);
-  }
-
   void loadColorAttachmentFromDisplay(const Rasterizer& rasterizer, Buffer<Colord>& target,
                                       const Buffer<unsigned int>& source) {
     if (rasterizer.colorLoadOp() == Rasterizer::AttachmentLoadOp::Load) {
       for (int y = 0; y != target.height(); ++y)
         for (int x = 0; x != target.width(); ++x)
-          target[y][x] = colorFromPackedRgb(source[y][x]);
+          target[y][x] = Colord::fromPackedRGB(source[y][x]);
     } else {
       target.clear(rasterizer.backgroundColor());
     }

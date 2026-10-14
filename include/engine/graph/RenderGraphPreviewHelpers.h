@@ -93,9 +93,7 @@ namespace engine::graph {
 
     std::uint32_t hash = id * 2654435761u;
     hash ^= hash >> 16;
-    return Colord(static_cast<double>((hash >> 16) & 0xffu) / 255.0,
-                  static_cast<double>((hash >> 8) & 0xffu) / 255.0,
-                  static_cast<double>(hash & 0xffu) / 255.0);
+    return Colord::fromPackedRGB(hash);
   }
 
 }
