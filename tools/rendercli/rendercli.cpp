@@ -2849,9 +2849,7 @@ Renderer::loadRenderGraphColorInput(const RenderGraphImageInput& input) const {
   for (int y = 0; y != rgb.height(); ++y) {
     for (int x = 0; x != rgb.width(); ++x) {
       const QRgb pixel = rgb.pixel(x, y);
-      (*buffer)[y][x] =
-        Colord(static_cast<double>(qRed(pixel)) / 255.0, static_cast<double>(qGreen(pixel)) / 255.0,
-               static_cast<double>(qBlue(pixel)) / 255.0);
+      (*buffer)[y][x] = Colord::fromPackedRGB(pixel & 0xffffffu);
     }
   }
   return buffer;
