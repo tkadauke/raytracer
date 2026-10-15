@@ -1,6 +1,7 @@
 #include "engine/graph/RasterPassState.h"
 
 #include "engine/graph/detail/JsonStateHelpers.h"
+#include "engine/graph/detail/RasterEnumParsing.h"
 #include "engine/graph/RenderPlan.h"
 #include "engine/raster/OpenGLRasterizer.h"
 #include "engine/raster/detail/RasterMSAA.h"
@@ -45,25 +46,12 @@ namespace engine::graph {
         "balanced");
     }
 
-    Rasterizer::TessellationQuality tessellationQualityFromString(const std::string& value,
-                                                                  const std::string& path) {
-      if (value == "preview")
-        return Rasterizer::TessellationQuality::Preview;
-      if (value == "balanced")
-        return Rasterizer::TessellationQuality::Balanced;
-      if (value == "final")
-        return Rasterizer::TessellationQuality::Final;
-      stateError(path, "expected preview, balanced, or final");
+    Rasterizer::TessellationQuality tessellationQualityFromString(const std::string& value, const std::string& path) {
+      return detail::tessellationQualityFromString(value, path, stateError);
     }
 
     Rasterizer::CullMode cullModeFromString(const std::string& value, const std::string& path) {
-      if (value == "both")
-        return Rasterizer::CullMode::Both;
-      if (value == "back")
-        return Rasterizer::CullMode::Back;
-      if (value == "front")
-        return Rasterizer::CullMode::Front;
-      stateError(path, "expected both, back, or front");
+      return detail::cullModeFromString(value, path, stateError);
     }
 
     const char* toString(Rasterizer::MSAAShadingMode mode) {
@@ -74,13 +62,8 @@ namespace engine::graph {
         "per_sample");
     }
 
-    Rasterizer::MSAAShadingMode msaaShadingModeFromString(const std::string& value,
-                                                          const std::string& path) {
-      if (value == "per_sample")
-        return Rasterizer::MSAAShadingMode::PerSample;
-      if (value == "per_fragment")
-        return Rasterizer::MSAAShadingMode::PerFragment;
-      stateError(path, "expected per_sample or per_fragment");
+    Rasterizer::MSAAShadingMode msaaShadingModeFromString(const std::string& value, const std::string& path) {
+      return detail::msaaShadingModeFromString(value, path, stateError);
     }
 
     const char* toString(Rasterizer::DepthPrepassMode mode) {
@@ -142,33 +125,8 @@ namespace engine::graph {
         "one");
     }
 
-    Rasterizer::BlendFactor blendFactorFromString(const std::string& value,
-                                                  const std::string& path) {
-      if (value == "zero")
-        return Rasterizer::BlendFactor::Zero;
-      if (value == "one")
-        return Rasterizer::BlendFactor::One;
-      if (value == "source_color")
-        return Rasterizer::BlendFactor::SourceColor;
-      if (value == "one_minus_source_color")
-        return Rasterizer::BlendFactor::OneMinusSourceColor;
-      if (value == "source_alpha")
-        return Rasterizer::BlendFactor::SourceAlpha;
-      if (value == "one_minus_source_alpha")
-        return Rasterizer::BlendFactor::OneMinusSourceAlpha;
-      if (value == "destination_color")
-        return Rasterizer::BlendFactor::DestinationColor;
-      if (value == "one_minus_destination_color")
-        return Rasterizer::BlendFactor::OneMinusDestinationColor;
-      if (value == "constant_color")
-        return Rasterizer::BlendFactor::ConstantColor;
-      if (value == "one_minus_constant_color")
-        return Rasterizer::BlendFactor::OneMinusConstantColor;
-      if (value == "constant_alpha")
-        return Rasterizer::BlendFactor::ConstantAlpha;
-      if (value == "one_minus_constant_alpha")
-        return Rasterizer::BlendFactor::OneMinusConstantAlpha;
-      stateError(path, "unknown blend factor");
+    Rasterizer::BlendFactor blendFactorFromString(const std::string& value, const std::string& path) {
+      return detail::blendFactorFromString(value, path, stateError);
     }
 
     const char* toString(Rasterizer::BlendOp op) {
@@ -183,17 +141,7 @@ namespace engine::graph {
     }
 
     Rasterizer::BlendOp blendOpFromString(const std::string& value, const std::string& path) {
-      if (value == "add")
-        return Rasterizer::BlendOp::Add;
-      if (value == "subtract")
-        return Rasterizer::BlendOp::Subtract;
-      if (value == "reverse_subtract")
-        return Rasterizer::BlendOp::ReverseSubtract;
-      if (value == "min")
-        return Rasterizer::BlendOp::Min;
-      if (value == "max")
-        return Rasterizer::BlendOp::Max;
-      stateError(path, "expected add, subtract, reverse_subtract, min, or max");
+      return detail::blendOpFromString(value, path, stateError);
     }
 
     const char* toString(Rasterizer::DepthFunc func) {
@@ -245,23 +193,7 @@ namespace engine::graph {
     }
 
     Rasterizer::AlphaFunc alphaFuncFromString(const std::string& value, const std::string& path) {
-      if (value == "never")
-        return Rasterizer::AlphaFunc::Never;
-      if (value == "less")
-        return Rasterizer::AlphaFunc::Less;
-      if (value == "equal")
-        return Rasterizer::AlphaFunc::Equal;
-      if (value == "less_equal")
-        return Rasterizer::AlphaFunc::LessEqual;
-      if (value == "greater")
-        return Rasterizer::AlphaFunc::Greater;
-      if (value == "greater_equal")
-        return Rasterizer::AlphaFunc::GreaterEqual;
-      if (value == "not_equal")
-        return Rasterizer::AlphaFunc::NotEqual;
-      if (value == "always")
-        return Rasterizer::AlphaFunc::Always;
-      stateError(path, "unknown alpha function");
+      return detail::alphaFuncFromString(value, path, stateError);
     }
 
     const char* toString(Rasterizer::StencilFunc func) {
@@ -367,13 +299,8 @@ namespace engine::graph {
         "pcf");
     }
 
-    Rasterizer::ShadowFilterMode shadowFilterModeFromString(const std::string& value,
-                                                            const std::string& path) {
-      if (value == "pcf")
-        return Rasterizer::ShadowFilterMode::PCF;
-      if (value == "pcss")
-        return Rasterizer::ShadowFilterMode::PCSS;
-      stateError(path, "expected pcf or pcss");
+    Rasterizer::ShadowFilterMode shadowFilterModeFromString(const std::string& value, const std::string& path) {
+      return detail::shadowFilterModeFromString(value, path, stateError);
     }
 
     std::string colorWriteMaskString(std::uint8_t mask) {
