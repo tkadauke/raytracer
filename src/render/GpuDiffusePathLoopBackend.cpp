@@ -308,11 +308,6 @@ namespace render {
         static_cast<int>(std::max<std::uint64_t>(1u, pathCount)), 1);
     }
 
-    void terminate(GpuDiffusePathStateRecord& path) {
-      path.flags &= ~gpuDiffusePathStateActiveFlag;
-      path.flags |= gpuDiffusePathStateTerminatedFlag;
-    }
-
     [[nodiscard]] bool stepHasContinuation(const GpuDiffusePathStepRecord& step) {
       return gpuFloat4HasValue(step.continuationThroughput);
     }
@@ -982,7 +977,7 @@ namespace render {
     }
     for (GpuDiffusePathStateRecord path : nextPathStates) {
       if (gpuDiffusePathStateIsActive(path) && path.depth >= settings.maxDepth) {
-        terminate(path);
+        path.terminate();
         ++loop.maxDepthTerminatedPaths;
         ++loop.metrics.terminatedPaths;
       } else if (gpuDiffusePathStateIsTerminated(path) && path.depth >= settings.maxDepth) {

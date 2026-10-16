@@ -174,6 +174,12 @@ namespace render {
     std::uint32_t previousMaterial{0};
     std::uint32_t previousEventFlags{0};
     std::array<std::uint32_t, 4> reserved{};
+
+    /// Clears the active flag and sets the terminated flag. Other flags are preserved.
+    void terminate() {
+      flags &= ~gpuDiffusePathStateActiveFlag;
+      flags |= gpuDiffusePathStateTerminatedFlag;
+    }
   };
 
   enum class GpuDiffusePathStepEvent : std::uint32_t {
