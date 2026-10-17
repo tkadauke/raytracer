@@ -1,6 +1,7 @@
 #include "render/PathTracingIntegrator.h"
 
 #include "CountArithmetic.h"
+#include "FrontierDepthMetrics.h"
 #include "core/math/Constants.h"
 #include "core/math/HitPoint.h"
 #include "core/math/HitPointInterval.h"
@@ -713,41 +714,9 @@ namespace render {
     return compaction;
   }
 
-  struct PathTracingIntegrator::BatchDepthMetrics {
-    bool trackRadianceDelta{false};
-    std::uint64_t frontierRayHits{0};
-    std::uint64_t frontierRayMisses{0};
-    std::uint64_t frontierPacketChunks{0};
-    std::uint64_t frontierPacketRays{0};
-    std::uint64_t frontierClosestHitBatchChunks{0};
-    std::uint64_t frontierClosestHitBatchRays{0};
-    std::uint64_t frontierRay4PacketChunks{0};
-    std::uint64_t frontierRay8PacketChunks{0};
-    std::uint64_t frontierScalarRays{0};
-    std::uint64_t frontierPacketScalarFallbackRays{0};
-    std::map<std::string, std::uint64_t> frontierPacketScalarFallbackRaysByReason;
-    double depthDeltaSquaredSum{0.0};
-    double depthMaxDelta{0.0};
-    IntegratorBatchMetrics* metrics{nullptr};
-
-    bool trackFrontierMetrics() const {
-      return metrics != nullptr;
-    }
-
+  struct PathTracingIntegrator::BatchDepthMetrics : render::detail::FrontierDepthMetrics {
     void recordResolvedFrontier(const ActivePathHits& activeHits) const {
-      if (!metrics) {
-        return;
-      }
-
-      metrics->recordActiveHitHostBytes(activeHits.hostBytes());
-      metrics->recordFrontierIntersections(frontierRayHits, frontierRayMisses);
-      metrics->recordFrontierTraversal(frontierPacketChunks, frontierPacketRays,
-                                       frontierRay4PacketChunks, frontierRay8PacketChunks,
-                                       frontierScalarRays, frontierPacketScalarFallbackRays,
-                                       /*packetRefinedRays=*/0);
-      metrics->recordFrontierClosestHitBatch(frontierClosestHitBatchChunks,
-                                             frontierClosestHitBatchRays);
-      metrics->recordPacketScalarFallbacksByReason(frontierPacketScalarFallbackRaysByReason);
+      FrontierDepthMetrics::recordResolvedFrontier(activeHits.hostBytes());
     }
 
     void recordDepthOutcome(std::size_t retainedPathCount) const {
@@ -757,28 +726,6 @@ namespace render {
 
       metrics->recordRadianceDeltaDepth(depthDeltaSquaredSum, depthMaxDelta);
       metrics->recordRetainedActiveDepth(retainedPathCount);
-    }
-
-    void recordCancelledDepth(int bounce) const {
-      if (!metrics) {
-        return;
-      }
-
-      const std::uint64_t depth = static_cast<std::uint64_t>(std::max(0, bounce));
-      metrics->recordSkippedDepthDiagnostics(depth);
-    }
-
-    void recordPacketScalarFallbacks(const State& state,
-                                     const std::map<std::string, std::uint64_t>& reasonsBefore) {
-      for (const auto& [reason, count] : state.packetHitScalarFallbacksByReason) {
-        const auto before = reasonsBefore.find(reason);
-        const std::uint64_t previous = before == reasonsBefore.end() ? 0 : before->second;
-        if (count > previous) {
-          const std::uint64_t delta = count - previous;
-          frontierPacketScalarFallbackRays += delta;
-          frontierPacketScalarFallbackRaysByReason[reason] += delta;
-        }
-      }
     }
   };
 
