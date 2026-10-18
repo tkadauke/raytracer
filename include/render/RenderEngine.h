@@ -242,6 +242,10 @@ namespace render {
     /// Copies base render settings into a cloned concrete engine.
     void copyRenderEngineStateTo(RenderEngine& engine) const;
 
+    /// Makes `integrator` stop when this engine's camera is cancelled.
+    /// The callback refers to this engine, so it must not outlive it.
+    void installCancellationCallback(render::Integrator& integrator) const;
+
     std::shared_ptr<render::Camera> m_camera;
     std::shared_ptr<render::Scene> m_scene;
     std::optional<Colord> m_backgroundColorOverride;

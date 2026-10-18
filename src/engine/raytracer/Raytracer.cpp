@@ -40,22 +40,18 @@ struct Raytracer::Private {
   bool showProgressIndicators;
   std::optional<std::uint64_t> samplingSeed;
 
-  void configureIntegratorCancellation(const Raytracer& owner) {
-    integrator->setCancellationCallback(
-      [&owner] { return owner.camera() && owner.camera()->isCancelled(); });
-  }
 };
 
 Raytracer::Raytracer(std::shared_ptr<render::Scene> scene)
     : RenderEngine(std::move(scene)),
       p(std::make_unique<Private>()) {
-  p->configureIntegratorCancellation(*this);
+  installCancellationCallback(*p->integrator);
 }
 
 Raytracer::Raytracer(std::shared_ptr<render::Camera> camera, std::shared_ptr<render::Scene> scene)
     : RenderEngine(std::move(camera), std::move(scene)),
       p(std::make_unique<Private>()) {
-  p->configureIntegratorCancellation(*this);
+  installCancellationCallback(*p->integrator);
 }
 
 Raytracer::~Raytracer() {
@@ -265,7 +261,7 @@ void Raytracer::setIntegrator(std::unique_ptr<render::Integrator> integrator) {
     throw std::invalid_argument("Raytracer integrator cannot be null");
   }
   p->integrator = std::move(integrator);
-  p->configureIntegratorCancellation(*this);
+  installCancellationCallback(*p->integrator);
 }
 
 const render::Integrator& Raytracer::integrator() const {

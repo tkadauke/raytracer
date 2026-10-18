@@ -1410,11 +1410,6 @@ namespace engine::wavefront {
       return lastSampleRadianceStddevColor.get();
     }
 
-    void configureIntegratorCancellation(const WavefrontRaytracer& owner) {
-      integrator->setCancellationCallback(
-        [&owner] { return owner.camera() && owner.camera()->isCancelled(); });
-    }
-
     std::uint64_t saturatedProduct(std::uint64_t lhs, std::uint64_t rhs) const {
       constexpr std::uint64_t maxValue = std::numeric_limits<std::uint64_t>::max();
       if (lhs != 0 && rhs > maxValue / lhs) {
@@ -1491,14 +1486,14 @@ namespace engine::wavefront {
   WavefrontRaytracer::WavefrontRaytracer(std::shared_ptr<render::Scene> scene)
       : RenderEngine(std::move(scene)),
         p(std::make_unique<Private>()) {
-    p->configureIntegratorCancellation(*this);
+    installCancellationCallback(*p->integrator);
   }
 
   WavefrontRaytracer::WavefrontRaytracer(std::shared_ptr<render::Camera> camera,
                                          std::shared_ptr<render::Scene> scene)
       : RenderEngine(std::move(camera), std::move(scene)),
         p(std::make_unique<Private>()) {
-    p->configureIntegratorCancellation(*this);
+    installCancellationCallback(*p->integrator);
   }
 
   WavefrontRaytracer::~WavefrontRaytracer() = default;
@@ -1851,7 +1846,7 @@ namespace engine::wavefront {
     if (p->maximumRecursionDepth) {
       p->integrator->setMaximumRecursionDepth(*p->maximumRecursionDepth);
     }
-    p->configureIntegratorCancellation(*this);
+    installCancellationCallback(*p->integrator);
   }
 
   const render::Integrator& WavefrontRaytracer::integrator() const {
