@@ -1,5 +1,6 @@
 #include "render/RenderEngine.h"
 using namespace render;
+#include "render/Integrator.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/primitives/Scene.h"
 #include "render/tonemap/LinearTonemap.h"
@@ -131,6 +132,11 @@ void RenderEngine::clearBackgroundColor() {
 
 bool RenderEngine::hasBackgroundColorOverride() const {
   return m_backgroundColorOverride.has_value();
+}
+
+void RenderEngine::installCancellationCallback(render::Integrator& integrator) const {
+  integrator.setCancellationCallback(
+    [this] { return camera() && camera()->isCancelled(); });
 }
 
 void RenderEngine::copyRenderEngineStateTo(RenderEngine& engine) const {
