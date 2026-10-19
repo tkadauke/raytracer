@@ -43,21 +43,6 @@ namespace render {
     constexpr std::uint32_t kDiffusePathLoopDescriptorCount = 15u;
     constexpr VkDeviceSize kDispatchIndirectCommandBytes = 3u * sizeof(std::uint32_t);
 
-    std::uint64_t pixelCount(const GpuDiffusePathLoopLaunchParameters& parameters) {
-      return static_cast<std::uint64_t>(parameters.imageWidth) *
-             static_cast<std::uint64_t>(parameters.imageHeight);
-    }
-
-    std::uint64_t displayPixelCount(const GpuDiffusePathLoopLaunchParameters& parameters) {
-      if (parameters.accumulationTargetMode == gpuDiffusePathLoopAccumulationTargetPath) {
-        return 0u;
-      }
-      if (parameters.accumulationTargetMode == gpuDiffusePathLoopAccumulationTargetSampleSlot) {
-        return parameters.imageWidth;
-      }
-      return pixelCount(parameters);
-    }
-
     void validatePathLoopPlan(const GpuDiffusePathLoopLaunchPlan& plan,
                               const std::vector<GpuDiffusePathStateRecord>& initialPathStates) {
       if (plan.parameters.layoutVersion != gpuDiffusePathLoopLaunchLayoutVersion) {
@@ -180,9 +165,9 @@ namespace render {
           static_cast<std::size_t>(plan.parameters.initialPathCount);
 
         const auto uploadStart = std::chrono::steady_clock::now();
-        const std::uint64_t pixels = pixelCount(plan.parameters);
+        const std::uint64_t pixels = plan.parameters.pixelCount();
         const std::uint64_t resolvedDisplayPixels =
-          captureResolvedDisplay ? displayPixelCount(plan.parameters) : 0u;
+          captureResolvedDisplay ? plan.parameters.displayPixelCount() : 0u;
         if (captureResolvedDisplay && resolvedDisplayPixels == 0u) {
           throw std::invalid_argument(
             "Vulkan diffuse path-loop display resolve requires pixel or sample-slot accumulation");

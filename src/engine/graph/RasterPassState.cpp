@@ -319,24 +319,7 @@ namespace engine::graph {
     }
 
     std::uint8_t colorWriteMaskFromString(const std::string& value, const std::string& path) {
-      if (value == "none")
-        return 0;
-      if (value == "all")
-        return Rasterizer::ColorWriteAll;
-
-      std::uint8_t mask = 0;
-      for (const char ch : value) {
-        if (ch == 'r') {
-          mask |= Rasterizer::ColorWriteRed;
-        } else if (ch == 'g') {
-          mask |= Rasterizer::ColorWriteGreen;
-        } else if (ch == 'b') {
-          mask |= Rasterizer::ColorWriteBlue;
-        } else {
-          stateError(path, "expected r, g, b, all, or none");
-        }
-      }
-      return mask;
+      return detail::colorWriteMaskFromString(value, path, stateError);
     }
   }
 
