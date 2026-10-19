@@ -295,7 +295,7 @@ Feature discovery should start conservative and grow by material / object intent
 
 - Lights that request preview shadows add a `ShadowMapPass` or `RayShadowMaskPass`.
 - Materials that request planar reflection add a stencil mask, reflected-view pass, clip plane, and composite step.
-- ~~Objects marked as portals or mirrors produce offscreen render targets with derived cameras and explicit clipping state.~~ ✅ **Done.** Portal receivers and planar mirrors now compile automatic render-to-texture subviews; portal cameras derive from receiver/source transforms, mirror cameras reflect across the mirror plane, and unsupported receiver clipping fails clearly during graph execution. Screens, scopes, minimaps, and generic render-texture receivers remain TODO.
+- ~~Objects marked as portals or mirrors produce offscreen render targets with derived cameras and explicit clipping state.~~ ✅ **Done.** Portal receivers and planar mirrors now compile automatic render-to-texture subviews; portal cameras derive from receiver/source transforms, mirror cameras reflect across the mirror plane, and unsupported receiver clipping fails clearly during graph execution. Screens are covered by the `render_texture_screen_demo.json` hybrid demo and the Modeler render-texture screen action; scopes, minimaps, and generic render-texture receivers remain TODO.
 - Overlays and diagnostics add wireframe, normal, depth, object-id, or bounding-volume passes on top of the beauty pass.
 - Postprocess effects request the AOVs they need: depth for DoF/SSAO, motion vectors for motion blur/TAA, normals/world positions for denoisers and relighting.
 
@@ -714,7 +714,7 @@ Scope = "Blender-lite." Qt is already the toolkit. The UI's modality structure m
 #### 4.6.a Core editor
 
 - Multi-viewport (top / front / side / perspective / final camera). Each viewport picks its own engine — perspective uses GL, orthographic views use wireframe, and one view can follow the active render camera for final-output preview.
-- ~~Object hierarchy / outliner with selection, naming, grouping, parenting.~~ ✅ **Done.** `widgets::world::SceneModel` (`include/widgets/world/SceneModel.h`, a `QAbstractItemModel`) backs a tree-view "Elements" outliner dock in `MainWindow` (`src/modeler/MainWindow.cpp`).
+- ~~Object hierarchy / outliner with selection, naming, grouping, parenting.~~ ✅ **Done.** `widgets::world::SceneModel` (`include/widgets/world/SceneModel.h`, a `QAbstractItemModel`) backs a tree-view "Elements" outliner dock in `MainWindow` (`src/modeler/MainWindow.cpp`). Drag-and-drop reparenting of elements into groups is supported via `SceneModel`.
 - ~~Property editor for the selected object's transform, material, primitive parameters.~~ ✅ **Done.** `widgets::world::PropertyEditorWidget` (`include/widgets/world/PropertyEditorWidget.h`) auto-builds spinbox/parameter controls from the selected `Element`'s `Q_PROPERTY`s, per the pattern this roadmap cites elsewhere (e.g. §4.4.a's "ThinLensCamera commit" checklist).
 - Move / rotate / scale gizmos with snapping (unit, grid, surface, increment).
 - Primitive creation toolbar; ~~CSG operation buttons~~. ✅ **Partially done.** `MainWindow` has an "Add Primitive" menu/toolbar (`addBoxAct` / `addSphereAct` / `addCylinderAct` / `addRingAct` / `addTorusAct`, `src/modeler/MainWindow.cpp`). Dedicated CSG operation buttons are not yet in the UI — CSG is currently only reachable through the MCP `csg_union` / `csg_intersect` / `csg_difference` chat tools (§4.6.i).
