@@ -84,6 +84,23 @@ namespace render {
     std::array<float, 4> primaryPathLensUp{};
     std::array<float, 4> primaryPathForward{};
     std::array<float, 4> primaryPathLensParameters{};
+
+    /// Number of pixels in the image the path loop accumulates into.
+    [[nodiscard]] std::uint64_t pixelCount() const {
+      return static_cast<std::uint64_t>(imageWidth) * static_cast<std::uint64_t>(imageHeight);
+    }
+
+    /// Number of resolved display values the loop produces for the current
+    /// accumulation target mode.
+    [[nodiscard]] std::uint64_t displayPixelCount() const {
+      if (accumulationTargetMode == gpuDiffusePathLoopAccumulationTargetPath) {
+        return 0;
+      }
+      if (accumulationTargetMode == gpuDiffusePathLoopAccumulationTargetSampleSlot) {
+        return imageWidth;
+      }
+      return pixelCount();
+    }
   };
 
   struct GpuDiffusePathLoopLaunchBufferSizes {

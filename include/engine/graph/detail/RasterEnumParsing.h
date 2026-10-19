@@ -2,6 +2,7 @@
 
 #include "engine/raster/Rasterizer.h"
 
+#include <cstdint>
 #include <stdexcept>
 #include <string>
 
@@ -142,5 +143,29 @@ namespace engine::graph::detail {
       return Rasterizer::ShadowFilterMode::PCSS;
     error(path, "expected pcf or pcss");
     errorHandlerReturned();
+  }
+
+  template<typename Error>
+  inline std::uint8_t colorWriteMaskFromString(const std::string& value,
+                                               const std::string& path, Error error) {
+    using Rasterizer = engine::raster::Rasterizer;
+    if (value == "none")
+      return 0;
+    if (value == "all")
+      return Rasterizer::ColorWriteAll;
+
+    std::uint8_t mask = 0;
+    for (const char ch : value) {
+      if (ch == 'r') {
+        mask |= Rasterizer::ColorWriteRed;
+      } else if (ch == 'g') {
+        mask |= Rasterizer::ColorWriteGreen;
+      } else if (ch == 'b') {
+        mask |= Rasterizer::ColorWriteBlue;
+      } else {
+        error(path, "expected r, g, b, all, or none");
+      }
+    }
+    return mask;
   }
 }
