@@ -3915,21 +3915,6 @@ namespace render {
               bytesUnchanged ? 0u : static_cast<std::uint64_t>(bytes.size())};
     }
 
-    std::uint64_t pixelCount(const GpuDiffusePathLoopLaunchParameters& parameters) {
-      return static_cast<std::uint64_t>(parameters.imageWidth) *
-             static_cast<std::uint64_t>(parameters.imageHeight);
-    }
-
-    std::uint64_t displayPixelCount(const GpuDiffusePathLoopLaunchParameters& parameters) {
-      if (parameters.accumulationTargetMode == gpuDiffusePathLoopAccumulationTargetPath) {
-        return 0;
-      }
-      if (parameters.accumulationTargetMode == gpuDiffusePathLoopAccumulationTargetSampleSlot) {
-        return parameters.imageWidth;
-      }
-      return pixelCount(parameters);
-    }
-
     void clearRetainedIndexBuffer(id<MTLBuffer> retainedIndexBuffer, std::uint64_t bytes) {
       if (bytes == 0) {
         return;
@@ -3982,7 +3967,7 @@ namespace render {
       const GpuDiffusePathLoopLaunchPlan& plan,
       const std::vector<GpuDiffusePathStateRecord>& initialPathStates,
       const char* probeName) {
-      const std::uint64_t pixels = pixelCount(plan.parameters);
+      const std::uint64_t pixels = plan.parameters.pixelCount();
       if (pixels > static_cast<std::uint64_t>(std::numeric_limits<std::size_t>::max())) {
         throw std::overflow_error(std::string("Metal diffuse path-loop ") + probeName +
                                   " pixel count overflows");
@@ -4353,7 +4338,7 @@ namespace render {
         throw std::runtime_error("Metal diffuse path-loop all-miss probe command setup failed");
       }
 
-      const NSUInteger pixels = static_cast<NSUInteger>(pixelCount(plan.parameters));
+      const NSUInteger pixels = static_cast<NSUInteger>(plan.parameters.pixelCount());
       [encoder setComputePipelineState:clearPipeline];
       [encoder setBuffer:parameterBuffer offset:0 atIndex:0];
       [encoder setBuffer:accumulationBuffer offset:0 atIndex:1];
@@ -4400,12 +4385,12 @@ namespace render {
       result.retainedPathIndices =
         retainedPathIndicesFromBuffer(retainedIndexBuffer, initialPathStates.size());
       result.retainedPathCount = static_cast<std::uint32_t>(result.retainedPathIndices.size());
-      result.accumulationColorSums.resize(pixelCount(plan.parameters));
+      result.accumulationColorSums.resize(plan.parameters.pixelCount());
       if (!result.accumulationColorSums.empty()) {
         std::memcpy(result.accumulationColorSums.data(), [accumulationBuffer contents],
                     result.accumulationColorSums.size() * sizeof(std::array<float, 4>));
       }
-      result.accumulationSampleCounts.resize(pixelCount(plan.parameters));
+      result.accumulationSampleCounts.resize(plan.parameters.pixelCount());
       if (!result.accumulationSampleCounts.empty()) {
         const std::uint64_t colorBytes =
           result.accumulationColorSums.size() * sizeof(std::array<float, 4>);
@@ -4804,7 +4789,7 @@ namespace render {
           "Metal diffuse path-loop matte continuation probe command setup failed");
       }
 
-      const NSUInteger pixels = static_cast<NSUInteger>(pixelCount(plan.parameters));
+      const NSUInteger pixels = static_cast<NSUInteger>(plan.parameters.pixelCount());
       [encoder setComputePipelineState:clearPipeline];
       [encoder setBuffer:parameterBuffer offset:0 atIndex:0];
       [encoder setBuffer:accumulationBuffer offset:0 atIndex:1];
@@ -4859,12 +4844,12 @@ namespace render {
       result.retainedPathIndices =
         retainedPathIndicesFromBuffer(retainedIndexBuffer, initialPathStates.size());
       result.retainedPathCount = static_cast<std::uint32_t>(result.retainedPathIndices.size());
-      result.accumulationColorSums.resize(pixelCount(plan.parameters));
+      result.accumulationColorSums.resize(plan.parameters.pixelCount());
       if (!result.accumulationColorSums.empty()) {
         std::memcpy(result.accumulationColorSums.data(), [accumulationBuffer contents],
                     result.accumulationColorSums.size() * sizeof(std::array<float, 4>));
       }
-      result.accumulationSampleCounts.resize(pixelCount(plan.parameters));
+      result.accumulationSampleCounts.resize(plan.parameters.pixelCount());
       if (!result.accumulationSampleCounts.empty()) {
         const std::uint64_t colorBytes =
           result.accumulationColorSums.size() * sizeof(std::array<float, 4>);
@@ -4929,7 +4914,7 @@ namespace render {
 
       const auto uploadStart = std::chrono::steady_clock::now();
       const std::uint64_t resolvedDisplayPixels =
-        captureResolvedDisplay ? displayPixelCount(plan.parameters) : 0u;
+        captureResolvedDisplay ? plan.parameters.displayPixelCount() : 0u;
       if (captureResolvedDisplay && resolvedDisplayPixels == 0u) {
         throw std::invalid_argument(
           "Metal diffuse path-loop display resolve requires pixel or sample-slot accumulation");
@@ -5017,7 +5002,7 @@ namespace render {
         throw std::runtime_error("Metal diffuse path-loop command setup failed");
       }
 
-      const NSUInteger pixels = static_cast<NSUInteger>(pixelCount(plan.parameters));
+      const NSUInteger pixels = static_cast<NSUInteger>(plan.parameters.pixelCount());
       [encoder setComputePipelineState:clearPipeline];
       [encoder setBuffer:parameterBuffer offset:0 atIndex:0];
       [encoder setBuffer:accumulationBuffer offset:0 atIndex:1];
@@ -5115,12 +5100,12 @@ namespace render {
         }
       }
       if (capturePlatformAccumulation) {
-        result.accumulationColorSums.resize(pixelCount(plan.parameters));
+        result.accumulationColorSums.resize(plan.parameters.pixelCount());
         if (!result.accumulationColorSums.empty()) {
           std::memcpy(result.accumulationColorSums.data(), [accumulationBuffer contents],
                       result.accumulationColorSums.size() * sizeof(std::array<float, 4>));
         }
-        result.accumulationSampleCounts.resize(pixelCount(plan.parameters));
+        result.accumulationSampleCounts.resize(plan.parameters.pixelCount());
         if (!result.accumulationSampleCounts.empty()) {
           const std::uint64_t colorBytes =
             result.accumulationColorSums.size() * sizeof(std::array<float, 4>);
@@ -5131,7 +5116,7 @@ namespace render {
         }
       }
       if (plan.parameters.captureDenoiserFeatures != 0u) {
-        result.denoiserFeatureRecords.resize(pixelCount(plan.parameters));
+        result.denoiserFeatureRecords.resize(plan.parameters.pixelCount());
         if (!result.denoiserFeatureRecords.empty()) {
           std::memcpy(result.denoiserFeatureRecords.data(), [denoiserFeatureBuffer contents],
                       result.denoiserFeatureRecords.size() *
@@ -5200,7 +5185,7 @@ namespace render {
 
       const auto uploadStart = std::chrono::steady_clock::now();
       const std::uint64_t resolvedDisplayPixels =
-        captureResolvedDisplay ? displayPixelCount(plan.parameters) : 0u;
+        captureResolvedDisplay ? plan.parameters.displayPixelCount() : 0u;
       if (captureResolvedDisplay && resolvedDisplayPixels == 0u) {
         throw std::invalid_argument(
           "Metal diffuse path-loop display resolve requires pixel or sample-slot accumulation");
@@ -5300,7 +5285,7 @@ namespace render {
         throw std::runtime_error("Metal diffuse wavefront path-loop command setup failed");
       }
 
-      const NSUInteger pixels = static_cast<NSUInteger>(pixelCount(plan.parameters));
+      const NSUInteger pixels = static_cast<NSUInteger>(plan.parameters.pixelCount());
       if (clearPlatformAccumulation) {
         [encoder setComputePipelineState:clearPipeline];
         [encoder setBuffer:parameterBuffer offset:0 atIndex:0];
@@ -5432,12 +5417,12 @@ namespace render {
         }
       }
       if (capturePlatformAccumulation) {
-        result.accumulationColorSums.resize(pixelCount(plan.parameters));
+        result.accumulationColorSums.resize(plan.parameters.pixelCount());
         if (!result.accumulationColorSums.empty()) {
           std::memcpy(result.accumulationColorSums.data(), [accumulationBuffer contents],
                       result.accumulationColorSums.size() * sizeof(std::array<float, 4>));
         }
-        result.accumulationSampleCounts.resize(pixelCount(plan.parameters));
+        result.accumulationSampleCounts.resize(plan.parameters.pixelCount());
         if (!result.accumulationSampleCounts.empty()) {
           const std::uint64_t colorBytes =
             result.accumulationColorSums.size() * sizeof(std::array<float, 4>);
@@ -5448,7 +5433,7 @@ namespace render {
         }
       }
       if (plan.parameters.captureDenoiserFeatures != 0u) {
-        result.denoiserFeatureRecords.resize(pixelCount(plan.parameters));
+        result.denoiserFeatureRecords.resize(plan.parameters.pixelCount());
         if (!result.denoiserFeatureRecords.empty()) {
           std::memcpy(result.denoiserFeatureRecords.data(), [denoiserFeatureBuffer contents],
                       result.denoiserFeatureRecords.size() *

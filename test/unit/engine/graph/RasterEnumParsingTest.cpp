@@ -44,3 +44,16 @@ TEST(RasterEnumParsing, HandlerThatReturnsIsALogicError) {
   const auto returning = [](const std::string&, const std::string&) {};
   EXPECT_THROW(parsing::blendOpFromString("bogus", "p", returning), std::logic_error);
 }
+
+TEST(RasterEnumParsing, ParsesColorWriteMasks) {
+  EXPECT_EQ(0, parsing::colorWriteMaskFromString("none", "p", failWith));
+  EXPECT_EQ(Rasterizer::ColorWriteAll, parsing::colorWriteMaskFromString("all", "p", failWith));
+  EXPECT_EQ(Rasterizer::ColorWriteRed | Rasterizer::ColorWriteBlue,
+            parsing::colorWriteMaskFromString("rb", "p", failWith));
+  try {
+    parsing::colorWriteMaskFromString("rx", "a.b", failWith);
+    FAIL() << "expected an exception";
+  } catch (const std::runtime_error& e) {
+    EXPECT_STREQ("a.b: expected r, g, b, all, or none", e.what());
+  }
+}
