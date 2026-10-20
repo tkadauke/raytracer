@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include "test/helpers/TempTree.h"
+
 #include "core/formats/ldraw/LDrawColorTable.h"
 #include "core/formats/ldraw/LDrawParseError.h"
 #include "core/formats/ldraw/LDrawParser.h"
@@ -21,42 +23,10 @@ namespace fs = std::filesystem;
 namespace LDrawColorTableTest {
   using namespace render;
 
-  class TempTree {
+  class TempTree : public ::test::TempTree {
   public:
-    TempTree()
-        : m_root(fs::temp_directory_path() /
-                 fs::path(string("raytracer-ldraw-colors-") +
-                          to_string(::testing::UnitTest::GetInstance()->random_seed()) + "-" +
-                          to_string(++s_nextId))) {
-      fs::create_directories(m_root);
-      std::error_code error;
-      const fs::path canonical = fs::weakly_canonical(m_root, error);
-      if (!error)
-        m_root = canonical;
-    }
-
-    ~TempTree() {
-      std::error_code error;
-      fs::remove_all(m_root, error);
-    }
-
-    [[nodiscard]] fs::path root() const {
-      return m_root;
-    }
-
-    void write(const fs::path& relativePath, const string& contents) const {
-      const fs::path path = m_root / relativePath;
-      fs::create_directories(path.parent_path());
-      ofstream output(path);
-      output << contents;
-    }
-
-  private:
-    fs::path m_root;
-    static int s_nextId;
+    TempTree() : ::test::TempTree("raytracer-ldraw-colors-") {}
   };
-
-  int TempTree::s_nextId = 0;
 
   Colord diffuseColor(const shared_ptr<Material>& material) {
     auto matte = dynamic_pointer_cast<MatteMaterial>(material);
