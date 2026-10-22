@@ -1052,11 +1052,7 @@ void Rasterizer::uncancel() {
 
 std::list<Recti> Rasterizer::activeTiles() const {
   std::list<Recti> result;
-  for (const auto& task : p->tasks) {
-    if (task->active.load(std::memory_order_acquire)) {
-      result.push_back(task->rect);
-    }
-  }
+  engine::appendActiveTiles(p->tasks, result);
   return result;
 }
 

@@ -44,4 +44,22 @@ namespace engine {
 
     threadPool.waitForDone();
   }
+
+  void appendActiveTiles(const std::list<std::shared_ptr<TileRenderTask>>& tasks,
+                         std::list<Recti>& out) {
+    for (const auto& task : tasks) {
+      if (task->active.load(std::memory_order_acquire)) {
+        out.push_back(task->rect);
+      }
+    }
+  }
+
+  void appendCompletedTiles(const std::list<std::shared_ptr<TileRenderTask>>& tasks,
+                            std::list<Recti>& out) {
+    for (const auto& task : tasks) {
+      if (task->completed.load(std::memory_order_acquire)) {
+        out.push_back(task->rect);
+      }
+    }
+  }
 }
