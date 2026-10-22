@@ -80,7 +80,6 @@ namespace render {
     const char* diagnosticName() const override;
     const char* batchExecutionMode() const override;
     bool prefersProgressiveSamplePublishing() const override;
-    std::uint64_t estimatedIntersectionRaysPerPrimarySample() const override;
     std::uint64_t estimatedClosestHitRaysPerPrimarySample() const override;
     std::uint64_t estimatedAnyHitRaysPerPrimarySample() const override;
 

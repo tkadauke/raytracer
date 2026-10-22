@@ -1815,26 +1815,14 @@ namespace engine::wavefront {
 
   std::list<Recti> WavefrontRaytracer::activeTiles() const {
     std::list<Recti> result;
-    for (const auto& task : p->denoiserFeatureTasks) {
-      if (task->active.load(std::memory_order_acquire)) {
-        result.push_back(task->rect);
-      }
-    }
-    for (const auto& task : p->tasks) {
-      if (task->active.load(std::memory_order_acquire)) {
-        result.push_back(task->rect);
-      }
-    }
+    engine::appendActiveTiles(p->denoiserFeatureTasks, result);
+    engine::appendActiveTiles(p->tasks, result);
     return result;
   }
 
   std::list<Recti> WavefrontRaytracer::completedTiles() const {
     std::list<Recti> result;
-    for (const auto& task : p->tasks) {
-      if (task->completed.load(std::memory_order_acquire)) {
-        result.push_back(task->rect);
-      }
-    }
+    engine::appendCompletedTiles(p->tasks, result);
     return result;
   }
 

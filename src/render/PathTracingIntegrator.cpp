@@ -847,10 +847,6 @@ namespace render {
     return true;
   }
 
-  std::uint64_t PathTracingIntegrator::estimatedIntersectionRaysPerPrimarySample() const {
-    return estimatedClosestHitRaysPerPrimarySample() + estimatedAnyHitRaysPerPrimarySample();
-  }
-
   std::uint64_t PathTracingIntegrator::estimatedClosestHitRaysPerPrimarySample() const {
     return static_cast<std::uint64_t>(std::max(1, m_maximumRecursionDepth));
   }

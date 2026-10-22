@@ -20,6 +20,13 @@ namespace render::detail {
     return a + b;
   }
 
+  inline std::uint32_t checkedU32(std::uint64_t value, const char* label) {
+    if (value > std::numeric_limits<std::uint32_t>::max()) {
+      throw std::overflow_error(std::string(label) + " exceeds GPU 32-bit count range");
+    }
+    return static_cast<std::uint32_t>(value);
+  }
+
   inline std::uint64_t checkedProduct(std::uint64_t count, std::uint64_t bytesPerItem,
                                       const std::string& message) {
     if (bytesPerItem != 0 && count > std::numeric_limits<std::uint64_t>::max() / bytesPerItem) {

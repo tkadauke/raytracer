@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../CountArithmetic.h"
 #include "render/cameras/SampledShutterDescriptorMotion.h"
 #include "render/GpuFloat4.h"
 #include "render/GpuPrimaryPathDescriptor.h"
@@ -15,13 +16,6 @@
 #include <string>
 
 namespace render::detail {
-  inline std::uint32_t checkedU32(std::uint64_t value, const char* label) {
-    if (value > std::numeric_limits<std::uint32_t>::max()) {
-      throw std::overflow_error(std::string(label) + " exceeds GPU 32-bit count range");
-    }
-    return static_cast<std::uint32_t>(value);
-  }
-
   // Shared first guard clause for every camera's gpuPrimaryPathDescriptor()
   // override: a GPU descriptor needs a view plane with a configured sampler
   // emitting at least one sample per pixel.
