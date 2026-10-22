@@ -17,12 +17,7 @@ namespace render {
     static_assert(sizeof(GpuDiffusePathLoopLaunchParameters) % 16 == 0,
                   "GPU diffuse path-loop launch parameters must stay 16-byte sized");
 
-    std::uint32_t checkedU32(std::uint64_t value, const char* label) {
-      if (value > std::numeric_limits<std::uint32_t>::max()) {
-        throw std::overflow_error(std::string(label) + " exceeds GPU 32-bit count range");
-      }
-      return static_cast<std::uint32_t>(value);
-    }
+    using render::detail::checkedU32;
 
     std::uint64_t checkedAdd(std::uint64_t left, std::uint64_t right, const char* label) {
       return render::detail::checkedAdd(left, right, std::string(label) + " byte size overflows");

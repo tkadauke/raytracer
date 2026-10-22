@@ -2,6 +2,7 @@
 
 #include "engine/TileRenderTask.h"
 
+#include <list>
 #include <memory>
 
 namespace TileRenderTaskTest {
@@ -34,5 +35,30 @@ namespace TileRenderTaskTest {
     EXPECT_TRUE(activeDuringWork);
     EXPECT_FALSE(task->active.load());
     EXPECT_TRUE(task->completed.load());
+  }
+
+  TEST(TileRenderTaskTest, AppendTileHelpersFilterByStateAndPreserveOrder) {
+    std::list<std::shared_ptr<TileRenderTask>> tasks;
+    for (int i = 0; i < 3; ++i)
+      tasks.push_back(std::make_shared<TileRenderTask>(Recti(i, 0, 1, 1), [] {}));
+    auto it = tasks.begin();
+    (*it)->active = true;
+    ++it;
+    (*it)->completed = true;
+    ++it;
+    (*it)->active = true;
+    (*it)->completed = true;
+
+    std::list<Recti> active{Recti(9, 9, 1, 1)};
+    appendActiveTiles(tasks, active);
+    ASSERT_EQ(3u, active.size());
+    EXPECT_EQ(9, active.front().left());
+    EXPECT_EQ(2, active.back().left());
+
+    std::list<Recti> completed;
+    appendCompletedTiles(tasks, completed);
+    ASSERT_EQ(2u, completed.size());
+    EXPECT_EQ(1, completed.front().left());
+    EXPECT_EQ(2, completed.back().left());
   }
 }

@@ -31,4 +31,12 @@ namespace engine {
 
   void dispatchTileTasks(const render::TilePlan& tilePlan, QThreadPool& threadPool,
                          std::list<std::shared_ptr<TileRenderTask>>& tasks, const TileWork& work);
+
+  /// Appends the rects of all tasks currently running to `out`.
+  void appendActiveTiles(const std::list<std::shared_ptr<TileRenderTask>>& tasks,
+                         std::list<Recti>& out);
+
+  /// Appends the rects of all tasks that have finished to `out`.
+  void appendCompletedTiles(const std::list<std::shared_ptr<TileRenderTask>>& tasks,
+                            std::list<Recti>& out);
 }
