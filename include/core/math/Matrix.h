@@ -1439,6 +1439,17 @@ public:
   }
 
   /**
+    * @returns a matrix built from 16 values stored in column-major order (the
+    *   first four values are the first column, as used by glTF), i.e. the
+    *   transpose of the row-by-row constructor layout.
+    */
+  [[nodiscard]] inline static constexpr Matrix4<T> fromColumnMajor(
+    const std::array<T, 16>& v) noexcept {
+    return Matrix4<T>(v[0], v[4], v[8], v[12], v[1], v[5], v[9], v[13], v[2], v[6], v[10], v[14],
+                      v[3], v[7], v[11], v[15]);
+  }
+
+  /**
     * @returns a matrix that represents a uniform scaling by factor, embedded
     *   as the top-left 3x3 block of an otherwise identity 4x4 matrix.
     */

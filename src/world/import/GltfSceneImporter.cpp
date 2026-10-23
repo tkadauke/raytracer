@@ -68,15 +68,9 @@ namespace world {
       setImportProvenance(group, provenance);
     }
 
-    Matrix4d matrixFromGltf(const std::array<double, 16>& values) {
-      return Matrix4d(values[0], values[4], values[8], values[12], values[1], values[5], values[9],
-                      values[13], values[2], values[6], values[10], values[14], values[3],
-                      values[7], values[11], values[15]);
-    }
-
     Matrix4d localTransformFor(const core::gltf::Node& node) {
       if (node.matrix)
-        return matrixFromGltf(*node.matrix);
+        return Matrix4d::fromColumnMajor(*node.matrix);
 
       const Matrix4d translation =
         Matrix4d::translate(node.translation[0], node.translation[1], node.translation[2]);

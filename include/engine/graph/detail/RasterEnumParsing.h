@@ -168,4 +168,23 @@ namespace engine::graph::detail {
     }
     return mask;
   }
+
+  /// Spells the channels enabled in a color write mask as the letters r, g and
+  /// b ("rgb" for a full mask, "none" for an empty one). Callers that spell a
+  /// full mask differently handle that case before delegating here.
+  inline std::string colorWriteChannelsString(std::uint8_t mask) {
+    using Rasterizer = engine::raster::Rasterizer;
+    mask &= Rasterizer::ColorWriteAll;
+    if (mask == 0)
+      return "none";
+
+    std::string result;
+    if (mask & Rasterizer::ColorWriteRed)
+      result.push_back('r');
+    if (mask & Rasterizer::ColorWriteGreen)
+      result.push_back('g');
+    if (mask & Rasterizer::ColorWriteBlue)
+      result.push_back('b');
+    return result;
+  }
 }
