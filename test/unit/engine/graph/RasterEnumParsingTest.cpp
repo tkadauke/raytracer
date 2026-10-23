@@ -57,3 +57,10 @@ TEST(RasterEnumParsing, ParsesColorWriteMasks) {
     EXPECT_STREQ("a.b: expected r, g, b, all, or none", e.what());
   }
 }
+
+TEST(RasterEnumParsing, SpellsColorWriteChannels) {
+  EXPECT_EQ("none", parsing::colorWriteChannelsString(0));
+  EXPECT_EQ("rgb", parsing::colorWriteChannelsString(Rasterizer::ColorWriteAll));
+  EXPECT_EQ("rb", parsing::colorWriteChannelsString(Rasterizer::ColorWriteRed |
+                                                    Rasterizer::ColorWriteBlue));
+}
