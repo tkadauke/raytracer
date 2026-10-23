@@ -1,3 +1,4 @@
+#include <array>
 #include <gtest/gtest.h>
 #include "core/math/Matrix.h"
 #include "core/math/Vector.h"
@@ -1158,5 +1159,16 @@ namespace MatrixTest {
 
     Matrix4<TypeParam> identity;
     ASSERT_MATRIX_NEAR(identity, matrix * matrix.stableInverse(), TypeParam(0.01));
+  }
+
+  TYPED_TEST(MatrixTest, FromColumnMajorTransposesTheSixteenValues) {
+    std::array<TypeParam, 16> values{};
+    for (int i = 0; i != 16; ++i)
+      values[i] = TypeParam(i);
+
+    const auto matrix = Matrix4<TypeParam>::fromColumnMajor(values);
+    for (int column = 0; column != 4; ++column)
+      for (int row = 0; row != 4; ++row)
+        EXPECT_EQ(values[column * 4 + row], matrix[row][column]);
   }
 }

@@ -26,20 +26,9 @@ namespace engine::graph {
 
 
     std::string colorWriteMaskString(std::uint8_t mask) {
-      mask &= Rasterizer::ColorWriteAll;
-      if (mask == 0)
-        return "none";
-      if (mask == Rasterizer::ColorWriteAll)
+      if ((mask & Rasterizer::ColorWriteAll) == Rasterizer::ColorWriteAll)
         return "all";
-
-      std::string result;
-      if (mask & Rasterizer::ColorWriteRed)
-        result.push_back('r');
-      if (mask & Rasterizer::ColorWriteGreen)
-        result.push_back('g');
-      if (mask & Rasterizer::ColorWriteBlue)
-        result.push_back('b');
-      return result;
+      return detail::colorWriteChannelsString(mask);
     }
 
     std::uint8_t colorWriteMaskFromString(const std::string& value, const std::string& path) {
