@@ -110,4 +110,26 @@ namespace render::detail {
     rec.motionTargetDelta = gpuFloat4(motion.targetDelta, 0.0f);
     fillGpuDescriptorMatrixBasis(rec, motion.matrix);
   }
+
+  // Fill the motion fields, plane basis and lens basis from a lens-based
+  // camera's resolved motion descriptor. Used by the thin-lens and tilt-shift
+  // cameras, which differ only in `lensParameters` (and `descriptor.mode`,
+  // which each still sets itself).
+  inline void fillGpuDescriptorLensMotion(GpuRectilinearPrimaryPathDescriptor& rec,
+                                          const LensDescriptorMotion& motion,
+                                          const ViewPlane& descriptorPlane, double distance,
+                                          double apertureRadius, const GpuFloat4& lensParameters) {
+    const CameraBasis basis = cameraBasisForMatrix(motion.matrixAtOpen);
+    rec.motionMode = motion.motionMode;
+    rec.originOrDirection = gpuFloat4(motion.originOrPosition, 1.0f);
+    rec.motionOriginDelta = gpuFloat4(motion.motionOriginOrPositionDelta, 0.0f);
+    rec.motionTarget = gpuFloat4(motion.target, 1.0f);
+    rec.motionTargetDelta = gpuFloat4(motion.targetDelta, 0.0f);
+    rec.motionParameters = gpuFloat4(distance, apertureRadius);
+    fillGpuDescriptorPlane(rec, descriptorPlane);
+    rec.lensRight = gpuFloat4(basis.right * apertureRadius, 0.0f);
+    rec.lensUp = gpuFloat4(basis.up * apertureRadius, 0.0f);
+    rec.forward = gpuFloat4(basis.forward, 0.0f);
+    rec.lensParameters = lensParameters;
+  }
 }

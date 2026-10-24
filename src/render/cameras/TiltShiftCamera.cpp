@@ -17,11 +17,10 @@
 using namespace render;
 
 namespace {
-  using render::detail::cameraBasisForMatrix;
   using render::detail::checkedU32;
   using render::detail::checkGpuPathCount;
   using render::detail::eyeOriginForMatrix;
-  using render::detail::fillGpuDescriptorPlane;
+  using render::detail::fillGpuDescriptorLensMotion;
   using render::detail::fillGpuDescriptorViewport;
   using render::detail::hasValidGpuPrimaryPathSampler;
   using render::detail::isEmptyGpuPrimaryPathRect;
@@ -124,25 +123,15 @@ TiltShiftCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sampl
 
   checkGpuPathCount(actual, plane->sampler()->numSamples());
 
-  const detail::CameraBasis basis = cameraBasisForMatrix(motion->matrixAtOpen);
-
   auto descriptorPlane = plane->clone();
   descriptorPlane->setup(motion->planeMatrix(), plane->window());
 
   GpuPrimaryPathDescriptor descriptor;
   descriptor.mode = gpuPrimaryPathGenerationModeTiltShift;
-  descriptor.rectilinear.motionMode = motion->motionMode;
-  descriptor.rectilinear.originOrDirection = gpuFloat4(motion->originOrPosition, 1.0f);
-  descriptor.rectilinear.motionOriginDelta = gpuFloat4(motion->motionOriginOrPositionDelta, 0.0f);
-  descriptor.rectilinear.motionTarget = gpuFloat4(motion->target, 1.0f);
-  descriptor.rectilinear.motionTargetDelta = gpuFloat4(motion->targetDelta, 0.0f);
-  descriptor.rectilinear.motionParameters = gpuFloat4(distance(), apertureRadius(), 0.0, 0.0);
-  fillGpuDescriptorPlane(descriptor.rectilinear, *descriptorPlane);
-  descriptor.rectilinear.lensRight = gpuFloat4(basis.right * apertureRadius(), 0.0f);
-  descriptor.rectilinear.lensUp = gpuFloat4(basis.up * apertureRadius(), 0.0f);
-  descriptor.rectilinear.forward = gpuFloat4(basis.forward, 0.0f);
-  descriptor.rectilinear.lensParameters =
-    gpuFloat4(distance() + focalDistance(), shift().x(), shift().y(), tilt().radians());
+  fillGpuDescriptorLensMotion(descriptor.rectilinear, *motion, *descriptorPlane, distance(),
+                              apertureRadius(),
+                              gpuFloat4(distance() + focalDistance(), shift().x(), shift().y(),
+                                        tilt().radians()));
   fillGpuDescriptorViewport(descriptor.rectilinear, rect, actual, plane->sampler()->numSamples(),
                             sampleSeed);
   return descriptor;
