@@ -25,7 +25,7 @@ namespace {
   using render::detail::checkGpuPathCount;
   using render::detail::concentricMapToDisc;
   using render::detail::eyeOriginForMatrix;
-  using render::detail::fillGpuDescriptorPlane;
+  using render::detail::fillGpuDescriptorLensMotion;
   using render::detail::fillGpuDescriptorViewport;
   using render::detail::hasValidGpuPrimaryPathSampler;
   using render::detail::isEmptyGpuPrimaryPathRect;
@@ -186,24 +186,13 @@ ThinLensCamera::gpuPrimaryPathDescriptor(const Recti& rect, std::uint32_t sample
 
   checkGpuPathCount(actual, plane->sampler()->numSamples());
 
-  const detail::CameraBasis basis = cameraBasisForMatrix(motion->matrixAtOpen);
-
   auto descriptorPlane = plane->clone();
   descriptorPlane->setup(motion->planeMatrix(), plane->window());
 
   GpuPrimaryPathDescriptor descriptor;
   descriptor.mode = gpuPrimaryPathGenerationModeThinLens;
-  descriptor.rectilinear.motionMode = motion->motionMode;
-  descriptor.rectilinear.originOrDirection = gpuFloat4(motion->originOrPosition, 1.0f);
-  descriptor.rectilinear.motionOriginDelta = gpuFloat4(motion->motionOriginOrPositionDelta, 0.0f);
-  descriptor.rectilinear.motionTarget = gpuFloat4(motion->target, 1.0f);
-  descriptor.rectilinear.motionTargetDelta = gpuFloat4(motion->targetDelta, 0.0f);
-  descriptor.rectilinear.motionParameters = gpuFloat4(m_distance, m_apertureRadius);
-  fillGpuDescriptorPlane(descriptor.rectilinear, *descriptorPlane);
-  descriptor.rectilinear.lensRight = gpuFloat4(basis.right * m_apertureRadius, 0.0f);
-  descriptor.rectilinear.lensUp = gpuFloat4(basis.up * m_apertureRadius, 0.0f);
-  descriptor.rectilinear.forward = gpuFloat4(basis.forward, 0.0f);
-  descriptor.rectilinear.lensParameters = gpuFloat4(m_distance + m_focalDistance, 0.0);
+  fillGpuDescriptorLensMotion(descriptor.rectilinear, *motion, *descriptorPlane, m_distance,
+                              m_apertureRadius, gpuFloat4(m_distance + m_focalDistance, 0.0));
   fillGpuDescriptorViewport(descriptor.rectilinear, rect, actual, plane->sampler()->numSamples(),
                             sampleSeed);
   return descriptor;
