@@ -803,11 +803,7 @@ namespace render {
 
   std::uint64_t WavefrontIntersectionBackendSelectionContext::saturatedExpectedRayCount(
     std::uint64_t expectedClosestHitRays, std::uint64_t expectedAnyHitRays) {
-    constexpr std::uint64_t maxValue = std::numeric_limits<std::uint64_t>::max();
-    if (expectedAnyHitRays > maxValue - expectedClosestHitRays) {
-      return maxValue;
-    }
-    return expectedClosestHitRays + expectedAnyHitRays;
+    return detail::saturatedAdd(expectedClosestHitRays, expectedAnyHitRays);
   }
 
   const std::vector<WavefrontAnyHitQuery>* WavefrontAnyHitFrontier::hostAnyHitQueries() const {
@@ -1077,21 +1073,13 @@ namespace render {
   std::uint64_t
   WavefrontIntersectionBackendAutoSelectionPolicy::saturatingProduct(std::uint64_t lhs,
                                                                      std::uint64_t rhs) const {
-    constexpr std::uint64_t maxValue = std::numeric_limits<std::uint64_t>::max();
-    if (lhs != 0 && rhs > maxValue / lhs) {
-      return maxValue;
-    }
-    return lhs * rhs;
+    return detail::saturatedProduct(lhs, rhs);
   }
 
   std::uint64_t
   WavefrontIntersectionBackendAutoSelectionPolicy::saturatingSum(std::uint64_t lhs,
                                                                  std::uint64_t rhs) const {
-    constexpr std::uint64_t maxValue = std::numeric_limits<std::uint64_t>::max();
-    if (rhs > maxValue - lhs) {
-      return maxValue;
-    }
-    return lhs + rhs;
+    return detail::saturatedAdd(lhs, rhs);
   }
 
   WavefrontIntersectionBackendChoice::WavefrontIntersectionBackendChoice()
@@ -1665,11 +1653,7 @@ namespace render {
       return 0;
     }
 
-    constexpr std::uint64_t maxValue = std::numeric_limits<std::uint64_t>::max();
-    if (submittedRays > maxValue / bytesPerRay) {
-      return maxValue;
-    }
-    return submittedRays * bytesPerRay;
+    return detail::saturatedProduct(submittedRays, bytesPerRay);
   }
 
   const Primitive* WavefrontIntersectionBackend::intersectPreparedClosest(

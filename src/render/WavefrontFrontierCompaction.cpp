@@ -1,5 +1,6 @@
 #include "render/WavefrontFrontierCompaction.h"
 
+#include "CountArithmetic.h"
 #include "render/Integrator.h"
 
 #include <cstdint>
@@ -10,11 +11,7 @@
 namespace render {
   namespace {
     std::uint64_t saturatedByteProduct(std::size_t count, std::uint64_t bytesPerItem) {
-      constexpr std::uint64_t maxValue = std::numeric_limits<std::uint64_t>::max();
-      if (bytesPerItem != 0 && count > maxValue / bytesPerItem) {
-        return maxValue;
-      }
-      return static_cast<std::uint64_t>(count) * bytesPerItem;
+      return detail::saturatedProduct(static_cast<std::uint64_t>(count), bytesPerItem);
     }
 
     std::uint64_t retainedIndexBytesFor(std::size_t retainedPathCount) {
