@@ -13,6 +13,13 @@ namespace render::detail {
     return a + b;
   }
 
+  inline std::uint64_t saturatedProduct(std::uint64_t lhs, std::uint64_t rhs) {
+    if (lhs != 0 && rhs > std::numeric_limits<std::uint64_t>::max() / lhs) {
+      return std::numeric_limits<std::uint64_t>::max();
+    }
+    return lhs * rhs;
+  }
+
   inline std::uint64_t checkedAdd(std::uint64_t a, std::uint64_t b, const std::string& message) {
     if (a > std::numeric_limits<std::uint64_t>::max() - b) {
       throw std::overflow_error(message);

@@ -112,12 +112,7 @@ namespace {
   }
 
   std::uint64_t saturatedPathStateBytes(std::uint64_t count) {
-    constexpr std::uint64_t bytesPerPath = sizeof(GpuDiffusePathStateRecord);
-    constexpr std::uint64_t maxValue = std::numeric_limits<std::uint64_t>::max();
-    if (bytesPerPath != 0u && count > maxValue / bytesPerPath) {
-      return maxValue;
-    }
-    return count * bytesPerPath;
+    return render::detail::saturatedProduct(count, sizeof(GpuDiffusePathStateRecord));
   }
 
   void recordStepRadianceDelta(GpuDiffusePathStepResult& result, const Colord& before,
