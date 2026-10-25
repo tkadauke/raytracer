@@ -1,5 +1,6 @@
 #include "render/GpuDiffusePathLoopBackend.h"
 
+#include "CountArithmetic.h"
 #include "render/GpuFloat4.h"
 
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
@@ -533,10 +534,7 @@ namespace render {
       const std::uint64_t depthWork = std::max<std::uint64_t>(1u, settings.maxDepth);
       const std::uint64_t directLightWork =
         std::max<std::uint64_t>(1u, settings.directLightSamples);
-      const std::uint64_t workScale =
-        depthWork > std::numeric_limits<std::uint64_t>::max() / directLightWork
-          ? std::numeric_limits<std::uint64_t>::max()
-          : depthWork * directLightWork;
+      const std::uint64_t workScale = detail::saturatedProduct(depthWork, directLightWork);
       const std::uint64_t scaledBudget = std::max<std::uint64_t>(1u, workBudget / workScale);
       return std::clamp(scaledBudget, minimumPathBudget, maximumPathBudget);
     }
