@@ -13,11 +13,13 @@
 > `RenderPassKind::Readback` nodes, attachment store/discard state, color
 > attachment Load from a CPU source buffer, the OpenGL raster resource cache,
 > and typed graph-owned `OpenGLRasterResource` storage are already in place.
-> What is still missing is the end-to-end pass execution path: OpenGL raster
-> passes do not yet publish FBO attachments as graph resident resources, later
-> passes do not consume those handles, graph pass-state application still
-> rejects OpenGL attachment Load, and `OpenGLRasterizer` still rejects
-> depth/stencil Load until residency can seed attachments from prior GPU passes.
+> `OpenGLRasterizer` can now publish its color attachment as a resident
+> resource (`setPublishResidentColor` / `takeResidentColor`) and consume one for
+> color Load (`setColorLoadResource`) without CPU readback. Still missing:
+> depth/stencil residency and Load (the rasterizer still rejects them), the
+> graph executor binding resident handles into `RenderResourceStorage` and
+> choosing resident over CPU Load, graph pass-state application still rejecting
+> OpenGL attachment Load, and the end-to-end multi-pass parity/functional tests.
 >
 > **Related plans:** `docs/plans/complete/opengl-gpu-rasterizer.md` owns the
 > rasterizer pipeline; this plan handles the resource side.
