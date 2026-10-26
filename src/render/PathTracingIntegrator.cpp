@@ -1,6 +1,7 @@
 #include "render/PathTracingIntegrator.h"
 
 #include "CountArithmetic.h"
+#include "DirectLightContributionStorage.h"
 #include "FrontierDepthMetrics.h"
 #include "core/math/Constants.h"
 #include "core/math/HitPoint.h"
@@ -581,40 +582,10 @@ namespace render {
     WavefrontOcclusionFlags m_occluded;
   };
 
-  class PathTracingIntegrator::DirectLightContributionBatch {
+  class PathTracingIntegrator::DirectLightContributionBatch
+      : public detail::DirectLightContributionStorage {
   public:
-    explicit DirectLightContributionBatch(std::size_t count)
-        : m_contributions(count, Colord::black()) {
-    }
-
-    DirectLightContributionBatch(std::size_t count, int bounce, IntegratorBatchMetrics* metrics)
-        : DirectLightContributionBatch(count) {
-      recordHostBytes(bounce, metrics);
-    }
-
-    [[nodiscard]] std::size_t size() const {
-      return m_contributions.size();
-    }
-
-    [[nodiscard]] bool empty() const {
-      return m_contributions.empty();
-    }
-
-    [[nodiscard]] std::uint64_t hostBytes() const {
-      return static_cast<std::uint64_t>(m_contributions.size()) * sizeof(Colord);
-    }
-
-    void recordHostBytes(int bounce, IntegratorBatchMetrics* metrics) const {
-      if (!metrics) {
-        return;
-      }
-      metrics->recordDirectLightContributionHostBytes(
-        static_cast<std::uint64_t>(std::max(0, bounce)), hostBytes());
-    }
-
-    [[nodiscard]] Colord at(std::size_t index) const {
-      return index < m_contributions.size() ? m_contributions[index] : Colord::black();
-    }
+    using DirectLightContributionStorage::DirectLightContributionStorage;
 
     void addWeighted(std::size_t index, const Colord& contribution, double weight) {
       if (index >= m_contributions.size()) {
@@ -629,9 +600,6 @@ namespace render {
         contribution = contribution / divisor;
       }
     }
-
-  private:
-    std::vector<Colord> m_contributions;
   };
 
   PathTracingIntegrator::DirectLightContributionBatch

@@ -1,6 +1,7 @@
 #include "render/WhittedIntegrator.h"
 
 #include "CountArithmetic.h"
+#include "DirectLightContributionStorage.h"
 #include "FrontierDepthMetrics.h"
 #include "core/ScopeExit.h"
 #include "core/math/Constants.h"
@@ -591,16 +592,10 @@ namespace render {
     WavefrontOcclusionFlags m_occluded;
   };
 
-  class WhittedIntegrator::DirectLightContributionBatch {
+  class WhittedIntegrator::DirectLightContributionBatch
+      : public detail::DirectLightContributionStorage {
   public:
-    DirectLightContributionBatch(std::size_t count, int depth, IntegratorBatchMetrics* metrics)
-        : m_contributions(count, Colord::black()) {
-      recordHostBytes(depth, metrics);
-    }
-
-    [[nodiscard]] Colord at(std::size_t index) const {
-      return index < m_contributions.size() ? m_contributions[index] : Colord::black();
-    }
+    using DirectLightContributionStorage::DirectLightContributionStorage;
 
     void set(std::size_t index, const Colord& contribution) {
       if (index >= m_contributions.size()) {
@@ -609,21 +604,6 @@ namespace render {
       }
       m_contributions[index] = contribution;
     }
-
-  private:
-    [[nodiscard]] std::uint64_t hostBytes() const {
-      return static_cast<std::uint64_t>(m_contributions.size()) * sizeof(Colord);
-    }
-
-    void recordHostBytes(int depth, IntegratorBatchMetrics* metrics) const {
-      if (!metrics) {
-        return;
-      }
-      metrics->recordDirectLightContributionHostBytes(
-        static_cast<std::uint64_t>(std::max(0, depth)), hostBytes());
-    }
-
-    std::vector<Colord> m_contributions;
   };
 
   WhittedIntegrator::DirectLightContributionBatch
