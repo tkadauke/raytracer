@@ -13,9 +13,12 @@
 > to `complete/core-math-optimization.md`. Captured 2026-05-10 from the
 > conversation that motivated the idea; design refined 2026-05-11.
 >
-> **Status:** Living document — design proposal, not yet committed. The current
-> codebase still uses `Vector3<T>` / `Matrix4<T>` directly; no committed
-> `Point3`, `Direction3`, or `Normal3` type split exists yet.
+> **Status:** Living document — partially implemented. Phase 1 (3D only) has
+> landed: `Point3`, `Direction3`, `Normal3`, and `NormalMatrix3` exist in
+> `include/core/math/Geometry.h`, reusing `Vector3` as the free-form vector type
+> (no `Vec`/`Mat` base templates and no `Transform3` yet). Nothing in the
+> renderer (`Ray`, `HitPoint`, cameras, lights, materials) has been migrated;
+> Phases 2+ are not started.
 > Most open questions from the original draft are resolved (see
 > [Resolved design decisions](#resolved-design-decisions) below); the
 > few remaining are tagged as such.
