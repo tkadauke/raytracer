@@ -62,20 +62,8 @@ namespace render {
       }
 
       std::string deviceUnavailableReason() const {
-        VkInstance instance = VK_NULL_HANDLE;
-        try {
-          instance = createInstance();
-        } catch (const std::runtime_error& e) {
-          return e.what();
-        }
-
-        InstanceGuard instanceGuard;
-        instanceGuard.instance = instance;
-        const DeviceSelection selection = selectDevice(instance);
-        if (selection.device == VK_NULL_HANDLE) {
-          return "Vulkan diffuse frontier compaction found no physical device with a compute queue";
-        }
-        return "";
+        return VulkanComputeHelper::deviceUnavailableReason(
+          "Vulkan diffuse frontier compaction found no physical device with a compute queue");
       }
 
       bool compactionPathAvailable() const {

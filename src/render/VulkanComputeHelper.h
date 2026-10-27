@@ -191,6 +191,25 @@ protected:
     return instance;
   }
 
+  // Empty when an instance can be created and a compute-capable device exists; otherwise the
+  // failure reason (noDeviceMessage when no device has a compute queue).
+  std::string deviceUnavailableReason(const char* noDeviceMessage) const {
+    VkInstance instance = VK_NULL_HANDLE;
+    try {
+      instance = createInstance();
+    } catch (const std::runtime_error& e) {
+      return e.what();
+    }
+
+    InstanceGuard guard;
+    guard.instance = instance;
+    const DeviceSelection selection = selectDevice(instance);
+    if (selection.device == VK_NULL_HANDLE) {
+      return noDeviceMessage;
+    }
+    return "";
+  }
+
   VkDevice createDevice(VkPhysicalDevice physicalDevice, std::uint32_t queueFamily) const {
     const float queuePriority = 1.0f;
     VkDeviceQueueCreateInfo queueCreateInfo{};
