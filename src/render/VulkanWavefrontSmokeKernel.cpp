@@ -36,21 +36,8 @@ namespace render {
         : VulkanComputeHelper("Vulkan wavefront smoke", "raytracer Vulkan wavefront smoke probe") {}
 
       std::string deviceUnavailableReason() const {
-        VkInstance instance = VK_NULL_HANDLE;
-        try {
-          instance = createInstance();
-        } catch (const std::runtime_error& e) {
-          return e.what();
-        }
-
-        InstanceGuard guard;
-        guard.instance = instance;
-
-        const DeviceSelection selection = selectDevice(instance);
-        if (selection.device == VK_NULL_HANDLE) {
-          return "Vulkan loader found no physical device with a compute queue";
-        }
-        return "";
+        return VulkanComputeHelper::deviceUnavailableReason(
+          "Vulkan loader found no physical device with a compute queue");
       }
 
       bool renderPathAvailable() const {

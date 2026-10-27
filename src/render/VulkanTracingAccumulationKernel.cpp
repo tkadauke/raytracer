@@ -65,20 +65,8 @@ namespace render {
                               "raytracer Vulkan tracing accumulation") {}
 
       std::string deviceUnavailableReason() const {
-        VkInstance instance = VK_NULL_HANDLE;
-        try {
-          instance = createInstance();
-        } catch (const std::runtime_error& e) {
-          return e.what();
-        }
-
-        InstanceGuard guard;
-        guard.instance = instance;
-        const DeviceSelection selection = selectDevice(instance);
-        if (selection.device == VK_NULL_HANDLE) {
-          return "Vulkan tracing accumulation found no physical device with a compute queue";
-        }
-        return "";
+        return VulkanComputeHelper::deviceUnavailableReason(
+          "Vulkan tracing accumulation found no physical device with a compute queue");
       }
 
       bool accumulationAvailable() const {
