@@ -321,11 +321,6 @@ namespace {
     }
   };
 
-  double projectedBoundsArea(const RasterTriangle& triangle) {
-    const auto bounds = triangle.screenBounds();
-    return std::max(0.0, bounds.maxX - bounds.minX) * std::max(0.0, bounds.maxY - bounds.minY);
-  }
-
   double triangleDepthKey(const RasterTriangle& triangle) {
     return std::min({triangle.vertices[0].depthOverW / triangle.vertices[0].invW,
                      triangle.vertices[1].depthOverW / triangle.vertices[1].invW,
@@ -388,7 +383,7 @@ namespace {
     RasterTilingStats stats;
     stats.triangles = triangleSet.triangles().size();
     for (const auto& triangle : triangleSet.triangles()) {
-      const double area = projectedBoundsArea(triangle);
+      const double area = triangle.projectedBoundsArea();
       stats.projectedBoundsPixels += area;
       stats.maxProjectedBoundsPixels = std::max(stats.maxProjectedBoundsPixels, area);
     }

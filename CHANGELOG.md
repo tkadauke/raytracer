@@ -42,6 +42,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- `RasterTriangle::projectedBoundsArea()` replaces duplicated free helpers in `Rasterizer.cpp` and the tiling benchmark; behavior unchanged. — Claude Sonnet 5.5
 - Selector-specific render intent that uses a `material_role` selector now fails with an explicit "not supported yet" diagnostic instead of resolving as a missing subset (advances the selector/per-subtree routing epic). — Claude Sonnet 5.5
 
 - Add `core/math/Geometry.h` with semantic geometry types `Point3`, `Direction3`,

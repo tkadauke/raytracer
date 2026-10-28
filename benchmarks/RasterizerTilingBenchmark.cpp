@@ -125,18 +125,6 @@ namespace {
     return result;
   }
 
-  double projectedBoundsArea(const RasterTriangle& triangle) {
-    const double minX =
-      std::min({triangle.vertices[0].x, triangle.vertices[1].x, triangle.vertices[2].x});
-    const double maxX =
-      std::max({triangle.vertices[0].x, triangle.vertices[1].x, triangle.vertices[2].x});
-    const double minY =
-      std::min({triangle.vertices[0].y, triangle.vertices[1].y, triangle.vertices[2].y});
-    const double maxY =
-      std::max({triangle.vertices[0].y, triangle.vertices[1].y, triangle.vertices[2].y});
-    return std::max(0.0, maxX - minX) * std::max(0.0, maxY - minY);
-  }
-
   RasterTilingDiagnostics diagnose(const RasterScene& rasterScene, int queueSize) {
     Rasterizer rasterizer(rasterScene.camera, rasterScene.scene);
     rasterizer.setLod(kLod);
@@ -155,7 +143,7 @@ namespace {
                                   cancelled, Rasterizer::CullMode::Both, true, true);
     emitter.forEachTriangle([&](const RasterTriangle& triangle) {
       ++diagnostics.triangles;
-      const double area = projectedBoundsArea(triangle);
+      const double area = triangle.projectedBoundsArea();
       diagnostics.projectedBoundsPixels += area;
       diagnostics.maxProjectedBoundsPixels = std::max(diagnostics.maxProjectedBoundsPixels, area);
       triangleSet.add(triangle);

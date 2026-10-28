@@ -187,6 +187,12 @@ namespace engine::raster::detail {
               std::min({vertices[0].y, vertices[1].y, vertices[2].y}),
               std::max({vertices[0].y, vertices[1].y, vertices[2].y})};
     }
+
+    // Area of the axis-aligned screen-space bounding box, in pixels.
+    double projectedBoundsArea() const {
+      const auto bounds = screenBounds();
+      return std::max(0.0, bounds.maxX - bounds.minX) * std::max(0.0, bounds.maxY - bounds.minY);
+    }
   };
 
   // Borrowed full-frame outputs used by diagnostics and picking experiments.

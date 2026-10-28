@@ -3052,6 +3052,11 @@ namespace RasterizerTest {
     expectBuffersEqual(expected, actual);
   }
 
+  TEST(Rasterizer, TriangleProjectedBoundsAreaIsScreenBoundingBoxArea) {
+    EXPECT_DOUBLE_EQ(12.0, screenTriangle(1.0, 2.0, 5.0, 2.0, 1.0, 5.0).projectedBoundsArea());
+    EXPECT_DOUBLE_EQ(0.0, screenTriangle(1.0, 1.0, 3.0, 1.0, 5.0, 1.0).projectedBoundsArea());
+  }
+
   TEST(Rasterizer, TileBinningSkipsLargeTriangleTilesOutsideCoverage) {
     const render::TilePlan tilePlan = render::TilePlan::forBuffer(64, 64, 16);
     engine::raster::detail::RasterTriangleSet triangleSet(tilePlan);
