@@ -439,9 +439,8 @@ namespace render {
 
   private:
     void validateFrontier() const {
-      if (!m_frontier) {
-        throw std::logic_error("Whitted closest-hit frontier batch resolved without a frontier");
-      }
+      render::detail::requirePresent(
+        m_frontier, "Whitted closest-hit frontier batch resolved without a frontier");
     }
 
     void validateHitCount() const {
@@ -506,10 +505,8 @@ namespace render {
         intersectionBackend.resolveDirectLightVisibilityBatch(scene, std::move(m_shadowQueries));
       m_frontier = std::move(result.frontier);
       m_occluded = std::move(result.occluded);
-      if (!m_frontier) {
-        throw std::logic_error(
-          "Whitted direct-light visibility batch resolved without an any-hit frontier");
-      }
+      render::detail::requirePresent(
+        m_frontier, "Whitted direct-light visibility batch resolved without an any-hit frontier");
       validateResolvedFrontierRayCount();
       validateResolvedOcclusionCount();
       if (metrics) {
