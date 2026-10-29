@@ -48,4 +48,11 @@ namespace render::detail {
       throw std::logic_error(message);
     }
   }
+
+  template<typename Pointer>
+  inline void requirePresent(const Pointer& pointer, const char* message) {
+    if (!pointer) {
+      throw std::logic_error(message);
+    }
+  }
 }
