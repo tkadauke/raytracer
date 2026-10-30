@@ -128,13 +128,6 @@ namespace {
     result.maxRadianceDeltaPerDepth.push_back(step.maxRadianceDelta);
   }
 
-  double fraction(std::uint64_t numerator, std::uint64_t denominator) {
-    if (denominator == 0u) {
-      return 0.0;
-    }
-    return static_cast<double>(numerator) / static_cast<double>(denominator);
-  }
-
   bool executionPathUsesGpu(const std::string& path) {
     return path == kFullGpuPathLoopExecutionPath || path.find("metal") != std::string::npos ||
            path.find("vulkan") != std::string::npos;
@@ -1244,7 +1237,7 @@ std::uint64_t GpuDiffusePathFrontierCompactionResult::retainedPathCount() const 
 }
 
 std::uint64_t GpuDiffusePathFrontierCompactionResult::removedPathCount() const {
-  return inputPathCount >= retainedPathCount() ? inputPathCount - retainedPathCount() : 0u;
+  return render::detail::saturatedSubtract(inputPathCount, retainedPathCount());
 }
 
 std::uint64_t GpuDiffusePathFrontierCompactionResult::movedPathCount() const {
@@ -1573,11 +1566,11 @@ TracingExecutionCapabilityRecords GpuDiffusePathLoopResult::tracingCapabilities(
 }
 
 double GpuDiffusePathLoopResult::removedPathFraction() const {
-  return fraction(removedPathCount(), inputPathCount());
+  return render::detail::fraction(removedPathCount(), inputPathCount());
 }
 
 double GpuDiffusePathLoopResult::movedRetainedPathFraction() const {
-  return fraction(movedPathCount(), retainedPathCount());
+  return render::detail::fraction(movedPathCount(), retainedPathCount());
 }
 
 GpuDiffusePathStepResult

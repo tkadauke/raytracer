@@ -115,14 +115,12 @@ namespace render {
   }
 
   std::size_t WavefrontFrontierCompactionResult::removedPathCount() const {
-    return m_inputPathCount > retainedPathCount() ? m_inputPathCount - retainedPathCount() : 0;
+    return static_cast<std::size_t>(
+      detail::saturatedSubtract(m_inputPathCount, retainedPathCount()));
   }
 
   double WavefrontFrontierCompactionResult::removedPathFraction() const {
-    if (m_inputPathCount == 0) {
-      return 0.0;
-    }
-    return static_cast<double>(removedPathCount()) / static_cast<double>(m_inputPathCount);
+    return detail::fraction(removedPathCount(), m_inputPathCount);
   }
 
   std::size_t WavefrontFrontierCompactionResult::movedPathCount() const {
@@ -130,11 +128,7 @@ namespace render {
   }
 
   double WavefrontFrontierCompactionResult::movedRetainedPathFraction() const {
-    const std::size_t retained = retainedPathCount();
-    if (retained == 0) {
-      return 0.0;
-    }
-    return static_cast<double>(m_movedPathCount) / static_cast<double>(retained);
+    return detail::fraction(m_movedPathCount, retainedPathCount());
   }
 
   const std::vector<std::uint32_t>& WavefrontFrontierCompactionResult::retainedPathIndices() const {
