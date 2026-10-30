@@ -148,7 +148,7 @@ namespace render {
   }
 
   std::uint64_t ResidentPathCompactionContract::removedPathCount() const {
-    return m_inputPathCount > retainedPathCount() ? m_inputPathCount - retainedPathCount() : 0;
+    return detail::saturatedSubtract(m_inputPathCount, retainedPathCount());
   }
 
   std::uint64_t ResidentPathCompactionContract::movedPathCount() const {
@@ -156,17 +156,11 @@ namespace render {
   }
 
   double ResidentPathCompactionContract::removedPathFraction() const {
-    if (m_inputPathCount == 0) {
-      return 0.0;
-    }
-    return static_cast<double>(removedPathCount()) / static_cast<double>(m_inputPathCount);
+    return detail::fraction(removedPathCount(), m_inputPathCount);
   }
 
   double ResidentPathCompactionContract::movedRetainedPathFraction() const {
-    if (retainedPathCount() == 0) {
-      return 0.0;
-    }
-    return static_cast<double>(m_movedPathCount) / static_cast<double>(retainedPathCount());
+    return detail::fraction(m_movedPathCount, retainedPathCount());
   }
 
   const std::vector<std::uint32_t>& ResidentPathCompactionContract::retainedPathIndices() const {

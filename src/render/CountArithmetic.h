@@ -20,6 +20,17 @@ namespace render::detail {
     return lhs * rhs;
   }
 
+  inline std::uint64_t saturatedSubtract(std::uint64_t value, std::uint64_t amount) {
+    return value > amount ? value - amount : 0;
+  }
+
+  inline double fraction(std::uint64_t numerator, std::uint64_t denominator) {
+    if (denominator == 0) {
+      return 0.0;
+    }
+    return static_cast<double>(numerator) / static_cast<double>(denominator);
+  }
+
   inline std::uint64_t checkedAdd(std::uint64_t a, std::uint64_t b, const std::string& message) {
     if (a > std::numeric_limits<std::uint64_t>::max() - b) {
       throw std::overflow_error(message);
