@@ -745,6 +745,49 @@ namespace engine::graph {
       service["sceneUploadBytes"] = static_cast<double>(diagnostics.uploadBytes);
     }
 
+    void addIntersectionServiceDiagnostics(
+      QJsonObject& service, const render::IntersectionServiceDiagnostics& diagnostics) {
+      service["requestedBackend"] = QString::fromStdString(diagnostics.requestedBackend);
+      service["selectedBackend"] = QString::fromStdString(diagnostics.selectedBackend);
+      service["availability"] = QString::fromStdString(diagnostics.availability);
+      service["platformName"] = QString::fromStdString(diagnostics.platformName);
+      service["executionPath"] = QString::fromStdString(diagnostics.executionPath);
+      service["closestHitExecutionPath"] =
+        QString::fromStdString(diagnostics.closestHitExecutionPath);
+      service["fallbackReason"] = QString::fromStdString(diagnostics.fallbackReason);
+      service["closestHitRayUploadBytesEstimate"] =
+        static_cast<double>(diagnostics.closestHitRayUploadBytesEstimate);
+      service["closestHitReadbackBytesEstimate"] =
+        static_cast<double>(diagnostics.closestHitReadbackBytesEstimate);
+      service["anyHitRayUploadBytesEstimate"] =
+        static_cast<double>(diagnostics.anyHitRayUploadBytesEstimate);
+      service["anyHitReadbackBytesEstimate"] =
+        static_cast<double>(diagnostics.anyHitReadbackBytesEstimate);
+      service["queryTransferBytesEstimate"] =
+        static_cast<double>(diagnostics.queryTransferBytesEstimate);
+      service["closestHitFrontierResidency"] =
+        QString::fromStdString(diagnostics.closestHitFrontierResidency);
+      service["anyHitFrontierResidency"] =
+        QString::fromStdString(diagnostics.anyHitFrontierResidency);
+      service["closestHitFrontierPackedRayBytes"] =
+        static_cast<double>(diagnostics.closestHitFrontierPackedRayBytes);
+      service["closestHitFrontierHostPackedRayBytes"] =
+        static_cast<double>(diagnostics.closestHitFrontierHostPackedRayBytes);
+      service["closestHitFrontierHostQueryBytes"] =
+        static_cast<double>(diagnostics.closestHitFrontierHostQueryBytes);
+      service["closestHitFrontierStateHandleBytes"] =
+        static_cast<double>(diagnostics.closestHitFrontierStateHandleBytes);
+      service["anyHitFrontierPackedRayBytes"] =
+        static_cast<double>(diagnostics.anyHitFrontierPackedRayBytes);
+      service["anyHitFrontierHostPackedRayBytes"] =
+        static_cast<double>(diagnostics.anyHitFrontierHostPackedRayBytes);
+      service["anyHitFrontierHostQueryBytes"] =
+        static_cast<double>(diagnostics.anyHitFrontierHostQueryBytes);
+      service["anyHitFrontierStateHandleBytes"] =
+        static_cast<double>(diagnostics.anyHitFrontierStateHandleBytes);
+      addIntersectionServiceSceneDiagnostics(service, diagnostics.scene);
+    }
+
     QString displayResolveTonemapName(render::GpuDisplayResolveTonemap tonemap) {
       switch (tonemap) {
       case render::GpuDisplayResolveTonemap::Unsupported:
@@ -2144,45 +2187,7 @@ namespace engine::graph {
         service["queryTag"] = QStringLiteral("debug_aov");
         service["queryCount"] = static_cast<double>(diagnostics.closestHitQueryCount);
         service["hitCount"] = static_cast<double>(diagnostics.closestHitHitCount);
-        service["requestedBackend"] = QString::fromStdString(diagnostics.requestedBackend);
-        service["selectedBackend"] = QString::fromStdString(diagnostics.selectedBackend);
-        service["availability"] = QString::fromStdString(diagnostics.availability);
-        service["platformName"] = QString::fromStdString(diagnostics.platformName);
-        service["executionPath"] = QString::fromStdString(diagnostics.executionPath);
-        service["closestHitExecutionPath"] =
-          QString::fromStdString(diagnostics.closestHitExecutionPath);
-        service["fallbackReason"] = QString::fromStdString(diagnostics.fallbackReason);
-        service["closestHitRayUploadBytesEstimate"] =
-          static_cast<double>(diagnostics.closestHitRayUploadBytesEstimate);
-        service["closestHitReadbackBytesEstimate"] =
-          static_cast<double>(diagnostics.closestHitReadbackBytesEstimate);
-        service["anyHitRayUploadBytesEstimate"] =
-          static_cast<double>(diagnostics.anyHitRayUploadBytesEstimate);
-        service["anyHitReadbackBytesEstimate"] =
-          static_cast<double>(diagnostics.anyHitReadbackBytesEstimate);
-        service["queryTransferBytesEstimate"] =
-          static_cast<double>(diagnostics.queryTransferBytesEstimate);
-        service["closestHitFrontierResidency"] =
-          QString::fromStdString(diagnostics.closestHitFrontierResidency);
-        service["anyHitFrontierResidency"] =
-          QString::fromStdString(diagnostics.anyHitFrontierResidency);
-        service["closestHitFrontierPackedRayBytes"] =
-          static_cast<double>(diagnostics.closestHitFrontierPackedRayBytes);
-        service["closestHitFrontierHostPackedRayBytes"] =
-          static_cast<double>(diagnostics.closestHitFrontierHostPackedRayBytes);
-        service["closestHitFrontierHostQueryBytes"] =
-          static_cast<double>(diagnostics.closestHitFrontierHostQueryBytes);
-        service["closestHitFrontierStateHandleBytes"] =
-          static_cast<double>(diagnostics.closestHitFrontierStateHandleBytes);
-        service["anyHitFrontierPackedRayBytes"] =
-          static_cast<double>(diagnostics.anyHitFrontierPackedRayBytes);
-        service["anyHitFrontierHostPackedRayBytes"] =
-          static_cast<double>(diagnostics.anyHitFrontierHostPackedRayBytes);
-        service["anyHitFrontierHostQueryBytes"] =
-          static_cast<double>(diagnostics.anyHitFrontierHostQueryBytes);
-        service["anyHitFrontierStateHandleBytes"] =
-          static_cast<double>(diagnostics.anyHitFrontierStateHandleBytes);
-        addIntersectionServiceSceneDiagnostics(service, diagnostics.scene);
+        addIntersectionServiceDiagnostics(service, diagnostics);
 
         QJsonObject timing;
         addTiming(timing, diagnostics.lastClosestHitTiming);
@@ -2356,46 +2361,8 @@ namespace engine::graph {
         service["primaryHitCount"] = static_cast<double>(diagnostics.closestHitHitCount);
         service["shadowQueryCount"] = static_cast<double>(diagnostics.anyHitQueryCount);
         service["occludedCount"] = static_cast<double>(diagnostics.anyHitOccludedCount);
-        service["requestedBackend"] = QString::fromStdString(diagnostics.requestedBackend);
-        service["selectedBackend"] = QString::fromStdString(diagnostics.selectedBackend);
-        service["availability"] = QString::fromStdString(diagnostics.availability);
-        service["platformName"] = QString::fromStdString(diagnostics.platformName);
-        service["executionPath"] = QString::fromStdString(diagnostics.executionPath);
-        service["closestHitExecutionPath"] =
-          QString::fromStdString(diagnostics.closestHitExecutionPath);
+        addIntersectionServiceDiagnostics(service, diagnostics);
         service["anyHitExecutionPath"] = QString::fromStdString(diagnostics.anyHitExecutionPath);
-        service["fallbackReason"] = QString::fromStdString(diagnostics.fallbackReason);
-        service["closestHitRayUploadBytesEstimate"] =
-          static_cast<double>(diagnostics.closestHitRayUploadBytesEstimate);
-        service["closestHitReadbackBytesEstimate"] =
-          static_cast<double>(diagnostics.closestHitReadbackBytesEstimate);
-        service["anyHitRayUploadBytesEstimate"] =
-          static_cast<double>(diagnostics.anyHitRayUploadBytesEstimate);
-        service["anyHitReadbackBytesEstimate"] =
-          static_cast<double>(diagnostics.anyHitReadbackBytesEstimate);
-        service["queryTransferBytesEstimate"] =
-          static_cast<double>(diagnostics.queryTransferBytesEstimate);
-        service["closestHitFrontierResidency"] =
-          QString::fromStdString(diagnostics.closestHitFrontierResidency);
-        service["anyHitFrontierResidency"] =
-          QString::fromStdString(diagnostics.anyHitFrontierResidency);
-        service["closestHitFrontierPackedRayBytes"] =
-          static_cast<double>(diagnostics.closestHitFrontierPackedRayBytes);
-        service["closestHitFrontierHostPackedRayBytes"] =
-          static_cast<double>(diagnostics.closestHitFrontierHostPackedRayBytes);
-        service["closestHitFrontierHostQueryBytes"] =
-          static_cast<double>(diagnostics.closestHitFrontierHostQueryBytes);
-        service["closestHitFrontierStateHandleBytes"] =
-          static_cast<double>(diagnostics.closestHitFrontierStateHandleBytes);
-        service["anyHitFrontierPackedRayBytes"] =
-          static_cast<double>(diagnostics.anyHitFrontierPackedRayBytes);
-        service["anyHitFrontierHostPackedRayBytes"] =
-          static_cast<double>(diagnostics.anyHitFrontierHostPackedRayBytes);
-        service["anyHitFrontierHostQueryBytes"] =
-          static_cast<double>(diagnostics.anyHitFrontierHostQueryBytes);
-        service["anyHitFrontierStateHandleBytes"] =
-          static_cast<double>(diagnostics.anyHitFrontierStateHandleBytes);
-        addIntersectionServiceSceneDiagnostics(service, diagnostics.scene);
 
         QJsonObject closestTiming;
         addTiming(closestTiming, diagnostics.lastClosestHitTiming);
