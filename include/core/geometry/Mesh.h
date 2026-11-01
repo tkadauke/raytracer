@@ -266,6 +266,30 @@ public:
   }
 
   /**
+    * Appends all vertices and faces of @p other to this Mesh, remapping face
+    * indices and preserving per-face colors and metadata.
+    */
+  inline void append(const Mesh& other) {
+    const int vertexOffset = static_cast<int>(m_vertices.size());
+
+    for (const auto& v : other.vertices())
+      addVertex(v.point, v.normal, v.uv);
+
+    for (std::size_t faceIndex = 0; faceIndex != other.faces().size(); ++faceIndex) {
+      Face remapped;
+      remapped.reserve(other.faces()[faceIndex].size());
+      for (int idx : other.faces()[faceIndex])
+        remapped.push_back(idx + vertexOffset);
+      const auto color = other.faceColor(faceIndex);
+      const auto metadata = other.faceMetadata(faceIndex);
+      if (color)
+        addFace(remapped, *color, metadata);
+      else
+        addFace(remapped, metadata);
+    }
+  }
+
+  /**
     * @returns a const reference to the vector of vertices.
     */
   inline const std::vector<Vertex>& vertices() const {

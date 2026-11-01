@@ -286,31 +286,11 @@ void MeshPrimitive::appendIntersectionSceneRecords(
 
 std::shared_ptr<Mesh> MeshPrimitive::tessellate(int lod) const {
   auto result = std::make_shared<Mesh>();
-  int vertexOffset = 0;
 
   for (const auto& leaf : m_leaves) {
     auto childMesh = leaf->tessellate(lod);
-    if (!childMesh)
-      continue;
-
-    for (const auto& v : childMesh->vertices())
-      result->addVertex(v.point, v.normal, v.uv);
-
-    for (std::size_t faceIndex = 0; faceIndex != childMesh->faces().size(); ++faceIndex) {
-      const auto& face = childMesh->faces()[faceIndex];
-      Mesh::Face remapped;
-      remapped.reserve(face.size());
-      for (int idx : face)
-        remapped.push_back(idx + vertexOffset);
-      const auto color = childMesh->faceColor(faceIndex);
-      const auto metadata = childMesh->faceMetadata(faceIndex);
-      if (color)
-        result->addFace(remapped, *color, metadata);
-      else
-        result->addFace(remapped, metadata);
-    }
-
-    vertexOffset += static_cast<int>(childMesh->vertices().size());
+    if (childMesh)
+      result->append(*childMesh);
   }
 
   return result;
