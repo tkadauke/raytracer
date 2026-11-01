@@ -24,6 +24,25 @@ namespace MeshTest {
     Mesh mesh;
   }
 
+  TEST_F(MeshTest, AppendShouldOffsetFaceIndicesAndKeepColorsAndMetadata) {
+    Mesh other;
+    other.addVertex(Vector3d(5, 0, 0), Vector3d(0, 0, 1), Vector2d(0.25, 0.5));
+    other.addVertex(Vector3d(5, 1, 0), Vector3d(0, 0, 1));
+    other.addVertex(Vector3d(6, 0, 0), Vector3d(0, 0, 1));
+    other.addFace(makeStdVector(0, 1, 2), Colord(1, 0, 0));
+
+    mesh.append(other);
+
+    ASSERT_EQ(6u, mesh.vertices().size());
+    ASSERT_EQ(2u, mesh.faces().size());
+    EXPECT_EQ(Vector3d(5, 0, 0), mesh.vertices()[3].point);
+    EXPECT_EQ(Vector2d(0.25, 0.5), mesh.vertices()[3].uv);
+    EXPECT_EQ(makeStdVector(3, 4, 5), mesh.faces()[1]);
+    EXPECT_FALSE(mesh.faceColor(0).has_value());
+    ASSERT_TRUE(mesh.faceColor(1).has_value());
+    EXPECT_EQ(Colord(1, 0, 0), *mesh.faceColor(1));
+  }
+
   TEST_F(MeshTest, ShouldComputeNormals) {
     this->mesh.computeNormals();
 
