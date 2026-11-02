@@ -11,6 +11,7 @@
 #include "engine/TracingExecutionCapabilityJson.h"
 #include "engine/wavefront/detail/WavefrontMetricsRecorder.h"
 #include "engine/wavefront/detail/WavefrontTileRenderer.h"
+#include "../../render/CountArithmetic.h"
 #include "render/Integrator.h"
 #include "render/GpuIntersectionScene.h"
 #include "render/RayCaster.h"
@@ -1410,32 +1411,24 @@ namespace engine::wavefront {
       return lastSampleRadianceStddevColor.get();
     }
 
-    std::uint64_t saturatedProduct(std::uint64_t lhs, std::uint64_t rhs) const {
-      constexpr std::uint64_t maxValue = std::numeric_limits<std::uint64_t>::max();
-      if (lhs != 0 && rhs > maxValue / lhs) {
-        return maxValue;
-      }
-      return lhs * rhs;
-    }
-
     std::uint64_t expectedPrimaryRayCount(const render::Camera& camera, int width,
                                           int height) const {
       const std::uint64_t pixelCount =
-        saturatedProduct(static_cast<std::uint64_t>(std::max(0, width)),
+        render::detail::saturatedProduct(static_cast<std::uint64_t>(std::max(0, width)),
                          static_cast<std::uint64_t>(std::max(0, height)));
-      return saturatedProduct(pixelCount,
+      return render::detail::saturatedProduct(pixelCount,
                               static_cast<std::uint64_t>(std::max(1, camera.samplesPerPixel())));
     }
 
     std::uint64_t expectedClosestHitIntersectionRayCount(const render::Camera& camera, int width,
                                                          int height) const {
-      return saturatedProduct(expectedPrimaryRayCount(camera, width, height),
+      return render::detail::saturatedProduct(expectedPrimaryRayCount(camera, width, height),
                               integrator->estimatedClosestHitRaysPerPrimarySample());
     }
 
     std::uint64_t expectedAnyHitIntersectionRayCount(const render::Camera& camera, int width,
                                                      int height) const {
-      return saturatedProduct(expectedPrimaryRayCount(camera, width, height),
+      return render::detail::saturatedProduct(expectedPrimaryRayCount(camera, width, height),
                               integrator->estimatedAnyHitRaysPerPrimarySample());
     }
 
