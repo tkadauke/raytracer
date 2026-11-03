@@ -3,8 +3,10 @@
 #include <algorithm>
 #include <cctype>
 #include <cerrno>
+#include <cstdint>
 #include <cstdlib>
 #include <limits>
+#include <map>
 #include <optional>
 #include <string>
 #include <utility>
@@ -103,6 +105,16 @@ namespace core::util {
     }
     if (target != source) {
       target = "mixed";
+    }
+  }
+
+  /// Merge `source` counts into `target`, keeping the larger count per label.
+  /// Empty labels are recorded under "unknown".
+  inline void mergeMapMaximums(std::map<std::string, std::uint64_t>& target,
+                               const std::map<std::string, std::uint64_t>& source) {
+    for (const auto& [key, count] : source) {
+      const std::string label = key.empty() ? "unknown" : key;
+      target[label] = std::max(target[label], count);
     }
   }
 

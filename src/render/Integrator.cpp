@@ -17,15 +17,8 @@
 namespace render {
   namespace {
     using core::util::mergeLabel;
+    using core::util::mergeMapMaximums;
     using core::util::nonEmptyLabel;
-
-    void mergeMapMaximums(std::map<std::string, std::uint64_t>& target,
-                          const std::map<std::string, std::uint64_t>& source) {
-      for (const auto& [key, count] : source) {
-        const std::string label = key.empty() ? "unknown" : key;
-        target[label] = std::max(target[label], count);
-      }
-    }
 
     template<typename T>
     void addVectorValues(std::vector<T>& target, const std::vector<T>& source) {
