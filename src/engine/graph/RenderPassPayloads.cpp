@@ -77,13 +77,6 @@ namespace engine::graph {
       }
     }
 
-    void requireColorResource(const RenderResourceStorage& storage,
-                              const RenderResourceId& resource, const RenderPassNode& pass) {
-      if (!storage.resource(resource).colorBacked()) {
-        throw passError(pass, "resource '" + resource + "' is not color-backed");
-      }
-    }
-
     void requireDepthResource(const RenderResourceStorage& storage,
                               const RenderResourceId& resource, const RenderPassNode& pass) {
       if (!storage.resource(resource).depthBacked()) {
@@ -119,11 +112,7 @@ namespace engine::graph {
       }
     }
 
-    void requireMatchingSize(const Buffer<Colord>& source, const Buffer<Colord>& destination,
-                             const std::string& action) {
-      detail::requireMatchingBufferSize(source, destination,
-                                        action + " requires matching color buffer dimensions");
-    }
+    using detail::requireMatchingSize;
 
     void requireMatchingSize(const Buffer<double>& source, const Buffer<Colord>& destination,
                              const std::string& action) {

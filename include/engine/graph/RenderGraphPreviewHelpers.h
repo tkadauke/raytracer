@@ -3,6 +3,7 @@
 #include "core/Buffer.h"
 #include "core/Color.h"
 #include "engine/graph/RenderGraphTypes.h"
+#include "engine/graph/RenderResourceStorage.h"
 
 #include <algorithm>
 #include <cmath>
@@ -15,6 +16,14 @@ namespace engine::graph {
 
   inline std::runtime_error passError(const RenderPassNode& pass, const std::string& message) {
     return std::runtime_error("pass '" + pass.id + "': " + message);
+  }
+
+  /// Throws a pass error unless @p resource is color-backed in @p storage.
+  inline void requireColorResource(const RenderResourceStorage& storage,
+                                   const RenderResourceId& resource, const RenderPassNode& pass) {
+    if (!storage.resource(resource).colorBacked()) {
+      throw passError(pass, "resource '" + resource + "' is not color-backed");
+    }
   }
 
   inline double normalizedComponent(double value, double minimum, double maximum) {

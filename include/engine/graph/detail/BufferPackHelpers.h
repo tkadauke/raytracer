@@ -20,6 +20,14 @@ namespace engine::graph::detail {
       throw std::runtime_error(message);
   }
 
+  // Shared by GraphRenderEngine.cpp and RenderPassPayloads.cpp: requires two
+  // color buffers to match in size, naming @p action in the error message.
+  inline void requireMatchingSize(const Buffer<Colord>& source, const Buffer<Colord>& destination,
+                                  const std::string& action) {
+    requireMatchingBufferSize(source, destination,
+                              action + " requires matching color buffer dimensions");
+  }
+
   // Shared by GraphRenderEngine.cpp and RenderPassPayloads.cpp: copies a
   // Colord source buffer into a packed-pixel destination buffer, applying
   // @p tonemap per pixel when present. Throws @p sizeMismatchMessage if the
