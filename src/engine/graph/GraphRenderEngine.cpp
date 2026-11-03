@@ -164,18 +164,7 @@ namespace engine::graph {
       }
     }
 
-    void requireColorResource(const RenderResourceStorage& storage,
-                              const RenderResourceId& resource, const RenderPassNode& pass) {
-      if (!storage.resource(resource).colorBacked()) {
-        throw passError(pass, "resource '" + resource + "' is not color-backed");
-      }
-    }
-
-    void requireMatchingSize(const Buffer<Colord>& source, const Buffer<Colord>& destination,
-                             const std::string& action) {
-      detail::requireMatchingBufferSize(source, destination,
-                                        action + " requires matching color buffer dimensions");
-    }
+    using detail::requireMatchingSize;
 
     void packColorBuffer(const Buffer<Colord>& source, Buffer<unsigned int>& destination,
                          const std::shared_ptr<render::Tonemap>& tonemap = nullptr) {

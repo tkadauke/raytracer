@@ -41,14 +41,7 @@
 namespace engine::wavefront {
   namespace {
     using core::util::mergeLabel;
-
-    void mergeMapMaximums(std::map<std::string, std::uint64_t>& target,
-                          const std::map<std::string, std::uint64_t>& source) {
-      for (const auto& [key, count] : source) {
-        const std::string label = key.empty() ? "unknown" : key;
-        target[label] = std::max(target[label], count);
-      }
-    }
+    using core::util::mergeMapMaximums;
 
     void mergeAccumulationDiagnostics(render::TracingAccumulationDiagnostics& target,
                                       const render::TracingAccumulationDiagnostics& source) {
