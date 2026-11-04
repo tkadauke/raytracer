@@ -24,6 +24,16 @@ namespace MeshTest {
     Mesh mesh;
   }
 
+  TEST(Mesh, EmptyMeshShouldHaveInvalidBounds) {
+    EXPECT_FALSE(Mesh().bounds().isValid());
+  }
+
+  TEST_F(MeshTest, ShouldComputeBoundsFromVertexPositions) {
+    mesh.addVertex(Vector3d(-2, 3, 4), Vector3d::null);
+
+    EXPECT_EQ(BoundingBoxd(Vector3d(-2, 0, 0), Vector3d(1, 3, 4)), mesh.bounds());
+  }
+
   TEST_F(MeshTest, AppendShouldOffsetFaceIndicesAndKeepColorsAndMetadata) {
     Mesh other;
     other.addVertex(Vector3d(5, 0, 0), Vector3d(0, 0, 1), Vector2d(0.25, 0.5));

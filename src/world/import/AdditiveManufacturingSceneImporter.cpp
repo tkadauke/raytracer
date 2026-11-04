@@ -205,20 +205,12 @@ namespace {
     return document;
   }
 
-  BoundingBoxd boundsFor(const Mesh& mesh) {
-    BoundingBoxd bounds;
-    for (const auto& vertex : mesh.vertices()) {
-      bounds.include(vertex.point);
-    }
-    return bounds;
-  }
-
   void addDefaultView(Scene& scene, const Mesh& mesh) {
     // Order matches world::BoundsFramedViewSpec's member declaration order:
     // fallbackSize, minDistanceFloor, distanceMultiplier, positionDirection,
     // zoom, cameraId, cameraName, lightId, lightName, lightDirection.
     world::addBoundsFramedCameraAndLight(
-      scene, boundsFor(mesh),
+      scene, mesh.bounds(),
       world::BoundsFramedViewSpec{
         Vector3d(1.0, 1.0, 1.0), 1.0, 3.0, Vector3d(0.0, -1.0, 0.65), 1.2,
         QStringLiteral("additive-camera"), QStringLiteral("Additive Manufacturing Camera"),

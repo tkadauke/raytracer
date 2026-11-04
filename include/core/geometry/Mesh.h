@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/geometry/MeshFaceMetadata.h"
+#include "core/math/BoundingBox.h"
 #include "core/math/Vector.h"
 #include "core/Color.h"
 #include "core/Exception.h"
@@ -287,6 +288,16 @@ public:
       else
         addFace(remapped, metadata);
     }
+  }
+
+  /**
+    * Returns the axis-aligned bounds of the mesh vertices.
+    */
+  [[nodiscard]] inline BoundingBoxd bounds() const {
+    BoundingBoxd box;
+    for (const auto& vertex : m_vertices)
+      box.include(vertex.point);
+    return box;
   }
 
   /**
