@@ -2,6 +2,7 @@
 
 #include "render/GpuTracingScene.h"
 #include "render/textures/TextureWrap.h"
+#include "render/textures/UVColorTexture.h"
 
 #include <algorithm>
 #include <cmath>
@@ -43,7 +44,7 @@ namespace render {
     }
 
     if (kind == GpuTracingTextureKind::UVColor) {
-      return Colord(hit.uv[0], hit.uv[1], 0.0);
+      return UVColorTexture::colorAt(Vector2d(hit.uv));
     }
 
     if (kind == GpuTracingTextureKind::Tinted) {
