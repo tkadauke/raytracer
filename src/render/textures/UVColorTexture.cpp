@@ -3,6 +3,10 @@
 
 using namespace render;
 
+Colord UVColorTexture::colorAt(const Vector2d& uv) {
+  return Colord(uv.x(), uv.y(), 0.0);
+}
+
 Colord UVColorTexture::evaluate(const Rayd&, const HitPoint& hitPoint) const {
-  return Colord(hitPoint.uv().x(), hitPoint.uv().y(), 0.0);
+  return colorAt(hitPoint.uv());
 }

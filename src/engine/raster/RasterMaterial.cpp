@@ -138,7 +138,7 @@ namespace engine::raster::detail {
       result = m_color;
       break;
     case Kind::UVColor:
-      result = Colord(uv.x(), uv.y(), 0.0);
+      result = render::UVColorTexture::colorAt(uv);
       break;
     case Kind::Image:
       result = m_image->sample(uv.x() * m_uScale, uv.y() * m_vScale,
