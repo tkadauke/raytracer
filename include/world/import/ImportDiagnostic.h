@@ -1,8 +1,7 @@
 #pragma once
 
+#include <QJsonObject>
 #include <QString>
-
-class QJsonObject;
 
 namespace world {
 
