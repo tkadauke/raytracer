@@ -507,8 +507,8 @@ void Scene::readImports(const QJsonObject& json) {
     world::ImportOptions options(optionsValue.toObject());
     world::ImportResult result = importer->importFile(resolvedSource, options);
     for (const auto& diagnostic : result.diagnostics()) {
-      const char* severity = diagnostic.isError() ? "error" : "warning";
-      qWarning("Import %s: %s", severity, qPrintable(diagnostic.message));
+      qWarning("Import %s: %s", qPrintable(diagnostic.severityName()),
+               qPrintable(diagnostic.message));
     }
     if (result.failed()) {
       throw std::invalid_argument(
