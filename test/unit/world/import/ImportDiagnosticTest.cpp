@@ -1,7 +1,5 @@
 #include <gtest/gtest.h>
 
-#include <QJsonObject>
-
 #include "world/import/ImportDiagnostic.h"
 
 namespace ImportDiagnosticTest {
