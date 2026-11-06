@@ -22,38 +22,6 @@
 #include <utility>
 
 namespace {
-  QString diagnosticSeverityName(const world::ImportDiagnostic& diagnostic) {
-    return diagnostic.isError() ? QStringLiteral("error") : QStringLiteral("warning");
-  }
-
-  world::ImportDiagnosticSeverity diagnosticSeverityFromName(const QString& name) {
-    return name == QStringLiteral("error") ? world::ImportDiagnosticSeverity::Error
-                                           : world::ImportDiagnosticSeverity::Warning;
-  }
-
-  QJsonObject diagnosticToJson(const world::ImportDiagnostic& diagnostic) {
-    QJsonObject json;
-    json["severity"] = diagnosticSeverityName(diagnostic);
-    json["message"] = diagnostic.message;
-    if (!diagnostic.source.isEmpty())
-      json["source"] = diagnostic.source;
-    if (diagnostic.line >= 0)
-      json["line"] = diagnostic.line;
-    if (diagnostic.column >= 0)
-      json["column"] = diagnostic.column;
-    return json;
-  }
-
-  world::ImportDiagnostic diagnosticFromJson(const QJsonObject& json) {
-    world::ImportDiagnostic diagnostic;
-    diagnostic.severity = diagnosticSeverityFromName(json["severity"].toString());
-    diagnostic.message = json["message"].toString();
-    diagnostic.source = json["source"].toString();
-    diagnostic.line = json.contains("line") ? json["line"].toInt(-1) : -1;
-    diagnostic.column = json.contains("column") ? json["column"].toInt(-1) : -1;
-    return diagnostic;
-  }
-
   void markGeneratedSubtree(Element& element) {
     element.setGenerated(true);
     for (Element* child : element.childElements()) {
@@ -297,7 +265,7 @@ void SourceAsset::read(const QJsonObject& json) {
     for (const auto& value : diagnosticsValue.toArray()) {
       if (!value.isObject())
         throw std::invalid_argument("source asset diagnostic entries must be objects");
-      m_diagnostics.push_back(diagnosticFromJson(value.toObject()));
+      m_diagnostics.push_back(world::ImportDiagnostic::fromJson(value.toObject()));
     }
   }
 
@@ -316,7 +284,7 @@ void SourceAsset::write(QJsonObject& json) {
   if (!m_diagnostics.empty()) {
     QJsonArray diagnostics;
     for (const auto& diagnostic : m_diagnostics) {
-      diagnostics.append(diagnosticToJson(diagnostic));
+      diagnostics.append(diagnostic.toJson());
     }
     json["diagnostics"] = diagnostics;
   }

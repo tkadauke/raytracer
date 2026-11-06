@@ -2,6 +2,8 @@
 
 #include <QString>
 
+class QJsonObject;
+
 namespace world {
 
   enum class ImportDiagnosticSeverity { Warning, Error };
@@ -37,6 +39,11 @@ namespace world {
     [[nodiscard]] bool isError() const {
       return severity == ImportDiagnosticSeverity::Error;
     }
+
+    [[nodiscard]] QString severityName() const;
+    [[nodiscard]] QJsonObject toJson() const;
+
+    [[nodiscard]] static ImportDiagnostic fromJson(const QJsonObject& json);
   };
 
 }
