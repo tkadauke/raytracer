@@ -46,29 +46,24 @@ namespace core::formats {
   // Unchecked little-endian reads from a QByteArray at a byte offset. Callers
   // are responsible for verifying the offset lies within bounds beforehand.
   inline std::uint16_t readUint16Le(const QByteArray& bytes, qsizetype offset) {
-    const auto* data = reinterpret_cast<const unsigned char*>(bytes.constData() + offset);
-    return static_cast<std::uint16_t>(data[0] | (data[1] << 8));
+    const auto* data = reinterpret_cast<const std::uint8_t*>(bytes.constData() + offset);
+    return static_cast<std::uint16_t>(readUint16Le(data));
   }
 
   inline std::uint32_t readUint32Le(const QByteArray& bytes, qsizetype offset) {
-    const auto* data = reinterpret_cast<const unsigned char*>(bytes.constData() + offset);
-    return static_cast<std::uint32_t>(data[0] | (data[1] << 8) | (data[2] << 16) |
-                                      (data[3] << 24));
+    const auto* data = reinterpret_cast<const std::uint8_t*>(bytes.constData() + offset);
+    return readUint32Le(data);
   }
 
   inline float readFloat32Le(const QByteArray& bytes, qsizetype offset) {
-    const std::uint32_t bits = readUint32Le(bytes, offset);
-    float value;
-    std::memcpy(&value, &bits, sizeof(value));
-    return value;
+    const auto* data = reinterpret_cast<const std::uint8_t*>(bytes.constData() + offset);
+    return readFloat32Le(data);
   }
 
   template<std::size_t Size>
   inline std::array<float, Size> readFloat32ArrayLe(const QByteArray& bytes, qsizetype offset) {
-    std::array<float, Size> result{};
-    for (std::size_t i = 0; i != Size; ++i)
-      result[i] = readFloat32Le(bytes, offset + static_cast<qsizetype>(i * sizeof(float)));
-    return result;
+    const auto* data = reinterpret_cast<const std::uint8_t*>(bytes.constData() + offset);
+    return readFloat32ArrayLe<Size>(data);
   }
 
   inline Vector2d readVector2fLe(const QByteArray& bytes, qsizetype offset) {
