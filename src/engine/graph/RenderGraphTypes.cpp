@@ -1323,6 +1323,10 @@ namespace engine::graph {
                        [&](const RenderFeatureKind& feature) { return hasFeature(feature); });
   }
 
+  QString RenderResourceDescriptor::sizeText() const {
+    return QStringLiteral("%1x%2, %3 sample(s)").arg(width).arg(height).arg(sampleCount);
+  }
+
   bool RenderResourceDescriptor::hasImageShape() const {
     return width > 0 && height > 0;
   }
