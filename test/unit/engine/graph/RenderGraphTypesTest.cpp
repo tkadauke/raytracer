@@ -187,6 +187,14 @@ namespace RenderGraphTypesTest {
     EXPECT_TRUE(pass.hasAllFeatures(std::set<RenderFeatureKind>{}));
   }
 
+  TEST(RenderResourceDescriptor, DescribesSizeAndSampleCount) {
+    RenderResourceDescriptor resource;
+    resource.width = 640;
+    resource.height = 480;
+    resource.sampleCount = 4;
+    EXPECT_EQ(QStringLiteral("640x480, 4 sample(s)"), resource.sizeText());
+  }
+
   TEST(RenderResourceDescriptor, OwnsFeatureQueries) {
     RenderResourceDescriptor resource;
     resource.features = {"subview", "subview_color_output", "render_to_texture"};

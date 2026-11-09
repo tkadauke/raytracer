@@ -437,13 +437,6 @@ namespace {
     return dashIfEmpty(values.join(QStringLiteral(", ")));
   }
 
-  QString resourceSizeText(const engine::graph::RenderResourceDescriptor& resource) {
-    return QStringLiteral("%1x%2, %3 sample(s)")
-      .arg(resource.width)
-      .arg(resource.height)
-      .arg(resource.sampleCount);
-  }
-
   const engine::graph::RenderGraphResourceSnapshot*
   cacheSnapshotForResource(const engine::graph::RenderGraphExecutionTrace* trace,
                            const engine::graph::RenderResourceId& resource) {
@@ -2458,7 +2451,7 @@ void MainWindow::showRenderGraphResourceDetails(const QString& resourceId,
   addRow(rows, tr("Format"), engine::graph::toString(resource->format));
   addRow(rows, tr("Domain"), engine::graph::toString(resource->domain));
   addRow(rows, tr("Lifetime"), engine::graph::toString(resource->lifetime));
-  addRow(rows, tr("Size"), resourceSizeText(*resource));
+  addRow(rows, tr("Size"), resource->sizeText());
   const bool selectorOverrideResource =
     std::find(resource->features.begin(), resource->features.end(),
               engine::graph::RenderFeatureKind("selector_override")) != resource->features.end();

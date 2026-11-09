@@ -5,6 +5,7 @@
 #include "core/math/Vector.h"
 
 #include <QJsonObject>
+#include <QString>
 #include <QJsonValue>
 
 #include <map>
@@ -526,6 +527,8 @@ namespace engine::graph {
     bool hasImageShape() const;
     bool externallyAvailable() const;
     bool requiresExternalBinding() const;
+    /// Human-readable "WxH, N sample(s)" description of the resource dimensions.
+    QString sizeText() const;
     QJsonObject toJson() const;
     static RenderResourceDescriptor fromJson(const QJsonObject& object,
                                              std::string path = "resource");
