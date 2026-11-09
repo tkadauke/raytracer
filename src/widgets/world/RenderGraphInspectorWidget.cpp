@@ -157,7 +157,6 @@ struct RenderGraphInspectorWidget::Private {
   QString cameraText(const std::optional<RenderCameraRef>& camera) const;
   QString shadingProfileText(const std::optional<ShadingProfileRef>& shadingProfile) const;
   QStringList passSceneViewLines(const RenderPassNode& pass) const;
-  QString sizeText(const RenderResourceDescriptor& resource) const;
   QString resourceFeatures(const RenderResourceDescriptor& resource) const;
   QString resourceReads(const RenderPlan& plan, const std::vector<ResourceRead>& reads) const;
   QString resourceWrites(const RenderPlan& plan, const std::vector<ResourceWrite>& writes) const;
@@ -2156,14 +2155,6 @@ RenderGraphInspectorWidget::Private::passSceneViewLines(const RenderPassNode& pa
   return parts;
 }
 
-QString
-RenderGraphInspectorWidget::Private::sizeText(const RenderResourceDescriptor& resource) const {
-  return QStringLiteral("%1x%2, %3 sample(s)")
-    .arg(resource.width)
-    .arg(resource.height)
-    .arg(resource.sampleCount);
-}
-
 QString RenderGraphInspectorWidget::Private::resourceFeatures(
   const RenderResourceDescriptor& resource) const {
   QStringList values;
@@ -2255,7 +2246,7 @@ QString RenderGraphInspectorWidget::Private::resourceTooltip(
   lines << QStringLiteral("Features: %1").arg(resourceFeatures(resource));
   lines << QStringLiteral("Format: %1").arg(displayText(resource.format));
   lines << QStringLiteral("Lifetime: %1").arg(displayText(resource.lifetime));
-  lines << QStringLiteral("Size: %1").arg(sizeText(resource));
+  lines << QStringLiteral("Size: %1").arg(resource.sizeText());
   return lines.join(QStringLiteral("\n"));
 }
 
@@ -2920,7 +2911,7 @@ void RenderGraphInspectorWidget::rebuildGraph() {
     QStringList lines{p->displayName(resource),
                       p->displayText(resource.type) + QStringLiteral("/") +
                         p->displayText(resource.format),
-                      p->displayText(resource.lifetime), p->sizeText(resource)};
+                      p->displayText(resource.lifetime), resource.sizeText()};
     if (hasFeature(resource.features, "selector_override"))
       lines << tr("routed selector");
     const QString traceLine = trace ? p->resourceTraceLine(resource) : QString();
@@ -3081,7 +3072,7 @@ void RenderGraphInspectorWidget::rebuildResources() {
     item->setText(5, p->displayText(resource.format));
     item->setText(6, p->displayText(resource.domain));
     item->setText(7, p->displayText(resource.lifetime));
-    item->setText(8, p->sizeText(resource));
+    item->setText(8, resource.sizeText());
     if (resource.id == p->selectedResourceId)
       item->setSelected(true);
   }

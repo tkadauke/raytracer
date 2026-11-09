@@ -717,8 +717,9 @@ namespace render {
   }
 
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
-  struct VulkanWavefrontPreparedScene::Private {
-    explicit Private(const GpuIntersectionSceneBuffers& scene) {
+  struct VulkanWavefrontPreparedScene::Private : render::detail::VulkanComputeHelper {
+    explicit Private(const GpuIntersectionSceneBuffers& scene)
+      : VulkanComputeHelper("Vulkan prepared wavefront", "raytracer Vulkan prepared wavefront") {
       try {
         if (!VulkanWavefrontIntersectionBackend::supportsPackedScene(scene)) {
           throw std::invalid_argument(
@@ -954,17 +955,6 @@ namespace render {
       QueryBuffers* buffers;
     };
 
-    struct DescriptorPoolGuard {
-      ~DescriptorPoolGuard() {
-        if (pool) {
-          vkDestroyDescriptorPool(device, pool, nullptr);
-        }
-      }
-
-      VkDevice device{VK_NULL_HANDLE};
-      VkDescriptorPool pool{VK_NULL_HANDLE};
-    };
-
     template<typename Record>
     struct DispatchRecordsResult {
       std::vector<Record> records;
@@ -992,7 +982,7 @@ namespace render {
       descriptorPool.pool = createDescriptorPool(3);
       VkDescriptorSet descriptorSet =
         allocateDescriptorSet(descriptorPool.pool, compactDescriptorLayout);
-      updateDescriptorSet(descriptorSet, descriptors);
+      VulkanComputeHelper::updateDescriptorSet(device, descriptorSet, descriptors);
 
       const QueryBufferLease queryBuffers = acquireQueryBuffers();
       check(vkResetCommandPool(device, queryBuffers.get().commandPool, 0),
@@ -1044,7 +1034,7 @@ namespace render {
       descriptorPool.device = device;
       descriptorPool.pool = createDescriptorPool(13);
       VkDescriptorSet descriptorSet = allocateDescriptorSet(descriptorPool.pool);
-      updateDescriptorSet(descriptorSet, descriptors);
+      VulkanComputeHelper::updateDescriptorSet(device, descriptorSet, descriptors);
 
       check(vkResetCommandPool(device, queryBuffers.get().commandPool, 0),
             "Vulkan prepared wavefront command pool reset");
@@ -1058,7 +1048,7 @@ namespace render {
       const auto kernelEnd = std::chrono::steady_clock::now();
 
       const auto readbackStart = std::chrono::steady_clock::now();
-      result.records = readBackRecords<Record>(queryBuffers.get().output.memory, outputBytes,
+      result.records = VulkanComputeHelper::readBackRecords<Record>(device, queryBuffers.get().output.memory, outputBytes,
                                                rays.size(), readbackOperation);
       const auto readbackEnd = std::chrono::steady_clock::now();
 
@@ -1098,7 +1088,7 @@ namespace render {
       descriptorPool.device = device;
       descriptorPool.pool = createDescriptorPool(13);
       VkDescriptorSet descriptorSet = allocateDescriptorSet(descriptorPool.pool);
-      updateDescriptorSet(descriptorSet, descriptors);
+      VulkanComputeHelper::updateDescriptorSet(device, descriptorSet, descriptors);
 
       check(vkResetCommandPool(device, queryBuffers.get().commandPool, 0),
             "Vulkan prepared wavefront command pool reset");
@@ -1112,7 +1102,7 @@ namespace render {
 
       const auto readbackStart = std::chrono::steady_clock::now();
       result.records =
-        readBackRecords<Record>(queryBuffers.get().output.memory, outputBytes,
+        VulkanComputeHelper::readBackRecords<Record>(device, queryBuffers.get().output.memory, outputBytes,
                                 static_cast<std::size_t>(rayCount), readbackOperation);
       const auto readbackEnd = std::chrono::steady_clock::now();
 
@@ -1164,12 +1154,6 @@ namespace render {
       destroy(buffer);
       buffer = createStorageBuffer(requiredBytes, nullptr);
       capacityBytes = requiredBytes;
-    }
-
-    void check(VkResult result, const char* operation) const {
-      if (result != VK_SUCCESS) {
-        throw std::runtime_error(std::string(operation) + " failed");
-      }
     }
 
     VkInstance createInstance() const {
@@ -1419,26 +1403,6 @@ namespace render {
       return descriptorSet;
     }
 
-    void updateDescriptorSet(VkDescriptorSet descriptorSet,
-                             const std::vector<std::pair<VkBuffer, VkDeviceSize>>& buffers) const {
-      std::vector<VkDescriptorBufferInfo> descriptors(buffers.size());
-      std::vector<VkWriteDescriptorSet> descriptorWrites(buffers.size());
-      for (std::size_t index = 0; index != buffers.size(); ++index) {
-        descriptors[index].buffer = buffers[index].first;
-        descriptors[index].offset = 0;
-        descriptors[index].range = buffers[index].second;
-
-        descriptorWrites[index].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[index].dstSet = descriptorSet;
-        descriptorWrites[index].dstBinding = static_cast<std::uint32_t>(index);
-        descriptorWrites[index].descriptorCount = 1;
-        descriptorWrites[index].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        descriptorWrites[index].pBufferInfo = &descriptors[index];
-      }
-      vkUpdateDescriptorSets(device, static_cast<std::uint32_t>(descriptorWrites.size()),
-                             descriptorWrites.data(), 0, nullptr);
-    }
-
     VkCommandPool createCommandPool() const {
       VkCommandPoolCreateInfo commandPoolInfo{};
       commandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -1511,17 +1475,6 @@ namespace render {
         throw;
       }
       vkDestroyFence(device, fence, nullptr);
-    }
-
-    template<typename Record>
-    std::vector<Record> readBackRecords(VkDeviceMemory outputMemory, VkDeviceSize byteCount,
-                                        std::size_t resultCount, const char* operation) const {
-      std::vector<Record> results(resultCount);
-      void* mapped = nullptr;
-      check(vkMapMemory(device, outputMemory, 0, byteCount, 0, &mapped), operation);
-      std::memcpy(results.data(), mapped, static_cast<std::size_t>(byteCount));
-      vkUnmapMemory(device, outputMemory);
-      return results;
     }
 
     void destroy(SmokeBuffer& buffer) const {
