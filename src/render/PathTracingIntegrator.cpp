@@ -2,6 +2,7 @@
 
 #include "CountArithmetic.h"
 #include "DirectLightContributionStorage.h"
+#include "DirectLightVisibilityStorage.h"
 #include "FrontierDepthMetrics.h"
 #include "core/math/Constants.h"
 #include "core/math/HitPoint.h"
@@ -355,11 +356,27 @@ namespace render {
     }
   };
 
-  class PathTracingIntegrator::DirectLightVisibilityBatch {
+  namespace {
+    struct PathDirectLightVisibilityTraits {
+      static constexpr const char* missingAnyHitFrontier =
+        "direct-light visibility batch resolved without an any-hit frontier";
+      static constexpr const char* recordedEmptyWithQueries =
+        "direct-light visibility batch recorded as empty while it still contains shadow queries";
+      static constexpr const char* occlusionSelectionMismatch =
+        "direct-light visibility batch resolved an occlusion count that does not match its "
+        "light-selection count";
+      static constexpr const char* occlusionFrontierMismatch =
+        "direct-light visibility batch resolved an occlusion count that does not match its "
+        "any-hit frontier ray count";
+    };
+  }
+
+  class PathTracingIntegrator::DirectLightVisibilityBatch
+      : public detail::DirectLightVisibilityStorage<DirectLightingSelection,
+                                                    PathDirectLightVisibilityTraits> {
   public:
-    explicit DirectLightVisibilityBatch(std::size_t reserveCount) {
-      m_selections.reserve(reserveCount);
-      m_shadowQueries.reserve(reserveCount);
+    explicit DirectLightVisibilityBatch(std::size_t reserveCount)
+        : DirectLightVisibilityStorage(reserveCount) {
     }
 
     void add(std::size_t hitIndex, DirectLightingCandidate candidate, double selectionPdf,
@@ -425,10 +442,6 @@ namespace render {
       }
     }
 
-    [[nodiscard]] bool empty() const {
-      return m_selections.empty();
-    }
-
     [[nodiscard]] std::size_t size() const {
       return m_selections.size();
     }
@@ -483,36 +496,6 @@ namespace render {
       int directLightSamples, const WavefrontIntersectionBackend& intersectionBackend,
       IntegratorBatchMetrics* metrics);
 
-    void recordEmptyVisibility(int bounce, IntegratorBatchMetrics* metrics) const {
-      if (!empty()) {
-        throw std::logic_error("direct-light visibility batch recorded as empty while it still "
-                               "contains shadow queries");
-      }
-      recordVisibilityDepth(bounce, /*batchChunks=*/0, /*batchRays=*/0, /*packedRayBytes=*/0,
-                            /*hostPackedRayBytes=*/0, /*hostQueryBytes=*/0,
-                            /*stateHandleBytes=*/0, metrics);
-    }
-
-    void resolveOcclusion(const Scene& scene,
-                          const WavefrontIntersectionBackend& intersectionBackend, int bounce,
-                          IntegratorBatchMetrics* metrics) {
-      m_occluded.clear();
-      m_frontier.reset();
-      WavefrontDirectLightVisibilityBatchResult result =
-        intersectionBackend.resolveDirectLightVisibilityBatch(scene, std::move(m_shadowQueries));
-      m_frontier = std::move(result.frontier);
-      m_occluded = std::move(result.occluded);
-      render::detail::requirePresent(
-        m_frontier, "direct-light visibility batch resolved without an any-hit frontier");
-      validateResolvedFrontierRayCount();
-      validateResolvedOcclusionCount();
-      if (metrics) {
-        metrics->recordDirectLightAnyHitFrontierQuery(depthIndex(bounce), hostSelectionBytes(),
-                                                      hostOcclusionBytes(), intersectionBackend,
-                                                      *m_frontier, result.timing);
-      }
-    }
-
   private:
     void accumulateResolvedContributions(const PathTracingIntegrator& integrator,
                                          const ActivePathHits& activeHits,
@@ -530,54 +513,9 @@ namespace render {
                                                        occluded(index), state);
     }
 
-    [[nodiscard]] std::uint64_t hostSelectionBytes() const {
-      return static_cast<std::uint64_t>(m_selections.size()) * sizeof(DirectLightingSelection);
-    }
-
-    [[nodiscard]] std::uint64_t hostOcclusionBytes() const {
-      return static_cast<std::uint64_t>(m_occluded.size()) *
-             sizeof(WavefrontOcclusionFlags::value_type);
-    }
-
-    void recordVisibilityDepth(int bounce, std::uint64_t batchChunks, std::uint64_t batchRays,
-                               std::uint64_t packedRayBytes, std::uint64_t hostPackedRayBytes,
-                               std::uint64_t hostQueryBytes, std::uint64_t stateHandleBytes,
-                               IntegratorBatchMetrics* metrics) const {
-      if (!metrics) {
-        return;
-      }
-      metrics->recordDirectLightVisibilityDepth(
-        depthIndex(bounce), hostSelectionBytes(), hostOcclusionBytes(), batchChunks, batchRays,
-        packedRayBytes, hostPackedRayBytes, hostQueryBytes, stateHandleBytes);
-    }
-
-    static std::uint64_t depthIndex(int bounce) {
-      return static_cast<std::uint64_t>(std::max(0, bounce));
-    }
-
-    void validateResolvedOcclusionCount() const {
-      render::detail::validateResultCount(m_occluded.size(), m_selections.size(),
-                                          "direct-light visibility batch resolved an occlusion "
-                                          "count that does not match its light-selection count");
-    }
-
-    void validateResolvedFrontierRayCount() const {
-      if (m_frontier) {
-        render::detail::validateResultCount(
-          m_occluded.size(), m_frontier->rayCount(),
-          "direct-light visibility batch resolved an occlusion count that does not match its "
-          "any-hit frontier ray count");
-      }
-    }
-
     [[nodiscard]] bool occluded(std::size_t index) const {
-      return index < m_occluded.size() && m_occluded[index] != 0U;
+      return occludedFlag(index);
     }
-
-    std::vector<DirectLightingSelection> m_selections;
-    std::vector<WavefrontAnyHitQuery> m_shadowQueries;
-    std::unique_ptr<WavefrontAnyHitFrontier> m_frontier;
-    WavefrontOcclusionFlags m_occluded;
   };
 
   class PathTracingIntegrator::DirectLightContributionBatch
