@@ -2,6 +2,7 @@
 
 #include "CountArithmetic.h"
 #include "DirectLightContributionStorage.h"
+#include "DirectLightVisibilityStorage.h"
 #include "FrontierDepthMetrics.h"
 #include "core/ScopeExit.h"
 #include "core/math/Constants.h"
@@ -456,27 +457,41 @@ namespace render {
     std::vector<WavefrontClosestHitResult> m_hits;
   };
 
-  class WhittedIntegrator::DirectLightVisibilityBatch {
-  public:
-    struct Selection {
+  namespace {
+    struct WhittedDirectLightSelection {
       std::size_t hitIndex{0};
       LightSample sample;
       Colord contribution{Colord::black()};
     };
 
+    struct WhittedDirectLightVisibilityTraits {
+      static constexpr const char* missingAnyHitFrontier =
+        "Whitted direct-light visibility batch resolved without an any-hit frontier";
+      static constexpr const char* recordedEmptyWithQueries =
+        "Whitted direct-light visibility batch recorded as empty while it still contains shadow "
+        "queries";
+      static constexpr const char* occlusionSelectionMismatch =
+        "Whitted direct-light visibility batch resolved an occlusion count that does not match "
+        "its light-selection count";
+      static constexpr const char* occlusionFrontierMismatch =
+        "Whitted direct-light visibility batch resolved an occlusion count that does not match "
+        "its any-hit frontier ray count";
+    };
+  }
+
+  class WhittedIntegrator::DirectLightVisibilityBatch
+      : public detail::DirectLightVisibilityStorage<WhittedDirectLightSelection,
+                                                    WhittedDirectLightVisibilityTraits> {
+  public:
+    using Selection = WhittedDirectLightSelection;
+
     DirectLightVisibilityBatch(std::size_t activeHitCount, std::size_t reserveCount)
-        : m_locallyShaded(activeHitCount, 0) {
-      m_selections.reserve(reserveCount);
-      m_shadowQueries.reserve(reserveCount);
+        : DirectLightVisibilityStorage(reserveCount), m_locallyShaded(activeHitCount, 0) {
     }
 
     void collectLocalDirectLighting(const WhittedIntegrator& integrator, const Scene& scene,
                                     const ActiveQueuedHits& activeHits, QueuedRayFrontier& current,
                                     SampleColorBuffer& result, IntegratorBatchMetrics* metrics);
-
-    [[nodiscard]] bool empty() const {
-      return m_selections.empty();
-    }
 
     [[nodiscard]] bool locallyShaded(std::size_t hitIndex) const {
       if (hitIndex >= m_locallyShaded.size()) {
@@ -484,36 +499,6 @@ namespace render {
                                "hit index");
       }
       return m_locallyShaded[hitIndex] != 0U;
-    }
-
-    void recordEmptyVisibility(int depth, IntegratorBatchMetrics* metrics) const {
-      if (!empty()) {
-        throw std::logic_error("Whitted direct-light visibility batch recorded as empty while it "
-                               "still contains shadow queries");
-      }
-      recordVisibilityDepth(depth, /*batchChunks=*/0, /*batchRays=*/0, /*packedRayBytes=*/0,
-                            /*hostPackedRayBytes=*/0, /*hostQueryBytes=*/0,
-                            /*stateHandleBytes=*/0, metrics);
-    }
-
-    void resolveOcclusion(const Scene& scene,
-                          const WavefrontIntersectionBackend& intersectionBackend, int depth,
-                          IntegratorBatchMetrics* metrics) {
-      m_occluded.clear();
-      m_frontier.reset();
-      WavefrontDirectLightVisibilityBatchResult result =
-        intersectionBackend.resolveDirectLightVisibilityBatch(scene, std::move(m_shadowQueries));
-      m_frontier = std::move(result.frontier);
-      m_occluded = std::move(result.occluded);
-      render::detail::requirePresent(
-        m_frontier, "Whitted direct-light visibility batch resolved without an any-hit frontier");
-      validateResolvedFrontierRayCount();
-      validateResolvedOcclusionCount();
-      if (metrics) {
-        metrics->recordDirectLightAnyHitFrontierQuery(
-          static_cast<std::uint64_t>(std::max(0, depth)), hostSelectionBytes(),
-          hostOcclusionBytes(), intersectionBackend, *m_frontier, result.timing);
-      }
     }
 
     void applyResolvedContributions(const WavefrontIntersectionBackend& intersectionBackend,
@@ -542,51 +527,10 @@ namespace render {
 
     [[nodiscard]] bool occluded(std::size_t index) const {
       validateResolvedOcclusionCount();
-      return index < m_occluded.size() && m_occluded[index] != 0U;
-    }
-
-    [[nodiscard]] std::uint64_t hostSelectionBytes() const {
-      return static_cast<std::uint64_t>(m_selections.size()) * sizeof(Selection);
-    }
-
-    [[nodiscard]] std::uint64_t hostOcclusionBytes() const {
-      return static_cast<std::uint64_t>(m_occluded.size()) *
-             sizeof(WavefrontOcclusionFlags::value_type);
-    }
-
-    void recordVisibilityDepth(int depth, std::uint64_t batchChunks, std::uint64_t batchRays,
-                               std::uint64_t packedRayBytes, std::uint64_t hostPackedRayBytes,
-                               std::uint64_t hostQueryBytes, std::uint64_t stateHandleBytes,
-                               IntegratorBatchMetrics* metrics) const {
-      if (metrics) {
-        metrics->recordDirectLightVisibilityDepth(
-          static_cast<std::uint64_t>(std::max(0, depth)), hostSelectionBytes(),
-          hostOcclusionBytes(), batchChunks, batchRays, packedRayBytes, hostPackedRayBytes,
-          hostQueryBytes, stateHandleBytes);
-      }
-    }
-
-    void validateResolvedOcclusionCount() const {
-      render::detail::validateResultCount(
-        m_occluded.size(), m_selections.size(),
-        "Whitted direct-light visibility batch resolved an occlusion count that does not match "
-        "its light-selection count");
-    }
-
-    void validateResolvedFrontierRayCount() const {
-      if (m_frontier) {
-        render::detail::validateResultCount(
-          m_occluded.size(), m_frontier->rayCount(),
-          "Whitted direct-light visibility batch resolved an occlusion count that does not match "
-          "its any-hit frontier ray count");
-      }
+      return occludedFlag(index);
     }
 
     std::vector<unsigned char> m_locallyShaded;
-    std::vector<Selection> m_selections;
-    std::vector<WavefrontAnyHitQuery> m_shadowQueries;
-    std::unique_ptr<WavefrontAnyHitFrontier> m_frontier;
-    WavefrontOcclusionFlags m_occluded;
   };
 
   class WhittedIntegrator::DirectLightContributionBatch
