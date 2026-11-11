@@ -194,9 +194,5 @@ namespace render {
     LightSample sampleAtCanonicalPoint(const Vector3d& point) const;
 
     void writeCommonFingerprint(std::ostream& out, const std::string& prefix) const;
-    static void writeFingerprintColor(std::ostream& out, const std::string& name,
-                                      const Colord& color);
-    static void writeFingerprintVector(std::ostream& out, const std::string& name,
-                                       const Vector3d& vector);
   };
 }
