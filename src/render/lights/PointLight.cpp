@@ -1,5 +1,7 @@
 #include "render/lights/PointLight.h"
 
+#include "core/util/Fingerprint.h"
+
 using namespace render;
 
 Vector3d PointLight::direction(const Vector3d& point) const {
@@ -33,7 +35,7 @@ const char* PointLight::fingerprintType() const {
 
 void PointLight::writeFingerprint(std::ostream& out, const std::string& prefix) const {
   writeCommonFingerprint(out, prefix);
-  writeFingerprintVector(out, prefix + "position", position());
+  core::util::writeFingerprint(out, prefix + "position", position());
 }
 
 std::optional<Vector3d> PointLight::positionalLightPosition() const {
