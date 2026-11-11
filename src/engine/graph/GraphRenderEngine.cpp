@@ -3,6 +3,7 @@
 #include "core/Buffer.h"
 #include "core/util/BufferUtils.h"
 #include "core/util/DefinitionRegistry.h"
+#include "core/util/Fingerprint.h"
 #include "engine/graph/detail/BufferPackHelpers.h"
 #include "engine/graph/RenderGraphArtifactCache.h"
 #include "engine/graph/RenderGraphPreviewHelpers.h"
@@ -186,14 +187,6 @@ namespace engine::graph {
       return point - normal * (2.0 * ((point - planePoint) * normal));
     }
 
-    void writeColorFingerprint(std::ostream& out, const char* name, const Colord& color) {
-      out << name << '=' << color.r() << ',' << color.g() << ',' << color.b() << ';';
-    }
-
-    void writeVectorFingerprint(std::ostream& out, const char* name, const Vector3d& vector) {
-      out << name << '=' << vector.x() << ',' << vector.y() << ',' << vector.z() << ';';
-    }
-
     template<int Dimensions, class T, class VectorType, class Derived>
     void writeMatrixFingerprint(std::ostream& out, const std::string& name,
                                 const Matrix<Dimensions, T, VectorType, Derived>& matrix) {
@@ -214,8 +207,8 @@ namespace engine::graph {
           << "bounds.undefined=" << bounds.isUndefined() << ';'
           << "bounds.infinite=" << bounds.isInfinite() << ';';
       if (bounds.isValid() && !bounds.isUndefined() && !bounds.isInfinite()) {
-        writeVectorFingerprint(out, "bounds.min", bounds.min());
-        writeVectorFingerprint(out, "bounds.max", bounds.max());
+        core::util::writeFingerprint(out, "bounds.min", bounds.min());
+        core::util::writeFingerprint(out, "bounds.max", bounds.max());
       }
     }
 
@@ -247,8 +240,8 @@ namespace engine::graph {
         out << "camera.type=" << camera->fingerprintType() << ';'
             << "camera.aspectMode=" << static_cast<int>(camera->aspectMode()) << ';'
             << "camera.aspectRatio=" << camera->aspectRatio() << ';';
-        writeVectorFingerprint(out, "camera.position", camera->position());
-        writeVectorFingerprint(out, "camera.target", camera->target());
+        core::util::writeFingerprint(out, "camera.position", camera->position());
+        core::util::writeFingerprint(out, "camera.target", camera->target());
       } else {
         out << "camera=null;";
       }
@@ -262,8 +255,8 @@ namespace engine::graph {
       if (auto scene = graph.scene()) {
         out << "scene.ptr=" << scene.get() << ';' << "scene.lights=" << scene->lights().size()
             << ';';
-        writeColorFingerprint(out, "scene.ambient", scene->ambient());
-        writeColorFingerprint(out, "scene.background", scene->background());
+        core::util::writeFingerprint(out, "scene.ambient", scene->ambient());
+        core::util::writeFingerprint(out, "scene.background", scene->background());
         writeBoundingBoxFingerprint(out, scene->boundingBox());
         std::size_t lightIndex = 0;
         for (const auto& light : scene->lights()) {
@@ -296,7 +289,7 @@ namespace engine::graph {
     }
 
     void writeDisplayFingerprint(std::ostream& out, const GraphRenderEngine& graph) {
-      writeColorFingerprint(out, "engine.background", graph.backgroundColor());
+      core::util::writeFingerprint(out, "engine.background", graph.backgroundColor());
       if (auto tonemap = graph.tonemap()) {
         out << "tonemap.type=" << tonemap->fingerprintType() << ';';
       } else {

@@ -1,6 +1,7 @@
 #include "render/lights/RectangularAreaLight.h"
 
 #include "core/math/Constants.h"
+#include "core/util/Fingerprint.h"
 #include "render/lights/RectangularAreaLightMath.h"
 #include "render/materials/EmissiveMaterial.h"
 #include "render/primitives/Rectangle.h"
@@ -147,9 +148,9 @@ const char* RectangularAreaLight::fingerprintType() const {
 
 void RectangularAreaLight::writeFingerprint(std::ostream& out, const std::string& prefix) const {
   writeCommonFingerprint(out, prefix);
-  writeFingerprintVector(out, prefix + "center", center());
-  writeFingerprintVector(out, prefix + "edgeU", edgeU());
-  writeFingerprintVector(out, prefix + "edgeV", edgeV());
+  core::util::writeFingerprint(out, prefix + "center", center());
+  core::util::writeFingerprint(out, prefix + "edgeU", edgeU());
+  core::util::writeFingerprint(out, prefix + "edgeV", edgeV());
 }
 
 Vector3d RectangularAreaLight::samplePoint(const Vector2d& sample) const {
