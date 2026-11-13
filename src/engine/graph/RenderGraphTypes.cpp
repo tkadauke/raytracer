@@ -221,13 +221,6 @@ namespace engine::graph {
                                               path, jsonError);
     }
 
-    QJsonArray stringArray(const std::vector<RenderFeatureKind>& values) {
-      QJsonArray array;
-      for (const auto& value : values)
-        array.append(qstr(value));
-      return array;
-    }
-
     QJsonArray viewModeArray(const std::vector<RenderViewMode>& values) {
       QJsonArray array;
       for (const auto& value : values)
@@ -254,10 +247,6 @@ namespace engine::graph {
       for (const auto& domain : domains)
         array.append(toString(domain));
       return array;
-    }
-
-    QJsonArray vectorToJson(const Vector3d& value) {
-      return core::json::vector3ToJsonArray(value);
     }
 
     Vector3d vectorFromJson(const QJsonValue& value, const std::string& path) {
@@ -660,8 +649,8 @@ namespace engine::graph {
       result["receiverTransform"] = matrixToJson(receiverTransform);
       result["sourceTransform"] = matrixToJson(sourceTransform);
     } else {
-      result["mirrorPlanePoint"] = vectorToJson(mirrorPlanePoint);
-      result["mirrorPlaneNormal"] = vectorToJson(mirrorPlaneNormal);
+      result["mirrorPlanePoint"] = core::json::vector3ToJsonArray(mirrorPlanePoint);
+      result["mirrorPlaneNormal"] = core::json::vector3ToJsonArray(mirrorPlaneNormal);
     }
     result["requiresReceiverClip"] = requiresReceiverClip;
     return result;
@@ -1347,7 +1336,7 @@ namespace engine::graph {
     object["id"] = qstr(id);
     object["name"] = qstr(name);
     if (!features.empty()) {
-      object["features"] = stringArray(features);
+      object["features"] = core::json::stringRangeToJsonArray(features);
     }
     object["type"] = toString(type);
     object["format"] = toString(format);
@@ -1493,7 +1482,7 @@ namespace engine::graph {
     object["name"] = qstr(name);
     object["kind"] = toString(kind);
     object["executor"] = toString(executor);
-    object["features"] = stringArray(features);
+    object["features"] = core::json::stringRangeToJsonArray(features);
     object["reads"] = readArray(reads);
     object["writes"] = writeArray(writes);
     if (supportedResourceDomains.size() != 1 ||

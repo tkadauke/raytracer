@@ -536,14 +536,6 @@ namespace engine::graph {
       return metadata;
     }
 
-    QJsonArray unsignedArrayToJson(const std::vector<std::uint64_t>& values) {
-      return core::json::numericRangeToJsonArray(values);
-    }
-
-    QJsonArray doubleArrayToJson(const std::vector<double>& values) {
-      return core::json::numericRangeToJsonArray(values);
-    }
-
     QJsonObject
     accumulationDiagnosticsToJson(const render::TracingAccumulationDiagnostics& diagnostics) {
       QJsonObject layout;
@@ -917,7 +909,8 @@ namespace engine::graph {
       batching["initialPathCount"] = static_cast<double>(loop.initialPathCount);
       batching["depthCount"] = static_cast<double>(loop.depthCount);
       batching["maxDepthTerminatedPaths"] = static_cast<double>(loop.maxDepthTerminatedPaths);
-      batching["activePathsPerDepth"] = unsignedArrayToJson(loop.activePathsPerDepth);
+      batching["activePathsPerDepth"] =
+        core::json::numericRangeToJsonArray(loop.activePathsPerDepth);
       batching["resolvedPathStates"] = static_cast<double>(loop.removedPathCount());
       batching["stepRecords"] = static_cast<double>(loop.stepRecords.size());
       batching["activePaths"] = static_cast<double>(loop.inputPathCount());
@@ -1016,7 +1009,7 @@ namespace engine::graph {
       batching["residentPathLoopRetainedFrontierDispatchesIndirect"] =
         loop.retainedFrontierDispatchesIndirect;
       batching["radianceDeltaSquaredSumPerDepth"] =
-        doubleArrayToJson(loop.radianceDeltaSquaredSumPerDepth);
+        core::json::numericRangeToJsonArray(loop.radianceDeltaSquaredSumPerDepth);
       QJsonArray radianceDeltaRmsPerDepth;
       for (std::size_t depth = 0; depth != loop.radianceDeltaSquaredSumPerDepth.size(); ++depth) {
         const double squaredSum = loop.radianceDeltaSquaredSumPerDepth[depth];
@@ -1026,7 +1019,8 @@ namespace engine::graph {
           activePaths == 0u ? 0.0 : std::sqrt(squaredSum / static_cast<double>(activePaths)));
       }
       batching["radianceDeltaRmsPerDepth"] = radianceDeltaRmsPerDepth;
-      batching["maxRadianceDeltaPerDepth"] = doubleArrayToJson(loop.maxRadianceDeltaPerDepth);
+      batching["maxRadianceDeltaPerDepth"] =
+        core::json::numericRangeToJsonArray(loop.maxRadianceDeltaPerDepth);
       batching["tracingSceneCompiled"] = compilation.diagnostics.compiled;
       batching["tracingSceneMaterials"] = static_cast<double>(compilation.diagnostics.materials);
       batching["tracingSceneTextures"] = static_cast<double>(compilation.diagnostics.textures);
