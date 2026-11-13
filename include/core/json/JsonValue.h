@@ -5,6 +5,7 @@
 
 #include <QJsonArray>
 #include <QJsonValue>
+#include <QString>
 
 #include <array>
 #include <cmath>
@@ -66,6 +67,15 @@ namespace core::json {
     QJsonArray result;
     for (const auto& value : values)
       result.append(static_cast<double>(value));
+    return result;
+  }
+
+  /** Converts an iterable range of std::string values into a JSON array. */
+  template<class Container>
+  inline QJsonArray stringRangeToJsonArray(const Container& values) {
+    QJsonArray result;
+    for (const auto& value : values)
+      result.append(QString::fromStdString(value));
     return result;
   }
 

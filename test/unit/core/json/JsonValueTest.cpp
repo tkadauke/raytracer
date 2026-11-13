@@ -4,6 +4,8 @@
 
 #include <array>
 #include <stdexcept>
+#include <string>
+#include <vector>
 
 TEST(JsonValueTest, ConvertsVector3ToAndFromJsonArray) {
   const Vector3d vector(1.5, -2.0, 3.25);
@@ -100,6 +102,12 @@ TEST(JsonValueTest, ConvertsStdArrayToJsonArray) {
   EXPECT_DOUBLE_EQ(1.0, result[0].toDouble());
   EXPECT_DOUBLE_EQ(2.5, result[1].toDouble());
   EXPECT_DOUBLE_EQ(4.0, result[2].toDouble());
+}
+
+TEST(JsonValueTest, ConvertsStringRangeToJsonArray) {
+  const std::vector<std::string> values{"alpha", "beta"};
+
+  EXPECT_EQ((QJsonArray{"alpha", "beta"}), core::json::stringRangeToJsonArray(values));
 }
 
 TEST(JsonValueTest, SumsNumericJsonArrayAsRequestedType) {
