@@ -617,14 +617,10 @@ namespace engine::graph {
 
     QJsonArray activeSets;
     for (const auto& segment : activePassSegments()) {
-      QJsonArray ids;
-      for (const auto& id : segment.passes) {
-        ids.push_back(QString::fromStdString(id));
-      }
       QJsonObject entry;
       entry["startMs"] = segment.start.count() / 1000000.0;
       entry["endMs"] = segment.end.count() / 1000000.0;
-      entry["passes"] = ids;
+      entry["passes"] = core::json::stringRangeToJsonArray(segment.passes);
       activeSets.push_back(entry);
     }
 

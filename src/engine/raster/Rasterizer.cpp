@@ -8,6 +8,7 @@
 #include "engine/raster/detail/RasterTriangleEmitter.h"
 
 #include "core/Buffer.h"
+#include "core/json/JsonValue.h"
 #include "core/math/Vector.h"
 #include "core/util/BufferUtils.h"
 #include "render/TilePlan.h"
@@ -712,17 +713,12 @@ engine::raster::rasterRenderMetricsToJson(const Rasterizer::RasterRenderMetrics&
     return object;
   };
 
-  QJsonArray sourceKinds;
-  for (const auto& sourceKind : metrics.input.sourceKinds) {
-    sourceKinds.push_back(QString::fromStdString(sourceKind));
-  }
-
   QJsonObject input;
   input["leafPrimitiveCount"] = static_cast<double>(metrics.input.leafPrimitiveCount);
   input["meshCount"] = static_cast<double>(metrics.input.meshCount);
   input["materialCount"] = static_cast<double>(metrics.input.materialCount);
   input["lightCount"] = static_cast<double>(metrics.input.lightCount);
-  input["sourceKinds"] = sourceKinds;
+  input["sourceKinds"] = core::json::stringRangeToJsonArray(metrics.input.sourceKinds);
 
   QJsonObject tessellation;
   tessellation["generatedMeshVertices"] =

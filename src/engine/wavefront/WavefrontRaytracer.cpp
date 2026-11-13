@@ -719,57 +719,62 @@ namespace engine::wavefront {
     accumulationJson["readbackBytes"] = static_cast<double>(accumulationDiagnostics.readbackBytes);
 
     QJsonObject batchingJson;
-    const auto integerArray = [](const std::vector<std::uint64_t>& values) {
-      return core::json::numericRangeToJsonArray(values);
-    };
-    const QJsonArray activeSamplesPerDepth = integerArray(batching.activeSamplesPerDepth);
+    const QJsonArray activeSamplesPerDepth =
+      core::json::numericRangeToJsonArray(batching.activeSamplesPerDepth);
     const QJsonArray retainedActiveSamplesPerDepth =
-      integerArray(batching.retainedActiveSamplesPerDepth);
+      core::json::numericRangeToJsonArray(batching.retainedActiveSamplesPerDepth);
     const QJsonArray activeHostPathStateBytesPerDepth =
-      integerArray(batching.activeHostPathStateBytesPerDepth);
-    const QJsonArray activeHitHostBytesPerDepth = integerArray(batching.activeHitHostBytesPerDepth);
+      core::json::numericRangeToJsonArray(batching.activeHostPathStateBytesPerDepth);
+    const QJsonArray activeHitHostBytesPerDepth =
+      core::json::numericRangeToJsonArray(batching.activeHitHostBytesPerDepth);
     const QJsonArray retainedHostPathStateBytesPerDepth =
-      integerArray(batching.retainedHostPathStateBytesPerDepth);
+      core::json::numericRangeToJsonArray(batching.retainedHostPathStateBytesPerDepth);
     const QJsonArray spawnedContinuationSamplesPerDepth =
-      integerArray(batching.spawnedContinuationSamplesPerDepth);
+      core::json::numericRangeToJsonArray(batching.spawnedContinuationSamplesPerDepth);
     const QJsonArray spawnedContinuationHostPathStateBytesPerDepth =
-      integerArray(batching.spawnedContinuationHostPathStateBytesPerDepth);
-    const QJsonArray frontierRayHitsPerDepth = integerArray(batching.frontierRayHitsPerDepth);
-    const QJsonArray frontierRayMissesPerDepth = integerArray(batching.frontierRayMissesPerDepth);
+      core::json::numericRangeToJsonArray(batching.spawnedContinuationHostPathStateBytesPerDepth);
+    const QJsonArray frontierRayHitsPerDepth =
+      core::json::numericRangeToJsonArray(batching.frontierRayHitsPerDepth);
+    const QJsonArray frontierRayMissesPerDepth =
+      core::json::numericRangeToJsonArray(batching.frontierRayMissesPerDepth);
     const QJsonArray frontierPacketChunksPerDepth =
-      integerArray(batching.frontierPacketChunksPerDepth);
-    const QJsonArray frontierPacketRaysPerDepth = integerArray(batching.frontierPacketRaysPerDepth);
+      core::json::numericRangeToJsonArray(batching.frontierPacketChunksPerDepth);
+    const QJsonArray frontierPacketRaysPerDepth =
+      core::json::numericRangeToJsonArray(batching.frontierPacketRaysPerDepth);
     const QJsonArray frontierClosestHitBatchChunksPerDepth =
-      integerArray(batching.frontierClosestHitBatchChunksPerDepth);
+      core::json::numericRangeToJsonArray(batching.frontierClosestHitBatchChunksPerDepth);
     const QJsonArray frontierClosestHitBatchRaysPerDepth =
-      integerArray(batching.frontierClosestHitBatchRaysPerDepth);
+      core::json::numericRangeToJsonArray(batching.frontierClosestHitBatchRaysPerDepth);
     const QJsonArray directLightAnyHitBatchChunksPerDepth =
-      integerArray(batching.directLightAnyHitBatchChunksPerDepth);
+      core::json::numericRangeToJsonArray(batching.directLightAnyHitBatchChunksPerDepth);
     const QJsonArray directLightAnyHitBatchRaysPerDepth =
-      integerArray(batching.directLightAnyHitBatchRaysPerDepth);
+      core::json::numericRangeToJsonArray(batching.directLightAnyHitBatchRaysPerDepth);
     const QJsonArray directLightSelectionHostBytesPerDepth =
-      integerArray(batching.directLightSelectionHostBytesPerDepth);
+      core::json::numericRangeToJsonArray(batching.directLightSelectionHostBytesPerDepth);
     const QJsonArray directLightOcclusionHostBytesPerDepth =
-      integerArray(batching.directLightOcclusionHostBytesPerDepth);
+      core::json::numericRangeToJsonArray(batching.directLightOcclusionHostBytesPerDepth);
     const QJsonArray directLightContributionHostBytesPerDepth =
-      integerArray(batching.directLightContributionHostBytesPerDepth);
+      core::json::numericRangeToJsonArray(batching.directLightContributionHostBytesPerDepth);
     const QJsonArray directLightAnyHitFrontierPackedRayBytesPerDepth =
-      integerArray(batching.directLightAnyHitFrontierPackedRayBytesPerDepth);
+      core::json::numericRangeToJsonArray(batching.directLightAnyHitFrontierPackedRayBytesPerDepth);
     const QJsonArray directLightAnyHitFrontierHostPackedRayBytesPerDepth =
-      integerArray(batching.directLightAnyHitFrontierHostPackedRayBytesPerDepth);
+      core::json::numericRangeToJsonArray(
+        batching.directLightAnyHitFrontierHostPackedRayBytesPerDepth);
     const QJsonArray directLightAnyHitFrontierHostQueryBytesPerDepth =
-      integerArray(batching.directLightAnyHitFrontierHostQueryBytesPerDepth);
+      core::json::numericRangeToJsonArray(batching.directLightAnyHitFrontierHostQueryBytesPerDepth);
     const QJsonArray directLightAnyHitFrontierStateHandleBytesPerDepth =
-      integerArray(batching.directLightAnyHitFrontierStateHandleBytesPerDepth);
+      core::json::numericRangeToJsonArray(
+        batching.directLightAnyHitFrontierStateHandleBytesPerDepth);
     const QJsonArray frontierRay4PacketChunksPerDepth =
-      integerArray(batching.frontierRay4PacketChunksPerDepth);
+      core::json::numericRangeToJsonArray(batching.frontierRay4PacketChunksPerDepth);
     const QJsonArray frontierRay8PacketChunksPerDepth =
-      integerArray(batching.frontierRay8PacketChunksPerDepth);
-    const QJsonArray frontierScalarRaysPerDepth = integerArray(batching.frontierScalarRaysPerDepth);
+      core::json::numericRangeToJsonArray(batching.frontierRay8PacketChunksPerDepth);
+    const QJsonArray frontierScalarRaysPerDepth =
+      core::json::numericRangeToJsonArray(batching.frontierScalarRaysPerDepth);
     const QJsonArray frontierPacketScalarFallbackRaysPerDepth =
-      integerArray(batching.frontierPacketScalarFallbackRaysPerDepth);
+      core::json::numericRangeToJsonArray(batching.frontierPacketScalarFallbackRaysPerDepth);
     const QJsonArray frontierPacketRefinedRaysPerDepth =
-      integerArray(batching.frontierPacketRefinedRaysPerDepth);
+      core::json::numericRangeToJsonArray(batching.frontierPacketRefinedRaysPerDepth);
     const auto integerObject = [](const std::map<std::string, std::uint64_t>& values) {
       QJsonObject result;
       for (const auto& [key, count] : values) {
