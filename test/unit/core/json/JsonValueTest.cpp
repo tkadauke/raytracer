@@ -7,6 +7,15 @@
 #include <string>
 #include <vector>
 
+namespace {
+  struct StatefulTransform {
+    QString operator()(int value) & { return QString::number(value + calls++); }
+    QString operator()(int) && = delete;
+
+    int calls = 0;
+  };
+}
+
 TEST(JsonValueTest, ConvertsVector3ToAndFromJsonArray) {
   const Vector3d vector(1.5, -2.0, 3.25);
 
@@ -38,6 +47,14 @@ TEST(JsonValueTest, ConvertsRangeWithTransformationToJsonArray) {
     values, [](int value) { return QString::number(value * 2); });
 
   EXPECT_EQ((QJsonArray{"2", "4", "6"}), json);
+}
+
+TEST(JsonValueTest, ReusesTemporaryTransformAsLvalue) {
+  const std::array<int, 3> values{1, 2, 3};
+
+  const auto json = core::json::transformedRangeToJsonArray(values, StatefulTransform{});
+
+  EXPECT_EQ((QJsonArray{"1", "3", "5"}), json);
 }
 
 TEST(JsonValueTest, RequiresNumberArrayWithExpectedSize) {
