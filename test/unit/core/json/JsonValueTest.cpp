@@ -31,6 +31,15 @@ TEST(JsonValueTest, ConvertsColorToAndFromJsonArray) {
   EXPECT_EQ(color, core::json::colorFromJsonArray(json));
 }
 
+TEST(JsonValueTest, ConvertsRangeWithTransformationToJsonArray) {
+  const std::array<int, 3> values{1, 2, 3};
+
+  const auto json = core::json::transformedRangeToJsonArray(
+    values, [](int value) { return QString::number(value * 2); });
+
+  EXPECT_EQ((QJsonArray{"2", "4", "6"}), json);
+}
+
 TEST(JsonValueTest, RequiresNumberArrayWithExpectedSize) {
   const QJsonValue value(QJsonArray{1.0, 2.0, 3.0});
 

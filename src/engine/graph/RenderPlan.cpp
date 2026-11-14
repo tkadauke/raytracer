@@ -4,6 +4,7 @@
 #include "engine/graph/RenderExecutor.h"
 #include "engine/graph/RenderPassState.h"
 #include "engine/graph/detail/JsonStateHelpers.h"
+#include "core/json/JsonValue.h"
 
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -169,11 +170,8 @@ namespace engine::graph {
     }
 
     QJsonArray passIdArray(const std::vector<const RenderPassNode*>& passes) {
-      QJsonArray result;
-      for (const RenderPassNode* pass : passes) {
-        result.append(QString::fromStdString(pass->id));
-      }
-      return result;
+      return core::json::transformedRangeToJsonArray(
+        passes, [](const RenderPassNode* pass) { return QString::fromStdString(pass->id); });
     }
 
     std::vector<std::vector<std::size_t>>

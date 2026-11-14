@@ -70,6 +70,15 @@ namespace core::json {
     return result;
   }
 
+  /** Converts an iterable range to a JSON array using @p transform for each value. */
+  template<class Container, class Transform>
+  inline QJsonArray transformedRangeToJsonArray(const Container& values, Transform&& transform) {
+    QJsonArray result;
+    for (const auto& value : values)
+      result.append(std::forward<Transform>(transform)(value));
+    return result;
+  }
+
   /** Converts an iterable range of std::string values into a JSON array. */
   template<class Container>
   inline QJsonArray stringRangeToJsonArray(const Container& values) {
