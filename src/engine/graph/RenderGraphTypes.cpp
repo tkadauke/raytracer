@@ -222,31 +222,23 @@ namespace engine::graph {
     }
 
     QJsonArray viewModeArray(const std::vector<RenderViewMode>& values) {
-      QJsonArray array;
-      for (const auto& value : values)
-        array.append(toString(value));
-      return array;
+      return core::json::transformedRangeToJsonArray(
+        values, [](RenderViewMode value) { return toString(value); });
     }
 
     QJsonArray readArray(const std::vector<ResourceRead>& reads) {
-      QJsonArray array;
-      for (const auto& read : reads)
-        array.append(qstr(read.resource));
-      return array;
+      return core::json::transformedRangeToJsonArray(
+        reads, [](const ResourceRead& read) { return qstr(read.resource); });
     }
 
     QJsonArray writeArray(const std::vector<ResourceWrite>& writes) {
-      QJsonArray array;
-      for (const auto& write : writes)
-        array.append(qstr(write.resource));
-      return array;
+      return core::json::transformedRangeToJsonArray(
+        writes, [](const ResourceWrite& write) { return qstr(write.resource); });
     }
 
     QJsonArray resourceDomainArray(const std::set<RenderResourceDomain>& domains) {
-      QJsonArray array;
-      for (const auto& domain : domains)
-        array.append(toString(domain));
-      return array;
+      return core::json::transformedRangeToJsonArray(
+        domains, [](RenderResourceDomain domain) { return toString(domain); });
     }
 
     Vector3d vectorFromJson(const QJsonValue& value, const std::string& path) {
