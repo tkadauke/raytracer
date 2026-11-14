@@ -75,7 +75,7 @@ namespace core::json {
   inline QJsonArray transformedRangeToJsonArray(const Container& values, Transform&& transform) {
     QJsonArray result;
     for (const auto& value : values)
-      result.append(std::forward<Transform>(transform)(value));
+      result.append(transform(value));
     return result;
   }
 
