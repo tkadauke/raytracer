@@ -43,18 +43,6 @@ namespace {
     return file.readAll();
   }
 
-  Vector3d normalFor(const Vector3d& a, const Vector3d& b, const Vector3d& c) {
-    const Vector3d normal = (b - a) ^ (c - a);
-    const double length = normal.length();
-    return length > 0.0 ? normal / length : Vector3d(0.0, 0.0, 1.0);
-  }
-
-  void addTriangle(Mesh& mesh, const Vector3d& a, const Vector3d& b, const Vector3d& c,
-                   std::optional<Vector3d> suppliedNormal = std::nullopt) {
-    const Vector3d normal = suppliedNormal.value_or(normalFor(a, b, c));
-    mesh.addTriangle(a, b, c, normal);
-  }
-
   double attributeDouble(const QXmlStreamAttributes& attributes, const QString& name) {
     bool ok = false;
     const double value = attributes.value(name).toDouble(&ok);
@@ -97,7 +85,7 @@ namespace {
             v2 >= static_cast<int>(vertices.size()) || v3 >= static_cast<int>(vertices.size())) {
           throw std::runtime_error("3MF triangle references a missing vertex");
         }
-        addTriangle(mesh, vertices[v1], vertices[v2], vertices[v3]);
+        mesh.addTriangle(vertices[v1], vertices[v2], vertices[v3]);
       }
     }
 
@@ -156,7 +144,7 @@ namespace {
         }
         facetVertices.push_back(*vertex);
         if (facetVertices.size() == 3) {
-          addTriangle(mesh, facetVertices[0], facetVertices[1], facetVertices[2], facetNormal);
+          mesh.addTriangle(facetVertices[0], facetVertices[1], facetVertices[2], facetNormal);
           facetVertices.clear();
           facetNormal.reset();
         }
@@ -187,7 +175,7 @@ namespace {
       const Vector3d a = readVector3fLe(bytes, offset + 12);
       const Vector3d b = readVector3fLe(bytes, offset + 24);
       const Vector3d c = readVector3fLe(bytes, offset + 36);
-      addTriangle(mesh, a, b, c, normal);
+      mesh.addTriangle(a, b, c, normal);
       offset += 50;
     }
 

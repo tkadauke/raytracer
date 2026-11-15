@@ -216,6 +216,25 @@ public:
   }
 
   /**
+    * Adds three vertices, deriving their shared normal from the point winding.
+    * Degenerate triangles use the positive Z axis as a stable fallback.
+    */
+  inline void addTriangle(const Vector3d& a, const Vector3d& b, const Vector3d& c) {
+    const Vector3d cross = (b - a) ^ (c - a);
+    const double length = cross.length();
+    addTriangle(a, b, c, length > 0.0 ? cross / length : Vector3d(0.0, 0.0, 1.0));
+  }
+
+  /** Adds a triangle with @p normal, or derives the normal when it is absent. */
+  inline void addTriangle(const Vector3d& a, const Vector3d& b, const Vector3d& c,
+                          const std::optional<Vector3d>& normal) {
+    if (normal)
+      addTriangle(a, b, c, *normal);
+    else
+      addTriangle(a, b, c);
+  }
+
+  /**
     * Adds the given @p face to this mesh.
     */
   inline void addFace(const Face& face) {
