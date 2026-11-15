@@ -121,6 +121,28 @@ namespace MeshTest {
     EXPECT_FALSE(this->mesh.faceColor(faceCount).has_value());
   }
 
+  TEST(Mesh, ShouldDeriveTriangleNormalFromPointWinding) {
+    Mesh mesh;
+
+    mesh.addTriangle(Vector3d(2, 0, 0), Vector3d(3, 0, 0), Vector3d(2, 1, 0));
+
+    ASSERT_EQ(3u, mesh.vertices().size());
+    EXPECT_EQ(Vector3d(0, 0, 1), mesh.vertices()[0].normal);
+    EXPECT_EQ(Vector3d(0, 0, 1), mesh.vertices()[1].normal);
+    EXPECT_EQ(Vector3d(0, 0, 1), mesh.vertices()[2].normal);
+  }
+
+  TEST(Mesh, ShouldUseStableNormalForDegenerateTriangle) {
+    Mesh mesh;
+
+    mesh.addTriangle(Vector3d(1, 2, 3), Vector3d(1, 2, 3), Vector3d(1, 2, 3));
+
+    ASSERT_EQ(3u, mesh.vertices().size());
+    EXPECT_EQ(Vector3d(0, 0, 1), mesh.vertices()[0].normal);
+    EXPECT_EQ(Vector3d(0, 0, 1), mesh.vertices()[1].normal);
+    EXPECT_EQ(Vector3d(0, 0, 1), mesh.vertices()[2].normal);
+  }
+
   TEST_F(MeshTest, ShouldThrowExceptionIfFaceHasLessThanThreeVertices) {
     ASSERT_THROW(this->mesh.addFace(makeStdVector(1)), InvalidMeshFaceException);
   }
