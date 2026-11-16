@@ -3,6 +3,8 @@
 > **Scope:** vision, architecture, and feature roadmap for evolving this project from a Whitted-style raytracing library into a complete 3D content creation tool.
 > **Date:** 2026-05-01
 > **Status:** Draft — opened for iteration.
+> **Last implementation audit:** 2026-11-16. See the current active/parked
+> plan inventory in [`plans/README.md`](plans/README.md).
 > **Companion docs:**
 > - [`modernize.md`](modernize.md) covers build/CI/Qt6/supply-chain modernization. Independent of this doc; advances in parallel.
 > - [`topics-backlog.md`](topics-backlog.md) catalogues the wider field — algorithms and disciplines not yet promoted to a roadmap pillar but worth implementing and documenting eventually. Items there graduate to this roadmap when they get picked up.
