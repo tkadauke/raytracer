@@ -9,7 +9,6 @@
 #include "core/math/Matrix.h"
 #include "core/math/Ray.h"
 #include "render/GpuCompiledLightSampler.h"
-#include "render/GpuRectangularLightHelpers.h"
 #include "render/GpuTracingBsdfEvaluator.h"
 #include "render/GpuTracingTextureEvaluator.h"
 #include "render/MIS.h"
@@ -34,7 +33,6 @@ using namespace render;
 namespace {
   constexpr std::uint32_t kBsdfSampleDimensionOffset = 0;
   constexpr std::uint32_t kContinuationDimensionOffset = 3;
-  constexpr double kLightTolerance = 1e-9;
   const double kPackedRayMinimumDistance = Ray<float>::epsilon;
   constexpr const char* kPackedCpuExecutionPath = "packed_cpu";
   constexpr const char* kCpuRecordExecutionPath = "cpu_record";
@@ -517,64 +515,21 @@ namespace {
     return pathState.depth == 0u ? visibleBackgroundRadiance(scene) : environmentRadiance(scene);
   }
 
-  struct LightSampleRecord {
-    bool valid{false};
-    Vector3d direction;
-    Colord radiance{Colord::black()};
-    double distance{std::numeric_limits<double>::infinity()};
-    double pdf{0.0};
-    bool delta{false};
-  };
-
-  LightSampleRecord sampleLight(const GpuTracingLightRecord& light, const Vector3d& point,
-                                const Vector2d& sample) {
+  GpuCompiledLightSample sampleLight(const GpuTracingLightRecord& light, const Vector3d& point,
+                                     const Vector2d& sample) {
     const auto kind = static_cast<GpuTracingLightKind>(light.kind);
-    if (kind == GpuTracingLightKind::Point) {
-      const Vector3d offset = Vector3d(light.positionOrDirection) - point;
-      const double distance = offset.length();
-      if (distance <= kLightTolerance) {
-        return {};
-      }
-      return {true, offset / distance, Colord(light.parameters), distance, 1.0, true};
-    }
-
+    // Preserve the reference path's historical handling of a zero direction;
+    // the canonical sampler deliberately rejects that input as degenerate.
     if (kind == GpuTracingLightKind::Directional) {
-      return {true,
+      return {GpuCompiledLightSampleStatus::Valid,
               Vector3d(light.positionOrDirection).normalized(),
               Colord(light.parameters),
               std::numeric_limits<double>::infinity(),
               1.0,
-              true};
+              true,
+              sample};
     }
-
-    if (kind == GpuTracingLightKind::RectangularArea) {
-      const double area = rectangularLightArea(light);
-      if (area <= kLightTolerance) {
-        return {};
-      }
-
-      const Vector3d lightPoint = rectangularLightPoint(light, sample);
-      const Vector3d offset = lightPoint - point;
-      const double distance = offset.length();
-      if (distance <= kLightTolerance) {
-        return {};
-      }
-
-      const Vector3d direction = offset / distance;
-      const double cosLight = rectangularLightSurfaceCosine(light, direction, kLightTolerance);
-      if (cosLight <= kLightTolerance) {
-        return {};
-      }
-
-      return {true,
-              direction,
-              Colord(light.parameters),
-              distance,
-              (distance * distance) / (cosLight * area),
-              false};
-    }
-
-    return {};
+    return sampleGpuCompiledLight(light, point, sample);
   }
 
   double lightPdf(const GpuTracingSceneSections& scene, const Vector3d& point,
@@ -1733,11 +1688,11 @@ GpuDiffusePathStepReference::step(const GpuTracingSceneSections& scene,
             selectedLight.pdf <= 0.0) {
           continue;
         }
-        const LightSampleRecord light = sampleLight(
+        const GpuCompiledLightSample light = sampleLight(
           scene.lights[selectedLight.lightIndex], point,
           sample2D(pathState,
                    directLightSurfaceDimension(pathState, selectedLight.lightIndex, sampleIndex)));
-        if (light.valid) {
+        if (light.valid()) {
           result.metrics.directLightVisibilityExecutionPath = kPackedCpuExecutionPath;
           result.metrics.directLightContributionExecutionPath = kCpuRecordExecutionPath;
           ++result.metrics.directLightSamples;
