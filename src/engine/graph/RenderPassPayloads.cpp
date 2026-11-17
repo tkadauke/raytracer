@@ -41,6 +41,7 @@
 #include "render/textures/Texture.h"
 #include "render/tonemap/Tonemap.h"
 #include "render/TracingAccumulationLayout.h"
+#include "render/TracingExecutionPath.h"
 #include "render/viewplanes/ViewPlane.h"
 
 #include <QJsonArray>
@@ -488,20 +489,14 @@ namespace engine::graph {
       }
     };
 
-    bool executionPathUsesGpu(const QString& path) {
-      return path == QStringLiteral("gpu") || path.startsWith(QStringLiteral("metal")) ||
-             path.startsWith(QStringLiteral("vulkan")) ||
-             path.startsWith(QStringLiteral("full_gpu"));
-    }
-
     QString actualTracingExecutionFromWavefrontMetrics(const QJsonObject& metrics) {
       const QJsonObject batching = metrics.value("batching").toObject();
-      const bool closestUsesGpu = executionPathUsesGpu(
-        batching.value("intersectionBackendClosestHitExecutionPath").toString());
-      const bool anyUsesGpu =
-        executionPathUsesGpu(batching.value("intersectionBackendAnyHitExecutionPath").toString());
-      const bool combinedUsesGpu =
-        executionPathUsesGpu(batching.value("intersectionBackendExecutionPath").toString());
+      const bool closestUsesGpu = render::executionPathUsesGpu(
+        batching.value("intersectionBackendClosestHitExecutionPath").toString().toStdString());
+      const bool anyUsesGpu = render::executionPathUsesGpu(
+        batching.value("intersectionBackendAnyHitExecutionPath").toString().toStdString());
+      const bool combinedUsesGpu = render::executionPathUsesGpu(
+        batching.value("intersectionBackendExecutionPath").toString().toStdString());
       return closestUsesGpu || anyUsesGpu || combinedUsesGpu ? QStringLiteral("hybrid")
                                                              : QStringLiteral("cpu");
     }
@@ -857,7 +852,7 @@ namespace engine::graph {
       QJsonObject batching;
       const bool frontierCompactionUsesGpu =
         loop.fullGpuPathLoopSupported() ||
-        executionPathUsesGpu(QString::fromStdString(loop.frontierCompactionExecutionPath));
+        render::executionPathUsesGpu(loop.frontierCompactionExecutionPath);
       batching["integrator"] = QStringLiteral("pathtracer");
       batching["executionMode"] = QStringLiteral("compiled_diffuse_path_loop");
       batching["tracingBackendMode"] = QString::fromStdString(loop.executionPath);
@@ -1536,7 +1531,7 @@ namespace engine::graph {
         }
 
         const bool frontierCompactionUsesGpu =
-          executionPathUsesGpu(QString::fromStdString(loop.frontierCompactionExecutionPath));
+          render::executionPathUsesGpu(loop.frontierCompactionExecutionPath);
         const QString actualTracingExecution =
           loop.fullGpuPathLoopSupported()
             ? (generation.canGeneratePrimaryPathsOnDevice() ? QStringLiteral("gpu")
