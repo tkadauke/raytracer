@@ -1406,7 +1406,7 @@ TracingExecutionCapabilityRecords GpuDiffusePathLoopResult::tracingCapabilities(
     frontierCompactionExecutionPath.empty()
       ? (fullGpuLoop ? pathLoopExecution : "cpu_diffuse_frontier_compaction")
       : frontierCompactionExecutionPath;
-  const bool compactionUsesGpu = render::executionPathUsesGpu(compactionPath);
+  const bool compactionUsesGpu = render::diffusePathExecutionPathUsesGpu(compactionPath);
 
   TracingExecutionCapabilityRecords records;
   if (fullGpuLoop) {

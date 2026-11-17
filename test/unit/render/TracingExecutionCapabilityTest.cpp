@@ -13,10 +13,22 @@ namespace TracingExecutionCapabilityTest {
     EXPECT_TRUE(executionPathUsesGpu("metal_diffuse_frontier_compaction"));
     EXPECT_TRUE(executionPathUsesGpu("vulkan_diffuse_path_loop"));
     EXPECT_TRUE(executionPathUsesGpu("full_gpu_subset"));
+    EXPECT_TRUE(executionPathUsesGpu("full_gpu_fallback"));
 
     EXPECT_FALSE(executionPathUsesGpu("cpu_diffuse_frontier_compaction"));
+    EXPECT_FALSE(executionPathUsesGpu("fallback_metal_compaction"));
     EXPECT_FALSE(executionPathUsesGpu("packed_cpu"));
     EXPECT_FALSE(executionPathUsesGpu("unknown"));
+  }
+
+  TEST(TracingExecutionPath, PreservesDiffusePathLabelSemantics) {
+    EXPECT_TRUE(diffusePathExecutionPathUsesGpu("full_gpu_subset"));
+    EXPECT_TRUE(diffusePathExecutionPathUsesGpu("fallback_metal_compaction"));
+    EXPECT_TRUE(diffusePathExecutionPathUsesGpu("fallback_vulkan_compaction"));
+
+    EXPECT_FALSE(diffusePathExecutionPathUsesGpu("full_gpu_fallback"));
+    EXPECT_FALSE(diffusePathExecutionPathUsesGpu("gpu"));
+    EXPECT_FALSE(diffusePathExecutionPathUsesGpu("cpu_diffuse_frontier_compaction"));
   }
 
   TEST(TracingCapabilityRecord, RepresentsCpuHybridGpuUnsupportedAndFallbackStates) {
