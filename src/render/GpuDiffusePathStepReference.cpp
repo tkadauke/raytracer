@@ -14,6 +14,7 @@
 #include "render/MIS.h"
 #include "render/PathTermination.h"
 #include "render/TracingAccumulationReference.h"
+#include "render/TracingExecutionPath.h"
 #include "render/cameras/Camera.h"
 #include "render/samplers/GpuSampleStream.h"
 #include "render/samplers/Sampler.h"
@@ -124,11 +125,6 @@ namespace {
                                const GpuDiffusePathStepResult& step) {
     result.radianceDeltaSquaredSumPerDepth.push_back(step.radianceDeltaSquaredSum);
     result.maxRadianceDeltaPerDepth.push_back(step.maxRadianceDelta);
-  }
-
-  bool executionPathUsesGpu(const std::string& path) {
-    return path == kFullGpuPathLoopExecutionPath || path.find("metal") != std::string::npos ||
-           path.find("vulkan") != std::string::npos;
   }
 
   double sample1D(const GpuDiffusePathStateRecord& pathState, std::uint32_t dimension) {
@@ -1410,7 +1406,7 @@ TracingExecutionCapabilityRecords GpuDiffusePathLoopResult::tracingCapabilities(
     frontierCompactionExecutionPath.empty()
       ? (fullGpuLoop ? pathLoopExecution : "cpu_diffuse_frontier_compaction")
       : frontierCompactionExecutionPath;
-  const bool compactionUsesGpu = executionPathUsesGpu(compactionPath);
+  const bool compactionUsesGpu = render::executionPathUsesGpu(compactionPath);
 
   TracingExecutionCapabilityRecords records;
   if (fullGpuLoop) {

@@ -1,11 +1,23 @@
 #include <gtest/gtest.h>
 
 #include "render/TracingExecutionCapability.h"
+#include "render/TracingExecutionPath.h"
 
 #include <algorithm>
 
 namespace TracingExecutionCapabilityTest {
   using namespace render;
+
+  TEST(TracingExecutionPath, ClassifiesBackendExecutionLabels) {
+    EXPECT_TRUE(executionPathUsesGpu("gpu"));
+    EXPECT_TRUE(executionPathUsesGpu("metal_diffuse_frontier_compaction"));
+    EXPECT_TRUE(executionPathUsesGpu("vulkan_diffuse_path_loop"));
+    EXPECT_TRUE(executionPathUsesGpu("full_gpu_subset"));
+
+    EXPECT_FALSE(executionPathUsesGpu("cpu_diffuse_frontier_compaction"));
+    EXPECT_FALSE(executionPathUsesGpu("packed_cpu"));
+    EXPECT_FALSE(executionPathUsesGpu("unknown"));
+  }
 
   TEST(TracingCapabilityRecord, RepresentsCpuHybridGpuUnsupportedAndFallbackStates) {
     const auto cpu =
