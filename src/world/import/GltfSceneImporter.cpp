@@ -30,6 +30,7 @@
 #include <QJsonObject>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstring>
 #include <limits>
@@ -59,13 +60,13 @@ namespace world {
       };
     }
 
-    void attachProvenance(Group& group, const QString& sourcePath, const QString& sourceIdValue,
+    void attachProvenance(Element& element, const QString& sourcePath, const QString& sourceIdValue,
                           const QString& kind) {
       ImportProvenance provenance;
       provenance.sourceFile = sourcePath;
       provenance.sourceId = sourceIdValue;
       provenance.category = QJsonObject{{"gltfKind", kind}};
-      setImportProvenance(group, provenance);
+      setImportProvenance(element, provenance);
     }
 
     Matrix4d localTransformFor(const core::gltf::Node& node) {
@@ -87,10 +88,6 @@ namespace world {
       if (gltfInterpolation == "LINEAR")
         return core::math::interpolation::InterpolationMode::Linear;
       return std::nullopt;
-    }
-
-    QJsonArray jsonArray(std::initializer_list<double> values) {
-      return core::json::numericRangeToJsonArray(values);
     }
 
     std::optional<double> accessorFloat(const core::gltf::Asset& asset,
@@ -162,14 +159,16 @@ namespace world {
             return std::nullopt;
           const Quaterniond rotation(*w, *x, *y, *z);
           const Vector3d euler = rotation.normalized().toEulerAngles();
-          values.push_back(jsonArray({euler.x(), euler.y(), euler.z()}));
+          values.push_back(core::json::numericRangeToJsonArray(
+            std::array<double, 3>{euler.x(), euler.y(), euler.z()}));
         } else {
           auto x = accessorFloat(asset, accessor, i, 0);
           auto y = accessorFloat(asset, accessor, i, 1);
           auto z = accessorFloat(asset, accessor, i, 2);
           if (!x || !y || !z)
             return std::nullopt;
-          values.push_back(jsonArray({*x, *y, *z}));
+          values.push_back(
+            core::json::numericRangeToJsonArray(std::array<double, 3>{*x, *y, *z}));
         }
       }
       return values;
@@ -322,15 +321,6 @@ namespace world {
             QString("glTF %1 is not supported").arg(QString::fromStdString(feature)), where));
         }
       }
-    }
-
-    void attachElementProvenance(Element& element, const QString& sourcePath,
-                                 const QString& sourceIdValue, const QString& kind) {
-      ImportProvenance provenance;
-      provenance.sourceFile = sourcePath;
-      provenance.sourceId = sourceIdValue;
-      provenance.category = QJsonObject{{"gltfKind", kind}};
-      setImportProvenance(element, provenance);
     }
 
     Vector3d normalizedDirectionOrDefault(const Matrix4d& transform, const Vector3d& local) {
@@ -693,7 +683,7 @@ namespace world {
           worldCamera->setMetadataValue("gltfZNear", camera.orthographic.znear);
           worldCamera->setMetadataValue("gltfZFar", camera.orthographic.zfar);
         }
-        attachElementProvenance(*worldCamera, m_sourcePath, id, "camera");
+        attachProvenance(*worldCamera, m_sourcePath, id, "camera");
         group.addChild(std::move(worldCamera));
       }
 
@@ -738,7 +728,7 @@ namespace world {
               .arg(lightIndex),
             m_sourcePath));
         }
-        attachElementProvenance(*worldLight, m_sourcePath, id, "light");
+        attachProvenance(*worldLight, m_sourcePath, id, "light");
         group.addChild(std::move(worldLight));
       }
 
