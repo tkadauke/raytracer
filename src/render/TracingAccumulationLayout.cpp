@@ -21,11 +21,6 @@ namespace render {
       return w * h;
     }
 
-    std::uint64_t checkedPlaneBytes(std::uint64_t pixels, std::size_t bytesPerPixel) {
-      return render::detail::checkedProduct(pixels, static_cast<std::uint64_t>(bytesPerPixel),
-                                            "tracing accumulation layout byte size overflows");
-    }
-
     std::uint64_t checkedAdd(std::uint64_t a, std::uint64_t b) {
       return render::detail::checkedAdd(a, b, "tracing accumulation layout byte size overflows");
     }
@@ -53,19 +48,19 @@ namespace render {
   }
 
   std::uint64_t TracingAccumulationLayout::colorSumBytes() const {
-    return checkedPlaneBytes(pixelCount(), bytesPerPixel(colorSumFormat));
+    return planeBytes(bytesPerPixel(colorSumFormat));
   }
 
   std::uint64_t TracingAccumulationLayout::sampleCountBytes() const {
-    return checkedPlaneBytes(pixelCount(), bytesPerPixel(sampleCountFormat));
+    return planeBytes(bytesPerPixel(sampleCountFormat));
   }
 
   std::uint64_t TracingAccumulationLayout::momentBytes() const {
-    return checkedPlaneBytes(pixelCount(), bytesPerPixel(momentFormat));
+    return planeBytes(bytesPerPixel(momentFormat));
   }
 
   std::uint64_t TracingAccumulationLayout::resolveBytes() const {
-    return checkedPlaneBytes(pixelCount(), bytesPerPixel(resolveFormat));
+    return planeBytes(bytesPerPixel(resolveFormat));
   }
 
   std::uint64_t TracingAccumulationLayout::accumulationBytes() const {
@@ -88,6 +83,11 @@ namespace render {
     TracingAccumulationLayout copy = *this;
     copy.validate();
     return copy;
+  }
+
+  std::uint64_t TracingAccumulationLayout::planeBytes(std::size_t bytesPerPixel) const {
+    return detail::checkedProduct(pixelCount(), static_cast<std::uint64_t>(bytesPerPixel),
+                                  "tracing accumulation layout byte size overflows");
   }
 
   TracingAccumulationDiagnostics

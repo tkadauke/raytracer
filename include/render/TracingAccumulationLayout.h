@@ -83,6 +83,9 @@ namespace render {
 
     void validate() const;
     [[nodiscard]] TracingAccumulationLayout validated() const;
+
+  private:
+    [[nodiscard]] std::uint64_t planeBytes(std::size_t bytesPerPixel) const;
   };
 
   /**
