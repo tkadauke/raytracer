@@ -33,6 +33,28 @@
 
 using namespace render;
 
+Rayd GpuTracingMaterialRecord::transformPortalRay(const Rayd& ray) const {
+  const Vector3d origin(ray.origin());
+  const Vector3d& direction = ray.direction();
+  return Rayd(
+    Vector4d(portalOriginMatrix0[0] * origin.x() + portalOriginMatrix0[1] * origin.y() +
+               portalOriginMatrix0[2] * origin.z() + portalOriginMatrix0[3],
+             portalOriginMatrix1[0] * origin.x() + portalOriginMatrix1[1] * origin.y() +
+               portalOriginMatrix1[2] * origin.z() + portalOriginMatrix1[3],
+             portalOriginMatrix2[0] * origin.x() + portalOriginMatrix2[1] * origin.y() +
+               portalOriginMatrix2[2] * origin.z() + portalOriginMatrix2[3]),
+    Vector3d(portalDirectionMatrix0[0] * direction.x() +
+               portalDirectionMatrix0[1] * direction.y() +
+               portalDirectionMatrix0[2] * direction.z(),
+             portalDirectionMatrix1[0] * direction.x() +
+               portalDirectionMatrix1[1] * direction.y() +
+               portalDirectionMatrix1[2] * direction.z(),
+             portalDirectionMatrix2[0] * direction.x() +
+               portalDirectionMatrix2[1] * direction.y() +
+               portalDirectionMatrix2[2] * direction.z())
+      .normalized());
+}
+
 namespace {
   static_assert(isKernelRecord<GpuTracingMaterialRecord>());
   static_assert(isKernelRecord<GpuTracingTextureRecord>());
