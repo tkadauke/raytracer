@@ -129,6 +129,22 @@ namespace GpuTracingSceneTest {
     expectFloat4(GpuFloat4{}, 0.0f, 0.0f, 0.0f, 0.0f);
   }
 
+  TEST(GpuTracingScene, MaterialRecordTransformsPortalRay) {
+    GpuTracingMaterialRecord material;
+    material.portalOriginMatrix0 = {1.0f, 0.0f, 0.0f, 4.0f};
+    material.portalOriginMatrix1 = {0.0f, 0.0f, -1.0f, 5.0f};
+    material.portalOriginMatrix2 = {0.0f, 1.0f, 0.0f, 6.0f};
+    material.portalDirectionMatrix0 = {1.0f, 0.0f, 0.0f, 0.0f};
+    material.portalDirectionMatrix1 = {0.0f, 0.0f, -1.0f, 0.0f};
+    material.portalDirectionMatrix2 = {0.0f, 1.0f, 0.0f, 0.0f};
+
+    const Rayd transformed =
+      material.transformPortalRay(Rayd(Vector4d(1.0, 2.0, 3.0), Vector3d(0.0, 0.0, 2.0)));
+
+    EXPECT_EQ(Vector4d(5.0, 2.0, 8.0), transformed.origin());
+    EXPECT_EQ(Vector3d(0.0, -1.0, 0.0), transformed.direction());
+  }
+
   TEST(GpuTracingScene, LayoutVersionScopesAllCompiledSceneSections) {
     const GpuTracingSceneSections sections;
 

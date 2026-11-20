@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/Color.h"
+#include "core/math/Ray.h"
 #include "render/GpuIntersectionScene.h"
 #include "render/samplers/SampleStream.h"
 #include "render/textures/Texture.h"
@@ -94,6 +95,8 @@ namespace render {
     std::array<float, 4> portalDirectionMatrix0{};
     std::array<float, 4> portalDirectionMatrix1{};
     std::array<float, 4> portalDirectionMatrix2{};
+
+    [[nodiscard]] Rayd transformPortalRay(const Rayd& ray) const;
   };
 
   struct alignas(16) GpuTracingTextureRecord {
