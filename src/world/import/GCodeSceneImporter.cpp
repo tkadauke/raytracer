@@ -80,10 +80,6 @@ namespace {
     ScalarRange extrusion;
   };
 
-  QString normalizedOption(QString value) {
-    return normalizeOptionToken(value, /*stripSpaces=*/true);
-  }
-
   bool optionBool(const world::ImportOptions& options, const QString& name, bool fallback) {
     const QVariant value = options.value(name, fallback);
     if (value.typeId() == QMetaType::Bool)
@@ -107,8 +103,8 @@ namespace {
   }
 
   VisualizationMode visualizationModeFor(const world::ImportOptions& options) {
-    const QString normalized =
-      normalizedOption(options.value("visualization", "move_type").toString());
+    const QString normalized = normalizeOptionToken(
+      options.value("visualization", "move_type").toString(), /*stripSpaces=*/true);
     if (normalized == "layer" || normalized == "layers")
       return VisualizationMode::Layer;
     if (normalized == "tool" || normalized == "tools")
