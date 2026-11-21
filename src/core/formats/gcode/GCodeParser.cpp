@@ -6,6 +6,8 @@
 
 using namespace std;
 using core::util::trim;
+using core::util::tryParseStrictDouble;
+using core::util::tryParseStrictInt;
 using core::util::uppercase;
 
 namespace {
@@ -54,14 +56,6 @@ namespace {
     return parsed;
   }
 
-  optional<double> parseDoubleValue(const string& text) {
-    return core::util::tryParseStrictDouble(text);
-  }
-
-  optional<int> parseIntValue(const string& text) {
-    return core::util::tryParseStrictInt(text);
-  }
-
   string commandName(const Word& word) {
     return string(1, word.letter) + word.value;
   }
@@ -71,7 +65,7 @@ namespace {
     for (size_t i = 1; i < words.size(); ++i) {
       if (words[i].letter != letter)
         continue;
-      const auto value = parseDoubleValue(words[i].value);
+      const auto value = tryParseStrictDouble(words[i].value);
       if (!value) {
         diagnostics.warning(GCodeDiagnosticCode::InvalidNumber, lineNumber,
                             string("invalid numeric parameter ") + letter + words[i].value,
@@ -107,13 +101,13 @@ namespace {
 
       const string upperKey = uppercase(key);
       if (upperKey == "LAYER") {
-        const auto index = parseIntValue(value);
+        const auto index = tryParseStrictInt(value);
         if (index)
           state.layerIndex = *index;
         program.layers.push_back(
           GCodeLayer{lineNumber, state.layerIndex, state.position.z, comment});
       } else if (upperKey == "Z") {
-        const auto z = parseDoubleValue(value);
+        const auto z = tryParseStrictDouble(value);
         if (z) {
           state.lastLayerZ = *z;
           program.layers.push_back(GCodeLayer{lineNumber, state.layerIndex, *z, comment});
@@ -253,7 +247,7 @@ void GCodeParser::parseLine(const string& line, int lineNumber, GCodeProgram& pr
 
   const Word& first = parsed.words.front();
   const string command = commandName(first);
-  const auto commandNumber = parseIntValue(first.value);
+  const auto commandNumber = tryParseStrictInt(first.value);
   if (!commandNumber) {
     program.diagnostics.warning(GCodeDiagnosticCode::InvalidNumber, lineNumber,
                                 "invalid command number", command);
@@ -261,7 +255,7 @@ void GCodeParser::parseLine(const string& line, int lineNumber, GCodeProgram& pr
   }
 
   if (first.letter == 'T') {
-    const auto tool = parseIntValue(first.value);
+    const auto tool = tryParseStrictInt(first.value);
     if (!tool) {
       program.diagnostics.warning(GCodeDiagnosticCode::InvalidNumber, lineNumber,
                                   "invalid tool number", command);
