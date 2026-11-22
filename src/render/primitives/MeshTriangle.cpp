@@ -19,6 +19,20 @@ Vector2d MeshTriangle::uvAtBarycentric(double beta, double gamma) const {
          m_mesh->vertices()[m_index2].uv * gamma;
 }
 
+std::shared_ptr<Mesh> MeshTriangle::tessellateWithNormals(const Vector3d& normal0,
+                                                          const Vector3d& normal1,
+                                                          const Vector3d& normal2) const {
+  auto mesh = std::make_shared<Mesh>();
+  const auto& v0 = m_mesh->vertices()[m_index0];
+  const auto& v1 = m_mesh->vertices()[m_index1];
+  const auto& v2 = m_mesh->vertices()[m_index2];
+  mesh->addVertex(v0.point, normal0, v0.uv);
+  mesh->addVertex(v1.point, normal1, v1.uv);
+  mesh->addVertex(v2.point, normal2, v2.uv);
+  mesh->addFace({0, 1, 2}, m_faceMetadata);
+  return mesh;
+}
+
 HitPoint MeshTriangle::materializeHitPoint(const Rayd& ray, double distance, double beta,
                                            double gamma) const {
   return HitPoint(this, distance, ray.at(distance), normalAtBarycentric(beta, gamma),
