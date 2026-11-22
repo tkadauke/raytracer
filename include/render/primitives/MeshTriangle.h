@@ -45,6 +45,9 @@ namespace render {
     virtual double minimumHitDistance() const;
 
     Vector2d uvAtBarycentric(double beta, double gamma) const;
+    std::shared_ptr<Mesh> tessellateWithNormals(const Vector3d& normal0,
+                                                const Vector3d& normal1,
+                                                const Vector3d& normal2) const;
 
   protected:
     const Mesh* m_mesh;
