@@ -3,9 +3,12 @@
 This directory contains active or parked plans. Plans that have met their
 acceptance criteria live in [`complete/`](complete/).
 
-> **Implementation audit:** 2026-11-16, through `c370563a`. The changes since
-> the previous roadmap audit (`35f72cf8`, 2026-10-26) consolidate shared
-> helpers and data conversions but do not complete an open plan phase. No plan
+> **Implementation audit:** 2026-11-23, through `7396e783`. Every plan's
+> status, checklist, and the table below were re-checked against the code.
+> The changes since the previous audit (`c370563a`, 2026-11-16) are
+> behavior-preserving helper deduplication (GPU tracing scene/path helpers,
+> glTF and G-code importers, mesh triangle helpers). They do not complete any
+> open plan phase, so the "Still missing" columns are unchanged and no plan
 > moved to `complete/` in this audit.
 
 ## Active plans
