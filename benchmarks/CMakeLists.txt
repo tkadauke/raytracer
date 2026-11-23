@@ -41,6 +41,7 @@ set_target_properties(benchmarks PROPERTIES
   UNITY_BUILD_BATCH_SIZE 4
 )
 target_include_directories(benchmarks PRIVATE
+  "${PROJECT_SOURCE_DIR}"
   "${PROJECT_SOURCE_DIR}/src"
   "${CMAKE_CURRENT_SOURCE_DIR}"
 )
