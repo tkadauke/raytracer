@@ -29,6 +29,7 @@
 #include "render/primitives/Triangle.h"
 #include "render/samplers/Sampler.h"
 #include "render/textures/ConstantColorTexture.h"
+#include "test/helpers/WavefrontIntersectionRays.h"
 
 #include <algorithm>
 #include <cctype>
@@ -643,19 +644,7 @@ namespace {
   }
 
   std::vector<Rayd> generateRays(std::int64_t count) {
-    std::mt19937 rng(1234);
-    std::uniform_real_distribution<double> xy(-8.0, 8.0);
-    std::uniform_real_distribution<double> z(3.5, 22.5);
-    std::uniform_real_distribution<double> jitter(-0.25, 0.25);
-
-    std::vector<Rayd> rays;
-    rays.reserve(static_cast<std::size_t>(count));
-    for (std::int64_t index = 0; index != count; ++index) {
-      const Vector3d origin(xy(rng), 2.5 + jitter(rng), -5.0);
-      const Vector3d target(xy(rng), jitter(rng), z(rng));
-      rays.emplace_back(origin, (target - origin).normalized());
-    }
-    return rays;
+    return test::helpers::wavefrontIntersectionRays(static_cast<std::size_t>(count));
   }
 
   std::vector<Rayd> generateDiffusePathLoopRays(std::int64_t count) {
