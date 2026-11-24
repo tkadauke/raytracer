@@ -23,6 +23,7 @@
 #include "world/objects/Sphere.h"
 
 #include "test/helpers/GuiTestHelper.h"
+#include "test/helpers/JsonTestHelper.h"
 
 namespace SceneEditingToolsTest {
 
@@ -45,9 +46,7 @@ namespace SceneEditingToolsTest {
       return params;
     }
 
-    QJsonArray vec(double x, double y, double z) {
-      return QJsonArray{x, y, z};
-    }
+    using test::helpers::vectorArray;
   }
 
   class SceneEditingToolsTest : public ::testing::GuiTest {
@@ -109,7 +108,7 @@ namespace SceneEditingToolsTest {
   TEST_F(SceneEditingToolsTest, AddPrimitiveToolCreatesElementInLiveScene) {
     QJsonObject args;
     args[QStringLiteral("type")] = QStringLiteral("Sphere");
-    args[QStringLiteral("position")] = vec(1, 2, 3);
+    args[QStringLiteral("position")] = vectorArray(1, 2, 3);
 
     int elementChangedCount = 0;
     QObject::connect(editor.get(), &mcp::SceneEditor::elementChanged,
@@ -147,7 +146,7 @@ namespace SceneEditingToolsTest {
 
     QJsonObject args;
     args[QStringLiteral("id")] = box->id();
-    args[QStringLiteral("translate")] = vec(5, 0, 0);
+    args[QStringLiteral("translate")] = vectorArray(5, 0, 0);
 
     const QJsonObject toolResult = callTool(QStringLiteral("transform"), args);
     EXPECT_FALSE(toolResult[QStringLiteral("isError")].toBool());
@@ -266,8 +265,8 @@ namespace SceneEditingToolsTest {
                      [&elementChangedCount](Element*) { ++elementChangedCount; });
 
     QJsonObject args;
-    args[QStringLiteral("position")] = vec(0, 1, 10);
-    args[QStringLiteral("target")] = vec(0, 0, 0);
+    args[QStringLiteral("position")] = vectorArray(0, 1, 10);
+    args[QStringLiteral("target")] = vectorArray(0, 0, 0);
 
     const QJsonObject toolResult = callTool(QStringLiteral("set_camera"), args);
     EXPECT_FALSE(toolResult[QStringLiteral("isError")].toBool());
@@ -278,7 +277,7 @@ namespace SceneEditingToolsTest {
   TEST_F(SceneEditingToolsTest, ToolsRejectUnknownIds) {
     QJsonObject args;
     args[QStringLiteral("id")] = QStringLiteral("does-not-exist");
-    args[QStringLiteral("translate")] = vec(1, 0, 0);
+    args[QStringLiteral("translate")] = vectorArray(1, 0, 0);
 
     const QJsonObject toolResult = callTool(QStringLiteral("transform"), args);
     EXPECT_TRUE(toolResult[QStringLiteral("isError")].toBool());

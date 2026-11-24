@@ -12,6 +12,7 @@
 #include "render/textures/ConstantColorTexture.h"
 
 #include "test/helpers/ColorTestHelper.h"
+#include "test/helpers/MaterialTestHelper.h"
 
 #include <filesystem>
 #include <fstream>
@@ -28,11 +29,7 @@ namespace LDrawColorTableTest {
     TempTree() : ::test::TempTree("raytracer-ldraw-colors-") {}
   };
 
-  Colord diffuseColor(const shared_ptr<Material>& material) {
-    auto matte = dynamic_pointer_cast<MatteMaterial>(material);
-    auto texture = dynamic_pointer_cast<ConstantColorTexture>(matte->diffuseTexture());
-    return texture->color();
-  }
+  using test::helpers::diffuseColor;
 
   TEST(LDrawColorTable, ShouldParseColourRecordsFromLDConfigStream) {
     istringstream stream("0 !COLOUR Black CODE 0 VALUE #05131D EDGE #595959\n"

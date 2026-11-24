@@ -15,6 +15,14 @@ namespace test {
         std::make_shared<render::ConstantColorTexture>(color));
     }
 
+    /** The constant diffuse color of a MatteMaterial built on a ConstantColorTexture. */
+    inline Colord diffuseColor(const std::shared_ptr<render::Material>& material) {
+      auto matteMaterial = std::dynamic_pointer_cast<render::MatteMaterial>(material);
+      auto texture =
+        std::dynamic_pointer_cast<render::ConstantColorTexture>(matteMaterial->diffuseTexture());
+      return texture->color();
+    }
+
     inline HitPoint hitPointWithNormal(const Vector3d& normal) {
       return HitPoint(nullptr, 1.0, Vector4d(0, 0, 0, 1), normal);
     }
