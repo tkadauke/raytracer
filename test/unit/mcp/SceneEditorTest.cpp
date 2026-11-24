@@ -25,13 +25,12 @@
 #include "world/objects/Union.h"
 
 #include "test/helpers/GuiTestHelper.h"
+#include "test/helpers/JsonTestHelper.h"
 
 namespace SceneEditorTest {
 
   namespace {
-    QJsonArray vec(double x, double y, double z) {
-      return QJsonArray{x, y, z};
-    }
+    using test::helpers::vectorArray;
 
     // QJsonValue's default constructor builds a *Null* value, not an
     // *Undefined* one — only QJsonObject::value() on a missing key returns
@@ -65,7 +64,7 @@ namespace SceneEditorTest {
   };
 
   TEST_F(SceneEditorTest, AddPrimitiveCreatesElementAtPosition) {
-    const auto result = editor->addPrimitive(QStringLiteral("Box"), vec(1, 2, 3), QJsonObject());
+    const auto result = editor->addPrimitive(QStringLiteral("Box"), vectorArray(1, 2, 3), QJsonObject());
 
     EXPECT_TRUE(result.ok);
     ASSERT_FALSE(result.id.isEmpty());
@@ -79,7 +78,7 @@ namespace SceneEditorTest {
 
   TEST_F(SceneEditorTest, AddPrimitiveAppliesExtraParams) {
     QJsonObject params;
-    params[QStringLiteral("size")] = vec(2, 3, 4);
+    params[QStringLiteral("size")] = vectorArray(2, 3, 4);
     const auto result = editor->addPrimitive(QStringLiteral("Box"), omitted(), params);
 
     ASSERT_TRUE(result.ok);
@@ -117,7 +116,7 @@ namespace SceneEditorTest {
     scene->addChild(box);
 
     const auto result =
-      editor->transform(box->id(), vec(1, 0, 0), vec(0, 0, 1.5), vec(2, 2, 2));
+      editor->transform(box->id(), vectorArray(1, 0, 0), vectorArray(0, 0, 1.5), vectorArray(2, 2, 2));
 
     EXPECT_TRUE(result.ok);
     EXPECT_EQ(Vector3d(1, 0, 0), box->position());
@@ -127,7 +126,7 @@ namespace SceneEditorTest {
   }
 
   TEST_F(SceneEditorTest, TransformFailsForUnknownId) {
-    const auto result = editor->transform(QStringLiteral("nope"), vec(1, 0, 0), omitted(),
+    const auto result = editor->transform(QStringLiteral("nope"), vectorArray(1, 0, 0), omitted(),
                                           omitted());
     EXPECT_FALSE(result.ok);
   }
@@ -136,7 +135,7 @@ namespace SceneEditorTest {
     auto* material = new MatteMaterial;
     scene->addChild(material);
 
-    const auto result = editor->transform(material->id(), vec(1, 0, 0), omitted(), omitted());
+    const auto result = editor->transform(material->id(), vectorArray(1, 0, 0), omitted(), omitted());
     EXPECT_FALSE(result.ok);
   }
 
@@ -322,7 +321,7 @@ namespace SceneEditorTest {
     auto* camera = new PinholeCamera;
     scene->addChild(camera);
 
-    const auto result = editor->setCamera(vec(0, 1, 5), vec(0, 0, 0), omitted());
+    const auto result = editor->setCamera(vectorArray(0, 1, 5), vectorArray(0, 0, 0), omitted());
 
     EXPECT_TRUE(result.ok);
     EXPECT_EQ(Vector3d(0, 1, 5), camera->position());
@@ -344,7 +343,7 @@ namespace SceneEditorTest {
     auto* camera = new PinholeCamera;
     scene->addChild(camera);
 
-    const auto result = editor->setCamera(vec(0, 1, 5), omitted(), 90.0);
+    const auto result = editor->setCamera(vectorArray(0, 1, 5), omitted(), 90.0);
 
     EXPECT_TRUE(result.ok);
     EXPECT_EQ(Vector3d(0, 1, 5), camera->position());
@@ -362,7 +361,7 @@ namespace SceneEditorTest {
   }
 
   TEST_F(SceneEditorTest, SetCameraFailsWhenSceneHasNoCamera) {
-    const auto result = editor->setCamera(vec(0, 0, 0), omitted(), omitted());
+    const auto result = editor->setCamera(vectorArray(0, 0, 0), omitted(), omitted());
     EXPECT_FALSE(result.ok);
   }
 

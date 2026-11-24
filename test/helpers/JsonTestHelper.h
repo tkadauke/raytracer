@@ -10,6 +10,11 @@ namespace test::helpers {
     return QJsonValue(QJsonArray({x, y, z}));
   }
 
+  /** A JSON `[x, y, z]` array. */
+  inline QJsonArray vectorArray(double x, double y, double z) {
+    return QJsonArray{x, y, z};
+  }
+
   /** A JSON `[r, g, b]` array value. */
   inline QJsonValue colorValue(double r, double g, double b) {
     return QJsonValue(QJsonArray({r, g, b}));

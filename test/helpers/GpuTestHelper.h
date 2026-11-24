@@ -4,13 +4,24 @@
 #include <gtest/gtest.h>
 
 #include "core/math/Vector.h"
+#include "render/GpuDiffusePathLoopBackend.h"
 
 #include <array>
 #include <cstddef>
+#include <memory>
+#include <string>
 #include <type_traits>
 
 namespace test {
   namespace helpers {
+    /** The reason the default full-GPU path-loop backend reports itself unavailable. */
+    inline std::string defaultFullGpuPathLoopUnavailableReason() {
+      const std::shared_ptr<const render::GpuDiffusePathLoopBackend> backend =
+        render::GpuDiffusePathLoopBackend::defaultFullGpuBackendForGpuRequest();
+      return backend ? backend->fullGpuPathLoopUnavailableReason()
+                     : "platform full-GPU path-loop backend is not enabled in this build";
+    }
+
     template<typename Record>
     void expectKernelRecordLayout() {
       EXPECT_TRUE(std::is_standard_layout_v<Record>);
