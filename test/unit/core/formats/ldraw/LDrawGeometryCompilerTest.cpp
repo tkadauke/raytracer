@@ -22,6 +22,7 @@
 #include "render/textures/ImageTexture.h"
 #include "test/helpers/BufferTestHelper.h"
 #include "test/helpers/ColorTestHelper.h"
+#include "test/helpers/MaterialTestHelper.h"
 
 #include <fstream>
 #include <iterator>
@@ -79,11 +80,7 @@ namespace LDrawGeometryCompilerTest {
     map<string, string> m_files;
   };
 
-  Colord diffuseColor(const shared_ptr<Material>& material) {
-    auto matte = dynamic_pointer_cast<MatteMaterial>(material);
-    auto texture = dynamic_pointer_cast<ConstantColorTexture>(matte->diffuseTexture());
-    return texture->color();
-  }
+  using test::helpers::diffuseColor;
 
   shared_ptr<MeshPrimitive> onlyMeshPrimitive(const shared_ptr<Composite>& composite) {
     EXPECT_EQ(1u, composite->primitives().size());

@@ -32,6 +32,7 @@
 #include "test/helpers/BufferTestHelper.h"
 #include "test/helpers/CameraTestHelper.h"
 #include "test/helpers/ColorTestHelper.h"
+#include "test/helpers/GpuTestHelper.h"
 #include "test/helpers/MaterialTestHelper.h"
 #include "test/helpers/SceneTestHelper.h"
 #include "test/helpers/VectorTestHelper.h"
@@ -121,12 +122,7 @@ namespace GraphRenderEngineTest {
       .toStdString();
   }
 
-  std::string defaultFullGpuPathLoopUnavailableReason() {
-    const std::shared_ptr<const render::GpuDiffusePathLoopBackend> backend =
-      render::GpuDiffusePathLoopBackend::defaultFullGpuBackendForGpuRequest();
-    return backend ? backend->fullGpuPathLoopUnavailableReason()
-                   : "platform full-GPU path-loop backend is not enabled in this build";
-  }
+  using test::helpers::defaultFullGpuPathLoopUnavailableReason;
 
   RenderResourceDescriptor objectIdResource(const std::string& id, RenderResourceLifetime lifetime,
                                             int width = 2, int height = 2) {

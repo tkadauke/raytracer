@@ -7,6 +7,8 @@
 #include "render/primitives/Scene.h"
 #include "render/textures/ConstantColorTexture.h"
 
+#include "test/helpers/GpuTestHelper.h"
+
 #include <memory>
 
 namespace RenderSceneAnalysisTest {
@@ -17,12 +19,7 @@ namespace RenderSceneAnalysisTest {
       std::make_shared<render::ConstantColorTexture>(color));
   }
 
-  std::string defaultFullGpuPathLoopUnavailableReason() {
-    const std::shared_ptr<const render::GpuDiffusePathLoopBackend> backend =
-      render::GpuDiffusePathLoopBackend::defaultFullGpuBackendForGpuRequest();
-    return backend ? backend->fullGpuPathLoopUnavailableReason()
-                   : "platform full-GPU path-loop backend is not enabled in this build";
-  }
+  using test::helpers::defaultFullGpuPathLoopUnavailableReason;
 
   TEST(RenderSceneAnalysis, StartsAsKnownEmptyScene) {
     RenderSceneAnalysis analysis;
