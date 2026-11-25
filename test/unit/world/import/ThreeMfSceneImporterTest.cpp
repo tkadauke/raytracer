@@ -12,13 +12,7 @@
 #include "world/objects/Group.h"
 
 namespace ThreeMfSceneImporterTest {
-  namespace {
-    Group* childGroup(Group& root, int index) {
-      auto* group = qobject_cast<Group*>(root.childElements()[index]);
-      EXPECT_NE(nullptr, group);
-      return group;
-    }
-  }
+  using test::importers::childGroup;
 
   TEST(ThreeMfSceneImporter, RegistersForThreeMfExtension) {
     auto importer = world::SceneImporterRegistry::self().createByFormat("3mf");
@@ -44,7 +38,7 @@ namespace ThreeMfSceneImporterTest {
     EXPECT_DOUBLE_EQ(0.001, root->metadataValue("unitScaleInMeters").toDouble());
     ASSERT_EQ(1, root->childElements().size());
 
-    auto* item = childGroup(*root, 0);
+    auto* item = childGroup(root, 0);
     ASSERT_NE(nullptr, item);
     EXPECT_EQ(QString("red triangle"), item->name());
     EXPECT_EQ(7, item->metadataValue("objectId").toInt());

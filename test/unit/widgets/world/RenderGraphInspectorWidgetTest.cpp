@@ -20,6 +20,7 @@
 #include "render/textures/ConstantColorTexture.h"
 #include "test/helpers/CameraTestHelper.h"
 #include "test/helpers/GuiTestHelper.h"
+#include "test/helpers/RenderGraphInspectorTestHelper.h"
 #include "test/helpers/MaterialTestHelper.h"
 #include "test/helpers/SceneTestHelper.h"
 #include "test/helpers/Slot.h"
@@ -605,13 +606,7 @@ namespace RenderGraphInspectorWidgetTest {
     return nullptr;
   }
 
-  QString rowValue(const RenderGraphInspectorWidget::DetailRows& rows, const QString& name) {
-    for (const auto& row : rows) {
-      if (row.first == name)
-        return row.second;
-    }
-    return QString();
-  }
+  using test::helpers::rowValue;
 
   int rowIndex(const RenderGraphInspectorWidget::DetailRows& rows, const QString& name) {
     for (int index = 0; index != rows.size(); ++index) {
