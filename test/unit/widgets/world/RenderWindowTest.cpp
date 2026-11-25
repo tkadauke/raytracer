@@ -13,6 +13,7 @@
 #include "world/objects/Sphere.h"
 
 #include "test/helpers/GuiTestHelper.h"
+#include "test/helpers/RenderGraphInspectorTestHelper.h"
 #include "test/helpers/VectorTestHelper.h"
 
 #include <QCheckBox>
@@ -27,13 +28,7 @@
 namespace RenderWindowTest {
   class RenderWindowTest : public ::testing::GuiTest {};
 
-  QString rowValue(const RenderGraphInspectorWidget::DetailRows& rows, const QString& name) {
-    for (const auto& row : rows) {
-      if (row.first == name)
-        return row.second;
-    }
-    return QString();
-  }
+  using test::helpers::rowValue;
 
   void processUntilIdle(RenderWindow& window) {
     QElapsedTimer timer;
