@@ -303,10 +303,6 @@ namespace engine::graph {
       return detail::shadowFilterModeFromString(value, path, stateError);
     }
 
-    std::string colorWriteMaskString(std::uint8_t mask) {
-      return detail::colorWriteChannelsString(mask);
-    }
-
     std::uint8_t colorWriteMaskFromString(const std::string& value, const std::string& path) {
       return detail::colorWriteMaskFromString(value, path, stateError);
     }
@@ -752,7 +748,7 @@ namespace engine::graph {
     if (!m_depthWriteEnabled)
       object["depthWrite"] = false;
     if (m_colorWriteMask != Rasterizer::ColorWriteAll)
-      object["colorWriteMask"] = qstr(colorWriteMaskString(m_colorWriteMask));
+      object["colorWriteMask"] = qstr(detail::colorWriteMaskString(m_colorWriteMask, "rgb"));
     if (m_blendingEnabled)
       object["blending"] = true;
     if (m_sourceBlendFactor != Rasterizer::BlendFactor::One)
