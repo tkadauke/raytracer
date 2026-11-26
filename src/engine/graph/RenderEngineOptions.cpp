@@ -25,12 +25,6 @@ namespace engine::graph {
     }
 
 
-    std::string colorWriteMaskString(std::uint8_t mask) {
-      if ((mask & Rasterizer::ColorWriteAll) == Rasterizer::ColorWriteAll)
-        return "all";
-      return detail::colorWriteChannelsString(mask);
-    }
-
     std::uint8_t colorWriteMaskFromString(const std::string& value, const std::string& path) {
       return detail::colorWriteMaskFromString(value, path, optionsError);
     }
@@ -535,7 +529,7 @@ namespace engine::graph {
     if (m_depthBias)
       framebuffer["depthBias"] = *m_depthBias;
     if (m_colorWriteMask)
-      framebuffer["colorWriteMask"] = qstr(colorWriteMaskString(*m_colorWriteMask));
+      framebuffer["colorWriteMask"] = qstr(detail::colorWriteMaskString(*m_colorWriteMask, "all"));
     if (m_blendingEnabled)
       framebuffer["blending"] = *m_blendingEnabled;
     if (m_sourceBlendFactor)

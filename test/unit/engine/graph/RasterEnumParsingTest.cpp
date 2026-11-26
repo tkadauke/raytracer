@@ -58,9 +58,11 @@ TEST(RasterEnumParsing, ParsesColorWriteMasks) {
   }
 }
 
-TEST(RasterEnumParsing, SpellsColorWriteChannels) {
-  EXPECT_EQ("none", parsing::colorWriteChannelsString(0));
-  EXPECT_EQ("rgb", parsing::colorWriteChannelsString(Rasterizer::ColorWriteAll));
-  EXPECT_EQ("rb", parsing::colorWriteChannelsString(Rasterizer::ColorWriteRed |
-                                                    Rasterizer::ColorWriteBlue));
+TEST(RasterEnumParsing, SpellsColorWriteMasksWithCallerPreferredFullMaskName) {
+  EXPECT_EQ("none", parsing::colorWriteMaskString(0, "all"));
+  EXPECT_EQ("all", parsing::colorWriteMaskString(Rasterizer::ColorWriteAll, "all"));
+  EXPECT_EQ("rgb", parsing::colorWriteMaskString(Rasterizer::ColorWriteAll, "rgb"));
+  EXPECT_EQ("rb", parsing::colorWriteMaskString(Rasterizer::ColorWriteRed |
+                                                Rasterizer::ColorWriteBlue,
+                                                "all"));
 }
