@@ -100,6 +100,18 @@ namespace render {
     const char* platformName, const char* pathStateResidency, const char* accumulationBackend,
     const char* accumulationResidency);
 
+  struct GpuDiffusePathLoopPlatform {
+    const char* backendDisplayName;
+    const char* platformName;
+    const char* pathStateResidency;
+    const char* accumulationBackend;
+    const char* accumulationResidency;
+
+    [[nodiscard]] GpuDiffusePathLoopResult
+    makeResult(std::uint64_t initialPathCount, const GpuDiffusePathLoopSettings& settings,
+               GpuDiffusePathLoopPlatformResult&& platformResult) const;
+  };
+
   /**
     * Converts a platform kernel result (any struct exposing the same field
     * names) into the shared platform result consumed by
