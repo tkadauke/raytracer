@@ -993,6 +993,15 @@ namespace render {
     return loop;
   }
 
+  GpuDiffusePathLoopResult
+  GpuDiffusePathLoopPlatform::makeResult(std::uint64_t initialPathCount,
+                                         const GpuDiffusePathLoopSettings& settings,
+                                         GpuDiffusePathLoopPlatformResult&& platformResult) const {
+    return makePlatformGpuDiffusePathLoopResult(
+      initialPathCount, settings, std::move(platformResult), backendDisplayName, platformName,
+      pathStateResidency, accumulationBackend, accumulationResidency);
+  }
+
   std::shared_ptr<const GpuDiffusePathLoopBackend>
   GpuDiffusePathLoopBackend::defaultBackendForGpuRequest() {
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
