@@ -10,19 +10,15 @@
 namespace render {
   namespace {
 #if defined(RAYTRACER_ENABLE_VULKAN_WAVEFRONT)
-    constexpr const char* kVulkanBackendDisplayName = "Vulkan";
-    constexpr const char* kVulkanPlatformName = "vulkan";
-    constexpr const char* kVulkanPathStateResidency = "vulkan_host_visible_diffuse_path_state";
-    constexpr const char* kVulkanAccumulationBackend = "vulkan_diffuse_path_loop";
-    constexpr const char* kVulkanAccumulationResidency = "vulkan_accumulation_buffer";
+    constexpr GpuDiffusePathLoopPlatform kVulkanPlatform{
+      "Vulkan", "vulkan", "vulkan_host_visible_diffuse_path_state", "vulkan_diffuse_path_loop",
+      "vulkan_accumulation_buffer"};
 
     [[nodiscard]] GpuDiffusePathLoopResult
     makeVulkanLoopResult(std::uint64_t initialPathCount, const GpuDiffusePathLoopSettings& settings,
                          VulkanGpuDiffusePathLoopKernelResult&& vulkanResult) {
-      return makePlatformGpuDiffusePathLoopResult(
-        initialPathCount, settings, platformResultFromKernelResult(std::move(vulkanResult)),
-        kVulkanBackendDisplayName, kVulkanPlatformName, kVulkanPathStateResidency,
-        kVulkanAccumulationBackend, kVulkanAccumulationResidency);
+      return kVulkanPlatform.makeResult(initialPathCount, settings,
+                                        platformResultFromKernelResult(std::move(vulkanResult)));
     }
 #endif
   }
@@ -108,7 +104,8 @@ namespace render {
     }
     throwIfGpuDiffusePathLoopCancelled(settings);
     const GpuDiffusePathLoopPlatformAccumulationPlan accumulation =
-      platformGpuDiffusePathLoopAccumulationPlanFor(initialPathStates, kVulkanBackendDisplayName);
+      platformGpuDiffusePathLoopAccumulationPlanFor(initialPathStates,
+                                                    kVulkanPlatform.backendDisplayName);
     GpuDiffusePathLoopLaunchPlan plan = GpuDiffusePathLoopLaunchPlanner().plan(
       scene, initialPathStates, accumulation.layout, settings);
     plan.parameters.accumulationTargetMode = accumulation.targetMode;
@@ -140,7 +137,7 @@ namespace render {
       primaryPathGeneration.pathStates;
     const GpuDiffusePathLoopPlatformAccumulationPlan accumulation =
       platformGpuDiffusePathLoopAccumulationPlanFor(primaryPathGeneration, settings,
-                                                    kVulkanBackendDisplayName);
+                                                    kVulkanPlatform.backendDisplayName);
     const std::vector<GpuDiffusePrimaryPathSampleChunk> chunks =
       gpuDiffusePrimarySampleChunksFor(primaryPathGeneration, settings);
     if (!chunks.empty()) {
@@ -170,10 +167,8 @@ namespace render {
                                                    std::move(chunkPlatformResult));
       }
       mergedPlatformResult.echoedParameters = fullPlan.parameters;
-      GpuDiffusePathLoopResult result = makePlatformGpuDiffusePathLoopResult(
-        fullPlan.parameters.initialPathCount, settings, std::move(mergedPlatformResult),
-        kVulkanBackendDisplayName, kVulkanPlatformName, kVulkanPathStateResidency,
-        kVulkanAccumulationBackend, kVulkanAccumulationResidency);
+      GpuDiffusePathLoopResult result = kVulkanPlatform.makeResult(
+        fullPlan.parameters.initialPathCount, settings, std::move(mergedPlatformResult));
       result.roundTrips = chunks.size();
       return result;
     }

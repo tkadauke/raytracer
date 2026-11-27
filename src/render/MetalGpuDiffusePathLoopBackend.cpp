@@ -10,19 +10,15 @@
 namespace render {
   namespace {
 #if defined(RAYTRACER_ENABLE_METAL_WAVEFRONT)
-    constexpr const char* kMetalBackendDisplayName = "Metal";
-    constexpr const char* kMetalPlatformName = "metal";
-    constexpr const char* kMetalPathStateResidency = "metal_shared_diffuse_path_state";
-    constexpr const char* kMetalAccumulationBackend = "metal_diffuse_path_loop";
-    constexpr const char* kMetalAccumulationResidency = "metal_accumulation_buffer";
+    constexpr GpuDiffusePathLoopPlatform kMetalPlatform{
+      "Metal", "metal", "metal_shared_diffuse_path_state", "metal_diffuse_path_loop",
+      "metal_accumulation_buffer"};
 
     [[nodiscard]] GpuDiffusePathLoopResult
     makeMetalLoopResult(std::uint64_t initialPathCount, const GpuDiffusePathLoopSettings& settings,
                         MetalGpuDiffusePathLoopKernelResult&& metalResult) {
-      return makePlatformGpuDiffusePathLoopResult(
-        initialPathCount, settings, platformResultFromKernelResult(std::move(metalResult)),
-        kMetalBackendDisplayName, kMetalPlatformName, kMetalPathStateResidency,
-        kMetalAccumulationBackend, kMetalAccumulationResidency);
+      return kMetalPlatform.makeResult(initialPathCount, settings,
+                                       platformResultFromKernelResult(std::move(metalResult)));
     }
 #endif
   }
@@ -108,7 +104,8 @@ namespace render {
     }
     throwIfGpuDiffusePathLoopCancelled(settings);
     const GpuDiffusePathLoopPlatformAccumulationPlan accumulation =
-      platformGpuDiffusePathLoopAccumulationPlanFor(initialPathStates, kMetalBackendDisplayName);
+      platformGpuDiffusePathLoopAccumulationPlanFor(initialPathStates,
+                                                    kMetalPlatform.backendDisplayName);
     GpuDiffusePathLoopLaunchPlan plan = GpuDiffusePathLoopLaunchPlanner().plan(
       scene, initialPathStates, accumulation.layout, settings);
     plan.parameters.accumulationTargetMode = accumulation.targetMode;
@@ -140,7 +137,7 @@ namespace render {
       primaryPathGeneration.pathStates;
     const GpuDiffusePathLoopPlatformAccumulationPlan accumulation =
       platformGpuDiffusePathLoopAccumulationPlanFor(primaryPathGeneration, settings,
-                                                    kMetalBackendDisplayName);
+                                                    kMetalPlatform.backendDisplayName);
     const std::vector<GpuDiffusePrimaryPathSampleChunk> chunks =
       gpuDiffusePrimarySampleChunksFor(primaryPathGeneration, settings);
     if (!chunks.empty()) {
@@ -170,10 +167,8 @@ namespace render {
                                                    std::move(chunkPlatformResult));
       }
       mergedPlatformResult.echoedParameters = fullPlan.parameters;
-      GpuDiffusePathLoopResult result = makePlatformGpuDiffusePathLoopResult(
-        fullPlan.parameters.initialPathCount, settings, std::move(mergedPlatformResult),
-        kMetalBackendDisplayName, kMetalPlatformName, kMetalPathStateResidency,
-        kMetalAccumulationBackend, kMetalAccumulationResidency);
+      GpuDiffusePathLoopResult result = kMetalPlatform.makeResult(
+        fullPlan.parameters.initialPathCount, settings, std::move(mergedPlatformResult));
       result.roundTrips = chunks.size();
       return result;
     }
