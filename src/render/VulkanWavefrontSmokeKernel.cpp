@@ -623,12 +623,8 @@ namespace render {
       template<typename Record>
       SmokeBuffer createStorageBufferFromVector(VkDevice device, VkPhysicalDevice physicalDevice,
                                                 const std::vector<Record>& records) const {
-        if (records.empty()) {
-          return createStorageBuffer(device, physicalDevice,
-                                     static_cast<VkDeviceSize>(sizeof(Record)), nullptr);
-        }
-        return createStorageBuffer(device, physicalDevice, byteCount<Record>(records.size()),
-                                   records.data());
+        return createStorageBuffer(device, physicalDevice, vectorStorageByteCount(records),
+                                   records.empty() ? nullptr : records.data());
       }
 
       using render::detail::VulkanComputeHelper::updateDescriptorSet;
@@ -1293,19 +1289,14 @@ namespace render {
 
     template<typename Record>
     VkDeviceSize byteCountForRecords(std::size_t recordCount) const {
-      if (recordCount >
-          std::numeric_limits<VkDeviceSize>::max() / static_cast<VkDeviceSize>(sizeof(Record))) {
-        throw std::runtime_error("Vulkan prepared wavefront buffer is too large");
-      }
-      return static_cast<VkDeviceSize>(recordCount) * static_cast<VkDeviceSize>(sizeof(Record));
+      return byteCount<Record>(recordCount, "Vulkan prepared wavefront buffer is too large");
     }
 
     template<typename Record>
     SmokeBuffer createStorageBufferFromVector(const std::vector<Record>& records) const {
-      if (records.empty()) {
-        return createStorageBuffer(static_cast<VkDeviceSize>(sizeof(Record)), nullptr);
-      }
-      return createStorageBuffer(byteCountForRecords<Record>(records.size()), records.data());
+      return createStorageBuffer(
+        vectorStorageByteCount(records, "Vulkan prepared wavefront buffer is too large"),
+        records.empty() ? nullptr : records.data());
     }
 
     VkShaderModule createShaderModule(const std::uint32_t* words, std::size_t wordCount) const {
