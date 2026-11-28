@@ -4,6 +4,7 @@
 
 #include <vulkan/vulkan.h>
 
+#include <algorithm>
 #include <cstring>
 #include <limits>
 #include <stdexcept>
@@ -254,12 +255,21 @@ protected:
   }
 
   template<typename Record>
-  static VkDeviceSize byteCount(std::size_t recordCount) {
+  static VkDeviceSize byteCount(
+    std::size_t recordCount,
+    const char* overflowMessage = "Vulkan compute buffer is too large") {
     if (recordCount >
         std::numeric_limits<VkDeviceSize>::max() / static_cast<VkDeviceSize>(sizeof(Record))) {
-      throw std::runtime_error("Vulkan compute buffer is too large");
+      throw std::runtime_error(overflowMessage);
     }
     return static_cast<VkDeviceSize>(recordCount) * static_cast<VkDeviceSize>(sizeof(Record));
+  }
+
+  template<typename Record>
+  static VkDeviceSize vectorStorageByteCount(
+    const std::vector<Record>& records,
+    const char* overflowMessage = "Vulkan compute buffer is too large") {
+    return byteCount<Record>(std::max<std::size_t>(1u, records.size()), overflowMessage);
   }
 
   VkShaderModule createShaderModule(VkDevice device, const std::uint32_t* words,

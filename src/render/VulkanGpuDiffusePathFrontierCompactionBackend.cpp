@@ -255,12 +255,8 @@ namespace render {
       template<typename Record>
       StorageBuffer createStorageBufferFromVector(VkDevice device, VkPhysicalDevice physicalDevice,
                                                   const std::vector<Record>& records) const {
-        if (records.empty()) {
-          return createStorageBuffer(device, physicalDevice,
-                                     static_cast<VkDeviceSize>(sizeof(Record)), nullptr);
-        }
-        return createStorageBuffer(device, physicalDevice, byteCount<Record>(records.size()),
-                                   records.data());
+        return createStorageBuffer(device, physicalDevice, vectorStorageByteCount(records),
+                                   records.empty() ? nullptr : records.data());
       }
 
       void updateDescriptorSet(VkDevice device, VkDescriptorSet descriptorSet,
